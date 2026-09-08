@@ -2,6 +2,8 @@
 
 Read `ARCHITECTURE.md` first, then work through `TASKS.md` in order. One task = one commit. Do not start a task whose predecessors' gates are not green.
 
+State of the work so far: `PROGRESS.md`. Environment setup and the traps already paid for: `HANDOFF.md`.
+
 ## What this is
 
 A persistent digital world on real geography, compiled into Gaussian-splat LOD tiles (z6…z18). Server = Postgres/PostGIS + PostgREST + GeoServer + nginx. **Server executes no compute.** Every atom (assemble, frame, train, merge, sog, verify) runs in a player's browser tab. Publishing is a conditional pointer update in Postgres.
