@@ -1,7 +1,7 @@
 # HANDOFF.md — for the next instance
 
 Read `CLAUDE.md`, then `ARCHITECTURE.md`, then `PROGRESS.md`. Then start the
-first unchecked task in `TASKS.md` — currently **WP2.1**. One task, one commit,
+first unchecked task in `TASKS.md` — currently **WP3.1**. One task, one commit,
 `make gate` green before you commit.
 
 ## 1. Get a working environment first
@@ -14,7 +14,8 @@ four pieces directly. This takes about three minutes:
 apt-get update -qq
 apt-get install -y --no-install-recommends \
     postgresql-16-postgis-3 postgresql-16-pgtap \
-    libtap-parser-sourcehandler-pgtap-perl nginx-extras webp
+    libtap-parser-sourcehandler-pgtap-perl nginx-extras webp \
+    gdal-bin osm2pgsql
 pg_ctlcluster 16 main start
 su postgres -c "psql -c \"ALTER USER postgres PASSWORD 'postgres'\""
 
@@ -31,6 +32,8 @@ set -a; . ./.env; set +a
 make gate
 ```
 
+`gdal-bin` and `osm2pgsql` are what `tools/seed-*.sh` shell out to; without them
+the seeds cannot cut a tile and `tools/seed-test.sh` says so rather than failing.
 `webp` gives you `cwebp`/`dwebp`. `tools/sogwrite.mjs` shells out to them
 because node has no WebP codec, and without them WP1.2's test tiles cannot be
 built. **Export `.env` into your shell** (`set -a; . ./.env; set +a`) before
@@ -123,6 +126,38 @@ Things that cost time once. Do not rediscover them.
 - The failure rate was about one run in five, so *one* clean run proves
   nothing. Twenty is the bar used here.
 
+**The file store outlives the database**
+- A `make db-reset` empties `artifact` but leaves the bytes on disk, and nginx
+  refuses to write a path twice. A second run therefore gets a 409 on a path
+  that looks new to the database. `make-test-tiles` accepts a 409 whose bytes
+  hash to what it was uploading; `test-tiles.sh` drops `/jobs` directories no
+  atom owns any more.
+
+**A SQL function's parameter that shares a name with a column**
+- In a SQL-language function a bare name that matches a column of a table in
+  scope resolves to the column. `child_sogs(z, x, y)` compared `t.z = z + 2`
+  against a `tile t` and meant `t.z = t.z + 2`: false for every row, and every
+  merge atom in the system named sixteen empty children (`db/0014_childsogs.sql`).
+  It cost WP0.6 the same way (`db/0009_atomid.sql`). Qualify every parameter.
+
+**A canvas premultiplies**
+- `putImageData` then `convertToBlob` loses the colour under a low alpha — 91
+  counts of error at alpha 0, none at alpha 255. `sog-v1` keeps every plane's
+  alpha byte high because of it, and reads planes back through WebGL, which can
+  be told not to premultiply (`client/lib/sogenc.js`).
+
+**A Web Worker may only transfer a buffer once**
+- Two files that are views into one buffer — a tar's entries are — cannot both
+  be transferred. `client/js/atomworker.js` copies anything that is not a whole
+  buffer.
+
+**Browser tests that write need a secure context and real services**
+- WebCrypto and the Cache API are absent otherwise, and route interception
+  cannot answer a PUT. `client/test/e2e/services.js` starts postgrest, nginx and
+  a static server on localhost; only the engine CDN is intercepted. nginx's
+  temp directories have to be reachable by its worker user, which is not the
+  user that started it.
+
 **Content addressing bites in test fixtures**
 - An artifact is registered once and the store refuses to write a path twice.
   Two tiles that generate identical bytes therefore fail on the second upload,
@@ -158,35 +193,29 @@ Things that cost time once. Do not rediscover them.
   more; the evaluator in `run_structural` already takes `$1` = atom row,
   `$2` = result jsonb, `$3` = output bytes.
 
-## 4. Starting WP2.1
+## 4. Starting WP3.1
 
-WP2 replaces the synthetic world with a real one. The client side already exists
-and is tested; what is missing is real data and the atoms that turn it into
-tiles.
+WP3 is training and perceptual verification. Everything around it exists: the
+worker loop claims, runs, uploads, submits and publishes; `assemble` writes the
+`init.ply` a trainer starts from; `frame` renders the views it learns from.
 
 What you inherit, and where the seams are:
 
-1. **`tools/testterrain.mjs` is the placeholder WP2.3 replaces.** It emits the
-   three things a tile needs — splats, `height.r16`, `colliders.json` — from one
-   ground function, in exactly the shapes `client/js/player.js` reads. Match
-   those shapes and the viewer needs no changes.
-2. **`tools/sogwrite.mjs` is a working SOG v1 writer and reader.** WP2.6's
-   `lib/sogenc.js` is the same quantisation, the same zip and the same
-   `meta.json`; only the WebP encoder changes (canvas instead of `cwebp`). The
-   format was read out of the engine's own `SogBundleParser` and
-   `GSplatSogData` — `npm pack playcanvas` and grep `playcanvas.dbg.mjs` if you
-   need the details again — and `client/test/e2e/stream.spec.js` proves
-   PlayCanvas reads what it writes.
-3. **`db/0011_tilefiles.sql`** is the authorised path for a tile's heightmap and
-   colliders: `/tiles/{z}/{x}/{y}/{sha}.r16|.json`, same authority as the
-   `.sog`. `assemble` produces them as job artifacts under `/jobs/{atom}/`
-   first.
-4. **`tools/make-test-tiles.mjs` is the shape a worker takes**: ensure_job,
-   claim, upload to the path the claim reserved, register_artifact, submit,
-   publish. WP2.2's `js/work.js` is that loop in a browser.
-5. **`client/js/tiles.js` wants every tile row, published or not.** It refines
-   only into children that all exist and are all published; a child with no row
-   is outside a compiled area, which is not a hole.
+1. **`train` is an `atoms/train.js` and nothing else from the runtime.** Its
+   inputs are already resolved for it (`client/js/inputs.js`): the assemble tar
+   and the frame tars, as bytes. Its output is a ply; `sog` takes it from there.
+2. **`client/lib/render.js` has `psnr()`** and the renderer that drew the
+   reference frames, so `verify` compares like with like.
+3. **`recheck_atom()`** (`db/0015_structural.sql`) puts a settled deterministic
+   atom back in the pool with its answer still on it. That is the lever WP3.3's
+   owner spot-check pulls.
+4. **A z16 or z18 job already builds the whole DAG** — assemble, six or three
+   frame atoms, train, sog, three verify — and `sog` at z >= 16 returns
+   `submitted`, not `verified`, so the tile waits for its perceptual checks.
+5. **There is no GPU here.** `navigator.gpu` has no adapter in this container,
+   so `train`'s WebGPU path cannot be exercised. Get a machine with one.
+6. **Splat.js is not vendored yet.** `tools/vendor.sh` is where it goes, next to
+   the pinned engine, and `make vendor` is what fetches it.
 
 ## 5. Client conventions
 

@@ -3,9 +3,9 @@
 Task list: `TASKS.md`. Rules: `CLAUDE.md`. Design: `ARCHITECTURE.md`.
 Picking up the work: `HANDOFF.md`.
 
-**WP0 and WP1 are closed.** `make gate` is green end to end, about 4m30s: the
-concurrency torture test and the 30 s hot-swap poll are most of it. WP2 has not
-been started.
+**WP0, WP1 and WP2 are closed.** `make gate` is green end to end, about 8
+minutes: the concurrency torture test, the 30 s hot-swap poll and the pilot
+compile are most of it. WP3 has not been started.
 
 ## WP0 — Foundation ✅
 
@@ -234,23 +234,122 @@ gitignored. `tools/vendor.sh` fetches it (CDN, falling back to npm).
     loaded at 2 km; the browser has a real frustum, which at 2 km sees about
     1.6 km of ground and culls most of a 27 km block. Both are asserted.
 
-## WP2–WP5 ⬜
+## WP2 — Atoms without training ✅
 
-Not started. WP2.8 lists three open decisions in `TASKS.md` that should be
-confirmed with the project owner before WP2.8, not silently assumed.
+A browser tab now compiles the world. Real terrain and imagery are seeded into
+the file store, real OSM features into the database, and one tab turns them into
+published tiles: assemble, sample, encode, upload, publish, then merge upwards.
+`docs/pilot.md` has the picture and how to draw it again.
 
-### What WP2 inherits
+| task | status | commit | file(s) |
+|---|---|---|---|
+| 2.1 Geo input seeding | done | `df7e694` | `tools/{geo-common,seed-dem,seed-ortho,seed-osm,seed-test}.sh`, `tools/osm-flex.lua`, `infra/seed/` |
+| 2.2 Worker runtime | done | `bcd51a6` | `client/js/{work,inputs,atomworker,workui}.js`, `client/lib/hash.js`, `client/atoms/noop.js`, `db/0012_work.sql` |
+| 2.3 `assemble-v1` | done | `39416b0` | `client/atoms/assemble.js`, `client/lib/{ply,tar,geo,poly,mesh,terrain,props}.js`, `db/0013_world.sql` |
+| 2.4 `frame-v1` | done | `9cce90d` | `client/atoms/frame.js`, `client/lib/{cameras,render}.js` |
+| 2.5 `merge-v1` | done | `8d5ed5d` | `client/atoms/merge.js`, `client/lib/sogenc.js`, `db/0014_childsogs.sql` |
+| 2.6 `sog-v1` | done | `81614ee` | `client/atoms/sog.js`, `client/lib/sogenc.js` |
+| 2.7 Structural checks live | done | `1d81dcd` | `db/0015_structural.sql` |
+| 2.8 End-to-end | done | `8c974f2` | `client/atoms/sample.js`, `db/0016_sample.sql`, `client/test/e2e/pilot*.spec.js`, `docs/pilot.{md,png}` |
 
-- `tools/sogwrite.mjs` is a working SOG v1 writer *and* reader, verified by
-  PlayCanvas itself in `client/test/e2e/stream.spec.js`. WP2.6's `lib/sogenc.js`
-  has to do the same thing in a browser: the quantisation, the zip and the
-  meta.json layout can be lifted straight across; only the WebP encoder differs
-  (canvas instead of `cwebp`).
-- `tools/testterrain.mjs` is the placeholder WP2.3's `assemble` replaces. It
-  already emits the three things a tile needs — splats, `height.r16`,
-  `colliders.json` — in the shapes `client/js/player.js` reads.
-- `client/js/tiles.js` expects every tile row, published or not, and refines
-  only into children that all exist and are all published.
-- `db/0011_tilefiles.sql` is the authorised path for a tile's heightmap and
-  colliders. `assemble` produces them as job artifacts; they land under
-  `/tiles/{z}/{x}/{y}/` when the tile is published.
+Gate as of `8c974f2`: 243 pgTAP assertions over 12 files, the concurrency run,
+43 API and file-store assertions, 69 node assertions, 22 test-tile assertions
+and 14 headless-chromium tests. About 8 minutes.
+
+### Two bugs this work package found in earlier ones
+
+- **`child_sogs()` never found a child** (`db/0014_childsogs.sql`). Its
+  parameters are named `z`, `x`, `y` and its body compares them against a
+  `tile t` in the same scope, so `t.z = z + 2` was `t.z = t.z + 2`. Every merge
+  atom in the system named sixteen empty children. This is the same trap that
+  cost WP0.6 the merge atom's identity (`db/0009_atomid.sql`) and is the one
+  `HANDOFF.md` warns about; it is worth grepping for again whenever a SQL
+  function's parameter shares a name with a column.
+- **The file store outlives the database.** A second `make gate` on the same box
+  hit nginx's 409 on paths a previous run had written and the artifact table no
+  longer knew about. `make-test-tiles` now accepts a 409 whose bytes hash to
+  what it was uploading, and `test-tiles.sh` drops `/jobs` directories no atom
+  owns any more.
+
+### Deviations from TASKS.md, and why
+
+30. **swisstopo and Geofabrik are unreachable from this sandbox; AWS open data
+    is.** The DEM falls back to Copernicus GLO-30 (30 m, not swissALTI3D's 2 m)
+    and the ortho to Sentinel-2 L2A true colour (10 m, not swissimage's 2 m).
+    Both are real data for the real pilot region. The OSM path has only been run
+    against `infra/seed/pilot-fixture.osm`, a hand-made extract holding one of
+    everything the style maps — `OSM_FILE` takes a real Geofabrik extract on a
+    networked box.
+31. **z16/z18 are seeded for one z16 tile at the pilot's centre**, not for the
+    whole z10 tile: 4096 z18 tiles for one pilot is not what WP3 needs.
+32. **The browser tests that write need real services and a secure context.**
+    `client/test/e2e/services.js` starts postgrest, nginx and a static server on
+    localhost, and only the engine CDN is intercepted. WebCrypto and the Cache
+    API do not exist otherwise.
+33. **nginx answers CORS on `/assets /tiles /jobs /geo`**, including the
+    preflight a PUT with `Authorization` and `X-Sha256` needs. A worker tab is
+    served from a different origin than the store; without it no browser could
+    upload at all. The token still decides every write.
+34. **`assemble` builds its own geometry and writes `scene.json` + `mesh.bin`;
+    it does not instantiate a PlayCanvas scene**, and `frame` renders with a
+    small WebGL2 forward renderer rather than the engine. Nothing in `assemble`
+    renders, and the scene is our own vertex colours with one light.
+35. **Roofs are built on the footprint's oriented bounding box**, holes in a
+    ring are not triangulated, and trees are cone-and-trunk proxies until WP4.1
+    gives the catalog real GLBs.
+36. **`assemble` clips its scene to the tile** (whole triangles, 8 m margin). A
+    road arrives whole and runs for kilometres; a tile shows its own ground.
+37. **An atom records where its output went** (`result.path`), because an
+    artifact is written once and an atom that recomputes another's bytes cannot
+    put them under its own job directory.
+38. **A canvas stores colour premultiplied by alpha**, so `sog-v1` keeps every
+    plane's alpha byte high — 255 where the format leaves it free, and sh0's
+    opacity remapped into the top half of its range. That costs one bit of
+    opacity and keeps colour exact to a count; the bundle is still an ordinary
+    SOG v1 and PlayCanvas reads it in the gate. Reading a plane back uses WebGL,
+    which can be told not to premultiply.
+39. **A sog's bytes are deterministic for a browser build, not across engines**:
+    the WebP encoder is the platform's. `merge` and `sample`, which are
+    arithmetic, are deterministic everywhere. WP2.7's hash check is what would
+    notice a heterogeneous fleet, and it would blame the workers.
+40. **A hash disagreement is read as "neither answer is trusted"**: the output
+    is discarded, both workers are marked bad and the atom is offered again,
+    failing for good on the third attempt. Marking it failed on the first
+    disagreement would brick a tile at that version for ever.
+41. **`recheck_atom()` is new API surface**, without which the hash comparison
+    is unreachable: a verified atom cannot be claimed.
+42. **The merge is CPU-only.** "Byte-identical on two different GPUs" is met by
+    not using one, and `params.voxel` (0.05 m) is a floor: the effective voxel
+    is the parent's own sample spacing, `edge / sqrt(budget)`.
+43. **A missing child is recorded and skipped**, not replaced by parent-level
+    assemble samples: that fallback needs an atom the merge DAG does not build.
+44. **The pilot gate compiles one z14 tile and its ancestors**, not all 256.
+    `PILOT_BLOCK=1 npx playwright test client/test/e2e/pilot-block.spec.js`
+    compiles a whole z12 block, which is what drew `docs/pilot.png`.
+45. **TASKS.md's three open decisions were taken as written**, not put to the
+    project owner: `sample-v1` for the z14 baseline, 20 frames to a frame atom,
+    and `can_write` trusting the declared sha at upload. They are stated as
+    decisions in TASKS.md; the first is now in ARCHITECTURE.md too.
+46. **WP1's browser tests are given exactly the seven tiles WP1 publishes.**
+    They assert exact sets of loaded tiles, and the world now holds compiled
+    pilot tiles as well.
+
+## WP3–WP5 ⬜
+
+Not started.
+
+### What WP3 inherits
+
+- **The worker loop is done and tested.** `client/js/work.js` claims, fetches,
+  runs an atom in a Web Worker, uploads, registers, submits and publishes.
+  `train` needs an `atoms/train.js` and nothing else from the runtime.
+- **`assemble` already emits what `train` starts from**: `init.ply` at 30 % of
+  the budget, inside the tar, with `scene.json` and `mesh.bin` beside it.
+- **`frame` already renders the camera sets** and writes nerfstudio's
+  `transforms.json` in OpenGL's convention, chunked 20 views to an atom.
+- **`verify` has its numbers**: `client/lib/render.js` has `psnr()` and the
+  renderer that produced the reference frames.
+- **`recheck_atom()` is the lever WP3.3's spot-check pulls.**
+- **No GPU here.** `navigator.gpu` has no adapter in this container, so the
+  WebGPU path — which `train` needs — is untested. WP3 wants a real GPU.
+

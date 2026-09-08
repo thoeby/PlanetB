@@ -25,6 +25,7 @@ local `postgrest` and `nginx` themselves, so on a box with:
 - PostgreSQL 16 + PostGIS 3.4 + pgcrypto + pgTAP, and `pg_prove`
 - a `postgrest` binary on `PATH`
 - `nginx` built `--with-http_dav_module` (Debian/Ubuntu `nginx-extras`)
+- `gdal-bin` and `osm2pgsql`, which the seeding tools shell out to
 - `sqlfluff`
 - `cwebp` and `dwebp` (Debian/Ubuntu `webp`) — node has no WebP codec and the
   test tiles are WebP inside
@@ -39,13 +40,19 @@ GeoServer has no automated gate; its checklist is in `gis/README.md`.
 
 | gate | contents |
 |---|---|
-| `db-test` | 217 pgTAP assertions across schema, auth, RLS, tiles, jobs, publish, atom identity and the tile file store, then `db/test/0006_concurrency.sh` (32 workers, 4 editors, 2 stale publishers, ~2 min) |
-| `api-test` | 17 PostgREST assertions + 11 file-store assertions |
-| `client-test` | 38 node assertions (tilemath against SQL fixtures, the tile traversal, the floating origin, the player), `tools/test-tiles.sh` (22 assertions: builds and publishes the 7 test tiles), then 6 headless-chromium tests |
+| `db-test` | 243 pgTAP assertions over 12 files — schema, auth, RLS, tiles, jobs, publish, atom identity, the tile file store, the work panel's query, `tile_world`, `child_sogs` and the structural checks — then `db/test/0006_concurrency.sh` (32 workers, 4 editors, 2 stale publishers, ~2 min) |
+| `api-test` | 17 PostgREST assertions, 11 file-store assertions, 15 seeding assertions (`tools/seed-test.sh`, which also cuts one z14 dem and ortho tile straight off AWS and skips if it cannot reach them) |
+| `client-test` | 69 node assertions (tilemath against SQL fixtures, the traversal, the floating origin, the player, the worker loop, assemble, the camera sets, the merge grid, the sog quantisation), `tools/test-tiles.sh` (22 assertions), then 14 headless-chromium tests |
 | `lint` | sqlfluff over `db/` and `tools/`; eslint over `client/` and `tools/` |
 
-`make gate` takes about 4m30. The two slow parts are the concurrency torture
-test and the hot-swap test, which waits out the viewer's real 30 s poll.
+`make gate` takes about 8 minutes. The slow parts are the concurrency torture
+test, the hot-swap test (which waits out the viewer's real 30 s poll) and
+`client/test/e2e/pilot.spec.js`, which compiles a z14 tile of the pilot and its
+four ancestors from real data.
+
+`PILOT_BLOCK=1 npx playwright test client/test/e2e/pilot-block.spec.js` compiles
+a whole z12 block and redraws `docs/pilot.png`. It is not part of the gate:
+sixteen baseline tiles are minutes of real work.
 
 ## Browser tests
 
