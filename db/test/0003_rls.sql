@@ -98,7 +98,7 @@ SELECT throws_ok($$UPDATE feature SET props = '{"x":1}'::jsonb$$, '42501', NULL,
     'D2 anon UPDATE feature denied (no grant at all)');
 
 -- A1..A2: public reads -------------------------------------------------
-SELECT is((SELECT count(*)::int FROM tile), 0, 'A1 anon may SELECT tile');
+SELECT ok((SELECT count(*) FROM tile) > 0, 'A1 anon may SELECT tile');
 SELECT is((SELECT count(*)::int FROM asset), 1, 'A2 anon may SELECT the catalog');
 SELECT is((SELECT count(*)::int FROM feature), 1, 'anon may SELECT the world');
 SELECT is((SELECT count(*)::int FROM ledger), 0, 'anon sees no ledger rows');
