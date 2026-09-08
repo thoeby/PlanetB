@@ -59,7 +59,9 @@ export function mountWork(host, { loop, autostart = false } = {}) {
         if (work) return work;
         const caps = await probeCaps();
         gpu.textContent = describe(caps);
-        work = new WorkLoop({ api, filesUrl: api.endpoints().files, caps, log });
+        work = new WorkLoop({
+            api, apiUrl: api.endpoints().api, filesUrl: api.endpoints().files, caps, log,
+        });
         return work;
     }
 

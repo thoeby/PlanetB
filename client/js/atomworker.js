@@ -20,13 +20,13 @@ function transfers(out) {
 }
 
 self.onmessage = async (ev) => {
-    const { atom, inputs } = ev.data;
+    const { atom, inputs, apiUrl, filesUrl } = ev.data;
     try {
         if (!OP.test(atom.op)) throw new Error(`refusing to load atom op '${atom.op}'`);
         const url = new URL(`../atoms/${atom.op}.js`, import.meta.url);
         const mod = await import(url.href);
         const out = await mod.run({
-            atom, inputs, canvas,
+            atom, inputs, apiUrl, filesUrl, canvas,
             log: (rec) => self.postMessage({ log: rec }),
         });
         self.postMessage({ done: out }, transfers(out));

@@ -34,8 +34,10 @@ async function locate(api, refs) {
     const at = new Map(), art = new Map();
     if (refs.atoms.length) {
         for (const a of await api.select('atom',
-            { id: inList(refs.atoms), select: 'id,output_sha256' })) {
-            if (a.output_sha256) at.set(a.id, `/jobs/${a.id}/${a.output_sha256}`);
+            { id: inList(refs.atoms), select: 'id,output_sha256,result' })) {
+            // Where the producer put them, if it said; otherwise where the
+            // claim reserved room for them.
+            if (a.output_sha256) at.set(a.id, a.result?.path ?? `/jobs/${a.id}/${a.output_sha256}`);
         }
     }
     if (refs.shas.length) {

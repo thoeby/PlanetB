@@ -131,13 +131,29 @@ test('a claimed atom is uploaded to the path its claim reserved, then submitted'
     assert.equal(loop.done, 1);
 });
 
-test('an artifact already in the store is not uploaded again', async () => {
+test('an artifact the store already holds is pointed at, not written again', async () => {
     const bytes = new TextEncoder().encode('{"a":1}');
     const sha = await import('../lib/hash.js').then((m) => m.sha256(bytes));
-    const { loop, puts } = loopOver(ATOM, { spawnOut: OUT });
-    loop.api.select = async (table) => (table === 'artifact' ? [{ sha256: sha }] : []);
+    const api = fakeApi({}, { claim_atom: ATOM, submit_atom: 'verified' });
+    api.select = async (table) => (table === 'artifact'
+        ? [{ sha256: sha }]
+        : [{ id: 9, result: { path: `/jobs/9/${sha}.json` } }]);
+    const loop = new WorkLoop({
+        api,
+        filesUrl: 'http://files',
+        spawn: () => ({ run: async () => OUT, terminate: () => {} }),
+        // Invariant 1: can_write refuses a sha the artifact table already
+        // knows; the copy that is already there answers a HEAD.
+        fetchFn: async (url, opts) => new Response('', {
+            status: opts?.method === 'HEAD' ? 200 : 403,
+        }),
+        timers: { setInterval: () => 1, clearInterval: () => {}, setTimeout: () => {} },
+    });
     assert.equal(await loop.step(), 'verified');
-    assert.equal(puts.length, 0, 'Invariant 1: a path is written once');
+    const submit = api.calls.find((c) => c[1] === 'submit_atom')[2];
+    assert.equal(submit.output_sha256, sha);
+    assert.equal(submit.result.path, `/jobs/9/${sha}.json`,
+        'the consumer is told where the bytes really are');
 });
 
 test('nothing to claim is not a failure', async () => {

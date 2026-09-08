@@ -4,65 +4,27 @@
 // computes nothing about the world; everything around it is production code.
 
 import { test, expect } from '@playwright/test';
-import { execFileSync } from 'node:child_process';
-import { existsSync, readFileSync } from 'node:fs';
+import { existsSync } from 'node:fs';
 import { join } from 'node:path';
 
 import { CLIENT, FILES_ROOT } from './serve.js';
 import { startServices } from './services.js';
+import { openPage, park, psql, readyAtom, signIn, unpark } from './worker.js';
 
 const EMAIL = 'work-e2e@splatworld.local';
 const PW = 'work-e2e-password';
 
-const psql = (sql) => execFileSync('psql',
-    ['-v', 'ON_ERROR_STOP=1', '--no-psqlrc', '-q', '-t', '-A', '-c', sql],
-    { encoding: 'utf8', env: process.env }).trim();
-
 let svc = null;
 let parked = [];
 
-// claim_atom picks globally (db/0005_state.sql), so anything else that is ready
-// would be handed to this tab and it has no module for it. Everything claimable
-// is set aside for the duration and put back afterwards, the same way
-// tools/make-test-tiles.mjs and publish.js do.
-function park() {
-    const ids = psql("UPDATE atom SET state = 'waiting' WHERE state = 'ready' RETURNING id");
-    return ids ? ids.split('\n').filter(Boolean) : [];
-}
-
 // A tile nobody else is compiling, a job for it, and one noop atom, ready.
-function makeAtom(suffix) {
-    const y = 5000 + (Number(process.pid) % 1000) + suffix;
-    psql(`INSERT INTO tile (z, x, y, dirty, expected_version) VALUES (14, 9000, ${y}, true, 1)
-          ON CONFLICT (z, x, y) DO UPDATE SET dirty = true`);
-    const job = psql(`INSERT INTO job (z, x, y, target_version, state)
-                      VALUES (14, 9000, ${y}, 1, 'open')
-                      ON CONFLICT (z, x, y, target_version) DO UPDATE SET state = 'open'
-                      RETURNING id`);
-    return psql(`INSERT INTO atom (job_id, atom_hash, op, algo_version, params, state)
-                 VALUES (${job}, encode(public.digest(random()::text, 'sha256'), 'hex'),
-                         'noop', 'noop-v1', '{"note": "wp2.2"}'::jsonb, 'ready')
-                 RETURNING id`);
-}
+const makeAtom = (suffix) => readyAtom({
+    z: 14, x: 9000, y: 5000 + (Number(process.pid) % 1000) + suffix,
+    op: 'noop', algo: 'noop-v1', params: { note: 'wp2.2' },
+});
 
-// Only the engine is intercepted. Everything else — the API, the file store,
-// the page itself — is a real server on localhost, because this test writes.
-async function open(page) {
-    await page.route('https://code.playcanvas.com/**', (route) => route.fulfill({
-        contentType: 'text/javascript',
-        body: readFileSync(join(CLIENT, 'vendor/playcanvas/playcanvas.js')),
-    }));
-    await page.goto(svc.pageUrl);
-}
-
-async function signIn(page) {
-    await page.waitForFunction(() => window.splatworld?.work, null, { timeout: 60000 });
-    await page.evaluate(async ([email, pw]) => {
-        const { api } = window.splatworld;
-        await api.register(email, pw).catch(() => {});
-        await api.login(email, pw);
-    }, [EMAIL, PW]);
-}
+const open = (page) => openPage(page, svc.pageUrl);
+const enter = (page) => signIn(page, EMAIL, PW);
 
 test.describe.configure({ timeout: 120000 });
 
@@ -82,9 +44,7 @@ test.beforeAll(async () => {
 });
 
 test.afterAll(() => {
-    if (parked.length) {
-        psql(`UPDATE atom SET state = 'ready' WHERE id IN (${parked.join(',')})`);
-    }
+    unpark(parked);
     svc?.stop();
 });
 
@@ -94,7 +54,7 @@ test('a tab claims an atom, runs it in a worker, uploads it and submits it',
         const errors = [];
         page.on('pageerror', (e) => errors.push(String(e)));
         await open(page);
-        await signIn(page);
+        await enter(page);
 
         // The panel's own switch, not a back door: this is what a player flips.
         await page.locator('.work-toggle').check();
@@ -136,7 +96,7 @@ test('a heartbeat keeps a claim alive across six minutes, and silence loses it',
     async ({ page }) => {
         const atom = makeAtom(2);
         await open(page);
-        await signIn(page);
+        await enter(page);
 
         const claimed = await page.evaluate(
             () => window.splatworld.api.rpc('claim_atom', { caps: {} }));
