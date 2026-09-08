@@ -67,8 +67,13 @@ OTHER_JWT=$(tr -d '"' < "$body")
 [ -n "$OWNER_JWT" ] && ok "the token is non-empty" || no "the token is non-empty"
 
 # Areas are seeded by an admin, never by the API (no write grant on area).
+# A per-run offset keeps repeated runs off each other's tiles.
+OFF=$(( (STAMP / 1000000) % 200 ))
+LON=$(awk "BEGIN{printf \"%.4f\", 9.0 + $OFF * 0.015}")
+LAT=$(awk "BEGIN{printf \"%.4f\", 46.0 + $OFF * 0.004}")
 AREA=$($PSQL -c "INSERT INTO area (geom, owner_id, detail) VALUES (
-    st_makeenvelope(7.4, 46.4, 7.6, 46.6, 4326), '$OWNER_ID', 14) RETURNING id")
+    st_makeenvelope($LON - 0.02, $LAT - 0.02, $LON + 0.02, $LAT + 0.02, 4326),
+    '$OWNER_ID', 14) RETURNING id")
 
 # ------------------------------------------------------------------- reads
 is "anon can read tiles" 200 "$(code GET /tile)"
@@ -76,19 +81,17 @@ is "anon can read the catalog" 200 "$(code GET /asset)"
 is "anon can read areas" 200 "$(code GET /area)"
 
 # ------------------------------------------------------------------- writes
-GEOM=$($PSQL -c "SELECT encode(st_asewkb(st_geomfromtext(
-    'POLYGONZ((7.45 46.45 0,7.55 46.45 0,7.55 46.55 0,7.45 46.55 0,7.45 46.45 0))',
-    4326)), 'hex')")
+GEOM=$($PSQL -c "SELECT encode(st_asewkb(st_force3d(st_buffer(
+    st_setsrid(st_makepoint($LON, $LAT), 4326), 0.004))), 'hex')")
 FEATURE="{\"area_id\":\"$AREA\",\"kind\":\"forest\",\"geom\":\"$GEOM\"}"
 is "anon cannot write a feature" 401 "$(code POST /feature "$FEATURE")"
 is "a stranger cannot write in my area" 403 "$(code POST /feature "$FEATURE" "$OTHER_JWT")"
 is "the owner can write in their area" 201 "$(code POST /feature "$FEATURE" "$OWNER_JWT")"
 
 # --------------------------------------------------------------------- jobs
-TILE=$($PSQL -c "SELECT json_build_object('z', z, 'x', x, 'y', y)::text FROM tile WHERE z = 14 ORDER BY x, y LIMIT 1")
-Z=$(echo "$TILE" | sed 's/.*"z" : \([0-9]*\).*/\1/')
-X=$(echo "$TILE" | sed 's/.*"x" : \([0-9]*\).*/\1/')
-Y=$(echo "$TILE" | sed 's/.*"y" : \([0-9]*\).*/\1/')
+Z=14
+X=$($PSQL -c "SELECT tile_x($LON, 14)")
+Y=$($PSQL -c "SELECT tile_y($LAT, 14)")
 
 is "a stranger cannot open a job for free" 400 \
     "$(code POST /rpc/ensure_job "{\"z\":$Z,\"x\":$X,\"y\":$Y}" "$OTHER_JWT")"
