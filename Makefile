@@ -25,10 +25,15 @@ DB_TEST_SCRIPTS := $(sort $(wildcard db/test/[0-9]*.sh))
 
 COMPOSE := docker compose -f infra/compose.yml --env-file .env
 
-.PHONY: help up down logs db-reset db-migrate db-test api-test client-test lint gate
+.PHONY: help up down logs db-reset db-migrate db-test api-test client-test lint gate vendor
 
 help:
-	@echo 'targets: up down logs db-reset db-migrate db-test api-test client-test lint gate'
+	@echo 'targets: up down logs vendor db-reset db-migrate db-test api-test client-test lint gate'
+
+# Third-party code client/ loads from a CDN, copied locally so the browser tests
+# can run offline. Gitignored; tools/vendor.sh holds the pinned versions.
+vendor:
+	@bash tools/vendor.sh
 
 up:
 	$(COMPOSE) up -d

@@ -7,7 +7,7 @@
 <meta name="splatworld:files" content="http://localhost:8080">
 <style>
   :root { color-scheme: dark; font: 14px/1.5 system-ui, sans-serif; }
-  body { margin: 0; background: #0d1013; color: #e6e9ec; }
+  body { margin: 0; background: #0d1013; color: #e6e9ec; overflow: hidden; }
   #view { display: block; width: 100vw; height: 100vh; }
   #hud {
     position: fixed; top: 12px; left: 12px; width: 20rem; padding: 12px 14px;
@@ -25,7 +25,8 @@
   .auth-role, #world { color: #8b959e; }
   .auth-status { margin: 6px 0 0; min-height: 1.2em; color: #8b959e; }
   .auth-status[data-bad="1"] { color: #e2867a; }
-  #world { margin: 10px 0 0; padding-top: 8px; border-top: 1px solid #2a3138; }
+  #world { margin: 10px 0 0; padding-top: 8px; border-top: 1px solid #2a3138;
+    white-space: pre-line; }
 </style>
 
 <canvas id="view"></canvas>
@@ -35,29 +36,67 @@
   <p id="world">…</p>
 </section>
 
+<!-- PlayCanvas 2.x, pinned. The browser tests route this URL to the copy
+     `make vendor` puts under client/vendor/, so they run without a network. -->
+<script src="https://code.playcanvas.com/playcanvas-2.22.0.js"></script>
+
 <script type="module">
   import * as api from './js/api.js';
   import { mountAuth } from './js/auth.js';
+  import { FloatingOrigin } from './js/origin.js';
+  import { TileStreamer, cameraState } from './js/tiles.js';
 
   api.configure();
   const world = document.getElementById('world');
+  mountAuth(document.getElementById('auth'));
 
   // Reading tiles needs no token: everyone reads the world (db/0003_rls.sql).
-  async function refreshWorld() {
-    try {
-      const tiles = await api.select('tile', {
-        select: 'z,x,y,published_version,sog_sha256',
-        published_version: 'gt.0', order: 'z,x,y', limit: '500',
-      });
-      const dirty = await api.select('tile', { select: 'z', dirty: 'is.true', limit: '500' });
-      world.textContent = `${tiles.length} published tiles, ${dirty.length} dirty`;
-    } catch (err) {
-      world.textContent = `api unreachable (${api.endpoints().api}): ${err.message}`;
-    }
-  }
+  // Every row is fetched, not only the published ones — the traversal has to
+  // tell an unpublished child from one that does not exist.
+  const rows = await api.select('tile', {
+    select: 'z,x,y,dirty,published_version,sog_sha256,manifest',
+    order: 'z,x,y', limit: '5000',
+  }).catch((err) => {
+    world.textContent = `api unreachable (${api.endpoints().api}): ${err.message}`;
+    return [];
+  });
 
-  mountAuth(document.getElementById('auth'), { onChange: refreshWorld });
-  refreshWorld();
-  // Streaming, the player controller and hot swap land in WP1.3–1.5; the
-  // canvas is here so those tasks have nothing to move.
+  const live = rows.filter((r) => r.published_version > 0 && r.manifest?.origin);
+  const anchor = (live.find((r) => r.z === 10) ?? live[0])?.manifest.origin
+    ?? { lon: 0, lat: 0, h: 0 };
+  const origin = new FloatingOrigin(anchor);
+
+  const app = new pc.Application(document.getElementById('view'), {
+    graphicsDeviceOptions: { antialias: false },
+  });
+  app.setCanvasFillMode(pc.FILLMODE_FILL_WINDOW);
+  app.setCanvasResolution(pc.RESOLUTION_AUTO);
+
+  const camera = new pc.Entity('camera');
+  camera.addComponent('camera', {
+    fov: 45, nearClip: 1, farClip: 5e7,
+    clearColor: new pc.Color(0.05, 0.06, 0.07),
+  });
+  camera.setPosition(0, 2000, 0);
+  camera.setEulerAngles(-90, 0, 0);            // straight down; WP1.4 takes over
+  app.root.addChild(camera);
+
+  const streamer = new TileStreamer(app, pc, {
+    origin, filesUrl: api.endpoints().files,
+  });
+  streamer.setTiles(rows);
+
+  app.on('update', () => {
+    const p = camera.getPosition();
+    const moved = streamer.rebase({ x: p.x, y: p.y, z: p.z });
+    if (moved) camera.setPosition(moved.x, moved.y, moved.z);
+    streamer.update(cameraState(camera, app.graphicsDevice.height));
+    world.textContent = `${live.length} published tiles\n`
+      + `${streamer.entries.size} loaded, ${streamer.pending} loading\n`
+      + `${origin.rebases} rebases`;
+  });
+  app.start();
+
+  // The handle the browser tests fly.
+  window.splatworld = { app, pc, api, origin, streamer, camera, rows };
 </script>

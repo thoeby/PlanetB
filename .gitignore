@@ -5,3 +5,5 @@ client/vendor/*/
 !client/vendor/README.md
 docs/*.local.*
 *.log
+test-results/
+playwright-report/

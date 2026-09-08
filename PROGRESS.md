@@ -61,11 +61,16 @@ clean.
 |---|---|---|---|
 | 1.1 Client scaffold | done | see git log | `client/play.html`, `client/js/{api,auth}.js`, `client/lib/tilemath.js`, `client/test/tilemath.test.js`, `client/test/fixtures/tilemath.json`, `tools/tilemath-fixtures.mjs`, `eslint.config.js`, `package.json` |
 | 1.2 Test tiles | done | see git log | `tools/{make-test-tiles.mjs,sogwrite.mjs,test-tiles.sh}`, `db/0009_atomid.sql`, `db/test/0009_atomid.sql` |
+| 1.3 Tile streaming | done | see git log | `client/js/{tiles,origin}.js`, `client/play.html`, `client/test/{tiles,origin}.test.js`, `client/test/e2e/`, `playwright.config.js`, `tools/vendor.sh`, `db/0010_lockorder.sql` |
 
 The published test tiles are z10 (535,361), (535,362), (536,361), (536,362),
 their z8 parents (133,90) and (134,90), and z6 (33,22) — near Aarau,
 Switzerland. `bash tools/test-tiles.sh` rebuilds them; `make client-test` runs
 it whenever a database is reachable.
+
+**Run `make vendor` once before `make client-test`** or the browser tests skip:
+they route the pinned CDN engine URL to `client/vendor/playcanvas/`, which is
+gitignored. `tools/vendor.sh` fetches it (CDN, falling back to npm).
 
 | task | notes for whoever picks it up |
 |---|---|
@@ -117,6 +122,67 @@ it whenever a database is reachable.
 15. **`make client-test` now builds the test tiles** when a database is
     reachable, and says so when there is none. WP1.3's playwright tests need
     them served, so the gate has to produce them.
+16. **"Refine only if all children published" reads as "all children the world
+    says exist".** A child with no `tile` row at all is outside every compiled
+    area — the edge of a region, or in the test world the fourteen quadrants of
+    a z8 tile nobody has drawn in. Requiring all sixteen would make the test
+    region unrefinable and would stop refinement at every area boundary in the
+    real one. A child that *has* a row and is unpublished is still a hole and
+    still blocks. The consequence is that the streamer is given every tile row,
+    not only the published ones.
+17. **No CDN is reachable from this sandbox.** The egress proxy refuses
+    `code.playcanvas.com`, jsdelivr and unpkg; only `registry.npmjs.org`
+    answers. `play.html` still pins the engine from the CDN as `CLAUDE.md`
+    requires, `make vendor` (`tools/vendor.sh`) puts a copy in the gitignored
+    `client/vendor/playcanvas/`, and the playwright fixture routes the CDN URL
+    to it. **The exact CDN URL in `play.html` could not be verified from here**
+    — confirm `https://code.playcanvas.com/playcanvas-2.22.0.js` on a networked
+    box. Everything else about the engine is verified: the tests run the real
+    2.22.0 build.
+18. **Browser tests run on WebGL2 over SwiftShader.** `navigator.gpu` has no
+    adapter in this container, so the WebGPU path is unexercised here. The
+    gsplat pipeline has a GLSL path and renders correctly on WebGL2 — the e2e
+    test reads the framebuffer back and checks the splats are actually drawn.
+19. **The e2e tests serve the page by route interception, not an HTTP server.**
+    `client/` is static files and the file store is a directory of immutable
+    blobs; `client/test/e2e/serve.js` reads both off disk and the tile rows
+    straight out of the database.
+20. **A tile entity gets a rotation as well as a position.** Two ENU frames
+    hundreds of kilometres apart are tilted relative to each other, so a z6
+    tile placed by translation alone would lean. `enuRotation` and
+    `matrixToQuaternion` in `lib/tilemath.js` do it.
+21. **WP1.3 fixed a second WP0 bug: `db/0010_lockorder.sql`.** The WP0.7 torture
+    test failed about one run in five to one in eight with a `40P01` in an
+    editor. Two paths lock more than one `tile` row in a transaction:
+    `mark_tiles_dirty` takes every tile a feature touches, coarse-first because
+    that is the order `tiles_for_geom` produces; `publish_tile` CASes the child
+    and only then dirties its parent, so it runs fine-first. An editor holding
+    z12 and waiting on z14, against a worker holding z14 and waiting on z12, is
+    a cycle. `publish_tile` now takes the parent's row lock before it touches
+    the child, so both paths run coarse to fine, and the upsert states its
+    `(z, x, y)` order explicitly instead of relying on `tiles_for_geom`'s.
+    Twenty consecutive torture runs at `deadlock_timeout = 200ms` — stricter
+    than the 1 s default — came back clean.
+
+    Two wrong turns are worth recording, because the trapped exception is never
+    logged and `err_log` says only `40P01 deadlock detected`:
+
+    - Ordering the upsert `(z, x, y)` and stopping there does nothing. The
+      inversion is against `publish_tile`, not between editors, and
+      `tiles_for_geom` was already producing that order.
+    - Ordering it `(z DESC, x, y)` so editors run fine-to-coarse is much worse:
+      **110 deadlocks in a single run**. Taking the z6 tile first is what
+      serialises the editors against each other — one z6 tile covers everything
+      anyone is editing — and reversing the order gives that up.
+
+    The torture test's three-features-per-statement `UPDATE` was suspected and
+    is not the cause: its plan is a hash semi-join over a sequential scan, so
+    every editor takes those row locks in heap order. `log_lock_waits = on` with
+    a short `deadlock_timeout` is how to see the waiting pairs if it returns.
+22. **The fourth checkpoint differs between the node and browser tests.** The
+    node test drives the policy with culling off, so all four z10 leaves stay
+    loaded at 2 km; the browser has a real frustum, which at 2 km sees about
+    1.6 km of ground and culls most of a 27 km block. Both are asserted.
 
 ## WP2–WP5 ⬜
 

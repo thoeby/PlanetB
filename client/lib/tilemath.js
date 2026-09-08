@@ -253,3 +253,48 @@ export function lonLatFromLocal(origin, { x, y, z }) {
         oz + sp * y - cp * z,
     ]);
 }
+
+// The local axes of an origin, as ECEF column vectors: X east, Y up, Z south.
+export function enuBasis(origin) {
+    const lam = origin.lon * RAD_PER_DEG, phi = (origin.lat ?? 0) * RAD_PER_DEG;
+    const sl = Math.sin(lam), cl = Math.cos(lam);
+    const sp = Math.sin(phi), cp = Math.cos(phi);
+    return [
+        [-sl, cp * cl, sp * cl],
+        [cl, cp * sl, sp * sl],
+        [0, sp, -cp],
+    ];
+}
+
+// Rotation taking a vector in `from`'s frame to `to`'s frame: Bᵀ(to)·B(from).
+// Two ENU frames a few hundred kilometres apart are tilted relative to each
+// other, so a tile placed by translation alone would lean.
+export function enuRotation(from, to) {
+    const a = enuBasis(to), b = enuBasis(from);
+    const m = [[0, 0, 0], [0, 0, 0], [0, 0, 0]];
+    for (let i = 0; i < 3; i++) {
+        for (let j = 0; j < 3; j++) {
+            m[i][j] = a[0][i] * b[0][j] + a[1][i] * b[1][j] + a[2][i] * b[2][j];
+        }
+    }
+    return m;
+}
+
+// Shepperd's method: pick the largest diagonal term so the divisor is never
+// small. Returns [x, y, z, w].
+export function matrixToQuaternion(m) {
+    const t = m[0][0] + m[1][1] + m[2][2];
+    if (t > 0) {
+        const s = Math.sqrt(t + 1) * 2;
+        return [(m[2][1] - m[1][2]) / s, (m[0][2] - m[2][0]) / s,
+            (m[1][0] - m[0][1]) / s, s / 4];
+    }
+    const i = m[0][0] > m[1][1] ? (m[0][0] > m[2][2] ? 0 : 2) : (m[1][1] > m[2][2] ? 1 : 2);
+    const j = (i + 1) % 3, k = (i + 2) % 3;
+    const s = Math.sqrt(m[i][i] - m[j][j] - m[k][k] + 1) * 2;
+    const q = [0, 0, 0, (m[k][j] - m[j][k]) / s];
+    q[i] = s / 4;
+    q[j] = (m[j][i] + m[i][j]) / s;
+    q[k] = (m[k][i] + m[i][k]) / s;
+    return q;
+}

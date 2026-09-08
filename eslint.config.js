@@ -8,6 +8,7 @@ const browser = {
     setTimeout: 'readonly', clearTimeout: 'readonly', setInterval: 'readonly',
     clearInterval: 'readonly', performance: 'readonly', caches: 'readonly',
     Request: 'readonly', Response: 'readonly', Headers: 'readonly',
+    requestAnimationFrame: 'readonly', cancelAnimationFrame: 'readonly',
 };
 
 const node = {
@@ -42,8 +43,17 @@ export default [
         rules,
     },
     {
-        files: ['client/test/**/*.js', 'tools/**/*.mjs', 'eslint.config.js'],
+        files: ['client/test/**/*.js', 'tools/**/*.mjs', 'eslint.config.js',
+            'playwright.config.js'],
         languageOptions: { ecmaVersion: 2023, sourceType: 'module', globals: node },
+        rules,
+    },
+    {
+        // page.evaluate() bodies run in the browser, not in node.
+        files: ['client/test/e2e/**/*.spec.js'],
+        languageOptions: {
+            ecmaVersion: 2023, sourceType: 'module', globals: { ...node, ...browser },
+        },
         rules,
     },
 ];
