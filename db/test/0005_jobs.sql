@@ -70,7 +70,7 @@ SELECT set_config('request.jwt.claims',
 SELECT throws_ok(
     format($$SELECT ensure_job(12, %s, %s)$$,
            (SELECT x FROM tile WHERE z = 12), (SELECT y FROM tile WHERE z = 12)),
-    NULL, 'a stranger without a bounty cannot open a job');
+    null, 'a stranger without a bounty cannot open a job');
 SELECT lives_ok(
     format($$SELECT ensure_job(12, %s, %s, 5)$$,
            (SELECT x FROM tile WHERE z = 12), (SELECT y FROM tile WHERE z = 12)),
@@ -85,7 +85,7 @@ SELECT is((SELECT bounty FROM job WHERE id = (SELECT job_id FROM claimed)),
     5::numeric, 'the bountied job is served first');
 SELECT is((SELECT state FROM atom WHERE id = (SELECT id FROM claimed)), 'claimed',
     'claim marks the atom claimed');
-SELECT isnt((SELECT worker_id FROM atom WHERE id = (SELECT id FROM claimed)), NULL,
+SELECT isnt((SELECT worker_id FROM atom WHERE id = (SELECT id FROM claimed)), null,
     'claim records the worker');
 SELECT is((SELECT count(*)::int FROM atom
            WHERE op = 'train' AND state = 'claimed'), 0,
@@ -124,7 +124,7 @@ SELECT throws_ok(format($$SELECT submit_atom(%s, %L, '{}'::jsonb)$$,
         (SELECT id FROM atom WHERE op = 'sog'
          AND job_id = (SELECT job_id FROM claimed)),
         repeat('3', 64)),
-    NULL, 'submitting an atom that is not claimed raises');
+    null, 'submitting an atom that is not claimed raises');
 
 -- expiry -------------------------------------------------------------------
 CREATE TEMP TABLE sog AS SELECT id FROM claim_atom('{}'::jsonb);

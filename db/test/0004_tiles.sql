@@ -86,7 +86,7 @@ SELECT is((SELECT count(*)::int FROM tile), 11,
 SELECT throws_ok($$INSERT INTO feature (area_id, kind, geom)
     VALUES ('00000000-0000-0000-0000-0000000000a1', 'forest',
             st_geomfromtext('POINTZ(0 0 0)', 4326))$$,
-    NULL, 'an edit outside its area raises');
+    null, 'an edit outside its area raises');
 
 -- the trigger creates no jobs and no atoms (Invariant 4) ---------------
 SELECT is((SELECT count(*)::int FROM job), 0, 'trigger created no job');

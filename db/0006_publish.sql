@@ -3,8 +3,8 @@
 -- and only ever appends to the ledger.
 
 INSERT INTO account (id, owner_id) VALUES
-('00000000-0000-0000-0000-0000000e5c20', NULL),   -- escrow
-('00000000-0000-0000-0000-00000047a250', NULL);   -- treasury
+('00000000-0000-0000-0000-0000000e5c20', null),   -- escrow
+('00000000-0000-0000-0000-00000047a250', null);   -- treasury
 
 CREATE FUNCTION escrow_account() RETURNS uuid
 LANGUAGE sql IMMUTABLE AS $$SELECT '00000000-0000-0000-0000-0000000e5c20'::uuid$$;

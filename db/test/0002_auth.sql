@@ -32,8 +32,8 @@ SELECT is((SELECT count(*)::int FROM account
            WHERE owner_id = (SELECT id FROM auth.user)), 1,
     'register creates exactly one account');
 SELECT throws_ok($$SELECT register('pilot@example.com', 'hunter2hunter2')$$,
-    '23505', NULL, 'duplicate email rejected');
-SELECT throws_ok($$SELECT register('other@example.com', 'short')$$, NULL,
+    '23505', null, 'duplicate email rejected');
+SELECT throws_ok($$SELECT register('other@example.com', 'short')$$, null,
     'short password rejected');
 
 -- login ---------------------------------------------------------------
@@ -45,7 +45,7 @@ SELECT is(
     (SELECT auth.verify(login('pilot@example.com', 'hunter2hunter2')) ->> 'role'),
     'player', 'token payload carries role');
 SELECT throws_ok($$SELECT login('pilot@example.com', 'wrongpassword')$$,
-    '28P01', NULL, 'wrong password raises');
+    '28P01', null, 'wrong password raises');
 
 SELECT * FROM finish();
 ROLLBACK;

@@ -107,20 +107,20 @@ SELECT is_empty($$
 $$, 'every geometry column has a GiST index');
 
 -- checks ---------------------------------------------------------------
-SELECT throws_ok($$INSERT INTO tile (z, x, y) VALUES (7, 1, 1)$$, NULL,
+SELECT throws_ok($$INSERT INTO tile (z, x, y) VALUES (7, 1, 1)$$, null,
     'odd zoom rejected');
-SELECT throws_ok($$INSERT INTO tile (z, x, y) VALUES (6, 64, 1)$$, NULL,
+SELECT throws_ok($$INSERT INTO tile (z, x, y) VALUES (6, 64, 1)$$, null,
     'x out of range rejected');
 SELECT lives_ok($$INSERT INTO tile (z, x, y) VALUES (6, 33, 22)$$,
     'even zoom in range accepted');
 SELECT throws_ok(
-    $$UPDATE tile SET published_version = 5 WHERE z = 6$$, NULL,
+    $$UPDATE tile SET published_version = 5 WHERE z = 6$$, null,
     'published_version cannot exceed expected_version (Invariant 3)');
 
 -- ledger is append-only ------------------------------------------------
 INSERT INTO account (id, owner_id)
-VALUES ('11111111-1111-1111-1111-111111111111', NULL),
-       ('22222222-2222-2222-2222-222222222222', NULL);
+VALUES ('11111111-1111-1111-1111-111111111111', null),
+       ('22222222-2222-2222-2222-222222222222', null);
 INSERT INTO ledger (debit, credit, amount, ref)
 VALUES ('11111111-1111-1111-1111-111111111111',
         '22222222-2222-2222-2222-222222222222', 10, 'test:1');
@@ -135,18 +135,18 @@ SELECT is((SELECT amount FROM balance
 SELECT throws_ok($$INSERT INTO ledger (debit, credit, amount, ref)
     VALUES ('11111111-1111-1111-1111-111111111111',
             '22222222-2222-2222-2222-222222222222', 1, 'test:1')$$,
-    '23505', NULL, 'duplicate ledger.ref rejected');
+    '23505', null, 'duplicate ledger.ref rejected');
 
 SET ROLE player;
-SELECT throws_ok($$UPDATE ledger SET amount = 999$$, '42501', NULL,
+SELECT throws_ok($$UPDATE ledger SET amount = 999$$, '42501', null,
     'player cannot UPDATE ledger');
-SELECT throws_ok($$DELETE FROM ledger$$, '42501', NULL,
+SELECT throws_ok($$DELETE FROM ledger$$, '42501', null,
     'player cannot DELETE from ledger');
 RESET ROLE;
 
-SELECT throws_ok($$UPDATE ledger SET amount = 999$$, 'P0001', NULL,
+SELECT throws_ok($$UPDATE ledger SET amount = 999$$, 'P0001', null,
     'ledger UPDATE blocked by trigger even for the owner');
-SELECT throws_ok($$DELETE FROM ledger$$, 'P0001', NULL,
+SELECT throws_ok($$DELETE FROM ledger$$, 'P0001', null,
     'ledger DELETE blocked by trigger even for the owner');
 
 SELECT * FROM finish();

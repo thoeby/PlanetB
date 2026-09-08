@@ -110,7 +110,7 @@ SELECT lives_ok(
                  1, 'tip:1')$$, 'a tip goes through');
 SELECT throws_ok(
     $$SELECT pay((SELECT id FROM account WHERE owner_id = (SELECT owner_id FROM ids)),
-                 1, 'tip:1')$$, '23505', NULL,
+                 1, 'tip:1')$$, '23505', null,
     'the same ref cannot be paid twice');
 SELECT is((SELECT account_balance(id) FROM account WHERE owner_id = ids.wb_id),
     3::numeric, 'and the balance moved exactly once') FROM ids;
