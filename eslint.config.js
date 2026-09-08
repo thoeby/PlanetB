@@ -9,6 +9,10 @@ const browser = {
     clearInterval: 'readonly', performance: 'readonly', caches: 'readonly',
     Request: 'readonly', Response: 'readonly', Headers: 'readonly',
     requestAnimationFrame: 'readonly', cancelAnimationFrame: 'readonly',
+    URL: 'readonly', crypto: 'readonly', navigator: 'readonly',
+    TextEncoder: 'readonly', TextDecoder: 'readonly', Worker: 'readonly',
+    // The atom worker's own globals (client/js/atomworker.js).
+    self: 'readonly', OffscreenCanvas: 'readonly', ImageData: 'readonly',
 };
 
 const node = {

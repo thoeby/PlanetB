@@ -27,6 +27,16 @@
   .auth-status[data-bad="1"] { color: #e2867a; }
   #world { margin: 10px 0 0; padding-top: 8px; border-top: 1px solid #2a3138;
     white-space: pre-line; }
+  #work { margin: 10px 0 0; padding-top: 8px; border-top: 1px solid #2a3138; }
+  .work-gpu, .work-state { color: #8b959e; }
+  .work-bg { display: flex; gap: 6px; align-items: center; margin: 6px 0; }
+  .work-bg input { width: auto; }
+  .work-tiles { margin: 6px 0; padding: 0; list-style: none; max-height: 8rem;
+    overflow-y: auto; }
+  .work-tile { display: flex; gap: 6px; align-items: baseline; margin: 2px 0; }
+  .work-tile button { flex: 0 0 auto; padding: 1px 6px; }
+  .work-log { margin: 4px 0 0; color: #6f7a84; font-size: 12px;
+    white-space: pre-wrap; }
 </style>
 
 <canvas id="view"></canvas>
@@ -34,6 +44,7 @@
   <h1>splatworld</h1>
   <div id="auth"></div>
   <p id="world">…</p>
+  <div id="work"></div>
 </section>
 
 <!-- PlayCanvas 2.x, pinned. The browser tests route this URL to the copy
@@ -46,10 +57,15 @@
   import { FloatingOrigin } from './js/origin.js';
   import { TileStreamer, cameraState } from './js/tiles.js';
   import { Player, Terrain, WALK } from './js/player.js';
+  import { mountWork } from './js/workui.js';
 
   api.configure();
   const world = document.getElementById('world');
-  mountAuth(document.getElementById('auth'));
+
+  // The work panel lists the dirty tiles of whoever is signed in, so it is
+  // re-read every time that changes.
+  const work = mountWork(document.getElementById('work'));
+  mountAuth(document.getElementById('auth'), { onChange: () => work.refresh() });
 
   // Reading tiles needs no token: everyone reads the world (db/0003_rls.sql).
   // Every row is fetched, not only the published ones — the traversal has to
@@ -128,6 +144,6 @@
 
   // The handle the browser tests fly.
   window.splatworld = {
-    app, pc, api, origin, streamer, camera, rows, terrain, player, setDriving,
+    app, pc, api, origin, streamer, camera, rows, terrain, player, setDriving, work,
   };
 </script>
