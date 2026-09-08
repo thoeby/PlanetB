@@ -1,7 +1,7 @@
 # HANDOFF.md — for the next instance
 
 Read `CLAUDE.md`, then `ARCHITECTURE.md`, then `PROGRESS.md`. Then start the
-first unchecked task in `TASKS.md` — currently **WP3.1**. One task, one commit,
+first unchecked task in `TASKS.md` — currently **WP4.1**. One task, one commit,
 `make gate` green before you commit.
 
 ## 1. Get a working environment first
@@ -29,8 +29,15 @@ cp .env.example .env
 npm install            # eslint and @playwright/test, dev tooling only
 make vendor            # the PlayCanvas build the browser tests route to
 set -a; . ./.env; set +a
+bash tools/seed-dem.sh && bash tools/seed-ortho.sh    # about four minutes
 make gate
 ```
+
+**Seed the pilot before the first `make gate`.** Half the browser tests compile
+a real z16 tile of it, and `tools/seed-test.sh` — which `make api-test` runs —
+cuts exactly one z14 tile, enough to prove the path and not enough to build
+anything. The specs skip when the tile they need is not covered
+(`demSeeded()` in `client/test/e2e/serve.js`) and say which script to run.
 
 `gdal-bin` and `osm2pgsql` are what `tools/seed-*.sh` shell out to; without them
 the seeds cannot cut a tile and `tools/seed-test.sh` says so rather than failing.
@@ -57,9 +64,17 @@ URL in `play.html` has never been fetched — check it on a networked box.
 **Browsers.** `@playwright/test` is pinned in `package.json`, and
 `playwright.config.js` points `executablePath` at `/opt/pw-browsers/chromium`
 when that exists, because the preinstalled build does not match the version
-playwright would download. WebGL2 works there over ANGLE + SwiftShader;
-`navigator.gpu` has no adapter, so the WebGPU path is untested — WP3 will need a
-real GPU.
+playwright would download. WebGL2 works there over ANGLE + SwiftShader.
+
+**WebGPU is available, with two conditions.** `navigator.gpu` is not defined
+unless chromium is launched with `--enable-unsafe-webgpu` *and* the page is on a
+secure origin — `about:blank` and `http://splatworld.test/` are not, `localhost`
+is. With both, Dawn gives a real device over SwiftShader: the trainer's shaders
+compile and run and are checked against the JS reference
+(`client/test/e2e/gsgpu.spec.js`), at perhaps a hundredth of the speed of a
+GPU. `client/test/e2e/train.spec.js` and `gsgpu.spec.js` set the flag
+themselves with `test.use({ launchOptions })`; the default config does not, so
+every other test still sees the WebGL2-only machine it was written for.
 
 If Docker *is* available, `make up` + `make gate` should work — but nobody has
 run `infra/compose.yml` yet, so expect to debug it and commit the fix.
@@ -158,11 +173,59 @@ Things that cost time once. Do not rediscover them.
   temp directories have to be reachable by its worker user, which is not the
   user that started it.
 
+**An artifact whose atom is gone is registered but unfindable**
+- `client/js/inputs.js` finds where an artifact's bytes are by asking which
+  atom produced it (`result.path`, else `/jobs/{atom}/…`). A fixture that
+  rebuilds a DAG by deleting the job's atoms therefore orphans everything the
+  last run uploaded: the store refuses the path (`can_write`: already
+  registered), and the worker has nowhere left to ask. The browser fixtures
+  give each run a fresh `seed`, which makes fresh bytes and collides with
+  nothing (`client/test/e2e/train.spec.js`).
+
 **Content addressing bites in test fixtures**
 - An artifact is registered once and the store refuses to write a path twice.
   Two tiles that generate identical bytes therefore fail on the second upload,
   which looks like a permissions bug and is not. WP1.2 hit this when the
   synthetic heightmap depended only on the zoom.
+
+**A worker that saturates the machine stops beating**
+- `setInterval` callbacks arrive on the main thread, and a Web Worker rendering
+  in software takes every core there is. The first z16 training run here lost
+  its claim to `expire_claims` twice while it was still working.
+  `WorkLoop.step` now also beats when the atom logs something, so an atom that
+  reports progress keeps its claim. Anything long-running should log.
+
+**A verify atom writes no artifact**
+- `artifact.kind` has no `verify` and adding one means altering a table with a
+  migration behind it. `client/js/work.js` therefore accepts `output: null` with
+  an empty `files`, and `submit_atom` forwards the result to
+  `submit_verification` server-side. That is also the only place the "three
+  distinct workers, none of them the trainer" rule can be enforced.
+
+**claim_atom has trust gates now**
+- `train` needs trust >= 0.3 and `verify` >= 0.6 (`db/0019_trust.sql`), and a
+  new worker starts at 0.5. A fixture that expects a fresh worker to be handed a
+  verify atom will silently be handed nothing instead. `db/test/0017_verify.sql`
+  and `client/test/e2e/train.spec.js` both create their verifiers with trust
+  0.8 and say why.
+
+**A broken WGSL shader is silent**
+- An invalid pipeline drops its dispatches, and the buffer it should have
+  written reads back as zeros. Nothing throws, nothing logs, and the trainer
+  will happily optimise against a black image. Build the backend through
+  `gpuBackend()` (`client/lib/gsgpu.js`), which asks every module for its
+  compilation messages and throws; and re-run
+  `npx playwright test client/test/e2e/gsgpu.spec.js` after touching a shader,
+  because that is the test that would have caught it.
+- A `workgroupBarrier` may not sit in control flow that depends on a value read
+  from a storage buffer. `workgroupUniformLoad` is how such a value is made
+  uniform (`client/lib/gswgsl.js`'s sort).
+
+**A bitonic sort must be sized to what is in the tile**
+- The trainer sorts each 16x16 tile's splat list in workgroup memory. Running
+  the whole 1024-entry network for a tile holding four splats cost twenty-five
+  times what the rest of the iteration did. `client/lib/gswgsl.js` rounds up to
+  the next power of two at or above the tile's count.
 
 **sqlfluff**
 - It has no plpgsql grammar; function bodies come back unparsable, so
@@ -176,9 +239,8 @@ Things that cost time once. Do not rediscover them.
 - **Migrations are numbered and never edited once applied.** Add a new file;
   `CREATE OR REPLACE FUNCTION` to change behaviour. Files sort lexically, so a
   second file for the same number needs a suffix that sorts after the first
-  (`0005_jobs.sql` → `0005_state.sql`). The highest applied is `0011_tilefiles`,
-  so WP3.3's spot-check migration wants a number **above** that — `0012_spot.sql`
-  — not the `0009_spot.sql` an earlier note reserved.
+  (`0005_jobs.sql` → `0005_state.sql`). The highest applied is `0019_trust`, so
+  WP4's first migration is `0020_*.sql`.
 - **Every client write is authorised by RLS**, never by a grant on a base
   table. Tables that no policy covers have no write grant at all and move only
   under `SECURITY DEFINER` functions. The one exception is the `geoserver`
@@ -193,29 +255,27 @@ Things that cost time once. Do not rediscover them.
   more; the evaluator in `run_structural` already takes `$1` = atom row,
   `$2` = result jsonb, `$3` = output bytes.
 
-## 4. Starting WP3.1
+## 4. Starting WP4.1
 
-WP3 is training and perceptual verification. Everything around it exists: the
-worker loop claims, runs, uploads, submits and publishes; `assemble` writes the
-`init.ply` a trainer starts from; `frame` renders the views it learns from.
+WP4 is the catalog, build mode, areas and money. The seams:
 
-What you inherit, and where the seams are:
-
-1. **`train` is an `atoms/train.js` and nothing else from the runtime.** Its
-   inputs are already resolved for it (`client/js/inputs.js`): the assemble tar
-   and the frame tars, as bytes. Its output is a ply; `sog` takes it from there.
-2. **`client/lib/render.js` has `psnr()`** and the renderer that drew the
-   reference frames, so `verify` compares like with like.
-3. **`recheck_atom()`** (`db/0015_structural.sql`) puts a settled deterministic
-   atom back in the pool with its answer still on it. That is the lever WP3.3's
-   owner spot-check pulls.
-4. **A z16 or z18 job already builds the whole DAG** — assemble, six or three
-   frame atoms, train, sog, three verify — and `sog` at z >= 16 returns
-   `submitted`, not `verified`, so the tile waits for its perceptual checks.
-5. **There is no GPU here.** `navigator.gpu` has no adapter in this container,
-   so `train`'s WebGPU path cannot be exercised. Get a machine with one.
-6. **Splat.js is not vendored yet.** `tools/vendor.sh` is where it goes, next to
-   the pinned engine, and `make vendor` is what fetches it.
+1. **`lib/hash.js` exists and `register_artifact` works**; WP4.1's `canon-v1`
+   and the SAN derivation are what is missing, plus `catalog.html`.
+2. **`account` rows are created by `register()`** already (deviation 3), and
+   `pay`, `set_bounty` and escrow release on publish are done and tested. WP4.4
+   is the wallet UI, `buy_asset` and `transfer_asset_right`.
+3. **Areas and grants are already load-bearing**: `ensure_job`,
+   `my_dirty_tiles` and `spot_due` all ask `is_area_writer`. WP4.3 adds
+   `propose`/`approve`/`merge_proposal` on top of them.
+4. **Adding an op is a worked example now.** WP3 added two: an atom module
+   under `client/atoms/`, a branch in `build_dag`, structural rules as rows, a
+   pgTAP file and a browser spec. Copy the shape.
+5. **One thing WP3 could not finish is waiting for WP4**: an atom belongs to
+   exactly one job, so a rebuild of the same tile at a new `expected_version`
+   reuses atoms owned by the old job and never publishes. That is why a
+   `suspect` tile cannot be recompiled yet (PROGRESS deviation 55). Including
+   the job's target version in `atom_hash` is the obvious fix and would want
+   its own migration and a torture-test run.
 
 ## 5. Client conventions
 
@@ -235,9 +295,9 @@ What you inherit, and where the seams are:
 ## 6. Before you commit
 
 ```
-make gate        # ~4m30s; the concurrency test and the 30 s hot-swap poll are
-                 # most of it. `make vendor` once first, or the browser tests
-                 # skip.
+make gate        # the concurrency test, the 30 s hot-swap poll, the pilot
+                 # compile and WP3's trained tile are most of it. `make vendor`
+                 # and the pilot seed once first, or the browser tests skip.
 ```
 
 Commit message `WPx.y: <task title>`. If you deviate from `TASKS.md`, say so in

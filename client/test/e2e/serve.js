@@ -42,6 +42,21 @@ export const TEST_TILES = new Set([
 export const testTileRows = () =>
     tileRows().filter((r) => TEST_TILES.has(`${r.z}/${r.x}/${r.y}`));
 
+// Does the seed cover this tile? tools/seed-test.sh cuts one z14 tile to prove
+// the path works, which is not at all the same thing as the pilot being seeded,
+// and a spec that only asks whether geo/dem exists fails minutes later with
+// "no dem covers ...". This walks the same ancestor fallback client/lib/geo.js
+// does (tools/seed-dem.sh is what fills it in).
+export function demSeeded(z, x, y) {
+    for (let az = z; az >= 6; az -= 2) {
+        const f = 2 ** (z - az);
+        const p = join(FILES_ROOT,
+            `geo/dem/${az}/${Math.floor(x / f)}/${Math.floor(y / f)}.r16`);
+        if (existsSync(p)) return true;
+    }
+    return false;
+}
+
 export async function install(page, rows) {
     // Tile rows are read fresh on every request when no snapshot is given, so a
     // republish made during a test is visible to the page's next poll.

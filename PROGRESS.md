@@ -3,9 +3,9 @@
 Task list: `TASKS.md`. Rules: `CLAUDE.md`. Design: `ARCHITECTURE.md`.
 Picking up the work: `HANDOFF.md`.
 
-**WP0, WP1 and WP2 are closed.** `make gate` is green end to end, about 8
-minutes: the concurrency torture test, the 30 s hot-swap poll and the pilot
-compile are most of it. WP3 has not been started.
+**WP0, WP1, WP2 and WP3 are closed.** `make gate` is green end to end, about
+eleven minutes: the concurrency torture test, the 30 s hot-swap poll, the pilot
+compile and WP3's trained tile are most of it. WP4 has not been started.
 
 ## WP0 — Foundation ✅
 
@@ -334,22 +334,173 @@ and 14 headless-chromium tests. About 8 minutes.
     They assert exact sets of loaded tiles, and the world now holds compiled
     pilot tiles as well.
 
-## WP3–WP5 ⬜
+## WP3 — Training + perceptual verification ✅
+
+A tile is now learned rather than sampled. One tab claims a `train` atom, runs
+Adam over a differentiable gaussian rasteriser in WebGPU until the tile
+reproduces the frames `frame-v1` rendered of it, and encodes the result; three
+other tabs download the .sog, render two poses the trainer was never shown, and
+the third agreement is what publishes the tile. After that, every owner's tab
+that walks past checks it again for free.
+
+| task | status | commit | file(s) |
+|---|---|---|---|
+| 3.1 Trainer + `train-v1` | done | see git log | `client/lib/{gsmath,gsrast,gsgrad,gsmodel,gsopt,gstrain,gsgpu,gswgsl,gswgslgrad,frames}.js`, `client/atoms/train.js`, `client/test/{gsgrad,gstrain,frames,scene}.js`, `client/test/e2e/gsgpu.spec.js` |
+| 3.2 `verify-v1` | done | see git log | `client/atoms/verify.js`, `db/0017_verify.sql`, `db/0017_verifydag.sql`, `db/test/0017_verify.sql`, `client/test/e2e/train.spec.js` |
+| 3.3 Owner spot-check | done | see git log | `db/0018_spot.sql`, `client/js/spot.js`, `client/play.html`, `client/test/spot.test.js`, `client/test/e2e/spot.spec.js` |
+| 3.4 Trust | done | see git log | `db/0019_trust.sql`, `db/test/0019_trust.sql` |
+
+Gate at the end of WP3: 284 pgTAP assertions over 14 files, the concurrency run,
+43 API and file-store assertions, 85 node assertions, 22 test-tile assertions
+and 20 headless-chromium tests. About eleven minutes; `train.spec` is a minute
+of it, and the pilot compile and the hot-swap poll most of the rest.
+
+### The trainer, in one paragraph
+
+`client/lib/gsrast.js` is the renderer — project each gaussian with the EWA
+approximation, bucket it into the 16x16 tiles it touches, sort each bucket by
+depth and composite front to back — and `client/lib/gsgrad.js` is its
+derivative, checked against finite differences in `client/test/gsgrad.test.js`.
+`client/lib/gswgsl.js` and `client/lib/gswgslgrad.js` are the same arithmetic in
+WGSL, and `client/test/e2e/gsgpu.spec.js` renders one scene through both and
+compares them, then compares where one step of Adam leaves every parameter.
+`client/lib/gstrain.js` is the loop, `client/lib/gsopt.js` the Adam and the
+population control, and `client/atoms/train.js` the atom. The CPU path is not a
+toy: it is what `verify` renders with, and what the node tests train with.
+
+### Deviations from TASKS.md, and why
+
+47. **Splat.js could not be vendored, because there is no such thing.** npm has
+    a dozen gaussian-splat *viewers* and no browser trainer (`splat`,
+    `gaussian splatting`, `3dgs`, `splatjs` were all searched), and the sandbox
+    reaches `registry.npmjs.org` and `raw.githubusercontent.com` and nothing
+    else. `train-v1` is therefore ours, written against the published 3DGS and
+    3DGS-MCMC formulations. There is no `client/vendor/splatjs/`, no
+    `vendor/splatjs.patch` and no new dependency; `CLAUDE.md`'s rule about
+    asking before adding one is met by not adding one.
+48. **The trained artifact is a float32 ply inside a tar, not a bare fp16 ply.**
+    `client/lib/ply.js` defines the format the rest of the pipeline reads and it
+    is float32; a half-float variant needs a second reader and buys nothing,
+    because `sog-v1` quantises to 8 and 16 bits immediately afterwards. The tar
+    carries `height.r16` and `colliders.json` through from `assemble` exactly as
+    `sample-v1` does, so a trained tile is as walkable as a baseline one.
+49. **Training and verification run at 512 px, not the frames' 1024.**
+    `client/lib/frames.js` box-filters a frame down on the way in — a quarter of
+    the memory over 120 views, and, more to the point, the same picture for the
+    trainer and for the verifier. `frame-v1` also grew an optional `size`
+    parameter; nothing in the DAG sets it and the store still holds 1024 px
+    frames, but the browser gate renders smaller ones.
+50. **Four poses per camera set are held back from training.** `holdout()` picks
+    them, `train` reports its PSNR on those and no others, and the three verify
+    atoms take two each, so between them they cover all four. A trainer that
+    overfits its own views therefore fails, which is the whole point of asking
+    somebody else.
+51. **The loss is 0.8 x L1 + 0.2 x L2, not the paper's D-SSIM.** A windowed
+    statistic has to be carried through the shader as well, and the second term
+    is there to punish the big misses harder than the small ones, which L2 does.
+52. **A verified .sog publishes its tile inside `submit_verification`.**
+    ARCHITECTURE said "publish_tile by the sog worker after verified". That
+    worker is minutes gone by the time the third verifier answers, and a tile
+    that waits for a tab to come back is a tile that never publishes.
+    `publish_sog()` is the same compare-and-swap (Invariant 3), attributed to
+    the .sog's own worker, and `publish_tile` now goes through it too.
+53. **A perceptual rejection retrains; the third one fails the tile.** TASKS.md
+    says one fail → `failed`, which bricks a tile at that version on a single
+    bad opinion. The codebase already had the answer to that (deviation 40): the
+    trainer is blamed, the train atom goes back to the pool with its output
+    cleared, and the third rejection fails it for good.
+54. **A verify atom writes no artifact.** `artifact.kind` has no `verify` and
+    adding one means altering a table that already has a migration. The answer
+    *is* the result, and `submit_atom` forwards it to `submit_verification`
+    server-side — which is the only place the "three distinct workers, none of
+    them the trainer" rule can actually be enforced (Invariant 6).
+55. **A failed spot check on an already-published tile marks it `suspect` and
+    stops there.** TASKS.md asks for the job to be re-opened as well.
+    `publish_tile` is a compare-and-swap against `expected_version`
+    (Invariant 3), so a second run at the same version could never publish, and
+    re-opening the job would only look like progress. Recompiling a suspect tile
+    needs an atom identity that includes the job's target version — an atom
+    belongs to one job, so a rebuild at a new version currently reuses atoms
+    that belong to the old one (the trap of deviation 10). That is a WP4 change
+    and is listed under "open items" below.
+56. **Trust needed a way up that does not already require being trusted.** A new
+    worker starts at 0.5, judging somebody else's tile needs 0.6, and the only
+    rewards TASKS.md names are for having your own tile judged — which needs a
+    judge. An accepted atom is therefore worth +0.01, five times less than a
+    perceptual pass and twenty times less than a rejection costs, purely so the
+    circle opens: about ten accepted atoms earns a tab the right to an opinion.
+57. **WP3.1's acceptance is unrun.** There is no hardware adapter here.
+    `--enable-unsafe-webgpu` gives real WebGPU over SwiftShader, which is enough
+    to check the shader against the JS reference and to train a small tile, and
+    nothing like enough for "a pilot z16 tile in under 8 minutes, PSNR >= 24".
+    `client/test/e2e/train.spec.js` trains a real z16 tile of the pilot at
+    20 000 splats, 40 iterations and 96 px instead, and asserts that training
+    improved the held-out PSNR rather than that it reached a number.
+    **Run WP3.1's acceptance on a box with a GPU.**
+58. **The heartbeat rides on the atom's own progress reports as well as on a
+    timer.** A worker saturating four cores starves its main thread and
+    `setInterval` stops arriving: the first z16 training run here lost its claim
+    to `expire_claims` twice while it was still working. `WorkLoop` now beats
+    when an atom logs, if the last beat is older than half the interval. On a
+    machine with a GPU the CPU is idle during training and this never fires.
+59. **The spot checker stands aside while the tab is working** and does not
+    sweep on load. A check costs about what rendering a frame does; it is a
+    courtesy, not a duty, and it must never compete with an atom the tab has
+    already claimed.
+
+### Two things this work package found in the environment
+
+- **The pilot DEM and ortho had never been seeded here.** `tools/seed-test.sh`
+  cuts *one* z14 tile to prove the path works, and the pilot specs skipped only
+  when `geo/dem` did not exist at all — so they ran, and failed three minutes
+  later with "no dem covers 16/34231/22946". `bash tools/seed-dem.sh` and
+  `bash tools/seed-ortho.sh` cut the real 290 tiles each (about four minutes
+  over AWS open data), and `demSeeded()` in `client/test/e2e/serve.js` now walks
+  the same ancestor fallback `client/lib/geo.js` does, so the skip is honest.
+- **The per-tile bitonic sort ran its whole network whatever the tile held.**
+  1024-entry capacity, 55 stages, every tile, every iteration — about four
+  seconds an iteration on a real tile. Sizing the network to the next power of
+  two at or above what the tile actually holds is most of the difference between
+  that and the 0.8 s the gate now takes.
+
+  Sizing it needed a second fix. A `workgroupBarrier` may not sit in control
+  flow that depends on a value read from a storage buffer, and a tile's splat
+  count is exactly that: WGSL rejected the shader. `workgroupUniformLoad` is
+  what makes such a value uniform — thread zero works the size out, and the load
+  barriers and hands back something the compiler knows every thread agrees on.
+
+- **A WGSL shader that does not compile says nothing.** The pipeline is invalid,
+  its dispatches are dropped, and the buffer it should have written comes back
+  full of zeros — so the trainer trained happily against black images and
+  reported a PSNR that never moved. `gpuBackend()` now asks every module for its
+  `getCompilationInfo()` and throws on the first error, which is the only reason
+  the next one of these will take a minute instead of an afternoon.
+
+### Open items from WP3
+
+- [ ] **WP3.1's acceptance on a GPU**: a pilot z16 tile in under 8 minutes at
+      600 000 splats / 5 000 iterations, PSNR >= 24 against the four held-out
+      frames. Everything is in place to run it; nothing here can.
+- [ ] **A tile's per-tile splat list is capped at 1024** (`CAPACITY` in
+      `client/lib/gsgpu.js`), which is the largest bitonic sort that fits in
+      16 KB of workgroup memory. A denser tile silently drops whichever splats
+      lose the atomic race. At 512 px and 600 000 splats the average tile holds
+      about 600, so this bites only in the densest corners; sorting in global
+      memory would lift it.
+- [ ] **Recompiling a `suspect` tile** (deviation 55).
+
+## WP4–WP5 ⬜
 
 Not started.
 
-### What WP3 inherits
+### What WP4 inherits
 
-- **The worker loop is done and tested.** `client/js/work.js` claims, fetches,
-  runs an atom in a Web Worker, uploads, registers, submits and publishes.
-  `train` needs an `atoms/train.js` and nothing else from the runtime.
-- **`assemble` already emits what `train` starts from**: `init.ply` at 30 % of
-  the budget, inside the tar, with `scene.json` and `mesh.bin` beside it.
-- **`frame` already renders the camera sets** and writes nerfstudio's
-  `transforms.json` in OpenGL's convention, chunked 20 views to an atom.
-- **`verify` has its numbers**: `client/lib/render.js` has `psnr()` and the
-  renderer that produced the reference frames.
-- **`recheck_atom()` is the lever WP3.3's spot-check pulls.**
-- **No GPU here.** `navigator.gpu` has no adapter in this container, so the
-  WebGPU path — which `train` needs — is untested. WP3 wants a real GPU.
-
+- **`lib/hash.js` and the `canon-v1` seam.** WP4.1's SAN derivation is the only
+  thing missing; `register_artifact` and the `/assets/{sha}` upload path work.
+- **`account` rows already exist for every user** (deviation 3), and `pay`,
+  `set_bounty` and escrow release are done and tested. WP4.4 is the wallet UI,
+  `buy_asset` and `transfer_asset_right`.
+- **Areas, grants and `is_area_writer` are in use** by `ensure_job`,
+  `my_dirty_tiles` and `spot_due`; WP4.3 adds the proposal flow on top.
+- **The trained-tile pipeline is a worked example** of adding an op: an atom
+  module, a row in the DAG, structural rules as data, and a pgTAP file.
