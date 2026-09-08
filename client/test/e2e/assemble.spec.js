@@ -120,6 +120,11 @@ test('a tab assembles real z16 tiles of the pilot region in under a minute each'
 
         const ply = readPly(tar.get('init.ply'));
         expect(ply.count).toBe(Math.round(BUDGET * 0.3));
+        // The ortho really was draped: finite colours, and more than one of them.
+        expect([...ply.r].every(Number.isFinite)).toBe(true);
+        expect([...ply.x].every(Number.isFinite)).toBe(true);
+        const tones = new Set([...ply.g.slice(0, 20000)].map((v) => Math.round(v * 24)));
+        expect(tones.size).toBeGreaterThan(4);
         expect(tar.get('height.r16').length).toBe(scene.height.size ** 2 * 2);
         const boxes = JSON.parse(new TextDecoder().decode(tar.get('colliders.json'))).boxes;
         expect(boxes.length).toBe(stats.buildings);

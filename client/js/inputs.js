@@ -91,10 +91,12 @@ export async function resolveInputs(api, inputs) {
 // outside a secure context and in node; an in-memory map is the fallback, which
 // is correct but forgets everything when the tab closes.
 export class InputCache {
-    constructor({ filesUrl, name = 'splatworld-inputs', fetchFn = fetch } = {}) {
+    // Bare `fetch` unbinds itself from the window; it has to be called through
+    // something that keeps its receiver.
+    constructor({ filesUrl, name = 'splatworld-inputs', fetchFn } = {}) {
         this.filesUrl = filesUrl ?? '';
         this.name = name;
-        this.fetchFn = fetchFn;
+        this.fetchFn = fetchFn ?? ((...a) => fetch(...a));
         this.memory = new Map();
     }
 

@@ -73,12 +73,14 @@ export const sampleHeight = (dem, u, v) =>
 // through createImageBitmap and an OffscreenCanvas, which is where atoms run.
 export async function decodeImage(buf, canvas) {
     const bitmap = await createImageBitmap(new Blob([buf]));
-    const c = canvas(bitmap.width, bitmap.height);
+    // close() zeroes the bitmap's width, so take it first.
+    const size = bitmap.width;
+    const c = canvas(size, bitmap.height);
     const ctx = c.getContext('2d', { willReadFrequently: true });
     ctx.drawImage(bitmap, 0, 0);
-    const { data } = ctx.getImageData(0, 0, bitmap.width, bitmap.height);
+    const { data } = ctx.getImageData(0, 0, size, bitmap.height);
     bitmap.close();
-    return { data, size: bitmap.width };
+    return { data, size };
 }
 
 export const loadOrtho = (z, x, y, opts) => loadRaster('ortho', z, x, y, {
