@@ -1,0 +1,13 @@
+<!-- QGIS: Data Source Manager -> WFS/OGC API-Features -> Load Connections.
+     Points QGIS at the GeoServer WFS-T endpoint for the splatworld workspace. -->
+<qgsWFSConnections version="1.0">
+  <wfs name="splatworld"
+       url="http://localhost:8081/geoserver/splatworld/wfs"
+       version="1.1.0"
+       maxnumfeatures="10000"
+       ignoreAxisOrientation="false"
+       invertAxisOrientation="false"
+       pagesize=""
+       pagingenabled="true"
+       preferCoordinatesForWfsT11="true"/>
+</qgsWFSConnections>
