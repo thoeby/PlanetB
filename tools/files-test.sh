@@ -71,19 +71,23 @@ JWT=$(curl -s -X POST "$API_URL/rpc/register" -H 'Content-Type: application/json
 UID_=$($PSQL -c "SELECT id FROM auth.user WHERE email = 'files$STAMP@example.com'")
 
 # An area, a feature, a job and a claimed atom, so /jobs/{atom}/ is reserved.
+# The area sits at a per-run offset so repeated runs never share a tile.
+OFF=$(( (STAMP / 1000000) % 200 ))
+LON=$(awk "BEGIN{printf \"%.4f\", 6.0 + $OFF * 0.015}")
+LAT=$(awk "BEGIN{printf \"%.4f\", 46.0 + $OFF * 0.004}")
 $PSQL <<SQL > /dev/null
 SET client_min_messages = warning;
 INSERT INTO area (id, geom, owner_id, detail) VALUES (gen_random_uuid(),
-    st_makeenvelope(7.4, 46.4, 7.6, 46.6, 4326), '$UID_', 14);
+    st_makeenvelope($LON - 0.02, $LAT - 0.02, $LON + 0.02, $LAT + 0.02, 4326),
+    '$UID_', 14);
 INSERT INTO feature (area_id, kind, geom)
-SELECT id, 'footprint', st_force3d(st_centroid(geom)) FROM area WHERE owner_id = '$UID_';
+VALUES ((SELECT id FROM area WHERE owner_id = '$UID_'), 'footprint',
+        st_setsrid(st_makepoint($LON, $LAT, 500), 4326));
 DO \$\$
-DECLARE t record;
 BEGIN
     PERFORM set_config('request.jwt.claims',
         json_build_object('sub', '$UID_', 'role', 'player')::text, true);
-    SELECT z, x, y INTO t FROM tile WHERE z = 14 ORDER BY x, y LIMIT 1;
-    PERFORM ensure_job(t.z, t.x, t.y);
+    PERFORM ensure_job(14, tile_x($LON, 14), tile_y($LAT, 14));
     PERFORM claim_atom('{}'::jsonb);
 END \$\$;
 SQL
