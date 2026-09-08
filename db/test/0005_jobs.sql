@@ -62,6 +62,9 @@ SELECT ok((SELECT count(DISTINCT atom_hash) = count(*) FROM atom),
     'every atom_hash is distinct');
 
 -- authorisation ---------------------------------------------------------
+SELECT transfer(treasury_account(),
+    (SELECT id FROM account WHERE owner_id = ids.other_id), 100, 'seed:other')
+FROM ids;
 SELECT set_config('request.jwt.claims',
     json_build_object('sub', other_id, 'role', 'player')::text, true) FROM ids;
 SELECT throws_ok(
