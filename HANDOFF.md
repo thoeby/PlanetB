@@ -1,7 +1,7 @@
 # HANDOFF.md — for the next instance
 
 Read `CLAUDE.md`, then `ARCHITECTURE.md`, then `PROGRESS.md`. Then start the
-first unchecked task in `TASKS.md` — currently **WP1.1**. One task, one commit,
+first unchecked task in `TASKS.md` — currently **WP2.1**. One task, one commit,
 `make gate` green before you commit.
 
 ## 1. Get a working environment first
@@ -14,7 +14,7 @@ four pieces directly. This takes about three minutes:
 apt-get update -qq
 apt-get install -y --no-install-recommends \
     postgresql-16-postgis-3 postgresql-16-pgtap \
-    libtap-parser-sourcehandler-pgtap-perl nginx-extras
+    libtap-parser-sourcehandler-pgtap-perl nginx-extras webp
 pg_ctlcluster 16 main start
 su postgres -c "psql -c \"ALTER USER postgres PASSWORD 'postgres'\""
 
@@ -25,14 +25,38 @@ tar xf /tmp/pgrst.tar.xz -C /usr/local/bin
 pip3 install --break-system-packages sqlfluff
 
 cp .env.example .env
+npm install            # eslint and @playwright/test, dev tooling only
+make vendor            # the PlayCanvas build the browser tests route to
+set -a; . ./.env; set +a
 make gate
 ```
 
+`webp` gives you `cwebp`/`dwebp`. `tools/sogwrite.mjs` shells out to them
+because node has no WebP codec, and without them WP1.2's test tiles cannot be
+built. **Export `.env` into your shell** (`set -a; . ./.env; set +a`) before
+running anything under `tools/` directly: the Makefile exports `PG*` for its own
+targets, but the tools read them from the environment.
+
 `nginx-extras` is the Ubuntu package built `--with-http_dav_module`; plain
-`nginx-light` will not serve PUT. `tools/api-test.sh` and `tools/files-test.sh`
-start their own PostgREST and nginx when nothing is listening on `$API_URL` /
-`$FILES_URL`, so no manual service wrangling is needed. `docs/gates.md` has the
-same information for a human.
+`nginx-light` will not serve PUT. `tools/api-test.sh`, `tools/files-test.sh` and
+`tools/test-tiles.sh` start their own PostgREST and nginx when nothing is
+listening on `$API_URL` / `$FILES_URL`, so no manual service wrangling is
+needed. `docs/gates.md` has the same information for a human.
+
+**No CDN is reachable from the sandbox.** `code.playcanvas.com`, jsdelivr and
+unpkg are all refused by the egress proxy; `registry.npmjs.org` works. That is
+why `make vendor` exists: `tools/vendor.sh` tries the CDN and falls back to
+`npm pack playcanvas@2.22.0`, dropping the engine in the gitignored
+`client/vendor/playcanvas/`, and `client/test/e2e/serve.js` routes the CDN URL
+in `play.html` there. Without it the browser tests skip rather than fail. The
+URL in `play.html` has never been fetched — check it on a networked box.
+
+**Browsers.** `@playwright/test` is pinned in `package.json`, and
+`playwright.config.js` points `executablePath` at `/opt/pw-browsers/chromium`
+when that exists, because the preinstalled build does not match the version
+playwright would download. WebGL2 works there over ANGLE + SwiftShader;
+`navigator.gpu` has no adapter, so the WebGPU path is untested — WP3 will need a
+real GPU.
 
 If Docker *is* available, `make up` + `make gate` should work — but nobody has
 run `infra/compose.yml` yet, so expect to debug it and commit the fix.
@@ -79,6 +103,32 @@ Things that cost time once. Do not rediscover them.
 - `claim_atom` orders by `job.bounty DESC, atom.id`. A test that assumes "the
   lowest id is claimed first" breaks the moment a bounty exists anywhere.
 
+**claim_atom picks globally**
+- It orders by `job.bounty DESC, atom.id` across *every* open job, and
+  `expire_claims()` runs inside it, so a fresh run can be handed an atom an
+  earlier `api-test` abandoned — including one that was still `claimed` when the
+  run started. Both `tools/make-test-tiles.mjs` and
+  `client/test/e2e/publish.js` deal with this by setting aside everything
+  claimable that is not theirs and putting it back afterwards. Anything new that
+  drives the worker loop needs to do the same.
+
+**Deadlocks in the torture test**
+- A trapped exception is never logged, so `err_log` says only `40P01 deadlock
+  detected` and nothing about which statement. `log_lock_waits = on` with
+  `deadlock_timeout = '200ms'` is how to see the waiting pairs.
+- The one that was there is fixed (`db/0010_lockorder.sql`): everything now
+  takes `tile` row locks coarse before fine. If a new path locks more than one
+  tile, keep to that order. Reversing it — editors going fine to coarse — costs
+  the z6 serialisation and produced 110 deadlocks in a single run.
+- The failure rate was about one run in five, so *one* clean run proves
+  nothing. Twenty is the bar used here.
+
+**Content addressing bites in test fixtures**
+- An artifact is registered once and the store refuses to write a path twice.
+  Two tiles that generate identical bytes therefore fail on the second upload,
+  which looks like a permissions bug and is not. WP1.2 hit this when the
+  synthetic heightmap depended only on the zoom.
+
 **sqlfluff**
 - It has no plpgsql grammar; function bodies come back unparsable, so
   `.sqlfluff` sets `ignore = parsing`. That means the bodies are *not* linted
@@ -91,7 +141,9 @@ Things that cost time once. Do not rediscover them.
 - **Migrations are numbered and never edited once applied.** Add a new file;
   `CREATE OR REPLACE FUNCTION` to change behaviour. Files sort lexically, so a
   second file for the same number needs a suffix that sorts after the first
-  (`0005_jobs.sql` → `0005_state.sql`). `0009_spot.sql` is reserved for WP3.3.
+  (`0005_jobs.sql` → `0005_state.sql`). The highest applied is `0011_tilefiles`,
+  so WP3.3's spot-check migration wants a number **above** that — `0012_spot.sql`
+  — not the `0009_spot.sql` an earlier note reserved.
 - **Every client write is authorised by RLS**, never by a grant on a base
   table. Tables that no policy covers have no write grant at all and move only
   under `SECURITY DEFINER` functions. The one exception is the `geoserver`
@@ -106,36 +158,57 @@ Things that cost time once. Do not rediscover them.
   more; the evaluator in `run_structural` already takes `$1` = atom row,
   `$2` = result jsonb, `$3` = output bytes.
 
-## 4. Starting WP1.1
+## 4. Starting WP2.1
 
-Deliverable: `client/play.html`, `client/js/{api,auth}.js`,
-`client/lib/tilemath.js`, `client/test/tilemath.test.js`.
-Acceptance: 50 fixture rows exported from SQL `tiles_for_geom` match
-bit-for-bit.
+WP2 replaces the synthetic world with a real one. The client side already exists
+and is tested; what is missing is real data and the atoms that turn it into
+tiles.
 
-Concretely:
+What you inherit, and where the seams are:
 
-1. The SQL to mirror is `db/0004_tiles.sql` — `tile_x`, `tile_y`, `tile_bbox`,
-   `tiles_for_geom`, plus ancestors/children (`z-2, x/4, y/4` and the 16
-   grandchildren, as `child_sogs` in `db/0005_jobs.sql` does it). Note the
-   zoom ladder is **even zooms only**, 6…18.
-2. Generate the fixtures, do not type them: a small script that runs
-   `tiles_for_geom` over 50 geometries and writes JSON into `client/test/`.
-   Commit the generator alongside the fixture so it can be regenerated.
-3. `make client-test` currently reports "no tests yet"; it runs
-   `node --test client/test/` as soon as a `*.test.js` exists. Playwright is
-   still skipped until `playwright.config.js` and `node_modules/@playwright`
-   exist — that is WP1.3's problem, not WP1.1's.
-4. Once client JS exists, `make lint` stops skipping eslint: add a flat
-   `eslint.config.js` and keep it dependency-free per `CLAUDE.md`.
-5. `client/` must stay servable as static files. No bundler, no npm packages in
-   the client, PlayCanvas pinned from a CDN, Splat.js vendored under
-   `client/vendor/`.
+1. **`tools/testterrain.mjs` is the placeholder WP2.3 replaces.** It emits the
+   three things a tile needs — splats, `height.r16`, `colliders.json` — from one
+   ground function, in exactly the shapes `client/js/player.js` reads. Match
+   those shapes and the viewer needs no changes.
+2. **`tools/sogwrite.mjs` is a working SOG v1 writer and reader.** WP2.6's
+   `lib/sogenc.js` is the same quantisation, the same zip and the same
+   `meta.json`; only the WebP encoder changes (canvas instead of `cwebp`). The
+   format was read out of the engine's own `SogBundleParser` and
+   `GSplatSogData` — `npm pack playcanvas` and grep `playcanvas.dbg.mjs` if you
+   need the details again — and `client/test/e2e/stream.spec.js` proves
+   PlayCanvas reads what it writes.
+3. **`db/0011_tilefiles.sql`** is the authorised path for a tile's heightmap and
+   colliders: `/tiles/{z}/{x}/{y}/{sha}.r16|.json`, same authority as the
+   `.sog`. `assemble` produces them as job artifacts under `/jobs/{atom}/`
+   first.
+4. **`tools/make-test-tiles.mjs` is the shape a worker takes**: ensure_job,
+   claim, upload to the path the claim reserved, register_artifact, submit,
+   publish. WP2.2's `js/work.js` is that loop in a browser.
+5. **`client/js/tiles.js` wants every tile row, published or not.** It refines
+   only into children that all exist and are all published; a child with no row
+   is outside a compiled area, which is not a hole.
 
-## 5. Before you commit
+## 5. Client conventions
+
+- Plain ES modules, relative imports, no bundler. Everything under `client/`
+  must stay servable as static files.
+- PlayCanvas is a CDN global (`window.pc`), passed into `TileStreamer` rather
+  than imported, so `client/js/tiles.js` stays loadable under node — that is
+  what lets the traversal be unit-tested without a GPU.
+- Policy is separated from rendering on purpose: `selectTiles` is a pure
+  function of (tile rows, camera, what is loaded). Keep new decisions on that
+  side of the line and they stay testable.
+- eslint enforces `CLAUDE.md`'s limits (60 lines a function, 400 a file) and
+  runs over `client/` and `tools/`. `eslint.config.js` imports nothing.
+- `node --test client/test/*.test.js` — the glob matters, node 22 resolves a
+  bare directory as a module path.
+
+## 6. Before you commit
 
 ```
-make gate        # ~2m30s; the concurrency test is most of it
+make gate        # ~4m30s; the concurrency test and the 30 s hot-swap poll are
+                 # most of it. `make vendor` once first, or the browser tests
+                 # skip.
 ```
 
 Commit message `WPx.y: <task title>`. If you deviate from `TASKS.md`, say so in
@@ -143,5 +216,7 @@ the commit body and add a row to `PROGRESS.md` — every deviation so far is
 recorded there, and that record is the reason this handoff is short.
 
 `CLAUDE.md` says to ask before changing a table that already has a migration,
-changing an RPC signature, or adding a dependency. Three of those came up in
-WP0 and are documented in `PROGRESS.md`; treat the list as binding.
+changing an RPC signature, or adding a dependency. Several of those came up in
+WP0 and WP1 and are documented as numbered deviations in `PROGRESS.md`; treat
+the list as binding. The dependencies added so far are dev tooling only —
+eslint and `@playwright/test` — and the client itself still has none.

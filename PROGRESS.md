@@ -3,8 +3,9 @@
 Task list: `TASKS.md`. Rules: `CLAUDE.md`. Design: `ARCHITECTURE.md`.
 Picking up the work: `HANDOFF.md`.
 
-**WP0 is closed.** `make gate` is green end to end (~2m30s, most of it the
-concurrency test). WP1 is under way; see the table below for where.
+**WP0 and WP1 are closed.** `make gate` is green end to end, about 4m30s: the
+concurrency torture test and the 30 s hot-swap poll are most of it. WP2 has not
+been started.
 
 ## WP0 — Foundation ✅
 
@@ -55,7 +56,11 @@ clean.
       (`docs/gates.md`).
 - [x] `make lint` runs eslint too, as of WP1.1.
 
-## WP1 — Client core: viewer + streaming
+## WP1 — Client core: viewer + streaming ✅
+
+WP1 gate: `client/test/e2e/stream.spec.js` flies z6 → z10 over the test region
+in headless chromium and `client/test/e2e/hotswap.spec.js` republishes a loaded
+tile and watches it swap. Both run against the real published `.sog` bundles.
 
 | task | status | commit | file(s) |
 |---|---|---|---|
@@ -233,3 +238,19 @@ gitignored. `tools/vendor.sh` fetches it (CDN, falling back to npm).
 
 Not started. WP2.8 lists three open decisions in `TASKS.md` that should be
 confirmed with the project owner before WP2.8, not silently assumed.
+
+### What WP2 inherits
+
+- `tools/sogwrite.mjs` is a working SOG v1 writer *and* reader, verified by
+  PlayCanvas itself in `client/test/e2e/stream.spec.js`. WP2.6's `lib/sogenc.js`
+  has to do the same thing in a browser: the quantisation, the zip and the
+  meta.json layout can be lifted straight across; only the WebP encoder differs
+  (canvas instead of `cwebp`).
+- `tools/testterrain.mjs` is the placeholder WP2.3's `assemble` replaces. It
+  already emits the three things a tile needs — splats, `height.r16`,
+  `colliders.json` — in the shapes `client/js/player.js` reads.
+- `client/js/tiles.js` expects every tile row, published or not, and refines
+  only into children that all exist and are all published.
+- `db/0011_tilefiles.sql` is the authorised path for a tile's heightmap and
+  colliders. `assemble` produces them as job artifacts; they land under
+  `/tiles/{z}/{x}/{y}/` when the tile is published.
