@@ -7,3 +7,4 @@ docs/*.local.*
 *.log
 test-results/
 playwright-report/
+infra/seed/cache/

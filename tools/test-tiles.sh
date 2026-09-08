@@ -49,4 +49,15 @@ if ! curl -sf -o /dev/null "$FILES_URL/healthz"; then
     echo "# started a local nginx on $FILES_URL rooted at $ROOT"
 fi
 
+# /jobs holds a job's intermediate artifacts and is GC'd once the job is done
+# (ARCHITECTURE §7). A db-reset restarts atom ids, so what is left there from an
+# earlier run is both orphaned and in the way: nginx answers 409 to a PUT on a
+# path that exists. Drop the directories no atom owns any more.
+if live=$(psql -v ON_ERROR_STOP=1 --no-psqlrc -q -t -A -c 'SELECT id FROM atom'); then
+    for d in "$FILES_ROOT"/jobs/*/; do
+        [ -d "$d" ] || continue
+        grep -qx "$(basename "$d")" <<< "$live" || rm -rf "$d"
+    done
+fi
+
 node tools/make-test-tiles.mjs

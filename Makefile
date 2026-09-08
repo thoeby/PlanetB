@@ -63,6 +63,7 @@ db-test: db-reset
 api-test:
 	@if [ -x tools/api-test.sh ]; then bash tools/api-test.sh; else echo 'api-test: not implemented yet (WP0.9)'; fi
 	@if [ -x tools/files-test.sh ]; then bash tools/files-test.sh; else echo 'api-test: files-test not implemented yet (WP0.10)'; fi
+	@if [ -x tools/seed-test.sh ]; then bash tools/seed-test.sh; else echo 'api-test: seed-test not implemented yet (WP2.1)'; fi
 
 client-test:
 	@if compgen -G 'client/test/*.test.js' > /dev/null; then node --test client/test/*.test.js; else echo 'client-test: no tests yet (WP1)'; fi

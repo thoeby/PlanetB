@@ -113,6 +113,15 @@ async function putFile(path, bytes, sha) {
         },
         body: bytes,
     });
+    // The file store outlives the database: after a db-reset the artifact rows
+    // are gone but the bytes are still on disk, and nginx refuses to write a
+    // path twice (Invariant 1). Finding exactly the artifact we were about to
+    // upload already there is not a failure — it is the invariant holding.
+    if (res.status === 409) {
+        const have = await fetch(FILES_URL + path).then((r) => r.arrayBuffer());
+        if (sha256(Buffer.from(have)) === sha) return;
+        throw new Error(`PUT ${path} -> 409 and the bytes there are not ${sha}`);
+    }
     if (res.status !== 201 && res.status !== 204) {
         throw new Error(`PUT ${path} -> ${res.status} ${await res.text()}`);
     }
