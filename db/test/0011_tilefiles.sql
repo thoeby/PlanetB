@@ -36,7 +36,8 @@ CREATE TEMP TABLE reg AS
 SELECT register_artifact(repeat('1', 64), 'ply', 10, 'merge-v1') AS sha;
 CREATE TEMP TABLE sub AS
 SELECT submit_atom((SELECT id FROM claimed), repeat('1', 64),
-                   '{"splat_count": 1, "bytes": 10}'::jsonb) AS state;
+                   '{"splat_count": 1, "bytes": 10, "finite": true,
+                     "bbox": [-5, 0, -5, 5, 2, 5]}'::jsonb) AS state;
 SELECT is((SELECT state FROM sub), 'verified', 'and verified');
 CREATE TEMP TABLE sogatom AS SELECT * FROM claim_atom('{}'::jsonb);
 SELECT is((SELECT op FROM sogatom), 'sog', 'then the sog');

@@ -10,7 +10,7 @@
 // order, splats in file order, clusters in key order, and every sum is a double
 // added in that same sequence.
 
-import { emptySplats, writePly } from '../lib/ply.js';
+import { bboxOf, emptySplats, writePly } from '../lib/ply.js';
 import { decodeImage } from '../lib/geo.js';
 import { decodeSog } from '../lib/sogenc.js';
 import {
@@ -214,7 +214,7 @@ export async function run({ atom, inputs, canvas, log, apiUrl }) {
         files: [{ ext: 'ply', kind: 'ply', algo_version: ALGO, bytes }],
         output: 'ply',
         result: {
-            bytes: bytes.length, splat_count: f.count, finite: true,
+            bytes: bytes.length, splat_count: f.count, finite: true, bbox: bboxOf(f),
             voxel, origin, from: taken, clusters: grid.keys.length, used, missing,
         },
     };

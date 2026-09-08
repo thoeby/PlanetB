@@ -16,6 +16,7 @@ import { createHash } from 'node:crypto';
 
 import * as api from '../client/js/api.js';
 import * as tm from '../client/lib/tilemath.js';
+import { bboxOf } from '../client/lib/ply.js';
 import { packSog, unpackSog } from './sogwrite.mjs';
 import { GRID, makeColliders, makeHeight, makeSplats, writePly } from './testterrain.mjs';
 
@@ -161,12 +162,19 @@ async function upload(path, bytes, sha, kind, algo = 'sog-v1') {
     });
 }
 
+// Since db/0015_structural.sql a splat-producing op has to say that its result
+// is finite and where its splats are; submit_atom checks the box against the
+// tile it belongs to.
+const shape = (art) => ({
+    splat_count: art.count, gpu_seconds: 0.5, finite: true, bbox: art.bbox,
+});
+
 async function runAtom(atom, t, art) {
     if (atom.op === 'merge') {
         await upload(`/jobs/${atom.id}/merge.ply`, art.ply, art.plySha, 'ply', 'merge-v1');
         return api.rpc('submit_atom', {
             atom_id: atom.id, output_sha256: art.plySha,
-            result: { splat_count: art.count, bytes: art.ply.length, gpu_seconds: 0.5 },
+            result: { ...shape(art), bytes: art.ply.length },
         });
     }
     if (atom.op === 'sog') {
@@ -179,7 +187,7 @@ async function runAtom(atom, t, art) {
             art.collidersSha, 'colliders');
         return api.rpc('submit_atom', {
             atom_id: atom.id, output_sha256: art.sogSha,
-            result: { splat_count: art.count, bytes: art.sog.length, gpu_seconds: 0.5 },
+            result: { ...shape(art), bytes: art.sog.length },
         });
     }
     throw new Error(`unexpected op ${atom.op} at z${t.z} (merge and sog only below z16)`);
@@ -223,7 +231,7 @@ async function compileTile(t) {
     const height = makeHeight(t.z, t.x, t.y);
     const colliders = makeColliders(t.z, t.x, t.y);
     const art = {
-        ply, sog: sog.bytes, count: splats.count,
+        ply, sog: sog.bytes, count: splats.count, bbox: bboxOf(splats),
         height: height.bytes, heightMeta: height.meta, colliders,
         plySha: sha256(ply), sogSha: sha256(sog.bytes),
         heightSha: sha256(height.bytes), collidersSha: sha256(colliders),

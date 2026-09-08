@@ -16,7 +16,7 @@
 
 import { DEM_OFFSET, DEM_SCALE, loadDem, loadOrtho } from '../lib/geo.js';
 import { packMeshes } from '../lib/mesh.js';
-import { emptySplats, writePly } from '../lib/ply.js';
+import { bboxOf, emptySplats, writePly } from '../lib/ply.js';
 import { contains, rng } from '../lib/poly.js';
 import { MATERIALS, buildings, roadMesh, trees, waterMesh } from '../lib/props.js';
 import { writeTar } from '../lib/tar.js';
@@ -171,6 +171,29 @@ function sampleSurfaces(meshes, total, random) {
 
 const rngOf = (atom, z, x, y) => rng((atom.seed ?? 0) + z * 1000003 + x * 1009 + y);
 
+// A feature that crosses the tile's edge arrives whole — a road runs for
+// kilometres, a forest spills into the next tile — and a tile shows its own
+// ground and nothing else. A triangle is kept only if all of it is inside, so
+// what comes out is bounded by this box and submit_atom's bbox rule holds. The
+// margin is what makes neighbouring tiles meet rather than leave a seam.
+const CLIP_M = 8;
+
+function clip(meshes, sw, ne) {
+    const inside = (i, m) => m.positions[i * 3] >= sw.x - CLIP_M
+        && m.positions[i * 3] <= ne.x + CLIP_M
+        && m.positions[i * 3 + 2] <= sw.z + CLIP_M
+        && m.positions[i * 3 + 2] >= ne.z - CLIP_M;
+    for (const m of meshes) {
+        const kept = [];
+        for (let i = 0; i < m.indices.length; i += 3) {
+            const [a, b, c] = [m.indices[i], m.indices[i + 1], m.indices[i + 2]];
+            if (inside(a, m) && inside(b, m) && inside(c, m)) kept.push(a, b, c);
+        }
+        m.indices = kept;
+    }
+    return meshes.filter((m) => m.indices.length);
+}
+
 // The scene itself: ground first, then everything that stands on it.
 function build({ z, sw, ne, dem, ortho, frame, world, random }) {
     const feats = (world.features ?? []).map((f) => toLocal(frame, f));
@@ -186,9 +209,12 @@ function build({ z, sw, ne, dem, ortho, frame, world, random }) {
     const edge = Math.hypot(ne.x - sw.x, sw.z - ne.z);
     const built = buildings(by('footprint'), terrain);
     const wood = trees(by('forest'), terrain, random, Math.max(6, edge / 140));
-    const meshes = [terrainMesh(terrain, ortho), roadMesh(roads, terrain),
+    const meshes = clip([terrainMesh(terrain, ortho), roadMesh(roads, terrain),
         built.walls, built.roofs, waterMesh(by('water'), terrain),
-        wood.trunks, wood.canopies].filter((m) => m.indices.length);
+        wood.trunks, wood.canopies], sw, ne);
+    built.boxes = built.boxes.filter((b) => b.center[0] >= sw.x - CLIP_M
+        && b.center[0] <= ne.x + CLIP_M && b.center[2] <= sw.z + CLIP_M
+        && b.center[2] >= ne.z - CLIP_M);
     return { terrain, meshes, built, wood, roads };
 }
 
@@ -248,6 +274,7 @@ export async function run({ atom, canvas, log, apiUrl, filesUrl }) {
         output: 'tar',
         result: {
             bytes: tar.length, splat_count: splats.count, finite: true,
+            bbox: bboxOf(splats),
             trees: wood.count, buildings: built.boxes.length, snapshot: world.snapshot,
         },
     };

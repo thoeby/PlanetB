@@ -9,7 +9,7 @@
 // The manifest the tile needs travels in the result: publish_tile takes it, and
 // the origin comes from the atom that made the ply.
 
-import { readPly } from '../lib/ply.js';
+import { bboxOf, readPly } from '../lib/ply.js';
 import { encodeSog } from '../lib/sogenc.js';
 import { localFromLonLat, tileBbox, tileCenter } from '../lib/tilemath.js';
 
@@ -64,7 +64,7 @@ export async function run({ atom, inputs, canvas, log, apiUrl }) {
         }],
         output: 'sog',
         result: {
-            bytes: bytes.length, splat_count: f.count, finite: true,
+            bytes: bytes.length, splat_count: f.count, finite: true, bbox: bboxOf(f),
             tile, manifest, target_version: tile.target_version,
         },
     };

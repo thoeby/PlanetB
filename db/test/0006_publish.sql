@@ -49,7 +49,8 @@ SELECT is((SELECT op FROM ca), 'merge', 'worker A claims the merge');
 SELECT is(register_artifact(repeat('1', 64), 'ply', 4096, 'merge-v1'),
     repeat('1', 64), 'worker A registers its output');
 SELECT is(submit_atom((SELECT id FROM ca), repeat('1', 64),
-    '{"splat_count": 500000, "finite": true, "gpu_seconds": 6}'::jsonb),
+    '{"splat_count": 500000, "finite": true, "gpu_seconds": 6,
+      "bbox": [-50, -5, -50, 50, 20, 50]}'::jsonb),
     'verified', 'the merge verifies');
 
 -- worker B runs the sog (4 gpu-seconds) ---------------------------------
@@ -60,7 +61,8 @@ SELECT is((SELECT op FROM cb), 'sog', 'worker B claims the sog');
 SELECT is(register_artifact(repeat('2', 64), 'sog', 2048, 'sog-v1'),
     repeat('2', 64), 'worker B registers its output');
 SELECT is(submit_atom((SELECT id FROM cb), repeat('2', 64),
-    '{"splat_count": 500000, "finite": true, "gpu_seconds": 4}'::jsonb),
+    '{"splat_count": 500000, "finite": true, "gpu_seconds": 4,
+      "bbox": [-50, -5, -50, 50, 20, 50]}'::jsonb),
     'verified', 'a merged tile needs no perceptual check (Invariant 7)');
 
 -- publish ---------------------------------------------------------------

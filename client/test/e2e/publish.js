@@ -42,6 +42,9 @@ function publishSql(z, x, y, sha, size) {
             a      atom%rowtype;
             parked bigint [];
             ply    text := encode(public.digest(random()::text, 'sha256'), 'hex');
+            -- db/0015_structural.sql wants a finite result with a box in it.
+            shape  jsonb := '{"splat_count": 1000, "finite": true,
+                              "bbox": [-10, -1, -10, 10, 5, 10]}'::jsonb;
         BEGIN
             SELECT id INTO uid FROM auth.user WHERE email = 'test-tiles@splatworld.local';
             PERFORM set_config('request.jwt.claims',
@@ -69,12 +72,11 @@ function publishSql(z, x, y, sha, size) {
                 END IF;
                 IF a.op = 'merge' THEN
                     PERFORM register_artifact(ply, 'ply', 1024, 'merge-v1');
-                    PERFORM submit_atom(a.id, ply,
-                        '{"splat_count": 1000, "bytes": 1024}'::jsonb);
+                    PERFORM submit_atom(a.id, ply, shape || '{"bytes": 1024}');
                 ELSE
                     PERFORM register_artifact('${sha}', 'sog', ${size}, 'sog-v1');
                     PERFORM submit_atom(a.id, '${sha}',
-                        jsonb_build_object('splat_count', 1000, 'bytes', ${size}));
+                        shape || jsonb_build_object('bytes', ${size}));
                 END IF;
             END LOOP;
 

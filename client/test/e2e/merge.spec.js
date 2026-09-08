@@ -2,6 +2,10 @@
 // deterministic, and the parent lands inside its budget. The children here are
 // the tiles tools/test-tiles.sh publishes — two of the sixteen a z8 tile can
 // have, which is also the missing-child path.
+//
+// WP2.7's browser half is at the bottom: a settled merge asked for again comes
+// back the same, and submit_atom records that as a hash verification rather
+// than sending it to a verify atom.
 
 import { test, expect } from '@playwright/test';
 import { existsSync } from 'node:fs';
@@ -104,4 +108,37 @@ test('two tabs merge the same children into the same parent, byte for byte',
         const reach = Math.max(...[...ply.x].map(Math.abs));
         expect(reach).toBeLessThan(200000, 'everything is inside the parent tile');
         expect(errors).toEqual([]);
+    });
+
+test('a merge asked for a second time comes back the same, and is hash-verified',
+    async ({ page }) => {
+        const children = psql(`SELECT child_sogs(${TILE.z}, ${TILE.x}, ${TILE.y})::text`);
+        const atom = readyAtom({
+            ...TILE, op: 'merge', algo: 'merge-v1',
+            inputs: { children: JSON.parse(children) },
+            params: { ...TILE, voxel: 0.05, budget: BUDGET, run: 'recheck' },
+        });
+        await openPage(page, svc.pageUrl);
+        await signIn(page, EMAIL, PW);
+        await page.locator('.work-toggle').check();
+        await expect.poll(() => stateOf(atom), { timeout: 180000 }).toBe('verified');
+        const first = psql(`SELECT output_sha256 FROM atom WHERE id = ${atom}`);
+
+        // The answer stays on the atom while it is offered again, so the next
+        // one is measured against it (db/0015_structural.sql).
+        const asked = await page.evaluate(
+            (id) => window.splatworld.api.rpc('recheck_atom', { atom_id: Number(id) }), atom);
+        expect(asked).toBe(true);
+        await expect.poll(() => psql(`SELECT count(*) FROM verification
+                                      WHERE atom_id = ${atom} AND kind = 'hash'`),
+        { timeout: 180000 }).toBe('1');
+        await page.locator('.work-toggle').uncheck();
+
+        expect(stateOf(atom)).toBe('verified');
+        expect(psql(`SELECT output_sha256 FROM atom WHERE id = ${atom}`)).toBe(first);
+        expect(psql(`SELECT passed::text FROM verification
+                     WHERE atom_id = ${atom} AND kind = 'hash'`)).toBe('true');
+        expect(psql(`SELECT count(*) FROM atom WHERE job_id =
+                     (SELECT job_id FROM atom WHERE id = ${atom}) AND op = 'verify'`))
+            .toBe('0', 'a merged tile is settled by the hash, not by a verify atom');
     });

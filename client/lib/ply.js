@@ -17,6 +17,21 @@ export function emptySplats(n) {
     return f;
 }
 
+// [minx, miny, minz, maxx, maxy, maxz] in the tile's own frame — what
+// submit_atom's bbox rule checks against the tile (db/0015_structural.sql).
+export function bboxOf(f) {
+    const lo = [Infinity, Infinity, Infinity];
+    const hi = [-Infinity, -Infinity, -Infinity];
+    for (let i = 0; i < f.count; i++) {
+        const p = [f.x[i], f.y[i], f.z[i]];
+        for (let k = 0; k < 3; k++) {
+            lo[k] = Math.min(lo[k], p[k]);
+            hi[k] = Math.max(hi[k], p[k]);
+        }
+    }
+    return f.count ? [...lo, ...hi] : [0, 0, 0, 0, 0, 0];
+}
+
 const logit = (p) => Math.log(p / (1 - p));
 const sigmoid = (v) => 1 / (1 + Math.exp(-v));
 

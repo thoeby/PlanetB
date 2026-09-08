@@ -112,8 +112,11 @@ SELECT ok((SELECT NOT passed FROM verification
 CREATE TEMP TABLE reclaim AS SELECT * FROM claim_atom('{}'::jsonb);
 SELECT is((SELECT id FROM reclaim), (SELECT id FROM claimed),
     'the atom is claimable again');
+-- Since db/0015_structural.sql a splat-producing op also has to say where its
+-- splats are; the bbox rule checks that against the tile.
 SELECT is(submit_atom((SELECT id FROM claimed), repeat('2', 64),
-                      '{"splat_count": 500000, "finite": true}'::jsonb),
+                      '{"splat_count": 500000, "finite": true,
+                        "bbox": [-50, -5, -50, 50, 20, 50]}'::jsonb),
     'verified', 'a deterministic op is verified on submit');
 SELECT is((SELECT state FROM atom WHERE op = 'sog'
            AND job_id = (SELECT job_id FROM claimed)), 'ready',

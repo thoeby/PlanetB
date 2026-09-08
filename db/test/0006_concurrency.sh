@@ -102,7 +102,11 @@ BEGIN
                     CASE a.op WHEN 'sog' THEN 'sog' ELSE 'ply' END, 1024, a.algo_version);
                 PERFORM heartbeat(a.id);
                 st := submit_atom(a.id, sha, jsonb_build_object(
-                    'splat_count', 1000, 'finite', true, 'gpu_seconds', 1));
+                    'splat_count', 1000, 'finite', true, 'gpu_seconds', 1,
+                    -- db/0015_structural.sql: a splat-producing op says where
+                    -- its splats are, and a metre from the middle is inside
+                    -- every tile there is.
+                    'bbox', jsonb_build_array(-1, -1, -1, 1, 1, 1)));
                 IF a.op = 'sog' AND st = 'verified' THEN
                     SELECT * INTO j FROM job WHERE id = a.job_id;
                     res := publish_tile(j.z, j.x, j.y, j.target_version, sha, '{}'::jsonb);
