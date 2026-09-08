@@ -1,0 +1,7 @@
+.env
+node_modules/
+infra/files/
+client/vendor/*/
+!client/vendor/README.md
+docs/*.local.*
+*.log

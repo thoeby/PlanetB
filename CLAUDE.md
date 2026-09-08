@@ -1,0 +1,65 @@
+# CLAUDE.md — splatworld
+
+Read `ARCHITECTURE.md` first, then work through `TASKS.md` in order. One task = one commit. Do not start a task whose predecessors' gates are not green.
+
+## What this is
+
+A persistent digital world on real geography, compiled into Gaussian-splat LOD tiles (z6…z18). Server = Postgres/PostGIS + PostgREST + GeoServer + nginx. **Server executes no compute.** Every atom (assemble, frame, train, merge, sog, verify) runs in a player's browser tab. Publishing is a conditional pointer update in Postgres.
+
+## Invariants (never violate; if a task seems to require it, stop and ask)
+
+1. Every artifact is immutable and content-addressed (`sha256`). Files are never overwritten.
+2. Every atom has immutable inputs (artifact hashes + params + seed) and an `algo_version`.
+3. `publish_tile` is a compare-and-swap on `tile.expected_version`. A stale worker can never publish.
+4. Triggers only mark `tile.dirty`. Job/atom creation happens only through idempotent `ensure_job()`.
+5. Money, rights, editions: one SQL transaction each, `ref`-idempotent, ledger append-only.
+6. All client writes are authorised by row-level security, never by client code.
+7. Merged tiles (z ≤ 14) are deterministically reproducible → verified by hash equality.
+8. Trained tiles (z16/z18) are verified probabilistically (structural → 3 independent perceptual checks). Say so in code comments; do not call it "proof".
+9. Server never decides or performs rendering. No server-side worker, no cron that computes. GeoServer is admin/visualisation only, never the app API.
+10. No new server components. Allowed processes: postgres, postgrest, geoserver, nginx. (Optional later: a dependency-free `ws` presence relay — not in v1.)
+
+## Stack rules
+
+- SQL: PostgreSQL 16, PostGIS 3.4. Schema in `db/` as numbered migrations (`db/0001_*.sql`). Every function has a pgTAP test in `db/test/`.
+- API: PostgREST 12, config in `infra/postgrest.conf`. JWT HS256. Roles: `anon`, `player`, `admin`.
+- Files: nginx with `ngx_http_dav_module`, `auth_request` to PostgREST `rpc/can_write`. Config in `infra/nginx.conf`.
+- Client: plain ES modules, no bundler, no framework. PlayCanvas engine 2.x pinned from CDN. Splat.js vendored under `client/vendor/` (MIT). Everything under `client/` must be servable as static files.
+- Tests: `db/test` (pgTAP via `pg_prove`), `client/test` (node + playwright for headless Chromium with WebGPU; browser tests may be skipped in CI if no GPU, but must run locally).
+- No TypeScript build, no npm dependencies in the client beyond vendored files. Node is used only for tests and tooling.
+
+## Working rules
+
+- Read the task, restate the acceptance criteria in one line, implement, run the gate, commit with message `WPx.y: <task title>`.
+- If a gate fails, fix within the same task; do not move on.
+- Do not add features not in the task. Do not "improve" adjacent code.
+- Ask before: changing a table that already has a migration, changing an RPC signature, adding a dependency.
+- Prefer deleting over abstracting. No repositories/services/managers layers.
+- Keep functions < 60 lines, files < 400 lines; split otherwise.
+- Write comments only where an invariant is being enforced; reference the invariant number.
+
+## Gates (run before every commit)
+
+```
+make db-test        # resets DB, applies migrations, runs pgTAP
+make api-test       # PostgREST smoke: login, RLS denials, RPCs
+make client-test    # node unit tests + playwright headless (skips GPU tests if unavailable)
+make lint           # sqlfluff + eslint (flat config, no build)
+```
+
+`make gate` runs all four. A task is done only when `make gate` is green.
+
+## Layout
+
+```
+splatworld/
+  CLAUDE.md  ARCHITECTURE.md  TASKS.md  Makefile
+  db/            0001_schema.sql 0002_rls.sql 0003_functions.sql … test/*.sql
+  infra/         compose.yml postgrest.conf nginx.conf geoserver/  seed/
+  client/        play.html edit.html catalog.html
+                 js/{api,auth,tiles,origin,player,build,work,catalog}.js
+                 atoms/{assemble,frame,train,merge,sog,verify}.js
+                 lib/{tilemath,canon,hash,ply,sogenc}.js   vendor/
+                 test/
+  tools/         seed-dem.sh seed-ortho.sh seed-osm.sh (developer tooling, runs on the dev box, not the server)
+```
