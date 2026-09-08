@@ -14,9 +14,10 @@ PGUSER ?= postgres
 PGPASSWORD ?= postgres
 PGDATABASE ?= splatworld
 JWT_SECRET ?= dev-secret-change-me-0123456789abcdef
-export PGHOST PGPORT PGUSER PGPASSWORD PGDATABASE JWT_SECRET
+AUTHENTICATOR_PASSWORD ?= authenticator
+export PGHOST PGPORT PGUSER PGPASSWORD PGDATABASE JWT_SECRET AUTHENTICATOR_PASSWORD
 
-PSQL := psql -v ON_ERROR_STOP=1 --no-psqlrc -q
+PSQL := psql -v ON_ERROR_STOP=1 --no-psqlrc -q -v authpw=$(AUTHENTICATOR_PASSWORD)
 MIGRATIONS := $(sort $(wildcard db/[0-9]*.sql))
 DB_TESTS := $(sort $(wildcard db/test/[0-9]*.sql))
 DB_TEST_SCRIPTS := $(sort $(wildcard db/test/[0-9]*.sh))
