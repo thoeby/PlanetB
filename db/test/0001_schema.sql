@@ -36,9 +36,11 @@ SELECT columns_are('public', 'asset', ARRAY[
     'created_at']);
 SELECT columns_are('public', 'asset_right', ARRAY[
     'san', 'holder_id', 'acquired_at', 'ref']);
+-- `suspect` is WP3.3's (db/0018_spot.sql): a failed spot check flags the tile
+-- rather than unpublishing it.
 SELECT columns_are('public', 'tile', ARRAY[
     'z', 'x', 'y', 'dirty', 'expected_version', 'published_version',
-    'sog_sha256', 'manifest', 'published_at', 'published_by']);
+    'sog_sha256', 'manifest', 'published_at', 'published_by', 'suspect']);
 SELECT columns_are('public', 'job', ARRAY[
     'id', 'z', 'x', 'y', 'target_version', 'bounty', 'state', 'created_at']);
 SELECT columns_are('public', 'atom', ARRAY[

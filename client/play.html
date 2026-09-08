@@ -58,6 +58,7 @@
   import { TileStreamer, cameraState } from './js/tiles.js';
   import { Player, Terrain, WALK } from './js/player.js';
   import { mountWork } from './js/workui.js';
+  import { SpotChecker } from './js/spot.js';
 
   api.configure();
   const world = document.getElementById('world');
@@ -112,6 +113,14 @@
   streamer.setTiles(rows);
   streamer.startPolling();
 
+  // WP3.3: the tab re-checks the tiles it is looking at but did not publish.
+  // It sweeps whether or not anyone is signed in — spot_due answers nothing to
+  // an anonymous tab — and never while the work panel has an atom in hand.
+  const spot = new SpotChecker({
+    api, apiUrl: api.endpoints().api, filesUrl: api.endpoints().files, log: work.log,
+  });
+  spot.start(streamer, { busy: () => Boolean(work.loop()?.atom) });
+
   const terrain = new Terrain(streamer);
   const player = new Player(terrain, { mode: WALK });
   player.attach(document.getElementById('view'));
@@ -145,5 +154,6 @@
   // The handle the browser tests fly.
   window.splatworld = {
     app, pc, api, origin, streamer, camera, rows, terrain, player, setDriving, work,
+    spot,
   };
 </script>
