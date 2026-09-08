@@ -22,7 +22,7 @@ import { InputCache, resolveInputs } from './inputs.js';
 
 export const ALGO = {
     assemble: 'assemble-v1', frame: 'frame-v1', train: 'train-v1',
-    merge: 'merge-v1', sog: 'sog-v1', verify: 'verify-v1',
+    sample: 'sample-v1', merge: 'merge-v1', sog: 'sog-v1', verify: 'verify-v1',
 };
 
 const HEARTBEAT_MS = 60_000;
@@ -104,37 +104,51 @@ export class WorkLoop {
         if (!atom?.id) return null;
         this.atom = atom;
         this.log({ event: 'claim', atom: atom.id, op: atom.op, job: atom.job_id });
-        const beat = this.timers.setInterval(
-            () => this.api.rpc('heartbeat', { atom_id: atom.id }).catch(
-                (err) => this.log({ event: 'beat-failed', atom: atom.id, err: String(err) })),
-            HEARTBEAT_MS);
+        // A long atom saturates the machine, and a starved main thread is one
+        // whose interval callbacks do not run: expire_claims would take the
+        // atom away from a worker that is still doing it. So the atom's own
+        // progress reports beat as well as the timer.
+        let last = Date.now();
+        const beat = () => {
+            last = Date.now();
+            this.api.rpc('heartbeat', { atom_id: atom.id }).catch(
+                (err) => this.log({ event: 'beat-failed', atom: atom.id, err: String(err) }));
+        };
+        const timer = this.timers.setInterval(beat, HEARTBEAT_MS);
+        const progress = () => { if (Date.now() - last > HEARTBEAT_MS / 2) beat(); };
         try {
             const started = Date.now();
-            const out = await this.compute(atom);
+            const out = await this.compute(atom, progress);
             const state = await this.deliver(atom, out, (Date.now() - started) / 1000);
             this[state === 'failed' ? 'failed' : 'done'] += 1;
             this.log({ event: 'submit', atom: atom.id, op: atom.op, state });
             return state;
         } catch (err) {
             this.failed += 1;
+            // The message, not the stack: the panel is one line per event, and
+            // the stack is the atom worker's, not this one's.
             this.log({ event: 'error', atom: atom.id, op: atom.op,
-                err: String(err?.message ?? err) });
+                err: String(err?.message ?? err).split('\n')[0] });
             throw err;
         } finally {
-            this.timers.clearInterval(beat);
+            this.timers.clearInterval(timer);
             this.atom = null;
         }
     }
 
-    async compute(atom) {
+    async compute(atom, progress = () => {}) {
         const resolved = await resolveInputs(this.api, atom.inputs);
         const inputs = await this.cache.load(resolved);
         const worker = this.spawn();
         try {
             const out = await worker.run(
                 { atom, inputs, apiUrl: this.apiUrl, filesUrl: this.filesUrl },
-                (rec) => this.log({ atom: atom.id, ...rec }));
-            if (!out?.files?.length) throw new Error(`${atom.op} produced no files`);
+                (rec) => { progress(); this.log({ atom: atom.id, ...rec }); });
+            // A verify atom answers a question and writes nothing; every other
+            // op has to have made something (client/atoms/verify.js).
+            if (!out || (!out.files?.length && out.output !== null)) {
+                throw new Error(`${atom.op} produced no files`);
+            }
             return out;
         } finally {
             worker.terminate();
@@ -145,20 +159,20 @@ export class WorkLoop {
     // what makes an upload citable and submit_atom reads the artifact's size.
     async deliver(atom, out, seconds) {
         const written = [];
-        for (const file of out.files) {
+        for (const file of out.files ?? []) {
             const sha = await sha256(file.bytes);
             written.push({ sha, ext: file.ext, path: await this.upload(atom, file, sha) });
         }
-        const pick = written.find((w) => w.ext === out.output) ?? written[0];
+        const pick = written.find((w) => w.ext === out.output) ?? written[0] ?? null;
         // Where the bytes went travels with the atom: an artifact is written
         // once, so a later atom that produces the same bytes cannot put them
         // under its own job directory, and its consumer has to be told where
         // they really are (client/js/inputs.js).
         const result = { gpu_seconds: seconds, ...out.result,
-            path: pick.path, files: written };
+            path: pick?.path ?? null, files: written };
         const state = await this.api.rpc('submit_atom',
-            { atom_id: atom.id, output_sha256: pick.sha, result });
-        if (state === 'verified') await this.publish(atom, result, pick.sha);
+            { atom_id: atom.id, output_sha256: pick?.sha ?? null, result });
+        if (state === 'verified' && pick) await this.publish(atom, result, pick.sha);
         return state;
     }
 

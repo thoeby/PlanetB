@@ -14,6 +14,11 @@ export const ALGO = 'frame-v1';
 export const SIZE = 1024;
 const QUALITY = 0.9;
 
+// The frames are square and 1024 px unless the atom says otherwise. Nothing in
+// db/0017_verifydag.sql's DAG sets it; the browser gate does, because 56 views
+// of a real tile at full size is minutes of software rasterisation.
+const sizeOf = (atom) => Math.max(16, Number(atom.params?.size) || SIZE);
+
 const name = (id) => `frame_${String(id).padStart(4, '0')}.webp`;
 
 // What the cameras have to see: the ground at the middle of the tile, and how
@@ -45,18 +50,19 @@ export async function run({ atom, inputs, canvas, log }) {
     const scene = JSON.parse(new TextDecoder().decode(files.get('scene.json')));
     const meshes = unpackMeshes(files.get('mesh.bin'), scene.meshes);
     const cams = cameraSet(set, boundsOf(meshes)).slice(from, to);
+    const size = sizeOf(atom);
 
-    const renderer = new Renderer(canvas(SIZE, SIZE), SIZE);
+    const renderer = new Renderer(canvas(size, size), size);
     renderer.upload(meshes);
 
     const entries = [];
     for (const cam of cams) {
         const rgba = renderer.draw(cam);
-        entries.push({ name: name(cam.id), bytes: await toWebp(rgba, SIZE, canvas, QUALITY) });
+        entries.push({ name: name(cam.id), bytes: await toWebp(rgba, size, canvas, QUALITY) });
     }
-    log?.({ event: 'framed', set, from, to, tile: scene.tile });
+    log?.({ event: 'framed', set, from, to, size, tile: scene.tile });
 
-    const transforms = transformsJson(cams, SIZE, entries.map((e) => e.name));
+    const transforms = transformsJson(cams, size, entries.map((e) => e.name));
     const tar = writeTar([
         ...entries,
         { name: 'transforms.json',
@@ -66,7 +72,7 @@ export async function run({ atom, inputs, canvas, log }) {
         files: [{ ext: 'tar', kind: 'frames', algo_version: ALGO, bytes: tar }],
         output: 'tar',
         result: {
-            bytes: tar.length, frames: entries.length, from, to,
+            bytes: tar.length, frames: entries.length, from, to, size,
             camera_set: set, finite: true, tile: scene.tile,
         },
     };

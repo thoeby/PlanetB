@@ -41,8 +41,11 @@ export function mountWork(host, { loop, autostart = false } = {}) {
     const logEl = host.querySelector('.work-log');
     const lines = [];
 
+    // The error is the whole message when there is one: a panel that says
+    // "error 1630 assemble" and nothing else is not worth reading.
     const log = (rec) => {
-        lines.push(`${rec.event} ${rec.atom ?? ''} ${rec.op ?? rec.state ?? ''}`.trim());
+        lines.push(`${rec.event} ${rec.atom ?? ''} ${rec.op ?? rec.state ?? ''}`.trim()
+            + (rec.err ? ` — ${rec.err}` : ''));
         logEl.textContent = lines.slice(-LOG_LINES).join('\n');
         render();
     };
