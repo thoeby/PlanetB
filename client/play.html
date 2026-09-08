@@ -45,6 +45,7 @@
   import { mountAuth } from './js/auth.js';
   import { FloatingOrigin } from './js/origin.js';
   import { TileStreamer, cameraState } from './js/tiles.js';
+  import { Player, Terrain, WALK } from './js/player.js';
 
   api.configure();
   const world = document.getElementById('world');
@@ -86,17 +87,38 @@
   });
   streamer.setTiles(rows);
 
-  app.on('update', () => {
+  const terrain = new Terrain(streamer);
+  const player = new Player(terrain, { mode: WALK });
+  player.attach(document.getElementById('view'));
+
+  // The player drives the camera unless something else has taken the wheel —
+  // the streaming tests script the camera directly.
+  let driving = true;
+  const setDriving = (v) => { driving = v; };
+
+  app.on('update', (dt) => {
+    if (driving) {
+      player.update(dt);
+      const q = player.position;
+      camera.setPosition(q.x, q.y, q.z);
+      camera.setEulerAngles(player.pitch / Math.PI * 180, player.yaw / Math.PI * 180, 0);
+    }
     const p = camera.getPosition();
     const moved = streamer.rebase({ x: p.x, y: p.y, z: p.z });
-    if (moved) camera.setPosition(moved.x, moved.y, moved.z);
+    if (moved) {
+      camera.setPosition(moved.x, moved.y, moved.z);
+      if (driving) player.position = { ...moved };
+    }
     streamer.update(cameraState(camera, app.graphicsDevice.height));
     world.textContent = `${live.length} published tiles\n`
       + `${streamer.entries.size} loaded, ${streamer.pending} loading\n`
-      + `${origin.rebases} rebases`;
+      + `${origin.rebases} rebases — ${player.mode}`
+      + `${player.grounded ? '' : ' (no ground yet)'}`;
   });
   app.start();
 
   // The handle the browser tests fly.
-  window.splatworld = { app, pc, api, origin, streamer, camera, rows };
+  window.splatworld = {
+    app, pc, api, origin, streamer, camera, rows, terrain, player, setDriving,
+  };
 </script>

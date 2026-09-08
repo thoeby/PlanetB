@@ -31,6 +31,12 @@ async function boot(page) {
     await page.goto('/play.html');
     await page.waitForFunction(() => window.splatworld?.app?.graphicsDevice, null,
         { timeout: 60000 });
+    // These tests script the camera, so the player lets go of it — including
+    // where it points, which the player would otherwise own.
+    await page.evaluate(() => {
+        window.splatworld.setDriving(false);
+        window.splatworld.camera.setEulerAngles(-90, 0, 0);
+    });
     expect(errors, errors.join('\n')).toEqual([]);
     return errors;
 }
@@ -42,6 +48,7 @@ async function flyTo(page, altitude) {
     return page.evaluate(async (y) => {
         const { camera, streamer } = window.splatworld;
         camera.setPosition(0, y, 0);
+        camera.setEulerAngles(-90, 0, 0);        // straight down at the region
         const frame = () => new Promise((r) => requestAnimationFrame(r));
         let last = '';
         for (let i = 0; i < 400; i++) {

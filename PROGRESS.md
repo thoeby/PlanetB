@@ -62,6 +62,7 @@ clean.
 | 1.1 Client scaffold | done | see git log | `client/play.html`, `client/js/{api,auth}.js`, `client/lib/tilemath.js`, `client/test/tilemath.test.js`, `client/test/fixtures/tilemath.json`, `tools/tilemath-fixtures.mjs`, `eslint.config.js`, `package.json` |
 | 1.2 Test tiles | done | see git log | `tools/{make-test-tiles.mjs,sogwrite.mjs,test-tiles.sh}`, `db/0009_atomid.sql`, `db/test/0009_atomid.sql` |
 | 1.3 Tile streaming | done | see git log | `client/js/{tiles,origin}.js`, `client/play.html`, `client/test/{tiles,origin}.test.js`, `client/test/e2e/`, `playwright.config.js`, `tools/vendor.sh`, `db/0010_lockorder.sql` |
+| 1.4 Player controller + collision | done | see git log | `client/js/player.js`, `client/test/player.test.js`, `client/test/e2e/walk.spec.js`, `db/0011_tilefiles.sql`, `db/test/0011_tilefiles.sql`, `tools/testterrain.mjs` |
 
 The published test tiles are z10 (535,361), (535,362), (536,361), (536,362),
 their z8 parents (133,90) and (134,90), and z6 (33,22) — near Aarau,
@@ -179,6 +180,32 @@ gitignored. `tools/vendor.sh` fetches it (CDN, falling back to npm).
     is not the cause: its plan is a hash semi-join over a sequential scan, so
     every editor takes those row locks in heap order. `log_lock_waits = on` with
     a short `deadlock_timeout` is how to see the waiting pairs if it returns.
+23. **WP1.4 needed a file-store path for terrain: `db/0011_tilefiles.sql`.**
+    `can_write` reserved only `.sog` under `/tiles`, so `height.r16` and
+    `colliders.json` — which belong to a tile exactly as its splats do — had
+    nowhere authorised to go. The rule is otherwise unchanged: only the worker
+    holding that tile's `sog` atom may write there, and the declared sha256 must
+    still match the filename. WP2.3's `assemble` produces the same two files as
+    job artifacts; this is where they land once a tile is published.
+24. **The test tiles' hill now varies per tile.** It was a function of `(u, v)`
+    and the zoom only, so every tile at a zoom produced byte-identical
+    `height.r16` — one artifact, and the store rightly refused the second write.
+    The phase now runs on the tile's own coordinates, which also makes the hill
+    continuous across tile edges. `tools/testterrain.mjs` holds the ground
+    function; the splats, the heightmap and the colliders all read it, so what
+    you see is what you walk on. The tool also checks whether an artifact is
+    already registered before uploading, which is what a real worker does.
+25. **Collisions resolve against the direction of travel, and in substeps.**
+    Pushing a circle out along its smallest penetration is wrong as soon as one
+    frame's movement lands past the middle of a thin wall — the nearest face is
+    then the far one and the player is pushed through. `slide()` takes where the
+    player came from and places them against the face they arrived at, and
+    `update()` walks the move in pieces no longer than the player is wide, so a
+    fast step cannot hop the wall entirely.
+26. **The player owns the camera unless a test takes it.** `play.html` exposes
+    `setDriving(false)`; the streaming tests use it, and then have to point the
+    camera themselves — looking level from 1 000 km up, everything is outside
+    the frustum and nothing loads, which is correct and was briefly confusing.
 22. **The fourth checkpoint differs between the node and browser tests.** The
     node test drives the policy with culling off, so all four z10 leaves stay
     loaded at 2 km; the browser has a real frustum, which at 2 km sees about
