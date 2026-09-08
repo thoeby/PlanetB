@@ -14,6 +14,8 @@ export const REFINE_PX = 2;
 // boundary does not load and unload the same level every frame.
 export const HYSTERESIS = 1.4;
 export const LIMITS = { tiles: 40, splats: 25e6, inflight: 4 };
+// How often a loaded tile is re-checked for a newer published version.
+export const POLL_MS = 30000;
 
 export const key = (z, x, y) => `${z}/${x}/${y}`;
 export const parseKey = (k) => {
@@ -164,12 +166,18 @@ export function cameraState(cameraEntity, screenH) {
 }
 
 export class TileStreamer {
-    constructor(app, pc, { origin, filesUrl, limits = LIMITS } = {}) {
+    constructor(app, pc, { origin, filesUrl, limits = LIMITS, fetchRows } = {}) {
         this.app = app;
         this.pc = pc;
         this.origin = origin;
         this.filesUrl = filesUrl ?? '';
         this.limits = limits;
+        // Asked for the current published_version and sog_sha256 of the tiles
+        // that are loaded. Injected rather than imported so this module stays
+        // loadable under node, where the traversal is tested.
+        this.fetchRows = fetchRows ?? null;
+        this.timer = null;
+        this.swaps = 0;
         this.tiles = new Map();
         this.roots = [];
         this.entries = new Map();
@@ -275,5 +283,78 @@ export class TileStreamer {
             if (e.entity) this.place(e.entity, e.row);
         }
         return moved;
+    }
+
+    // --------------------------------------------------------------- hot swap
+    //
+    // A tile republished while it is on screen is replaced, not reloaded: the
+    // new asset is built alongside the old one and the old entity is destroyed
+    // only once the new one is in the scene, so there is never a frame without
+    // the tile.
+
+    startPolling(intervalMs = POLL_MS) {
+        this.stopPolling();
+        this.timer = setInterval(() => { this.poll().catch(() => {}); }, intervalMs);
+        return this.timer;
+    }
+
+    stopPolling() {
+        if (this.timer) clearInterval(this.timer);
+        this.timer = null;
+    }
+
+    async poll() {
+        if (!this.fetchRows || !this.entries.size) return 0;
+        const rows = await this.fetchRows([...this.entries.keys()].map(parseKey));
+        let swapped = 0;
+        for (const row of rows ?? []) {
+            const k = key(row.z, row.x, row.y);
+            const e = this.entries.get(k);
+            this.tiles.set(k, row);
+            if (!e || !row.sog_sha256 || row.sog_sha256 === e.row.sog_sha256) continue;
+            this.swap(k, row);
+            swapped++;
+        }
+        return swapped;
+    }
+
+    swap(k, row) {
+        const e = this.entries.get(k);
+        if (!e || e.swapping === row.sog_sha256) return;
+        e.swapping = row.sog_sha256;
+        const asset = new this.pc.Asset(`${k}@${row.published_version}`, 'gsplat', {
+            url: this.url({ z: row.z, x: row.x, y: row.y, row }),
+            filename: `${row.sog_sha256}.sog`,
+        });
+        asset.ready(() => this.adopt(k, e, asset, row));
+        asset.once('error', () => {
+            e.swapping = null;
+            this.app.assets.remove(asset);
+        });
+        this.app.assets.add(asset);
+        this.app.assets.load(asset);
+    }
+
+    // The new asset has arrived: put it in the scene, then take the old one out.
+    adopt(k, e, asset, row) {
+        if (this.entries.get(k) !== e) {
+            this.app.assets.remove(asset);
+            return;
+        }
+        const entity = new this.pc.Entity(k);
+        entity.addComponent('gsplat', { asset });
+        this.place(entity, row);
+        this.app.root.addChild(entity);
+        const oldEntity = e.entity, oldAsset = e.asset;
+        e.entity = entity;
+        e.asset = asset;
+        e.row = row;
+        e.swapping = null;
+        this.swaps++;
+        oldEntity?.destroy();
+        if (oldAsset) {
+            this.app.assets.remove(oldAsset);
+            oldAsset.unload();
+        }
     }
 }

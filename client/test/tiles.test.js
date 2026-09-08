@@ -9,7 +9,9 @@ import assert from 'node:assert/strict';
 
 import * as tm from '../lib/tilemath.js';
 import { FloatingOrigin } from '../js/origin.js';
-import { selectTiles, key, LIMITS, sphereVisible, tileRadius } from '../js/tiles.js';
+import {
+    selectTiles, key, LIMITS, POLL_MS, sphereVisible, tileRadius, TileStreamer,
+} from '../js/tiles.js';
 
 // The tiles tools/make-test-tiles.mjs publishes, with the manifests it writes.
 const GRID = { 6: 24, 8: 32, 10: 48 };
@@ -172,4 +174,84 @@ test('tileRadius covers the tile it bounds', () => {
         assert.ok(tileRadius(z, x, y) >= Math.hypot(corner.x, corner.z),
             `${z}/${x}/${y} radius is short`);
     }
+});
+
+
+// ------------------------------------------------------------------ hot swap
+//
+// Enough of PlayCanvas to watch the streamer's bookkeeping: loading an asset
+// runs its ready callbacks straight away, so a swap completes within the call.
+
+function fakePc() {
+    return {
+        Asset: class {
+            constructor(name, type, file) {
+                Object.assign(this, { name, type, file, ready_: [] });
+            }
+            ready(fn) { this.ready_.push(fn); }
+            once() { /* errors are not exercised here */ }
+            unload() { this.unloaded = true; }
+        },
+        Entity: class {
+            constructor(name) { this.name = name; }
+            addComponent(kind, data) { this[kind] = data; }
+            setLocalPosition() { /* placement is covered by the browser tests */ }
+            setLocalRotation() { }
+            destroy() { this.destroyed = true; }
+        },
+    };
+}
+
+const fakeApp = () => ({
+    root: { addChild() {} },
+    assets: { add() {}, remove() {}, load: (a) => a.ready_.forEach((fn) => fn()) },
+});
+
+function streamerWith(rows, fetchRows) {
+    const w = world();
+    const s = new TileStreamer(fakeApp(), fakePc(), {
+        origin: w.origin, filesUrl: 'http://files', fetchRows,
+    });
+    s.setTiles(rows);
+    return s;
+}
+
+const swapRow = (r, sha) => ({ ...r, published_version: r.published_version + 1, sog_sha256: sha });
+
+test('the poll interval is the 30 s WP1.5 asks for', () => {
+    assert.equal(POLL_MS, 30000);
+});
+
+test('an unchanged tile is not swapped', async () => {
+    const rows = COORDS.map((c) => row(...c));
+    const s = streamerWith(rows, async () => rows);
+    s.entries.set('10/535/361', { row: rows[0], entity: null, asset: null, usedAt: 1 });
+    assert.equal(await s.poll(), 0);
+    assert.equal(s.swaps, 0);
+});
+
+test('a republished tile is swapped and the old entity disposed', async () => {
+    const rows = COORDS.map((c) => row(...c));
+    const fresh = swapRow(rows[0], 'b'.repeat(64));
+    const s = streamerWith(rows, async () => [fresh, ...rows.slice(1)]);
+    const old = { destroyed: false, destroy() { this.destroyed = true; } };
+    const oldAsset = { unloaded: false, unload() { this.unloaded = true; } };
+    const entry = { row: rows[0], entity: old, asset: oldAsset, usedAt: 1 };
+    s.entries.set('10/535/361', entry);
+
+    assert.equal(await s.poll(), 1);
+    assert.equal(s.swaps, 1);
+    assert.ok(old.destroyed, 'the old entity is gone');
+    assert.ok(oldAsset.unloaded, 'and so is its asset');
+    assert.equal(entry.row.sog_sha256, 'b'.repeat(64), 'the entry carries the new row');
+    assert.match(entry.asset.file.url, /\/tiles\/10\/535\/361\/b{64}\.sog$/);
+    assert.equal(s.tiles.get('10/535/361').published_version, 2,
+        'and the traversal sees the new version');
+});
+
+test('polling does nothing without a fetcher or without tiles', async () => {
+    const rows = COORDS.map((c) => row(...c));
+    assert.equal(await streamerWith(rows, null).poll(), 0);
+    const s = streamerWith(rows, async () => rows);
+    assert.equal(await s.poll(), 0, 'nothing loaded, nothing to check');
 });

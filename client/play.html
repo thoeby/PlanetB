@@ -82,10 +82,19 @@
   camera.setEulerAngles(-90, 0, 0);            // straight down; WP1.4 takes over
   app.root.addChild(camera);
 
+  // WP1.5: the loaded tiles are re-checked every 30 s. PostgREST takes the set
+  // as one `or=(and(z.eq..,x.eq..,y.eq..), ...)` filter, so it is one request
+  // however many tiles are on screen.
+  const fetchRows = (loaded) => api.select('tile', {
+    select: 'z,x,y,published_version,sog_sha256,manifest',
+    or: `(${loaded.map((t) => `and(z.eq.${t.z},x.eq.${t.x},y.eq.${t.y})`).join(',')})`,
+  });
+
   const streamer = new TileStreamer(app, pc, {
-    origin, filesUrl: api.endpoints().files,
+    origin, filesUrl: api.endpoints().files, fetchRows,
   });
   streamer.setTiles(rows);
+  streamer.startPolling();
 
   const terrain = new Terrain(streamer);
   const player = new Player(terrain, { mode: WALK });
@@ -112,7 +121,7 @@
     streamer.update(cameraState(camera, app.graphicsDevice.height));
     world.textContent = `${live.length} published tiles\n`
       + `${streamer.entries.size} loaded, ${streamer.pending} loading\n`
-      + `${origin.rebases} rebases — ${player.mode}`
+      + `${origin.rebases} rebases, ${streamer.swaps} swaps — ${player.mode}`
       + `${player.grounded ? '' : ' (no ground yet)'}`;
   });
   app.start();

@@ -31,6 +31,8 @@ export function tileRows() {
 }
 
 export async function install(page, rows) {
+    // Tile rows are read fresh on every request when no snapshot is given, so a
+    // republish made during a test is visible to the page's next poll.
     await page.route('https://code.playcanvas.com/**', (route) => {
         const local = join(CLIENT, 'vendor/playcanvas/playcanvas.js');
         route.fulfill({ contentType: 'text/javascript', body: readFileSync(local) });
@@ -38,7 +40,10 @@ export async function install(page, rows) {
     await page.route('http://localhost:3000/**', (route) => {
         const url = new URL(route.request().url());
         if (url.pathname !== '/tile') return route.fulfill({ status: 404, body: '[]' });
-        return route.fulfill({ contentType: 'application/json', body: JSON.stringify(rows) });
+        return route.fulfill({
+            contentType: 'application/json',
+            body: JSON.stringify(rows ?? tileRows()),
+        });
     });
     await page.route('http://localhost:8080/**', (route) => {
         const p = join(FILES_ROOT, new URL(route.request().url()).pathname);

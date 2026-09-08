@@ -63,6 +63,7 @@ clean.
 | 1.2 Test tiles | done | see git log | `tools/{make-test-tiles.mjs,sogwrite.mjs,test-tiles.sh}`, `db/0009_atomid.sql`, `db/test/0009_atomid.sql` |
 | 1.3 Tile streaming | done | see git log | `client/js/{tiles,origin}.js`, `client/play.html`, `client/test/{tiles,origin}.test.js`, `client/test/e2e/`, `playwright.config.js`, `tools/vendor.sh`, `db/0010_lockorder.sql` |
 | 1.4 Player controller + collision | done | see git log | `client/js/player.js`, `client/test/player.test.js`, `client/test/e2e/walk.spec.js`, `db/0011_tilefiles.sql`, `db/test/0011_tilefiles.sql`, `tools/testterrain.mjs` |
+| 1.5 Hot swap | done | see git log | `client/js/tiles.js`, `client/play.html`, `client/test/tiles.test.js`, `client/test/e2e/{hotswap.spec.js,publish.js}` |
 
 The published test tiles are z10 (535,361), (535,362), (536,361), (536,362),
 their z8 parents (133,90) and (134,90), and z6 (33,22) — near Aarau,
@@ -206,6 +207,23 @@ gitignored. `tools/vendor.sh` fetches it (CDN, falling back to npm).
     `setDriving(false)`; the streaming tests use it, and then have to point the
     camera themselves — looking level from 1 000 km up, everything is outside
     the frustum and nothing loads, which is correct and was briefly confusing.
+27. **The hot-swap test takes about 90 seconds, on purpose.** WP1.5 asks for
+    the swap to land "within 35 s" and the poll runs at its real 30 s interval,
+    so the browser test waits for it rather than shortening the timer. That is
+    most of the difference between a 3-minute and a 4½-minute `make gate`.
+28. **`client/test/e2e/publish.js` publishes over psql, not HTTP.** No API or
+    file store is running during the browser tests, so the republish calls
+    `ensure_job`, `claim_atom`, `register_artifact`, `submit_atom` and
+    `publish_tile` directly with `request.jwt.claims` set — the same functions
+    and the same compare-and-swap PostgREST would reach. Only the upload is
+    short-circuited: the bytes go straight into the file store, which the page's
+    routes read off disk. `tools/files-test.sh` is what covers the PUT path.
+29. **Both the tool and the republish helper have to park other jobs' atoms.**
+    `claim_atom` picks globally and its `expire_claims()` frees whatever a dead
+    worker left behind, so a run can be handed an abandoned atom from an earlier
+    `api-test` — including one that was still `claimed` when the run started.
+    Anything claimable that is not ours is set to `waiting` for the duration and
+    put back afterwards.
 22. **The fourth checkpoint differs between the node and browser tests.** The
     node test drives the policy with culling off, so all four z10 leaves stay
     loaded at 2 km; the browser has a real frustum, which at 2 km sees about
