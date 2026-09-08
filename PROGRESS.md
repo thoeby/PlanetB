@@ -4,8 +4,7 @@ Task list: `TASKS.md`. Rules: `CLAUDE.md`. Design: `ARCHITECTURE.md`.
 Picking up the work: `HANDOFF.md`.
 
 **WP0 is closed.** `make gate` is green end to end (~2m30s, most of it the
-concurrency test). Nothing of WP1 onwards exists yet: `client/` holds only
-empty directories.
+concurrency test). WP1 is under way; see the table below for where.
 
 ## WP0 — Foundation ✅
 
@@ -54,20 +53,38 @@ clean.
 - [ ] `infra/compose.yml` has never been started — no Docker daemon was
       available. The four services were run individually instead
       (`docs/gates.md`).
-- [ ] `make lint` runs sqlfluff only; eslint reports as skipped until there is
-      client JavaScript (WP1.1).
+- [x] `make lint` runs eslint too, as of WP1.1.
 
-## WP1 — Client core: viewer + streaming ⬜
+## WP1 — Client core: viewer + streaming
 
-Nothing started. `client/{js,atoms,lib,test,vendor}/` are empty.
+| task | status | commit | file(s) |
+|---|---|---|---|
+| 1.1 Client scaffold | done | see git log | `client/play.html`, `client/js/{api,auth}.js`, `client/lib/tilemath.js`, `client/test/tilemath.test.js`, `client/test/fixtures/tilemath.json`, `tools/tilemath-fixtures.mjs`, `eslint.config.js`, `package.json` |
 
 | task | notes for whoever picks it up |
 |---|---|
-| 1.1 Client scaffold | `lib/tilemath.js` must mirror `db/0004_tiles.sql` exactly: `tile_x`, `tile_y`, `tile_bbox`, `tiles_for_geom`. Export the 50 fixture rows from SQL, do not hand-write them. |
 | 1.2 Test tiles | Uploads go through nginx PUT (`can_write` allows `/tiles/z/x/y/{sha}.sog` only to the holder of that tile's sog atom) then `register_artifact` then `publish_tile`. |
 | 1.3 Tile streaming | `tile.manifest` carries `origin {lon,lat,h}`; nothing about a tile lives in a file. |
 | 1.4 Player controller + collision | needs `height.r16` and `colliders.json`, which `assemble` produces in WP2.3 — use hand-made ones. |
 | 1.5 Hot swap | poll `GET /api/tile?...&select=published_version,sog_sha256`. |
+
+### Deviations from TASKS.md, and why
+
+7. **eslint is the repo's first npm dependency** (`package.json`,
+   `package-lock.json`, dev only). `CLAUDE.md` bans npm packages *in the
+   client* and the client still has none — it is plain ES modules served as
+   static files. The Makefile written in WP0.1 already looked for
+   `node_modules/eslint`; this is what makes that branch fire. `eslint.config.js`
+   itself imports nothing.
+8. **`make client-test` was fixed, not just extended.** It ran
+   `node --test client/test/`, which node 22 resolves as a module path and not
+   as a directory of tests. It now uses the same `client/test/*.test.js` glob
+   the guard in front of it already used.
+9. **`tile_bbox` north/south are compared within 1e-12°, not bit for bit.**
+   glibc and V8 disagree by one ulp on `atan(sinh(x))` — about 1e-14°, under a
+   nanometre. West and east are pure arithmetic and *are* compared exactly, as
+   are `tile_x`, `tile_y` and all 50 `tiles_for_geom` cases; the acceptance
+   criterion is met where it can be. Noted in `client/test/tilemath.test.js`.
 
 ## WP2–WP5 ⬜
 

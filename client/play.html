@@ -1,0 +1,63 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>splatworld</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<!-- Endpoints, so the same static files run against compose or a dev box. -->
+<meta name="splatworld:api" content="http://localhost:3000">
+<meta name="splatworld:files" content="http://localhost:8080">
+<style>
+  :root { color-scheme: dark; font: 14px/1.5 system-ui, sans-serif; }
+  body { margin: 0; background: #0d1013; color: #e6e9ec; }
+  #view { display: block; width: 100vw; height: 100vh; }
+  #hud {
+    position: fixed; top: 12px; left: 12px; width: 20rem; padding: 12px 14px;
+    background: #161b20e6; border: 1px solid #2a3138; border-radius: 6px;
+  }
+  h1 { margin: 0 0 8px; font-size: 15px; font-weight: 600; letter-spacing: .02em; }
+  label { display: block; margin: 6px 0; }
+  input { width: 100%; box-sizing: border-box; padding: 4px 6px;
+    background: #0d1013; color: inherit; border: 1px solid #2a3138; border-radius: 4px; }
+  .auth-buttons { display: flex; gap: 6px; margin-top: 8px; }
+  button { flex: 1; padding: 5px 8px; background: #222a31; color: inherit;
+    border: 1px solid #39424b; border-radius: 4px; cursor: pointer; }
+  button:hover { background: #2b343d; }
+  .auth-who { display: flex; gap: 8px; align-items: baseline; }
+  .auth-role, #world { color: #8b959e; }
+  .auth-status { margin: 6px 0 0; min-height: 1.2em; color: #8b959e; }
+  .auth-status[data-bad="1"] { color: #e2867a; }
+  #world { margin: 10px 0 0; padding-top: 8px; border-top: 1px solid #2a3138; }
+</style>
+
+<canvas id="view"></canvas>
+<section id="hud">
+  <h1>splatworld</h1>
+  <div id="auth"></div>
+  <p id="world">…</p>
+</section>
+
+<script type="module">
+  import * as api from './js/api.js';
+  import { mountAuth } from './js/auth.js';
+
+  api.configure();
+  const world = document.getElementById('world');
+
+  // Reading tiles needs no token: everyone reads the world (db/0003_rls.sql).
+  async function refreshWorld() {
+    try {
+      const tiles = await api.select('tile', {
+        select: 'z,x,y,published_version,sog_sha256',
+        published_version: 'gt.0', order: 'z,x,y', limit: '500',
+      });
+      const dirty = await api.select('tile', { select: 'z', dirty: 'is.true', limit: '500' });
+      world.textContent = `${tiles.length} published tiles, ${dirty.length} dirty`;
+    } catch (err) {
+      world.textContent = `api unreachable (${api.endpoints().api}): ${err.message}`;
+    }
+  }
+
+  mountAuth(document.getElementById('auth'), { onChange: refreshWorld });
+  refreshWorld();
+  // Streaming, the player controller and hot swap land in WP1.3–1.5; the
+  // canvas is here so those tasks have nothing to move.
+</script>

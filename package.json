@@ -1,0 +1,13 @@
+{
+  "name": "splatworld",
+  "private": true,
+  "type": "module",
+  "description": "Tooling only. The client itself has no dependencies and is served as static files (CLAUDE.md).",
+  "scripts": {
+    "test": "node --test client/test/*.test.js",
+    "lint": "eslint ."
+  },
+  "devDependencies": {
+    "eslint": "^9.15.0"
+  }
+}
