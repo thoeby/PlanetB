@@ -23,6 +23,22 @@ const HTML = `
 </div>
 <p class="auth-status" role="status"></p>`;
 
+function renderIdentity(host, form, who) {
+    const c = api.claims();
+    form.hidden = Boolean(c);
+    who.hidden = !c;
+    if (c) {
+        host.querySelector('.auth-email').textContent = c.email ?? c.sub;
+        host.querySelector('.auth-role').textContent = `(${api.role()})`;
+    }
+    return c;
+}
+
+async function signIn(act, email, pw) {
+    if (act === 'register') await api.register(email, pw);
+    return api.login(email, pw);
+}
+
 export function mountAuth(host, { onChange } = {}) {
     host.innerHTML = HTML;
     const form = host.querySelector('.auth-form');
@@ -30,33 +46,20 @@ export function mountAuth(host, { onChange } = {}) {
     const status = host.querySelector('.auth-status');
     let waiting = null;
     let hadSession = false;
+    const render = () => onChange?.(renderIdentity(host, form, who));
 
     const say = (msg, bad = false) => {
         status.textContent = msg;
         status.dataset.bad = bad ? '1' : '';
     };
 
-    function render() {
-        const c = api.claims();
-        form.hidden = Boolean(c);
-        who.hidden = !c;
-        if (c) {
-            host.querySelector('.auth-email').textContent = c.email ?? c.sub;
-            host.querySelector('.auth-role').textContent = `(${api.role()})`;
-        }
-        onChange?.(c);
-    }
-
     async function submit(event) {
         event.preventDefault();
         const data = new FormData(form);
-        const email = String(data.get('email'));
-        const pw = String(data.get('pw'));
         const act = event.submitter?.value ?? 'login';
         try {
             say(act === 'register' ? 'creating account…' : 'signing in…');
-            if (act === 'register') await api.register(email, pw);
-            await api.login(email, pw);
+            await signIn(act, String(data.get('email')), String(data.get('pw')));
             form.reset();
             hadSession = true;
             say('');

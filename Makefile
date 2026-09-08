@@ -61,6 +61,7 @@ api-test:
 
 client-test:
 	@if compgen -G 'client/test/*.test.js' > /dev/null; then node --test client/test/*.test.js; else echo 'client-test: no tests yet (WP1)'; fi
+	@if $(PSQL) -c 'SELECT 1' > /dev/null 2>&1; then bash tools/test-tiles.sh; else echo 'client-test: no database, test tiles skipped'; fi
 	@if [ -f playwright.config.js ] && [ -d node_modules/@playwright ]; then npx playwright test; else echo 'client-test: playwright not installed, browser tests skipped'; fi
 
 lint:

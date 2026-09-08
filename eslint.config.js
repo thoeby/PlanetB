@@ -13,6 +13,7 @@ const browser = {
 const node = {
     process: 'readonly', console: 'readonly', Buffer: 'readonly',
     __dirname: 'readonly', URL: 'readonly', setTimeout: 'readonly',
+    fetch: 'readonly', atob: 'readonly', URLSearchParams: 'readonly',
 };
 
 const rules = {
@@ -28,8 +29,9 @@ const rules = {
     semi: ['error', 'always'],
     'comma-dangle': ['error', 'always-multiline'],
     'max-len': ['error', { code: 100, ignoreUrls: true }],
+    // CLAUDE.md: functions under 60 lines, files under 400.
     'max-lines': ['error', { max: 400, skipBlankLines: false }],
-    'max-statements': ['error', 30],
+    'max-lines-per-function': ['error', { max: 60, skipBlankLines: false, skipComments: true }],
 };
 
 export default [

@@ -60,10 +60,15 @@ clean.
 | task | status | commit | file(s) |
 |---|---|---|---|
 | 1.1 Client scaffold | done | see git log | `client/play.html`, `client/js/{api,auth}.js`, `client/lib/tilemath.js`, `client/test/tilemath.test.js`, `client/test/fixtures/tilemath.json`, `tools/tilemath-fixtures.mjs`, `eslint.config.js`, `package.json` |
+| 1.2 Test tiles | done | see git log | `tools/{make-test-tiles.mjs,sogwrite.mjs,test-tiles.sh}`, `db/0009_atomid.sql`, `db/test/0009_atomid.sql` |
+
+The published test tiles are z10 (535,361), (535,362), (536,361), (536,362),
+their z8 parents (133,90) and (134,90), and z6 (33,22) — near Aarau,
+Switzerland. `bash tools/test-tiles.sh` rebuilds them; `make client-test` runs
+it whenever a database is reachable.
 
 | task | notes for whoever picks it up |
 |---|---|
-| 1.2 Test tiles | Uploads go through nginx PUT (`can_write` allows `/tiles/z/x/y/{sha}.sog` only to the holder of that tile's sog atom) then `register_artifact` then `publish_tile`. |
 | 1.3 Tile streaming | `tile.manifest` carries `origin {lon,lat,h}`; nothing about a tile lives in a file. |
 | 1.4 Player controller + collision | needs `height.r16` and `colliders.json`, which `assemble` produces in WP2.3 — use hand-made ones. |
 | 1.5 Hot swap | poll `GET /api/tile?...&select=published_version,sog_sha256`. |
@@ -85,6 +90,33 @@ clean.
    nanometre. West and east are pure arithmetic and *are* compared exactly, as
    are `tile_x`, `tile_y` and all 50 `tiles_for_geom` cases; the acceptance
    criterion is met where it can be. Noted in `client/test/tilemath.test.js`.
+10. **WP1.2 had to fix a WP0.6 bug first: `db/0009_atomid.sql`.** `build_dag`
+    hashed a merge atom over `{children, snapshot}` and `{voxel, budget}`, none
+    of which names the tile. Sibling tiles that see the same features and have
+    no published children — every tile of a fresh region — collided on
+    `atom_hash`, so the second job was handed the first job's atom and ended up
+    with no atoms of its own, unable to publish. The merge atom's params now
+    carry `z, x, y`, as the assemble branch always did. `db/test/0009_atomid.sql`
+    covers it. This would have blocked WP2.8's 16 z12 children too.
+11. **"Uploads via PUT as `admin`" is not a bypass.** `can_write` has no admin
+    case, so the tool does the real thing: it claims the tile's `sog` atom and
+    uploads to the path that claim reserves. It also produces the merge atom's
+    ply and uploads it to `/jobs/{atom}/`, so `atom.output_sha256` points at an
+    artifact that actually exists.
+12. **The tool needs `cwebp`/`dwebp` (Ubuntu `webp`) on the dev box.** A `.sog`
+    is a zip of lossless WebP planes and node has no WebP codec; the in-browser
+    encoder is WP2.6's `lib/sogenc.js`. `tools/` is dev-box tooling, so shelling
+    out to libwebp is in keeping with `seed-ortho.sh` and friends.
+13. **Three files, not one.** `tools/sogwrite.mjs` (the SOG v1 writer and its
+    decoder) and `tools/test-tiles.sh` (starts postgrest and nginx if nothing is
+    serving, and roots the store at `$FILES_ROOT` so the tiles survive for
+    WP1.3) sit next to `tools/make-test-tiles.mjs`, which the 400-line rule
+    would not have held on its own.
+14. **eslint's function-length rule was set to CLAUDE.md's 60 lines** (it was an
+    invented statement count before), which split `mountAuth` in `auth.js`.
+15. **`make client-test` now builds the test tiles** when a database is
+    reachable, and says so when there is none. WP1.3's playwright tests need
+    them served, so the gate has to produce them.
 
 ## WP2–WP5 ⬜
 
