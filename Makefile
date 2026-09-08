@@ -13,7 +13,8 @@ PGPORT ?= 5432
 PGUSER ?= postgres
 PGPASSWORD ?= postgres
 PGDATABASE ?= splatworld
-export PGHOST PGPORT PGUSER PGPASSWORD PGDATABASE
+JWT_SECRET ?= dev-secret-change-me-0123456789abcdef
+export PGHOST PGPORT PGUSER PGPASSWORD PGDATABASE JWT_SECRET
 
 PSQL := psql -v ON_ERROR_STOP=1 --no-psqlrc -q
 MIGRATIONS := $(sort $(wildcard db/[0-9]*.sql))
@@ -38,6 +39,7 @@ logs:
 db-reset:
 	@$(PSQL) -d postgres -c 'DROP DATABASE IF EXISTS "$(PGDATABASE)" WITH (FORCE)'
 	@$(PSQL) -d postgres -c 'CREATE DATABASE "$(PGDATABASE)"'
+	@$(PSQL) -d postgres -c "ALTER DATABASE \"$(PGDATABASE)\" SET app.jwt_secret = '$(JWT_SECRET)'"
 	@$(PSQL) -c 'CREATE EXTENSION IF NOT EXISTS postgis'
 	@$(PSQL) -c 'CREATE EXTENSION IF NOT EXISTS pgcrypto'
 	@$(MAKE) --no-print-directory db-migrate
