@@ -34,13 +34,15 @@ SELECT is((SELECT target_version FROM job WHERE id = (SELECT j14 FROM jobs)),
           1::bigint, 'job targets the tile expected_version');
 
 -- DAG shape -------------------------------------------------------------
+-- Since db/0016_sample.sql a z14 tile is the baseline: assembled and sampled at
+-- its whole budget rather than merged from children it does not have.
 SELECT is((SELECT count(*)::int FROM atom WHERE job_id = (SELECT j14 FROM jobs)),
-          2, 'z14 job has 2 atoms');
+          3, 'z14 job has 3 atoms');
 SELECT results_eq(
     $$SELECT op, count(*)::int FROM atom
       WHERE job_id = (SELECT j14 FROM jobs) GROUP BY op ORDER BY op$$,
-    $$VALUES ('merge', 1), ('sog', 1)$$,
-    'z14 DAG = 1 merge, 1 sog');
+    $$VALUES ('assemble', 1), ('sample', 1), ('sog', 1)$$,
+    'z14 DAG = 1 assemble, 1 sample, 1 sog');
 SELECT results_eq(
     $$SELECT op, count(*)::int FROM atom
       WHERE job_id = (SELECT j18 FROM jobs) GROUP BY op ORDER BY op$$,
@@ -56,8 +58,6 @@ SELECT is((SELECT (params ->> 'budget')::bigint FROM atom
            WHERE op = 'train'), 2000000::bigint, 'z18 train budget is 2 M');
 SELECT ok((SELECT (params ->> 'needs_webgpu')::boolean FROM atom WHERE op = 'train'),
     'train declares its GPU requirement');
-SELECT is((SELECT jsonb_array_length(inputs -> 'children') FROM atom WHERE op = 'merge'),
-    16, 'merge pins all 16 grandchildren');
 SELECT ok((SELECT count(DISTINCT atom_hash) = count(*) FROM atom),
     'every atom_hash is distinct');
 
@@ -75,6 +75,8 @@ SELECT lives_ok(
     format($$SELECT ensure_job(12, %s, %s, 5)$$,
            (SELECT x FROM tile WHERE z = 12), (SELECT y FROM tile WHERE z = 12)),
     'a stranger with a bounty can');
+SELECT is((SELECT jsonb_array_length(inputs -> 'children') FROM atom WHERE op = 'merge'),
+    16, 'the z12 merge pins all 16 grandchildren');
 SELECT set_config('request.jwt.claims',
     json_build_object('sub', owner_id, 'role', 'player')::text, true) FROM ids;
 

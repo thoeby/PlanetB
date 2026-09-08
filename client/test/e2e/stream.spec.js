@@ -7,7 +7,7 @@ import { test, expect } from '@playwright/test';
 import { existsSync } from 'node:fs';
 import { join } from 'node:path';
 
-import { install, tileRows, FILES_ROOT, CLIENT } from './serve.js';
+import { install, testTileRows, FILES_ROOT, CLIENT } from './serve.js';
 
 let rows = [];
 
@@ -16,7 +16,7 @@ test.beforeAll(() => {
         test.skip(true, 'no vendored engine — run `make vendor`');
     }
     try {
-        rows = tileRows();
+        rows = testTileRows();
     } catch (err) {
         test.skip(true, `no database to read tiles from: ${err.message}`);
     }

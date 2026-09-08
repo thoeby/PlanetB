@@ -8,13 +8,19 @@ const OP = /^[a-z][a-z0-9_]*$/;
 
 const canvas = (w, h) => new OffscreenCanvas(w, h);
 
-// Big outputs go back by transfer, not by copy.
+// Big outputs go back by transfer, not by copy. Two files can be views into one
+// buffer — a tar's entries are — and a buffer may only be transferred once, so
+// anything that is not a whole buffer is copied out first.
 function transfers(out) {
     const list = [];
     for (const f of out?.files ?? []) {
         const b = f.bytes;
-        if (b instanceof ArrayBuffer) list.push(b);
-        else if (ArrayBuffer.isView(b)) list.push(b.buffer);
+        if (b instanceof ArrayBuffer) { list.push(b); continue; }
+        if (!ArrayBuffer.isView(b)) continue;
+        if (b.byteOffset !== 0 || b.byteLength !== b.buffer.byteLength) {
+            f.bytes = new Uint8Array(b);
+        }
+        if (!list.includes(f.bytes.buffer)) list.push(f.bytes.buffer);
     }
     return list;
 }

@@ -104,8 +104,10 @@ is "ensure_job is idempotent" "$JOB" \
 is "anon cannot claim work" 401 "$(code POST /rpc/claim_atom '{"caps":{}}')"
 is "a player can claim an atom" 200 \
     "$(code POST /rpc/claim_atom '{"caps":{"webgpu":true,"vram_gb":8}}' "$OWNER_JWT")"
-grep -q '"op" *: *"merge"' "$body" && ok "the claimed atom is the merge" \
-    || no "the claimed atom is the merge ($(head -c 120 "$body"))"
+# Since db/0016_sample.sql a z14 job starts with the assemble atom: the
+# baseline tile is built from the world, not merged from children it has none of.
+grep -q '"op" *: *"assemble"' "$body" && ok "the claimed atom is the assemble" \
+    || no "the claimed atom is the assemble ($(head -c 120 "$body"))"
 ATOM=$(sed 's/.*"id":\([0-9]*\).*/\1/' "$body")
 is "heartbeat on my claim" 204 "$(code POST /rpc/heartbeat "{\"atom_id\":$ATOM}" "$OWNER_JWT")"
 

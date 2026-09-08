@@ -29,13 +29,15 @@ VALUES ('00000000-0000-0000-0000-0000000000f1',
         '00000000-0000-0000-0000-0000000000a1', 'footprint',
         st_geomfromtext('POINTZ(7.5 46.5 500)', 4326));
 
-CREATE TEMP TABLE tt AS SELECT x, y FROM tile WHERE z = 14;
+-- z12, because since db/0016_sample.sql a z14 tile is assembled and sampled
+-- rather than merged, and this is about the merge -> sog -> publish path.
+CREATE TEMP TABLE tt AS SELECT x, y FROM tile WHERE z = 12;
 
 -- owner opens the job and funds it -------------------------------------
 SELECT set_config('request.jwt.claims',
     json_build_object('sub', owner_id, 'role', 'player')::text, true) FROM ids;
 CREATE TEMP TABLE jobs AS
-SELECT ensure_job(14, (SELECT x FROM tt), (SELECT y FROM tt), 10) AS jid;
+SELECT ensure_job(12, (SELECT x FROM tt), (SELECT y FROM tt), 10) AS jid;
 SELECT is(account_balance(escrow_account()), 10::numeric,
     'the bounty is escrowed, not just recorded');
 SELECT is((SELECT bounty FROM job WHERE id = (SELECT jid FROM jobs)), 10::numeric,
@@ -66,15 +68,15 @@ SELECT is(submit_atom((SELECT id FROM cb), repeat('2', 64),
     'verified', 'a merged tile needs no perceptual check (Invariant 7)');
 
 -- publish ---------------------------------------------------------------
-SELECT ok(publish_tile(14, (SELECT x FROM tt), (SELECT y FROM tt), 1,
+SELECT ok(publish_tile(12, (SELECT x FROM tt), (SELECT y FROM tt), 1,
     repeat('2', 64), '{"origin": {"lon": 7.5, "lat": 46.5, "h": 500}}'::jsonb),
     'publish at the expected version succeeds');
-SELECT is((SELECT published_version FROM tile WHERE z = 14), 1::bigint,
+SELECT is((SELECT published_version FROM tile WHERE z = 12), 1::bigint,
     'the tile records the published version');
-SELECT is((SELECT expected_version FROM tile WHERE z = 12), 2::bigint,
+SELECT is((SELECT expected_version FROM tile WHERE z = 10), 2::bigint,
     'the parent expected_version is bumped');
-SELECT ok((SELECT dirty FROM tile WHERE z = 12), 'the parent is dirty');
-SELECT ok(NOT (SELECT dirty FROM tile WHERE z = 14),
+SELECT ok((SELECT dirty FROM tile WHERE z = 10), 'the parent is dirty');
+SELECT ok(NOT (SELECT dirty FROM tile WHERE z = 12),
     'the published tile is clean again');
 SELECT is((SELECT state FROM job WHERE id = (SELECT jid FROM jobs)), 'done',
     'the job is done');
@@ -87,10 +89,10 @@ SELECT is((SELECT account_balance(id) FROM account WHERE owner_id = ids.wb_id),
 SELECT is(account_balance(escrow_account()), 0::numeric, 'escrow is empty again');
 
 -- double publish ---------------------------------------------------------
-SELECT ok(NOT publish_tile(14, (SELECT x FROM tt), (SELECT y FROM tt), 1,
+SELECT ok(NOT publish_tile(12, (SELECT x FROM tt), (SELECT y FROM tt), 1,
     repeat('2', 64), '{}'::jsonb),
     'publishing the same version twice is a no-op');
-SELECT is((SELECT expected_version FROM tile WHERE z = 12), 2::bigint,
+SELECT is((SELECT expected_version FROM tile WHERE z = 10), 2::bigint,
     'and does not bump the parent again');
 
 -- stale publish -----------------------------------------------------------
@@ -100,10 +102,10 @@ UPDATE feature SET props = '{"height": 9}'::jsonb
 WHERE id = '00000000-0000-0000-0000-0000000000f1';
 SELECT set_config('request.jwt.claims',
     json_build_object('sub', wb_id, 'role', 'player')::text, true) FROM ids;
-SELECT ok(NOT publish_tile(14, (SELECT x FROM tt), (SELECT y FROM tt), 1,
+SELECT ok(NOT publish_tile(12, (SELECT x FROM tt), (SELECT y FROM tt), 1,
     repeat('2', 64), '{}'::jsonb),
     'a stale worker can never publish (Invariant 3)');
-SELECT is((SELECT published_version FROM tile WHERE z = 14), 1::bigint,
+SELECT is((SELECT published_version FROM tile WHERE z = 12), 1::bigint,
     'and the tile is unchanged');
 
 -- ledger idempotency -------------------------------------------------------

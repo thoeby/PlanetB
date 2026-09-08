@@ -131,7 +131,7 @@ function allocate(tris, total) {
     return { counts, sum };
 }
 
-function sampleSurfaces(meshes, total, random) {
+export function sampleSurfaces(meshes, total, random) {
     const tris = triangles(meshes);
     const { counts, sum } = allocate(tris, total);
     const f = emptySplats(total);
@@ -169,7 +169,7 @@ function sampleSurfaces(meshes, total, random) {
     return f;
 }
 
-const rngOf = (atom, z, x, y) => rng((atom.seed ?? 0) + z * 1000003 + x * 1009 + y);
+export const rngOf = (atom, z, x, y) => rng((atom.seed ?? 0) + z * 1000003 + x * 1009 + y);
 
 // A feature that crosses the tile's edge arrives whole — a road runs for
 // kilometres, a forest spills into the next tile — and a tile shows its own

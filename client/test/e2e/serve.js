@@ -30,6 +30,18 @@ export function tileRows() {
     return JSON.parse(out);
 }
 
+// The seven tiles tools/make-test-tiles.mjs publishes. WP1's browser tests
+// assert exact sets of loaded tiles, so they are given exactly this world:
+// since WP2.8 the database also holds compiled tiles of the pilot region, and
+// which of those happens to be published is not what those tests are about.
+export const TEST_TILES = new Set([
+    '10/535/361', '10/535/362', '10/536/361', '10/536/362',
+    '8/133/90', '8/134/90', '6/33/22',
+]);
+
+export const testTileRows = () =>
+    tileRows().filter((r) => TEST_TILES.has(`${r.z}/${r.x}/${r.y}`));
+
 export async function install(page, rows) {
     // Tile rows are read fresh on every request when no snapshot is given, so a
     // republish made during a test is visible to the page's next poll.

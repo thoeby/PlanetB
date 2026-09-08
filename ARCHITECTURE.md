@@ -28,7 +28,8 @@ Web-Mercator ZXY. Local frame per tile: origin = tile centre at DEM height, X ea
 |---|---|---|---|
 | 18 | ~110 m | trained from assembled scene (~120 views) | 2.0 M |
 | 16 | ~440 m | trained (~56 views) | 600 k |
-| 14…6 | 1.7 km … 450 km | `merge` of 16 children (z+2), deterministic | 800 k … 1.5 M |
+| 14 | 1.7 km | `sample` of the assembled scene, deterministic | 800 k |
+| 12…6 | 6.7 km … 450 km | `merge` of 16 children (z+2), deterministic | 900 k … 1.5 M |
 
 `area.detail` (10…18) = deepest zoom compiled inside that area. Default 14 (baseline). Raising it just dirties deeper tiles.
 
@@ -88,7 +89,12 @@ Trained tile (z16, z18):
 ```
 assemble ─▶ frame[0..N) ─▶ train ─▶ sog ─▶ verify×3 ─▶ (publish_tile by the sog worker after verified)
 ```
-Merged tile (z ≤ 14):
+Baseline tile (z14) — the floor every compiled area reaches, and not trained
+(WP2.8's decision; `db/0016_sample.sql`):
+```
+assemble ─▶ sample ─▶ sog ─▶ (hash-verified in submit) ─▶ publish_tile
+```
+Merged tile (z ≤ 12):
 ```
 merge ─▶ sog ─▶ (hash-verified in submit) ─▶ publish_tile
 ```
@@ -101,6 +107,7 @@ Atoms become `ready` when all `deps` are `verified`. Inputs to each atom are art
 | `assemble` | features+instances snapshot (GeoJSON), DEM/ortho tiles, GLBs | `init.ply`, `height.r16`, `colliders.json` (one tar artifact) | `assemble-v1`: terrain grid, terrainmods, road cuts, extruded footprints, seeded scatter, GLB placement |
 | `frame` | assemble artifact, camera set id, index range | WebP frames + `transforms.json` | `frame-v1` |
 | `train` | frames, init.ply, budget, iters | fp16 `.ply` | `train-v1` = Splat.js, poses injected |
+| `sample` | assemble artifact, budget | `.ply` + the tile's height and colliders, in one tar | `sample-v1`: the same area-weighted surface sampling that seeds a trained tile, at the tile's whole budget |
 | `merge` | 16 child `.ply`/`.sog`, voxel, budget, seed | `.ply` | `merge-v1`, bit-exact deterministic (integer voxel keys, fixed iteration order, no atomics) |
 | `sog` | `.ply` | `.sog` | `sog-v1` = splat-transform core |
 | `verify` | `.sog`, 2 stored poses + reference frames | `{psnr, passed}` | `verify-v1` |

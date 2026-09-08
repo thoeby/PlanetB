@@ -156,8 +156,27 @@ export class WorkLoop {
         // they really are (client/js/inputs.js).
         const result = { gpu_seconds: seconds, ...out.result,
             path: pick.path, files: written };
-        return this.api.rpc('submit_atom',
+        const state = await this.api.rpc('submit_atom',
             { atom_id: atom.id, output_sha256: pick.sha, result });
+        if (state === 'verified') await this.publish(atom, result, pick.sha);
+        return state;
+    }
+
+    // The tile's pointer moves last, by the worker that made the .sog and only
+    // if the world has not moved on: publish_tile is a compare-and-swap
+    // (Invariant 3). A merged or sampled tile is finished the moment its sog
+    // verifies; a trained one waits for its three perceptual checks.
+    async publish(atom, result, sha) {
+        if (atom.op !== 'sog' || !result.manifest || !result.tile) return;
+        const { z, x, y, target_version: version } = result.tile;
+        const done = await this.api.rpc('publish_tile', {
+            z, x, y, target_version: version, sog_sha256: sha, manifest: result.manifest,
+        }).catch((err) => {
+            this.log({ event: 'publish-failed', atom: atom.id, err: String(err.message ?? err) });
+            return false;
+        });
+        this.log({ event: done ? 'published' : 'stale', atom: atom.id, tile: `${z}/${x}/${y}`,
+            version });
     }
 
     // Returns where the bytes are. 409 is this atom's own path already holding

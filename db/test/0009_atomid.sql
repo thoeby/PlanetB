@@ -13,7 +13,7 @@ INSERT INTO area (id, geom, owner_id, detail) VALUES
  st_makeenvelope(20.0, 20.0, 20.2, 20.2, 4326),
  '00000000-0000-0000-0000-0000000a1001', 14);
 
--- One feature spanning two neighbouring z14 tiles: identical world snapshot,
+-- One feature spanning two neighbouring z12 tiles: identical world snapshot,
 -- no children, same zoom — the case that used to collapse into one atom.
 INSERT INTO feature (area_id, kind, geom) VALUES
 ('00000000-0000-0000-0000-0000000a1002', 'forest',
@@ -24,10 +24,10 @@ SET LOCAL request.jwt.claims = '{"sub":"00000000-0000-0000-0000-0000000a1001","r
 
 CREATE TEMP TABLE tt AS
 SELECT z, x, y, row_number() OVER (ORDER BY x, y) AS n
-FROM tile WHERE z = 14 AND x BETWEEN tile_x(20.0, 14) AND tile_x(20.2, 14)
+FROM tile WHERE z = 12 AND x BETWEEN tile_x(20.0, 12) AND tile_x(20.2, 12)
 ORDER BY x, y LIMIT 2;
 
-SELECT is((SELECT count(*)::int FROM tt), 2, 'two neighbouring z14 tiles are dirty');
+SELECT is((SELECT count(*)::int FROM tt), 2, 'two neighbouring z12 tiles are dirty');
 
 CREATE TEMP TABLE jj AS
 SELECT n, ensure_job(z, x, y) AS job FROM tt;

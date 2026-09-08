@@ -13,7 +13,7 @@ const browser = {
     TextEncoder: 'readonly', TextDecoder: 'readonly', Worker: 'readonly',
     // The atom worker's own globals (client/js/atomworker.js).
     self: 'readonly', OffscreenCanvas: 'readonly', ImageData: 'readonly',
-    createImageBitmap: 'readonly', Blob: 'readonly',
+    createImageBitmap: 'readonly', Blob: 'readonly', btoa: 'readonly',
 };
 
 const node = {
