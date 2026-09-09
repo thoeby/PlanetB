@@ -44,7 +44,8 @@ cleanup () {
     # cluster-wide: applying the migrations anywhere sets it everywhere. Put it
     # back on the way out, or a scratch run with a different environment leaves
     # the developer's own PostgREST unable to log in.
-    PGDATABASE=postgres $PSQL_Q -c "ALTER ROLE authenticator PASSWORD '${AUTHENTICATOR_PASSWORD:-authenticator}'" > /dev/null 2>&1 || true
+    PGDATABASE=postgres $PSQL_Q -c "ALTER ROLE authenticator PASSWORD\
+ '${AUTHENTICATOR_PASSWORD:-authenticator}'" > /dev/null 2>&1 || true
     rm -rf "$FILES_ROOT" "$GEO_CACHE_EMPTY"
 }
 PGDATABASE=postgres $PSQL_Q -c "SELECT 1" > /dev/null 2>&1 \
@@ -75,6 +76,10 @@ is "the plan's z14 count is the outline's own" "$ch_z14" \
     && ok "and Switzerland is ~14 k z14 tiles ($ch_z14)" \
     || no "and Switzerland is ~14 k z14 tiles (got $ch_z14)"
 grep -q 'dry run, nothing written' <<< "$plan" && ok "a dry run says so" || no "a dry run says so"
+# 153 ms a feature with JIT on against 0.95 ms without: five days for
+# Switzerland's OSM step, or fifty minutes. It is worth an assertion.
+grep -q 'jit is off' <<< "$plan" \
+    && ok "and it seeds with JIT off" || no "and it seeds with JIT off"
 is "and writes nothing" 0 "$(q "SELECT count(*) FROM area")"
 
 # BBOX is the override that runs one canton without an outline file for it.

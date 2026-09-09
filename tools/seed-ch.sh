@@ -41,6 +41,14 @@ S2_BASE=${S2_BASE:-https://sentinel-cogs.s3.us-west-2.amazonaws.com}
 S2_SQUARE=${S2_SQUARE:-32/T/MT}
 export CURL_CA_BUNDLE=${CURL_CA_BUNDLE:-/etc/ssl/certs/ca-certificates.crt}
 
+# The dirty trigger calls tiles_for_geom(), and three generate_series make the
+# planner estimate 5000 rows for what is really five, which puts every call over
+# jit_above_cost. PostgreSQL then spends about 165 ms compiling an expression
+# that takes 0.15 ms to run — once per feature inserted. Measured on this
+# schema: 153 ms a feature with JIT on, 0.95 ms with it off. Every statement a
+# seed runs is small and none of them wants a JIT, so none of them gets one.
+export PGOPTIONS="${PGOPTIONS:+$PGOPTIONS }-c jit=off"
+
 work=$(mktemp -d); trap 'rm -rf "$work"' EXIT
 die () { echo "not ok - $1" >&2; exit 1; }
 say () { echo "# seed-ch: $*"; }
@@ -140,6 +148,7 @@ for z in $(seq "$REGION_MIN_Z" 2 "$REGION_MAX_Z"); do
 done
 say "  $TILES tiles a kind: $((TILES * 131072 / 1048576)) MiB of dem,\
  about $((TILES * 25000 / 1048576)) MiB of ortho"
+say "  jit is $($PSQL_Q -c 'SHOW jit') for every statement this seed runs"
 [ "${DRY_RUN:-0}" = 1 ] && { say "dry run, nothing written"; exit 0; }
 
 # ------------------------------------------------------------ the world rows
