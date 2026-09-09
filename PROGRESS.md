@@ -3,9 +3,14 @@
 Task list: `TASKS.md`. Rules: `CLAUDE.md`. Design: `ARCHITECTURE.md`.
 Picking up the work: `HANDOFF.md`.
 
-**WP0, WP1, WP2 and WP3 are closed.** `make gate` is green end to end, about
-eleven minutes: the concurrency torture test, the 30 s hot-swap poll, the pilot
-compile and WP3's trained tile are most of it. WP4 has not been started.
+**WP0 through WP5 are closed.** `make gate` is green end to end, about twenty
+minutes: the concurrency torture test, the edition race, the restore drill, the
+30 s hot-swap poll, the pilot compile and WP3's trained tile are most of it.
+
+Two acceptances are unrun for want of hardware and are marked as such: WP3.1's
+"a pilot z16 tile in under 8 minutes" (no GPU here) and WP5.4's XR mode (no
+headset). WP5.1's raster seed has been run over a region, not over the whole of
+Switzerland — the sources for that are outside this container's egress policy.
 
 ## WP0 — Foundation ✅
 
@@ -677,7 +682,7 @@ test-tile assertions and 31 headless-chromium tests. About twelve minutes.
   shows it. Build mode hands the wallet the tile the player is looking at, so
   WP5.2's "help render the world" has somewhere to put a price.
 
-## WP5 — Switzerland, the web editor, ops ⬜
+## WP5 — Switzerland, the web editor, ops ✅
 
 | task | status | commit | file(s) |
 |---|---|---|---|
@@ -685,7 +690,7 @@ test-tile assertions and 31 headless-chromium tests. About twelve minutes.
 | 5.2 Background baseline rendering | done | see git log | `db/0024_progress.sql`, `db/test/0024_progress.sql`, `client/js/{work,workui}.js`, `client/play.html`, `client/test/background.test.js`, `client/test/e2e/background.spec.js` |
 | 5.3 Web GIS editor | done | see git log | `client/edit.html`, `client/js/{edit,editui}.js`, `client/test/edit.test.js`, `client/test/e2e/edit.spec.js`, `tools/vendor.sh` |
 | 5.4 XR mode | done, **manual gate unticked** | see git log | `client/js/xr.js`, `client/play.html`, `client/test/xr.test.js`, `client/test/e2e/xr.spec.js`, `docs/xr.md` |
-| 5.5 Ops | | | |
+| 5.5 Ops | done | see git log | `tools/{backup,restore,gc-jobs,ops-test}.sh`, `infra/nginx.conf`, `docs/runbook.md`, `Makefile` |
 
 ### Deviations from TASKS.md, and why
 
@@ -763,3 +768,34 @@ test-tile assertions and 31 headless-chromium tests. About twelve minutes.
     in headless chromium. The gate checks that `?xr=1` takes the smaller budget
     and that a browser without a runtime says so and keeps rendering;
     `docs/xr.md` lists what to check on a device. **Run it on a headset.**
+103. **The backup takes the dump first and the bytes second, and the restore
+    the other way round.** Every writer here puts bytes down before the row that
+    names them, so a dump taken first can only name artifacts already on disk:
+    the worst drift a backup holds is litter. A restore reversed for the same
+    reason — a database ahead of its store names artifacts nobody can resolve,
+    and `can_write` refuses a second upload of a registered sha256, so those
+    bytes could never be supplied again.
+104. **`tools/gc-jobs.sh` deletes files, not directories.** An artifact is
+    written once, so an atom that recomputes bytes somebody already uploaded
+    records *their* path — a live job's input can sit in a dead job's directory.
+    It is a dry run unless given `--apply`, and every candidate is re-checked
+    against the database in the statement that authorises the delete.
+105. **`tools/restore.sh` re-applies `app.jwt_secret`.** It is a per-database
+    setting, `pg_dump` never writes one, and without it `auth.sign()` raises:
+    a restore that skips it looks exactly like "login is broken".
+106. **The restore drill is a gate, not a paragraph.** `tools/ops-test.sh` drops
+    a scratch database, empties its store, puts both back from a backup alone,
+    and checks the drift — on every `make api-test`. A drill nobody runs is a
+    backup nobody has.
+107. **Applying the migrations anywhere sets the `authenticator` password
+    everywhere.** `ALTER ROLE` is a cluster object, so a scratch-database test
+    that applies `db/0007_api.sql` with a different `$AUTHENTICATOR_PASSWORD`
+    silently breaks the developer's own PostgREST. It cost an afternoon once;
+    `seed-ch-test.sh` and `ops-test.sh` both put it back on the way out, and
+    `docs/runbook.md` names the symptom.
+108. **`train.spec.js`'s PSNR assertion is stochastic.** Training a z16 tile
+    over SwiftShader at a size that finishes leaves "did the held-out PSNR
+    improve" a close question: one full-gate run here came back 0.05 dB down,
+    and the next was fine. It is a real signal at a real size and a coin at this
+    one; deviation 57 already says to run WP3.1's acceptance on a GPU, and this
+    is the second reason to.
