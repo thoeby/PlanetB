@@ -89,6 +89,8 @@
   <div id="build"></div>
   <div id="areas"></div>
   <div id="wallet"></div>
+  <div id="xr" hidden><button type="button" class="xr-enter">enter VR</button>
+    <span class="xr-status muted"></span></div>
 </section>
 
 <!-- PlayCanvas 2.x, pinned. The browser tests route this URL to the copy
@@ -108,6 +110,7 @@
   import { mountWallet } from './js/walletui.js';
   import { nearbyInstances } from './js/build.js';
   import { InstancePreview } from './js/preview.js';
+  import { XR_LIMITS, teleportTarget, xrRequested, xrSupported } from './js/xr.js';
 
   api.configure();
   const world = document.getElementById('world');
@@ -166,8 +169,14 @@
     or: `(${loaded.map((t) => `and(z.eq.${t.z},x.eq.${t.x},y.eq.${t.y})`).join(',')})`,
   });
 
+  // WP5.4: a headset draws the world twice at ninety frames a second, so
+  // ?xr=1 halves the tile count and takes a third of the splats (js/xr.js).
+  // The budget is lowered by the flag rather than by the session, because the
+  // tiles have to be loaded before there is anything to enter.
+  const wantsXr = xrRequested(location.search);
   const streamer = new TileStreamer(app, pc, {
     origin, filesUrl: api.endpoints().files, fetchRows,
+    ...(wantsXr ? { limits: XR_LIMITS } : {}),
   });
   streamer.setTiles(rows);
   streamer.startPolling();
@@ -229,6 +238,54 @@
   let driving = true;
   const setDriving = (v) => { driving = v; };
 
+  // WP5.4 — the headset. The rig is made only when a session starts: outside
+  // one the camera is exactly where it was, and every other test in this repo
+  // flies it the same way it always did. In a session the pose drives the
+  // camera, so locomotion moves the rig under it and the player loop stands
+  // down. Teleport is the only locomotion offered — smooth motion in a headset
+  // is what makes people sick.
+  //
+  // Not run on a headset: there is none here. docs/xr.md says what to check.
+  const xrPanel = document.getElementById('xr');
+  let rig = null;
+  async function offerXr() {
+    if (!wantsXr) return;
+    xrPanel.hidden = false;
+    const status = xrPanel.querySelector('.xr-status');
+    const ok = await xrSupported() && app.xr?.isAvailable(pc.XRTYPE_VR);
+    if (!ok) {
+      xrPanel.querySelector('.xr-enter').disabled = true;
+      status.textContent = 'no headset on this browser';
+      return;
+    }
+    status.textContent = `${XR_LIMITS.splats / 1e6} M splat budget`;
+    xrPanel.querySelector('.xr-enter').onclick = () => {
+      rig = rig ?? new pc.Entity('xr-rig');
+      if (!rig.parent) app.root.addChild(rig);
+      const p = camera.getPosition().clone();
+      camera.reparent(rig);
+      camera.setLocalPosition(0, 0, 0);
+      rig.setPosition(p);
+      setDriving(false);
+      app.xr.start(camera.camera, pc.XRTYPE_VR, pc.XRSPACE_LOCALFLOOR, {
+        callback: (err) => { if (err) status.textContent = String(err.message ?? err); },
+      });
+    };
+    app.xr.on('end', () => { setDriving(true); status.textContent = 'left VR'; });
+    // A trigger pull is a teleport: where the controller points, if that is
+    // ground this tab has actually streamed.
+    app.xr.input?.on('select', (source) => {
+      const o = source.getOrigin();
+      const d = source.getDirection();
+      const to = teleportTarget(terrain, { x: o.x, y: o.y, z: o.z },
+        { x: d.x, y: d.y, z: d.z });
+      if (!to) { status.textContent = 'no ground there'; return; }
+      rig.setPosition(to.x, to.y - camera.getLocalPosition().y, to.z);
+      player.position = { x: to.x, y: to.y, z: to.z };
+    });
+  }
+  offerXr();
+
   app.on('update', (dt) => {
     // A smoothed frame time, so one slow frame does not stall background work
     // and one fast one does not let it back in too early.
@@ -258,6 +315,6 @@
   // The handle the browser tests fly.
   window.splatworld = {
     app, pc, api, origin, streamer, camera, rows, terrain, player, setDriving, work,
-    spot, build, preview, nearby, areas, wallet,
+    spot, build, preview, nearby, areas, wallet, xr: { wants: wantsXr, rig: () => rig },
   };
 </script>

@@ -684,7 +684,7 @@ test-tile assertions and 31 headless-chromium tests. About twelve minutes.
 | 5.1 CH seed | done | see git log | `infra/seed/ch.geojson`, `tools/{geo-common,seed-ch,seed-ch-test,seed-dem,seed-osm}.sh`, `docs/seed-ch.md`, `Makefile` |
 | 5.2 Background baseline rendering | done | see git log | `db/0024_progress.sql`, `db/test/0024_progress.sql`, `client/js/{work,workui}.js`, `client/play.html`, `client/test/background.test.js`, `client/test/e2e/background.spec.js` |
 | 5.3 Web GIS editor | done | see git log | `client/edit.html`, `client/js/{edit,editui}.js`, `client/test/edit.test.js`, `client/test/e2e/edit.spec.js`, `tools/vendor.sh` |
-| 5.4 XR mode | | | |
+| 5.4 XR mode | done, **manual gate unticked** | see git log | `client/js/xr.js`, `client/play.html`, `client/test/xr.test.js`, `client/test/e2e/xr.spec.js`, `docs/xr.md` |
 | 5.5 Ops | | | |
 
 ### Deviations from TASKS.md, and why
@@ -750,3 +750,16 @@ test-tile assertions and 31 headless-chromium tests. About twelve minutes.
     other by bare specifier and `client/` has no bundler to resolve one with.
     `make vendor` fetches `ol.js` and `ol.css` beside the PlayCanvas build, and
     the browser test routes the CDN at them.
+100. **XR is a budget and a teleport, not a second viewer.** `?xr=1` hands the
+    streamer `XR_LIMITS` (8 M splats, 24 tiles, 2 in flight) and offers a
+    button; `client/js/tiles.js` already drops what does not fit, so nothing
+    else had to know. The budget is lowered by the flag rather than by the
+    session, because the tiles have to be loaded before there is anything to
+    enter.
+101. **The camera is reparented to a rig only when a session starts.** Outside
+    XR the page is exactly the page the other thirty-odd browser tests fly.
+    Teleport moves the rig; smooth locomotion is not offered at all.
+102. **WP5.4's acceptance is unrun.** There is no headset here and no XR runtime
+    in headless chromium. The gate checks that `?xr=1` takes the smaller budget
+    and that a browser without a runtime says so and keeps rendering;
+    `docs/xr.md` lists what to check on a device. **Run it on a headset.**
