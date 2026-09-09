@@ -21,7 +21,7 @@ OSM_URL=${OSM_URL:-https://download.geofabrik.de/europe/switzerland-latest.osm.p
 KEEP_STAGING=${KEEP_STAGING:-0}
 export CURL_CA_BUNDLE=${CURL_CA_BUNDLE:-/etc/ssl/certs/ca-certificates.crt}
 
-read -r west south east north <<< "$(geo_lonlat_bounds "$PILOT_Z" "$PILOT_X" "$PILOT_Y")"
+read -r west south east north <<< "$(geo_bbox)"
 
 if [ -z "${OSM_FILE:-}" ]; then
     mkdir -p "$GEO_CACHE"
@@ -47,9 +47,11 @@ osm2pgsql --log-level=warn --log-progress=false --output=flex --style=tools/osm-
 
 # ------------------------------------------------------- areas and features
 
-# One area per z12 child of the pilot, detail 14: the baseline the whole of WP2
+# One area per z12 tile of the seed, detail 14: the baseline the whole of WP2
 # compiles. Owned by the seed user, which is also who `created_by` names on the
 # geo artifacts.
+geo_seed_areas "${SEED_NAME:-pilot}"
+
 sql=$(mktemp); trap 'rm -f "$sql"' EXIT
 cat > "$sql" <<SQL
 SET client_min_messages = warning;
@@ -61,15 +63,6 @@ BEGIN
     SELECT id INTO uid FROM auth.user WHERE email = '$SEED_EMAIL';
     IF uid IS NULL THEN uid := register('$SEED_EMAIL', 'seed-pw-not-a-login'); END IF;
     UPDATE auth.user SET role = 'admin' WHERE id = uid;
-
-    INSERT INTO area (geom, owner_id, detail, rules)
-    SELECT tile_bbox(12, gx.x, gy.y), uid, 14,
-           jsonb_build_object('seed', 'pilot', 'z12', gx.x || '/' || gy.y)
-    FROM generate_series($PILOT_X * 4, $PILOT_X * 4 + 3) AS gx (x),
-        generate_series($PILOT_Y * 4, $PILOT_Y * 4 + 3) AS gy (y)
-    WHERE NOT EXISTS (
-        SELECT 1 FROM area a
-        WHERE a.owner_id = uid AND a.rules ->> 'z12' = gx.x || '/' || gy.y);
 
     -- Assigned by a point that is certainly on the geometry, so the feature is
     -- inside the area it names and bump_rev() accepts it. Z comes from the DEM

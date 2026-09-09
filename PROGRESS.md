@@ -677,6 +677,46 @@ test-tile assertions and 31 headless-chromium tests. About twelve minutes.
   shows it. Build mode hands the wallet the tile the player is looking at, so
   WP5.2's "help render the world" has somewhere to put a price.
 
-## WP5 ⬜
+## WP5 — Switzerland, the web editor, ops ⬜
 
-Not started.
+| task | status | commit | file(s) |
+|---|---|---|---|
+| 5.1 CH seed | done | see git log | `infra/seed/ch.geojson`, `tools/{geo-common,seed-ch,seed-ch-test,seed-dem,seed-osm}.sh`, `docs/seed-ch.md`, `Makefile` |
+| 5.2 Background baseline rendering | | | |
+| 5.3 Web GIS editor | | | |
+| 5.4 XR mode | | | |
+| 5.5 Ops | | | |
+
+### Deviations from TASKS.md, and why
+
+88. **A region is a polygon, not a root tile.** The pilot is one z10 tile and
+    every seeding tool was written around it. WP5.1 adds `REGION_GEOJSON` to
+    `tools/geo-common.sh`: `geo_tiles()` yields the region's tiles instead, from
+    `tiles_for_geom` — the world's own tile maths, so a seeded tile and a
+    dirtied one are the same tile — and `seed-dem.sh` and `seed-ortho.sh` cut a
+    country without knowing that is what they are doing.
+89. **The Swiss border is checked in.** `infra/seed/ch.geojson`, 187 points from
+    Natural Earth 1:50m `admin_0_countries` (public domain), which PostGIS puts
+    at 41 316 km² against the official 41 285. That is 15 222 z14 tiles, the
+    "~14 k" TASKS.md asks for.
+90. **The seed writes its own tile rows.** Only `feature` and `instance` fire
+    the dirty trigger (ARCHITECTURE, "Triggers"), and ground nobody has ever
+    edited has no edit to fire one — so a country would have no tiles to
+    compile until somebody drew a road on it. `geo_mark_dirty()` inserts the
+    rows the trigger would insert, from the same `tiles_for_geom`, dirty and at
+    `expected_version = 1` so `ensure_job` opens a job on them. A tile the world
+    already knows is left exactly as it is: re-seeding is not an edit.
+91. **The raster half of the CH seed has not been run here.** Geofabrik and
+    Overpass are outside this container's egress policy and the whole seed is
+    2.4 GB of tiles over about 35 hours of streaming; `docs/seed-ch.md`'s
+    timings are one region's measured cost multiplied out, and say so.
+    `tools/seed-ch-test.sh` runs the orchestration end to end — plan, refusals,
+    areas, tiles, a job on a dirty tile, idempotence, and one real DEM tile when
+    AWS is reachable — in a scratch database and a scratch store of its own.
+    **Run the full seed on a box with the sources.**
+92. **`tools/seed-ch.sh` seeds a root tile at a time.** A country in one
+    `gdalbuildvrt` and one transaction prints nothing for hours and then either
+    works or does not. The region is clipped to each z10 tile in turn, which is
+    what makes progress, an ETA and a resumable interruption possible; the OSM
+    pass records which extract each area was seeded from, so a re-run knows what
+    is left.

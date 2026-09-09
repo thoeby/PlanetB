@@ -1,8 +1,11 @@
 #!/usr/bin/env bash
-# WP2.1 — cuts the pilot region's terrain into /geo/dem/{z}/{x}/{y}.r16 and
+# WP2.1 — cuts a region's terrain into /geo/dem/{z}/{x}/{y}.r16 and
 # registers each tile as an artifact of kind `dem`.
 #
 #     set -a; . ./.env; set +a; bash tools/seed-dem.sh
+#
+# The pilot by default; REGION_GEOJSON names a polygon to cut instead
+# (tools/geo-common.sh, tools/seed-ch.sh).
 #
 # Source, in order of preference:
 #   DEM_SRC          any GDAL dataset (a .vrt over swissALTI3D 2 m tiles, say)
@@ -29,16 +32,12 @@ mkdir -p "$GEO_CACHE"
 
 # ------------------------------------------------------------------- source
 
-# The 1-degree cells the pilot's lon/lat envelope touches, as Copernicus names.
+# The 1-degree cells the seed's lon/lat envelope touches, as Copernicus names.
+# One cell for the pilot, 15 for Switzerland (WP5.1).
 cop_cells () {
-    awk -v r="$MERC_R" -v z="$PILOT_Z" -v x="$PILOT_X" -v y="$PILOT_Y" 'BEGIN {
-        n = 2 ^ z;
-        w = x / n * 360 - 180; e = (x + 1) / n * 360 - 180;
-        for (i = 0; i < 2; i++) {
-            t = 3.14159265358979 * (1 - 2 * (y + i) / n);
-            lat[i] = atan2((exp(t) - exp(-t)) / 2, 1) * 180 / 3.14159265358979;
-        }
-        for (la = int(lat[1]); la <= int(lat[0]); la++)
+    read -r w s e n <<< "$(geo_bbox)"
+    awk -v w="$w" -v s="$s" -v e="$e" -v n="$n" 'BEGIN {
+        for (la = int(s); la <= int(n); la++)
             for (lo = int(w); lo <= int(e); lo++)
                 printf "N%02d_00_E%03d_00\n", la, lo;
     }'
