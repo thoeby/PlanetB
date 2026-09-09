@@ -37,6 +37,11 @@ DEST_ABS=$(cd "$DEST" && pwd)
 # ---------------------------------------------------------------- the database
 echo "backup: pg_dump $DB -> $DEST/db.dump"
 pg_dump --format=custom --compress=6 --file="$DEST/db.dump" "$DB"
+# When the dump finished, taken here rather than from the file's mtime: rsync
+# and cp both preserve the source's, so a copied file's mtime says nothing about
+# when it was copied. The manifest carries both stamps and tools/ops-test.sh
+# asserts the order from them, so swapping these two blocks fails the gate.
+DUMP_AT=$(date -u +%s%N)
 
 # ------------------------------------------------------------------- the bytes
 # An artifact is content-addressed and never rewritten (Invariant 1), so a path
@@ -78,6 +83,7 @@ for d in $DIRS; do
     copy_dir "$d"
     echo "backup: copied $d"
 done
+FILES_AT=$(date -u +%s%N)
 
 # ---------------------------------------------------------------- the manifest
 # What was taken, in which order, and from where — a restore that has to guess
@@ -87,7 +93,9 @@ done
     printf '%-14s %s\n' database "$DB @ ${PGHOST:-localhost}:${PGPORT:-5432}"
     printf '%-14s %s\n' files_root "$(cd "$FILES_ROOT" && pwd)"
     printf '%-14s %s\n' dirs "$DIRS"
-    printf '%-14s %s\n' order 'pg_dump first, then rsync'
+    printf '%-14s %s\n' order 'pg_dump first, then the files'
+    printf '%-14s %s\n' dump_at "$DUMP_AT"
+    printf '%-14s %s\n' files_at "$FILES_AT"
     printf '%-14s %s\n' dump_bytes "$(stat -c%s "$DEST/db.dump")"
     for d in $DIRS; do
         [ -d "$DEST/files/$d" ] || continue

@@ -54,7 +54,8 @@ geo_seed_areas "${SEED_NAME:-pilot}"
 
 sql=$(mktemp); trap 'rm -f "$sql"' EXIT
 cat > "$sql" <<SQL
-SET client_min_messages = warning;
+-- notice, not warning: the RAISE below says how many features went in.
+SET client_min_messages = notice;
 DO \$seed\$
 DECLARE
     uid uuid;

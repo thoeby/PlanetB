@@ -242,21 +242,28 @@ gc-jobs: 1 file(s), 8192 byte(s), in jobs done and untouched for 7 day(s)
 gc-jobs: deleted 1 file(s)
 ```
 
-It is a dry run unless told otherwise, and it is safe to run while tabs are
-working: the plan is recomputed in the same statement that authorises the
-delete, so a job that a `recheck_atom` re-opened in the meantime is simply not
-in the second plan. `--days N` widens the window.
+It is a dry run unless told otherwise. It is safe to run while tabs are working,
+with one gap worth knowing: the plan is a query and the delete is a loop after
+it, so a job that `recheck_atom` re-opens in between is not caught. The seven-day
+window is what makes that uninteresting — a file nobody has written for a week is
+not one a job is about to read this second. `--days N` widens it.
 
 **What it will never delete**
 
 * Anything in a job that is not `done`, or that any atom has claimed or beaten
   within the window.
-* Any path an atom of a live job names — `result.path`, any entry of
-  `result.files`, or the `/jobs/{atom}/{sha}` its claim reserved. This is the
-  case that makes the whole thing delicate: an artifact is written once, so an
-  atom that computes bytes another atom already uploaded records *that* atom's
-  path (`client/js/work.js` `elsewhere()`), and a live job's input therefore
-  sits inside a dead job's directory perfectly normally.
+* Any path an atom of a live job names — `result.path` or any entry of
+  `result.files`. This is the case that makes the whole thing delicate: an
+  artifact is written once, so an atom that computes bytes another atom already
+  uploaded records *that* atom's path (`client/js/work.js` `elsewhere()`), and a
+  live job's input therefore sits inside a dead job's directory perfectly
+  normally.
+* Anything an unfinished atom is going to **read** — everything its `deps` and
+  its `inputs` name, and whatever those producers wrote. A consumer resolves a
+  numeric input to the producer's own path (`client/js/inputs.js`), and
+  `new_atom` dedups `atom_hash` across jobs, so that producer is routinely in an
+  older, settled job. This is the one that bites: it is not enough to protect
+  what live atoms produced.
 * Any file whose sha256 is still named by a `tile` pointer or its manifest, or
   by an `asset` row.
 * Any file touched inside the window, by mtime, whatever the database says.
@@ -311,8 +318,9 @@ not 429 (`limit_conn_status` is not set). Thirty-two concurrent uploads from one
 address is already more than twenty tabs can produce.
 
 `tools/ops-test.sh` reads both numbers out of `infra/nginx.conf` and asserts
-that a burst of `burst - 10` PUTs is never limited and that a burst of
-`burst * 3` is, so re-tuning the config re-tunes the test.
+that nine tenths of the burst is never limited and that three times it is, so
+re-tuning the config re-tunes the test — and that the burst leaves room for at
+least one request, because a test that sends nothing passes whatever the limit.
 
 ## 7. Cron
 
@@ -322,9 +330,14 @@ that a burst of `burst - 10` PUTs is never limited and that a burst of
 0  4 * * *  cd /srv/splatworld && set -a && . ./.env && set +a && bash tools/restore.sh --check
 ```
 
-Nothing here computes anything about the world (Invariant 9): a backup copies
-bytes, the GC deletes bytes, and the drift check reads. Tiles are still only
-ever compiled in a player's tab.
+**Whether these run on the server is the owner's call, not this document's.**
+CLAUDE.md's layout annotates `tools/` as "runs on the dev box, not the server",
+and Invariant 9 forbids a cron that computes. The reading that lets these three
+through is that none of them computes anything about the world — a backup copies
+bytes, the GC deletes bytes, the drift check reads — and that a world with no
+backup is worse. It is still a reading. Run them from wherever `psql` and the
+store are both reachable; a dev box with a mount is as good as the server, and
+does not need the argument at all.
 
 ## 8. Dependencies
 

@@ -8,3 +8,6 @@ docs/*.local.*
 test-results/
 playwright-report/
 infra/seed/cache/
+
+# tools/backup.sh defaults here, and a backup is the whole world in one place.
+backups/

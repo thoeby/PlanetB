@@ -16,10 +16,12 @@
 # therefore sit in a dead job's directory. Deleting it is unrecoverable — the
 # sha is registered, so can_write refuses to let anyone upload it again.
 #
-# Safe to run against a working world: it is a dry run unless told otherwise,
-# every candidate is re-checked against the database in the same statement that
-# authorises the delete, and nothing whose file was touched inside the window is
-# a candidate at all.
+# Safe to run against a working world, with one honest limit: it is a dry run
+# unless told otherwise, and nothing whose file was touched inside the window is
+# a candidate at all — but the plan is a query and the delete is a shell loop
+# after it, so a job that recheck_atom re-opens in between is not caught. The
+# window is what makes that gap uninteresting: a file nobody has written for
+# seven days is not one a job is about to read this second.
 set -euo pipefail
 
 FILES_ROOT=${FILES_ROOT:-./infra/files}
@@ -30,7 +32,9 @@ APPLY=
 while [ $# -gt 0 ]; do
     case $1 in
         --apply) APPLY=1 ;;
-        --days) shift; DAYS=${1:?--days needs a number} ;;
+        --days) shift; DAYS=${1:?--days needs a number}
+                [[ $DAYS =~ ^[0-9]+$ ]] || { echo "gc-jobs: --days $DAYS is not a\
+ number, and it is spliced into SQL" >&2; exit 1; } ;;
         *) sed -n '2,10p' "$0" >&2; exit 1 ;;
     esac
     shift
@@ -45,15 +49,14 @@ candidates () {
         -mmin +$((DAYS * 1440)) -printf '%P\n' | sort
 }
 
-gc_sql () {
+# What must survive, as a list of CTEs: which jobs are settled, which atoms are
+# still live (including the ones an unfinished atom is going to read), and the
+# paths and shas those atoms name. Kept apart from the query that uses it so
+# that neither is longer than a person can hold in their head.
+# Which atoms' bytes must survive: everything in a job that is not settled, plus
+# everything those atoms are going to read.
+live_sql () {
     sed "s/@DAYS@/$DAYS/g" <<'SQL'
-WITH parsed AS (
-    SELECT c.rel,
-        split_part(c.rel, '/', 1)::bigint AS atom_id,
-        split_part(split_part(c.rel, '/', 2), '.', 1) AS sha,
-        '/jobs/' || c.rel AS path
-    FROM candidate c WHERE c.rel ~ '^[0-9]+/'
-),
 -- recheck_atom() puts a settled job back to 'open' (db/0015_structural.sql),
 -- so "done" is read here and now, in the statement that decides the delete,
 -- and never remembered from a previous pass.
@@ -66,22 +69,51 @@ settled AS (
             AND greatest(a.claimed_at, a.heartbeat_at)
                 > now() - make_interval(days => @DAYS@))
 ),
+running AS (
+    SELECT a.id, a.inputs, a.deps FROM atom a
+    WHERE a.job_id NOT IN (SELECT s.id FROM settled s)
+),
+-- What an unfinished atom is going to READ, as well as what it wrote.
+-- resolveInputs (client/js/inputs.js) turns a numeric input into the producing
+-- atom's own path, so a consumer's bytes sit in the producer's directory — and
+-- new_atom dedups atom_hash across jobs (db/0005_jobs.sql), so that producer
+-- routinely belongs to an older, settled job. Its output is not this cleanup's
+-- to delete. `deps` and `inputs` are both read: deps is the DAG edge, inputs is
+-- what the atom actually resolves, and neither is a superset of the other.
+needed AS (
+    SELECT DISTINCT r.id FROM running w
+    CROSS JOIN LATERAL (
+        SELECT unnest(coalesce(w.deps, '{}'::bigint [])) AS id
+        UNION ALL
+        SELECT (v.value #>> '{}')::bigint
+        FROM jsonb_each(coalesce(w.inputs, '{}'::jsonb)) AS e (k, value),
+            LATERAL jsonb_array_elements(
+                CASE WHEN jsonb_typeof(e.value) = 'array'
+                     THEN e.value ELSE jsonb_build_array(e.value) END) AS v (value)
+        WHERE jsonb_typeof(v.value) = 'number'
+    ) AS r
+),
 live AS (
     SELECT a.id, a.result, a.output_sha256 FROM atom a
-    WHERE a.job_id NOT IN (SELECT s.id FROM settled s)
+    WHERE a.id IN (SELECT w.id FROM running w)
+       OR a.id IN (SELECT n.id FROM needed n)
 ),
 live_file AS (
     SELECT l.id, f FROM live l,
         LATERAL jsonb_array_elements(coalesce(l.result -> 'files', '[]'::jsonb)) AS f
 ),
+SQL
+}
+
+# And the paths and shas they name, wherever those sit.
+kept_sql () {
+    cat <<'SQL'
 -- A path a live atom names is not this directory's to delete, whoever's
 -- directory it is: that is the dedup case in the header comment.
 kept_path AS (
     SELECT l.result ->> 'path' AS path FROM live l
     WHERE l.result ->> 'path' IS NOT null
     UNION SELECT lf.f ->> 'path' FROM live_file lf WHERE lf.f ->> 'path' IS NOT null
-    UNION SELECT '/jobs/' || l.id || '/' || l.output_sha256 FROM live l
-    WHERE l.output_sha256 IS NOT null
 ),
 -- And bytes a pointer still names survive wherever they sit: a published tile
 -- and a catalog asset must not lose theirs to a neighbouring job's cleanup.
@@ -95,6 +127,23 @@ kept_sha AS (
     WHERE t.manifest -> 'colliders' ->> 'sha256' IS NOT null
     UNION SELECT s.sha256 FROM asset s
     UNION SELECT s.thumb_sha256 FROM asset s WHERE s.thumb_sha256 IS NOT null
+),
+SQL
+}
+
+# The candidates that survive none of it. `parsed` splits a relative path into
+# the atom that owns the directory and the sha the file is named for.
+gc_sql () {
+    echo 'WITH'
+    live_sql
+    kept_sql
+    cat <<'SQL'
+parsed AS (
+    SELECT c.rel,
+        split_part(c.rel, '/', 1)::bigint AS atom_id,
+        split_part(split_part(c.rel, '/', 2), '.', 1) AS sha,
+        '/jobs/' || c.rel AS path
+    FROM candidate c WHERE c.rel ~ '^[0-9]+/'
 )
 SELECT 'del ' || p.rel
 FROM parsed p

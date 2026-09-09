@@ -19,7 +19,7 @@ apt-get update -qq
 apt-get install -y --no-install-recommends \
     postgresql-16-postgis-3 postgresql-16-pgtap \
     libtap-parser-sourcehandler-pgtap-perl nginx-extras webp \
-    gdal-bin osm2pgsql
+    gdal-bin osm2pgsql rsync
 pg_ctlcluster 16 main start
 su postgres -c "psql -c \"ALTER USER postgres PASSWORD 'postgres'\""
 

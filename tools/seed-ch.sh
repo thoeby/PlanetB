@@ -90,7 +90,21 @@ cop_cells () {
     }'
 }
 
+# A dataset named by hand is the one most likely to be wrong, and it is the one
+# the country run must use: check_ortho refuses Switzerland without ORTHO_SRC.
+# gdalinfo opens it the same way the seeds will, so a path that is missing, a
+# .vrt that points at nothing and a format GDAL cannot read all fail here,
+# before the first area row is written.
+check_src () { # name value
+    gdalinfo "$2" > /dev/null 2>&1 \
+        || die "$1='$2' is not a dataset GDAL can open. It must cover\
+ $west $south $east $north; a .vrt over the tiles you have is the usual answer"
+    say "$1: $2 opens"
+}
+
 check_dem () {
+    [ -n "${DEM_SRC:-}" ] && check_src DEM_SRC "$DEM_SRC"
+    [ -n "${SWISSALTI_VRT:-}" ] && check_src SWISSALTI_VRT "$SWISSALTI_VRT"
     [ -n "${DEM_SRC:-}${SWISSALTI_VRT:-}" ] && return 0
     local cell first want=0 have=0
     for cell in $(cop_cells); do
@@ -110,7 +124,7 @@ check_dem () {
 # 110 km across. Switzerland is 350 km and needs a mosaic; so does any region
 # wider than a z8 tile, which is the closest thing this seed has to that size.
 check_ortho () {
-    [ -n "${ORTHO_SRC:-}" ] && return 0
+    [ -n "${ORTHO_SRC:-}" ] && { check_src ORTHO_SRC "$ORTHO_SRC"; return 0; }
     [ "$(tiles_at 8)" -le 1 ] || die "the region spans $(tiles_at 8) z8 tiles and the\
  Sentinel-2 fallback covers one MGRS square ($S2_SQUARE). Set ORTHO_SRC to a mosaic over\
  $west $south $east $north — a .vrt over swissimage, or over the scenes you want — or seed one\

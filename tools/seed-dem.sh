@@ -33,7 +33,8 @@ mkdir -p "$GEO_CACHE"
 # ------------------------------------------------------------------- source
 
 # The 1-degree cells the seed's lon/lat envelope touches, as Copernicus names.
-# One cell for the pilot, 15 for Switzerland (WP5.1).
+# One cell for the pilot; Switzerland's envelope touches 18, of which 14
+# actually meet the outline (WP5.1).
 cop_cells () {
     read -r w s e n <<< "$(geo_bbox)"
     awk -v w="$w" -v s="$s" -v e="$e" -v n="$n" 'BEGIN {

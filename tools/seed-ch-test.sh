@@ -102,11 +102,22 @@ grep -q 'geofabrik.invalid' <<< "$out" && grep -q "$GEO_CACHE_EMPTY" <<< "$out" 
     && ok "and names the file to fetch and where to put it" \
     || no "and names the file to fetch and where to put it (said: $out)"
 
-out=$(SEED_GEO=1 DEM_SRC=/nonexistent.tif bash tools/seed-ch.sh 2>&1) \
+# Switzerland is wider than one Sentinel-2 square, so the country run has no
+# ortho fallback and has to be told where the imagery is.
+out=$(SEED_GEO=1 bash tools/seed-ch.sh 2>&1) \
     && no "a country-sized region with no ortho mosaic stops the run" \
     || ok "a country-sized region with no ortho mosaic stops the run"
 grep -q 'ORTHO_SRC' <<< "$out" && ok "and says to set ORTHO_SRC" || no "and says to set ORTHO_SRC"
-is "and nothing was written by either" 0 "$(q "SELECT count(*) FROM area")"
+
+# And the mosaic it is told about is opened, not taken on trust — this is the
+# configuration a real CH run uses, so it is the one the preflight must cover.
+out=$(SEED_GEO=1 BBOX=$BOX DEM_SRC=/nonexistent.tif ORTHO_SRC=/nonexistent2.tif \
+    bash tools/seed-ch.sh 2>&1) \
+    && no "a named source GDAL cannot open stops the run" \
+    || ok "a named source GDAL cannot open stops the run"
+grep -q 'DEM_SRC' <<< "$out" && ok "and names which one" \
+    || no "and names which one (said: $out)"
+is "and nothing was written by any of them" 0 "$(q "SELECT count(*) FROM area")"
 
 # ---------------------------------------------------------- areas and tiles
 

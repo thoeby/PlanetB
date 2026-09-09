@@ -1,11 +1,10 @@
-// editui.js — the map half of edit.html: an OpenLayers map over the world's
-// own ortho pyramid, the areas drawn on top of it, and the form for the props
-// each kind of feature carries.
+// editui.js — the panel half of edit.html: the area list, the prop form, the
+// drawing and selecting, and what each of them does to the world.
 //
-// The DOM and the map live here; what a feature is and how it is written live
-// in edit.js. OpenLayers arrives as the global `ol` (the built bundle in the
-// page's script tag), because a no-bundler client cannot resolve the bare
-// specifiers its ES modules import each other by.
+// The map itself is editmap.js and what a feature is is edit.js. OpenLayers
+// arrives as the global `ol` (the built bundle in the page's script tag),
+// because a no-bundler client cannot resolve the bare specifiers its ES
+// modules import each other by.
 //
 // Nothing here decides who may edit: the panel says what db/0003_rls.sql is
 // going to say, and a refusal still comes back from the database (Invariant 6).
@@ -13,6 +12,7 @@
 import * as api from './api.js';
 import { KIND_NAMES, KINDS, dropFeature, geometryOf, permissionOf, propsFrom,
     readAreas, readFeatures, saveFeature, valuesOf } from './edit.js';
+import { PROJ, buildMap, geoOf, viewBbox } from './editmap.js';
 
 const HTML = `
 <div class="edit-head">areas</div>
@@ -29,25 +29,15 @@ const HTML = `
 <p class="edit-count muted"></p>
 <p class="edit-status muted"></p>`;
 
-const COLOURS = {
-    road: '#d8b84a', forest: '#54a15a', water: '#4a8fc4',
-    footprint: '#d0794f', terrainmod: '#9b7fd0',
-};
-const AREA_COLOURS = { write: '#5fa96a', propose: '#d8b84a', read: '#6d7780' };
+// How settled a pan has to be before the map asks what is under it: long enough
+// to swallow the two moveends pick() causes, short enough to feel answered.
+const MOVE_MS = 250;
 const PERMS = {
     write: 'you may draw here',
     propose: 'your changes here become proposals',
     read: 'read-only: you hold no right on this area',
     none: 'no area — sign in, or move the map over one',
 };
-
-// The seeded ortho pyramid has only the even zooms (ARCHITECTURE §2), so the
-// tile grid is built from those rather than from the usual XYZ ladder: a z13
-// request would be a permanent 404. This is the world's own imagery from the
-// file store — Invariant 10 leaves no room for a basemap service, and drawing
-// over what the compiler will read is the point anyway.
-const ORTHO_ZOOMS = [6, 8, 10, 12, 14];
-const R0 = 156543.03392804097;
 
 const el = (tag, props = {}, ...kids) => {
     const node = Object.assign(document.createElement(tag), props);
@@ -56,73 +46,6 @@ const el = (tag, props = {}, ...kids) => {
 };
 
 const short = (id) => String(id ?? '').slice(0, 8);
-
-const rgba = (hex, a) => `rgba(${parseInt(hex.slice(1, 3), 16)},`
-    + `${parseInt(hex.slice(3, 5), 16)},${parseInt(hex.slice(5, 7), 16)},${a})`;
-
-// --------------------------------------------------------------------- map
-
-function orthoLayer(ol, filesUrl) {
-    const grid = new ol.tilegrid.TileGrid({
-        extent: ol.proj.get('EPSG:3857').getExtent(),
-        resolutions: ORTHO_ZOOMS.map((z) => R0 / 2 ** z),
-        tileSize: 256,
-    });
-    const url = ([i, x, y]) => `${filesUrl}/geo/ortho/${ORTHO_ZOOMS[i]}/${x}/${y}.webp`;
-    return new ol.layer.Tile({
-        source: new ol.source.XYZ({ tileGrid: grid, tileUrlFunction: url }),
-    });
-}
-
-function styleFor(ol, kind, on) {
-    const colour = COLOURS[kind] ?? '#9aa4ad';
-    return new ol.style.Style({
-        stroke: new ol.style.Stroke({ color: colour, width: on ? 4 : 2 }),
-        fill: new ol.style.Fill({ color: rgba(colour, on ? 0.45 : 0.2) }),
-        image: new ol.style.Circle({ radius: 4,
-            fill: new ol.style.Fill({ color: colour }) }),
-    });
-}
-
-function areaStyleFor(ol, may) {
-    const colour = AREA_COLOURS[may] ?? AREA_COLOURS.read;
-    return new ol.style.Style({
-        stroke: new ol.style.Stroke({ color: colour, width: 2, lineDash: [7, 5] }),
-        fill: new ol.style.Fill({ color: rgba(colour, 0.05) }),
-    });
-}
-
-function buildMap(ol, target, filesUrl) {
-    const cache = new Map();
-    const style = (f, on) => {
-        const key = `${f.get('kind')}:${on}`;
-        if (!cache.has(key)) cache.set(key, styleFor(ol, f.get('kind'), on));
-        return cache.get(key);
-    };
-    const areas = new ol.source.Vector();
-    const features = new ol.source.Vector();
-    const layer = new ol.layer.Vector({ source: features, style: (f) => style(f, false) });
-    const map = new ol.Map({
-        target,
-        layers: [orthoLayer(ol, filesUrl),
-            new ol.layer.Vector({ source: areas,
-                style: (f) => areaStyleFor(ol, f.get('may')) }),
-            layer],
-        view: new ol.View({ center: [0, 0], zoom: 2 }),
-    });
-    return { map, layer, areas, features, style, gj: new ol.format.GeoJSON() };
-}
-
-const PROJ = { dataProjection: 'EPSG:4326', featureProjection: 'EPSG:3857' };
-
-const geoOf = (ctx, feature) =>
-    ctx.gj.writeGeometryObject(feature.getGeometry(), { ...PROJ, decimals: 9 });
-
-function viewBbox(map, ol) {
-    const [west, south, east, north] = ol.proj.transformExtent(
-        map.getView().calculateExtent(map.getSize()), 'EPSG:3857', 'EPSG:4326');
-    return { west, south, east, north };
-}
 
 // -------------------------------------------------------------------- form
 
@@ -212,9 +135,13 @@ function pick(ctx, area) {
     return refresh(ctx);
 }
 
+// Only the newest round paints: a pan is up to 24 tile_world calls and
+// paintFeatures clears before it repaints, so a slow early round landing after
+// a fast late one would show the last view's features.
+let round = 0;
 async function refresh(ctx) {
-    const view = ctx.map.getView();
-    const [lon, lat] = ctx.ol.proj.toLonLat(view.getCenter());
+    const mine = ++round;
+    const [lon, lat] = ctx.ol.proj.toLonLat(ctx.map.getView().getCenter());
     const [areas, world] = await Promise.all([
         readAreas({ lon, lat }).catch(() => []),
         readFeatures(viewBbox(ctx.map, ctx.ol)).catch((err) => {
@@ -222,6 +149,7 @@ async function refresh(ctx) {
             return { features: [], tiles: 0, tooWide: false };
         }),
     ]);
+    if (mine !== round) return null;
     paintAreas(ctx, areas);
     // Signing in should land the map on your own ground rather than on the
     // null island the view starts at.
@@ -380,7 +308,13 @@ function wire(ctx, mountAuth) {
     q('.edit-kind').onchange = () => {
         if (!state.selected) renderForm(q('.edit-props'), q('.edit-kind').value, null);
     };
-    // Panning is a new set of tiles to ask about; moveend is once per gesture.
-    ctx.map.on('moveend', () => refresh(ctx));
+    // A burst of moveends — pick() alone fires two — costs one round, not one
+    // each.
+    let pending = null;
+    ctx.map.on('moveend', () => {
+        clearTimeout(pending);
+        pending = setTimeout(() => refresh(ctx), MOVE_MS);
+    });
+
     mountAuth?.(ctx.doc.getElementById('auth'), { onChange: () => refresh(ctx) });
 }

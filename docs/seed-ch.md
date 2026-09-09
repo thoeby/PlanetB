@@ -36,12 +36,13 @@ uses, so a seeded tile and a dirtied one are the same tile:
 
 15 222 is the ~14 k z14 tiles WP5.1 asks for. The arithmetic: a z14 tile is
 2446 m square in Web Mercator, so 2446·cos φ = 1674 m on the ground at 46.8°,
-2.80 km² — 41 316 / 2.80 = 14 750, plus the boundary tiles a 1935 km border
-clips, which is the rest.
+2.80 km² — 41 316 / 2.80 = 14 750, plus the boundary tiles the outline clips,
+which is the rest. (Its perimeter is 1265 km at this scale; the border as
+surveyed is about 1900 km, and the difference is what 1:50 m smoothing costs.)
 
-Use the outline, not its envelope. The envelope rectangle holds **28 140** z14
-tiles: 46 % of it is France, Italy, Germany and Austria, and cutting it would
-cost 1.7 GB of DEM for ground nobody asked for.
+Use the outline, not its envelope. The envelope rectangle holds **26 650** z14
+tiles, so 43 % of it — 11 428 tiles — is France, Italy, Germany and Austria, and
+cutting it would buy 1.5 GB of DEM for ground nobody asked for.
 
 ## Running it
 
@@ -120,14 +121,20 @@ one core; the skip-and-re-register rule makes overlapping slices harmless.
 
 | | measured | Switzerland |
 |---|---|---|
-| areas + tile rows (1 037 areas, 16 353 rows) | **3.4 s**, whole country | 3.4 s |
-| the same again | 3.5 s | idempotent, and no cheaper for it |
+| areas + tile rows (1 037 areas, 16 353 rows) | **1.3–13 s**, whole country | seconds, not minutes |
+| the same again | same range | idempotent, and no cheaper for it |
 | `osm2pgsql` reading the extract | not measured — no extract here | **estimate 5–15 min** |
 | inserting features | 0.95 ms a row (2 000 rows in 1.90 s) | **estimate 48 min** for ~3 M rows |
 
 So: **a bit over two hours** for the rasters, plus an hour for OSM, plus the
 downloads. An evening, not a weekend — and it resumes, so it does not have to be
 one sitting.
+
+One caveat on the last row: 0.95 ms a feature was measured against a nearly
+empty `feature` table, and the insert's own dedup is an anti-join on
+`props ->> 'osm'`, which no index covers. At three million rows that may not
+hold. It is one bulk statement rather than three million, so the planner has a
+hash join available to it; measure before believing the 48 minutes.
 
 The two OSM lines are estimates and marked as such. The 0.95 ms is real, and was
 measured against a database already holding Switzerland's 1 037 areas and 16 353
@@ -157,10 +164,17 @@ runs, and says so in its plan. Every statement a seed issues is small; none of
 them wants a JIT.
 
 This is not only the seed's problem — every editor write goes through the same
-trigger and pays the same 150 ms. Fixing it at the source would be one line in a
-new migration (`ALTER FUNCTION tiles_for_geom(geometry, int, int) ROWS 8`, so
-the estimate stops being 5 000), which is out of WP5.1's scope but should not
-stay out of the next one's.
+trigger and paid the same 150 ms, so it is fixed at the source too, in
+`db/0025_tilesforgeom.sql`: `ALTER FUNCTION tiles_for_geom(geometry, int, int)
+SET jit = off`. The value is half of it and the `SET` clause is the other half —
+a function that carries one cannot be inlined, so the three `generate_series`
+stop reaching the caller's plan at all: Function Scan at cost 10.25, and 0.93 ms
+a feature instead of 158.
+
+`ROWS 8` on its own does nothing, which is worth writing down because it is the
+obvious thing to try: the declared row count is discarded along with everything
+else when the function is inlined, and the plan, the 5 000-row estimate and the
+6.4e7 cost all come back byte-identical.
 
 ## Sources, and which ones this box could reach
 

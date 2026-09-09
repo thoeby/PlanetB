@@ -52,7 +52,16 @@ SQL
 # Rows without bytes are fatal — nothing can supply those bytes again, because
 # can_write refuses a registered sha256. Bytes without rows are only litter.
 drift_report () {
-    local missing=0 total=0 p extra
+    local missing=0 total=0 p extra named shas
+    # A database that cannot be read is the worst thing this can find, not a
+    # world with nothing in it: read it into a variable so psql's exit status
+    # is visible at all, because a process substitution hides it and the report
+    # would say "0 of them missing" about a server that is down.
+    named=$($PSQL -d "$DB" -c 'SELECT 1' > /dev/null 2>&1 && named_paths) || {
+        echo "drift: cannot read $DB at ${PGHOST:-localhost}:${PGPORT:-5432}\
+ — nothing was checked" >&2
+        return 2
+    }
     while read -r p; do
         [ -n "$p" ] || continue
         total=$((total + 1))
@@ -60,9 +69,9 @@ drift_report () {
             missing=$((missing + 1))
             [ "$missing" -le 20 ] && echo "  missing bytes: $p"
         fi
-    done < <(named_paths)
-    extra=$(comm -23 <(store_shas) <($PSQL -d "$DB" -c \
-        'SELECT sha256 FROM artifact ORDER BY sha256') | wc -l)
+    done <<< "$named"
+    shas=$($PSQL -d "$DB" -c 'SELECT sha256 FROM artifact ORDER BY sha256') || return 2
+    extra=$(comm -23 <(store_shas) <(printf '%s\n' "$shas") | wc -l)
     echo "drift: $total paths named by $DB, $missing of them missing from $FILES_ROOT"
     echo "drift: $extra file(s) in the store that no artifact row knows about"
     [ "$missing" -eq 0 ]
@@ -94,20 +103,39 @@ restore_files () {
     done
 }
 
+# pg_restore wants an empty database: run into one that already has the schema
+# and it reports hundreds of "already exists" errors and exits non-zero, which
+# under `set -e` would take the jwt_secret and the drift report down with it.
+# So an existing database is dropped and recreated, and --force is what says
+# that may happen — to a database with rows in it, and to a freshly migrated
+# empty one, because both would fail the same way.
 restore_db () {
-    local src=$1 force=$2 rows
+    local src=$1 force=$2 rows tables
     if $PSQL -d postgres -c \
         "SELECT 1 FROM pg_database WHERE datname = '$DB'" | grep -q 1; then
         rows=$($PSQL -d "$DB" -c \
             "SELECT count(*) FROM artifact" 2>/dev/null || echo 0)
-        if [ "$rows" != "0" ] && [ "$force" != "--force" ]; then
-            echo "restore: $DB already holds $rows artifact rows; pass --force" >&2
+        tables=$($PSQL -d "$DB" -c "SELECT count(*) FROM pg_tables
+            WHERE schemaname NOT IN ('pg_catalog', 'information_schema')" 2>/dev/null || echo 0)
+        if [ "$tables" != "0" ] && [ "$force" != "--force" ]; then
+            echo "restore: $DB already holds $tables table(s) and $rows artifact row(s);\
+ pass --force to drop and rebuild it" >&2
             exit 1
         fi
-    else
+        if [ "$tables" != "0" ]; then
+            $PSQL -d postgres -c "DROP DATABASE \"$DB\" WITH (FORCE)" > /dev/null
+            echo "restore: dropped $DB ($tables table(s), $rows artifact row(s))"
+        fi
+    fi
+    if ! $PSQL -d postgres -c \
+        "SELECT 1 FROM pg_database WHERE datname = '$DB'" | grep -q 1; then
         createdb "$DB"
         echo "restore: created $DB"
     fi
+    # PostGIS and pgcrypto are extensions, not dump content: a dump made on a
+    # box that had them restores their objects and not the extensions.
+    $PSQL -d "$DB" -c 'CREATE EXTENSION IF NOT EXISTS postgis' \
+        -c 'CREATE EXTENSION IF NOT EXISTS pgcrypto' > /dev/null
     pg_restore --dbname="$DB" --no-owner "$src/db.dump"
     # Not in the dump: a per-database GUC. db/0002_auth.sql refuses to mint a
     # token without it, so a restore that skips this looks like "login is broken".

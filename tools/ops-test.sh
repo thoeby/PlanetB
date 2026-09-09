@@ -98,6 +98,13 @@ BEGIN
         repeat('d', 64),
         jsonb_build_object('path', '/jobs/' || a1 || '/' || repeat('d', 64) || '.ply'))
     RETURNING id INTO a2;
+    -- And one that has not run yet and is going to READ the settled job's
+    -- output: new_atom dedups atom_hash across jobs, so an open job's input
+    -- routinely sits in an older, settled job's directory.
+    INSERT INTO atom (job_id, atom_hash, op, algo_version, inputs, params, state,
+        deps)
+    VALUES (new, repeat('3', 64), 'sog', 'sog-v1',
+        jsonb_build_object('ply', a1), '{}', 'ready', ARRAY[a1]::bigint []);
     RAISE NOTICE 'ops-test atoms % %', a1, a2;
 END
 $w$;
@@ -113,14 +120,19 @@ mkdir -p "$FILES_ROOT/assets" "$FILES_ROOT/tiles/14/4242/4242" \
 ASSET=$FILES_ROOT/assets/$(printf 'c%.0s' {1..64}).glb
 # The path publish_tile's worker writes: /tiles/{z}/{x}/{y}/{sha}.sog.
 TILE=$FILES_ROOT/tiles/14/4242/4242/$(printf 'a%.0s' {1..64}).sog
-DEAD=$FILES_ROOT/jobs/$OLD/$(printf 'b%.0s' {1..64}).ply
+# Left in the settled job's directory by a run that died before it submitted:
+# no atom row names these bytes at all.
+DEAD=$FILES_ROOT/jobs/$OLD/$(printf 'e%.0s' {1..64}).ply
+# Its output, which the open job's unrun atom is going to read as its input.
+INPUT=$FILES_ROOT/jobs/$OLD/$(printf 'b%.0s' {1..64}).ply
 SHARED=$FILES_ROOT/jobs/$OLD/$(printf 'd%.0s' {1..64}).ply
 head -c 4096 /dev/urandom > "$ASSET"
 head -c 4096 /dev/urandom > "$TILE"
 head -c 2048 /dev/urandom > "$DEAD"
+head -c 2048 /dev/urandom > "$INPUT"
 head -c 2048 /dev/urandom > "$SHARED"
 head -c 2048 /dev/urandom > "$FILES_ROOT/jobs/$NEW/scratch.ply"
-touch -d '30 days ago' "$DEAD" "$SHARED" "$FILES_ROOT/jobs/$NEW/scratch.ply"
+touch -d '30 days ago' "$DEAD" "$INPUT" "$SHARED" "$FILES_ROOT/jobs/$NEW/scratch.ply"
 
 # -------------------------------------------------------------------- backup
 
@@ -133,6 +145,14 @@ is "and /jobs is not, because it is scratch" 0 \
     "$(find "$DEST/files" -path '*jobs*' -type f | wc -l)"
 grep -q '^order' "$DEST/manifest.txt" && ok "the manifest says what was taken and how" \
     || no "the manifest says what was taken and how"
+# The order is the design, so it is asserted from when each half actually
+# finished — backup.sh stamps both in the manifest — and not from the manifest's
+# own prose, which would go on saying "pg_dump first" after somebody swapped it.
+DUMP_AT=$(sed -n 's/^dump_at *//p' "$DEST/manifest.txt")
+FILES_AT=$(sed -n 's/^files_at *//p' "$DEST/manifest.txt")
+[ -n "$DUMP_AT" ] && [ -n "$FILES_AT" ] && [ "$DUMP_AT" -lt "$FILES_AT" ] \
+    && ok "and the dump was finished before the bytes were copied" \
+    || no "and the dump was finished before the bytes were copied ($DUMP_AT, $FILES_AT)"
 
 # ------------------------------------------------------------------- restore
 
@@ -151,6 +171,35 @@ is "the tile still points at its sog" "$(printf 'a%.0s' {1..64})" \
     "$($PSQL_Q -c 'SELECT sog_sha256 FROM tile WHERE z = 14')"
 is "and the drift check is clean" 0 \
     "$(bash tools/restore.sh --check 2>&1 | sed -n 's/.* \([0-9]*\) of them missing.*/\1/p')"
+grep -q 'restore: files' <<< "$out" && grep -q 'restore: created\|restore: dropped' <<< "$out" \
+    && [ "$(grep -n 'restore: files' <<< "$out" | head -1 | cut -d: -f1)" \
+       -lt "$(grep -n 'restore: created\|restore: dropped' <<< "$out" | head -1 | cut -d: -f1)" ] \
+    && ok "and it put the bytes back before the database" \
+    || no "and it put the bytes back before the database"
+
+# A database that cannot be read is the worst thing the check exists to find,
+# and the one a cron would never hear about if it reported "0 missing".
+PGDATABASE=ops_no_such_db_$$ bash tools/restore.sh --check > /dev/null 2>&1 \
+    && no "a drift check against a database that is not there fails" \
+    || ok "a drift check against a database that is not there fails"
+
+# --force onto a database that already has the schema: the 3 am path the drill
+# would otherwise never walk.
+psql -v ON_ERROR_STOP=1 --no-psqlrc -q -c 'CREATE EXTENSION IF NOT EXISTS postgis' \
+    -c 'CREATE EXTENSION IF NOT EXISTS pgcrypto' > /dev/null
+for f in db/[0-9]*.sql; do
+    psql -v ON_ERROR_STOP=1 --no-psqlrc -q -v authpw="${AUTHENTICATOR_PASSWORD:-authenticator}" \
+        -v geopw="${GEOSERVER_DB_PASSWORD:-geoserver}" -f "$f" > /dev/null 2>&1 || true
+done
+bash tools/restore.sh "$DEST" > /dev/null 2>&1 \
+    && no "a restore over a database with tables in it needs --force" \
+    || ok "a restore over a database with tables in it needs --force"
+JWT_SECRET=${JWT_SECRET:-dev-secret-change-me-0123456789abcdef} \
+    bash tools/restore.sh "$DEST" --force > /dev/null 2>&1 \
+    && ok "and --force rebuilds it rather than restoring over the top" \
+    || no "and --force rebuilds it rather than restoring over the top"
+is "with the world that was backed up in it" "$(printf 'a%.0s' {1..64})" \
+    "$($PSQL_Q -c 'SELECT sog_sha256 FROM tile WHERE z = 14')"
 
 # A restore never overwrites: a file already in the store keeps the bytes its
 # name says it holds (Invariant 1).
@@ -162,15 +211,17 @@ head -c 4096 /dev/urandom > "$ASSET"
 # ------------------------------------------------------------------- gc-jobs
 
 out=$(bash tools/gc-jobs.sh)
-is "gc-jobs deletes nothing unless told to" 3 \
+is "gc-jobs deletes nothing unless told to" 4 \
     "$(find "$FILES_ROOT/jobs" -type f | wc -l)"
 grep -qi 'apply' <<< "$out" && ok "and says how to tell it to" \
     || no "and says how to tell it to (said: $out)"
 
 bash tools/gc-jobs.sh --apply > /dev/null
 [ -f "$DEAD" ] && no "the finished job's own leftovers go" || ok "the finished job's own leftovers go"
-[ -f "$SHARED" ] && ok "an input a live job names does not, wherever it sits" \
-    || no "an input a live job names does not, wherever it sits"
+[ -f "$SHARED" ] && ok "a path a live atom recorded does not, wherever it sits" \
+    || no "a path a live atom recorded does not, wherever it sits"
+[ -f "$INPUT" ] && ok "and neither does one a live atom has yet to read" \
+    || no "and neither does one a live atom has yet to read"
 [ -f "$FILES_ROOT/jobs/$NEW/scratch.ply" ] && ok "and neither does the live job's own" \
     || no "and neither does the live job's own"
 is "nothing outside /jobs was touched" 2 \
@@ -216,8 +267,13 @@ else
         done
         curl -X PUT "${args[@]}"
     }
-    is "a burst of $((BURST - 10)) PUTs is never limited" 0 \
-        "$(puts $((BURST - 10)) | grep -c 429 || true)"
+    # Nine tenths of the burst, and never fewer than one: `seq 1 -10` issues no
+    # requests at all, and a test that sends nothing passes whatever the limit.
+    SOME=$((BURST * 9 / 10))
+    [ "$SOME" -ge 1 ] && ok "the burst leaves room for a real client ($SOME PUTs)" \
+        || no "the burst leaves room for a real client (burst=$BURST)"
+    is "and a burst of $SOME PUTs is never limited" 0 \
+        "$(puts "$SOME" | grep -c 429 || true)"
     [ "$(puts $((BURST * 3)) | grep -c 429 || true)" -gt 0 ] \
         && ok "and a client that will not stop is" \
         || no "and a client that will not stop is"

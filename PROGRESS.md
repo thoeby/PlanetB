@@ -688,9 +688,10 @@ test-tile assertions and 31 headless-chromium tests. About twelve minutes.
 |---|---|---|---|
 | 5.1 CH seed | done | see git log | `infra/seed/ch.geojson`, `tools/{geo-common,seed-ch,seed-ch-test,seed-dem,seed-osm}.sh`, `docs/seed-ch.md`, `Makefile` |
 | 5.2 Background baseline rendering | done | see git log | `db/0024_progress.sql`, `db/test/0024_progress.sql`, `client/js/{work,workui}.js`, `client/play.html`, `client/test/background.test.js`, `client/test/e2e/background.spec.js` |
-| 5.3 Web GIS editor | done | see git log | `client/edit.html`, `client/js/{edit,editui}.js`, `client/test/edit.test.js`, `client/test/e2e/edit.spec.js`, `tools/vendor.sh` |
+| 5.3 Web GIS editor | done | see git log | `client/edit.html`, `client/js/{edit,editui,editmap}.js`, `client/test/edit.test.js`, `client/test/e2e/edit.spec.js`, `tools/vendor.sh` |
 | 5.4 XR mode | done, **manual gate unticked** | see git log | `client/js/xr.js`, `client/play.html`, `client/test/xr.test.js`, `client/test/e2e/xr.spec.js`, `docs/xr.md` |
 | 5.5 Ops | done | see git log | `tools/{backup,restore,gc-jobs,ops-test}.sh`, `infra/nginx.conf`, `docs/runbook.md`, `Makefile` |
+| — verification fixes | done | see git log | `db/0025_tilesforgeom.sql`, `db/test/0025_tilesforgeom.sql`, and deviations 109–115 |
 
 Gate at the end of WP5: 419 pgTAP assertions over 19 files, the concurrency run,
 the edition race, 95 API, file-store, seed and ops assertions, 121 node
@@ -812,3 +813,54 @@ atom claimed twice, no duplicate ledger ref, no deadlocks, 0 errors.
     and the next was fine. It is a real signal at a real size and a coin at this
     one; deviation 57 already says to run WP3.1's acceptance on a GPU, and this
     is the second reason to.
+
+### What adversarial verification of WP5 found, and what was done
+
+An independent pass over WP5.1, 5.3 and 5.5 tried to break what had been
+committed. Two findings were real bugs, and the rest were claims the code did
+not support. All of them are fixed here; each fix carries the test that catches
+it coming back.
+
+109. **`tools/gc-jobs.sh` deleted a live atom's input.** It protected what live
+    atoms *produced* — `result.path`, `result.files`, `output_sha256` — and
+    never what they were going to *read*. `new_atom` dedups `atom_hash` across
+    jobs, so an unfinished atom's input routinely sits in an older, settled
+    job's directory, and deleting it is unrecoverable: `can_write` refuses a
+    second PUT of a registered sha256 for ever. It now reads `deps` and
+    `inputs` as well, and `tools/ops-test.sh` builds exactly that shape and
+    asserts the file survives — with the old query, it does not.
+110. **`tools/restore.sh --check` reported a clean world when the database was
+    down.** `named_paths` was consumed through a process substitution, which
+    hides psql's exit status, so a dead server produced "0 paths, 0 missing" and
+    exit 0 — from the check the runbook schedules daily. It now fails with
+    exit 2 and says so, and the gate asserts it.
+111. **`--force` did not clean the target.** `pg_restore` into a database that
+    already had the schema produced hundreds of "already exists" errors and a
+    non-zero exit, which under `set -e` took `app.jwt_secret` and the drift
+    report down with it — so the restore looked like "login is broken". A
+    database with tables in it is now dropped and rebuilt, and `--force` is what
+    permits that. Restoring over `make db-reset`'s output is a gate case.
+112. **`ALTER FUNCTION tiles_for_geom(...) ROWS 8` does not work**, which is
+    worth writing down because it is the obvious fix. The function is
+    `LANGUAGE sql`, so the planner inlines it and discards the declared row
+    count: the plan, the 5 000-row estimate and the 6.4e7 cost come back
+    byte-identical. A per-function `SET` clause is what blocks inlining, so
+    `db/0025_tilesforgeom.sql` is `SET jit = off` — measured here at 158 ms a
+    feature before and 0.93 ms after, for every writer and not only the seeds.
+113. **Two gate assertions were green for the wrong reason.** `seed-ch-test`'s
+    "a country-sized region with no ortho mosaic stops the run" passed because
+    `check_ortho` refuses a wide region, not because `DEM_SRC=/nonexistent.tif`
+    was caught — nothing validated a named source at all, and a real CH run must
+    name one. `ops-test`'s "a real client is never limited" sent `seq 1 -10`,
+    which is no requests, for any burst under 10. Both are fixed, and the
+    preflight now opens every named dataset with `gdalinfo` before the first
+    write.
+114. **`edit.spec.js` did not test that what was drawn is what was stored.**
+    Replacing `ewkt()` with a hardcoded triangle passed every geometric
+    assertion — `st_within` against an 11 km area is a loose net. It now asks
+    the map where the clicks landed and compares the stored ring with them by
+    Hausdorff distance in metres.
+115. **The editor refreshed once per moveend, unthrottled.** A pan is up to 24
+    `tile_world` calls, `pick()` fires two moveends by itself, and
+    `paintFeatures` clears before it repaints — so overlapping rounds were both
+    expensive and wrong. Debounced, and only the newest round paints.

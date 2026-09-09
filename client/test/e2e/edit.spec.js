@@ -112,7 +112,19 @@ async function drawTriangle(page, dx = 0) {
     const ring = [[cx - 70, cy - 50], [cx + 70, cy - 50], [cx, cy + 60]];
     for (const [x, y] of ring) await page.mouse.click(x, y);
     await page.mouse.click(ring[0][0], ring[0][1]);
+    // Where those clicks were on the ground, asked of the map itself. Without
+    // this the geometric assertions are satisfied by any triangle anywhere in
+    // the area, and a build() that ignored what was drawn would pass.
+    return page.evaluate(([b, r]) => {
+        const { map } = window.splatworld.edit;
+        return r.map(([x, y]) => window.ol.proj.toLonLat(
+            map.getCoordinateFromPixel([x - b.x, y - b.y])));
+    }, [box, ring]);
 }
+
+// The drawn ring as PostGIS sees it, closed.
+const ewktOf = (ring) => `SRID=4326;POLYGON((${[...ring, ring[0]]
+    .map(([lon, lat]) => `${lon} ${lat}`).join(', ')}))`;
 
 test('a forest drawn on the map becomes a feature row and dirties its tiles',
     async ({ page }) => {
@@ -126,7 +138,7 @@ test('a forest drawn on the map becomes a feature row and dirties its tiles',
 
         await page.selectOption('.edit-kind', 'forest');
         await page.click('.edit-draw');
-        await drawTriangle(page);
+        const drawn = await drawTriangle(page);
         await expect(page.locator('.edit-status')).toContainText('drawn');
 
         // The prop form is the kind's own: what `assemble` reads off a forest.
@@ -146,6 +158,21 @@ test('a forest drawn on the map becomes a feature row and dirties its tiles',
         expect(psql(`SELECT st_within(f.geom, a.geom)::text FROM feature f
                      JOIN area a ON a.id = f.area_id WHERE f.id = '${id}'`),
         'what was drawn landed inside the area it was drawn in').toBe('true');
+
+        // And it is the triangle that was drawn, not merely a triangle: the
+        // stored ring is compared with where the four clicks actually landed.
+        // Hausdorff in metres, so a vertex out of place fails however small the
+        // area error happens to be.
+        const off = Number(psql(`SELECT round(st_hausdorffdistance(
+            st_transform(st_force2d(geom), 3857),
+            st_transform('${ewktOf(drawn)}'::geometry, 3857))::numeric, 1)
+            FROM feature WHERE id = '${id}'`));
+        expect(off, 'the stored ring is where the mouse was').toBeLessThan(20);
+        const areas = psql(`SELECT round(st_area(st_force2d(geom)::geography)) || ' '
+            || round(st_area('${ewktOf(drawn)}'::geometry::geography))
+            FROM feature WHERE id = '${id}'`).split(' ').map(Number);
+        expect(Math.abs(areas[0] - areas[1]) / areas[1],
+            `stored ${areas[0]} m2 against drawn ${areas[1]} m2`).toBeLessThan(0.02);
 
         // Invariant 4: the trigger marked every tile the forest covers.
         const covered = psql(`SELECT count(*) FROM tiles_for_geom(

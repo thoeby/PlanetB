@@ -135,7 +135,9 @@ geo_seed_areas () {
     fi
     sql=$(mktemp); trap 'rm -f "$sql"' RETURN
     cat > "$sql" <<SQL
-SET client_min_messages = warning;
+-- notice, not warning: the RAISE below is the one number an operator resuming
+-- an interrupted country run wants, and warning would swallow it.
+SET client_min_messages = notice;
 DO \$seed\$ DECLARE uid uuid; n int; BEGIN
     SELECT id INTO uid FROM auth.user WHERE email = '$SEED_EMAIL';
     IF uid IS NULL THEN uid := register('$SEED_EMAIL', 'seed-pw-not-a-login'); END IF;
