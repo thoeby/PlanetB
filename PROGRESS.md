@@ -682,7 +682,7 @@ test-tile assertions and 31 headless-chromium tests. About twelve minutes.
 | task | status | commit | file(s) |
 |---|---|---|---|
 | 5.1 CH seed | done | see git log | `infra/seed/ch.geojson`, `tools/{geo-common,seed-ch,seed-ch-test,seed-dem,seed-osm}.sh`, `docs/seed-ch.md`, `Makefile` |
-| 5.2 Background baseline rendering | | | |
+| 5.2 Background baseline rendering | done | see git log | `db/0024_progress.sql`, `db/test/0024_progress.sql`, `client/js/{work,workui}.js`, `client/play.html`, `client/test/background.test.js`, `client/test/e2e/background.spec.js` |
 | 5.3 Web GIS editor | | | |
 | 5.4 XR mode | | | |
 | 5.5 Ops | | | |
@@ -720,3 +720,19 @@ test-tile assertions and 31 headless-chromium tests. About twelve minutes.
     what makes progress, an ETA and a resumable interruption possible; the OSM
     pass records which extract each area was seeded from, so a re-run knows what
     is left.
+93. **"Help render the world" is two more `caps`, not a new RPC.** `claim_atom`
+    already carries `caps` and already filters on it, so WP5.2 adds `ops` (the
+    cheap deterministic ops a background tab will take) and `near {lon, lat}`
+    (the player's position, which the claim is ordered by). No signature
+    changed. Bounty still sorts first: filling in the baseline may not starve
+    work somebody has paid for.
+94. **The position travels with the claim, not with the worker row.** A player
+    moves, and the nearest unfinished tile moves with them; a `worker.caps`
+    written once at sign-in would send every later claim to where they were.
+95. **The pace is a frame budget, not a frame rate.** `WorkLoop` asks `pace()`
+    before every claim and waits when it answers milliseconds. play.html
+    measures a smoothed frame time and holds the next atom back while the tab is
+    drawing slower than 30 fps; a tab with no renderer to measure — a headless
+    worker — passes nothing and never waits.
+96. **`GET /api/progress` is public.** What is drawn and what is not is not a
+    secret, and a dashboard that needs a token is a dashboard nobody looks at.

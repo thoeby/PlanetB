@@ -68,7 +68,8 @@
   .build-snap { display: flex; gap: 4px; align-items: center; margin: 0; }
   .build-snap input, .build-on input { width: auto; }
   .build-on { display: flex; gap: 6px; align-items: center; }
-  .work-gpu, .work-state { color: #8b959e; }
+  .work-gpu, .work-state, .work-progress { color: #8b959e; }
+  .work-progress { white-space: pre-line; font-size: 12px; margin: 4px 0; }
   .work-bg { display: flex; gap: 6px; align-items: center; margin: 6px 0; }
   .work-bg input { width: auto; }
   .work-tiles { margin: 6px 0; padding: 0; list-style: none; max-height: 8rem;
@@ -113,7 +114,18 @@
 
   // The work panel lists the dirty tiles of whoever is signed in, so it is
   // re-read every time that changes.
-  const work = mountWork(document.getElementById('work'));
+  // WP5.2: the panel needs two things from the renderer — how long a frame is
+  // taking, so background work can stand aside while the tab is being played,
+  // and where the player is, so the nearest unfinished tile is claimed first.
+  const frame = { ms: 0 };
+  const work = mountWork(document.getElementById('work'), {
+    frames: () => frame.ms,
+    where: () => {
+      const p = camera.getPosition();
+      const g = origin.geodeticOf({ x: p.x, y: p.y, z: p.z });
+      return { lon: g.lon, lat: g.lat };
+    },
+  });
 
   // Reading tiles needs no token: everyone reads the world (db/0003_rls.sql).
   // Every row is fetched, not only the published ones — the traversal has to
@@ -218,6 +230,9 @@
   const setDriving = (v) => { driving = v; };
 
   app.on('update', (dt) => {
+    // A smoothed frame time, so one slow frame does not stall background work
+    // and one fast one does not let it back in too early.
+    frame.ms = frame.ms ? frame.ms * 0.9 + dt * 1000 * 0.1 : dt * 1000;
     if (driving) {
       player.update(dt);
       const q = player.position;

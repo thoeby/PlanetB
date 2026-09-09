@@ -80,8 +80,15 @@ export function spawnAtomWorker() {
 // -------------------------------------------------------------------- the loop
 
 export class WorkLoop {
+    // `pace` is asked before every claim: it answers how long to wait before
+    // starting the next atom, in milliseconds, and 0 for "go now". WP5.2 uses
+    // it to keep a tab that is also being played above 30 fps; a worker tab
+    // that is not rendering anything passes nothing and never waits.
+    // `where` answers the player's position, which claim_atom orders by.
     constructor({ api, apiUrl, filesUrl, caps = {}, spawn = spawnAtomWorker, cache,
-        log = () => {}, timers = globalThis, fetchFn } = {}) {
+        log = () => {}, timers = globalThis, fetchFn, pace, where } = {}) {
+        this.pace = pace ?? (() => 0);
+        this.where = where ?? (() => null);
         this.api = api;
         this.apiUrl = apiUrl ?? '';
         this.filesUrl = filesUrl ?? '';
@@ -100,7 +107,11 @@ export class WorkLoop {
     // One atom, start to finish. Returns the state submit_atom settled on, or
     // null when there was nothing to claim.
     async step() {
-        const atom = await this.api.rpc('claim_atom', { caps: this.caps });
+        // The position travels with the claim rather than with the worker row:
+        // a player moves, and the nearest unfinished tile moves with them.
+        const near = this.where();
+        const caps = near ? { ...this.caps, near } : this.caps;
+        const atom = await this.api.rpc('claim_atom', { caps });
         if (!atom?.id) return null;
         this.atom = atom;
         this.log({ event: 'claim', atom: atom.id, op: atom.op, job: atom.job_id });
@@ -248,6 +259,11 @@ export class WorkLoop {
         this.log({ event: 'start', caps: this.caps });
         while (this.running) {
             let idle = false;
+            const wait = this.pace();
+            if (wait > 0) {
+                await new Promise((r) => this.timers.setTimeout(r, wait));
+                continue;
+            }
             try {
                 idle = (await this.step()) === null;
             } catch { idle = true; }
