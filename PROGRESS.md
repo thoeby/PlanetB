@@ -683,7 +683,7 @@ test-tile assertions and 31 headless-chromium tests. About twelve minutes.
 |---|---|---|---|
 | 5.1 CH seed | done | see git log | `infra/seed/ch.geojson`, `tools/{geo-common,seed-ch,seed-ch-test,seed-dem,seed-osm}.sh`, `docs/seed-ch.md`, `Makefile` |
 | 5.2 Background baseline rendering | done | see git log | `db/0024_progress.sql`, `db/test/0024_progress.sql`, `client/js/{work,workui}.js`, `client/play.html`, `client/test/background.test.js`, `client/test/e2e/background.spec.js` |
-| 5.3 Web GIS editor | | | |
+| 5.3 Web GIS editor | done | see git log | `client/edit.html`, `client/js/{edit,editui}.js`, `client/test/edit.test.js`, `client/test/e2e/edit.spec.js`, `tools/vendor.sh` |
 | 5.4 XR mode | | | |
 | 5.5 Ops | | | |
 
@@ -736,3 +736,17 @@ test-tile assertions and 31 headless-chromium tests. About twelve minutes.
     worker — passes nothing and never waits.
 96. **`GET /api/progress` is public.** What is drawn and what is not is not a
     secret, and a dashboard that needs a token is a dashboard nobody looks at.
+97. **The editor reads the world one tile at a time.** PostgREST expresses no
+    spatial predicate, so `edit.html` asks the z14 tiles under the viewport for
+    their `tile_world()` — the same GeoJSON the compiler reads, already public.
+    A view wider than 24 tiles returns nothing and says so; a
+    features-in-a-bbox RPC is what this would rather have.
+98. **A feature is written with its Z on every vertex.** `feature.geom` is
+    `geometry(GeometryZ, 4326)` and a plain PostgREST insert cannot call
+    `st_force3d`, so `ewkt()` puts the third ordinate on before the row leaves
+    the tab. A proposal takes the other road: its geometry stays GeoJSON and
+    `diff_geom()` forces it 3D when the proposal merges.
+99. **OpenLayers is the built bundle, not its ES modules.** They import each
+    other by bare specifier and `client/` has no bundler to resolve one with.
+    `make vendor` fetches `ol.js` and `ol.css` beside the PlayCanvas build, and
+    the browser test routes the CDN at them.

@@ -1,0 +1,72 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>splatworld — editor</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<!-- Endpoints, so the same static files run against compose or a dev box. -->
+<meta name="splatworld:api" content="http://localhost:3000">
+<meta name="splatworld:files" content="http://localhost:8080">
+<!-- OpenLayers 10.10.0, BSD-2-Clause. The built bundle, not the ES modules:
+     those import each other by bare specifier, which a client with no bundler
+     cannot resolve. `make vendor` puts the same files in client/vendor/ol/ and
+     the browser tests route these URLs there. -->
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/ol@10.10.0/ol.css">
+<script src="https://cdn.jsdelivr.net/npm/ol@10.10.0/dist/ol.js"></script>
+<style>
+  :root { color-scheme: dark; font: 14px/1.5 system-ui, sans-serif; }
+  body { margin: 0; background: #0d1013; color: #e6e9ec; overflow: hidden; }
+  #page { display: flex; height: 100vh; }
+  #map { flex: 1; height: 100%; background: #11161b; }
+  #side { width: 21rem; box-sizing: border-box; padding: 14px 16px; overflow-y: auto;
+    border-left: 1px solid #2a3138; background: #131820; }
+  h1 { margin: 0 0 4px; font-size: 15px; font-weight: 600; letter-spacing: .02em; }
+  a { color: #8fbcd4; }
+  label { display: block; margin: 6px 0; }
+  input, select { width: 100%; box-sizing: border-box; padding: 4px 6px;
+    background: #0d1013; color: inherit; border: 1px solid #2a3138; border-radius: 4px; }
+  button { padding: 5px 10px; background: #222a31; color: inherit;
+    border: 1px solid #39424b; border-radius: 4px; cursor: pointer; }
+  button:hover { background: #2b343d; }
+  .auth-buttons { display: flex; gap: 6px; margin-top: 8px; }
+  .auth-who { display: flex; gap: 8px; align-items: baseline; }
+  .auth-role, .muted { color: #8b959e; }
+  .auth-status { margin: 6px 0 0; min-height: 1.2em; color: #8b959e; }
+  .auth-status[data-bad="1"], .bad { color: #e2867a; }
+  .edit-head { font-weight: 600; margin: 12px 0 2px; padding-top: 8px;
+    border-top: 1px solid #2a3138; }
+  .edit-areas { margin: 4px 0; padding: 0; list-style: none;
+    max-height: 9rem; overflow-y: auto; }
+  .edit-area button { width: 100%; text-align: left; padding: 2px 6px;
+    font-family: ui-monospace, monospace; font-size: 12px; }
+  .edit-area[data-on="1"] button { border-color: #4a7a52; }
+  .edit-area[data-may="read"] button { color: #8b959e; }
+  .edit-acts { display: flex; gap: 6px; margin: 8px 0 0; }
+  .edit-acts button { flex: 1; }
+  .edit-perm, .edit-count, .edit-status { min-height: 1.2em; margin: 6px 0 0; }
+  /* OpenLayers paints its own light chrome; this is a dark page. */
+  .ol-control button { background: #222a31e0; }
+  .ol-control button:hover { background: #2b343d; }
+  .ol-attribution { background: #131820c0; }
+</style>
+
+<div id="page">
+  <div id="map"></div>
+  <aside id="side">
+    <h1>splatworld — editor</h1>
+    <p class="muted">Draw the world's roads, forests, water, footprints and
+      terrain edits. Every change dirties the tiles it covers; the tabs compile
+      them. <a href="play.html">back to the world</a></p>
+    <div id="auth"></div>
+    <div id="panel"></div>
+  </aside>
+</div>
+
+<script type="module">
+  import * as api from './js/api.js';
+  import { mountAuth } from './js/auth.js';
+  import { mountEditor } from './js/editui.js';
+
+  api.configure();
+  const edit = mountEditor(document, { mountAuth });
+  // The browser tests drive the page through this, exactly as catalog.html does.
+  window.splatworld = { api, edit };
+</script>

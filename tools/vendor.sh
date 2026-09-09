@@ -9,6 +9,7 @@ set -euo pipefail
 
 PLAYCANVAS_VERSION=${PLAYCANVAS_VERSION:-2.22.0}
 DRACO_VERSION=${DRACO_VERSION:-1.5.7}
+OL_VERSION=${OL_VERSION:-10.10.0}
 DEST=client/vendor/playcanvas
 
 # Google's Draco codec (Apache-2.0), for the GLBs canon-v1 is handed compressed.
@@ -33,7 +34,36 @@ vendor_draco () {
     echo "vendor: draco3d $DRACO_VERSION from npm"
 }
 
+# OpenLayers (BSD-2-Clause), the map edit.html draws on. What is fetched is the
+# built bundle and its stylesheet, not the ES modules: those import each other
+# by bare specifier, and client/ has no bundler to resolve one with.
+vendor_ol () {
+    local dest=client/vendor/ol tmp url
+    [ -f "$dest/ol.js" ] && [ "${FORCE:-}" != "1" ] && {
+        echo "vendor: $dest is already here (FORCE=1 to refetch)"; return 0; }
+    mkdir -p "$dest"
+    url="https://cdn.jsdelivr.net/npm/ol@${OL_VERSION}"
+    if curl -sSf -o "$dest/ol.js" "$url/dist/ol.js" 2>/dev/null \
+       && curl -sSf -o "$dest/ol.css" "$url/ol.css" 2>/dev/null; then
+        echo "vendor: openlayers ${OL_VERSION} from $url"
+        return 0
+    fi
+    # A refused download still leaves an empty file behind, and an empty
+    # ol.js is what the next run would take for a vendored copy.
+    rm -f "$dest/ol.js" "$dest/ol.css"
+    tmp=$(mktemp -d)
+    ( cd "$tmp" && npm pack "ol@${OL_VERSION}" --silent > /dev/null ) || {
+        echo "vendor: ol@${OL_VERSION} unreachable, skipping"; rm -rf "$tmp"; return 0; }
+    tar xzf "$tmp"/ol-*.tgz -C "$tmp"
+    cp "$tmp/package/dist/ol.js" "$dest/ol.js"
+    cp "$tmp/package/ol.css" "$dest/ol.css"
+    cp "$tmp/package/LICENSE.md" "$dest/LICENSE.md"
+    rm -rf "$tmp"
+    echo "vendor: openlayers ${OL_VERSION} from npm"
+}
+
 vendor_draco
+vendor_ol
 
 mkdir -p "$DEST"
 if [ -f "$DEST/playcanvas.js" ] && [ "${FORCE:-}" != "1" ]; then
