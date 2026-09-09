@@ -499,7 +499,7 @@ either.
 | task | status | commit | file(s) |
 |---|---|---|---|
 | 4.1 Canonical GLB + SAN | done | see git log | `client/lib/{canon,canonmesh,canontex,glb,png,draco,thumb}.js`, `client/js/{catalog,catalogui}.js`, `client/catalog.html`, `db/0020_assets.sql`, `db/test/0020_assets.sql`, `client/test/{canon,draco}.test.js`, `client/test/e2e/catalog.spec.js`, `tools/make-asset-fixtures.mjs` |
-| 4.2 Build mode | not started | | |
+| 4.2 Build mode | done | see git log | `client/js/{build,buildui,preview}.js`, `client/lib/glbmesh.js`, `client/atoms/assemble.js`, `client/play.html`, `db/0021_build.sql`, `db/test/0021_build.sql`, `client/test/build.test.js`, `client/test/e2e/build.spec.js` |
 | 4.3 Areas, grants, proposals | not started | | |
 | 4.4 Money | not started | | |
 
@@ -575,6 +575,39 @@ headless-chromium tests. About ten minutes.
     "already present" — so the store and the database could never converge
     again. `register_artifact` is idempotent, so the skip path now registers
     too. This is the same class of bug as the `/jobs` 409 in WP2.
+
+72. **`assemble` now places catalog GLBs, which WP4.2 did not ask for.**
+    ARCHITECTURE §5 always listed GLB hashes among an assemble atom's inputs and
+    §6 lists "GLB placement" in `assemble-v1`; until WP4.1 there were no GLBs to
+    place, so it was never written. Without it "place → render → new version
+    visible" would publish a tile that looks exactly as it did before, and build
+    mode would be a row in a table. `tile_world` gained the asset's `sha256`
+    (CREATE OR REPLACE, no schema change) so the atom knows which bytes to load.
+73. **A missing asset is skipped, not fatal.** One artifact the store has lost
+    must not make a whole tile uncompilable; `result.instances` counts what was
+    actually placed. Same rule as WP2's missing merge child (deviation 43).
+74. **`glbmesh.js` refuses a non-canonical GLB.** It reads `meshes[0].primitives`
+    without walking a node tree — which is right for canon-v1's one-node output
+    and silently wrong for a raw export, whose root rotation it would drop,
+    laying the model on its side. It now throws instead. The unit test caught
+    this by handing it a raw fixture.
+75. **The gizmo is keyboard-driven, and build mode detaches the player.** A drag
+    handle needs a picker this client does not have; G/R/T choose move, turn or
+    size, X/Y/Z the axis, the brackets and arrows take a snapped step. While
+    build mode is on the camera stands still and the pointer is free, which is
+    what makes a click a placement rather than a request for pointer lock.
+76. **`preview.js` draws what has been placed but not yet compiled.** A published
+    tile is splats; a bench put down a second ago is in none of them until some
+    tab renders that tile. The preview is built from the same canonical GLB
+    `assemble` will bake in, and the splats replace it when the new version
+    publishes.
+77. **build.spec's click test stubs the ground.** The streamer refuses to refine
+    into an unpublished child, so reaching a z14 tile through the real traversal
+    means compiling the whole z6-to-z14 ladder — which is `pilot.spec`'s job.
+    The ray and the insert are what that test is about; the heightfield is
+    covered by `build.test.js` and `player.test.js`. It also had to recompute
+    every position in the *current* frame: moving the camera 80 km rebases the
+    floating origin mid-test, and a cached local position is then 80 km wrong.
 
 ### What 4.2–4.4 inherit
 

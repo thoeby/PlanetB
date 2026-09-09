@@ -15,6 +15,7 @@
 // seeded from the atom, and the tar carries no timestamps.
 
 import { DEM_OFFSET, DEM_SCALE, loadDem, loadOrtho } from '../lib/geo.js';
+import { boundsOf, placeMeshes } from '../lib/glbmesh.js';
 import { packMeshes } from '../lib/mesh.js';
 import { bboxOf, emptySplats, writePly } from '../lib/ply.js';
 import { contains, rng } from '../lib/poly.js';
@@ -194,8 +195,54 @@ function clip(meshes, sw, ne) {
     return meshes.filter((m) => m.indices.length);
 }
 
+// ------------------------------------------------------------- placed assets
+
+// An instance is a catalog asset standing on the ground (WP4.2). Its canonical
+// GLB is fetched once per digest — two hundred of the same bench are one file —
+// and skipped, not fatal, when the store has lost it: one missing asset must
+// not make a whole tile uncompilable. Same rule `merge` uses for a missing
+// child (WP2 deviation 43).
+async function loadAssets(instances, { filesUrl = '', fetchFn = fetch }) {
+    const out = new Map();
+    for (const i of instances ?? []) {
+        if (!i.sha256 || out.has(i.sha256)) continue;
+        const res = await fetchFn(`${filesUrl}/assets/${i.sha256}.glb`).catch(() => null);
+        if (res?.ok) out.set(i.sha256, new Uint8Array(await res.arrayBuffer()));
+    }
+    return out;
+}
+
+// canon-v1 re-centred every asset on the bottom centre of its bounding box, so
+// an instance's position is where it stands, and its box is that box moved.
+function placeInstances(instances, assets, frame) {
+    const meshes = [];
+    const boxes = [];
+    let missing = 0;
+    for (const i of instances ?? []) {
+        const glb = assets.get(i.sha256);
+        if (!glb) { missing += 1; continue; }
+        const p = localFromLonLat(frame, i.lon, i.lat, i.h ?? 0);
+        const at = [p.x, p.y, p.z];
+        const placed = placeMeshes(glb, { at, yaw: i.yaw ?? 0, pitch: i.pitch ?? 0,
+            roll: i.roll ?? 0, scale: i.scale ?? 1, material: 'asset' });
+        meshes.push(...placed);
+        boxes.push(colliderOf(placed, at));
+    }
+    return { meshes, boxes, missing };
+}
+
+function colliderOf(meshes, at) {
+    const { min, max } = boundsOf(meshes.map((m) => ({ positions: m.positions })));
+    return {
+        center: [(min[0] + max[0]) / 2, (min[1] + max[1]) / 2, (min[2] + max[2]) / 2],
+        half: [(max[0] - min[0]) / 2, (max[1] - min[1]) / 2, (max[2] - min[2]) / 2],
+        yaw: 0,
+        at,
+    };
+}
+
 // The scene itself: ground first, then everything that stands on it.
-function build({ z, sw, ne, dem, ortho, frame, world, random }) {
+function build({ z, sw, ne, dem, ortho, frame, world, random, assets }) {
     const feats = (world.features ?? []).map((f) => toLocal(frame, f));
     const by = (kind) => feats.filter((f) => f.kind === kind);
     const terrain = new Terrain({ sw, ne, size: GRID[z] ?? 65, dem });
@@ -209,13 +256,14 @@ function build({ z, sw, ne, dem, ortho, frame, world, random }) {
     const edge = Math.hypot(ne.x - sw.x, sw.z - ne.z);
     const built = buildings(by('footprint'), terrain);
     const wood = trees(by('forest'), terrain, random, Math.max(6, edge / 140));
+    const placed = placeInstances(world.instances, assets ?? new Map(), frame);
     const meshes = clip([terrainMesh(terrain, ortho), roadMesh(roads, terrain),
         built.walls, built.roofs, waterMesh(by('water'), terrain),
-        wood.trunks, wood.canopies], sw, ne);
-    built.boxes = built.boxes.filter((b) => b.center[0] >= sw.x - CLIP_M
+        wood.trunks, wood.canopies, ...placed.meshes], sw, ne);
+    built.boxes = [...built.boxes, ...placed.boxes].filter((b) => b.center[0] >= sw.x - CLIP_M
         && b.center[0] <= ne.x + CLIP_M && b.center[2] <= sw.z + CLIP_M
         && b.center[2] >= ne.z - CLIP_M);
-    return { terrain, meshes, built, wood, roads };
+    return { terrain, meshes, built, wood, roads, placed };
 }
 
 // -------------------------------------------------------------------- atom
@@ -244,10 +292,12 @@ export async function run({ atom, canvas, log, apiUrl, filesUrl }) {
     const sw = localFromLonLat(frame, b.west, b.south);
     const ne = localFromLonLat(frame, b.east, b.north);
 
-    const { terrain, meshes, built, wood, roads } =
-        build({ z, sw, ne, dem, ortho, frame, world, random: rngOf(atom, z, x, y) });
+    const assets = await loadAssets(world.instances, { filesUrl });
+    const { terrain, meshes, built, wood, roads, placed } =
+        build({ z, sw, ne, dem, ortho, frame, world, random: rngOf(atom, z, x, y), assets });
     log?.({ event: 'assembled', z, x, y, meshes: meshes.length, trees: wood.count,
-        buildings: built.boxes.length, roads: roads.length });
+        buildings: built.boxes.length, roads: roads.length,
+        instances: placed.meshes.length, missing: placed.missing });
 
     const random = rngOf(atom, z, x, y);
     const splats = sampleSurfaces(meshes, Math.round(budget * INIT_SHARE), random);
@@ -276,6 +326,7 @@ export async function run({ atom, canvas, log, apiUrl, filesUrl }) {
             bytes: tar.length, splat_count: splats.count, finite: true,
             bbox: bboxOf(splats),
             trees: wood.count, buildings: built.boxes.length, snapshot: world.snapshot,
+            instances: (world.instances ?? []).length - placed.missing,
         },
     };
 }

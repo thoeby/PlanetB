@@ -1,7 +1,7 @@
 # HANDOFF.md — for the next instance
 
 Read `CLAUDE.md`, then `ARCHITECTURE.md`, then `PROGRESS.md`. Then start the
-first unchecked task in `TASKS.md` — currently **WP4.2**. One task, one commit,
+first unchecked task in `TASKS.md` — currently **WP4.3**. One task, one commit,
 `make gate` green before you commit.
 
 ## 1. Get a working environment first
@@ -289,13 +289,25 @@ Things that cost time once. Do not rediscover them.
   split the way `play.html` is: policy and API calls in `catalog.js`, DOM in
   `catalogui.js`. `window.splatworld = { api, catalog }` is what the browser
   test drives.
+- **Build mode is `js/build.js` (policy) + `js/buildui.js` (panel, input,
+  gizmo) + `js/preview.js` (what is placed but not yet compiled)**, mounted by
+  `play.html` and exposed as `window.splatworld.build`. `db/0021_build.sql` has
+  `my_areas()`, `area_at()` and `tiles_at()` — every function there pins
+  `SET search_path = public`, because PostgREST runs a request with
+  `search_path = api` and an unqualified helper is then not found. That failure
+  shows up only through the API, never in psql.
+- **`assemble` places instances now.** An instance's asset digest comes from
+  `tile_world`; `lib/glbmesh.js` turns a canonical GLB into triangles and
+  refuses anything else. WP4.3's merge and WP4.4's purchases change who may
+  place, not how.
 
-## 4. Starting WP4.2
+## 4. Starting WP4.3
 
 WP4 is the catalog, build mode, areas and money. The seams:
 
-1. **WP4.1 is done**: `canon-v1`, the SAN, `register_asset` and `catalog.html`.
-   §3a above is what it left for the rest of WP4.
+1. **WP4.1 and WP4.2 are done**: `canon-v1`, the SAN, `register_asset`,
+   `catalog.html`, and build mode in `play.html` (place, gizmo, delete, undo,
+   dirty badge, render now). §3a above is what they left for the rest of WP4.
 2. **`account` rows are created by `register()`** already (deviation 3), and
    `pay`, `set_bounty` and escrow release on publish are done and tested. WP4.4
    is the wallet UI, `buy_asset` and `transfer_asset_right`.

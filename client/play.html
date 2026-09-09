@@ -12,6 +12,9 @@
   #hud {
     position: fixed; top: 12px; left: 12px; width: 20rem; padding: 12px 14px;
     background: #161b20e6; border: 1px solid #2a3138; border-radius: 6px;
+    /* Build mode adds a catalog and a tile list; without this the panel grows
+       past the window and its buttons cannot be reached. */
+    max-height: calc(100vh - 40px); overflow-y: auto;
   }
   h1 { margin: 0 0 8px; font-size: 15px; font-weight: 600; letter-spacing: .02em; }
   label { display: block; margin: 6px 0; }
@@ -28,6 +31,19 @@
   #world { margin: 10px 0 0; padding-top: 8px; border-top: 1px solid #2a3138;
     white-space: pre-line; }
   #work { margin: 10px 0 0; padding-top: 8px; border-top: 1px solid #2a3138; }
+  #build { margin: 10px 0 0; padding-top: 8px; border-top: 1px solid #2a3138; }
+  #build[data-on="1"] { border-color: #4a7a52; }
+  .build-where, .build-sel { margin: 4px 0; }
+  .build-assets, .build-tiles { margin: 4px 0; padding: 0; list-style: none;
+    max-height: 7rem; overflow-y: auto; }
+  .build-asset button, .build-tile button { padding: 1px 6px; }
+  .build-tile { display: flex; gap: 6px; align-items: baseline; margin: 2px 0; }
+  .build-gizmo, .build-acts { display: flex; gap: 6px; align-items: center; margin: 4px 0; }
+  .build-gizmo button, .build-acts button { flex: 0 0 auto; padding: 1px 6px; }
+  .build-axis { font-family: ui-monospace, monospace; color: #8b959e; }
+  .build-snap { display: flex; gap: 4px; align-items: center; margin: 0; }
+  .build-snap input, .build-on input { width: auto; }
+  .build-on { display: flex; gap: 6px; align-items: center; }
   .work-gpu, .work-state { color: #8b959e; }
   .work-bg { display: flex; gap: 6px; align-items: center; margin: 6px 0; }
   .work-bg input { width: auto; }
@@ -45,6 +61,7 @@
   <div id="auth"></div>
   <p id="world">…</p>
   <div id="work"></div>
+  <div id="build"></div>
 </section>
 
 <!-- PlayCanvas 2.x, pinned. The browser tests route this URL to the copy
@@ -59,6 +76,9 @@
   import { Player, Terrain, WALK } from './js/player.js';
   import { mountWork } from './js/workui.js';
   import { SpotChecker } from './js/spot.js';
+  import { mountBuild } from './js/buildui.js';
+  import { nearbyInstances } from './js/build.js';
+  import { InstancePreview } from './js/preview.js';
 
   api.configure();
   const world = document.getElementById('world');
@@ -66,7 +86,6 @@
   // The work panel lists the dirty tiles of whoever is signed in, so it is
   // re-read every time that changes.
   const work = mountWork(document.getElementById('work'));
-  mountAuth(document.getElementById('auth'), { onChange: () => work.refresh() });
 
   // Reading tiles needs no token: everyone reads the world (db/0003_rls.sql).
   // Every row is fetched, not only the published ones — the traversal has to
@@ -123,7 +142,37 @@
 
   const terrain = new Terrain(streamer);
   const player = new Player(terrain, { mode: WALK });
-  player.attach(document.getElementById('view'));
+  const view = document.getElementById('view');
+  player.attach(view);
+
+  // WP4.2: build mode. The preview draws what has been placed but not yet
+  // compiled — a published tile is splats, and a bench put down a second ago is
+  // in none of them until some tab renders that tile again.
+  const preview = new InstancePreview(app, pc, {
+    origin, filesUrl: api.endpoints().files,
+  });
+
+  // An instance row plus the digest of the asset's canonical GLB, which is what
+  // both the preview and `assemble` actually draw.
+  async function nearby(lon, lat) {
+    const rows = await nearbyInstances(lon, lat).catch(() => []);
+    if (!rows.length) return rows;
+    const sans = [...new Set(rows.map((r) => r.san))];
+    const assets = await api.select('asset',
+      { san: `in.(${sans.join(',')})`, select: 'san,sha256' }).catch(() => []);
+    const bySan = new Map(assets.map((a) => [a.san, a.sha256]));
+    return rows.filter((r) => bySan.has(r.san))
+      .map((r) => ({ ...r, sha256: bySan.get(r.san) }));
+  }
+
+  const build = mountBuild(document.getElementById('build'), {
+    app, pc, api, camera, origin, terrain, streamer, player, work, preview,
+    canvas: view, nearby,
+  });
+
+  mountAuth(document.getElementById('auth'), {
+    onChange: () => { work.refresh(); build.refresh(); },
+  });
 
   // The player drives the camera unless something else has taken the wheel —
   // the streaming tests script the camera directly.
@@ -142,7 +191,9 @@
     if (moved) {
       camera.setPosition(moved.x, moved.y, moved.z);
       if (driving) player.position = { ...moved };
+      preview.rebased();
     }
+    build.drawGizmo();
     streamer.update(cameraState(camera, app.graphicsDevice.height));
     world.textContent = `${live.length} published tiles\n`
       + `${streamer.entries.size} loaded, ${streamer.pending} loading\n`
@@ -154,6 +205,6 @@
   // The handle the browser tests fly.
   window.splatworld = {
     app, pc, api, origin, streamer, camera, rows, terrain, player, setDriving, work,
-    spot,
+    spot, build, preview, nearby,
   };
 </script>
