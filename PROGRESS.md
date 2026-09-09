@@ -692,6 +692,19 @@ test-tile assertions and 31 headless-chromium tests. About twelve minutes.
 | 5.4 XR mode | done, **manual gate unticked** | see git log | `client/js/xr.js`, `client/play.html`, `client/test/xr.test.js`, `client/test/e2e/xr.spec.js`, `docs/xr.md` |
 | 5.5 Ops | done | see git log | `tools/{backup,restore,gc-jobs,ops-test}.sh`, `infra/nginx.conf`, `docs/runbook.md`, `Makefile` |
 
+Gate at the end of WP5: 419 pgTAP assertions over 19 files, the concurrency run,
+the edition race, 95 API, file-store, seed and ops assertions, 121 node
+assertions, 22 test-tile assertions and 40 headless-chromium tests. About twenty
+minutes.
+
+**The WP5 gate itself, read literally:** "Switzerland end-to-end at z6…z14 with
+z16/z18 pockets" is seeded as far as the sources here allow — the areas, the
+15 222 dirty z14 tiles and the jobs on them, over the real outline; the rasters
+and the OSM extract for the whole country are deviation 91. "20 tabs working
+concurrently without DB errors" is `db/test/0006_concurrency.sh`, which runs 32
+workers, 4 editors and 2 stale publishers against one database: 1500 claims, no
+atom claimed twice, no duplicate ledger ref, no deadlocks, 0 errors.
+
 ### Deviations from TASKS.md, and why
 
 88. **A region is a polygon, not a root tile.** The pilot is one z10 tile and
