@@ -24,7 +24,7 @@ S2_BASE=${S2_BASE:-https://sentinel-cogs.s3.us-west-2.amazonaws.com}
 S2_SQUARE=${S2_SQUARE:-32/T/MT}
 S2_YEAR=${S2_YEAR:-2025}
 S2_MONTH=${S2_MONTH:-7}
-export CURL_CA_BUNDLE=${CURL_CA_BUNDLE:-/etc/ssl/certs/ca-certificates.crt}
+[ -f /etc/ssl/certs/ca-certificates.crt ] && export CURL_CA_BUNDLE=${CURL_CA_BUNDLE:-/etc/ssl/certs/ca-certificates.crt}
 
 work=$(mktemp -d); trap 'rm -rf "$work"' EXIT
 geo_mkstore
@@ -79,9 +79,7 @@ while read -r z x y; do
         -ts "$SIZE" "$SIZE" -r cubic -ot Byte "$src" "$work/t.tif"
     # The WebP driver is CreateCopy-only, so the warp lands in a GeoTIFF first.
     gdal_translate -q -of WEBP -co QUALITY="$QUALITY" "$work/t.tif" "$work/t.webp"
-    mkdir -p "$(dirname "$dest")"
-    cp "$work/t.webp" "$dest"
-    chmod 644 "$dest"
+    geo_place "$work/t.webp" "$dest"
     echo "$(sha256sum "$dest" | cut -d' ' -f1) $(stat -c%s "$dest")" >> "$work/registered"
     n=$((n + 1))
 done < <(geo_tiles)

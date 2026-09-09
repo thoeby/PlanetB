@@ -23,7 +23,9 @@ MIGRATIONS := $(sort $(wildcard db/[0-9]*.sql))
 DB_TESTS := $(sort $(wildcard db/test/[0-9]*.sql))
 DB_TEST_SCRIPTS := $(sort $(wildcard db/test/[0-9]*.sh))
 
-COMPOSE := docker compose -f infra/compose.yml --env-file .env
+# --project-directory keeps relative paths in compose.yml (FILES_ROOT) rooted at
+# the repo, where every tool and .env.example root them too.
+COMPOSE := docker compose -f infra/compose.yml --project-directory . --env-file .env
 
 .PHONY: help up down logs db-reset db-migrate db-test api-test client-test lint gate vendor
 

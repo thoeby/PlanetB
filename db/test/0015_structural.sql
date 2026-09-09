@@ -41,8 +41,8 @@ SELECT ok(NOT bbox_fits((SELECT a FROM atom a WHERE a.id = 900001),
 
 -- ------------------------------------------------------- a first submission
 
--- Re-claiming a settled atom is what a re-check does and no RPC offers, so the
--- claims are set by hand here; submit_atom is SECURITY DEFINER and reads the
+-- recheck_atom puts the atom back in the pool; the claims are set by hand here
+-- rather than through claim_atom; submit_atom is SECURITY DEFINER and reads the
 -- caller from request.jwt.claims either way.
 SET LOCAL request.jwt.claims = '{"sub":"00000000-0000-0000-0000-0000000e5001","role":"player"}';
 UPDATE atom SET state = 'claimed', worker_id = '00000000-0000-0000-0000-0000000e5011',
@@ -77,8 +77,8 @@ SELECT is(submit_atom(900001, repeat('b', 64),
     'ready', 'a different answer is trusted from neither, and the atom goes back');
 SELECT is((SELECT output_sha256 FROM atom WHERE id = 900001), NULL,
           'the output nobody agrees on is discarded');
-SELECT is((SELECT sum(bad)::int FROM worker_op_stats WHERE op = 'merge'), 1,
-          'the worker behind an answer nobody agrees with is marked bad');
+SELECT is((SELECT sum(bad)::int FROM worker_op_stats WHERE op = 'merge'), 2,
+          'both workers behind answers nobody agrees on are marked bad');
 
 -- ------------------------------------------------------------ a bad result
 

@@ -16,6 +16,8 @@ export const HYSTERESIS = 1.4;
 export const LIMITS = { tiles: 40, splats: 25e6, inflight: 4 };
 // How often a loaded tile is re-checked for a newer published version.
 export const POLL_MS = 30000;
+// How long a tile that failed to load is left alone before it is tried again.
+export const RETRY_MS = 30000;
 
 export const key = (z, x, y) => `${z}/${x}/${y}`;
 export const parseKey = (k) => {
@@ -67,9 +69,14 @@ class Candidate {
 
 const published = (row) => Boolean(row?.published_version > 0 && row.sog_sha256);
 
+// A tile whose load failed is left alone until its retry time; until then it
+// is treated as unpublished, so its parent stays whole.
+const loadable = (world, k) => !((world.failed?.get(k) ?? 0) > (world.now ?? 0));
+
 function candidate(world, t) {
-    const row = world.tiles.get(key(t.z, t.x, t.y));
-    if (!published(row) || !row.manifest?.origin) return null;
+    const k = key(t.z, t.x, t.y);
+    const row = world.tiles.get(k);
+    if (!published(row) || !row.manifest?.origin || !loadable(world, k)) return null;
     return new Candidate(t.z, t.x, t.y, row, world.origin);
 }
 
@@ -83,6 +90,7 @@ function refinableInto(world, c) {
         .map((t) => ({ t, row: world.tiles.get(key(t.z, t.x, t.y)) }))
         .filter((e) => e.row);
     if (!rows.length || !rows.every((e) => published(e.row))) return null;
+    if (!rows.every((e) => loadable(world, key(e.t.z, e.t.x, e.t.y)))) return null;
     return rows.map((e) => new Candidate(e.t.z, e.t.x, e.t.y, e.row, world.origin));
 }
 
@@ -130,8 +138,24 @@ function applyCaps(ordered, limits) {
     return { keep, splats };
 }
 
+// One tile covers the other's ground: the same tile, an ancestor or a descendant.
+function overlaps(a, b) {
+    const [hi, lo] = a.z <= b.z ? [a, b] : [b, a];
+    const f = 2 ** (lo.z - hi.z);
+    return Math.floor(lo.x / f) === hi.x && Math.floor(lo.y / f) === hi.y;
+}
+
+// A tile on its way out stays until every tile taking its place is in the
+// scene (an entry with `entity: null` is still loading): no frame with a hole.
+function replaced(world, keep, k) {
+    const t = parseKey(k);
+    return keep.filter((c) => overlaps(t, c))
+        .every((c) => world.loaded.has(c.key) && world.loaded.get(c.key).entity !== null);
+}
+
 // world: { tiles: Map(key -> row), roots: [{z,x,y}], origin, loaded: Map(key ->
-// {usedAt}), inflight: number }. camera: { position, planes, screenH, fovY }.
+// {usedAt, entity?}), inflight: number, failed?: Map(key -> retryAt), now? }.
+// camera: { position, planes, screenH, fovY }.
 export function selectTiles(world, camera, limits = LIMITS) {
     const ordered = prioritise(world, camera, traverse(world, camera));
     const { keep, splats } = applyCaps(ordered, limits);
@@ -142,7 +166,8 @@ export function selectTiles(world, camera, limits = LIMITS) {
     for (const c of keep) {
         if (!world.loaded.has(c.key) && load.length < room) load.push(c);
     }
-    const unload = [...world.loaded.keys()].filter((k) => !want.has(k))
+    const unload = [...world.loaded.keys()]
+        .filter((k) => !want.has(k) && replaced(world, keep, k))
         .sort((a, b) => (world.loaded.get(a).usedAt - world.loaded.get(b).usedAt));
     return { want, load, unload, splats };
 }
@@ -176,11 +201,15 @@ export class TileStreamer {
         // that are loaded. Injected rather than imported so this module stays
         // loadable under node, where the traversal is tested.
         this.fetchRows = fetchRows ?? null;
+        // Told the key of every tile whose splats leave the scene, whether it
+        // was unloaded or swapped for a newer version (client/js/player.js).
+        this.onRelease = null;
         this.timer = null;
         this.swaps = 0;
         this.tiles = new Map();
         this.roots = [];
         this.entries = new Map();
+        this.failed = new Map();
         this.pending = 0;
         this.clock = 0;
     }
@@ -198,6 +227,7 @@ export class TileStreamer {
         return {
             tiles: this.tiles, roots: this.roots, origin: this.origin,
             loaded: this.entries, inflight: this.pending,
+            failed: this.failed, now: Date.now(),
         };
     }
 
@@ -233,7 +263,9 @@ export class TileStreamer {
             return true;
         };
         asset.ready(() => {
-            if (!settle() || this.entries.get(c.key) !== entry) return;
+            // Unloaded while in the air: the bytes arrived for nobody.
+            if (!settle() || this.entries.get(c.key) !== entry) return this.release(null, asset);
+            this.failed.delete(c.key);
             const entity = new this.pc.Entity(c.key);
             entity.addComponent('gsplat', { asset });
             this.place(entity, c.row);
@@ -243,6 +275,7 @@ export class TileStreamer {
         asset.once('error', (err) => {
             if (!settle()) return;
             this.entries.delete(c.key);
+            this.failed.set(c.key, Date.now() + RETRY_MS);
             this.app.assets.remove(asset);
             console.warn(`tile ${c.key} failed to load: ${err}`);
         });
@@ -266,12 +299,20 @@ export class TileStreamer {
             e.settled = true;
             this.pending--;
         }
-        e.entity?.destroy();
-        if (e.asset) {
-            this.app.assets.remove(e.asset);
-            e.asset.unload();
-        }
+        this.release(e.entity, e.asset);
         this.entries.delete(k);
+        this.onRelease?.(k);
+    }
+
+    // The engine's splat sorter can still hold a placement it collected earlier
+    // in the frame; destroying its entity now leaves it one with no resource.
+    // Disabling takes it out of the scene at once; the memory goes a tick later.
+    release(entity, asset) {
+        if (entity) entity.enabled = false;
+        setTimeout(() => {
+            entity?.destroy();
+            if (asset) { this.app.assets.remove(asset); asset.unload(); }
+        }, 0);
     }
 
     // Moves the anchor under the camera when it has drifted, and re-places every
@@ -318,6 +359,8 @@ export class TileStreamer {
         return swapped;
     }
 
+    // `swapping` is the sha most recently asked for: when two versions are in
+    // flight, only the newest is adopted and the other is dropped on arrival.
     swap(k, row) {
         const e = this.entries.get(k);
         if (!e || e.swapping === row.sog_sha256) return;
@@ -328,7 +371,7 @@ export class TileStreamer {
         });
         asset.ready(() => this.adopt(k, e, asset, row));
         asset.once('error', () => {
-            e.swapping = null;
+            if (e.swapping === row.sog_sha256) e.swapping = null;
             this.app.assets.remove(asset);
         });
         this.app.assets.add(asset);
@@ -337,8 +380,8 @@ export class TileStreamer {
 
     // The new asset has arrived: put it in the scene, then take the old one out.
     adopt(k, e, asset, row) {
-        if (this.entries.get(k) !== e) {
-            this.app.assets.remove(asset);
+        if (this.entries.get(k) !== e || e.swapping !== row.sog_sha256) {
+            this.release(null, asset);
             return;
         }
         const entity = new this.pc.Entity(k);
@@ -351,10 +394,7 @@ export class TileStreamer {
         e.row = row;
         e.swapping = null;
         this.swaps++;
-        oldEntity?.destroy();
-        if (oldAsset) {
-            this.app.assets.remove(oldAsset);
-            oldAsset.unload();
-        }
+        this.release(oldEntity, oldAsset);
+        this.onRelease?.(k);
     }
 }

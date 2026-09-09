@@ -168,8 +168,8 @@ geo_register () {
         echo "SET client_min_messages = warning;"
         echo "DO \$seed\$ DECLARE uid uuid; BEGIN"
         echo "  SELECT id INTO uid FROM auth.user WHERE email = '$SEED_EMAIL';"
-        echo "  IF uid IS NULL THEN uid := register('$SEED_EMAIL', 'seed-pw-not-a-login'); END IF;"
-        echo "  UPDATE auth.user SET role = 'admin' WHERE id = uid;"
+        echo "  IF uid IS NULL THEN uid := register('$SEED_EMAIL', encode(gen_random_bytes(24), 'hex')); END IF;"
+        echo "  UPDATE auth.user SET role = 'admin', pw_hash = '!' WHERE id = uid;"
         echo "  PERFORM set_config('request.jwt.claims',"
         echo "      json_build_object('sub', uid, 'role', 'admin')::text, true);"
         while read -r sha bytes; do
@@ -182,4 +182,15 @@ geo_register () {
 
 # The store is served by nginx, whose workers run as www-data; the seeds write
 # into it directly because /geo is not a client upload path (ARCHITECTURE §7).
+# Invariant 1: a store path is written once. A re-cut (FORCE=1) may only land
+# when it reproduces the bytes already there; different bytes are an error, not
+# an overwrite, because nginx serves /geo as immutable.
+geo_place () { # src dest
+    if [ -s "$2" ] && ! cmp -s "$1" "$2"; then
+        echo "not ok - $2 exists with different bytes; a seed tile is immutable" >&2
+        return 1
+    fi
+    mkdir -p "$(dirname "$2")"; cp "$1" "$2"; chmod 644 "$2"
+}
+
 geo_mkstore () { mkdir -p "$FILES_ROOT/geo"; chmod 1777 "$FILES_ROOT" 2>/dev/null || true; }

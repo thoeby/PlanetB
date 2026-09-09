@@ -24,7 +24,7 @@ cd "$(dirname "$0")/.."
 ALGO=dem-v1
 SIZE=${DEM_SIZE:-256}
 COP_BASE=${COP_BASE:-https://copernicus-dem-30m.s3.amazonaws.com}
-export CURL_CA_BUNDLE=${CURL_CA_BUNDLE:-/etc/ssl/certs/ca-certificates.crt}
+[ -f /etc/ssl/certs/ca-certificates.crt ] && export CURL_CA_BUNDLE=${CURL_CA_BUNDLE:-/etc/ssl/certs/ca-certificates.crt}
 
 work=$(mktemp -d); trap 'rm -rf "$work"' EXIT
 geo_mkstore
@@ -98,9 +98,7 @@ while read -r z x y; do
         -ts "$SIZE" "$SIZE" -r cubic -of EHdr "$scaled" "$work/t.bil"
     grep -qiE '^byteorder +i' "$work/t.hdr" \
         || { echo "not ok - EHdr wrote big-endian samples"; exit 1; }
-    mkdir -p "$(dirname "$dest")"
-    cp "$work/t.bil" "$dest"
-    chmod 644 "$dest"
+    geo_place "$work/t.bil" "$dest"
     echo "$(sha256sum "$dest" | cut -d' ' -f1) $(stat -c%s "$dest")" >> "$work/registered"
     n=$((n + 1))
 done < <(geo_tiles)

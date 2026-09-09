@@ -59,7 +59,10 @@ sixteen baseline tiles are minutes of real work.
 They run in headless chromium over ANGLE + SwiftShader — no GPU needed, and
 WebGL2 is enough for the gsplat pipeline. They skip, rather than fail, when
 `client/vendor/playcanvas/` is missing (`make vendor`), when no database is
-reachable, or when the file store has no published tiles.
+reachable, or when the file store has no published tiles. The assemble, frame
+and pilot tests also need the pilot's DEM in the store (`bash tools/seed-dem.sh`
+and `seed-ortho.sh`, about 400 MB from AWS the first time); the gate's own
+`seed-test` cuts a single z14 tile, which is not enough for them.
 
 `client/test/e2e/{assemble,frame,pilot}.spec.js` compile real tiles and need the
 pilot's DEM and ortho in the store — `bash tools/seed-dem.sh && bash
@@ -68,6 +71,8 @@ entirely; a partial seed fails instead.
 
 `playwright.config.js` points `executablePath` at `/opt/pw-browsers/chromium`
 when that exists, for boxes that ship a browser playwright did not install.
-There is no HTTP server: `client/test/e2e/serve.js` answers the page's requests
-from disk and the database, because `client/` is static files and the file store
-is a directory of immutable blobs.
+The read-only tests have no HTTP server: `client/test/e2e/serve.js` answers the
+page's requests from disk and the database. The tests that write (worker loop,
+atoms, pilot) need a secure context and a real PUT path, so
+`client/test/e2e/services.js` starts a local postgrest, nginx and static server
+for them; only the engine CDN is intercepted.

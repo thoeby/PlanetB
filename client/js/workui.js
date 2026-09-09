@@ -85,6 +85,22 @@ async function onWorld(world, ready, toggle, showProgress) {
     return showProgress();
 }
 
+// One click opens the job; a refusal re-enables the button and says why.
+async function openJob(tile, btn, log) {
+    btn.disabled = true;
+    const at = `${tile.z}/${tile.x}/${tile.y}`;
+    try {
+        const job = await api.rpc('ensure_job', { z: tile.z, x: tile.x, y: tile.y });
+        btn.textContent = `job ${job}`;
+        log({ event: 'ensure_job', atom: at, op: job });
+        return true;
+    } catch (err) {
+        btn.disabled = false;
+        log({ event: 'ensure_job-failed', atom: at, err: String(err?.message ?? err) });
+        return false;
+    }
+}
+
 export function mountWork(host, { loop, autostart = false, frames, where } = {}) {
     host.innerHTML = HTML;
     const gpu = host.querySelector('.work-gpu');
@@ -137,14 +153,12 @@ export function mountWork(host, { loop, autostart = false, frames, where } = {})
     }
 
     async function onRender(tile, btn) {
-        btn.disabled = true;
-        const job = await api.rpc('ensure_job', { z: tile.z, x: tile.x, y: tile.y });
-        btn.textContent = `job ${job}`;
-        log({ event: 'ensure_job', atom: `${tile.z}/${tile.x}/${tile.y}`, op: job });
+        if (!await openJob(tile, btn, log)) return;
         if (!work?.running) { toggle.checked = true; toggle.onchange(); }
     }
 
-    ready().then(() => { if (autostart) { toggle.checked = true; toggle.onchange(); } });
+    ready().then(() => { if (autostart) { toggle.checked = true; toggle.onchange(); } })
+        .catch((err) => log({ event: 'probe-failed', err: String(err?.message ?? err) }));
     render();
     showProgress();
     return { refresh, ready, loop: () => work, log, progress: showProgress,

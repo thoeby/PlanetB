@@ -3,8 +3,8 @@
 // Claim an atom, fetch its inputs, run it in a Web Worker, upload what it made,
 // register it, submit it. The server decides everything: claim_atom hands out
 // the work, can_write authorises the upload, submit_atom runs the structural
-// checks. Nothing here is trusted (Invariant 9), and nothing here computes on
-// the server's behalf — this is the compute.
+// checks. Nothing here is trusted, and the server computes nothing on this
+// tab's behalf (Invariant 9) — this is the compute.
 //
 // An atom module (client/atoms/{op}.js) exports:
 //
@@ -96,9 +96,15 @@ export class WorkLoop {
         this.spawn = spawn;
         this.cache = cache ?? new InputCache({ filesUrl, fetchFn });
         this.fetchFn = fetchFn ?? ((...a) => fetch(...a));
-        this.log = (rec) => log({ t: Date.now(), ...rec });
+        this.log = (rec) => {
+            const full = { t: Date.now(), ...rec };
+            console.debug(JSON.stringify(full));
+            log(full);
+        };
         this.timers = timers;
         this.running = false;
+        this.generation = 0;
+        this.claimFailures = 0;
         this.atom = null;
         this.done = 0;
         this.failed = 0;
@@ -107,12 +113,8 @@ export class WorkLoop {
     // One atom, start to finish. Returns the state submit_atom settled on, or
     // null when there was nothing to claim.
     async step() {
-        // The position travels with the claim rather than with the worker row:
-        // a player moves, and the nearest unfinished tile moves with them.
-        const near = this.where();
-        const caps = near ? { ...this.caps, near } : this.caps;
-        const atom = await this.api.rpc('claim_atom', { caps });
-        if (!atom?.id) return null;
+        const atom = await this.claim();
+        if (!atom) return null;
         this.atom = atom;
         this.log({ event: 'claim', atom: atom.id, op: atom.op, job: atom.job_id });
         // A long atom saturates the machine, and a starved main thread is one
@@ -144,6 +146,25 @@ export class WorkLoop {
         } finally {
             this.timers.clearInterval(timer);
             this.atom = null;
+        }
+    }
+
+    // A claim that fails is nothing to do, not a crash: logged once per streak
+    // of failures so a server that is down does not fill the log. The position
+    // travels with the claim rather than with the worker row: a player moves,
+    // and the nearest unfinished tile moves with them.
+    async claim() {
+        const near = this.where();
+        const caps = near ? { ...this.caps, near } : this.caps;
+        try {
+            const atom = await this.api.rpc('claim_atom', { caps });
+            this.claimFailures = 0;
+            return atom?.id ? atom : null;
+        } catch (err) {
+            if (this.claimFailures++ === 0) {
+                this.log({ event: 'claim-failed', err: String(err?.message ?? err) });
+            }
+            return null;
         }
     }
 
@@ -252,12 +273,15 @@ export class WorkLoop {
     }
 
     // Keeps claiming until stopped. An empty claim is not an error: it means
-    // the world is compiled, so wait before asking again.
+    // the world is compiled, so wait before asking again. A loop that stop()
+    // then start() has superseded finishes its atom and exits.
     async start() {
         if (this.running) return;
+        const generation = ++this.generation;
+        const live = () => this.running && this.generation === generation;
         this.running = true;
         this.log({ event: 'start', caps: this.caps });
-        while (this.running) {
+        while (live()) {
             let idle = false;
             const wait = this.pace();
             if (wait > 0) {
@@ -267,7 +291,7 @@ export class WorkLoop {
             try {
                 idle = (await this.step()) === null;
             } catch { idle = true; }
-            if (idle && this.running) {
+            if (idle && live()) {
                 await new Promise((r) => this.timers.setTimeout(r, IDLE_MS));
             }
         }

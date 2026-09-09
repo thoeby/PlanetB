@@ -47,7 +47,8 @@ clean.
    constrains writes; reads were unspecified and money is not public.
 5. **Two migrations were split for the 400-line limit**: `0005_jobs.sql` +
    `0005_state.sql`, and `0008_files.sql` + `0008_admin.sql`. Both pairs sort
-   in dependency order. `0009_spot.sql` (WP3.3) is still free.
+   in dependency order. WP3.3's spot-check migration is `0018_spot.sql`
+   (`0009`–`0017` are taken).
 6. **`gis/splatworld.qgz` is not committed.** See below.
 
 ### Open items from WP0
@@ -57,8 +58,10 @@ clean.
 - [ ] The WP0.11 manual checklist in `gis/README.md` (QGIS → GeoServer →
       Postgres → PostgREST round trip). Needs a running GeoServer and QGIS.
 - [ ] `infra/compose.yml` has never been started — no Docker daemon was
-      available. The four services were run individually instead
-      (`docs/gates.md`).
+      available, in the close-out review either. The four services were run
+      individually instead (`docs/gates.md`). The file passes
+      `docker compose config`; its relative volume paths were wrong until the
+      review fixed them (see `docs/manual.md`).
 - [x] `make lint` runs eslint too, as of WP1.1.
 
 ## WP1 — Client core: viewer + streaming ✅
@@ -864,3 +867,94 @@ it coming back.
     `tile_world` calls, `pick()` fires two moveends by itself, and
     `paintFeatures` clears before it repaints — so overlapping rounds were both
     expensive and wrong. Debounced, and only the newest round paints.
+
+## Close-out review of WP0–WP2
+
+Done in a separate session while WP3–WP5 were landing on the same branch, and
+rebased onto them afterwards. The three work packages were audited against `TASKS.md` and the
+invariants. Everything found was fixed in one commit; nothing in `TASKS.md`
+was re-scoped. The install and user manual is `docs/manual.md`.
+
+**Database (`db/0026_review.sql`, tested by `db/test/0026_review.sql`)**
+
+- An `instance` could be placed outside its area: `bump_rev` read the STORED
+  generated `geom`, which is null in a BEFORE trigger. It now builds the point
+  from `lon`/`lat`.
+- `pay()` passed the caller's ref through, so a player could pre-empt
+  `pay:{job}:{worker}` and block a publish for ever. User refs are namespaced
+  `user:{account}:{ref}`; system refs stay bare.
+- `transfer()` locks the paying account before the balance check (two
+  concurrent payments could both pass it).
+- `ensure_job` with a bounty escrowed on every call; it now escrows only when it
+  creates the job. `set_bounty` may be called again to top up (one ref per row).
+- A cancelled job kept its bounty in escrow. `refund_bounty` returns it to
+  whoever paid, one ledger row per escrow row.
+- `release_escrow` used a named temp table and failed on the second payout in a
+  transaction.
+- `disagreed()` marked only the second worker bad: `recheck_atom` had cleared
+  the first from the row. Everyone whose structural pass vouched for the
+  standing answer is marked now (`db/test/0015_structural.sql` expects 2).
+- `recheck_atom` refuses trained tiles (z ≥ 16): their sog is judged
+  perceptually and its verify atoms are spent. A job reopened for a re-check
+  closes again in `advance_atoms` once the tile is published at that version and
+  nothing is pending, since `publish_tile`'s CAS will not run twice.
+- Internal SECURITY DEFINER functions (`transfer`, `release_escrow`,
+  `expire_claims`, `build_dag`, …) were executable by every role through the
+  default PUBLIC grant. Revoked, and the default for new functions is revoked.
+
+**Client**
+
+- `merge-v1` read the children from the live `tile` rows. A child republished
+  after the DAG was built no longer matched any input sha and was silently
+  dropped, so one `atom_hash` could produce different bytes at different times
+  (Invariant 7 would then blame both workers). Children are now the sogs named
+  in `atom.inputs`, found through the sog atom that made them when no tile
+  publishes them any more (`client/atoms/merge.js`, `client/js/inputs.js`).
+- Streaming: a tile stays until every tile replacing it is in the scene (no
+  hole while refining) — which put parent and children in the scene at once
+  and surfaced an engine trap: destroying a splat entity in the same frame the
+  sorter collected its placement crashes `_updateWorldState`. An outgoing
+  entity is now disabled at once and destroyed a tick later (`release()`).
+  Also, a failed load backs off 30 s instead of retrying every
+  frame, a load or swap that finishes after its tile was dropped is unloaded,
+  and of two swaps in flight only the newest is adopted. `play.html` pages
+  through every tile row instead of stopping at 5 000.
+- Worker loop: stop-then-start no longer runs two loops; a failing claim is
+  logged, once per streak; logs also go to `console.debug`.
+- Terrain: a 404 is no field, and a swapped or unloaded tile forgets its
+  heightmap and colliders.
+- `assemble` no longer swallows an ortho fetch error into a grey tile; every
+  JSON fetch checks `res.ok`.
+
+**Tooling and infrastructure**
+
+- The seed user was an `admin` with a fixed password anyone could log in with.
+  Its hash is locked after creation.
+- A `/geo` tile could be overwritten by `FORCE=1`; now a re-cut must reproduce
+  the bytes (Invariant 1). `assemble` still fetches `/geo` by path, not by hash
+  (see `infra/seed/README.md`); pinning those into the atom's inputs is open.
+- `infra/compose.yml`: volume paths were relative to `infra/` while every tool
+  roots the store at `./infra/files`; fixed with `--project-directory .`. Ports
+  bind to loopback, passwords have no defaults, and nginx serves `client/`
+  under `/app/`. Still never started on a box with a Docker daemon.
+- `provision.sh` exits non-zero on anything but 2xx/401/409.
+- `CURL_CA_BUNDLE` is only forced where the Debian bundle exists.
+
+Gate after the review: 260 pgTAP assertions over 13 files, the concurrency run
+(1500 claims, 0 errors), 43 API and file-store assertions, 80 node assertions,
+22 test-tile assertions and 14 headless-chromium tests, with the pilot seeded.
+
+**Known, not fixed**
+
+- `submit_atom`, `can_write` and `build_dag` are 63–68 lines (rule: < 60).
+- Functions without their own pgTAP test: `instance_glbs`, `atom_state_guard`,
+  the `can_write` `/jobs` and `/assets` branches (covered by
+  `tools/files-test.sh` only), `deterministic`, the `sample` structural rules.
+- `db/test/0006_concurrency.sh` prints its error count but does not assert it.
+- The gate is green with browser tests skipped when the engine is not vendored
+  or no database is reachable; it says so, but does not fail.
+- Dead exports in `client/lib` and `client/js` (`envelope`, `geodeticToEcef`,
+  `parseKey`, …) are left in place.
+- Token expiry (12 h) has no refresh: a background worker tab is asked to sign
+  in again and its claim expires.
+

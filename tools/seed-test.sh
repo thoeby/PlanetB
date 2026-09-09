@@ -89,8 +89,7 @@ is "seeding twice leaves the same 7 features" 7 \
 Z=14; X=$((PILOT_X * 16 + 8)); Y=$((PILOT_Y * 16 + 8))
 seed_one () { # script kind ext extra-env...
     local script=$1 kind=$2 ext=$3; shift 3
-    rm -f "$(geo_store_path "$kind" "$Z" "$X" "$Y" "$ext")"
-    env PILOT_Z=$Z PILOT_X=$X PILOT_Y=$Y PILOT_MAX_Z=$Z DETAIL_MAX_Z=0 "$@" \
+    env FORCE=1 PILOT_Z=$Z PILOT_X=$X PILOT_Y=$Y PILOT_MAX_Z=$Z DETAIL_MAX_Z=0 "$@" \
         bash "$script" > /dev/null 2>&1
 }
 

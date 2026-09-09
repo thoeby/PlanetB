@@ -6,14 +6,17 @@ services:
   db:
     image: postgis/postgis:16-3.4
     environment:
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env}
       POSTGRES_DB: ${PGDATABASE:-splatworld}
     command:
       - postgres
       - -c
       - app.jwt_secret=${JWT_SECRET:?set JWT_SECRET in .env}
+    # Loopback only: the geoserver login role has BYPASSRLS and the defaults in
+    # .env.example are not secrets. Only the file store (8080) faces the world;
+    # put a TLS proxy in front of it and of PostgREST for anything public.
     ports:
-      - "5432:5432"
+      - "127.0.0.1:5432:5432"
     volumes:
       - db-data:/var/lib/postgresql/data
     healthcheck:
@@ -34,7 +37,7 @@ services:
       PGRST_JWT_SECRET: ${JWT_SECRET:?set JWT_SECRET in .env}
       PGRST_SERVER_PORT: "3000"
     ports:
-      - "3000:3000"
+      - "127.0.0.1:3000:3000"
 
   # Immutable file store. The official nginx image is built --with-http_dav_module,
   # which is all PUT needs; auth_request delegates every write to rpc/can_write.
@@ -43,8 +46,9 @@ services:
     depends_on:
       - postgrest
     volumes:
-      - ./nginx.conf:/etc/nginx/nginx.conf:ro
-      - ${FILES_ROOT:-./files}:/srv/files
+      - ./infra/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ${FILES_ROOT:-./infra/files}:/srv/files
+      - ./client:/srv/client:ro
     ports:
       - "8080:80"
 
@@ -56,10 +60,10 @@ services:
         condition: service_healthy
     environment:
       GEOSERVER_ADMIN_USER: admin
-      GEOSERVER_ADMIN_PASSWORD: ${GEOSERVER_ADMIN_PASSWORD:-geoserver}
+      GEOSERVER_ADMIN_PASSWORD: ${GEOSERVER_ADMIN_PASSWORD:?set GEOSERVER_ADMIN_PASSWORD in .env}
       SKIP_DEMO_DATA: "true"
     ports:
-      - "8081:8080"
+      - "127.0.0.1:8081:8080"
     volumes:
       - geoserver-data:/opt/geoserver_data
 

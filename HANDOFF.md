@@ -10,6 +10,8 @@ WP0.11's QGIS round trip.
 
 ## 1. Get a working environment first
 
+`docs/manual.md` is the install and user manual; this section is the short form.
+
 `make gate` needs a live Postgres, a PostgREST and an nginx. If the sandbox has
 no Docker daemon (check with `docker info`), do not fight compose — install the
 four pieces directly. This takes about three minutes:
@@ -256,8 +258,8 @@ Things that cost time once. Do not rediscover them.
 - **Migrations are numbered and never edited once applied.** Add a new file;
   `CREATE OR REPLACE FUNCTION` to change behaviour. Files sort lexically, so a
   second file for the same number needs a suffix that sorts after the first
-  (`0005_jobs.sql` → `0005_state.sql`). The highest applied is `0019_trust`, so
-  WP4's first migration is `0020_*.sql`.
+  (`0005_jobs.sql` → `0005_state.sql`). The highest applied is `0026_review`, so
+  the next migration is `0027_*.sql`.
 - **Every client write is authorised by RLS**, never by a grant on a base
   table. Tables that no policy covers have no write grant at all and move only
   under `SECURITY DEFINER` functions. The one exception is the `geoserver`

@@ -133,9 +133,9 @@
   // Reading tiles needs no token: everyone reads the world (db/0003_rls.sql).
   // Every row is fetched, not only the published ones — the traversal has to
   // tell an unpublished child from one that does not exist.
-  const rows = await api.select('tile', {
+  const rows = await api.selectAll('tile', {
     select: 'z,x,y,dirty,published_version,sog_sha256,manifest',
-    order: 'z,x,y', limit: '5000',
+    order: 'z,x,y',
   }).catch((err) => {
     world.textContent = `api unreachable (${api.endpoints().api}): ${err.message}`;
     return [];
@@ -158,7 +158,7 @@
     clearColor: new pc.Color(0.05, 0.06, 0.07),
   });
   camera.setPosition(0, 2000, 0);
-  camera.setEulerAngles(-90, 0, 0);            // straight down; WP1.4 takes over
+  camera.setEulerAngles(-90, 0, 0);            // straight down until the player takes over
   app.root.addChild(camera);
 
   // WP1.5: the loaded tiles are re-checked every 30 s. PostgREST takes the set

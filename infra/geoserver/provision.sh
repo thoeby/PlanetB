@@ -16,9 +16,13 @@ WS=splatworld
 HERE=$(cd "$(dirname "$0")" && pwd)
 
 gs () { # method path [body] [content-type]
-    curl -sS -u "$GS_USER:$GS_PASS" -X "$1" "$GS$2" \
-        -H "Content-Type: ${4:-application/xml}" \
-        ${3:+--data-binary "@$3"} -o /dev/null -w "%{http_code} $1 $2\n"
+    local args=(-sS -u "$GS_USER:$GS_PASS" -X "$1" "$GS$2"
+                -H "Content-Type: ${4:-application/xml}" -o /dev/null -w '%{http_code}')
+    [ -n "${3:-}" ] && args+=(--data-binary "@$3")
+    local code; code=$(curl "${args[@]}")
+    echo "$code $1 $2"
+    # 2xx created or changed it, 401/409 mean it is already there (re-run).
+    case $code in 2??|401|409) ;; *) echo "provision: unexpected $code" >&2; return 1 ;; esac
 }
 
 tmp=$(mktemp -d); trap 'rm -rf "$tmp"' EXIT

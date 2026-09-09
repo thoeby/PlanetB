@@ -11,6 +11,7 @@
 // added in that same sequence.
 
 import { bboxOf, emptySplats, writePly } from '../lib/ply.js';
+import { fetchJson } from '../js/api.js';
 import { decodeImage } from '../lib/geo.js';
 import { decodeSog } from '../lib/sogenc.js';
 import {
@@ -30,10 +31,28 @@ async function childRows(apiUrl, z, x, y) {
         }
     }
     const url = `${apiUrl}/tile?select=z,x,y,sog_sha256,manifest&or=(${filter.join(',')})`;
-    const rows = await fetch(url, { headers: { Accept: 'application/json' } })
-        .then((r) => r.json());
+    return fetchJson(url);
+}
+
+// Invariant 2: the children are the sogs named in atom.inputs, not whatever the
+// tiles publish today. A child republished since the DAG was built is found
+// through the sog atom that made it, whose result carries the tile and manifest.
+async function childrenOf(apiUrl, z, x, y, shas) {
+    const live = (await childRows(apiUrl, z, x, y))
+        .filter((r) => shas.includes(r.sog_sha256));
+    const stale = shas.filter((sha) => !live.some((r) => r.sog_sha256 === sha));
+    if (stale.length) {
+        const url = `${apiUrl}/atom?select=output_sha256,result&op=eq.sog`
+            + `&output_sha256=in.(${stale.join(',')})`;
+        for (const a of await fetchJson(url)) {
+            if (!a.result?.tile || !a.result?.manifest) continue;
+            const { z: cz, x: cx, y: cy } = a.result.tile;
+            live.push({ z: cz, x: cx, y: cy, sog_sha256: a.output_sha256,
+                manifest: a.result.manifest });
+        }
+    }
     // Tile order, not the order the API happened to answer in.
-    return rows.sort((a, b) => (a.y - b.y) || (a.x - b.x));
+    return live.sort((a, b) => (a.y - b.y) || (a.x - b.x));
 }
 
 // The parent's frame: its centre, at the height its children stand on. A merged
@@ -178,7 +197,8 @@ function tileEdge(z, x, y, origin) {
 
 export async function run({ atom, inputs, canvas, log, apiUrl }) {
     const { z, x, y, budget } = atom.params;
-    const rows = await childRows(apiUrl, z, x, y);
+    const shas = (atom.inputs?.children ?? []).filter(Boolean);
+    const rows = await childrenOf(apiUrl, z, x, y, shas);
     const origin = parentOrigin(z, x, y, rows);
     // params.voxel is a floor, not the answer: clustering finer than the budget
     // can hold only makes work for the top-k that follows.
@@ -190,21 +210,20 @@ export async function run({ atom, inputs, canvas, log, apiUrl }) {
     (atom.inputs?.children ?? []).forEach((sha, i) => {
         if (sha) bytesOf.set(sha, inputs.children?.[i]);
     });
-    const missing = [];
     const used = [];
     let taken = 0;
     for (const row of rows) {
-        const bytes = row.sog_sha256 && bytesOf.get(row.sog_sha256);
-        if (!bytes || !row.manifest?.origin) {
-            missing.push(`${row.z}/${row.x}/${row.y}`);
-            continue;
-        }
+        const bytes = bytesOf.get(row.sog_sha256);
+        if (!bytes || !row.manifest?.origin) continue;
         const { splats } = await decodeSog(bytes, (b) => decodeImage(b, canvas));
         foldChild(grid, splats, transformOf(row.manifest.origin, origin));
         used.push(`${row.z}/${row.x}/${row.y}`);
         taken += splats.count;
     }
     if (!taken) throw new Error(`no published child of ${z}/${x}/${y} to merge`);
+    // Recorded, not replaced: a child that was unpublished when the DAG was
+    // built is a hole this merge was told about (PROGRESS.md deviation 43).
+    const missing = 16 - used.length;
 
     const f = grid.finish(budget);
     log?.({ event: 'merged', z, x, y, from: taken, clusters: grid.keys.length,

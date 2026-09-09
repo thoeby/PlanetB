@@ -9,6 +9,7 @@
 // The manifest the tile needs travels in the result: publish_tile takes it, and
 // the origin comes from the atom that made the ply.
 
+import { fetchJson } from '../js/api.js';
 import { bboxOf, readPly } from '../lib/ply.js';
 import { encodeSog } from '../lib/sogenc.js';
 import { readTar } from '../lib/tar.js';
@@ -31,8 +32,7 @@ function unpack(bytes) {
 }
 
 async function jobTile(apiUrl, jobId) {
-    const [job] = await fetch(`${apiUrl}/job?id=eq.${jobId}&select=z,x,y,target_version`,
-        { headers: { Accept: 'application/json' } }).then((r) => r.json());
+    const [job] = await fetchJson(`${apiUrl}/job?id=eq.${jobId}&select=z,x,y,target_version`);
     if (!job) throw new Error(`no job ${jobId} to place this sog under`);
     return job;
 }
@@ -40,8 +40,7 @@ async function jobTile(apiUrl, jobId) {
 // What the ply's own atom recorded: chiefly the frame its positions are in.
 async function sourceResult(apiUrl, id) {
     if (!Number.isFinite(id)) return {};
-    const [row] = await fetch(`${apiUrl}/atom?id=eq.${id}&select=result`,
-        { headers: { Accept: 'application/json' } }).then((r) => r.json());
+    const [row] = await fetchJson(`${apiUrl}/atom?id=eq.${id}&select=result`);
     return row?.result ?? {};
 }
 

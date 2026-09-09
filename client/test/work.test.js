@@ -187,3 +187,47 @@ test('the claim is kept alive by a heartbeat, and only while it is held', async 
     assert.deepEqual(api.calls.find((c) => c[1] === 'heartbeat')[2], { atom_id: 42 });
     assert.equal(cleared, true, 'and stopped once the atom is submitted');
 });
+
+test('a claim that fails is idle, logged once per streak, and not a crash', async () => {
+    const logs = [];
+    let fails = 0;
+    const { loop } = loopOver(null, { spawnOut: OUT, rpcs: {
+        claim_atom: () => { if (fails++ < 3) throw new Error('down'); return null; },
+    } });
+    loop.log = (rec) => logs.push(rec);
+    for (let i = 0; i < 4; i++) assert.equal(await loop.step(), null);
+    const failed = logs.filter((r) => r.event === 'claim-failed');
+    assert.equal(failed.length, 1, 'one line for three consecutive failures');
+    assert.match(failed[0].err, /down/);
+    fails = 0;
+    await loop.step();
+    assert.equal(logs.filter((r) => r.event === 'claim-failed').length, 2,
+        'a new streak after a success is logged again');
+});
+
+test('stop() then start() leaves one loop running, not two', async () => {
+    let claims = 0;
+    const wake = [];
+    const { loop } = loopOver(null, { spawnOut: OUT, rpcs: {
+        claim_atom: () => { claims++; return null; },
+    } });
+    loop.timers = { ...loop.timers, setTimeout: (fn) => wake.push(fn) };
+    const parked = async (n) => {
+        while (wake.length < n) await new Promise((r) => setTimeout(r, 0));
+    };
+    const first = loop.start();
+    await parked(1);
+    assert.equal(claims, 1, 'the first loop claimed and is now waiting');
+    loop.stop();
+    const second = loop.start();
+    await parked(2);
+    assert.equal(claims, 2, 'the second loop claimed');
+    // Wake the first loop: superseded, it exits without claiming again.
+    wake.shift()();
+    await first;
+    assert.equal(claims, 2, 'the superseded loop did not claim');
+    assert.equal(loop.running, true, 'and the live one is still running');
+    loop.stop();
+    wake.shift()();
+    await second;
+});

@@ -14,6 +14,7 @@
 // Deterministic (Invariant 2): the world arrives ordered by id, the scatter is
 // seeded from the atom, and the tar carries no timestamps.
 
+import { fetchJson } from '../js/api.js';
 import { DEM_OFFSET, DEM_SCALE, loadDem, loadOrtho } from '../lib/geo.js';
 import { boundsOf, placeMeshes } from '../lib/glbmesh.js';
 import { packMeshes } from '../lib/mesh.js';
@@ -270,11 +271,11 @@ function build({ z, sw, ne, dem, ortho, frame, world, random, assets }) {
 
 export async function run({ atom, canvas, log, apiUrl, filesUrl }) {
     const { z, x, y, budget } = atom.params;
-    const world = await fetch(`${apiUrl}/rpc/tile_world`, {
+    const world = await fetchJson(`${apiUrl}/rpc/tile_world`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
         body: JSON.stringify({ z, x, y }),
-    }).then((r) => r.json());
+    });
     // Invariant 2: this atom was built from one snapshot of the world. If the
     // world has moved, the job is already cancelled and this work is waste.
     if (atom.inputs?.snapshot && world.snapshot !== atom.inputs.snapshot) {
@@ -283,7 +284,9 @@ export async function run({ atom, canvas, log, apiUrl, filesUrl }) {
 
     const dem = await loadDem(z, x, y, { filesUrl });
     if (!dem) throw new Error(`no dem covers ${z}/${x}/${y} — seed it (infra/seed)`);
-    const ortho = await loadOrtho(z, x, y, { filesUrl, canvas }).catch(() => null);
+    // No ortho seeded is a grey tile and says so in the result; a failed fetch
+    // is a failed atom.
+    const ortho = await loadOrtho(z, x, y, { filesUrl, canvas });
 
     const b = tileBbox(z, x, y);
     const centre = { lon: (b.west + b.east) / 2, lat: (b.south + b.north) / 2 };
@@ -327,6 +330,7 @@ export async function run({ atom, canvas, log, apiUrl, filesUrl }) {
             bbox: bboxOf(splats),
             trees: wood.count, buildings: built.boxes.length, snapshot: world.snapshot,
             instances: (world.instances ?? []).length - placed.missing,
+            ortho: Boolean(ortho),
         },
     };
 }

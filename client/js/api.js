@@ -124,6 +124,18 @@ const qs = (params) => {
 
 export const select = (table, params = {}) => request(`/${table}${qs(params)}`);
 
+// Every row, a page at a time, until a page comes back short. Ordering is the
+// caller's: paging an unordered table is not stable.
+export async function selectAll(table, params = {}, pageSize = 5000) {
+    const rows = [];
+    for (let offset = 0; ; offset += pageSize) {
+        const page = await select(table, { ...params, offset: String(offset),
+            limit: String(pageSize) });
+        rows.push(...page);
+        if (page.length < pageSize) return rows;
+    }
+}
+
 export const insert = (table, rows, params = {}) =>
     request(`/${table}${qs(params)}`, {
         method: 'POST', body: rows, headers: { Prefer: 'return=representation' },
@@ -137,6 +149,13 @@ export const update = (table, params, patch) =>
 export const remove = (table, params) => request(`/${table}${qs(params)}`, { method: 'DELETE' });
 
 export const rpc = (name, args = {}) => request(`/rpc/${name}`, { method: 'POST', body: args });
+
+// A bare fetch for the atoms, which run in a worker with no token: the JSON
+// body, or an ApiError naming the status and the url.
+export async function fetchJson(url, init = {}) {
+    const res = await fetch(url, init);
+    return parse(res, url);
+}
 
 // -------------------------------------------------------------------- session
 

@@ -116,6 +116,15 @@ export class Terrain {
         this.fields = new Map();
         this.colliders = new Map();
         this.wanted = new Set();
+        // A tile that leaves the scene, or is swapped for a newer version,
+        // takes its ground with it.
+        streamer.onRelease = (k) => this.forget(k);
+    }
+
+    forget(k) {
+        this.fields.delete(k);
+        this.colliders.delete(k);
+        this.wanted.delete(k);
     }
 
     tileAt(local) {
@@ -171,15 +180,17 @@ export class Terrain {
         const { z, x, y } = entry ? entry.row : {};
         if (!man?.height || !man?.colliders) return;
         const base = `${this.streamer.filesUrl}/tiles/${z}/${x}/${y}`;
+        const keep = () => this.wanted.has(k);
         this.fetchFn(`${base}/${man.height.sha256}.r16`)
-            .then((r) => r.arrayBuffer())
+            .then((r) => (r.ok ? r.arrayBuffer() : null))
             .then((buf) => {
+                if (!buf || !keep()) return;
                 this.fields.set(k, new HeightField(new Uint16Array(buf), man.height, z, x, y));
             })
             .catch(() => this.wanted.delete(k));
         this.fetchFn(`${base}/${man.colliders.sha256}.json`)
-            .then((r) => r.json())
-            .then((json) => this.colliders.set(k, json.boxes ?? []))
+            .then((r) => (r.ok ? r.json() : null))
+            .then((json) => { if (json && keep()) this.colliders.set(k, json.boxes ?? []); })
             .catch(() => this.wanted.delete(k));
     }
 }

@@ -49,6 +49,13 @@ async function locate(api, refs) {
                 { sog_sha256: inList(sogs), select: 'z,x,y,sog_sha256' })
             : [];
         const byTile = new Map(tiles.map((t) => [t.sog_sha256, t]));
+        // A sog no tile publishes any more is still where its atom put it.
+        const stale = sogs.filter((sha) => !byTile.has(sha));
+        const said = stale.length
+            ? await api.select('atom',
+                { output_sha256: inList(stale), op: 'eq.sog', select: 'output_sha256,result' })
+            : [];
+        for (const a of said) if (a.result?.path) byTile.set(a.output_sha256, a.result);
         for (const r of rows) art.set(r.sha256, path(r, byTile.get(r.sha256)));
     }
     return { at, art };
@@ -59,8 +66,8 @@ async function locate(api, refs) {
 function path(artifact, tile) {
     const { sha256: sha, kind } = artifact;
     if (kind === 'sog') {
-        if (!tile) throw new Error(`no published tile holds sog ${sha}`);
-        return `/tiles/${tile.z}/${tile.x}/${tile.y}/${sha}.sog`;
+        if (!tile) throw new Error(`no published tile or atom holds sog ${sha}`);
+        return tile.path ?? `/tiles/${tile.z}/${tile.x}/${tile.y}/${sha}.sog`;
     }
     if (kind === 'glb') return `/assets/${sha}.glb`;
     if (kind === 'thumb') return `/assets/${sha}.webp`;

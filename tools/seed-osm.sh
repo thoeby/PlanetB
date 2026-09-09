@@ -19,7 +19,7 @@ cd "$(dirname "$0")/.."
 
 OSM_URL=${OSM_URL:-https://download.geofabrik.de/europe/switzerland-latest.osm.pbf}
 KEEP_STAGING=${KEEP_STAGING:-0}
-export CURL_CA_BUNDLE=${CURL_CA_BUNDLE:-/etc/ssl/certs/ca-certificates.crt}
+[ -f /etc/ssl/certs/ca-certificates.crt ] && export CURL_CA_BUNDLE=${CURL_CA_BUNDLE:-/etc/ssl/certs/ca-certificates.crt}
 
 read -r west south east north <<< "$(geo_bbox)"
 
@@ -62,8 +62,8 @@ DECLARE
     n   int;
 BEGIN
     SELECT id INTO uid FROM auth.user WHERE email = '$SEED_EMAIL';
-    IF uid IS NULL THEN uid := register('$SEED_EMAIL', 'seed-pw-not-a-login'); END IF;
-    UPDATE auth.user SET role = 'admin' WHERE id = uid;
+    IF uid IS NULL THEN uid := register('$SEED_EMAIL', encode(gen_random_bytes(24), 'hex')); END IF;
+    UPDATE auth.user SET role = 'admin', pw_hash = '!' WHERE id = uid;
 
     -- Assigned by a point that is certainly on the geometry, so the feature is
     -- inside the area it names and bump_rev() accepts it. Z comes from the DEM

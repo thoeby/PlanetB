@@ -19,13 +19,16 @@ function subRect(z, x, y, az) {
 }
 
 // The finest cut tile covering (z,x,y): itself, else an ancestor two zooms up,
-// and so on. Returns null when nothing covers it.
+// and so on. Returns null when nothing covers it — a 404 is that; any other
+// failure is an error, not an absence.
 export async function loadRaster(kind, z, x, y, { filesUrl = '', fetchFn = fetch, decode }) {
     for (let az = z; az >= MIN_Z; az -= 2) {
         const r = subRect(z, x, y, az);
         const ext = kind === 'dem' ? 'r16' : 'webp';
-        const res = await fetchFn(`${filesUrl}/geo/${kind}/${az}/${r.ax}/${r.ay}.${ext}`);
-        if (!res.ok) continue;
+        const url = `${filesUrl}/geo/${kind}/${az}/${r.ax}/${r.ay}.${ext}`;
+        const res = await fetchFn(url);
+        if (res.status === 404) continue;
+        if (!res.ok) throw new Error(`${res.status} ${url}`);
         const { data, size } = await decode(await res.arrayBuffer());
         return { kind, size, data, ...r };
     }

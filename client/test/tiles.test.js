@@ -10,7 +10,7 @@ import assert from 'node:assert/strict';
 import * as tm from '../lib/tilemath.js';
 import { FloatingOrigin } from '../js/origin.js';
 import {
-    selectTiles, key, LIMITS, POLL_MS, sphereVisible, tileRadius, TileStreamer,
+    selectTiles, key, LIMITS, POLL_MS, RETRY_MS, sphereVisible, tileRadius, TileStreamer,
 } from '../js/tiles.js';
 
 // The tiles tools/make-test-tiles.mjs publishes, with the manifests it writes.
@@ -65,6 +65,9 @@ function settle(w, cam, passes = 12) {
     for (let i = 0; i < passes; i++) sel = step(w, cam);
     return sel;
 }
+
+// An outgoing entity is disabled now and destroyed a tick later (tiles.js release()).
+const tick = () => new Promise((r) => setTimeout(r, 0));
 
 test('the scripted flight loads the right tiles at five checkpoints', () => {
     const w = world();
@@ -177,20 +180,65 @@ test('tileRadius covers the tile it bounds', () => {
 });
 
 
+test('a tile stays until every tile taking its place is in the scene', () => {
+    const w = world();
+    settle(w, camera(5e6));
+    assert.deepEqual(sorted(w.loaded.keys()), ['8/133/90', '8/134/90']);
+    // Refining: the z10 children exist as entries but have no entity yet.
+    let sel = selectTiles(w, camera(1e6));
+    for (const c of sel.load) w.loaded.set(c.key, { usedAt: 9, entity: null });
+    sel = selectTiles(w, camera(1e6));
+    assert.deepEqual(sel.unload, [], 'both parents stay while their children load');
+    w.loaded.get('10/535/361').entity = {};
+    w.loaded.get('10/535/362').entity = {};
+    sel = selectTiles(w, camera(1e6));
+    assert.deepEqual(sel.unload, ['8/133/90'], 'the parent whose children are all in goes');
+    for (const k of sel.unload) w.loaded.delete(k);
+    w.loaded.get('10/536/361').entity = {};
+    w.loaded.get('10/536/362').entity = {};
+    sel = selectTiles(w, camera(1e6));
+    assert.deepEqual(sel.unload, ['8/134/90'], 'then the other');
+    for (const k of sel.unload) w.loaded.delete(k);
+    // Coarsening: the z8 parents come back but are not in the scene yet.
+    sel = selectTiles(w, camera(4e6));
+    assert.deepEqual(sorted(sel.want), ['8/133/90', '8/134/90']);
+    for (const c of sel.load) w.loaded.set(c.key, { usedAt: 10, entity: null });
+    sel = selectTiles(w, camera(4e6));
+    assert.deepEqual(sel.unload, [], 'the children stay while the parent loads');
+    w.loaded.get('8/133/90').entity = {};
+    w.loaded.get('8/134/90').entity = {};
+    sel = selectTiles(w, camera(4e6));
+    assert.equal(sel.unload.length, 4, 'and go once it is in');
+});
+
+test('a tile that failed to load is left alone until its retry time', () => {
+    const w = world();
+    w.failed = new Map([['10/535/362', 1000]]);
+    w.now = 500;
+    settle(w, camera(1e6));
+    assert.deepEqual(sorted(w.loaded.keys()), ['10/536/361', '10/536/362', '8/133/90'],
+        'a failed child keeps its parent whole, like an unpublished one');
+    w.now = 1001;
+    settle(w, camera(1e6));
+    assert.ok(w.loaded.has('10/535/362'), 'and is tried again once the backoff is over');
+});
+
 // ------------------------------------------------------------------ hot swap
 //
 // Enough of PlayCanvas to watch the streamer's bookkeeping: loading an asset
 // runs its ready callbacks straight away, so a swap completes within the call.
+// With `manual`, loads queue on app.loads and the test fires them: ready, or
+// error for an asset the `fail` predicate picks out.
 
 function fakePc() {
     return {
         Asset: class {
             constructor(name, type, file) {
-                Object.assign(this, { name, type, file, ready_: [] });
+                Object.assign(this, { name, type, file, ready_: [], once_: {}, unloads: 0 });
             }
             ready(fn) { this.ready_.push(fn); }
-            once() { /* errors are not exercised here */ }
-            unload() { this.unloaded = true; }
+            once(ev, fn) { this.once_[ev] = fn; }
+            unload() { this.unloaded = true; this.unloads++; }
         },
         Entity: class {
             constructor(name) { this.name = name; }
@@ -202,14 +250,19 @@ function fakePc() {
     };
 }
 
-const fakeApp = () => ({
-    root: { addChild() {} },
-    assets: { add() {}, remove() {}, load: (a) => a.ready_.forEach((fn) => fn()) },
-});
+function fakeApp({ manual = false, fail = () => false } = {}) {
+    const app = {
+        root: { addChild() {} },
+        loads: [],
+        fire: (a) => (fail(a) ? a.once_.error?.('boom') : a.ready_.forEach((fn) => fn())),
+    };
+    app.assets = { add() {}, remove() {}, load: (a) => (manual ? app.loads.push(a) : app.fire(a)) };
+    return app;
+}
 
-function streamerWith(rows, fetchRows) {
+function streamerWith(rows, fetchRows, appOpts) {
     const w = world();
-    const s = new TileStreamer(fakeApp(), fakePc(), {
+    const s = new TileStreamer(fakeApp(appOpts), fakePc(), {
         origin: w.origin, filesUrl: 'http://files', fetchRows,
     });
     s.setTiles(rows);
@@ -241,6 +294,8 @@ test('a republished tile is swapped and the old entity disposed', async () => {
 
     assert.equal(await s.poll(), 1);
     assert.equal(s.swaps, 1);
+    assert.equal(old.enabled, false, 'the old entity leaves the scene at once');
+    await tick();
     assert.ok(old.destroyed, 'the old entity is gone');
     assert.ok(oldAsset.unloaded, 'and so is its asset');
     assert.equal(entry.row.sog_sha256, 'b'.repeat(64), 'the entry carries the new row');
@@ -254,4 +309,64 @@ test('polling does nothing without a fetcher or without tiles', async () => {
     assert.equal(await streamerWith(rows, null).poll(), 0);
     const s = streamerWith(rows, async () => rows);
     assert.equal(await s.poll(), 0, 'nothing loaded, nothing to check');
+});
+
+test('a failed load backs off instead of retrying every frame', () => {
+    const rows = COORDS.map((c) => row(...c));
+    const s = streamerWith(rows, null, { fail: () => true });
+    const before = Date.now();
+    assert.equal(s.update(camera(2e7)).load.length, 1, 'the root is tried');
+    assert.equal(s.entries.size, 0);
+    assert.equal(s.pending, 0, 'the in-flight count fell back');
+    assert.ok(s.failed.get('6/33/22') >= before + RETRY_MS, 'and marked for a later retry');
+    assert.equal(s.update(camera(2e7)).load.length, 0, 'the next frame leaves it alone');
+    s.failed.set('6/33/22', Date.now() - 1);
+    assert.equal(s.update(camera(2e7)).load.length, 1, 'until the backoff is over');
+});
+
+test('a load that finishes after its tile was unloaded is unloaded again', async () => {
+    const rows = COORDS.map((c) => row(...c));
+    const s = streamerWith(rows, null, { manual: true });
+    const released = [];
+    s.onRelease = (k) => released.push(k);
+    s.update(camera(2e7));
+    const [asset] = s.app.loads;
+    assert.equal(s.pending, 1);
+    s.unload('6/33/22');
+    assert.deepEqual(released, ['6/33/22']);
+    assert.equal(s.pending, 0);
+    s.app.fire(asset);
+    await tick();
+    assert.equal(asset.unloads, 2, 'the resource that arrived for nobody is dropped');
+    assert.equal(s.entries.size, 0);
+});
+
+test('of two swaps in flight, only the newest is adopted', async () => {
+    const rows = COORDS.map((c) => row(...c));
+    const s = streamerWith(rows, null, { manual: true });
+    const released = [];
+    s.onRelease = (k) => released.push(k);
+    const old = { destroy() { this.destroyed = true; } };
+    const entry = { row: rows[0], entity: old, asset: null, usedAt: 1 };
+    s.entries.set('10/535/361', entry);
+    s.swap('10/535/361', swapRow(rows[0], 'b'.repeat(64)));
+    s.swap('10/535/361', swapRow(rows[0], 'c'.repeat(64)));
+    const [b, c] = s.app.loads;
+    assert.equal(s.app.loads.length, 2);
+    s.app.fire(b);
+    await tick();
+    assert.equal(s.swaps, 0, 'the older arrival is not adopted');
+    assert.ok(b.unloaded, 'and its resource is dropped');
+    assert.equal(entry.entity, old);
+    s.app.fire(c);
+    assert.equal(s.swaps, 1);
+    assert.equal(entry.row.sog_sha256, 'c'.repeat(64));
+    await tick();
+    assert.ok(old.destroyed);
+    assert.deepEqual(released, ['10/535/361'], 'the ground under the old version is let go');
+    // Late again, after the entry has settled: still dropped.
+    s.swap('10/535/361', swapRow(rows[0], 'd'.repeat(64)));
+    s.swap('10/535/361', swapRow(rows[0], 'c'.repeat(64)));
+    s.app.fire(s.app.loads[2]);
+    assert.equal(s.swaps, 1, 'a version older than the one asked for last is dropped');
 });

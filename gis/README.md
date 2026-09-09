@@ -7,8 +7,9 @@ row-level security (see `infra/geoserver/README.md`).
 
 ## Setup
 
-1. `make up` (or start the compose stack), then
-   `bash infra/geoserver/provision.sh`.
+1. `make up && make db-reset` (the `gis` schema and the `geoserver` role come
+   from the migrations), then `bash infra/geoserver/provision.sh`. Without
+   compose, set `GEOSERVER_DB_HOST=localhost` for the script.
 2. In QGIS: *Data Source Manager → WFS / OGC API-Features → Load Connections*
    and pick `gis/splatworld-wfs.xml`. Connect, then add:
    - `splatworld:feature_road`, `feature_forest`, `feature_water`,

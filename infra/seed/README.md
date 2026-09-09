@@ -19,8 +19,10 @@ OSM_FILE=switzerland-latest.osm.pbf bash tools/seed-osm.sh   # area + feature ro
 ```
 
 Downloads land in `infra/seed/cache/` (gitignored) and are reused. `FORCE=1`
-re-cuts tiles that are already in the store; without it an existing tile is left
-alone, because an artifact is written once and never replaced (Invariant 1).
+re-cuts tiles that are already in the store and fails if the bytes differ;
+without it an existing tile is left alone. Either way an artifact is written
+once and never replaced (Invariant 1). The seed user cannot log in: its
+password hash is locked after it is created.
 
 ## What a seed produces
 
@@ -33,7 +35,10 @@ alone, because an artifact is written once and never replaced (Invariant 1).
 16 z18 children. Cutting them takes about 30 s for the DEM and 80 s for the
 ortho once the sources are cached (85 MB of Copernicus, 330 MB of
 Sentinel-2). Each tile is registered as an `artifact` (kind `dem` / `ortho`) under the
-seed user `seed@splatworld.local`, so `assemble` can name its inputs by hash.
+seed user `seed@splatworld.local`. `assemble` still fetches them by path
+(`/geo/{kind}/{z}/{x}/{y}`), not by hash: pinning terrain and imagery into the
+atom's inputs (Invariant 2) is open work. Until then a `/geo` path is written
+once and a re-cut must reproduce its bytes exactly, which `FORCE=1` checks.
 
 `seed-osm.sh` adds **16 areas** — one per z12 child of the pilot, `detail = 14`,
 owned by the seed user — and one `feature` row per road, forest, water body and

@@ -119,3 +119,49 @@ test('looking is clamped to straight up and straight down', () => {
     p.look(0, 100000);
     assert.ok(p.pitch > -Math.PI / 2 && p.pitch < -Math.PI / 2 + 0.02, `pitch ${p.pitch}`);
 });
+
+// ------------------------------------------------------------------- terrain
+
+import { FloatingOrigin } from '../js/origin.js';
+import * as tm from '../lib/tilemath.js';
+import { Terrain } from '../js/player.js';
+
+// A streamer with one z10 tile loaded and a manifest that names its ground.
+function fakeStreamer() {
+    const o = tm.tileFrame(10, 535, 361, 0);
+    const row = { z: 10, x: 535, y: 361, manifest: {
+        origin: o, height: { sha256: 'h'.repeat(64), size: 2, min: 0, max: 10 },
+        colliders: { sha256: 'c'.repeat(64) },
+    } };
+    return {
+        origin: new FloatingOrigin(o), filesUrl: 'http://files',
+        entries: new Map([['10/535/361', { row, entity: {} }]]),
+    };
+}
+
+const tick = () => new Promise((r) => setTimeout(r, 0));
+
+test('a missing height file is no ground, not garbage', async () => {
+    const s = fakeStreamer();
+    const t = new Terrain(s, { fetchFn: async () => new Response('', { status: 404 }) });
+    assert.equal(t.heightAt({ x: 0, y: 0, z: 0 }), null);
+    await tick();
+    assert.equal(t.fields.size, 0, 'nothing was made of the 404 body');
+    assert.equal(t.colliders.size, 0);
+    assert.ok(t.wanted.has('10/535/361'), 'and it is not asked for again every frame');
+});
+
+test('the ground is forgotten when the streamer lets the tile go', async () => {
+    const s = fakeStreamer();
+    const t = new Terrain(s, { fetchFn: async (url) => (url.endsWith('.r16')
+        ? new Response(new Uint16Array([0, 0, 0, 0]).buffer)
+        : new Response(JSON.stringify({ boxes: [] }))) });
+    t.heightAt({ x: 0, y: 0, z: 0 });
+    await tick();
+    assert.equal(t.fields.size, 1);
+    assert.equal(t.colliders.size, 1);
+    s.onRelease('10/535/361');
+    assert.equal(t.fields.size, 0);
+    assert.equal(t.colliders.size, 0);
+    assert.equal(t.wanted.size, 0, 'a reloaded tile is asked for afresh');
+});

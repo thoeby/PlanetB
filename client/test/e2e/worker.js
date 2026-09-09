@@ -2,10 +2,10 @@
 // fixtures, and the page with a signed-in tab.
 
 import { execFileSync } from 'node:child_process';
-import { readFileSync, rmSync } from 'node:fs';
+import { existsSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 
-import { CLIENT, FILES_ROOT } from './serve.js';
+import { CLIENT } from './serve.js';
 
 export const psql = (sql) => execFileSync('psql',
     ['-v', 'ON_ERROR_STOP=1', '--no-psqlrc', '-q', '-t', '-A', '-c', sql],
@@ -22,35 +22,6 @@ export function park() {
 
 export function unpark(ids) {
     if (ids?.length) psql(`UPDATE atom SET state = 'ready' WHERE id IN (${ids.join(',')})`);
-}
-
-// Everything a job's atoms made, gone: the rows and the bytes.
-//
-// A fixture that rebuilds a DAG deletes the atoms that produced last run's
-// artifacts, and an artifact whose atom is gone is registered but unfindable —
-// client/js/inputs.js locates bytes by asking which atom produced them, and
-// can_write refuses to write a path for an artifact that already exists. So the
-// artifacts go with the atoms, files included.
-export function resetJob(job) {
-    const made = psql(`SELECT coalesce(string_agg(
-                           coalesce(output_sha256, '') || ' ' || coalesce(result ->> 'path', ''),
-                           E'\n'), '')
-                       FROM atom WHERE job_id = ${job}`);
-    // The atoms go first: atom.output_sha256 references artifact.
-    psql(`DELETE FROM atom WHERE job_id = ${job}`);
-    for (const line of made.split('\n').filter(Boolean)) {
-        const path = line.split(' ')[1];
-        if (path) rmSync(join(FILES_ROOT, path.replace(/^\//, '')), { force: true });
-    }
-    // Anything nobody points at any more, including what earlier runs left
-    // behind. An unreferenced artifact row is worse than useless: can_write
-    // refuses to write its bytes anywhere, and no atom can say where they are.
-    psql(`DELETE FROM artifact a
-          WHERE NOT EXISTS (SELECT 1 FROM atom WHERE output_sha256 = a.sha256)
-            AND NOT EXISTS (SELECT 1 FROM tile WHERE sog_sha256 = a.sha256)
-            AND NOT EXISTS (SELECT 1 FROM asset WHERE sha256 = a.sha256)
-            AND NOT EXISTS (SELECT 1 FROM asset WHERE thumb_sha256 = a.sha256)
-            AND a.kind NOT IN ('dem', 'ortho')`);
 }
 
 // A tile nobody else is compiling, an open job for it, and one ready atom.
@@ -85,4 +56,16 @@ export async function signIn(page, email, pw) {
         await api.register(e, p).catch(() => {});
         await api.login(e, p);
     }, [email, pw]);
+}
+
+// Whether the seeded DEM covers a tile the way client/lib/geo.js looks for it:
+// the tile itself, or an ancestor two zooms up, and so on. The pilot's tiles
+// need `bash tools/seed-dem.sh`; the gate's seed-test cuts one z14 tile only.
+export function demSeeded(root, { z, x, y }) {
+    for (let az = z; az >= 6; az -= 2) {
+        const f = 2 ** (z - az);
+        const p = join(root, `geo/dem/${az}/${Math.floor(x / f)}/${Math.floor(y / f)}.r16`);
+        if (existsSync(p)) return true;
+    }
+    return false;
 }

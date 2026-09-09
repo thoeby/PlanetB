@@ -12,17 +12,17 @@ const canvas = (w, h) => new OffscreenCanvas(w, h);
 // buffer — a tar's entries are — and a buffer may only be transferred once, so
 // anything that is not a whole buffer is copied out first.
 function transfers(out) {
-    const list = [];
+    const set = new Set();
     for (const f of out?.files ?? []) {
         const b = f.bytes;
-        if (b instanceof ArrayBuffer) { list.push(b); continue; }
+        if (b instanceof ArrayBuffer) { set.add(b); continue; }
         if (!ArrayBuffer.isView(b)) continue;
         if (b.byteOffset !== 0 || b.byteLength !== b.buffer.byteLength) {
             f.bytes = new Uint8Array(b);
         }
-        if (!list.includes(f.bytes.buffer)) list.push(f.bytes.buffer);
+        set.add(f.bytes.buffer);
     }
-    return list;
+    return [...set];
 }
 
 self.onmessage = async (ev) => {
