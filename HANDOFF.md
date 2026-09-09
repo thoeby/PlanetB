@@ -1,7 +1,7 @@
 # HANDOFF.md — for the next instance
 
 Read `CLAUDE.md`, then `ARCHITECTURE.md`, then `PROGRESS.md`. Then start the
-first unchecked task in `TASKS.md` — currently **WP4.4**. One task, one commit,
+first unchecked task in `TASKS.md` — currently **WP5.1**. One task, one commit,
 `make gate` green before you commit.
 
 ## 1. Get a working environment first
@@ -305,16 +305,17 @@ Things that cost time once. Do not rediscover them.
   refuses anything else. WP4.3's merge and WP4.4's purchases change who may
   place, not how.
 
-## 4. Starting WP4.4
+## 4. Starting WP5.1
 
-WP4 is the catalog, build mode, areas and money. The seams:
+WP5 is the Switzerland seed, background rendering, the web GIS editor, XR and
+ops. What WP4 left behind:
 
-1. **WP4.1, WP4.2 and WP4.3 are done**: `canon-v1`, the SAN, `register_asset`,
-   `catalog.html`, build mode in `play.html`, and the area panel with grants,
-   rules and proposals. §3a above is what they left for WP4.4.
-2. **`account` rows are created by `register()`** already (deviation 3), and
-   `pay`, `set_bounty` and escrow release on publish are done and tested. WP4.4
-   is the wallet UI, `buy_asset` and `transfer_asset_right`.
+1. **WP4 is done**: the catalog, build mode, areas and proposals, and money.
+   §3a above is the shape of it.
+2. **Money is done and gated**: `pay`, `set_bounty`, escrow release,
+   `buy_asset`, `transfer_asset_right`, the wallet panel and a real
+   sixteen-client race on the last edition (`db/test/0023_buy.sh`). WP5.2's
+   "help render the world" is what puts unbountied work in front of a tab.
 3. **Areas, grants and proposals are done** (`db/0022_proposals.sql`):
    `propose`, `approve`, `merge_proposal`, `set_grant`, `revoke_grant`,
    `set_required_approvals`, `area_grants`, `my_proposals`. A diff is

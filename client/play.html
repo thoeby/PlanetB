@@ -33,6 +33,16 @@
   #work { margin: 10px 0 0; padding-top: 8px; border-top: 1px solid #2a3138; }
   #build { margin: 10px 0 0; padding-top: 8px; border-top: 1px solid #2a3138; }
   #areas { margin: 10px 0 0; padding-top: 8px; border-top: 1px solid #2a3138; }
+  #wallet { margin: 10px 0 0; padding-top: 8px; border-top: 1px solid #2a3138; }
+  .wallet-head { font-weight: 600; margin: 6px 0 2px; }
+  .wallet-ledger { margin: 4px 0; padding: 0; list-style: none;
+    max-height: 7rem; overflow-y: auto; }
+  .wallet-line { font-family: ui-monospace, monospace; font-size: 12px; }
+  .wallet-delta { display: inline-block; min-width: 3.5rem; text-align: right; }
+  .wallet-bounty { display: flex; gap: 6px; align-items: center; margin: 4px 0; }
+  .wallet-amount { width: 4.5rem; }
+  .wallet-bounty button { flex: 0 0 auto; padding: 1px 6px; }
+  .wallet-status { min-height: 1.2em; }
   .area-head { font-weight: 600; margin: 6px 0 2px; }
   .area-list, .area-granted, .area-proposals { margin: 4px 0; padding: 0;
     list-style: none; max-height: 9rem; overflow-y: auto; }
@@ -77,6 +87,7 @@
   <div id="work"></div>
   <div id="build"></div>
   <div id="areas"></div>
+  <div id="wallet"></div>
 </section>
 
 <!-- PlayCanvas 2.x, pinned. The browser tests route this URL to the copy
@@ -93,6 +104,7 @@
   import { SpotChecker } from './js/spot.js';
   import { mountBuild } from './js/buildui.js';
   import { mountAreas } from './js/areasui.js';
+  import { mountWallet } from './js/walletui.js';
   import { nearbyInstances } from './js/build.js';
   import { InstancePreview } from './js/preview.js';
 
@@ -181,9 +193,12 @@
       .map((r) => ({ ...r, sha256: bySan.get(r.san) }));
   }
 
+  // WP4.4: the wallet, and the bounty that puts a tile in front of a stranger.
+  const wallet = mountWallet(document.getElementById('wallet'));
+
   const build = mountBuild(document.getElementById('build'), {
     app, pc, api, camera, origin, terrain, streamer, player, work, preview,
-    canvas: view, nearby,
+    canvas: view, nearby, wallet,
   });
 
   // WP4.3: my land, who may touch it, and what they have asked to change.
@@ -194,7 +209,7 @@
   });
 
   mountAuth(document.getElementById('auth'), {
-    onChange: () => { work.refresh(); build.refresh(); areas.refresh(); },
+    onChange: () => { work.refresh(); build.refresh(); areas.refresh(); wallet.refresh(); },
   });
 
   // The player drives the camera unless something else has taken the wheel —
@@ -228,6 +243,6 @@
   // The handle the browser tests fly.
   window.splatworld = {
     app, pc, api, origin, streamer, camera, rows, terrain, player, setDriving, work,
-    spot, build, preview, nearby, areas,
+    spot, build, preview, nearby, areas, wallet,
   };
 </script>

@@ -489,7 +489,7 @@ toy: it is what `verify` renders with, and what the node tests train with.
       memory would lift it.
 - [ ] **Recompiling a `suspect` tile** (deviation 55).
 
-## WP4 — Catalog, building, areas, money 🚧
+## WP4 — Catalog, building, areas, money ✅
 
 The world can be walked and compiled; WP4 is what people put in it. 4.1 gives
 an uploaded model one identity however it was exported — a trained tile and a
@@ -501,11 +501,11 @@ either.
 | 4.1 Canonical GLB + SAN | done | see git log | `client/lib/{canon,canonmesh,canontex,glb,png,draco,thumb}.js`, `client/js/{catalog,catalogui}.js`, `client/catalog.html`, `db/0020_assets.sql`, `db/test/0020_assets.sql`, `client/test/{canon,draco}.test.js`, `client/test/e2e/catalog.spec.js`, `tools/make-asset-fixtures.mjs` |
 | 4.2 Build mode | done | see git log | `client/js/{build,buildui,preview}.js`, `client/lib/glbmesh.js`, `client/atoms/assemble.js`, `client/play.html`, `db/0021_build.sql`, `db/test/0021_build.sql`, `client/test/build.test.js`, `client/test/e2e/build.spec.js` |
 | 4.3 Areas, grants, proposals | done | see git log | `db/0022_proposals.sql`, `db/test/0022_proposals.sql`, `client/js/{areas,areasui,buildui}.js`, `client/play.html`, `client/test/e2e/areas.spec.js` |
-| 4.4 Money | not started | | |
+| 4.4 Money | done | see git log | `db/0023_money.sql`, `db/test/0023_money.sql`, `db/test/0023_buy.sh`, `client/js/{wallet,walletui,catalogui,buildui}.js`, `client/play.html`, `client/test/e2e/money.spec.js` |
 
-Gate after 4.1: 299 pgTAP assertions over 15 files, the concurrency run, 47 API
-and file-store assertions, 95 node assertions, 22 test-tile assertions and 22
-headless-chromium tests. About ten minutes.
+Gate at the end of WP4: 407 pgTAP assertions over 18 files, the concurrency run
+and the buy race, 47 API and file-store assertions, 108 node assertions, 22
+test-tile assertions and 31 headless-chromium tests. About twelve minutes.
 
 ### Deviations from TASKS.md, and why
 
@@ -635,17 +635,47 @@ headless-chromium tests. About ten minutes.
     element looked deleted. The browser test caught it; `catalogui.js` had the
     same pattern, harmless there only because it selects by id.
 
-### What 4.2–4.4 inherit
+83. **`transfer_asset_right` moves money only out of the caller's own wallet.**
+    TASKS.md describes it as the holder transferring and being paid, which
+    would mean debiting a `to_user` who never called — an RPC anyone could use
+    to empty a stranger's wallet by "selling" them something worthless. Who
+    calls decides which half runs instead: the holder gives the right away
+    (amount must be 0), or the buyer calls, pays the holder through `pay`, and
+    takes it. The signature is unchanged. A holder-initiated *paid* transfer
+    needs a consent record — an offer row — that v1 has no table for.
+84. **The last-edition race is gated by a shell script, not by pgTAP.** One
+    session cannot race itself, and the lock being tested is what a second
+    transaction sees when it wakes on `UPDATE asset SET issued = issued + 1
+    WHERE issued < editions`. `db/test/0023_buy.sh` runs sixteen real psql
+    clients that spin to the same wall-clock second, the way
+    `db/test/0006_concurrency.sh` does: one right, one ledger row, fifteen
+    PT409s. Six consecutive runs came back clean.
+85. **That script gives every run its own asset.** The ledger is append-only,
+    so a fixed SAN left every earlier run's buys sitting under the same
+    `buy:{san}:%` prefix and the money assertions counted them. The digest is
+    derived from the run's timestamp now. Same class of mistake as the seeds
+    in deviation 71 — state outliving the thing that made it.
+86. **`buy_asset` grants a right for a free asset too, without a ledger row.**
+    `cc0` and `free` cost nothing, and a ledger row for zero would be a lie in
+    an append-only book; the right is still recorded, so "who may place this"
+    has one answer for every licence.
+87. **A second buy is a no-op that returns the right already held.** Not an
+    error: `ref` idempotence (Invariant 5) means the second call has nothing
+    left to do, and a UI that has lost track should not be punished for asking.
 
-- **canon-v1 and the SAN are done** (4.1): `client/lib/canon.js` normalises a
-  GLB, `derive_san()` names it, and `catalog.html` uploads it.
-- **`account` rows already exist for every user** (deviation 3), and `pay`,
-  `set_bounty` and escrow release are done and tested. WP4.4 is the wallet UI,
-  `buy_asset` and `transfer_asset_right`.
-- **Areas, grants and `is_area_writer` are in use** by `ensure_job`,
-  `my_dirty_tiles` and `spot_due`; WP4.3 adds the proposal flow on top.
-- **The trained-tile pipeline is a worked example** of adding an op: an atom
-  module, a row in the DAG, structural rules as data, and a pgTAP file.
+### What WP5 inherits from WP4
+
+- **A model gets one identity however it was exported** (`canon-v1`), and the
+  catalog serves it: `catalog.html` uploads, searches and licenses.
+- **A player can change the world where they are allowed to**: build mode
+  places, moves and deletes; a proposer's change becomes a proposal an approver
+  merges; `assemble` bakes what was placed into the tile.
+- **Money works end to end**: a bounty is escrowed on a job and released pro
+  rata when the tile publishes, and `buy_asset` is one transaction with the
+  edition count as its lock.
+- **`client/js/wallet.js` is where money is asked about**, and `walletui.js`
+  shows it. Build mode hands the wallet the tile the player is looking at, so
+  WP5.2's "help render the world" has somewhere to put a price.
 
 ## WP5 ⬜
 

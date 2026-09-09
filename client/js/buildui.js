@@ -309,6 +309,9 @@ export function mountBuild(host, ctx) {
         const job = await api.rpc('ensure_job', { z: tile.z, x: tile.x, y: tile.y });
         btn.textContent = `job ${job}`;
         ctx.work?.refresh?.();
+        // WP4.4: a job is what a bounty attaches to, so the wallet is told
+        // which one the player just opened.
+        ctx.wallet?.target?.(tile, job);
     }
 
     async function refresh() {
@@ -317,6 +320,8 @@ export function mountBuild(host, ctx) {
         const { areas, tiles } = await session.look();
         q('.build-where').textContent = whereText(state, areas);
         q('.build-tiles').replaceChildren(...tiles.map((t) => tileRow(t, render)));
+        const open = tiles.find((t) => t.job_id) ?? tiles.find((t) => t.dirty);
+        if (open) ctx.wallet?.target?.(open, open.job_id ?? null);
         return tiles;
     }
 

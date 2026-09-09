@@ -5,6 +5,7 @@
 // (Invariant 6).
 
 import * as api from './api.js';
+import { buyAsset, myRights, offerOf } from './wallet.js';
 import { CATEGORIES, LICENSES, duplicatesOf, getAsset, glbUrl, prepare, publishAsset,
     searchAssets, thumbUrl } from './catalog.js';
 
@@ -59,6 +60,27 @@ function detailOf(asset) {
         dl.append(el('dt', { textContent: k }), el('dd', { textContent: v }));
     }
     return dl;
+}
+
+// WP4.4: a licence is bought here. What it costs and whether there is one left
+// is the asset's own business; buy_asset is one transaction and refuses the
+// rest (Invariant 5), so the button only has to show what it said.
+function buyButton(asset, held, status, reopen) {
+    const offer = offerOf(asset, held.has(asset.san));
+    const buy = el('button', { type: 'button', className: 'buy',
+        textContent: offer.label, disabled: offer.state !== 'buy' || !api.claims() });
+    buy.onclick = async () => {
+        buy.disabled = true;
+        try {
+            await buyAsset(asset.san);
+            held.add(asset.san);
+            status.textContent = `licensed ${asset.san}`;
+            await reopen(asset.san);
+        } catch (err) {
+            buy.textContent = String(err.body?.message ?? err.message ?? err);
+        }
+    };
+    return buy;
 }
 
 // ------------------------------------------------------------------- upload
@@ -164,13 +186,15 @@ export function mountCatalog(doc, { mountAuth }) {
     options(doc.getElementById('upload-category'), CATEGORIES);
     options(doc.getElementById('upload-license'), LICENSES);
 
+    const held = new Set();
     const open = async (san) => {
         const asset = await getAsset(san);
         detail.hidden = !asset;
         if (!asset) return;
         detail.innerHTML = '';
         detail.append(el('h2', { textContent: asset.name }), detailOf(asset),
-            el('p', {}, el('a', { href: glbUrl(asset), textContent: 'canonical glb' })));
+            el('p', {}, buyButton(asset, held, status, open), ' ',
+                el('a', { href: glbUrl(asset), textContent: 'canonical glb' })));
     };
 
     const refresh = async () => {
@@ -178,6 +202,8 @@ export function mountCatalog(doc, { mountAuth }) {
         // was opened by the form or by a test signing in through api.js.
         doc.getElementById('upload').hidden = !api.claims();
         status.textContent = 'loading…';
+        held.clear();
+        for (const r of await myRights()) held.add(r.san);
         try {
             const rows = await searchAssets({
                 search: doc.getElementById('q').value,
