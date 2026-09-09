@@ -189,14 +189,14 @@ export function mountCatalog(doc, { mountAuth }) {
             status.textContent = rows.length ? `${rows.length} assets` : 'nothing here yet';
         } catch (err) {
             status.textContent = String(err.message ?? err);
-            status.className = 'bad';
+            status.className = 'muted bad';
         }
     };
 
     const say = (msg, bad = false) => {
         const node = doc.getElementById('upload-status');
         node.textContent = msg;
-        node.className = bad ? 'bad' : 'muted';
+        node.className = bad ? 'muted bad' : 'muted';
     };
     const upload = new Upload(doc, say);
 

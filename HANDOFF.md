@@ -1,7 +1,7 @@
 # HANDOFF.md — for the next instance
 
 Read `CLAUDE.md`, then `ARCHITECTURE.md`, then `PROGRESS.md`. Then start the
-first unchecked task in `TASKS.md` — currently **WP4.3**. One task, one commit,
+first unchecked task in `TASKS.md` — currently **WP4.4**. One task, one commit,
 `make gate` green before you commit.
 
 ## 1. Get a working environment first
@@ -296,24 +296,29 @@ Things that cost time once. Do not rediscover them.
   `SET search_path = public`, because PostgREST runs a request with
   `search_path = api` and an unqualified helper is then not found. That failure
   shows up only through the API, never in psql.
+- **A panel's status line must keep its own class.** `say()` in `areasui.js`
+  once assigned `className` outright, which dropped `area-status` and made the
+  element vanish from every selector naming it. Change the modifier, never the
+  whole list.
 - **`assemble` places instances now.** An instance's asset digest comes from
   `tile_world`; `lib/glbmesh.js` turns a canonical GLB into triangles and
   refuses anything else. WP4.3's merge and WP4.4's purchases change who may
   place, not how.
 
-## 4. Starting WP4.3
+## 4. Starting WP4.4
 
 WP4 is the catalog, build mode, areas and money. The seams:
 
-1. **WP4.1 and WP4.2 are done**: `canon-v1`, the SAN, `register_asset`,
-   `catalog.html`, and build mode in `play.html` (place, gizmo, delete, undo,
-   dirty badge, render now). §3a above is what they left for the rest of WP4.
+1. **WP4.1, WP4.2 and WP4.3 are done**: `canon-v1`, the SAN, `register_asset`,
+   `catalog.html`, build mode in `play.html`, and the area panel with grants,
+   rules and proposals. §3a above is what they left for WP4.4.
 2. **`account` rows are created by `register()`** already (deviation 3), and
    `pay`, `set_bounty` and escrow release on publish are done and tested. WP4.4
    is the wallet UI, `buy_asset` and `transfer_asset_right`.
-3. **Areas and grants are already load-bearing**: `ensure_job`,
-   `my_dirty_tiles` and `spot_due` all ask `is_area_writer`. WP4.3 adds
-   `propose`/`approve`/`merge_proposal` on top of them.
+3. **Areas, grants and proposals are done** (`db/0022_proposals.sql`):
+   `propose`, `approve`, `merge_proposal`, `set_grant`, `revoke_grant`,
+   `set_required_approvals`, `area_grants`, `my_proposals`. A diff is
+   `{"ops":[…]}`; `client/js/areas.js` builds one and `areasui.js` shows it.
 4. **Adding an op is a worked example now.** WP3 added two: an atom module
    under `client/atoms/`, a branch in `build_dag`, structural rules as rows, a
    pgTAP file and a browser spec. Copy the shape.

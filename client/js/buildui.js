@@ -10,6 +10,7 @@
 // a key. Snapping is on by default: a quarter metre, fifteen degrees, a tenth.
 
 import * as api from './api.js';
+import { placementDiff, propose } from './areas.js';
 import { Edits, SNAP, areasAt, raycastGround, snapTo, tilesAt } from './build.js';
 import { searchAssets } from './catalog.js';
 
@@ -74,17 +75,20 @@ class Session {
         this.ctx = ctx;
         this.onChange = onChange;
         this.state = { on: false, brush: null, selected: null, mode: MODES.move,
-            axis: 'x', snap: true, area: null };
+            axis: 'x', snap: true, area: null, proposal: null };
         this.edits = new Edits({ onChange: () => this.onChange() });
     }
 
     here() { return this.ctx.origin.geodeticOf(this.ctx.camera.getPosition()); }
 
-    // Which area the camera is standing over, and what its tiles owe.
+    // Which area the camera is standing over, and what its tiles owe. A writer
+    // gets the area they may write; a proposer gets the one they may propose in
+    // (WP4.3), and place() then makes a proposal instead of a row.
     async look() {
         const g = this.here();
         const areas = await areasAt(g.lon, g.lat).catch(() => []);
-        this.state.area = areas.find((a) => a.may_write) ?? null;
+        this.state.area = areas.find((a) => a.may_write)
+            ?? areas.find((a) => a.may_propose) ?? null;
         const tiles = await tilesAt(g.lon, g.lat, this.state.area?.detail ?? 14).catch(() => []);
         return { areas, tiles };
     }
@@ -95,14 +99,23 @@ class Session {
     }
 
     // The ray lands on the heightfield; the area under it decides whether the
-    // insert is worth attempting, and RLS decides whether it succeeds.
+    // insert is worth attempting, and RLS decides whether it succeeds. Where
+    // the caller may only propose, the same placement becomes a proposal —
+    // which is what an `edit` grant means (WP4.3).
     async place(screen) {
         if (!this.state.brush || !this.state.area) return null;
         const hit = this.ray(screen);
         if (!hit) return null;
         const g = this.ctx.origin.geodeticOf(hit);
-        const row = await this.edits.place(this.state.area.id, this.state.brush.san,
-            { lon: g.lon, lat: g.lat, h: g.h }, { yaw: 0, scale: 1 });
+        const at = { lon: g.lon, lat: g.lat, h: g.h };
+        const pose = { yaw: 0, scale: 1 };
+        if (!this.state.area.may_write) {
+            this.state.proposal = await propose(this.state.area.id,
+                placementDiff(this.state.brush.san, at, pose));
+            this.onChange();
+            return this.state.proposal;
+        }
+        const row = await this.edits.place(this.state.area.id, this.state.brush.san, at, pose);
         this.state.selected = { ...row, sha256: this.state.brush.sha256 };
         return this.sync();
     }
@@ -215,6 +228,9 @@ function keyHandler(state, acts, say) {
 }
 
 function describe(state, depth) {
+    if (state.proposal && !state.selected) {
+        return `proposed ${String(state.proposal).slice(0, 8)} — an approver has to merge it`;
+    }
     if (!state.selected) {
         return `${state.brush ? `brush ${state.brush.san}` : 'nothing selected'}`
             + ` · ${depth} undoable`;
@@ -223,9 +239,13 @@ function describe(state, depth) {
         + ` · scale ${Number(state.selected.scale ?? 1).toFixed(2)} · ${depth} undoable`;
 }
 
-const whereText = (state, areas) => (state.area
-    ? `building in ${state.area.id.slice(0, 8)} · detail ${state.area.detail}`
-    : (areas.length ? 'this land is not yours to build on' : 'no area here'));
+const whereText = (state, areas) => {
+    if (!state.area) {
+        return areas.length ? 'this land is not yours to build on' : 'no area here';
+    }
+    const how = state.area.may_write ? 'building in' : 'proposing to';
+    return `${how} ${state.area.id.slice(0, 8)} · detail ${state.area.detail}`;
+};
 
 // Build mode takes the keyboard and the pointer off the player: the camera
 // stands still and the cursor is free, which is what makes a click a placement

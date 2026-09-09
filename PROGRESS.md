@@ -500,7 +500,7 @@ either.
 |---|---|---|---|
 | 4.1 Canonical GLB + SAN | done | see git log | `client/lib/{canon,canonmesh,canontex,glb,png,draco,thumb}.js`, `client/js/{catalog,catalogui}.js`, `client/catalog.html`, `db/0020_assets.sql`, `db/test/0020_assets.sql`, `client/test/{canon,draco}.test.js`, `client/test/e2e/catalog.spec.js`, `tools/make-asset-fixtures.mjs` |
 | 4.2 Build mode | done | see git log | `client/js/{build,buildui,preview}.js`, `client/lib/glbmesh.js`, `client/atoms/assemble.js`, `client/play.html`, `db/0021_build.sql`, `db/test/0021_build.sql`, `client/test/build.test.js`, `client/test/e2e/build.spec.js` |
-| 4.3 Areas, grants, proposals | not started | | |
+| 4.3 Areas, grants, proposals | done | see git log | `db/0022_proposals.sql`, `db/test/0022_proposals.sql`, `client/js/{areas,areasui,buildui}.js`, `client/play.html`, `client/test/e2e/areas.spec.js` |
 | 4.4 Money | not started | | |
 
 Gate after 4.1: 299 pgTAP assertions over 15 files, the concurrency run, 47 API
@@ -608,6 +608,32 @@ headless-chromium tests. About ten minutes.
     covered by `build.test.js` and `player.test.js`. It also had to recompute
     every position in the *current* frame: moving the camera 80 km rebases the
     floating origin mid-test, and a cached local position is then 80 km wrong.
+
+78. **A diff is `{"ops":[…]}`, applied in array order.** Each op names a table
+    (feature or instance), an action (insert, update, delete) and its values; a
+    feature's geom arrives as GeoJSON. The row's area is always the proposal's
+    area and never what the diff says, so a proposal cannot reach outside the
+    area it was made against. A delete sets `deleted_at` rather than dropping
+    the row, because the world is filtered on it.
+79. **Approving is not merging.** `approve()` records an approval and answers
+    the count; reaching the threshold does not apply anything. The last approver
+    still decides when the world moves, which is one more RPC and one fewer
+    surprise.
+80. **Grants are made by email, and only by the owner.** A uuid is the only
+    other handle a player has, and typing one is not a panel. It lets an owner
+    learn whether an address has an account; that oracle is bounded to people
+    who already own land, and `area_grants()` shows the addresses only to the
+    owner. `set_grant`/`revoke_grant`/`set_required_approvals` are new API
+    surface — `grant_` has no write policy, so grants move nowhere else.
+81. **Build mode routes a proposer's placement into a proposal.** `look()` now
+    falls back from `may_write` to `may_propose`, and `place()` calls `propose`
+    with the same columns it would have inserted. That is what "an `edit`
+    grantee's write becomes a proposal" means where a player actually works.
+82. **`say()` was assigning `className`, which dropped the class the panel is
+    found by.** `class="area-status muted"` became `class="muted"` on the first
+    message, and every selector naming `.area-status` stopped matching — the
+    element looked deleted. The browser test caught it; `catalogui.js` had the
+    same pattern, harmless there only because it selects by id.
 
 ### What 4.2–4.4 inherit
 
