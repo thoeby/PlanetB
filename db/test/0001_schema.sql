@@ -30,10 +30,12 @@ SELECT columns_are('public', 'instance', ARRAY[
 SELECT columns_are('public', 'proposal', ARRAY[
     'id', 'area_id', 'author_id', 'state', 'diff', 'created_at']);
 SELECT columns_are('public', 'approval', ARRAY['proposal_id', 'reviewer_id', 'at']);
+-- thumb_sha256 was added by db/0020_assets.sql (WP4.1): the catalog renders a
+-- thumbnail client-side and nothing pointed at it.
 SELECT columns_are('public', 'asset', ARRAY[
     'san', 'sha256', 'canon_version', 'name', 'category', 'bbox', 'tris',
     'tex_bytes', 'license', 'price', 'editions', 'issued', 'creator_id',
-    'created_at']);
+    'created_at', 'thumb_sha256']);
 SELECT columns_are('public', 'asset_right', ARRAY[
     'san', 'holder_id', 'acquired_at', 'ref']);
 -- `suspect` is WP3.3's (db/0018_spot.sql): a failed spot check flags the tile

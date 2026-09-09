@@ -8,7 +8,32 @@
 set -euo pipefail
 
 PLAYCANVAS_VERSION=${PLAYCANVAS_VERSION:-2.22.0}
+DRACO_VERSION=${DRACO_VERSION:-1.5.7}
 DEST=client/vendor/playcanvas
+
+# Google's Draco codec (Apache-2.0), for the GLBs canon-v1 is handed compressed.
+# npm only: there is no CDN copy this repo pins. Without it a Draco GLB is
+# refused rather than canonicalised wrongly, and the Draco test skips.
+vendor_draco () {
+    local dest=client/vendor/draco tmp
+    [ -f "$dest/draco3d.js" ] && [ "${FORCE:-}" != "1" ] && {
+        echo "vendor: $dest is already here (FORCE=1 to refetch)"; return 0; }
+    mkdir -p "$dest"
+    tmp=$(mktemp -d)
+    ( cd "$tmp" && npm pack "draco3d@${DRACO_VERSION}" --silent > /dev/null ) || {
+        echo "vendor: draco3d@${DRACO_VERSION} unreachable, skipping"; rm -rf "$tmp"; return 0; }
+    tar xzf "$tmp"/draco3d-*.tgz -C "$tmp"
+    cp "$tmp"/package/draco3d.js "$tmp"/package/draco_decoder_nodejs.js \
+       "$tmp"/package/draco_encoder_nodejs.js "$tmp"/package/draco_decoder.wasm \
+       "$tmp"/package/draco_encoder.wasm "$dest/"
+    echo '{"type":"commonjs"}' > "$dest/package.json"
+    echo "draco3d ${DRACO_VERSION}, Apache-2.0, https://github.com/google/draco" \
+        > "$dest/NOTICE"
+    rm -rf "$tmp"
+    echo "vendor: draco3d $DRACO_VERSION from npm"
+}
+
+vendor_draco
 
 mkdir -p "$DEST"
 if [ -f "$DEST/playcanvas.js" ] && [ "${FORCE:-}" != "1" ]; then

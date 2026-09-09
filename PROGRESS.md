@@ -489,14 +489,97 @@ toy: it is what `verify` renders with, and what the node tests train with.
       memory would lift it.
 - [ ] **Recompiling a `suspect` tile** (deviation 55).
 
-## WP4–WP5 ⬜
+## WP4 — Catalog, building, areas, money 🚧
 
-Not started.
+The world can be walked and compiled; WP4 is what people put in it. 4.1 gives
+an uploaded model one identity however it was exported — a trained tile and a
+sampled one are the same tile to the catalog, and to the ledger that pays for
+either.
 
-### What WP4 inherits
+| task | status | commit | file(s) |
+|---|---|---|---|
+| 4.1 Canonical GLB + SAN | done | see git log | `client/lib/{canon,canonmesh,canontex,glb,png,draco,thumb}.js`, `client/js/{catalog,catalogui}.js`, `client/catalog.html`, `db/0020_assets.sql`, `db/test/0020_assets.sql`, `client/test/{canon,draco}.test.js`, `client/test/e2e/catalog.spec.js`, `tools/make-asset-fixtures.mjs` |
+| 4.2 Build mode | not started | | |
+| 4.3 Areas, grants, proposals | not started | | |
+| 4.4 Money | not started | | |
 
-- **`lib/hash.js` and the `canon-v1` seam.** WP4.1's SAN derivation is the only
-  thing missing; `register_artifact` and the `/assets/{sha}` upload path work.
+Gate after 4.1: 299 pgTAP assertions over 15 files, the concurrency run, 47 API
+and file-store assertions, 95 node assertions, 22 test-tile assertions and 22
+headless-chromium tests. About ten minutes.
+
+### Deviations from TASKS.md, and why
+
+60. **WP4.1 was written beside WP3, not after it.** This container has no GPU
+    adapter, so WP3 could not start here and the project owner asked for WP4;
+    WP3 landed on the branch meanwhile, from a box that had one. WP4.1 was
+    rebased onto it and its migration renumbered to `db/0020_assets.sql`.
+    Nothing in the two touches the same table, function or file.
+61. **`asset` gained a nullable `thumb_sha256`** (`db/0020_assets.sql`).
+    ARCHITECTURE §7 already reserves `/assets/{sha}.webp` for thumbnails and
+    WP4.1 renders one, but no column pointed at it. Additive, and
+    `api.asset` is `CREATE OR REPLACE`d so PostgREST serves the new column.
+    This is one of the "ask first" cases in CLAUDE.md; it was asked and agreed.
+62. **canon-v1 drops vertex colours.** `COLOR_0` is the attribute exporters
+    disagree about most — present or absent, float or normalised byte, linear or
+    sRGB — and colour already lives in the material. Keeping it would have made
+    the SAN depend on which exporter wrote the file, which is the one thing
+    canon-v1 exists to prevent.
+63. **canon-v1 drops `magFilter`/`minFilter` too.** They are a preference about
+    how to sample a texture, not part of the asset; Blender writes them and the
+    CAD fixture does not. `wrapS`/`wrapT` are kept, because they change which
+    pixel a UV outside 0..1 reads.
+64. **A texture within budget keeps its exact bytes.** Only an image over
+    2048 px is decoded, box-filtered and re-encoded. Re-encoding every texture
+    would need a deterministic encoder for JPEG and WebP as well, and an asset
+    whose pixels differ *is* a different asset.
+65. **The one image canon-v1 writes is PNG from `client/lib/png.js`**, deflated
+    as stored blocks. A canvas encoder is the platform's (deviation 39) and a
+    SAN that changed with the browser would fracture the catalog. Stored blocks
+    mean no compression, which is the price of having no choices to disagree
+    about. Decoding uses `DecompressionStream`, which node and browsers share.
+66. **Draco is decoded through the vendored Google decoder**, injected as
+    `decodeDraco` rather than imported: a page without it refuses the upload
+    instead of producing a second, wrong canonical form. `make vendor` now
+    fetches `draco3d` (Apache-2.0) alongside the engine, and
+    `client/test/draco.test.js` compresses the bench with the matching encoder
+    and checks the round trip lands on the same SAN. It skips without
+    `make vendor`.
+67. **`similar_assets` is an RPC, not a client-side scan.** The near-duplicate
+    check needs every asset's bbox and triangle count; doing it in SQL keeps
+    the page from downloading the catalog to answer one question.
+68. **A thumbnail is shared between assets that look alike.** `lib/thumb.js`
+    renders with `frame`'s vertex-colour renderer, which has no textures, so two
+    assets with the same geometry and material colours produce the same WebP and
+    therefore the same artifact. That is content addressing working, but it
+    means an upload routinely gets a 409 for a thumbnail somebody else already
+    wrote — and after a `make db-reset` the store still holds bytes the
+    `artifact` table has forgotten. `catalog.js` registers on 409 as well as on
+    201 because of it, and only a 403 (which `can_write` raises when the sha is
+    already an artifact) means there is nothing left to do. This is the same
+    trap WP2 hit with `/jobs`; it found this bug in the gate.
+69. **`lib/hash.js` still hashes in one shot, not streaming.** WP4.1's
+    deliverable asks for a streaming sha256; `SubtleCrypto.digest` has no
+    streaming form in any browser, and hand-writing SHA-256 to get one would be
+    slower than the platform's and would duplicate what WP2.2 already ships and
+    every atom already uses. A canonical GLB is bounded by the 2048 px texture
+    rule, so one-shot is what it gets.
+70. **WP3's test cleanup had to learn about the new column.** `resetJob` in
+    `client/test/e2e/worker.js` deletes every artifact nobody points at, and it
+    enumerates the references by hand; `asset.thumb_sha256` is a new one, so
+    two WP3 browser tests failed on the foreign key the moment the two work
+    packages met. Anything that adds a reference to `artifact` has to be added
+    there too.
+71. **`tools/seed-dem.sh` and `tools/seed-ortho.sh` now register tiles that are
+    already on disk.** A run interrupted before `geo_register` left 290 files in
+    the store and nothing in `artifact`, and every later run skipped them as
+    "already present" — so the store and the database could never converge
+    again. `register_artifact` is idempotent, so the skip path now registers
+    too. This is the same class of bug as the `/jobs` 409 in WP2.
+
+### What 4.2–4.4 inherit
+
+- **canon-v1 and the SAN are done** (4.1): `client/lib/canon.js` normalises a
+  GLB, `derive_san()` names it, and `catalog.html` uploads it.
 - **`account` rows already exist for every user** (deviation 3), and `pay`,
   `set_bounty` and escrow release are done and tested. WP4.4 is the wallet UI,
   `buy_asset` and `transfer_asset_right`.
@@ -504,3 +587,7 @@ Not started.
   `my_dirty_tiles` and `spot_due`; WP4.3 adds the proposal flow on top.
 - **The trained-tile pipeline is a worked example** of adding an op: an atom
   module, a row in the DAG, structural rules as data, and a pgTAP file.
+
+## WP5 ⬜
+
+Not started.

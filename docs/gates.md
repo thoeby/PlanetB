@@ -40,15 +40,15 @@ GeoServer has no automated gate; its checklist is in `gis/README.md`.
 
 | gate | contents |
 |---|---|
-| `db-test` | 243 pgTAP assertions over 12 files — schema, auth, RLS, tiles, jobs, publish, atom identity, the tile file store, the work panel's query, `tile_world`, `child_sogs` and the structural checks — then `db/test/0006_concurrency.sh` (32 workers, 4 editors, 2 stale publishers, ~2 min) |
-| `api-test` | 17 PostgREST assertions, 11 file-store assertions, 15 seeding assertions (`tools/seed-test.sh`, which also cuts one z14 dem and ortho tile straight off AWS and skips if it cannot reach them) |
-| `client-test` | 69 node assertions (tilemath against SQL fixtures, the traversal, the floating origin, the player, the worker loop, assemble, the camera sets, the merge grid, the sog quantisation), `tools/test-tiles.sh` (22 assertions), then 14 headless-chromium tests |
+| `db-test` | 299 pgTAP assertions over 15 files — schema, auth, RLS, tiles, jobs, publish, atom identity, the tile file store, the work panel's query, `tile_world`, `child_sogs`, the structural checks, perceptual verification and trust, and the catalog's SAN derivation — then `db/test/0006_concurrency.sh` (32 workers, 4 editors, 2 stale publishers, ~2 min) |
+| `api-test` | 17 PostgREST assertions, 15 file-store assertions (including WP4.1's PUT-and-register round trip for a canonical GLB), 15 seeding assertions (`tools/seed-test.sh`, which also cuts one z14 dem and ortho tile straight off AWS and skips if it cannot reach them) |
+| `client-test` | 95 node assertions (tilemath against SQL fixtures, the traversal, the floating origin, the player, the worker loop, assemble, the camera sets, the merge grid, the sog quantisation, the trainer's gradients, the spot checker, canon-v1 over five exporter fixtures and the Draco round trip), `tools/test-tiles.sh` (22 assertions), then 22 headless-chromium tests |
 | `lint` | sqlfluff over `db/` and `tools/`; eslint over `client/` and `tools/` |
 
-`make gate` takes about 8 minutes. The slow parts are the concurrency torture
-test, the hot-swap test (which waits out the viewer's real 30 s poll) and
+`make gate` takes about 10 minutes. The slow parts are the concurrency torture
+test, the hot-swap test (which waits out the viewer's real 30 s poll),
 `client/test/e2e/pilot.spec.js`, which compiles a z14 tile of the pilot and its
-four ancestors from real data.
+four ancestors from real data, and `client/test/e2e/train.spec.js`.
 
 `PILOT_BLOCK=1 npx playwright test client/test/e2e/pilot-block.spec.js` compiles
 a whole z12 block and redraws `docs/pilot.png`. It is not part of the gate:
@@ -60,6 +60,11 @@ They run in headless chromium over ANGLE + SwiftShader — no GPU needed, and
 WebGL2 is enough for the gsplat pipeline. They skip, rather than fail, when
 `client/vendor/playcanvas/` is missing (`make vendor`), when no database is
 reachable, or when the file store has no published tiles.
+
+`client/test/e2e/{assemble,frame,pilot}.spec.js` compile real tiles and need the
+pilot's DEM and ortho in the store — `bash tools/seed-dem.sh && bash
+tools/seed-ortho.sh`, once per box. They skip only if `geo/dem` is missing
+entirely; a partial seed fails instead.
 
 `playwright.config.js` points `executablePath` at `/opt/pw-browsers/chromium`
 when that exists, for boxes that ship a browser playwright did not install.

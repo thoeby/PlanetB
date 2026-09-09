@@ -85,7 +85,14 @@ n=0; skipped=0
 : > "$work/registered"
 while read -r z x y; do
     dest=$(geo_store_path dem "$z" "$x" "$y" r16)
-    if [ -s "$dest" ] && [ "${FORCE:-0}" != 1 ]; then skipped=$((skipped + 1)); continue; fi
+    # A file already in the store is still registered: a run interrupted before
+    # geo_register left the store ahead of the database, and register_artifact
+    # is idempotent, so re-registering is how the two are brought back level.
+    if [ -s "$dest" ] && [ "${FORCE:-0}" != 1 ]; then
+        skipped=$((skipped + 1))
+        echo "$(sha256sum "$dest" | cut -d' ' -f1) $(stat -c%s "$dest")" >> "$work/registered"
+        continue
+    fi
     read -r xmin ymin xmax ymax <<< "$(geo_bounds "$z" "$x" "$y")"
     gdalwarp -q -overwrite -t_srs EPSG:3857 -te "$xmin" "$ymin" "$xmax" "$ymax" \
         -ts "$SIZE" "$SIZE" -r cubic -of EHdr "$scaled" "$work/t.bil"

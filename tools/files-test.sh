@@ -114,6 +114,44 @@ grep -qi 'cache-control: public, max-age=31536000, immutable' <<< "$HDRS" \
     && ok "GET is immutable and cacheable for a year" \
     || no "GET is immutable and cacheable for a year"
 
+# ------------------------------------------------- WP4.1: the catalog round-trip
+
+# canon-v1 runs in a browser tab; here it runs under node, over the same fixture
+# client/test/canon.test.js uses, so this exercises the real upload path: PUT
+# the canonical bytes, register the artifact, then register the asset and read
+# it back as anon. The SAN the database derives must be the one canon.js did.
+CANON=$(mktemp)
+if node -e "
+import('./client/lib/canon.js').then(async (m) => {
+    const fs = await import('node:fs');
+    const r = await m.canonicalise(new Uint8Array(
+        fs.readFileSync('client/test/fixtures/assets/blender.glb')));
+    fs.writeFileSync(process.argv[1], r.glb);
+    console.log(r.sha256, r.san, r.meta.tris);
+});" "$CANON" > "$body" 2>/dev/null; then
+    read -r GLB_SHA GLB_SAN GLB_TRIS < "$body"
+    rc=$(curl -s -o /dev/null -w '%{http_code}' -X PUT "$FILES_URL/assets/$GLB_SHA.glb" \
+         -H "X-Sha256: $GLB_SHA" -H "Authorization: Bearer $JWT" --data-binary @"$CANON")
+    is "PUT of a canonical glb is 201" 201 "$rc"
+    curl -s -X POST "$API_URL/rpc/register_artifact" -H 'Content-Type: application/json' \
+        -H "Authorization: Bearer $JWT" -d "{\"sha256\":\"$GLB_SHA\",\"kind\":\"glb\",
+            \"bytes\":$(stat -c%s "$CANON"),\"algo_version\":\"canon-v1\"}" > /dev/null
+    SAN=$(curl -s -X POST "$API_URL/rpc/register_asset" -H 'Content-Type: application/json' \
+        -H "Authorization: Bearer $JWT" \
+        -d "{\"sha256\":\"$GLB_SHA\",\"canon_version\":1,
+             \"meta\":{\"name\":\"Bench $STAMP\",\"category\":\"furniture\",
+                        \"tris\":$GLB_TRIS,\"license\":\"cc0\"}}" | tr -d '"')
+    is "register_asset derives the SAN canon-v1 did" "$GLB_SAN" "$SAN"
+    is "the asset is readable by anon" "$GLB_TRIS" \
+        "$(curl -s "$API_URL/asset?san=eq.$SAN&select=tris" | tr -dc '0-9')"
+    is "registering the same bytes again is a no-op" "$GLB_SAN" \
+        "$(curl -s -X POST "$API_URL/rpc/register_asset" -H 'Content-Type: application/json' \
+            -H "Authorization: Bearer $JWT" \
+            -d "{\"sha256\":\"$GLB_SHA\",\"canon_version\":1,\"meta\":{}}" | tr -d '"')"
+else
+    echo "# canon-v1 could not run under node, catalog round-trip skipped"
+fi
+
 # Once registered, the sha can never be uploaded again (Invariant 1).
 $PSQL -c "INSERT INTO artifact (sha256, kind, bytes, algo_version)
           VALUES ('$SHA2', 'sog', 1, 'sog-v1')" > /dev/null

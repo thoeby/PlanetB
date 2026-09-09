@@ -14,12 +14,16 @@ const browser = {
     // The atom worker's own globals (client/js/atomworker.js).
     self: 'readonly', OffscreenCanvas: 'readonly', ImageData: 'readonly',
     createImageBitmap: 'readonly', Blob: 'readonly', btoa: 'readonly',
+    // canon-v1's PNG decoder inflates with the platform's own stream (png.js).
+    DecompressionStream: 'readonly', Option: 'readonly',
 };
 
 const node = {
     process: 'readonly', console: 'readonly', Buffer: 'readonly',
     __dirname: 'readonly', URL: 'readonly', setTimeout: 'readonly',
     fetch: 'readonly', atob: 'readonly', URLSearchParams: 'readonly',
+    Blob: 'readonly', Response: 'readonly', DecompressionStream: 'readonly',
+    TextEncoder: 'readonly', TextDecoder: 'readonly',
 };
 
 const rules = {

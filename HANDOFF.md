@@ -1,7 +1,7 @@
 # HANDOFF.md — for the next instance
 
 Read `CLAUDE.md`, then `ARCHITECTURE.md`, then `PROGRESS.md`. Then start the
-first unchecked task in `TASKS.md` — currently **WP4.1**. One task, one commit,
+first unchecked task in `TASKS.md` — currently **WP4.2**. One task, one commit,
 `make gate` green before you commit.
 
 ## 1. Get a working environment first
@@ -41,6 +41,19 @@ anything. The specs skip when the tile they need is not covered
 
 `gdal-bin` and `osm2pgsql` are what `tools/seed-*.sh` shell out to; without them
 the seeds cannot cut a tile and `tools/seed-test.sh` says so rather than failing.
+
+**Seed the pilot region before the first `make gate` on a fresh box**, or three
+browser tests fail rather than skip:
+
+```sh
+bash tools/seed-dem.sh && bash tools/seed-ortho.sh    # ~580 tiles off AWS open data
+```
+
+`make api-test` only cuts the single z14 tile its own assertions need;
+`client/test/e2e/{assemble,frame,pilot}.spec.js` compile real z16 and z14 tiles
+of the pilot and need the whole subtree. `docs/pilot.md` says the same. The
+seeds are idempotent and re-register what is already on disk, so running them
+again after an interrupted run is the fix, not `FORCE=1`.
 `webp` gives you `cwebp`/`dwebp`. `tools/sogwrite.mjs` shells out to them
 because node has no WebP codec, and without them WP1.2's test tiles cannot be
 built. **Export `.env` into your shell** (`set -a; . ./.env; set +a`) before
@@ -255,12 +268,34 @@ Things that cost time once. Do not rediscover them.
   more; the evaluator in `run_structural` already takes `$1` = atom row,
   `$2` = result jsonb, `$3` = output bytes.
 
-## 4. Starting WP4.1
+## 3a. What WP4.1 left for the rest of WP4
+
+- **`canon-v1` is the only thing that may name an asset.** `client/lib/canon.js`
+  produces the canonical GLB and its SAN; `derive_san()` in
+  `db/0020_assets.sql` derives the same SAN from the same digest, and the
+  database's answer is the one that counts. Both are covered by fixtures — if
+  you change either, change both and re-run `db/test/0020_assets.sql`, whose
+  first assertion is the fixture bench's digest.
+- **A SAN is a function of the bytes, so tests collide.** Two runs that upload
+  the same fixture hit the same asset row, and `register_asset` is a no-op the
+  second time. `client/test/e2e/catalog.spec.js` builds its bench with a random
+  texture for exactly this reason. Anything new that uploads must do the same.
+- **`client/lib/thumb.js` renders the catalog picture** with `frame`'s renderer
+  and `frame`'s sun, from the canonical GLB. WP4.2 can use `meshesOf()` to get
+  the same asset as plain typed arrays for placement preview.
+- **`similar_assets(name, tris, bbox)`** is the near-duplicate check, and
+  `box_close` is what "the same shape" means.
+- **The catalog page is `catalog.html` + `js/catalog.js` + `js/catalogui.js`**,
+  split the way `play.html` is: policy and API calls in `catalog.js`, DOM in
+  `catalogui.js`. `window.splatworld = { api, catalog }` is what the browser
+  test drives.
+
+## 4. Starting WP4.2
 
 WP4 is the catalog, build mode, areas and money. The seams:
 
-1. **`lib/hash.js` exists and `register_artifact` works**; WP4.1's `canon-v1`
-   and the SAN derivation are what is missing, plus `catalog.html`.
+1. **WP4.1 is done**: `canon-v1`, the SAN, `register_asset` and `catalog.html`.
+   §3a above is what it left for the rest of WP4.
 2. **`account` rows are created by `register()`** already (deviation 3), and
    `pay`, `set_bounty` and escrow release on publish are done and tested. WP4.4
    is the wallet UI, `buy_asset` and `transfer_asset_right`.

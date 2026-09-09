@@ -102,6 +102,7 @@ export async function startServices() {
         ok,
         apiUrl: `http://localhost:${API_PORT}`,
         filesUrl: `http://localhost:${FILES_PORT}`,
+        baseUrl: `http://localhost:${client.port}`,
         pageUrl: `http://localhost:${client.port}/play.html`,
         stop: () => stops.forEach((s) => s()),
     };

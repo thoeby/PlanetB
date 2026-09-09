@@ -19,6 +19,7 @@ Four processes. All logic = SQL + client JS.
 | **atom** | unit of client work in a job's DAG; content-addressed: `atom_hash = sha256(op ‖ algo_version ‖ sorted input sha256s ‖ params ‖ seed)` |
 | **area** | polygon with owner; grants and proposals hang off it |
 | **SAN** | catalog number `S`+base32(sha256(canonical GLB))[:12], with `canon_version` |
+| **canonical GLB** | `canon-v1` (`client/lib/canon.js`): the scene graph flattened into world space, re-centred on the bottom centre of its bounding box, attributes quantised and sorted, one scene/node/mesh/buffer, JSON keys sorted, every extension but `KHR_materials_*` dropped, textures over 2048 px shrunk. Two exporters' files of the same model reduce to the same bytes, and therefore the same SAN. |
 
 ## 2. Tile frame & LOD
 
