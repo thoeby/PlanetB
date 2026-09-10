@@ -45,6 +45,15 @@ def parse(argv: list[str]) -> argparse.Namespace:
     imp.add_argument("spec", help="a region .json — see docs/import.md")
     _common(imp)
 
+    gs = sub.add_parser("geoserver",
+                        help="set your GeoServer up so you can draw the world in QGIS")
+    gs.add_argument("url", help="your GeoServer address, e.g. localhost:8081/geoserver")
+    gs.add_argument("--user", default="admin", help="GeoServer admin user")
+    gs.add_argument("--password", default="geoserver", help="GeoServer admin password")
+    gs.add_argument("--db-host", dest="db_host",
+                    help="how GeoServer reaches this database, if not localhost")
+    _common(gs)
+
     _common(sub.add_parser("doctor", help="check what is ready"))
     return parser.parse_args(argv)
 
@@ -119,6 +128,14 @@ def _has_a_region(cfg: config.Config) -> bool:
 
 def cmd_run(args: argparse.Namespace) -> int:
     cfg = _cfg(args)
+    # A database that does not exist yet is not a thing to be told off about:
+    # make it. `init` stays for people who want the step, and for --reset.
+    if not migrate.database_exists(cfg) or not migrate.schema_present(cfg):
+        print("no world here yet — making one")
+        migrate.check_postgis(cfg)
+        migrate.create_database(cfg)
+        print(f"  {migrate.apply(cfg, on_step=lambda _: None)} migrations applied")
+
     problems = _preflight(cfg)
     if problems:
         for p in problems:
@@ -171,10 +188,35 @@ def cmd_import(args: argparse.Namespace) -> int:
     return importer.run(cfg, spec)
 
 
+def cmd_geoserver(args: argparse.Namespace) -> int:
+    from pathlib import Path
+
+    from . import gsprovision
+
+    cfg = _cfg(args)
+    if not migrate.database_exists(cfg) or not migrate.schema_present(cfg):
+        print("splatworld: no world here yet — run `splatworld init` first",
+              file=sys.stderr)
+        return 1
+    print(f"setting up {args.url}")
+    wfs = gsprovision.provision(cfg, args.url, args.user, args.password, args.db_host)
+
+    connection = gsprovision.write_qgis_connection(
+        cfg.repo / "gis" / "splatworld-wfs.xml", wfs)
+    print(f"\nDone. Your GeoServer now publishes the world's editable layers.\n"
+          f"  WFS-T endpoint: {wfs}\n"
+          f"  QGIS connection file: {connection}\n\n"
+          "In QGIS: Layer > Data Source Manager > WFS / OGC API-Features,\n"
+          "press 'Load Connections', pick that file, then Connect. Add the\n"
+          "feature_* layers and 'area', draw, and press Save. Then open\n"
+          "/app/play.html and turn on background work — what you drew compiles.")
+    return 0
+
+
 def main(argv: list[str] | None = None) -> int:
     args = parse(argv if argv is not None else sys.argv[1:])
     commands = {"init": cmd_init, "run": cmd_run, "doctor": cmd_doctor,
-                "import": cmd_import}
+                "import": cmd_import, "geoserver": cmd_geoserver}
     try:
         return commands[args.command](args)
     except psycopg.OperationalError as err:
