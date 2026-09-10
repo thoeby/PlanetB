@@ -197,6 +197,16 @@ export class Terrain {
 
 // -------------------------------------------------------------------- player
 
+// Movement keys are listened for on the window, so a field on the same page
+// gets W, A, S, D, Space and Shift swallowed by preventDefault and F silently
+// switching walk/fly. Typing an email into a form is not walking.
+function typing(target) {
+    if (!target || target === document.body) return false;
+    const tag = target.tagName;
+    return tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT'
+        || target.isContentEditable === true;
+}
+
 const KEYS = {
     KeyW: 'fwd', KeyS: 'back', KeyA: 'left', KeyD: 'right',
     ArrowUp: 'fwd', ArrowDown: 'back', ArrowLeft: 'left', ArrowRight: 'right',
@@ -279,11 +289,12 @@ export class Player {
     attach(canvas) {
         this.canvas = canvas;
         this.onKeyDown = (e) => {
+            if (typing(e.target)) return;
             if (e.code === 'KeyF') this.toggleMode();
             const k = KEYS[e.code];
             if (k) { this.held.add(k); e.preventDefault(); }
         };
-        this.onKeyUp = (e) => this.held.delete(KEYS[e.code]);
+        this.onKeyUp = (e) => { if (!typing(e.target)) this.held.delete(KEYS[e.code]); };
         this.onMove = (e) => {
             if (document.pointerLockElement === canvas) this.look(e.movementX, e.movementY);
         };
