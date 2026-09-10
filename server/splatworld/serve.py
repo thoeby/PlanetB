@@ -507,6 +507,17 @@ class Server(ThreadingHTTPServer):
 PORT_ATTEMPTS = 20
 
 
+def already_running(host: str, port: int) -> bool:
+    """Whether the thing holding that port is another splatworld."""
+    where = "127.0.0.1" if host in ("0.0.0.0", "::", "") else host
+    try:
+        with urllib.request.urlopen(
+                f"http://{where}:{port}/app/version.txt", timeout=2) as res:
+            return res.status == 200
+    except Exception:  # noqa: BLE001 - anything else is not one of ours
+        return False
+
+
 def listen(cfg: Config, *, verbose: bool = False) -> Server:
     first = cfg.port
     for offset in range(PORT_ATTEMPTS):
@@ -514,6 +525,19 @@ def listen(cfg: Config, *, verbose: bool = False) -> Server:
         try:
             server = Server(cfg, verbose=verbose)
         except OSError as err:
+            if offset == 0 and already_running(cfg.host, cfg.port):
+                # Quietly moving to the next port leaves the old process
+                # serving the browser tab that is already open, so every fix
+                # appears to do nothing while the old code answers the buttons.
+                raise SystemExit(
+                    f"splatworld: another splatworld is already running on "
+                    f"port {cfg.port}.\n"
+                    "  That one is what your browser is talking to, and it is\n"
+                    "  running the code it was started with. Close it (Ctrl-C in\n"
+                    "  its window, or end the python process) and start this one\n"
+                    "  again. To run a second world alongside it on purpose:\n"
+                    f"    splatworld run --port {cfg.port + 1}"
+                ) from err
             if offset == 0:
                 print(f"  port {cfg.port} is not available ({err.strerror or err}); "
                       "looking for a free one")
