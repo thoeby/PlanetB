@@ -127,7 +127,7 @@ def cmd_run(args: argparse.Namespace) -> int:
 
     cfg.files.mkdir(parents=True, exist_ok=True)
     with services.PostgREST(cfg, verbose=args.verbose):
-        server = serve.Server(cfg, verbose=args.verbose)
+        server = serve.listen(cfg, verbose=args.verbose)
         url = f"http://{'127.0.0.1' if cfg.host in ('0.0.0.0', '::') else cfg.host}:{cfg.port}"
         print(f"  files and client on {url}")
         # An empty world has nothing to show and nothing to do; send the first

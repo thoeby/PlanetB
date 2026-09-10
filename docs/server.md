@@ -41,7 +41,7 @@ same file the Makefile reads), or from flags — later wins.
 |---|---|
 | `PGHOST` `PGPORT` `PGUSER` `PGPASSWORD` `PGDATABASE` | the database. Set `PGPASSWORD` to what you chose during install |
 | `JWT_SECRET` | signs sign-ins. Anything ≥ 32 characters. **Change it** before anyone else can reach the machine |
-| `SPLATWORLD_PORT` | where the client and files are served, default 8080 |
+| `SPLATWORLD_PORT` | where the client and files are served, default 8080. If that port is taken — or reserved, which Windows does to whole ranges for Hyper-V and WSL — it moves up until one is free and says so. The pages are told which port they landed on, so nothing needs editing. |
 | `SPLATWORLD_API_PORT` | PostgREST, default 3000 |
 | `FILES_ROOT` | where tiles are written, default `infra/files/` |
 | `POSTGREST` | path to the binary, if it is not on PATH |

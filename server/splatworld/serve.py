@@ -14,6 +14,7 @@ Routes, matching nginx.conf exactly:
 from __future__ import annotations
 
 import json
+import re
 import shutil
 import urllib.error
 import urllib.parse
@@ -51,6 +52,26 @@ MAX_UPLOAD = 512 * 1024 * 1024
 
 def content_type(path: Path) -> str:
     return TYPES.get(path.suffix.lower(), "application/octet-stream")
+
+
+def point_at_this_server(html: bytes, cfg: Config) -> bytes:
+    """Rewrites the client's endpoint tags to wherever this server actually is.
+
+    client/*.html carry `<meta name="splatworld:api|files">` pointing at
+    localhost:3000 and :8080. Those are only right when nothing forced a
+    different port — and Windows does force one: 8080 often falls inside a
+    reserved range and cannot be bound at all. The page is served by the very
+    server it has to talk to, so it is told the truth on the way out rather
+    than being edited by hand.
+    """
+    host = "127.0.0.1" if cfg.host in ("0.0.0.0", "::", "") else cfg.host
+    for key, value in (("api", cfg.api_url), ("files", f"http://{host}:{cfg.port}")):
+        html = re.sub(
+            (rf'(<meta\s+name=["\']splatworld:{key}["\']\s+content=["\'])'
+             r'[^"\']*(["\'])').encode(),
+            lambda m, v=value: m.group(1) + v.encode() + m.group(2),
+            html, flags=re.IGNORECASE)
+    return html
 
 
 def safe_join(root: Path, relative: str) -> Path | None:
@@ -151,6 +172,8 @@ class Handler(BaseHTTPRequestHandler):
             self._text(404, "no such page")
             return
         body = target.read_bytes()
+        if target.suffix.lower() == ".html":
+            body = point_at_this_server(body, self.cfg)
         # The client is edited while the server runs; never let a browser cache it.
         self._send(200, body, content_type(target), {"Cache-Control": "no-store"})
 
@@ -297,3 +320,33 @@ class Server(ThreadingHTTPServer):
         self.verbose = verbose
         handler = type("BoundHandler", (Handler,), {"cfg": cfg})
         super().__init__((cfg.host, cfg.port), handler)
+
+
+# Windows reserves blocks of ports for Hyper-V and WSL and refuses to bind them
+# (WinError 10013), and 8080 is very often inside one. Rather than fail, move up
+# until something is free: the pages are told which port they landed on, so a
+# different number costs the reader nothing.
+PORT_ATTEMPTS = 20
+
+
+def listen(cfg: Config, *, verbose: bool = False) -> Server:
+    first = cfg.port
+    for offset in range(PORT_ATTEMPTS):
+        cfg.port = first + offset
+        try:
+            server = Server(cfg, verbose=verbose)
+        except OSError as err:
+            if offset == 0:
+                print(f"  port {cfg.port} is not available ({err.strerror or err}); "
+                      "looking for a free one")
+            continue
+        if cfg.port != first:
+            print(f"  using port {cfg.port} instead of {first}")
+        return server
+    cfg.port = first
+    raise SystemExit(
+        f"splatworld: no free port between {first} and {first + PORT_ATTEMPTS - 1}.\n"
+        "  Pick one yourself with --port, e.g. `splatworld run --port 9123`.\n"
+        "  On Windows, `netsh interface ipv4 show excludedportrange protocol=tcp`\n"
+        "  lists the ranges Windows has reserved and will not let anything bind."
+    )
