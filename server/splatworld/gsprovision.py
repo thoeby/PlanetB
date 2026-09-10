@@ -320,11 +320,18 @@ WRITE_PROBE = (
 
 
 def write_qgis_connection(target: Path, wfs_url: str) -> Path:
-    """A file QGIS loads instead of being told the address by hand."""
+    """A file QGIS loads instead of being told the address by hand.
+
+    WFS 1.0.0 on purpose. From 1.1 on, EPSG:4326 means latitude first, and
+    which side is supposed to swap is a decade-old argument between clients
+    and servers; the first Save from QGIS came back as "-100.9 outside of
+    (-90, 90)" — a longitude read as a latitude. 1.0.0 is longitude first,
+    always, on both ends, and GeoServer speaks WFS-T in it.
+    """
     target.write_text(
         '<!DOCTYPE connections>\n<qgsWFSConnections version="1.0">\n'
-        f'  <wfs name="splatworld" url="{wfs_url}" version="auto"\n'
+        f'  <wfs name="splatworld" url="{wfs_url}" version="1.0.0"\n'
         '       ignoreAxisOrientation="0" invertAxisOrientation="0"\n'
-        '       pagingEnabled="true" preferCoordinatesForWfsT11="false"/>\n'
+        '       pagingEnabled="false" preferCoordinatesForWfsT11="false"/>\n'
         '</qgsWFSConnections>\n', encoding="utf8")
     return target
