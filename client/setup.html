@@ -89,6 +89,12 @@
 
   <div id="msg"></div>
   <pre id="log" hidden></pre>
+
+  <p class="hint" style="margin-top:14px">QGIS said <em>Error inserting
+    features</em>? GeoServer keeps the reason; the database wrote it down.</p>
+  <div class="buttons"><button id="lastfail" class="ghost" type="button">Why did
+    the last save fail?</button></div>
+  <pre id="lastfail-log" hidden></pre>
 </fieldset>
 
 <fieldset>
@@ -233,6 +239,20 @@
       for (const b of ['test', 'setup']) $(b).disabled = false;
     }
   }
+
+  $('lastfail').onclick = async () => {
+    $('lastfail').disabled = true;
+    try {
+      const out = await post('/setup/lastfail');
+      $('lastfail-log').hidden = false;
+      $('lastfail-log').textContent = out.ok
+        ? `${out.file}\n\n${out.log.join('\n')}`
+        : (out.error ?? 'It did not work.');
+    } catch (err) {
+      $('lastfail-log').hidden = false;
+      $('lastfail-log').textContent = `The local server did not answer: ${err.message}`;
+    } finally { $('lastfail').disabled = false; }
+  };
 
   $('test').onclick = () => run(false);
   $('setup').onclick = () => run(true);

@@ -297,6 +297,8 @@ class Handler(BaseHTTPRequestHandler):
             self._setup_account(body)
         elif path == "/setup/elevation":
             self._setup_elevation()
+        elif path == "/setup/lastfail":
+            self._last_db_errors()
         elif path == "/import/probe":
             self._probe(body)
         elif path == "/import/run":
@@ -346,6 +348,38 @@ class Handler(BaseHTTPRequestHandler):
             return
         configmod.save(self.cfg, {"SPLATWORLD_ACCOUNT": email})
         self._json(200, {"ok": True, "log": [f"  account {email} is ready"]})
+
+    def _last_db_errors(self) -> None:
+        """What Postgres refused lately, in its own words.
+
+        A Save in QGIS that the database rejects reaches QGIS as "Error
+        inserting features" — GeoServer keeps the reason. Postgres writes it
+        to its log, and the server is on the same machine as the database, so
+        it can be read from here rather than found in a folder.
+        """
+        import psycopg
+
+        try:
+            with psycopg.connect(self.cfg.dsn(), autocommit=True, connect_timeout=5) as conn:
+                logfile = conn.execute("SELECT pg_current_logfile()").fetchone()[0]
+                if not logfile:
+                    self._json(200, {"ok": False, "error":
+                               "Postgres is not writing a log file (logging_collector is off),"
+                               " so the reason is not recorded anywhere I can read."})
+                    return
+                size = conn.execute("SELECT size FROM pg_stat_file(%s)", (logfile,)).fetchone()[0]
+                start = max(size - 200_000, 0)
+                tail = conn.execute("SELECT pg_read_file(%s, %s, %s)",
+                                    (logfile, start, size - start)).fetchone()[0]
+        except psycopg.Error as err:
+            self._json(200, {"ok": False, "error": f"could not read the log: {err}"})
+            return
+        keep = [line for line in tail.splitlines()
+                if any(tag in line for tag in ("ERROR:", "DETAIL:", "STATEMENT:",
+                                               "CONTEXT:", "HINT:"))]
+        self._json(200, {"ok": True, "log": keep[-40:] or
+                         ["nothing refused in the last part of the log"],
+                         "file": logfile})
 
     def _setup_elevation(self) -> None:
         """Elevation for whatever has been drawn — the region is not typed."""
