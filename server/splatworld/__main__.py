@@ -241,8 +241,8 @@ def cmd_geoserver(args: argparse.Namespace) -> int:
           f"  WFS-T endpoint: {wfs}\n"
           f"  QGIS connection file: {connection}\n\n"
           "In QGIS: Layer > Data Source Manager > WFS / OGC API-Features,\n"
-          "press 'Load Connections', pick that file, then Connect. Add the\n"
-          "feature_* layers and 'area', draw, and press Save. Then open\n"
+          "press 'Load Connections', pick that file, then Connect. Add\n"
+          "'area' and 'feature', draw, and press Save. Then open\n"
           "/app/play.html and turn on background work — what you drew compiles.")
     return 0
 

@@ -22,12 +22,14 @@ point it at. Take the database away and GeoServer has nothing.
 Three GeoServer words, because they trip everyone up:
 
 - **Workspace** — a namespace. Ours is called `splatworld`. Layer names are
-  written `splatworld:feature_road`.
+  written `splatworld:area`.
 - **Store** (or *data store*) — a connection to where data actually lives. Ours
-  is a PostGIS store called `splatworld_pg`, pointing at this world's database,
-  at the `gis` schema, connecting as the `geoserver` login role.
-- **Layer** (or *feature type*) — one table or view inside that store, published
-  for the outside world. We publish eight.
+  are two PostGIS stores, both pointing at this world's database as the
+  `geoserver` login role: `splatworld_pg` at the `public` schema (the tables
+  you draw into) and `splatworld_gis` at the `gis` schema (the read-only
+  overview).
+- **Layer** (or *feature type*) — one table or view inside a store, published
+  for the outside world. We publish four.
 
 `splatworld geoserver <address>` creates all three for you over GeoServer's REST
 API. The rest of this page is what it made, so you can check it, change it, or
@@ -35,18 +37,15 @@ do it by hand.
 
 ## What gets published
 
-The `gis` schema holds one auto-updatable view per feature kind. Each has a
-column default for `kind`, so drawing on `feature_forest` inserts
-`kind = 'forest'` without you filling in a field.
+The editable layers are the tables themselves, not views of them. A view has
+no primary key, and GeoTools serves anything without one read-only — QGIS then
+says `area is read-only` at Save. A table's key is found on its own, so nothing
+on the GeoServer side has to be right for drawing to work.
 
 | layer | geometry | what it is |
 |---|---|---|
-| `feature_footprint` | polygon | a building |
-| `feature_road` | line | a road |
-| `feature_forest` | polygon | woods |
-| `feature_water` | polygon | lake, river, pond |
-| `feature_terrainmod` | polygon | ground reshaped |
-| `area` | polygon | a region somebody owns and may draw in |
+| `area` | polygon | a region somebody owns and may draw in — draw this first |
+| `feature` | any | a road, woods, water, a building, reshaped ground — `kind` says which |
 | `instance` | point | a placed catalog model |
 | `tile` | polygon | **read-only** — compile state |
 
@@ -55,9 +54,9 @@ column default for `kind`, so drawing on `feature_forest` inserts
 | field | fill it in? | meaning |
 |---|---|---|
 | `id` | no | uuid, generated |
-| `area_id` | **yes** | which `area` this belongs to. The geometry must be inside it |
-| `kind` | no | defaulted by the layer you drew on |
-| `geom` | you draw it | EPSG:4326 |
+| `area_id` | no | worked out from where you drew it (`db/0028`); drawing outside every area is refused |
+| `kind` | **yes** | `road`, `forest`, `water`, `footprint` or `terrainmod` |
+| `geom` | you draw it | EPSG:4326, 2D is fine — a Z is added on the way in (`db/0029`) |
 | `props` | optional | JSON. `{"height": 12.5}` on a building, `{"width": 7}` on a road. Metres |
 | `rev` | no | bumped by a trigger |
 | `deleted_at` | no | set instead of deleting, so a tile knows it changed |
@@ -146,11 +145,11 @@ endpoint.
 
 1. *Layer → Data Source Manager → WFS / OGC API-Features*
 2. **Load Connections**, choose `gis\splatworld-wfs.xml`, then **Connect**
-3. Add `area` and the `feature_*` layers you want, plus `tile` to watch
+3. Add `area` and `feature`, plus `tile` to watch
 
-To draw: select the layer, press the pencil (*Toggle Editing*), draw, fill in
-`area_id`, then press **Save Layer Edits**. The write reaches the database on
-save, not on draw.
+To draw: select the layer, press the pencil (*Toggle Editing*), draw, set
+`kind` on a feature, then press **Save Layer Edits**. The write reaches the
+database on save, not on draw. Draw an area before anything inside it.
 
 ## Why this bypasses the security model, deliberately
 

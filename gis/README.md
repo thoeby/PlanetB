@@ -12,9 +12,9 @@ row-level security (see `infra/geoserver/README.md`).
    compose, set `GEOSERVER_DB_HOST=localhost` for the script.
 2. In QGIS: *Data Source Manager → WFS / OGC API-Features → Load Connections*
    and pick `gis/splatworld-wfs.xml`. Connect, then add:
-   - `splatworld:feature_road`, `feature_forest`, `feature_water`,
-     `feature_footprint`, `feature_terrainmod` — editable
-   - `splatworld:area`, `splatworld:instance` — editable
+   - `splatworld:area`, `splatworld:feature`, `splatworld:instance` — editable.
+     These are the tables themselves; `kind` on `feature` is one of road,
+     forest, water, footprint, terrainmod
    - `splatworld:tile` — read-only compile state (red unpublished, orange
      stale, green current)
 3. Save the project as `gis/splatworld.qgz` next to this file, with the layer

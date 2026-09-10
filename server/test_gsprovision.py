@@ -1,9 +1,9 @@
 """A fake GeoServer, so provisioning is tested rather than hoped for.
 
 Everything this checks was a real failure: a store that already exists comes
-back 500 rather than 409, a PUT that GeoServer accepts and then ignores leaves
-the layers read-only, and the missing primary-key metadata table is what made
-QGIS refuse to save with "{http://splatworld}area is read-only".
+back 500 rather than 409, a PUT that GeoServer accepts and then ignores points
+the layers at the wrong schema, and a layer that publishes fine and then says
+"{http://splatworld}area is read-only" the moment QGIS presses Save.
 
     python -m unittest discover -s server -p 'test_*.py'
 """
@@ -24,8 +24,9 @@ from splatworld import gsprovision  # noqa: E402
 class FakeGeoServer(BaseHTTPRequestHandler):
     """Enough of GeoServer's REST and WFS to exercise the real code paths."""
 
-    store: dict = {}
+    stores: dict = {}
     keep_puts = True
+    writable = True
     seen: list = []
 
     def log_message(self, *_):
@@ -49,21 +50,29 @@ class FakeGeoServer(BaseHTTPRequestHandler):
             self._send(500, b"Store 'splatworld_pg' already exists in workspace",
                        "text/plain")
             return
+        if self.path.endswith("/wfs"):
+            # The write probe: read-only is answered as an exception, 200.
+            self._send(200, (b'<wfs:TransactionResponse/>' if type(self).writable
+                             else b'<ows:ExceptionReport>'
+                                  b'{http://splatworld}area is read-only'
+                                  b'</ows:ExceptionReport>'), "text/xml")
+            return
         self._send(201)
 
     def do_PUT(self):
         body = self._body()
         type(self).seen.append(("PUT", self.path))
-        if self.path.endswith(f"/datastores/{gsprovision.STORE}"):
+        if "/datastores/" in self.path and "/featuretypes" not in self.path:
             if type(self).keep_puts:
-                type(self).store = json.loads(body)
+                type(self).stores[self.path.rsplit("/", 1)[1]] = json.loads(body)
             self._send(200)
             return
         self._send(200)
 
     def do_GET(self):
-        if self.path.endswith(f"/datastores/{gsprovision.STORE}.json"):
-            self._send(200, json.dumps(type(self).store).encode())
+        if "/datastores/" in self.path and self.path.endswith(".json"):
+            name = self.path.rsplit("/", 1)[1][:-len(".json")]
+            self._send(200, json.dumps(type(self).stores.get(name, {})).encode())
         elif "request=GetCapabilities" in self.path or "/wfs?" in self.path and "GetFeature" not in self.path:
             self._send(200, CAPABILITIES, "text/xml")
         elif "GetFeature" in self.path:
@@ -77,7 +86,7 @@ CAPABILITIES = b"""<?xml version="1.0"?>
   <FeatureTypeList>
 """ + b"".join(
     f"    <FeatureType><Name>splatworld:{n}</Name></FeatureType>\n".encode()
-    for n in gsprovision.LAYERS
+    for n in gsprovision.LAYERS + gsprovision.OVERVIEW_LAYERS
 ) + b"""  </FeatureTypeList>
 </WFS_Capabilities>
 """
@@ -93,8 +102,9 @@ class Config:
 
 class ProvisionTest(unittest.TestCase):
     def setUp(self):
-        FakeGeoServer.store = {}
+        FakeGeoServer.stores = {}
         FakeGeoServer.keep_puts = True
+        FakeGeoServer.writable = True
         FakeGeoServer.seen = []
         self.server = ThreadingHTTPServer(("127.0.0.1", 0), FakeGeoServer)
         threading.Thread(target=self.server.serve_forever, daemon=True).start()
@@ -106,14 +116,22 @@ class ProvisionTest(unittest.TestCase):
         return gsprovision.provision(Config, self.url, "admin", "geoserver",
                                      on_step=lambda _: None)
 
-    def test_existing_store_is_written_over_and_the_pk_table_lands(self):
+    def test_the_tables_are_published_from_public_and_the_overview_from_gis(self):
         self.run_it()
-        entries = FakeGeoServer.store["dataStore"]["connectionParameters"]["entry"]
-        held = {e["@key"]: e["$"] for e in entries}
-        self.assertEqual(held["Primary key metadata table"], "gis.gt_pk_metadata")
-        self.assertEqual(held["schema"], "gis")
+        held = {name: {e["@key"]: e["$"] for e in
+                       store["dataStore"]["connectionParameters"]["entry"]}
+                for name, store in FakeGeoServer.stores.items()}
+        self.assertEqual(held[gsprovision.STORE]["schema"], "public")
+        self.assertEqual(held[gsprovision.OVERVIEW_STORE]["schema"], "gis")
+        self.assertNotIn("Primary key metadata table", held[gsprovision.STORE])
         self.assertIn(("PUT", f"/rest/workspaces/splatworld/datastores/"
                               f"{gsprovision.STORE}"), FakeGeoServer.seen)
+
+    def test_a_layer_that_cannot_be_written_is_a_failure_not_a_done(self):
+        FakeGeoServer.writable = False
+        with self.assertRaises(SystemExit) as caught:
+            self.run_it()
+        self.assertIn("could not save", str(caught.exception))
 
     def test_the_cached_pools_are_dropped(self):
         self.run_it()
@@ -123,7 +141,7 @@ class ProvisionTest(unittest.TestCase):
         FakeGeoServer.keep_puts = False
         with self.assertRaises(SystemExit) as caught:
             self.run_it()
-        self.assertIn("read-only", str(caught.exception))
+        self.assertIn("schema", str(caught.exception))
 
 
 if __name__ == "__main__":
