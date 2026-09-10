@@ -8,9 +8,9 @@ import { execFileSync } from 'node:child_process';
 import { existsSync } from 'node:fs';
 import { join } from 'node:path';
 
-import { CLIENT, FILES_ROOT } from './serve.js';
+import { CLIENT, demSeeded } from './serve.js';
 import { startServices } from './services.js';
-import { demSeeded, openPage, park, psql, readyAtom, signIn, unpark } from './worker.js';
+import { openPage, park, psql, readyAtom, signIn, unpark } from './worker.js';
 import { readTar } from '../../lib/tar.js';
 import { tileX, tileY } from '../../lib/tilemath.js';
 
@@ -32,7 +32,7 @@ test.beforeAll(async () => {
     try { psql('SELECT 1'); } catch (err) {
         test.skip(true, `no database: ${err.message}`);
     }
-    if (![TILE].every((t) => demSeeded(FILES_ROOT, t))) {
+    if (!demSeeded(TILE.z, TILE.x, TILE.y)) {
         test.skip(true, 'the pilot dem is not seeded — run `bash tools/seed-dem.sh`');
     }
     if (psql("SELECT count(*) FROM feature WHERE props ? 'osm'") === '0') {

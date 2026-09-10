@@ -940,11 +940,62 @@ was re-scoped. The install and user manual is `docs/manual.md`.
 - `provision.sh` exits non-zero on anything but 2xx/401/409.
 - `CURL_CA_BUNDLE` is only forced where the Debian bundle exists.
 
-Gate after the review: 260 pgTAP assertions over 13 files, the concurrency run
-(1500 claims, 0 errors), 43 API and file-store assertions, 80 node assertions,
-22 test-tile assertions and 14 headless-chromium tests, with the pilot seeded.
+### WP3–WP5, reviewed after the rebase
 
-**Known, not fixed**
+The same audit was run over WP3–WP5 once the review had been rebased onto them.
+WP4 was not audited: the session ran out before its reviewer reported.
+
+- **`submit_verification` could be called by any player, on any submitted sog,
+  without ever claiming a verify atom or holding the trust a claim needs** —
+  three accounts could publish a trained tile between them, and one could
+  drive a trainer's trust to zero by calling it in a loop, since every call
+  credited again. `db/0027_verifyguard.sql`: the API wrapper admits a verdict
+  only from a tab holding a verify atom of that job, or as a spot check that
+  `spot_due` itself says is due; the public function is no longer executable by
+  clients; a verifier's second word on the same output replaces their row and
+  moves nothing else; a sog without a trainer is not an error. WP3's internal
+  functions lose the PUBLIC grant as WP0–WP2's did.
+- `client/atoms/train.js` disposes the GPU buffers in a `finally`, so a
+  training run that throws does not leak them.
+- `infra/nginx.conf` no longer attaches the one-year `immutable` header to a
+  404 (`always`): the editor asks for `/geo` tiles by coordinate, and a tile
+  not yet seeded would have been cached as missing for a year.
+- `tools/restore.sh` and `tools/ops-test.sh` recreated store directories as
+  whoever ran them; nginx's worker then could not write there, and the first
+  catalog upload after the restore drill was a 500. They are created `1777`,
+  as the store root is.
+
+Gate after the review, on top of WP5: 450 pgTAP assertions over 22 files, the
+concurrency run (1500 claims, 0 errors) and the edition race, the API,
+file-store, seed and ops assertions, the node assertions, 22 test-tile
+assertions and the headless-chromium tests, with the pilot seeded and
+OpenLayers and Draco vendored.
+
+**Known, not fixed** (WP3–WP5)
+
+- A verify atom claimed at the moment of a rejection ends `failed` after three
+  expiries, and `verify_required` still counts it, so that sog can never reach
+  three passes (`db/0017_verify.sql`, `retrain`). The third rejection also
+  leaves the job's other verify atoms claimable. Fix in `retrain`: send every
+  sibling verify atom to `waiting`, and count only unfailed ones.
+- `publish_sog`'s result is ignored in `submit_verification`: a CAS miss leaves
+  a `verified` sog and an open job.
+- The "one check for a trusted trainer" rule reads the train atom's worker,
+  which is null when the DAG is built; it only fires on the atom-reuse path.
+- No structural rule checks a verify result against its own numbers
+  (`passed` vs `psnr` vs `min_psnr`); `db/0018_spot.sql` has no pgTAP file.
+- `tools/gc-jobs.sh` deletes bytes whose `artifact` rows remain, which the
+  runbook itself calls unrecoverable: a later atom that reproduces those bytes
+  gets a 403 from `can_write` and finds nothing to dedupe against. It also
+  skips cancelled jobs, whose `/jobs` grow for ever. Both need a decision
+  (a tombstone `can_write` consults, or gc of cancelled jobs) — not taken here.
+- nginx's PUT limit is keyed on the client address; behind the TLS proxy the
+  manual recommends, every player shares one bucket (`real_ip` is the fix).
+- "Rate-limited to keep ≥ 30 fps" paces between atoms only, and only with
+  "help render the world" on.
+- `claim_atom`'s "nearest" is a distance in degrees.
+
+**Known, not fixed** (WP0–WP2)
 
 - `submit_atom`, `can_write` and `build_dag` are 63–68 lines (rule: < 60).
 - Functions without their own pgTAP test: `instance_glbs`, `atom_state_guard`,

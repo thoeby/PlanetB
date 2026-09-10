@@ -40,7 +40,7 @@ GeoServer has no automated gate; its checklist is in `gis/README.md`.
 
 | gate | contents |
 |---|---|
-| `db-test` | 299 pgTAP assertions over 15 files — schema, auth, RLS, tiles, jobs, publish, atom identity, the tile file store, the work panel's query, `tile_world`, `child_sogs`, the structural checks, perceptual verification and trust, and the catalog's SAN derivation — then `db/test/0006_concurrency.sh` (32 workers, 4 editors, 2 stale publishers, ~2 min) |
+| `db-test` | 450 pgTAP assertions over 22 files — schema, auth, RLS, tiles, jobs, publish, atom identity, the tile file store, the work panel's query, `tile_world`, `child_sogs`, the structural checks, perceptual verification and trust, and the catalog's SAN derivation — then `db/test/0006_concurrency.sh` (32 workers, 4 editors, 2 stale publishers, ~2 min) |
 | `api-test` | 17 PostgREST assertions, 15 file-store assertions (including WP4.1's PUT-and-register round trip for a canonical GLB), 15 seeding assertions (`tools/seed-test.sh`, which also cuts one z14 dem and ortho tile straight off AWS and skips if it cannot reach them) |
 | `client-test` | 95 node assertions (tilemath against SQL fixtures, the traversal, the floating origin, the player, the worker loop, assemble, the camera sets, the merge grid, the sog quantisation, the trainer's gradients, the spot checker, canon-v1 over five exporter fixtures and the Draco round trip), `tools/test-tiles.sh` (22 assertions), then 22 headless-chromium tests |
 | `lint` | sqlfluff over `db/` and `tools/`; eslint over `client/` and `tools/` |

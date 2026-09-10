@@ -86,8 +86,10 @@ store_shas () {
 # Invariant 1 again: only ever fill in, never overwrite. rsync where there is
 # one, cp where there is not (tools/backup.sh says why that case is normal).
 copy_into () { # src-dir dest-dir
+    # Whoever runs this is not the nginx worker that writes the store: a
+    # directory created here must stay writable by it, as the root is (1777).
+    mkdir -p "$2"; chmod 1777 "$2" 2>/dev/null || true
     if command -v rsync > /dev/null; then rsync -a --ignore-existing "$1" "$2/"; return; fi
-    mkdir -p "$2"
     if cp --help 2>&1 | grep -q -- --update; then cp -a --update=none "$1." "$2/"
     else cp -an "$1." "$2/"; fi
 }

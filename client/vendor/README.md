@@ -1,9 +1,14 @@
-Third-party code the client loads, copied here so the browser tests run without
-a network. Everything in this directory except this file is gitignored;
-`make vendor` (`tools/vendor.sh`) fetches it and pins the versions.
+Vendored third-party code, checked in verbatim with its licence:
 
-- `playcanvas/` — PlayCanvas engine 2.22.0 (MIT). `play.html` loads the same
-  build from the CDN at runtime; the playwright fixture routes that URL here.
-- `splatjs/` — training kernel, WP3.1. Not vendored yet.
+- `splatjs/` — training kernel (WP3.1), MIT
+- `splat-transform/` — `.sog` encoder core (WP2.6), MIT
 
-The client itself has no npm dependencies and must stay servable as static files.
+Fetched by `make vendor` (`tools/vendor.sh`) rather than committed, because
+they are builds rather than sources — the pinned versions are in that script:
+
+- `playcanvas/` — the engine `play.html` loads from a CDN, MIT
+- `draco/` — Google's mesh codec, for compressed GLBs (WP4.1), Apache-2.0
+- `ol/` — OpenLayers, the map `edit.html` draws on (WP5.3), BSD-2-Clause
+
+Nothing here is fetched at runtime by the tests; `client/` must stay servable
+as static files.

@@ -117,6 +117,8 @@ NEW=$($PSQL_Q -c "SELECT a.id FROM atom a JOIN job j ON j.id = a.job_id
                   WHERE j.state = 'open' ORDER BY a.id LIMIT 1")
 mkdir -p "$FILES_ROOT/assets" "$FILES_ROOT/tiles/14/4242/4242" \
     "$FILES_ROOT/jobs/$OLD" "$FILES_ROOT/jobs/$NEW"
+# The browser tests PUT into these through nginx's worker, which is not root.
+chmod 1777 "$FILES_ROOT/assets" "$FILES_ROOT/tiles" "$FILES_ROOT/jobs" 2>/dev/null || true
 ASSET=$FILES_ROOT/assets/$(printf 'c%.0s' {1..64}).glb
 # The path publish_tile's worker writes: /tiles/{z}/{x}/{y}/{sha}.sog.
 TILE=$FILES_ROOT/tiles/14/4242/4242/$(printf 'a%.0s' {1..64}).sog

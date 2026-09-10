@@ -91,19 +91,23 @@ export async function run({ atom, inputs, canvas, log }) {
     // What the initialisation alone is worth, on the same held-out poses: the
     // difference is what this atom did, and the only quality number that means
     // anything without a reference implementation to compare against.
-    backend.load({ model });
-    const before = await scoreOf(backend, held);
-    log?.({ event: 'training', tile: scene.tile, on: kind, views: views.length,
-        held: held.length, from: model.count, psnr: mean(before) });
-    const out = await train(backend, model, {
-        iters: Number(atom.params?.iters) || 5000, views, bounds,
-        budget: Number(atom.params?.budget) || model.count,
-        random: rngOf(atom, scene.tile.z, scene.tile.x, scene.tile.y),
-        grow: GROW, noise: NOISE, maintainEvery: MAINTAIN_EVERY, log,
-        logEvery: Math.max(5, Math.round((Number(atom.params?.iters) || 5000) / 25)),
-    });
-    const scores = await scoreOf(backend, held);
-    backend.dispose();
+    let before, out, scores;
+    try {
+        backend.load({ model });
+        before = await scoreOf(backend, held);
+        log?.({ event: 'training', tile: scene.tile, on: kind, views: views.length,
+            held: held.length, from: model.count, psnr: mean(before) });
+        out = await train(backend, model, {
+            iters: Number(atom.params?.iters) || 5000, views, bounds,
+            budget: Number(atom.params?.budget) || model.count,
+            random: rngOf(atom, scene.tile.z, scene.tile.x, scene.tile.y),
+            grow: GROW, noise: NOISE, maintainEvery: MAINTAIN_EVERY, log,
+            logEvery: Math.max(5, Math.round((Number(atom.params?.iters) || 5000) / 25)),
+        });
+        scores = await scoreOf(backend, held);
+    } finally {
+        backend.dispose();      // the buffers go whether training finished or threw
+    }
     if (!finite(out.model)) throw new Error('training diverged: the model is not finite');
 
     const tar = pack(out.model, files);

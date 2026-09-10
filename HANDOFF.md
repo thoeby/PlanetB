@@ -258,8 +258,8 @@ Things that cost time once. Do not rediscover them.
 - **Migrations are numbered and never edited once applied.** Add a new file;
   `CREATE OR REPLACE FUNCTION` to change behaviour. Files sort lexically, so a
   second file for the same number needs a suffix that sorts after the first
-  (`0005_jobs.sql` → `0005_state.sql`). The highest applied is `0026_review`, so
-  the next migration is `0027_*.sql`.
+  (`0005_jobs.sql` → `0005_state.sql`). The highest applied is `0027_verifyguard`,
+  so the next migration is `0028_*.sql`.
 - **Every client write is authorised by RLS**, never by a grant on a base
   table. Tables that no policy covers have no write grant at all and move only
   under `SECURITY DEFINER` functions. The one exception is the `geoserver`
