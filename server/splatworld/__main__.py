@@ -76,8 +76,8 @@ def _preflight(cfg: config.Config) -> list[str]:
     try:
         with psycopg.connect(cfg.dsn("postgres"), autocommit=True, connect_timeout=5):
             pass
-    except psycopg.Error as err:
-        return [f"cannot reach PostgreSQL on {cfg.pg_host}:{cfg.pg_port} — {err}".strip()]
+    except psycopg.OperationalError as err:
+        return [migrate.explain(cfg, err)]
     if not migrate.database_exists(cfg):
         problems.append(f"the database {cfg.pg_database!r} does not exist — run `splatworld init`")
     if not services.find_binary(cfg) and not services.alive(cfg):
@@ -136,7 +136,16 @@ def cmd_run(args: argparse.Namespace) -> int:
 
 def main(argv: list[str] | None = None) -> int:
     args = parse(argv if argv is not None else sys.argv[1:])
-    return {"init": cmd_init, "run": cmd_run, "doctor": cmd_doctor}[args.command](args)
+    commands = {"init": cmd_init, "run": cmd_run, "doctor": cmd_doctor}
+    try:
+        return commands[args.command](args)
+    except psycopg.OperationalError as err:
+        # Not being able to reach the database is the ordinary first-run
+        # problem, not a bug; say which thing is wrong and how to fix it.
+        print(f"splatworld: {migrate.explain(_cfg(args), err)}", file=sys.stderr)
+        return 1
+    except KeyboardInterrupt:
+        return 130
 
 
 if __name__ == "__main__":

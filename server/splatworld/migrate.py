@@ -38,6 +38,30 @@ def _substitute(text: str, cfg: Config) -> str:
     )
 
 
+def explain(cfg: Config, err: psycopg.OperationalError) -> str:
+    """A wrong password is an ordinary thing to get wrong, not a crash."""
+    text = str(err)
+    where = f"{cfg.pg_host}:{cfg.pg_port}"
+    if "password authentication failed" in text or "no password supplied" in text:
+        return (
+            f"PostgreSQL at {where} refused the password for user "
+            f"{cfg.pg_user!r}.\n"
+            "  Use the password you set when you installed PostgreSQL:\n"
+            "    Windows:  set PGPASSWORD=yourpassword\n"
+            "    macOS/Linux:  export PGPASSWORD=yourpassword\n"
+            f"  Or put PGPASSWORD=yourpassword in a .env file at {cfg.repo}.\n"
+            "  A different user? Set PGUSER too."
+        )
+    if "could not connect" in text or "Connection refused" in text or "timeout" in text:
+        return (
+            f"Nothing is answering on {where}.\n"
+            "  Is PostgreSQL running? On Windows it is a service called\n"
+            "  postgresql-x64-NN; check it is started. Set PGHOST/PGPORT if it\n"
+            "  listens somewhere else."
+        )
+    return f"Could not reach PostgreSQL at {where}:\n  {text.strip()}"
+
+
 def database_exists(cfg: Config) -> bool:
     with psycopg.connect(cfg.dsn("postgres"), autocommit=True) as conn:
         row = conn.execute(
