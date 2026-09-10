@@ -41,6 +41,10 @@ def parse(argv: list[str]) -> argparse.Namespace:
     run.add_argument("--no-browser", action="store_true", help="do not open a browser")
     _common(run)
 
+    imp = sub.add_parser("import", help="import your elevation and map layers")
+    imp.add_argument("spec", help="a region .json — see docs/import.md")
+    _common(imp)
+
     _common(sub.add_parser("doctor", help="check what is ready"))
     return parser.parse_args(argv)
 
@@ -134,9 +138,28 @@ def cmd_run(args: argparse.Namespace) -> int:
     return 0
 
 
+def cmd_import(args: argparse.Namespace) -> int:
+    from pathlib import Path
+
+    from . import importer
+
+    cfg = _cfg(args)
+    if not migrate.database_exists(cfg) or not migrate.schema_present(cfg):
+        print("splatworld: no world here yet — run `splatworld init` first",
+              file=sys.stderr)
+        return 1
+    spec = Path(args.spec)
+    if not spec.is_file():
+        print(f"splatworld: no such file {spec}", file=sys.stderr)
+        return 1
+    print(f"importing {spec}")
+    return importer.run(cfg, spec)
+
+
 def main(argv: list[str] | None = None) -> int:
     args = parse(argv if argv is not None else sys.argv[1:])
-    commands = {"init": cmd_init, "run": cmd_run, "doctor": cmd_doctor}
+    commands = {"init": cmd_init, "run": cmd_run, "doctor": cmd_doctor,
+                "import": cmd_import}
     try:
         return commands[args.command](args)
     except psycopg.OperationalError as err:
