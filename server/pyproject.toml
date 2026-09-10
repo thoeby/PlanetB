@@ -1,0 +1,16 @@
+[project]
+name = "splatworld"
+version = "0.1.0"
+description = "Runs a splatworld: the database, the API and the file store, on one machine."
+requires-python = ">=3.10"
+dependencies = ["psycopg[binary]>=3.1"]
+
+[project.scripts]
+splatworld = "splatworld.__main__:main"
+
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+include = ["splatworld*"]

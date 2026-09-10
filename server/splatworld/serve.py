@@ -1,0 +1,234 @@
+"""The file store and the static client, on one port.
+
+This is what infra/nginx.conf does, in Python, so a machine without an nginx
+built --with-http_dav_module can still run a world. It serves bytes and asks the
+database whether a PUT is allowed; it decides nothing itself and computes
+nothing about the world (Invariant 9).
+
+Routes, matching nginx.conf exactly:
+
+    /healthz                     ok
+    /app/...                     the client, from client/
+    /assets|tiles|jobs|geo/...   GET public and immutable; PUT authorised
+"""
+from __future__ import annotations
+
+import json
+import shutil
+import urllib.error
+import urllib.parse
+import urllib.request
+from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
+from pathlib import Path
+
+from .config import Config
+
+STORE_PREFIXES = ("assets", "tiles", "jobs", "geo")
+
+TYPES = {
+    ".html": "text/html; charset=utf-8",
+    ".js": "text/javascript; charset=utf-8",
+    ".mjs": "text/javascript; charset=utf-8",
+    ".css": "text/css; charset=utf-8",
+    ".json": "application/json; charset=utf-8",
+    ".png": "image/png",
+    ".jpg": "image/jpeg",
+    ".webp": "image/webp",
+    ".glb": "model/gltf-binary",
+    ".wasm": "application/wasm",
+    ".svg": "image/svg+xml",
+}
+
+CORS = {
+    "Access-Control-Allow-Origin": "*",
+    "Access-Control-Allow-Methods": "GET, HEAD, PUT, OPTIONS",
+    "Access-Control-Allow-Headers": "Authorization, Content-Type, X-Sha256",
+    "Access-Control-Max-Age": "86400",
+}
+
+MAX_UPLOAD = 512 * 1024 * 1024
+
+
+def content_type(path: Path) -> str:
+    return TYPES.get(path.suffix.lower(), "application/octet-stream")
+
+
+def safe_join(root: Path, relative: str) -> Path | None:
+    """None for anything that would leave root — .., absolute paths, symlinks."""
+    candidate = (root / relative.lstrip("/")).resolve()
+    root = root.resolve()
+    return candidate if candidate == root or root in candidate.parents else None
+
+
+def can_write(cfg: Config, path: str, sha256: str, length: int,
+              auth: str | None) -> tuple[int, str]:
+    """Asks PostgREST, exactly as nginx's auth_request does.
+
+    The database decides every write (Invariant 6); this only relays the answer,
+    including its status: can_write raises PT401 for "no token" and PT403 for
+    "not yours", and PostgREST turns those into 401 and 403. A caller that is
+    merely signed out must be told so, not told it is forbidden.
+    """
+    query = urllib.parse.urlencode({"path": path, "sha256": sha256, "bytes": length})
+    req = urllib.request.Request(f"{cfg.api_url}/rpc/can_write?{query}", method="GET")
+    req.add_header("Accept", "application/json")
+    if auth:
+        req.add_header("Authorization", auth)
+    try:
+        with urllib.request.urlopen(req, timeout=30) as res:
+            return (200 if 200 <= res.status < 300 else 403), ""
+    except urllib.error.HTTPError as err:
+        body = err.read().decode("utf8", "replace")[:400]
+        try:
+            body = json.loads(body).get("message", body)
+        except ValueError:
+            pass
+        # Anything that is not a decision (a 500, a broken API) is not a licence
+        # to write, so it becomes a refusal rather than an error to the client.
+        return (err.code if err.code in (401, 403) else 403), body
+    except OSError as err:
+        return 403, f"the API is not answering ({err})"
+
+
+class Handler(BaseHTTPRequestHandler):
+    server_version = "splatworld"
+    protocol_version = "HTTP/1.1"
+
+    cfg: Config  # set on the server class below
+
+    # -------------------------------------------------------------- plumbing
+
+    def log_message(self, fmt: str, *args) -> None:  # noqa: A003 - stdlib name
+        if self.server.verbose:
+            super().log_message(fmt, *args)
+
+    def _send(self, status: int, body: bytes = b"", ctype: str = "text/plain; charset=utf-8",
+              extra: dict[str, str] | None = None) -> None:
+        self.send_response(status)
+        self.send_header("Content-Type", ctype)
+        self.send_header("Content-Length", str(len(body)))
+        for key, value in (extra or {}).items():
+            self.send_header(key, value)
+        self.end_headers()
+        if self.command != "HEAD" and body:
+            self.wfile.write(body)
+
+    def _text(self, status: int, message: str) -> None:
+        self._send(status, f"{message}\n".encode("utf8"), extra=CORS)
+
+    def _route(self) -> tuple[str, str]:
+        path = urllib.parse.urlparse(self.path).path
+        first = path.lstrip("/").split("/", 1)[0]
+        return path, first
+
+    # ------------------------------------------------------------- responses
+
+    def do_OPTIONS(self) -> None:  # noqa: N802 - stdlib name
+        self._send(204, extra=CORS)
+
+    def do_HEAD(self) -> None:  # noqa: N802
+        self.do_GET()
+
+    def do_GET(self) -> None:  # noqa: N802
+        path, first = self._route()
+        if path == "/healthz":
+            self._send(200, b"ok\n")
+        elif path == "/" or path == "/app" or path.startswith("/app/"):
+            self._serve_client(path)
+        elif first in STORE_PREFIXES:
+            self._serve_store(path)
+        else:
+            self._text(404, "not found")
+
+    def _serve_client(self, path: str) -> None:
+        rel = path[len("/app"):] if path.startswith("/app") else "/"
+        if rel in ("", "/"):
+            rel = "/play.html"
+        target = safe_join(self.cfg.client_dir, rel)
+        if target and target.is_dir():
+            target = target / "play.html"
+        if not target or not target.is_file():
+            self._text(404, "no such page")
+            return
+        body = target.read_bytes()
+        # The client is edited while the server runs; never let a browser cache it.
+        self._send(200, body, content_type(target), {"Cache-Control": "no-store"})
+
+    def _serve_store(self, path: str) -> None:
+        target = safe_join(self.cfg.files, path)
+        if not target or not target.is_file():
+            self._text(404, "no such file")
+            return
+        # Invariant 1: a path holds one artifact for ever, so it can be cached
+        # for ever.
+        headers = {"Cache-Control": "public, max-age=31536000, immutable", **CORS}
+        self.send_response(200)
+        self.send_header("Content-Type", content_type(target))
+        self.send_header("Content-Length", str(target.stat().st_size))
+        for key, value in headers.items():
+            self.send_header(key, value)
+        self.end_headers()
+        if self.command != "HEAD":
+            with target.open("rb") as fh:
+                shutil.copyfileobj(fh, self.wfile)
+
+    def do_PUT(self) -> None:  # noqa: N802
+        path, first = self._route()
+        if first not in STORE_PREFIXES:
+            self._text(405, "nothing is writable here")
+            return
+        target = safe_join(self.cfg.files, path)
+        if not target:
+            self._text(400, "bad path")
+            return
+        # Invariant 1: a path is written once. Overwriting is a conflict, not an
+        # update, and needs nobody's opinion.
+        if target.exists():
+            self._text(409, "already written")
+            return
+
+        length = int(self.headers.get("Content-Length") or 0)
+        if length <= 0:
+            self._text(411, "length required")
+            return
+        if length > MAX_UPLOAD:
+            self._text(413, "too large")
+            return
+
+        status, why = can_write(
+            self.cfg, path, self.headers.get("X-Sha256", ""), length,
+            self.headers.get("Authorization"),
+        )
+        if status != 200:
+            self._text(status, why or "refused")
+            return
+
+        target.parent.mkdir(parents=True, exist_ok=True)
+        partial = target.with_suffix(target.suffix + ".part")
+        try:
+            with partial.open("wb") as fh:
+                remaining = length
+                while remaining > 0:
+                    chunk = self.rfile.read(min(1 << 20, remaining))
+                    if not chunk:
+                        raise OSError("upload ended early")
+                    fh.write(chunk)
+                    remaining -= len(chunk)
+            # Renamed only once whole, so a dropped connection never leaves a
+            # short file at a path that may never be written again.
+            partial.replace(target)
+        except OSError as err:
+            partial.unlink(missing_ok=True)
+            self._text(500, f"could not store it: {err}")
+            return
+        self._text(201, "created")
+
+
+class Server(ThreadingHTTPServer):
+    daemon_threads = True
+    allow_reuse_address = True
+
+    def __init__(self, cfg: Config, *, verbose: bool = False):
+        self.verbose = verbose
+        handler = type("BoundHandler", (Handler,), {"cfg": cfg})
+        super().__init__((cfg.host, cfg.port), handler)

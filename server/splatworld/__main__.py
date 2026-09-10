@@ -1,0 +1,143 @@
+"""splatworld — run a world on this machine.
+
+    splatworld init     create the database and apply the schema
+    splatworld run      start the API and the file store, and open the browser
+    splatworld doctor   say what is and is not ready, and why
+
+The same command runs a laptop and a server: `--host 0.0.0.0` is the only
+difference, plus a real JWT_SECRET and real passwords in .env.
+"""
+from __future__ import annotations
+
+import argparse
+import sys
+import threading
+import webbrowser
+
+import psycopg
+
+from . import __version__, config, migrate, serve, services
+
+
+def _common(parser: argparse.ArgumentParser) -> None:
+    parser.add_argument("--host", help="address to listen on (default 127.0.0.1)")
+    parser.add_argument("--port", type=int, help="port for the client and files")
+    parser.add_argument("--api-port", type=int, dest="api_port", help="port for PostgREST")
+    parser.add_argument("--verbose", action="store_true", help="show request and API logs")
+
+
+def parse(argv: list[str]) -> argparse.Namespace:
+    parser = argparse.ArgumentParser(prog="splatworld", description=__doc__,
+                                     formatter_class=argparse.RawDescriptionHelpFormatter)
+    parser.add_argument("--version", action="version", version=__version__)
+    sub = parser.add_subparsers(dest="command", required=True)
+
+    init = sub.add_parser("init", help="create the database and apply the schema")
+    init.add_argument("--reset", action="store_true",
+                      help="drop the database first — deletes the whole world")
+    _common(init)
+
+    run = sub.add_parser("run", help="start the API and the file store")
+    run.add_argument("--no-browser", action="store_true", help="do not open a browser")
+    _common(run)
+
+    _common(sub.add_parser("doctor", help="check what is ready"))
+    return parser.parse_args(argv)
+
+
+def _cfg(args: argparse.Namespace) -> config.Config:
+    return config.load({
+        "host": getattr(args, "host", None),
+        "port": getattr(args, "port", None),
+        "api_port": getattr(args, "api_port", None),
+    })
+
+
+def cmd_init(args: argparse.Namespace) -> int:
+    cfg = _cfg(args)
+    print(f"database {cfg.pg_database} on {cfg.pg_host}:{cfg.pg_port}")
+    version = migrate.check_postgis(cfg)
+    print(f"  PostGIS {version} available")
+    if args.reset:
+        print("  dropping the existing database")
+    elif migrate.database_exists(cfg) and migrate.schema_present(cfg):
+        print("  already initialised — `splatworld init --reset` starts over "
+              "(that deletes the world)")
+        return 0
+    migrate.create_database(cfg, drop=args.reset)
+    count = migrate.apply(cfg)
+    print(f"  {count} migrations applied")
+    print("Ready. `splatworld run` starts it.")
+    return 0
+
+
+def _preflight(cfg: config.Config) -> list[str]:
+    problems = []
+    try:
+        with psycopg.connect(cfg.dsn("postgres"), autocommit=True, connect_timeout=5):
+            pass
+    except psycopg.Error as err:
+        return [f"cannot reach PostgreSQL on {cfg.pg_host}:{cfg.pg_port} — {err}".strip()]
+    if not migrate.database_exists(cfg):
+        problems.append(f"the database {cfg.pg_database!r} does not exist — run `splatworld init`")
+    if not services.find_binary(cfg) and not services.alive(cfg):
+        problems.append(services.missing_message(cfg))
+    if not cfg.client_dir.is_dir():
+        problems.append(f"no client/ at {cfg.client_dir} — set SPLATWORLD_REPO")
+    return problems
+
+
+def cmd_doctor(args: argparse.Namespace) -> int:
+    cfg = _cfg(args)
+    print(f"repo          {cfg.repo}")
+    print(f"database      {cfg.dsn().replace(cfg.pg_password, '***')}")
+    print(f"files         {cfg.files}")
+    print(f"client        {cfg.client_dir}")
+    print(f"listen        http://{cfg.host}:{cfg.port}")
+    print(f"api           {cfg.api_url}")
+    problems = _preflight(cfg)
+    if not problems:
+        print("\nEverything is ready. `splatworld run`.")
+        return 0
+    print("\nNot ready:")
+    for p in problems:
+        print(f"  - {p}")
+    return 1
+
+
+def cmd_run(args: argparse.Namespace) -> int:
+    cfg = _cfg(args)
+    problems = _preflight(cfg)
+    if problems:
+        for p in problems:
+            print(f"splatworld: {p}", file=sys.stderr)
+        return 1
+
+    cfg.files.mkdir(parents=True, exist_ok=True)
+    with services.PostgREST(cfg, verbose=args.verbose):
+        server = serve.Server(cfg, verbose=args.verbose)
+        url = f"http://{'127.0.0.1' if cfg.host in ('0.0.0.0', '::') else cfg.host}:{cfg.port}"
+        print(f"  files and client on {url}")
+        print(f"\n  Play/build   {url}/app/play.html")
+        print(f"  Edit         {url}/app/edit.html")
+        print(f"  Catalog      {url}/app/catalog.html")
+        print("\nCtrl-C to stop.")
+        if not args.no_browser:
+            threading.Timer(0.5, webbrowser.open, [f"{url}/app/play.html"]).start()
+        try:
+            server.serve_forever()
+        except KeyboardInterrupt:
+            print("\nstopping")
+        finally:
+            server.shutdown()
+            server.server_close()
+    return 0
+
+
+def main(argv: list[str] | None = None) -> int:
+    args = parse(argv if argv is not None else sys.argv[1:])
+    return {"init": cmd_init, "run": cmd_run, "doctor": cmd_doctor}[args.command](args)
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())
