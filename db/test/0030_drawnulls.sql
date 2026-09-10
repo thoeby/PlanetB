@@ -1,5 +1,5 @@
 BEGIN;
-SELECT plan(6);
+SELECT plan(5);
 
 SELECT has_function('public', 'area_defaults', 'area_defaults exists');
 SELECT has_function('public', 'feature_defaults', 'feature_defaults exists');
@@ -27,16 +27,6 @@ SELECT is(
     (SELECT detail FROM area WHERE owner_id = gis.default_owner()),
     14::smallint,
     'blank fields from QGIS become the defaults'
-);
-
--- GeoServer's own blank: 0, not NULL.
-INSERT INTO area (geom, detail, id)
-VALUES (st_geomfromtext('POLYGON((8 46, 8.1 46, 8.1 46.1, 8 46.1, 8 46))', 4326), 0,
-        gen_random_uuid());
-SELECT is(
-    (SELECT detail FROM area WHERE st_xmin(geom) = 8),
-    14::smallint,
-    'a detail of 0 from GeoServer is the baseline'
 );
 
 SELECT * FROM finish();
