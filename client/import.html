@@ -151,7 +151,11 @@ Nothing here needs a config file.</p>
       layers = out.layers ?? [];
       coverages = out.coverages ?? [];
       if (!layers.length) {
-        say('connect-msg', 'Connected, but that GeoServer publishes no vector layers.', 'bad');
+        // The server now explains an empty list itself (geoserver.py), so this
+        // is only reached if it answered with a genuinely empty catalogue.
+        say('connect-msg', 'Connected, but that address lists no vector layers.\n'
+          + 'If your layers sit in one workspace, try its own address — '
+          + 'for example …/geoserver/myworkspace.', 'bad');
         return;
       }
       renderLayers();
