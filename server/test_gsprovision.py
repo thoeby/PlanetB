@@ -42,9 +42,32 @@ class FakeGeoServer(BaseHTTPRequestHandler):
     def _body(self) -> bytes:
         return self.rfile.read(int(self.headers.get("Content-Length") or 0))
 
+    published: dict = {}  # layer name -> store that holds it
+
+    def do_DELETE(self):
+        type(self).seen.append(("DELETE", self.path))
+        store, layer = self.path.split("/datastores/")[1].split("/featuretypes/")
+        layer = layer.split("?")[0]
+        if type(self).published.get(layer) == store:
+            del type(self).published[layer]
+            self._send(200)
+        else:
+            self._send(404, b"No such feature type", "text/plain")
+
     def do_POST(self):
         body = self._body()
         type(self).seen.append(("POST", self.path))
+        if self.path.endswith("/featuretypes"):
+            store = self.path.split("/datastores/")[1].split("/")[0]
+            layer = json.loads(body)["featureType"]["name"]
+            if layer in type(self).published:
+                # Names are unique per workspace, whichever store holds them.
+                self._send(500, f"Resource named '{layer}' already exists".encode(),
+                           "text/plain")
+                return
+            type(self).published[layer] = store
+            self._send(201)
+            return
         if self.path.endswith("/datastores"):
             # What a real GeoServer answers for a store that is already there.
             self._send(500, b"Store 'splatworld_pg' already exists in workspace",
@@ -106,6 +129,9 @@ class ProvisionTest(unittest.TestCase):
         FakeGeoServer.keep_puts = True
         FakeGeoServer.writable = True
         FakeGeoServer.seen = []
+        # What an earlier setup left behind: every layer in the old, single store.
+        FakeGeoServer.published = {n: gsprovision.STORE
+                                   for n in gsprovision.LAYERS + gsprovision.OVERVIEW_LAYERS}
         self.server = ThreadingHTTPServer(("127.0.0.1", 0), FakeGeoServer)
         threading.Thread(target=self.server.serve_forever, daemon=True).start()
         self.url = f"http://127.0.0.1:{self.server.server_port}"
@@ -132,6 +158,11 @@ class ProvisionTest(unittest.TestCase):
         with self.assertRaises(SystemExit) as caught:
             self.run_it()
         self.assertIn("could not save", str(caught.exception))
+
+    def test_a_layer_left_in_the_old_store_is_moved_not_refused(self):
+        self.run_it()
+        self.assertEqual(FakeGeoServer.published["tile"], gsprovision.OVERVIEW_STORE)
+        self.assertEqual(FakeGeoServer.published["area"], gsprovision.STORE)
 
     def test_the_cached_pools_are_dropped(self):
         self.run_it()

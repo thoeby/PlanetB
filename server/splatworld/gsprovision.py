@@ -51,7 +51,7 @@ class GeoServer:
         self.auth = f"Basic {token}"
 
     def call(self, method: str, path: str, body: bytes | None = None,
-             content_type: str = "application/xml") -> int:
+             content_type: str = "application/xml", tolerate: tuple[int, ...] = ()) -> int:
         request = urllib.request.Request(
             f"{self.base}{path}", data=body, method=method,
             headers={"Authorization": self.auth, "Content-Type": content_type})
@@ -60,6 +60,8 @@ class GeoServer:
                 return res.status
         except urllib.error.HTTPError as err:
             detail = err.read()[:300].decode("utf8", "replace")
+            if err.code in tolerate:
+                return err.code
             # "Already exists" is 409 from some GeoServer versions and a plain
             # 500 from others — the status cannot be trusted, so the sentence is
             # read instead. Either way it means the same thing: it is there, and
@@ -196,12 +198,18 @@ def ensure_store(gs: GeoServer, cfg: Config, host: str, name: str, schema: str,
         if gs.call("POST",
                    f"/rest/workspaces/{WORKSPACE}/datastores/{name}/featuretypes",
                    body, "application/json") == 409:
-            # Already published — quite possibly by an earlier run that left it
-            # without bounds and therefore unusable. Write it over rather than
-            # leave a layer that is listed and cannot be read.
-            gs.call("PUT",
-                    f"/rest/workspaces/{WORKSPACE}/datastores/{name}"
-                    f"/featuretypes/{layer}", body, "application/json")
+            # Already published — by an earlier run, possibly into a different
+            # store, possibly without bounds. A layer name is unique across the
+            # workspace, so whatever holds it now is removed and it is published
+            # afresh from here; the styles are put back right after this.
+            on_step("    it was already there; publishing it again from this store")
+            for store in (STORE, OVERVIEW_STORE):
+                gs.call("DELETE",
+                        f"/rest/workspaces/{WORKSPACE}/datastores/{store}"
+                        f"/featuretypes/{layer}?recurse=true", tolerate=(404,))
+            gs.call("POST",
+                    f"/rest/workspaces/{WORKSPACE}/datastores/{name}/featuretypes",
+                    body, "application/json")
 
 
 def provision(cfg: Config, url: str, user: str, password: str,
