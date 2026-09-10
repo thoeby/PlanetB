@@ -1,6 +1,6 @@
 <!DOCTYPE connections>
 <qgsWFSConnections version="1.0">
-  <wfs name="splatworld" url="http://127.0.0.1:8907/geoserver/splatworld/wfs" version="auto"
+  <wfs name="splatworld" url="http://127.0.0.1:8909/geoserver/splatworld/wfs" version="auto"
        ignoreAxisOrientation="0" invertAxisOrientation="0"
        pagingEnabled="true" preferCoordinatesForWfsT11="false"/>
 </qgsWFSConnections>

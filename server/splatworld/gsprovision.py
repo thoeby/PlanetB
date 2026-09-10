@@ -48,10 +48,20 @@ class GeoServer:
             with urllib.request.urlopen(request, timeout=60) as res:
                 return res.status
         except urllib.error.HTTPError as err:
-            # 401 and 409 are what GeoServer says for "that is already there",
-            # which is the normal answer on a second run.
-            if err.code in (401, 409):
+            # 409 is GeoServer saying "that is already there", which is the
+            # normal answer on a second run. 401 is not: it means the admin
+            # password was refused, and treating it as success reports a
+            # provisioning that never happened and leaves an empty GeoServer.
+            if err.code == 409:
                 return err.code
+            if err.code == 401:
+                raise SystemExit(
+                    f"geoserver: {self.base} refused the login.\n"
+                    "  The admin user or password is wrong. Pass the right one:\n"
+                    "    splatworld geoserver <address> --user admin --password <yours>\n"
+                    "  GeoServer's own default is admin / geoserver, but any real\n"
+                    "  installation will have changed it."
+                ) from err
             detail = err.read()[:300].decode("utf8", "replace")
             raise SystemExit(
                 f"geoserver: {method} {path} was refused ({err.code} {err.reason}).\n"
@@ -120,6 +130,28 @@ def provision(cfg: Config, url: str, user: str, password: str,
             b"<wfs><enabled>true</enabled><serviceLevel>COMPLETE</serviceLevel>"
             b"<maxFeatures>50000</maxFeatures></wfs>")
 
+    # Ask it back rather than trusting that the calls meant what they said: a
+    # store whose database credentials are wrong is accepted happily and then
+    # publishes nothing, and "Done" would be a lie.
+    on_step("  checking what it now publishes")
+    from . import geoserver as gsread
+
+    try:
+        published = [f["name"] for f in gsread.feature_types(gs.base, {"Authorization": gs.auth})]
+    except SystemExit as err:
+        raise SystemExit(
+            f"{err}\n\n"
+            "  The objects were created but the server lists no layers, which\n"
+            "  almost always means the database store cannot connect. Check in\n"
+            "  GeoServer under Data > Stores > splatworld_pg that host, port,\n"
+            "  database and the 'geoserver' password are right for this machine."
+        ) from err
+    missing = [name for name in LAYERS
+               if f"{WORKSPACE}:{name}" not in published and name not in published]
+    if missing:
+        on_step(f"  warning: not published yet: {', '.join(missing)}")
+    else:
+        on_step(f"  confirmed: {len(published)} layer(s) published")
     return f"{gs.base}/{WORKSPACE}/wfs"
 
 
