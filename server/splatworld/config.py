@@ -126,3 +126,27 @@ def load(overrides: dict[str, object] | None = None) -> Config:
         if value is not None:
             setattr(cfg, key, value)
     return cfg
+
+
+def save(cfg: Config, values: dict[str, str]) -> Path:
+    """Writes settings into the .env beside the checkout, so nothing is retyped.
+
+    The same file the Makefile and every tool already read. Keys that are there
+    are replaced in place; new ones are appended. Anything the file has that we
+    were not asked about is left alone, comments and all.
+    """
+    path = cfg.repo / ".env"
+    lines = path.read_text(encoding="utf8").splitlines() if path.is_file() else []
+    remaining = dict(values)
+    out = []
+    for line in lines:
+        key = line.split("=", 1)[0].strip() if "=" in line else ""
+        if key in remaining:
+            out.append(f"{key}={remaining.pop(key)}")
+        else:
+            out.append(line)
+    if remaining and out and out[-1].strip():
+        out.append("")
+    out.extend(f"{k}={v}" for k, v in remaining.items())
+    path.write_text("\n".join(out) + "\n", encoding="utf8")
+    return path

@@ -221,16 +221,87 @@ class Handler(BaseHTTPRequestHandler):
 
     def do_POST(self) -> None:  # noqa: N802
         path, _ = self._route()
-        if not path.startswith("/import/"):
+        # Read the body first, always, whether or not the route wants it. This
+        # is a keep-alive connection, and bytes left unread are parsed as the
+        # beginning of the next request — which then arrives as a method named
+        # "{}POST" and takes the rest of the conversation down with it.
+        body = self._read_json()
+        if not path.startswith(("/import/", "/setup/")):
             self._text(404, "not found")
         elif not self._from_this_machine():
-            self._text(403, "the import page only works on this machine")
+            self._text(403, "this page only works on this machine")
+        elif path == "/setup/state":
+            self._setup_state()
+        elif path == "/setup/geoserver":
+            self._setup_geoserver(body)
         elif path == "/import/probe":
-            self._probe(self._read_json())
+            self._probe(body)
         elif path == "/import/run":
-            self._import(self._read_json())
+            self._import(body)
         else:
             self._text(404, "not found")
+
+    # ---------------------------------------------------------------- setup
+
+    def _setup_state(self) -> None:
+        """What is already configured, so the page opens filled in."""
+        from . import config as configmod
+
+        saved = configmod.load_dotenv(self.cfg.repo / ".env")
+        self._json(200, {
+            "geoserver_url": saved.get("GEOSERVER_URL", ""),
+            "geoserver_user": saved.get("GEOSERVER_ADMIN_USER", "admin"),
+            # Whether one is stored, never the value itself.
+            "geoserver_password_saved": bool(saved.get("GEOSERVER_ADMIN_PASSWORD")),
+            "repo": str(self.cfg.repo),
+        })
+
+    def _setup_geoserver(self, body: dict) -> None:
+        """Test, or set up, the GeoServer — and remember what worked.
+
+        One button's worth of work: the page never has to know that setting up
+        is several REST calls, and nothing is typed a second time.
+        """
+        from . import config as configmod
+        from . import gsprovision
+
+        url = (body.get("url") or "").strip()
+        if not url:
+            self._json(400, {"error": "Type your GeoServer address first."})
+            return
+        saved = configmod.load_dotenv(self.cfg.repo / ".env")
+        user = (body.get("user") or "admin").strip()
+        password = body.get("password") or saved.get("GEOSERVER_ADMIN_PASSWORD", "")
+
+        log: list[str] = []
+        try:
+            if body.get("provision"):
+                wfs = gsprovision.provision(self.cfg, url, user, password,
+                                            on_step=log.append)
+                gsprovision.write_qgis_connection(
+                    self.cfg.repo / "gis" / "splatworld-wfs.xml", wfs)
+            else:
+                gs = gsprovision.GeoServer(url, user, password)
+                # /rest/about/version is the smallest thing that proves both
+                # "this is a GeoServer" and "these credentials work".
+                gs.call("GET", "/rest/about/version.json")
+                log.append(f"  reached {gs.base} and the login was accepted")
+                wfs = f"{gs.base}/{gsprovision.WORKSPACE}/wfs"
+        except SystemExit as err:
+            self._json(200, {"ok": False, "log": log, "error": str(err)})
+            return
+        except Exception as err:  # noqa: BLE001
+            self._json(200, {"ok": False, "log": log,
+                             "error": f"{type(err).__name__}: {err}"})
+            return
+
+        configmod.save(self.cfg, {
+            "GEOSERVER_URL": url,
+            "GEOSERVER_ADMIN_USER": user,
+            **({"GEOSERVER_ADMIN_PASSWORD": password} if password else {}),
+        })
+        log.append("  saved, so it does not have to be typed again")
+        self._json(200, {"ok": True, "log": log, "wfs": wfs})
 
     def _probe(self, body: dict) -> None:
         """What a GeoServer has, so the page can offer it as a list."""

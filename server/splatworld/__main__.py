@@ -149,11 +149,12 @@ def cmd_run(args: argparse.Namespace) -> int:
         print(f"  files and client on {url}")
         # An empty world has nothing to show and nothing to do; send the first
         # run to the page that fills it instead of to a black screen.
-        first_run = not _has_a_region(cfg)
-        landing = "import.html" if first_run else "play.html"
-        if first_run:
-            print(f"\n  This world is empty. Start here:\n  Import      {url}/app/import.html")
-        print(f"\n  Play/build   {url}/app/play.html")
+        configured = bool(config.load_dotenv(cfg.repo / ".env").get("GEOSERVER_URL"))
+        landing = "play.html" if configured and _has_a_region(cfg) else "setup.html"
+        if landing == "setup.html":
+            print(f"\n  Nothing is set up yet. Start here:\n  Setup       {url}/app/setup.html")
+        print(f"\n  Setup        {url}/app/setup.html")
+        print(f"  Play/build   {url}/app/play.html")
         print(f"  Import       {url}/app/import.html")
         print(f"  Edit         {url}/app/edit.html")
         print(f"  Catalog      {url}/app/catalog.html")

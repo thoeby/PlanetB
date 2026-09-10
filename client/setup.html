@@ -1,0 +1,144 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>splatworld — setup</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<!--
+  Setup: tell it once where your GeoServer is, press a button, done. What you
+  enter is saved next to the checkout, so no address or password is ever typed
+  twice and nothing here has a command-line equivalent you are expected to know.
+
+  The browser never talks to the GeoServer — the local server does, which keeps
+  the password on this machine and the page out of cross-origin trouble.
+-->
+<style>
+  :root { color-scheme: dark; font: 14px/1.6 system-ui, sans-serif; }
+  body { margin: 0 auto; max-width: 46rem; background: #0d1013; color: #e6e9ec;
+         padding: 32px 20px 80px; }
+  h1 { font-size: 20px; margin: 0 0 6px; }
+  p.lede { color: #8b959e; margin: 0 0 20px; }
+  fieldset { border: 1px solid #2a3138; border-radius: 8px; padding: 16px 18px;
+             margin: 0 0 16px; background: #12171c; }
+  legend { padding: 0 8px; color: #b6bfc7; font-weight: 600; }
+  label { display: block; margin: 10px 0 2px; color: #b6bfc7; }
+  input { width: 100%; box-sizing: border-box; padding: 7px 9px; background: #0d1013;
+    color: inherit; border: 1px solid #2a3138; border-radius: 5px; font: inherit; }
+  .row { display: flex; gap: 12px; flex-wrap: wrap; }
+  .row > * { flex: 1 1 12rem; }
+  .buttons { display: flex; gap: 10px; margin-top: 16px; flex-wrap: wrap; }
+  button { padding: 9px 18px; border: 0; border-radius: 6px; cursor: pointer;
+    font: inherit; font-weight: 600; background: #2b6cb0; color: #fff; }
+  button.ghost { background: #222a31; color: #e6e9ec; border: 1px solid #39424b; }
+  button:disabled { opacity: .5; cursor: default; }
+  .msg { padding: 11px 13px; border-radius: 6px; margin: 14px 0 0;
+         white-space: pre-wrap; }
+  .msg.bad  { background: #3a1d1d; border: 1px solid #6b2b2b; color: #f0c8c8; }
+  .msg.good { background: #16301f; border: 1px solid #2c5c3a; color: #c2ecd0; }
+  .msg.busy { background: #1a2430; border: 1px solid #2c4258; color: #bcd4ea; }
+  pre { background: #0a0d10; border: 1px solid #1d242a; border-radius: 6px;
+        padding: 12px; margin: 12px 0 0; overflow-x: auto; font-size: 13px;
+        color: #b6bfc7; }
+  .hint { color: #6f7a84; font-size: 12px; margin: 3px 0 0; }
+  .next { margin-top: 22px; padding-top: 18px; border-top: 1px solid #2a3138; }
+  .next a { color: #6ba3e0; }
+  [hidden] { display: none !important; }
+</style>
+
+<h1>Setup</h1>
+<p class="lede">Where your GeoServer is. Entered once, then remembered.</p>
+
+<fieldset>
+  <legend>Your GeoServer</legend>
+
+  <label for="url">Address</label>
+  <input id="url" placeholder="localhost:8080/geoserver" autocomplete="off">
+  <p class="hint">Whatever opens GeoServer's admin page in your browser. Leave
+    off the <code>/web</code> — both work.</p>
+
+  <div class="row">
+    <div>
+      <label for="user">Admin user</label>
+      <input id="user" value="admin" autocomplete="off">
+    </div>
+    <div>
+      <label for="password">Admin password</label>
+      <input id="password" type="password" autocomplete="off">
+      <p class="hint" id="pw-hint" hidden>One is already saved — leave blank to
+        keep it.</p>
+    </div>
+  </div>
+
+  <div class="buttons">
+    <button id="test" class="ghost" type="button">Test connection</button>
+    <button id="setup" type="button">Set it up</button>
+  </div>
+
+  <div id="msg"></div>
+  <pre id="log" hidden></pre>
+</fieldset>
+
+<div class="next" id="next" hidden>
+  <p><strong>Ready.</strong> Your GeoServer now publishes the world's layers.</p>
+  <p>Open QGIS: <em>Layer → Data Source Manager → WFS / OGC API-Features →
+     Load Connections</em>, and pick <code id="qgis-file">gis/splatworld-wfs.xml</code>
+     from the folder this is running in. Add <code>area</code> and the
+     <code>feature_*</code> layers, draw, and press Save.</p>
+  <p>Then <a href="./play.html">open the world</a> and turn on background work.</p>
+</div>
+
+<script type="module">
+  const $ = (id) => document.getElementById(id);
+
+  const say = (text, kind) => {
+    $('msg').innerHTML = '';
+    if (!text) return;
+    const div = document.createElement('div');
+    div.className = `msg ${kind}`;
+    div.textContent = text;
+    $('msg').append(div);
+  };
+
+  const post = async (path, body) => {
+    const res = await fetch(path, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body ?? {}),
+    });
+    return res.json();
+  };
+
+  // What is already configured, so a second visit is not a blank form.
+  const state = await post('/setup/state').catch(() => ({}));
+  if (state.geoserver_url) $('url').value = state.geoserver_url;
+  if (state.geoserver_user) $('user').value = state.geoserver_user;
+  if (state.geoserver_password_saved) $('pw-hint').hidden = false;
+  if (state.repo) $('qgis-file').textContent = `${state.repo}/gis/splatworld-wfs.xml`;
+
+  async function run(provision) {
+    const url = $('url').value.trim();
+    if (!url) { say('Type your GeoServer address first.', 'bad'); return; }
+    for (const b of ['test', 'setup']) $(b).disabled = true;
+    say(provision ? 'Setting it up…' : 'Testing…', 'busy');
+    $('log').hidden = true;
+    try {
+      const out = await post('/setup/geoserver', {
+        url, user: $('user').value.trim(),
+        password: $('password').value, provision,
+      });
+      if (out.log?.length) { $('log').hidden = false; $('log').textContent = out.log.join('\n'); }
+      if (!out.ok) { say(out.error ?? 'It did not work.', 'bad'); return; }
+      $('next').hidden = !provision;
+      say(provision
+        ? 'Done. Your GeoServer is set up and the settings are saved.'
+        : 'Connected, and the login was accepted. Press "Set it up" to publish '
+          + 'the world\'s layers into it.', 'good');
+    } catch (err) {
+      say(`The local server did not answer: ${err.message}`, 'bad');
+    } finally {
+      for (const b of ['test', 'setup']) $(b).disabled = false;
+    }
+  }
+
+  $('test').onclick = () => run(false);
+  $('setup').onclick = () => run(true);
+  $('url').onkeydown = (e) => { if (e.key === 'Enter') { e.preventDefault(); run(false); } };
+</script>
