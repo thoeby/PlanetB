@@ -114,6 +114,12 @@ def store_body(cfg: Config, db_host: str, db_password: str) -> bytes:
         "user": "geoserver", "passwd": db_password, "dbtype": "postgis",
         "schema": "gis", "Expose primary keys": "true",
         "validate connections": "true",
+        # Everything drawable here is a view, and a view has no primary key of
+        # its own, so GeoTools finds none and publishes the layer read-only —
+        # QGIS then refuses to save with "{http://splatworld}area is read-only".
+        # db/0008_admin.sql fills gis.gt_pk_metadata in for exactly this, but
+        # that table is inert unless the store is told to consult it.
+        "Primary key metadata table": "gis.gt_pk_metadata",
     }
     return json.dumps({"dataStore": {"name": STORE, "connectionParameters": {
         "entry": [{"@key": k, "$": v} for k, v in entries.items()]}}}).encode()
