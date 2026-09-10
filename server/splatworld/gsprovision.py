@@ -300,8 +300,54 @@ def provision(cfg: Config, url: str, user: str, password: str,
             "  schema is 'public' and that Services > WFS is at service level\n"
             "  Complete."
         )
-    on_step("  wrote nothing, successfully — QGIS can draw on these")
+    on_step("  wrote nothing, successfully — GeoServer accepts writes")
+
+    # GeoServer accepting a write is still not the database accepting the row,
+    # and when the database refuses one, GeoServer reports "Error inserting
+    # features" and drops the reason. So do here exactly what a Save in QGIS
+    # does — every column sent, blanks as NULL, as the geoserver role — inside
+    # a transaction that is rolled back, and show the database's own words.
+    on_step("  checking the database takes a row the way QGIS sends it")
+    check_drawing(cfg, on_step)
     return f"{gs.base}/{WORKSPACE}/wfs"
+
+
+def check_drawing(cfg: Config, on_step=print) -> None:
+    import psycopg
+
+    dsn = (f"host={cfg.pg_host} port={cfg.pg_port} user=geoserver "
+           f"password={cfg.geoserver_password} dbname={cfg.pg_database}")
+    probe = (
+        ("an area", "INSERT INTO area (id, geom, owner_id, detail, rules, created_at)"
+                    " VALUES (gen_random_uuid(), st_geomfromtext('POLYGON((0 0, 0.001 0,"
+                    " 0.001 0.001, 0 0.001, 0 0))', 4326), NULL, NULL, NULL, NULL)"),
+        ("a feature", "INSERT INTO feature (id, area_id, kind, geom, props, rev, deleted_at)"
+                      " VALUES (gen_random_uuid(), NULL, 'road', st_geomfromtext("
+                      "'LINESTRING(0.0002 0.0002, 0.0004 0.0004)', 4326), NULL, NULL, NULL)"),
+    )
+    try:
+        with psycopg.connect(dsn, connect_timeout=5) as conn:
+            for what, sql in probe:
+                try:
+                    conn.execute(sql)
+                except psycopg.Error as err:
+                    raise SystemExit(
+                        f"geoserver: GeoServer is fine, but the database refuses {what}\n"
+                        f"  drawn from QGIS. Postgres says:\n"
+                        f"    {(err.diag.message_primary or str(err)).strip()}\n"
+                        + ("  Create your account in Setup, step 1 — it owns what you draw.\n"
+                           if "account" in str(err) else "")
+                        + "  The migration that fixes this may not be applied: stop the\n"
+                          "  server and run `splatworld run` again — it applies what is new."
+                    ) from err
+            conn.rollback()
+    except psycopg.OperationalError as err:
+        raise SystemExit(
+            f"geoserver: could not connect to the database as 'geoserver' — {err}\n"
+            "  That is the login GeoServer uses. Its password is GEOSERVER_DB_PASSWORD\n"
+            "  in .env and must match what db/0008 set."
+        ) from err
+    on_step("  it does — QGIS can draw on these")
 
 
 # An Update on `area` with a filter no row can match: proves the layer accepts

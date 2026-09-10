@@ -139,8 +139,15 @@ class ProvisionTest(unittest.TestCase):
         self.addCleanup(self.server.shutdown)
 
     def run_it(self):
-        return gsprovision.provision(Config, self.url, "admin", "geoserver",
-                                     on_step=lambda _: None)
+        # The database probe is covered against a real Postgres by
+        # tools/api-test; here there is only the fake GeoServer.
+        original = gsprovision.check_drawing
+        gsprovision.check_drawing = lambda cfg, on_step=print: None
+        try:
+            return gsprovision.provision(Config, self.url, "admin", "geoserver",
+                                         on_step=lambda _: None)
+        finally:
+            gsprovision.check_drawing = original
 
     def test_the_tables_are_published_from_public_and_the_overview_from_gis(self):
         self.run_it()
