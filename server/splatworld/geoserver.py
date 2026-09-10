@@ -9,7 +9,7 @@ from __future__ import annotations
 import urllib.parse
 import xml.etree.ElementTree as ET
 
-from .importer import _auth_header, fetch
+from .importer import _auth_header, absolute_url, fetch
 
 
 def local(tag: str) -> str:
@@ -33,7 +33,7 @@ def service_url(base: str, service: str) -> str:
     They may paste the root (…/geoserver), a workspace (…/geoserver/ws) or a
     full service URL (…/geoserver/ws/wfs?…). All three should work.
     """
-    parsed = urllib.parse.urlparse(base.strip())
+    parsed = urllib.parse.urlparse(absolute_url(base))
     path = parsed.path.rstrip("/")
     for suffix in ("/wfs", "/wcs", "/ows", "/wms"):
         if path.lower().endswith(suffix):

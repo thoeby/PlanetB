@@ -4,10 +4,16 @@ One command starts everything and opens the browser. The same command runs a
 laptop and a real server.
 
 ```
-pip install ./server
+python -m pip install -e ./server
 splatworld init      # create the database and apply the schema
 splatworld run       # start it and open the browser
 ```
+
+Install it with **`-e`** (editable) if you are following the repository: then
+`git pull` is enough and the command picks the changes up. A plain
+`pip install ./server` copies the code, so every `git pull` has to be followed
+by installing again — which is a very easy thing to forget, and looks exactly
+like the fix not working.
 
 ## What you have to install
 
@@ -27,8 +33,7 @@ PATH, or point the `POSTGREST` environment variable at it. It stays the API:
 the schema's grants and row-level security are what authorise every write
 (Invariant 6), and none of that survives being reimplemented.
 
-Then `pip install ./server` from a checkout, or `pip install -e ./server` to
-follow your edits.
+Then `python -m pip install -e ./server` from the checkout.
 
 ## Settings
 

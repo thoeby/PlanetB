@@ -16,6 +16,7 @@ from __future__ import annotations
 import base64
 import json
 import math
+import re
 import urllib.parse
 import urllib.request
 from pathlib import Path
@@ -68,6 +69,20 @@ def _auth_header(user: str | None, password: str | None) -> dict[str, str]:
     return {"Authorization": f"Basic {token}"}
 
 
+def absolute_url(url: str) -> str:
+    """Whatever someone typed, made into something urllib will open.
+
+    "gis.example.com/geoserver" has no scheme and urllib refuses it outright;
+    worse, "localhost:8080/geoserver" parses with scheme "localhost", so the
+    port becomes part of a URL type that does not exist. Both are what a person
+    types, so both mean http.
+    """
+    url = url.strip()
+    if not re.match(r"^[a-zA-Z][a-zA-Z0-9+.\-]*://", url):
+        url = f"http://{url}"
+    return url
+
+
 def fetch(url: str, headers: dict[str, str], *, what: str) -> bytes:
     req = urllib.request.Request(url, headers=headers)
     try:
@@ -78,11 +93,13 @@ def fetch(url: str, headers: dict[str, str], *, what: str) -> bytes:
         die(f"{what}: {err.code} {err.reason} from {url}\n  {body}")
     except OSError as err:
         die(f"{what}: could not reach {url} — {err}")
+    except ValueError as err:
+        die(f"{what}: {url} is not an address I can open — {err}")
     return b""
 
 
 def wfs_url(base: str, type_name: str, count: int | None) -> str:
-    u = urllib.parse.urlparse(base)
+    u = urllib.parse.urlparse(absolute_url(base))
     query = {
         "service": "WFS", "version": "2.0.0", "request": "GetFeature",
         "typeNames": type_name, "outputFormat": "application/json",
