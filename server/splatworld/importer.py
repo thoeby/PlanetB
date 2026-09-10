@@ -372,24 +372,6 @@ def run_spec(cfg: Config, spec: dict, base_dir: Path, out=print) -> int:
         print_(f"  {layer['name']}: {len(got)} {layer['kind']}")
         rows.extend(got)
 
-    if spec.get("osm"):
-        if not spec.get("bbox"):
-            die('"osm" needs a "bbox" — it is a question about an area')
-        from . import osm
-
-        print_("  asking OpenStreetMap for that area…")
-        # `"osm": true` is the normal form; a dict may name another Overpass
-        # mirror, which is also how this is tested without leaning on the
-        # donated one.
-        options = spec["osm"] if isinstance(spec["osm"], dict) else {}
-        got = osm.rows(spec["bbox"], **options)
-        counts: dict[str, int] = {}
-        for row in got:
-            counts[row["kind"]] = counts.get(row["kind"], 0) + 1
-        print_("  OpenStreetMap: "
-               + (", ".join(f"{n} {k}" for k, n in sorted(counts.items())) or "nothing here"))
-        rows.extend(got)
-
     bbox = spec.get("bbox") or (bbox_of(rows) if rows else None)
     if not bbox or not all(map(math.isfinite, bbox)):
         die('could not work out the region — give "bbox": [west, south, east, north]')

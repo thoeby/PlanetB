@@ -33,9 +33,13 @@ STYLES = ("tile", "area")
 
 class GeoServer:
     def __init__(self, url: str, user: str, password: str):
+        # Exactly the address given, minus the /web a browser shows. Where
+        # GeoServer is mounted is a deployment choice — /geoserver is common but
+        # the root is just as valid — so assuming /geoserver made every call
+        # land on a 404 for anyone whose install is not the common one.
         self.base = absolute_url(url).rstrip("/")
-        if not self.base.endswith("/geoserver"):
-            self.base += "/geoserver"
+        if self.base.lower().endswith("/web"):
+            self.base = self.base[: -len("/web")]
         token = base64.b64encode(f"{user}:{password}".encode()).decode()
         self.auth = f"Basic {token}"
 
