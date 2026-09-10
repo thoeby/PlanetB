@@ -234,6 +234,10 @@ class Handler(BaseHTTPRequestHandler):
             self._setup_state()
         elif path == "/setup/geoserver":
             self._setup_geoserver(body)
+        elif path == "/setup/account":
+            self._setup_account(body)
+        elif path == "/setup/elevation":
+            self._setup_elevation()
         elif path == "/import/probe":
             self._probe(body)
         elif path == "/import/run":
@@ -248,13 +252,56 @@ class Handler(BaseHTTPRequestHandler):
         from . import config as configmod
 
         saved = configmod.load_dotenv(self.cfg.repo / ".env")
+        drawn = 0
+        try:
+            import psycopg
+            with psycopg.connect(self.cfg.dsn(), connect_timeout=5) as conn:
+                drawn = conn.execute("SELECT count(*) FROM area").fetchone()[0]
+        except Exception:  # noqa: BLE001 - the page copes with not knowing
+            pass
         self._json(200, {
+            "account": saved.get("SPLATWORLD_ACCOUNT", ""),
+            "areas": drawn,
             "geoserver_url": saved.get("GEOSERVER_URL", ""),
             "geoserver_user": saved.get("GEOSERVER_ADMIN_USER", "admin"),
             # Whether one is stored, never the value itself.
             "geoserver_password_saved": bool(saved.get("GEOSERVER_ADMIN_PASSWORD")),
             "repo": str(self.cfg.repo),
         })
+
+    def _setup_account(self, body: dict) -> None:
+        """The account you sign in with, and the one QGIS draws as."""
+        from . import config as configmod
+        from . import importer
+
+        email = (body.get("email") or "").strip()
+        password = body.get("password") or ""
+        if not email or not password:
+            self._json(400, {"error": "An email and a password, please."})
+            return
+        try:
+            importer.ensure_account(self.cfg, email, password)
+        except Exception as err:  # noqa: BLE001
+            self._json(200, {"ok": False, "error": f"{type(err).__name__}: {err}"})
+            return
+        configmod.save(self.cfg, {"SPLATWORLD_ACCOUNT": email})
+        self._json(200, {"ok": True, "log": [f"  account {email} is ready"]})
+
+    def _setup_elevation(self) -> None:
+        """Elevation for whatever has been drawn — the region is not typed."""
+        from . import importer
+
+        log: list[str] = []
+        try:
+            count = importer.fetch_elevation(self.cfg, out=log.append)
+        except SystemExit as err:
+            self._json(200, {"ok": False, "log": log, "error": str(err)})
+            return
+        except Exception as err:  # noqa: BLE001
+            self._json(200, {"ok": False, "log": log,
+                             "error": f"{type(err).__name__}: {err}"})
+            return
+        self._json(200, {"ok": True, "log": log, "tiles": count})
 
     def _setup_geoserver(self, body: dict) -> None:
         """Test, or set up, the GeoServer — and remember what worked.

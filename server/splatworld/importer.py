@@ -409,3 +409,67 @@ def run_spec(cfg: Config, spec: dict, base_dir: Path, out=print) -> int:
 
     print_(f"\nDone. Sign in at /app/play.html as {owner} and turn on background work.")
     return 0
+
+
+# ------------------------------------------------- elevation for what exists
+
+def world_bbox(conn) -> list[float] | None:
+    """The extent of everything drawn, which is the region — nobody types it."""
+    row = conn.execute(
+        "SELECT st_xmin(e), st_ymin(e), st_xmax(e), st_ymax(e)"
+        " FROM (SELECT st_extent(geom) AS e FROM area) s").fetchone()
+    return [float(v) for v in row] if row and row[0] is not None else None
+
+
+def fetch_elevation(cfg: Config, out=print) -> int:
+    """Gets free elevation for whatever has been drawn so far.
+
+    The region comes from the areas in the database rather than from anyone
+    typing a bounding box, and re-running after drawing more simply covers more.
+    """
+    from tempfile import TemporaryDirectory
+
+    from . import copernicus, dem
+
+    with TemporaryDirectory() as tmp, psycopg.connect(cfg.dsn()) as conn:
+        bbox = world_bbox(conn)
+        if not bbox:
+            die("nothing has been drawn yet. Draw an area in QGIS first — the "
+                "region is worked out from what you drew.")
+        detail = conn.execute(
+            "SELECT coalesce(max(detail), 14) FROM area").fetchone()[0]
+        uid = conn.execute(
+            "SELECT id FROM auth.user WHERE role = 'admin'"
+            " ORDER BY created_at LIMIT 1").fetchone()
+        if not uid:
+            die("no account exists yet — make one on the setup page first.")
+
+        out(f"  region {', '.join(f'{v:.4f}' for v in bbox)} (from what you drew)")
+        # Padded by a tile: the tiles that get cut reach past the region's edges,
+        # and ground with no data becomes sea level, which is a cliff.
+        pad = 360.0 / (2 ** int(detail))
+        padded = [bbox[0] - pad, max(bbox[1] - pad, -85.0),
+                  bbox[2] + pad, min(bbox[3] + pad, 85.0)]
+        source = copernicus.mosaic(padded, Path(tmp) / "elevation.tif", on_step=out)
+
+        tiles = region_tiles(conn, bbox, int(detail))
+        if len(tiles) > MAX_TILES:
+            die(f"that is {len(tiles)} elevation tiles (limit {MAX_TILES}). "
+                "Draw a smaller area, or lower its detail.")
+        out(f"  cutting {len(tiles)} elevation tile(s)")
+        written, blank = dem.cut(source, cfg.files, tiles)
+        register_artifacts(conn, uid[0], written, "dem", DEM_ALGO)
+        out(f"  {mark_dirty(conn, bbox, int(detail))} new tile(s) to compile")
+        conn.commit()
+        if blank:
+            out(f"  warning: {len(blank)} tile(s) have no elevation data and "
+                "will be flat at sea level")
+        return len(written)
+
+
+def ensure_account(cfg: Config, email: str, password: str) -> str:
+    """The account you sign in as, and the owner QGIS draws as."""
+    with psycopg.connect(cfg.dsn()) as conn:
+        uid = ensure_owner(conn, email, password)
+        conn.commit()
+        return str(uid)

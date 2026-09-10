@@ -22,7 +22,7 @@ import urllib.request
 from pathlib import Path
 
 from .config import Config
-from .importer import absolute_url
+from .importer import absolute_url, fetch
 
 WORKSPACE = "splatworld"
 STORE = "splatworld_pg"
@@ -81,6 +81,29 @@ class GeoServer:
             ) from err
 
 
+def featuretype_body(layer: str) -> bytes:
+    """A layer GeoServer will actually serve, including when it holds no rows.
+
+    GeoServer computes a feature type's bounding box from the data when it is
+    published. A world is empty at exactly the moment it is being set up, so
+    that computation finds nothing, the layer is left with no bounds, and WFS
+    answers "Feature type is not available" — the layer is in the catalogue and
+    unusable. Declaring the whole earth avoids depending on rows existing; the
+    real extent is recomputed by GeoServer as data arrives.
+    """
+    whole_earth = {"minx": -180.0, "maxx": 180.0, "miny": -90.0, "maxy": 90.0,
+                   "crs": "EPSG:4326"}
+    return json.dumps({"featureType": {
+        "name": layer,
+        "nativeName": layer,
+        "srs": "EPSG:4326",
+        "nativeBoundingBox": whole_earth,
+        "latLonBoundingBox": whole_earth,
+        "projectionPolicy": "FORCE_DECLARED",
+        "enabled": True,
+    }}).encode()
+
+
 def store_body(cfg: Config, db_host: str, db_password: str) -> bytes:
     """GeoServer connection keys contain spaces, so this goes as JSON."""
     entries = {
@@ -106,15 +129,29 @@ def provision(cfg: Config, url: str, user: str, password: str,
             f"<workspace><name>{WORKSPACE}</name></workspace>".encode())
 
     on_step(f"  database store on {host}:{cfg.pg_port}/{cfg.pg_database}, schema gis")
-    gs.call("POST", f"/rest/workspaces/{WORKSPACE}/datastores",
-            store_body(cfg, host, cfg.geoserver_password), "application/json")
+    body = store_body(cfg, host, cfg.geoserver_password)
+    if gs.call("POST", f"/rest/workspaces/{WORKSPACE}/datastores",
+               body, "application/json") == 409:
+        # A store of that name already exists — but "exists" says nothing about
+        # whether it points anywhere useful. One left over from an earlier
+        # attempt, aimed at the wrong schema or host, publishes layers that
+        # cannot be read, so its settings are written rather than trusted.
+        on_step("    it was already there; writing the settings over it")
+        gs.call("PUT", f"/rest/workspaces/{WORKSPACE}/datastores/{STORE}",
+                body, "application/json")
 
     for layer in LAYERS:
         on_step(f"  layer {layer}")
-        gs.call("POST",
-                f"/rest/workspaces/{WORKSPACE}/datastores/{STORE}/featuretypes",
-                f"<featureType><name>{layer}</name>"
-                f"<srs>EPSG:4326</srs></featureType>".encode())
+        body = featuretype_body(layer)
+        if gs.call("POST",
+                   f"/rest/workspaces/{WORKSPACE}/datastores/{STORE}/featuretypes",
+                   body, "application/json") == 409:
+            # Already published — quite possibly by an earlier run that left it
+            # without bounds and therefore unusable. Write it over rather than
+            # leave a layer that is listed and cannot be read.
+            gs.call("PUT",
+                    f"/rest/workspaces/{WORKSPACE}/datastores/{STORE}"
+                    f"/featuretypes/{layer}", body, "application/json")
 
     styles_dir = cfg.repo / "infra" / "geoserver" / "styles"
     for style in STYLES:
@@ -156,6 +193,23 @@ def provision(cfg: Config, url: str, user: str, password: str,
         on_step(f"  warning: not published yet: {', '.join(missing)}")
     else:
         on_step(f"  confirmed: {len(published)} layer(s) published")
+
+    # Listed is not the same as usable: a layer with no bounds, or one whose
+    # store cannot reach the database, appears in the capabilities and then
+    # fails the moment QGIS asks it for anything. So ask it for something.
+    on_step("  checking a layer can actually be read")
+    probe = (f"{gs.base}/{WORKSPACE}/wfs?service=WFS&version=2.0.0"
+             f"&request=GetFeature&typeNames={WORKSPACE}:area&count=1")
+    answer = fetch(probe, {"Authorization": gs.auth}, what="reading area")
+    if b"ExceptionReport" in answer or b"ServiceException" in answer:
+        raise SystemExit(
+            "geoserver: the layers are published but cannot be read.\n"
+            f"  {answer[:400].decode('utf8', 'replace')}\n"
+            "  This is usually the store: check in GeoServer under Data > Stores\n"
+            "  > splatworld_pg that host, port, database, schema (gis) and the\n"
+            "  geoserver password are right for this machine."
+        )
+    on_step("  read one back — QGIS will be able to draw on these")
     return f"{gs.base}/{WORKSPACE}/wfs"
 
 

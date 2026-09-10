@@ -44,10 +44,23 @@
 </style>
 
 <h1>Setup</h1>
-<p class="lede">Where your GeoServer is. Entered once, then remembered.</p>
+<p class="lede">Three steps, once. Everything is remembered.</p>
 
 <fieldset>
-  <legend>Your GeoServer</legend>
+  <legend>1 · Your account</legend>
+  <p class="hint">You sign in with this, and QGIS draws as it.</p>
+  <div class="row">
+    <div><label for="email">Email</label>
+      <input id="email" value="me@example.com" autocomplete="off"></div>
+    <div><label for="pw">Password</label>
+      <input id="pw" type="password" autocomplete="off"></div>
+  </div>
+  <div class="buttons"><button id="make-account" type="button">Create it</button></div>
+  <div id="account-msg"></div>
+</fieldset>
+
+<fieldset>
+  <legend>2 · Your GeoServer</legend>
 
   <label for="url">Address</label>
   <input id="url" placeholder="localhost:8080/geoserver" autocomplete="off">
@@ -74,6 +87,17 @@
 
   <div id="msg"></div>
   <pre id="log" hidden></pre>
+</fieldset>
+
+<fieldset>
+  <legend>3 · Elevation</legend>
+  <p class="hint">Draw an area in QGIS first — this works out the region from
+    what you drew and fetches free elevation for exactly that. Nothing to type.
+    Run it again whenever you draw somewhere new.</p>
+  <p id="drawn" class="hint"></p>
+  <div class="buttons"><button id="elevation" type="button">Fetch elevation</button></div>
+  <div id="elev-msg"></div>
+  <pre id="elev-log" hidden></pre>
 </fieldset>
 
 <div class="next" id="next" hidden>
@@ -112,6 +136,50 @@
   if (state.geoserver_user) $('user').value = state.geoserver_user;
   if (state.geoserver_password_saved) $('pw-hint').hidden = false;
   if (state.repo) $('qgis-file').textContent = `${state.repo}/gis/splatworld-wfs.xml`;
+  if (state.account) $('email').value = state.account;
+  $('drawn').textContent = state.areas
+    ? `${state.areas} area(s) drawn so far.`
+    : 'Nothing drawn yet — draw an area in QGIS, then come back.';
+
+  const shout = (where, text, kind) => {
+    $(where).innerHTML = '';
+    if (!text) return;
+    const div = document.createElement('div');
+    div.className = `msg ${kind}`;
+    div.textContent = text;
+    $(where).append(div);
+  };
+
+  $('make-account').onclick = async () => {
+    const email = $('email').value.trim();
+    const password = $('pw').value;
+    if (!email || !password) { shout('account-msg', 'An email and a password, please.', 'bad'); return; }
+    $('make-account').disabled = true;
+    shout('account-msg', 'Creating…', 'busy');
+    try {
+      const out = await post('/setup/account', { email, password });
+      shout('account-msg', out.ok
+        ? `Ready. Sign in as ${email}.`
+        : (out.error ?? 'It did not work.'), out.ok ? 'good' : 'bad');
+    } catch (err) {
+      shout('account-msg', `The local server did not answer: ${err.message}`, 'bad');
+    } finally { $('make-account').disabled = false; }
+  };
+
+  $('elevation').onclick = async () => {
+    $('elevation').disabled = true;
+    shout('elev-msg', 'Working out the region and fetching elevation. A minute or two.', 'busy');
+    $('elev-log').hidden = true;
+    try {
+      const out = await post('/setup/elevation');
+      if (out.log?.length) { $('elev-log').hidden = false; $('elev-log').textContent = out.log.join('\n'); }
+      shout('elev-msg', out.ok
+        ? `Done — ${out.tiles} elevation tile(s). Open the world and turn on background work.`
+        : (out.error ?? 'It did not work.'), out.ok ? 'good' : 'bad');
+    } catch (err) {
+      shout('elev-msg', `The local server did not answer: ${err.message}`, 'bad');
+    } finally { $('elevation').disabled = false; }
+  };
 
   async function run(provision) {
     const url = $('url').value.trim();
