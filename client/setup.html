@@ -46,6 +46,8 @@
 <h1>Setup</h1>
 <p class="lede">Three steps, once. Everything is remembered.</p>
 
+<div id="mismatch" class="msg bad" hidden></div>
+
 <fieldset>
   <legend>1 · Your account</legend>
   <p class="hint">You sign in with this, and QGIS draws as it.</p>
@@ -139,6 +141,23 @@
 
   // What is already configured, so a second visit is not a blank form.
   const state = await post('/setup/state').catch(() => ({}));
+
+  // This page is a static file, so it is always whatever was last pulled. The
+  // server answers with the version of the code it is actually executing. When
+  // those differ, the server is running code that no longer exists on disk —
+  // an install that copied rather than linked, or one never restarted — and
+  // every button here would quietly do the old thing and look broken.
+  const onDisk = await fetch('./version.txt')
+    .then((r) => (r.ok ? r.text() : '')).then((t) => t.trim()).catch(() => '');
+  if (onDisk && state.version && onDisk !== state.version) {
+    $('mismatch').hidden = false;
+    $('mismatch').textContent =
+      `This page is version ${onDisk}; the server answering it is running `
+      + `${state.version}. Nothing you press here will run the code you have.\n\n`
+      + `In the folder you cloned into:\n`
+      + `    python -m pip install -e ./server\n`
+      + `then stop the server (Ctrl-C) and run  splatworld run  again.`;
+  }
   if (state.geoserver_url) $('url').value = state.geoserver_url;
   if (state.geoserver_user) $('user').value = state.geoserver_user;
   if (state.geoserver_password_saved) $('pw-hint').hidden = false;

@@ -20,6 +20,15 @@ class Config:
     repo = Path(__file__).resolve().parents[1]
 
 
+class VersionTest(unittest.TestCase):
+    def test_the_page_and_the_package_agree_on_the_version(self):
+        stated = (Path(__file__).resolve().parents[1]
+                  / "client" / "version.txt").read_text().strip()
+        self.assertEqual(stated, serve.__version__,
+                         "client/version.txt is what the setup page compares "
+                         "against; if they drift the page cries wolf")
+
+
 class CopyTest(unittest.TestCase):
     """A copy install that has fallen behind the checkout is the same trap."""
 

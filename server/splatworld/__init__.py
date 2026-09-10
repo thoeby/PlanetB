@@ -5,4 +5,9 @@ file store and the static client, applies the schema, and supervises PostgREST.
 It computes nothing about the world — every atom still runs in a browser tab
 (Invariant 9).
 """
-__version__ = "0.1.0"
+# Kept equal to client/version.txt, which the setup page reads straight from
+# the checkout. The page compares the two: a static file is whatever was last
+# pulled, so a server answering with an older version is proof that what is
+# running is not what is on disk — the one thing that cannot be detected by
+# the running code itself, because the running code is the thing at fault.
+__version__ = "0.2.0"

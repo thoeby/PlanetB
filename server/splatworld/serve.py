@@ -23,6 +23,7 @@ import urllib.request
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 
+from . import __version__
 from .config import Config
 
 STORE_PREFIXES = ("assets", "tiles", "jobs", "geo")
@@ -39,6 +40,7 @@ TYPES = {
     ".glb": "model/gltf-binary",
     ".wasm": "application/wasm",
     ".svg": "image/svg+xml",
+    ".txt": "text/plain; charset=utf-8",
 }
 
 CORS = {
@@ -324,6 +326,7 @@ class Handler(BaseHTTPRequestHandler):
             # Whether one is stored, never the value itself.
             "geoserver_password_saved": bool(saved.get("GEOSERVER_ADMIN_PASSWORD")),
             "repo": str(self.cfg.repo),
+            "version": __version__,
         })
 
     def _setup_account(self, body: dict) -> None:
