@@ -23,6 +23,7 @@ from __future__ import annotations
 
 import base64
 import json
+import re
 import urllib.error
 import urllib.request
 from pathlib import Path
@@ -314,9 +315,13 @@ def provision(cfg: Config, url: str, user: str, password: str,
     answer = gs.post_raw(f"/{WORKSPACE}/wfs", WRITE_PROBE)
     text = answer.decode("utf8", "replace")
     if "TransactionResponse" not in text:
+        # The words, not the envelope: the reason sits in ExceptionText, and
+        # the XML around it is long enough to push it out of view.
+        said = re.findall(r"<ows:ExceptionText>(.*?)</ows:ExceptionText>", text, re.S)
+        reason = "\n  ".join(t.strip() for t in said) if said else text[:3000]
         raise SystemExit(
             "geoserver: the layers are published but QGIS could not save into them.\n"
-            f"  {text[:400]}\n"
+            f"  {reason}\n"
             "  Check in GeoServer under Data > Stores > splatworld_pg that the\n"
             "  schema is 'public' and that Services > WFS is at service level\n"
             "  Complete."
