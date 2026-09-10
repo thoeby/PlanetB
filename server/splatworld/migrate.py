@@ -93,19 +93,42 @@ def create_database(cfg: Config, *, drop: bool = False) -> None:
 
 
 def apply(cfg: Config, *, on_step=print) -> int:
-    """Applies every migration in one transaction per file."""
+    """Applies the migrations not yet applied here, one transaction per file.
+
+    Which ones those are is recorded in the database itself, so a fix that
+    arrives as a new migration is picked up by the next `splatworld run`
+    instead of needing `init --reset` — which also deletes the account and
+    everything drawn, an unreasonable price for one more table.
+    """
     files = migrations(cfg)
     if not files:
         raise SystemExit(f"no migrations found in {cfg.migrations_dir}")
     with psycopg.connect(cfg.dsn(), autocommit=True) as conn:
         conn.execute("CREATE EXTENSION IF NOT EXISTS postgis")
         conn.execute("CREATE EXTENSION IF NOT EXISTS pgcrypto")
+        conn.execute("CREATE TABLE IF NOT EXISTS migration"
+                     " (name text PRIMARY KEY, applied_at timestamptz NOT NULL DEFAULT now())")
+        done = {r[0] for r in conn.execute("SELECT name FROM migration")}
+    count = 0
     for path in files:
+        if path.name in done:
+            continue
         on_step(f"  apply {path.name}")
         with psycopg.connect(cfg.dsn()) as conn:
             conn.execute(_substitute(path.read_text(encoding="utf8"), cfg))
+            conn.execute("INSERT INTO migration (name) VALUES (%s)", (path.name,))
             conn.commit()
-    return len(files)
+        count += 1
+    return count
+
+
+def pending(cfg: Config) -> list[str]:
+    """Migrations in the checkout that this database has not had."""
+    with psycopg.connect(cfg.dsn(), autocommit=True) as conn:
+        if not conn.execute("SELECT to_regclass('public.migration')").fetchone()[0]:
+            return []  # made before this bookkeeping existed; init --reset once
+        done = {r[0] for r in conn.execute("SELECT name FROM migration")}
+    return [p.name for p in migrations(cfg) if p.name not in done]
 
 
 def check_postgis(cfg: Config) -> str:

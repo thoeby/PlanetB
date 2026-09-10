@@ -167,6 +167,10 @@ def cmd_run(args: argparse.Namespace) -> int:
         migrate.check_postgis(cfg)
         migrate.create_database(cfg)
         print(f"  {migrate.apply(cfg, on_step=lambda _: None)} migrations applied")
+    elif migrate.pending(cfg):
+        # A fix that came as a migration is applied here, not by asking for a
+        # reset that would also delete the account and everything drawn.
+        print(f"  {migrate.apply(cfg, on_step=lambda _: None)} new migration(s) applied")
 
     problems = _preflight(cfg)
     if problems:
