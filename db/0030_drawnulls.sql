@@ -63,3 +63,20 @@ $$;
 
 CREATE TRIGGER instance_0_defaults BEFORE INSERT ON instance
 FOR EACH ROW EXECUTE FUNCTION instance_defaults();
+
+-- GeoServer does not send NULL for a blank number; it sends 0. A detail of 0
+-- is not a zoom, it is "unsaid", and means the baseline.
+CREATE OR REPLACE FUNCTION area_defaults() RETURNS trigger
+LANGUAGE plpgsql AS $$
+BEGIN
+    new.id := coalesce(new.id, gen_random_uuid());
+    new.owner_id := coalesce(new.owner_id, gis.default_owner());
+    new.detail := CASE WHEN coalesce(new.detail, 0) = 0 THEN 14 ELSE new.detail END;
+    new.rules := coalesce(new.rules, '{"required_approvals": 1}'::jsonb);
+    new.created_at := coalesce(new.created_at, now());
+    IF new.owner_id IS NULL THEN
+        RAISE EXCEPTION 'no account to own this yet — create one in Setup first';
+    END IF;
+    RETURN new;
+END;
+$$;

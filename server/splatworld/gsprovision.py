@@ -117,6 +117,21 @@ class GeoServer:
             return {}
 
 
+# The columns QGIS gets to see and send, per layer. GeoServer fills any
+# published column a drawer leaves blank with a placeholder rather than NULL
+# — '' for text, 0 for numbers, the zero uuid, 1970 for a timestamp — and ''
+# into a jsonb column is refused before any trigger can help. So the columns
+# the world fills in itself (owner, rules, timestamps, revisions) are simply
+# not published, and their defaults apply. `tile` and `instance` are left as
+# they are: one is read-only, the other's geometry is a generated column.
+PUBLISHED = {
+    "area": (("geom", "org.locationtech.jts.geom.Polygon"),
+             ("detail", "java.lang.Short")),
+    "feature": (("kind", "java.lang.String"),
+                ("geom", "org.locationtech.jts.geom.Geometry")),
+}
+
+
 def featuretype_body(layer: str) -> bytes:
     """A layer GeoServer will actually serve, including when it holds no rows.
 
@@ -129,7 +144,7 @@ def featuretype_body(layer: str) -> bytes:
     """
     whole_earth = {"minx": -180.0, "maxx": 180.0, "miny": -90.0, "maxy": 90.0,
                    "crs": "EPSG:4326"}
-    return json.dumps({"featureType": {
+    body = {
         "name": layer,
         "nativeName": layer,
         "srs": "EPSG:4326",
@@ -137,7 +152,13 @@ def featuretype_body(layer: str) -> bytes:
         "latLonBoundingBox": whole_earth,
         "projectionPolicy": "FORCE_DECLARED",
         "enabled": True,
-    }}).encode()
+    }
+    if layer in PUBLISHED:
+        body["attributes"] = {"attribute": [
+            {"name": name, "binding": binding, "minOccurs": 0, "maxOccurs": 1,
+             "nillable": True}
+            for name, binding in PUBLISHED[layer]]}
+    return json.dumps({"featureType": body}).encode()
 
 
 def store_body(cfg: Config, db_host: str, db_password: str,
@@ -317,13 +338,15 @@ def check_drawing(cfg: Config, on_step=print) -> None:
 
     dsn = (f"host={cfg.pg_host} port={cfg.pg_port} user=geoserver "
            f"password={cfg.geoserver_password} dbname={cfg.pg_database}")
+    # Exactly the statements GeoServer builds for a Save with the fields left
+    # blank: only the published columns, and a blank number arrives as 0.
     probe = (
-        ("an area", "INSERT INTO area (id, geom, owner_id, detail, rules, created_at)"
-                    " VALUES (gen_random_uuid(), st_geomfromtext('POLYGON((0 0, 0.001 0,"
-                    " 0.001 0.001, 0 0.001, 0 0))', 4326), NULL, NULL, NULL, NULL)"),
-        ("a feature", "INSERT INTO feature (id, area_id, kind, geom, props, rev, deleted_at)"
-                      " VALUES (gen_random_uuid(), NULL, 'road', st_geomfromtext("
-                      "'LINESTRING(0.0002 0.0002, 0.0004 0.0004)', 4326), NULL, NULL, NULL)"),
+        ("an area", "INSERT INTO area (geom, detail, id)"
+                    " VALUES (st_geomfromtext('POLYGON((0 0, 0.001 0,"
+                    " 0.001 0.001, 0 0.001, 0 0))', 4326), 0, gen_random_uuid())"),
+        ("a feature", "INSERT INTO feature (kind, geom, id)"
+                      " VALUES ('road', st_geomfromtext("
+                      "'LINESTRING(0.0002 0.0002, 0.0004 0.0004)', 4326), gen_random_uuid())"),
     )
     try:
         with psycopg.connect(dsn, connect_timeout=5) as conn:
