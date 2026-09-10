@@ -172,6 +172,71 @@ class Handler(BaseHTTPRequestHandler):
             with target.open("rb") as fh:
                 shutil.copyfileobj(fh, self.wfile)
 
+    # ----------------------------------------------------------- the importer
+
+    def _from_this_machine(self) -> bool:
+        """The import endpoints write to the world with the owner's authority.
+
+        They are therefore offered only to a browser on this very machine, even
+        when the server is bound to 0.0.0.0 so other people can look at the
+        world. Nothing here is reachable from the network.
+        """
+        return self.client_address[0] in ("127.0.0.1", "::1", "::ffff:127.0.0.1")
+
+    def _read_json(self) -> dict:
+        length = int(self.headers.get("Content-Length") or 0)
+        if length <= 0 or length > (8 << 20):
+            return {}
+        try:
+            return json.loads(self.rfile.read(length) or b"{}")
+        except ValueError:
+            return {}
+
+    def _json(self, status: int, payload: dict) -> None:
+        self._send(status, json.dumps(payload).encode("utf8"),
+                   "application/json; charset=utf-8", CORS)
+
+    def do_POST(self) -> None:  # noqa: N802
+        path, _ = self._route()
+        if not path.startswith("/import/"):
+            self._text(404, "not found")
+        elif not self._from_this_machine():
+            self._text(403, "the import page only works on this machine")
+        elif path == "/import/probe":
+            self._probe(self._read_json())
+        elif path == "/import/run":
+            self._import(self._read_json())
+        else:
+            self._text(404, "not found")
+
+    def _probe(self, body: dict) -> None:
+        """What a GeoServer has, so the page can offer it as a list."""
+        from . import geoserver
+
+        url = (body.get("url") or "").strip()
+        if not url:
+            self._json(400, {"error": "type your GeoServer address first"})
+            return
+        try:
+            self._json(200, geoserver.probe(url, body.get("user"), body.get("password")))
+        except SystemExit as err:
+            self._json(200, {"error": str(err)})
+        except Exception as err:  # noqa: BLE001 - the page shows whatever broke
+            self._json(200, {"error": f"{type(err).__name__}: {err}"})
+
+    def _import(self, body: dict) -> None:
+        from . import importer
+
+        lines: list[str] = []
+        try:
+            importer.run_spec(self.cfg, body, Path.cwd(), out=lambda m: lines.append(str(m)))
+            self._json(200, {"ok": True, "log": lines})
+        except SystemExit as err:
+            self._json(200, {"ok": False, "log": lines, "error": str(err)})
+        except Exception as err:  # noqa: BLE001
+            self._json(200, {"ok": False, "log": lines,
+                             "error": f"{type(err).__name__}: {err}"})
+
     def do_PUT(self) -> None:  # noqa: N802
         path, first = self._route()
         if first not in STORE_PREFIXES:

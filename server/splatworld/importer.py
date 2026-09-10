@@ -290,8 +290,17 @@ def elevation_source(spec: dict, defaults: dict, base_dir: Path, work: Path) -> 
             die(f"elevation: no such file {path}")
         return path
     url = spec.get("url")
+    if not url and spec.get("coverage"):
+        # The import page offers the coverages a GeoServer publishes by name;
+        # the GetCoverage request is built here rather than pasted by hand.
+        from . import geoserver
+
+        base = spec.get("wfs") or defaults.get("wfs")
+        if not base:
+            die('elevation by "coverage" needs the GeoServer address')
+        url = geoserver.coverage_url(base, spec["coverage"])
     if not url:
-        die('elevation needs a "file" or a "url"')
+        die('elevation needs a "file", a "url", or a "coverage"')
     headers = _auth_header(spec.get("user") or defaults.get("user"),
                            spec.get("password") or defaults.get("password"))
     print(f"  fetching elevation from {url}")
@@ -305,10 +314,20 @@ def elevation_source(spec: dict, defaults: dict, base_dir: Path, work: Path) -> 
 
 
 def run(cfg: Config, spec_path: Path) -> int:
+    """The command-line entry: a spec read from a file beside its data."""
+    spec = json.loads(spec_path.read_text(encoding="utf8"))
+    return run_spec(cfg, spec, spec_path.resolve().parent)
+
+
+def run_spec(cfg: Config, spec: dict, base_dir: Path, out=print) -> int:
+    """The import itself.
+
+    `out` collects the running commentary, so the same code serves the command
+    line and the import page, which shows it back to the browser.
+    """
     from tempfile import TemporaryDirectory
 
-    spec = json.loads(spec_path.read_text(encoding="utf8"))
-    base_dir = spec_path.resolve().parent
+    print_ = out
     defaults = spec.get("geoserver") or {}
     detail = int(spec.get("detail", 14))
     owner = (spec.get("owner") or {}).get("email", "me@splatworld.local")
@@ -320,21 +339,21 @@ def run(cfg: Config, spec_path: Path) -> int:
         if layer.get("kind") not in KINDS:
             die(f"{layer['name']}: \"kind\" must be one of {', '.join(KINDS)}")
         got = rows_of(layer, load_layer(layer, defaults, base_dir), index)
-        print(f"  {layer['name']}: {len(got)} {layer['kind']}")
+        print_(f"  {layer['name']}: {len(got)} {layer['kind']}")
         rows.extend(got)
 
     bbox = spec.get("bbox") or (bbox_of(rows) if rows else None)
     if not bbox or not all(map(math.isfinite, bbox)):
         die('could not work out the region — give "bbox": [west, south, east, north]')
-    print(f"  region {', '.join(f'{v:.4f}' for v in bbox)}, detail z{detail}")
+    print_(f"  region {', '.join(f'{v:.4f}' for v in bbox)}, detail z{detail}")
 
     with TemporaryDirectory() as tmp, psycopg.connect(cfg.dsn()) as conn:
         source = elevation_source(spec.get("elevation") or {}, defaults,
                                   base_dir, Path(tmp))
         uid = ensure_owner(conn, owner, password)
-        print(f"  {seed_areas(conn, uid, bbox, detail)} new area(s)")
-        print(f"  {mark_dirty(conn, bbox, detail)} new tile(s) to compile")
-        print(f"  {insert_features(conn, uid, rows)} new feature(s)")
+        print_(f"  {seed_areas(conn, uid, bbox, detail)} new area(s)")
+        print_(f"  {mark_dirty(conn, bbox, detail)} new tile(s) to compile")
+        print_(f"  {insert_features(conn, uid, rows)} new feature(s)")
 
         if source:
             from . import dem  # imported late: rasterio is only needed for this
@@ -343,16 +362,16 @@ def run(cfg: Config, spec_path: Path) -> int:
             if len(tiles) > MAX_TILES:
                 die(f"that region needs {len(tiles)} elevation tiles (limit "
                     f"{MAX_TILES}). Use a smaller bbox or a coarser \"detail\".")
-            print(f"  cutting {len(tiles)} elevation tile(s)")
+            print_(f"  cutting {len(tiles)} elevation tile(s)")
             written, blank = dem.cut(source, cfg.files, tiles)
             register_artifacts(conn, uid, written, "dem", DEM_ALGO)
-            print(f"  {len(written)} elevation tile(s) in the store")
+            print_(f"  {len(written)} elevation tile(s) in the store")
             if blank:
-                print(f"  warning: {len(blank)} tile(s) are outside your "
+                print_(f"  warning: {len(blank)} tile(s) are outside your "
                       "elevation data and will be flat at sea level")
         else:
-            print("  no elevation given — tiles cannot compile without it")
+            print_("  no elevation given — tiles cannot compile without it")
         conn.commit()
 
-    print(f"\nDone. Sign in at /app/play.html as {owner} and turn on background work.")
+    print_(f"\nDone. Sign in at /app/play.html as {owner} and turn on background work.")
     return 0

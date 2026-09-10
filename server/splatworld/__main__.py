@@ -109,6 +109,14 @@ def cmd_doctor(args: argparse.Namespace) -> int:
     return 1
 
 
+def _has_a_region(cfg: config.Config) -> bool:
+    try:
+        with psycopg.connect(cfg.dsn(), autocommit=True, connect_timeout=5) as conn:
+            return bool(conn.execute("SELECT EXISTS (SELECT 1 FROM area)").fetchone()[0])
+    except psycopg.Error:
+        return True  # not our problem here; the preflight already reported it
+
+
 def cmd_run(args: argparse.Namespace) -> int:
     cfg = _cfg(args)
     problems = _preflight(cfg)
@@ -122,12 +130,19 @@ def cmd_run(args: argparse.Namespace) -> int:
         server = serve.Server(cfg, verbose=args.verbose)
         url = f"http://{'127.0.0.1' if cfg.host in ('0.0.0.0', '::') else cfg.host}:{cfg.port}"
         print(f"  files and client on {url}")
+        # An empty world has nothing to show and nothing to do; send the first
+        # run to the page that fills it instead of to a black screen.
+        first_run = not _has_a_region(cfg)
+        landing = "import.html" if first_run else "play.html"
+        if first_run:
+            print(f"\n  This world is empty. Start here:\n  Import      {url}/app/import.html")
         print(f"\n  Play/build   {url}/app/play.html")
+        print(f"  Import       {url}/app/import.html")
         print(f"  Edit         {url}/app/edit.html")
         print(f"  Catalog      {url}/app/catalog.html")
         print("\nCtrl-C to stop.")
         if not args.no_browser:
-            threading.Timer(0.5, webbrowser.open, [f"{url}/app/play.html"]).start()
+            threading.Timer(0.5, webbrowser.open, [f"{url}/app/{landing}"]).start()
         try:
             server.serve_forever()
         except KeyboardInterrupt:

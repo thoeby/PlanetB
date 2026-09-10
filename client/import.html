@@ -1,0 +1,321 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>splatworld — import a region</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<!--
+  The import page: connect a GeoServer, say which layer is which, import.
+  It talks to the local server (/import/probe, /import/run), never to the
+  GeoServer directly — that keeps the browser out of cross-origin trouble and
+  keeps the password on this machine.
+-->
+<style>
+  :root { color-scheme: dark; font: 14px/1.6 system-ui, sans-serif; }
+  body { margin: 0; background: #0d1013; color: #e6e9ec;
+         padding: 28px 20px 80px; max-width: 60rem; margin-inline: auto; }
+  h1 { font-size: 19px; margin: 0 0 4px; }
+  h2 { font-size: 14px; text-transform: uppercase; letter-spacing: .08em;
+       color: #8b959e; margin: 28px 0 10px; font-weight: 600; }
+  p.lede { color: #8b959e; margin: 0 0 8px; }
+  fieldset { border: 1px solid #2a3138; border-radius: 8px; padding: 14px 16px;
+             margin: 0 0 14px; background: #12171c; }
+  label { display: block; margin: 8px 0 2px; color: #b6bfc7; }
+  input, select { width: 100%; box-sizing: border-box; padding: 6px 8px;
+    background: #0d1013; color: inherit; border: 1px solid #2a3138;
+    border-radius: 5px; font: inherit; }
+  .row { display: flex; gap: 12px; flex-wrap: wrap; }
+  .row > * { flex: 1 1 12rem; }
+  button { padding: 8px 16px; background: #2b6cb0; color: #fff; border: 0;
+    border-radius: 6px; cursor: pointer; font: inherit; font-weight: 600; }
+  button.ghost { background: #222a31; color: #e6e9ec; border: 1px solid #39424b; }
+  button:disabled { opacity: .5; cursor: default; }
+  table { width: 100%; border-collapse: collapse; }
+  th { text-align: left; color: #8b959e; font-weight: 600; font-size: 12px;
+       text-transform: uppercase; letter-spacing: .06em; padding: 6px 8px 6px 0; }
+  td { padding: 4px 8px 4px 0; vertical-align: middle; border-top: 1px solid #1d242a; }
+  td.name { font-family: ui-monospace, monospace; font-size: 13px; }
+  .msg { padding: 10px 12px; border-radius: 6px; margin: 12px 0; white-space: pre-wrap; }
+  .msg.bad { background: #3a1d1d; border: 1px solid #6b2b2b; color: #f0c8c8; }
+  .msg.good { background: #16301f; border: 1px solid #2c5c3a; color: #c2ecd0; }
+  pre { background: #0a0d10; border: 1px solid #1d242a; border-radius: 6px;
+        padding: 12px; overflow-x: auto; font-size: 13px; color: #b6bfc7; }
+  .hint { color: #6f7a84; font-size: 12px; margin: 2px 0 0; }
+  [hidden] { display: none !important; }
+</style>
+
+<h1>Import a region</h1>
+<p class="lede">Point this at your GeoServer, say which layer is which, and import.
+Nothing here needs a config file.</p>
+
+<h2>1 · Your GeoServer</h2>
+<fieldset>
+  <label for="url">Address</label>
+  <input id="url" placeholder="https://gis.example.com/geoserver" autocomplete="off">
+  <p class="hint">The root, a workspace, or a full WFS URL — any of them work.</p>
+  <div class="row">
+    <div><label for="user">User (if it needs one)</label>
+      <input id="user" autocomplete="off"></div>
+    <div><label for="pass">Password</label>
+      <input id="pass" type="password" autocomplete="off"></div>
+  </div>
+  <p style="margin-top:12px"><button id="connect">Connect</button></p>
+  <div id="connect-msg"></div>
+</fieldset>
+
+<div id="rest" hidden>
+  <h2>2 · Which layer is what</h2>
+  <fieldset>
+    <p class="lede">Leave a layer as <em>ignore</em> and it is not imported.</p>
+    <table id="layers"><thead><tr>
+      <th>Layer</th><th style="width:11rem">Import as</th>
+      <th style="width:13rem">Height/width column</th>
+    </tr></thead><tbody></tbody></table>
+  </fieldset>
+
+  <h2>3 · Elevation</h2>
+  <fieldset>
+    <label for="dem">Raster layer on your GeoServer</label>
+    <select id="dem"></select>
+    <label for="demfile" style="margin-top:12px">…or a GeoTIFF on this machine</label>
+    <input id="demfile" placeholder="C:\data\my-dem.tif" autocomplete="off">
+    <p class="hint">Any raster with a coordinate system, in any projection.
+      Without elevation, tiles cannot compile.</p>
+  </fieldset>
+
+  <h2>4 · Region and owner</h2>
+  <fieldset>
+    <div class="row">
+      <div><label for="w">West</label><input id="w" inputmode="decimal"></div>
+      <div><label for="s">South</label><input id="s" inputmode="decimal"></div>
+      <div><label for="e">East</label><input id="e" inputmode="decimal"></div>
+      <div><label for="n">North</label><input id="n" inputmode="decimal"></div>
+    </div>
+    <p class="hint">Filled in from the layers you picked. Shrink it to compile
+      less: every extra tile is real work in your browser.</p>
+    <div class="row" style="margin-top:12px">
+      <div><label for="email">Your email (this becomes your sign-in)</label>
+        <input id="email" value="me@splatworld.local" autocomplete="off"></div>
+      <div><label for="pw">A password for it</label>
+        <input id="pw" type="password" value="" autocomplete="off"></div>
+      <div><label for="detail">Detail</label>
+        <select id="detail">
+          <option value="14" selected>z14 — baseline (start here)</option>
+          <option value="16">z16 — trained, needs a real GPU</option>
+        </select></div>
+    </div>
+  </fieldset>
+
+  <p><button id="go">Import</button>
+     <button id="preview" class="ghost" type="button">Show me the config</button></p>
+  <div id="run-msg"></div>
+  <pre id="log" hidden></pre>
+</div>
+
+<script type="module">
+  const $ = (id) => document.getElementById(id);
+  const KINDS = ['footprint', 'road', 'forest', 'water', 'terrainmod'];
+  // Only these two carry a number the compiler reads; the rest need no column.
+  const PROP_OF = { footprint: 'height', road: 'width' };
+
+  let layers = [];
+  let coverages = [];
+
+  const say = (where, text, kind) => {
+    $(where).innerHTML = '';
+    if (!text) return;
+    const div = document.createElement('div');
+    div.className = `msg ${kind}`;
+    div.textContent = text;
+    $(where).append(div);
+  };
+
+  const post = async (path, body) => {
+    const res = await fetch(path, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+    });
+    return res.json();
+  };
+
+  // ------------------------------------------------------------- connecting
+
+  $('connect').onclick = async () => {
+    const url = $('url').value.trim();
+    if (!url) { say('connect-msg', 'Type your GeoServer address first.', 'bad'); return; }
+    $('connect').disabled = true;
+    say('connect-msg', 'Asking your GeoServer what it has…', 'good');
+    try {
+      const out = await post('/import/probe',
+        { url, user: $('user').value || null, password: $('pass').value || null });
+      if (out.error) { say('connect-msg', out.error, 'bad'); return; }
+      layers = out.layers ?? [];
+      coverages = out.coverages ?? [];
+      if (!layers.length) {
+        say('connect-msg', 'Connected, but that GeoServer publishes no vector layers.', 'bad');
+        return;
+      }
+      renderLayers();
+      renderCoverages(out.coverages_error);
+      $('rest').hidden = false;
+      say('connect-msg',
+        `Connected: ${layers.length} layer(s), ${coverages.length} raster(s).`, 'good');
+    } catch (err) {
+      say('connect-msg', `Could not reach the local server: ${err.message}`, 'bad');
+    } finally {
+      $('connect').disabled = false;
+    }
+  };
+
+  function renderLayers() {
+    const body = $('layers').querySelector('tbody');
+    body.replaceChildren(...layers.map((layer, i) => {
+      const tr = document.createElement('tr');
+
+      const name = document.createElement('td');
+      name.className = 'name';
+      name.textContent = layer.name;
+      name.title = layer.title ?? '';
+
+      const pick = document.createElement('select');
+      pick.dataset.index = String(i);
+      pick.append(new Option('ignore', ''));
+      for (const kind of KINDS) pick.append(new Option(kind, kind));
+      // A name like "…buildings" is almost always the footprints; offering the
+      // guess saves the common case without deciding anything irreversible.
+      const guess = guessKind(layer.name);
+      if (guess) pick.value = guess;
+
+      const prop = document.createElement('input');
+      prop.placeholder = 'column name';
+      prop.dataset.index = String(i);
+
+      const syncProp = () => {
+        const want = PROP_OF[pick.value];
+        prop.disabled = !want;
+        prop.placeholder = want ? `column holding ${want} in metres` : 'not needed';
+        if (!want) prop.value = '';
+        updateBbox();
+      };
+      pick.onchange = syncProp;
+      syncProp();
+
+      const kindCell = document.createElement('td');
+      kindCell.append(pick);
+      const propCell = document.createElement('td');
+      propCell.append(prop);
+      tr.append(name, kindCell, propCell);
+      return tr;
+    }));
+    updateBbox();
+  }
+
+  const guessKind = (name) => {
+    const n = name.toLowerCase();
+    if (/(building|footprint|gebaeude|gebäude|haus)/.test(n)) return 'footprint';
+    if (/(road|street|strasse|straße|weg)/.test(n)) return 'road';
+    if (/(forest|wood|wald)/.test(n)) return 'forest';
+    if (/(water|lake|river|see|fluss|gewaesser)/.test(n)) return 'water';
+    return '';
+  };
+
+  function renderCoverages(error) {
+    const select = $('dem');
+    select.replaceChildren(new Option(
+      coverages.length ? '— none, I will give a file below —' : '— none available —', ''));
+    for (const c of coverages) select.append(new Option(`${c.id} — ${c.title}`, c.id));
+    if (coverages.length === 1) select.selectedIndex = 1;
+    if (error && !coverages.length) {
+      select.nextElementSibling?.remove?.();
+    }
+  }
+
+  // ------------------------------------------------------------ the region
+
+  const chosen = () => [...$('layers').querySelectorAll('select')]
+    .map((select) => ({ layer: layers[+select.dataset.index], kind: select.value }))
+    .filter((row) => row.kind);
+
+  function updateBbox() {
+    const boxes = chosen().map((row) => row.layer.bbox).filter(Boolean);
+    if (!boxes.length) return;
+    const box = boxes.reduce((a, b) => [
+      Math.min(a[0], b[0]), Math.min(a[1], b[1]),
+      Math.max(a[2], b[2]), Math.max(a[3], b[3]),
+    ]);
+    const [w, s, e, n] = box.map((v) => v.toFixed(5));
+    if (!$('w').dataset.touched) { $('w').value = w; $('s').value = s; $('e').value = e; $('n').value = n; }
+  }
+  for (const id of ['w', 's', 'e', 'n']) {
+    $(id).oninput = () => { $('w').dataset.touched = '1'; };
+  }
+
+  // ------------------------------------------------------------ the import
+
+  function buildSpec() {
+    const props = [...$('layers').querySelectorAll('input')];
+    const spec = {
+      owner: { email: $('email').value.trim(), password: $('pw').value },
+      detail: Number($('detail').value),
+      geoserver: {
+        wfs: $('url').value.trim(),
+        user: $('user').value || null,
+        password: $('pass').value || null,
+      },
+      bbox: [$('w'), $('s'), $('e'), $('n')].map((el) => Number(el.value)),
+      layers: chosen().map(({ layer, kind }) => {
+        const i = layers.indexOf(layer);
+        const column = props[i]?.value?.trim();
+        const entry = { name: layer.name.replace(/^.*:/, ''), kind, typeName: layer.name };
+        if (column && PROP_OF[kind]) entry.props = { [PROP_OF[kind]]: column };
+        return entry;
+      }),
+    };
+    const file = $('demfile').value.trim();
+    const coverage = $('dem').value;
+    if (file) spec.elevation = { file };
+    else if (coverage) spec.elevation = { coverage };
+    return spec;
+  }
+
+  const problems = (spec) => {
+    const out = [];
+    if (!spec.layers.length) out.push('Pick at least one layer to import.');
+    if (!spec.owner.email) out.push('Give an email to own the region.');
+    if (!spec.owner.password) out.push('Give that account a password.');
+    if (!spec.bbox.every(Number.isFinite)) out.push('The region needs four numbers.');
+    else if (spec.bbox[0] >= spec.bbox[2] || spec.bbox[1] >= spec.bbox[3]) {
+      out.push('West must be less than east, and south less than north.');
+    }
+    if (!spec.elevation) out.push('Choose an elevation source — tiles cannot compile without one.');
+    return out;
+  };
+
+  $('preview').onclick = () => {
+    $('log').hidden = false;
+    $('log').textContent = JSON.stringify(buildSpec(), null, 2);
+  };
+
+  $('go').onclick = async () => {
+    const spec = buildSpec();
+    const bad = problems(spec);
+    if (bad.length) { say('run-msg', bad.join('\n'), 'bad'); return; }
+    $('go').disabled = true;
+    say('run-msg', 'Importing. Cutting elevation can take a few minutes — leave this open.', 'good');
+    $('log').hidden = false;
+    $('log').textContent = '';
+    try {
+      const out = await post('/import/run', spec);
+      $('log').textContent = (out.log ?? []).join('\n');
+      if (out.ok) {
+        say('run-msg', 'Imported. Open play.html, sign in as '
+          + `${spec.owner.email}, and turn on "work in the background".`, 'good');
+      } else {
+        say('run-msg', out.error ?? 'The import failed.', 'bad');
+      }
+    } catch (err) {
+      say('run-msg', `The local server stopped answering: ${err.message}`, 'bad');
+    } finally {
+      $('go').disabled = false;
+    }
+  };
+</script>

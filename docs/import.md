@@ -2,12 +2,31 @@
 
 Your elevation, your map layers, your region.
 
+## The page
+
+```
+splatworld run
+```
+
+then open **<http://localhost:8080/app/import.html>**. Type your GeoServer
+address, press Connect, and it lists what your GeoServer publishes: pick which
+layer is which from the dropdowns, pick your elevation raster, press Import.
+The region is filled in from the layers you chose. No config file.
+
+The page only answers a browser on the same machine, even when the server is
+bound to `0.0.0.0` for other people to look at the world: importing writes to
+the world with the owner's authority.
+
+The rest of this page is the same thing from the command line, which takes a
+config file and is what the page builds for you (press *Show me the config* to
+see it).
+
 ```
 splatworld import my-region.json
 ```
 
-Nothing else is needed — no GDAL, no Node, no shapefile reader. Elevation is
-read with rasterio, whose wheels carry their own GDAL.
+Nothing needs GDAL, Node or a shapefile reader. Elevation is read with
+rasterio, whose wheels carry their own GDAL.
 
 ## What the world wants from your data
 

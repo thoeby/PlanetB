@@ -51,6 +51,7 @@ same file the Makefile reads), or from flags — later wins.
 
 | | |
 |---|---|
+| `/app/import.html` | connect a GeoServer and import a region |
 | `/app/play.html` | play, and compile tiles in your browser |
 | `/app/edit.html` | the map editor |
 | `/app/catalog.html` | the catalog |
@@ -60,6 +61,7 @@ same file the Makefile reads), or from flags — later wins.
 ## Commands
 
 ```
+splatworld import <file>   import a region from the command line
 splatworld init            create the database, apply db/*.sql
 splatworld init --reset    drop it first — this deletes the whole world
 splatworld run             start everything
