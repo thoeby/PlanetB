@@ -30,32 +30,26 @@ tmp=$(mktemp -d); trap 'rm -rf "$tmp"' EXIT
 echo "<workspace><name>$WS</name></workspace>" > "$tmp/ws.xml"
 gs POST /rest/workspaces "$tmp/ws.xml"
 
-# GeoServer connection parameter keys contain spaces, so the stores are sent
-# as JSON rather than XML. Two stores: the tables in `public` that QGIS draws
-# into (a table has a primary key, so GeoTools serves it writable with nothing
-# further configured — a view does not, and comes out read-only), and the
-# read-only tile overview in `gis`.
-store() {  # name schema
+# GeoServer connection parameter keys contain spaces, so the store is sent as
+# JSON rather than XML. The layers are views (db/0031), and a view has no
+# primary key of its own: the store is told where gis.gt_pk_metadata records
+# them, or every layer comes out read-only.
 cat > "$tmp/store.json" <<JSON
-{"dataStore":{"name":"$1","connectionParameters":{"entry":[
+{"dataStore":{"name":"splatworld_pg","connectionParameters":{"entry":[
  {"@key":"host","\$":"$DB_HOST"},{"@key":"port","\$":"$DB_PORT"},
  {"@key":"database","\$":"$DB_NAME"},{"@key":"user","\$":"$DB_USER"},
  {"@key":"passwd","\$":"$DB_PASS"},{"@key":"dbtype","\$":"postgis"},
- {"@key":"schema","\$":"$2"},{"@key":"Expose primary keys","\$":"true"},
- {"@key":"validate connections","\$":"true"}]}}}
+ {"@key":"schema","\$":"gis"},{"@key":"Expose primary keys","\$":"true"},
+ {"@key":"validate connections","\$":"true"},
+ {"@key":"Primary key metadata table","\$":"gis.gt_pk_metadata"}]}}}
 JSON
 gs POST "/rest/workspaces/$WS/datastores" "$tmp/store.json" application/json
-}
-store splatworld_pg public
-store splatworld_gis gis
 
-layer() {  # store name
-    printf '<featureType><name>%s</name><srs>EPSG:4326</srs></featureType>' "$2" \
+for layer in area feature instance tile; do
+    printf '<featureType><name>%s</name><srs>EPSG:4326</srs></featureType>' "$layer" \
         > "$tmp/ft.xml"
-    gs POST "/rest/workspaces/$WS/datastores/$1/featuretypes" "$tmp/ft.xml"
-}
-for l in area feature instance; do layer splatworld_pg "$l"; done
-layer splatworld_gis tile
+    gs POST "/rest/workspaces/$WS/datastores/splatworld_pg/featuretypes" "$tmp/ft.xml"
+done
 
 for style in tile area; do
     gs POST "/rest/workspaces/$WS/styles?name=$style" \

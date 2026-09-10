@@ -24,12 +24,11 @@ Three GeoServer words, because they trip everyone up:
 - **Workspace** — a namespace. Ours is called `splatworld`. Layer names are
   written `splatworld:area`.
 - **Store** (or *data store*) — a connection to where data actually lives. Ours
-  are two PostGIS stores, both pointing at this world's database as the
-  `geoserver` login role: `splatworld_pg` at the `public` schema (the tables
-  you draw into) and `splatworld_gis` at the `gis` schema (the read-only
-  overview).
-- **Layer** (or *feature type*) — one table or view inside a store, published
-  for the outside world. We publish four.
+  is a PostGIS store called `splatworld_pg`, pointing at this world's database,
+  at the `gis` schema, connecting as the `geoserver` login role, with
+  *Primary key metadata table* set to `gis.gt_pk_metadata`.
+- **Layer** (or *feature type*) — one view inside that store, published for
+  the outside world. We publish four.
 
 `splatworld geoserver <address>` creates all three for you over GeoServer's REST
 API. The rest of this page is what it made, so you can check it, change it, or
@@ -37,10 +36,13 @@ do it by hand.
 
 ## What gets published
 
-The editable layers are the tables themselves, not views of them. A view has
-no primary key, and GeoTools serves anything without one read-only — QGIS then
-says `area is read-only` at Save. A table's key is found on its own, so nothing
-on the GeoServer side has to be right for drawing to work.
+The editable layers are views holding only the columns you touch
+(`db/0031`). GeoServer sends every column of a layer and fills a blank with a
+placeholder (`''`, `0`) rather than NULL, so columns the world fills in itself
+are kept out of sight. A view has no primary key of its own, so the store
+names `gis.gt_pk_metadata`, where they are recorded; without that, GeoTools
+serves the layer read-only and QGIS says `area is read-only` at Save. Setup
+ends with a real write to be sure.
 
 | layer | geometry | what it is |
 |---|---|---|
@@ -54,9 +56,11 @@ on the GeoServer side has to be right for drawing to work.
 | field | fill it in? | meaning |
 |---|---|---|
 | `id` | no | uuid, generated |
-| `area_id` | no | worked out from where you drew it (`db/0028`); drawing outside every area is refused |
 | `kind` | **yes** | `road`, `forest`, `water`, `footprint` or `terrainmod` |
 | `geom` | you draw it | EPSG:4326, 2D is fine — a Z is added on the way in (`db/0029`) |
+
+`area_id`, `props`, `rev` and so on are not in the layer: the area is worked
+out from where you drew (`db/0028`), the rest from defaults (`db/0030`).
 | `props` | optional | JSON. `{"height": 12.5}` on a building, `{"width": 7}` on a road. Metres |
 | `rev` | no | bumped by a trigger |
 | `deleted_at` | no | set instead of deleting, so a tile knows it changed |

@@ -4,14 +4,15 @@ This is infra/geoserver/provision.sh without the bash, so it runs on Windows.
 It talks to GeoServer's REST API and makes it publish the editable layers that
 live in this world's database:
 
-    area  feature  instance          (the tables — writable, nothing to set)
+    area  feature  instance          (editable views, schema gis)
     tile                             (read-only overview of compile state)
 
-The tables, not views of them: a view has no primary key, so GeoTools serves
-it read-only unless GeoServer is separately told where the keys are recorded,
-and when that setting is missing QGIS says "area is read-only" at Save and
-nothing explains why. A table's primary key is found on its own. db/0029 gives
-the tables the defaults drawing needs.
+Views with only the columns a drawer touches (db/0031): GeoServer sends every
+published column and fills a blank with a placeholder rather than NULL, and
+publishing a subset of a table's columns makes the layer read-only. A view has
+no primary key of its own, so the store is told where gis.gt_pk_metadata
+records them — and the setup ends with a real write, because that setting
+being ignored is exactly what "area is read-only" looks like.
 
 Then QGIS edits them over WFS-T and a database trigger marks the covering tiles
 dirty, which is the work queue. GeoServer is admin and visualisation only and
@@ -32,10 +33,9 @@ from .config import Config
 from .importer import absolute_url, fetch
 
 WORKSPACE = "splatworld"
-STORE = "splatworld_pg"          # schema public: the tables QGIS draws into
-OVERVIEW_STORE = "splatworld_gis"  # schema gis: the read-only tile overview
-LAYERS = ("area", "feature", "instance")
-OVERVIEW_LAYERS = ("tile",)
+STORE = "splatworld_pg"
+SCHEMA = "gis"
+LAYERS = ("area", "feature", "instance", "tile")
 STYLES = ("tile", "area")
 
 
@@ -118,21 +118,6 @@ class GeoServer:
             return {}
 
 
-# The columns QGIS gets to see and send, per layer. GeoServer fills any
-# published column a drawer leaves blank with a placeholder rather than NULL
-# — '' for text, 0 for numbers, the zero uuid, 1970 for a timestamp — and ''
-# into a jsonb column is refused before any trigger can help. So the columns
-# the world fills in itself (owner, rules, timestamps, revisions) are simply
-# not published, and their defaults apply. `tile` and `instance` are left as
-# they are: one is read-only, the other's geometry is a generated column.
-PUBLISHED = {
-    "area": (("geom", "org.locationtech.jts.geom.Polygon"),
-             ("detail", "java.lang.Short")),
-    "feature": (("kind", "java.lang.String"),
-                ("geom", "org.locationtech.jts.geom.Geometry")),
-}
-
-
 def featuretype_body(layer: str) -> bytes:
     """A layer GeoServer will actually serve, including when it holds no rows.
 
@@ -154,50 +139,47 @@ def featuretype_body(layer: str) -> bytes:
         "projectionPolicy": "FORCE_DECLARED",
         "enabled": True,
     }
-    if layer in PUBLISHED:
-        body["attributes"] = {"attribute": [
-            {"name": name, "binding": binding, "minOccurs": 0, "maxOccurs": 1,
-             "nillable": True}
-            for name, binding in PUBLISHED[layer]]}
     return json.dumps({"featureType": body}).encode()
 
 
-def store_body(cfg: Config, db_host: str, db_password: str,
-               name: str = STORE, schema: str = "public") -> bytes:
+PK_TABLE = "gis.gt_pk_metadata"
+
+
+def store_body(cfg: Config, db_host: str, db_password: str) -> bytes:
     """GeoServer connection keys contain spaces, so this goes as JSON."""
     entries = {
         "host": db_host, "port": str(cfg.pg_port), "database": cfg.pg_database,
         "user": "geoserver", "passwd": db_password, "dbtype": "postgis",
-        "schema": schema, "Expose primary keys": "true",
+        "schema": SCHEMA, "Expose primary keys": "true",
         "validate connections": "true",
+        # Everything drawable is a view, and a view has no primary key of its
+        # own; without this GeoTools finds none and serves the layer read-only.
+        "Primary key metadata table": PK_TABLE,
     }
-    return json.dumps({"dataStore": {"name": name, "connectionParameters": {
+    return json.dumps({"dataStore": {"name": STORE, "connectionParameters": {
         "entry": [{"@key": k, "$": v} for k, v in entries.items()]}}}).encode()
 
 
-def check_store(gs: GeoServer, name: str, schema: str, on_step=print) -> None:
-    """Confirm the store points where it was told to.
-
-    Writing a store and having GeoServer accept it says nothing about what it
-    kept; a store left over from an earlier attempt, aimed at another schema,
-    publishes layers that cannot be read or written.
-    """
-    store = gs.read(f"/rest/workspaces/{WORKSPACE}/datastores/{name}.json")
+def check_store(gs: GeoServer, on_step=print) -> None:
+    """Confirm the settings that decide whether QGIS may draw actually landed."""
+    store = gs.read(f"/rest/workspaces/{WORKSPACE}/datastores/{STORE}.json")
     entries = store.get("dataStore", {}).get("connectionParameters", {}).get("entry", [])
     held = {e.get("@key"): e.get("$") for e in entries if isinstance(e, dict)}
-    if held.get("schema") != schema:
+    wrong = [(k, want, held.get(k)) for k, want in
+             (("schema", SCHEMA), ("Primary key metadata table", PK_TABLE))
+             if held.get(k) != want]
+    if wrong:
         raise SystemExit(
-            f"geoserver: the store {name} points at schema {held.get('schema')!r}, "
-            f"not {schema}.\n"
-            f"  Delete it under Data > Stores > {name} and press 'Set it up' again."
+            "geoserver: the store was written but did not keep its settings:\n"
+            + "".join(f"  {k} should be {want!r} and is {got!r}\n" for k, want, got in wrong)
+            + f"  Delete it under Data > Stores > {STORE} and press 'Set it up' again."
         )
-    on_step(f"    settings confirmed: schema {schema}")
+    on_step(f"    settings confirmed: schema {SCHEMA}, primary keys from {PK_TABLE}")
 
 
-def ensure_store(gs: GeoServer, cfg: Config, host: str, name: str, schema: str,
-                 layers: tuple[str, ...], on_step) -> None:
-    on_step(f"  store {name}: {host}:{cfg.pg_port}/{cfg.pg_database}, schema {schema}")
-    body = store_body(cfg, host, cfg.geoserver_password, name, schema)
+def ensure_store(gs: GeoServer, cfg: Config, host: str, on_step) -> None:
+    on_step(f"  store {STORE}: {host}:{cfg.pg_port}/{cfg.pg_database}, schema {SCHEMA}")
+    body = store_body(cfg, host, cfg.geoserver_password)
     if gs.call("POST", f"/rest/workspaces/{WORKSPACE}/datastores",
                body, "application/json") == 409:
         # A store of that name already exists — but "exists" says nothing about
@@ -205,32 +187,32 @@ def ensure_store(gs: GeoServer, cfg: Config, host: str, name: str, schema: str,
         # attempt, aimed at the wrong schema or host, publishes layers that
         # cannot be read, so its settings are written rather than trusted.
         on_step("    it was already there; writing the settings over it")
-        gs.call("PUT", f"/rest/workspaces/{WORKSPACE}/datastores/{name}",
+        gs.call("PUT", f"/rest/workspaces/{WORKSPACE}/datastores/{STORE}",
                 body, "application/json")
 
     # GeoServer keeps live connection pools keyed by the store, and a store it
     # already has open is not necessarily reopened when its settings change. A
     # reset drops them, so what was just written is what the next request uses.
     gs.call("POST", "/rest/reset")
-    check_store(gs, name, schema, on_step)
+    check_store(gs, on_step)
 
-    for layer in layers:
+    for layer in LAYERS:
         on_step(f"  layer {layer}")
         body = featuretype_body(layer)
         if gs.call("POST",
-                   f"/rest/workspaces/{WORKSPACE}/datastores/{name}/featuretypes",
+                   f"/rest/workspaces/{WORKSPACE}/datastores/{STORE}/featuretypes",
                    body, "application/json") == 409:
-            # Already published — by an earlier run, possibly into a different
-            # store, possibly without bounds. A layer name is unique across the
-            # workspace, so whatever holds it now is removed and it is published
-            # afresh from here; the styles are put back right after this.
-            on_step("    it was already there; publishing it again from this store")
-            for store in (STORE, OVERVIEW_STORE):
+            # Already published — by an earlier run, possibly from a store that
+            # no longer exists, possibly without bounds, possibly with a column
+            # list that made it read-only. Whatever holds it is removed and it
+            # is published afresh; the styles are put back right after this.
+            on_step("    it was already there; publishing it again")
+            for store in (STORE, "splatworld_gis"):
                 gs.call("DELETE",
                         f"/rest/workspaces/{WORKSPACE}/datastores/{store}"
                         f"/featuretypes/{layer}?recurse=true", tolerate=(404,))
             gs.call("POST",
-                    f"/rest/workspaces/{WORKSPACE}/datastores/{name}/featuretypes",
+                    f"/rest/workspaces/{WORKSPACE}/datastores/{STORE}/featuretypes",
                     body, "application/json")
 
 
@@ -246,8 +228,7 @@ def provision(cfg: Config, url: str, user: str, password: str,
     gs.call("POST", "/rest/workspaces",
             f"<workspace><name>{WORKSPACE}</name></workspace>".encode())
 
-    ensure_store(gs, cfg, host, STORE, "public", LAYERS, on_step)
-    ensure_store(gs, cfg, host, OVERVIEW_STORE, "gis", OVERVIEW_LAYERS, on_step)
+    ensure_store(gs, cfg, host, on_step)
 
     styles_dir = cfg.repo / "infra" / "geoserver" / "styles"
     for style in STYLES:
@@ -283,7 +264,7 @@ def provision(cfg: Config, url: str, user: str, password: str,
             "  GeoServer under Data > Stores > splatworld_pg that host, port,\n"
             "  database and the 'geoserver' password are right for this machine."
         ) from err
-    missing = [name for name in LAYERS + OVERVIEW_LAYERS
+    missing = [name for name in LAYERS
                if f"{WORKSPACE}:{name}" not in published and name not in published]
     if missing:
         on_step(f"  warning: not published yet: {', '.join(missing)}")
@@ -322,9 +303,9 @@ def provision(cfg: Config, url: str, user: str, password: str,
         raise SystemExit(
             "geoserver: the layers are published but QGIS could not save into them.\n"
             f"  {reason}\n"
-            "  Check in GeoServer under Data > Stores > splatworld_pg that the\n"
-            "  schema is 'public' and that Services > WFS is at service level\n"
-            "  Complete."
+            f"  Check in GeoServer under Data > Stores > {STORE} that the schema\n"
+            f"  is '{SCHEMA}', 'Primary key metadata table' is '{PK_TABLE}', and\n"
+            "  that Services > WFS is at service level Complete."
         )
     on_step("  wrote nothing, successfully — GeoServer accepts writes")
 
@@ -344,14 +325,14 @@ def check_drawing(cfg: Config, on_step=print) -> None:
     dsn = (f"host={cfg.pg_host} port={cfg.pg_port} user=geoserver "
            f"password={cfg.geoserver_password} dbname={cfg.pg_database}")
     # Exactly the statements GeoServer builds for a Save with the fields left
-    # blank: only the published columns, and a blank number arrives as 0.
+    # blank: every column of the view, a blank number as 0, the id fetched back.
     probe = (
-        ("an area", "INSERT INTO area (geom, detail, id)"
+        ("an area", "INSERT INTO gis.area (geom, detail)"
                     " VALUES (st_geomfromtext('POLYGON((0 0, 0.001 0,"
-                    " 0.001 0.001, 0 0.001, 0 0))', 4326), 0, gen_random_uuid())"),
-        ("a feature", "INSERT INTO feature (kind, geom, id)"
+                    " 0.001 0.001, 0 0.001, 0 0))', 4326), 0) RETURNING id"),
+        ("a feature", "INSERT INTO gis.feature (kind, geom)"
                       " VALUES ('road', st_geomfromtext("
-                      "'LINESTRING(0.0002 0.0002, 0.0004 0.0004)', 4326), gen_random_uuid())"),
+                      "'LINESTRING(0.0002 0.0002, 0.0004 0.0004)', 4326)) RETURNING id"),
     )
     try:
         with psycopg.connect(dsn, connect_timeout=5) as conn:

@@ -109,7 +109,7 @@ CAPABILITIES = b"""<?xml version="1.0"?>
   <FeatureTypeList>
 """ + b"".join(
     f"    <FeatureType><Name>splatworld:{n}</Name></FeatureType>\n".encode()
-    for n in gsprovision.LAYERS + gsprovision.OVERVIEW_LAYERS
+    for n in gsprovision.LAYERS
 ) + b"""  </FeatureTypeList>
 </WFS_Capabilities>
 """
@@ -130,8 +130,8 @@ class ProvisionTest(unittest.TestCase):
         FakeGeoServer.writable = True
         FakeGeoServer.seen = []
         # What an earlier setup left behind: every layer in the old, single store.
-        FakeGeoServer.published = {n: gsprovision.STORE
-                                   for n in gsprovision.LAYERS + gsprovision.OVERVIEW_LAYERS}
+        FakeGeoServer.published = {n: gsprovision.STORE for n in gsprovision.LAYERS}
+        FakeGeoServer.published["tile"] = "splatworld_gis"  # an earlier layout
         self.server = ThreadingHTTPServer(("127.0.0.1", 0), FakeGeoServer)
         threading.Thread(target=self.server.serve_forever, daemon=True).start()
         self.url = f"http://127.0.0.1:{self.server.server_port}"
@@ -149,14 +149,12 @@ class ProvisionTest(unittest.TestCase):
         finally:
             gsprovision.check_drawing = original
 
-    def test_the_tables_are_published_from_public_and_the_overview_from_gis(self):
+    def test_the_store_points_at_gis_and_names_the_key_table(self):
         self.run_it()
-        held = {name: {e["@key"]: e["$"] for e in
-                       store["dataStore"]["connectionParameters"]["entry"]}
-                for name, store in FakeGeoServer.stores.items()}
-        self.assertEqual(held[gsprovision.STORE]["schema"], "public")
-        self.assertEqual(held[gsprovision.OVERVIEW_STORE]["schema"], "gis")
-        self.assertNotIn("Primary key metadata table", held[gsprovision.STORE])
+        held = {e["@key"]: e["$"] for e in
+                FakeGeoServer.stores[gsprovision.STORE]["dataStore"]["connectionParameters"]["entry"]}
+        self.assertEqual(held["schema"], "gis")
+        self.assertEqual(held["Primary key metadata table"], "gis.gt_pk_metadata")
         self.assertIn(("PUT", f"/rest/workspaces/splatworld/datastores/"
                               f"{gsprovision.STORE}"), FakeGeoServer.seen)
 
@@ -166,9 +164,9 @@ class ProvisionTest(unittest.TestCase):
             self.run_it()
         self.assertIn("could not save", str(caught.exception))
 
-    def test_a_layer_left_in_the_old_store_is_moved_not_refused(self):
+    def test_a_layer_left_in_an_old_store_is_moved_not_refused(self):
         self.run_it()
-        self.assertEqual(FakeGeoServer.published["tile"], gsprovision.OVERVIEW_STORE)
+        self.assertEqual(FakeGeoServer.published["tile"], gsprovision.STORE)
         self.assertEqual(FakeGeoServer.published["area"], gsprovision.STORE)
 
     def test_the_cached_pools_are_dropped(self):
@@ -179,7 +177,7 @@ class ProvisionTest(unittest.TestCase):
         FakeGeoServer.keep_puts = False
         with self.assertRaises(SystemExit) as caught:
             self.run_it()
-        self.assertIn("schema", str(caught.exception))
+        self.assertIn("did not keep its settings", str(caught.exception))
 
 
 if __name__ == "__main__":
