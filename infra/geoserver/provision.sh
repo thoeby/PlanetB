@@ -45,8 +45,11 @@ cat > "$tmp/store.json" <<JSON
 JSON
 gs POST "/rest/workspaces/$WS/datastores" "$tmp/store.json" application/json
 
+# Published in EPSG:3857 and reprojected to the database's 4326: in 4326 the
+# order of the two numbers is a client/server argument, and the first area
+# drawn from QGIS landed off Somalia. 3857 is x then y, nothing to argue.
 for layer in area feature instance tile; do
-    printf '<featureType><name>%s</name><srs>EPSG:4326</srs></featureType>' "$layer" \
+    printf '<featureType><name>%s</name><nativeCRS>EPSG:4326</nativeCRS><srs>EPSG:3857</srs><projectionPolicy>REPROJECT_TO_DECLARED</projectionPolicy></featureType>' "$layer" \
         > "$tmp/ft.xml"
     gs POST "/rest/workspaces/$WS/datastores/splatworld_pg/featuretypes" "$tmp/ft.xml"
 done

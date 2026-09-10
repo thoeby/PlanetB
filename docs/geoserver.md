@@ -57,7 +57,7 @@ ends with a real write to be sure.
 |---|---|---|
 | `id` | no | uuid, generated |
 | `kind` | **yes** | `road`, `forest`, `water`, `footprint` or `terrainmod` |
-| `geom` | you draw it | EPSG:4326, 2D is fine — a Z is added on the way in (`db/0029`) |
+| `geom` | you draw it | the layer is EPSG:3857 (x/y, no lat/lon ambiguity); GeoServer stores 4326. 2D is fine — a Z is added on the way in (`db/0029`) |
 
 `area_id`, `props`, `rev` and so on are not in the layer: the area is worked
 out from where you drew (`db/0028`), the rest from defaults (`db/0030`).

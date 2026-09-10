@@ -127,16 +127,24 @@ def featuretype_body(layer: str) -> bytes:
     answers "Feature type is not available" — the layer is in the catalogue and
     unusable. Declaring the whole earth avoids depending on rows existing; the
     real extent is recomputed by GeoServer as data arrives.
+
+    Published in EPSG:3857, not the database's EPSG:4326. In 4326 the order of
+    the two numbers is a decade-old disagreement between clients and servers
+    (latitude first since WFS 1.1, longitude first before), and the first area
+    drawn from QGIS was stored off the coast of Somalia. 3857 is x then y and
+    nothing else; GeoServer converts to 4326 on every write and back on every
+    read, so the database never sees the argument.
     """
-    whole_earth = {"minx": -180.0, "maxx": 180.0, "miny": -90.0, "maxy": 90.0,
-                   "crs": "EPSG:4326"}
+    native = {"minx": -180.0, "maxx": 180.0, "miny": -85.05, "maxy": 85.05,
+              "crs": "EPSG:4326"}
     body = {
         "name": layer,
         "nativeName": layer,
-        "srs": "EPSG:4326",
-        "nativeBoundingBox": whole_earth,
-        "latLonBoundingBox": whole_earth,
-        "projectionPolicy": "FORCE_DECLARED",
+        "nativeCRS": "EPSG:4326",
+        "srs": "EPSG:3857",
+        "nativeBoundingBox": native,
+        "latLonBoundingBox": native,
+        "projectionPolicy": "REPROJECT_TO_DECLARED",
         "enabled": True,
     }
     return json.dumps({"featureType": body}).encode()
