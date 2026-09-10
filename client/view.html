@@ -1,0 +1,143 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>splatworld</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<!--
+  The read-only viewer. It asks no database anything: the tile list is a file
+  next to it (index.json), and the tiles are files under ./tiles/. That makes a
+  world something you can copy onto any web host, including shared hosting, and
+  hand out as a link.
+
+  tools/export-world.mjs writes the folder this page expects. play.html is the
+  full thing — signing in, building, compiling — and is unaffected by this page.
+-->
+<meta name="splatworld:world" content=".">
+<style>
+  :root { color-scheme: dark; font: 14px/1.5 system-ui, sans-serif; }
+  body { margin: 0; background: #0d1013; color: #e6e9ec; overflow: hidden; }
+  #view { display: block; width: 100vw; height: 100vh; }
+  #hud {
+    position: fixed; top: 12px; left: 12px; padding: 10px 12px; max-width: 20rem;
+    background: #161b20e6; border: 1px solid #2a3138; border-radius: 6px;
+  }
+  h1 { margin: 0 0 6px; font-size: 15px; font-weight: 600; letter-spacing: .02em; }
+  #status { margin: 0; color: #8b959e; white-space: pre-line; }
+  #help { margin: 8px 0 0; padding-top: 8px; border-top: 1px solid #2a3138;
+    color: #6f7a84; font-size: 12px; }
+  #hint {
+    position: fixed; inset: auto 0 18% 0; text-align: center; color: #c9d1d9;
+    font-size: 15px; text-shadow: 0 1px 3px #000; pointer-events: none;
+  }
+  #hint[hidden] { display: none; }
+</style>
+
+<canvas id="view"></canvas>
+<section id="hud">
+  <h1>splatworld</h1>
+  <p id="status">loading…</p>
+  <p id="help">W A S D move · Space up · Shift down · F walk/fly<br>click to look around, Esc to release</p>
+</section>
+<p id="hint">click to look around</p>
+
+<script>
+  // The engine, from the copy in this folder if the export carried one, else
+  // the CDN. A folder carrying vendor/playcanvas/ works with no network at all.
+  window.__pcReady = new Promise((resolve, reject) => {
+      const add = (src, onFail) => {
+          const s = document.createElement('script');
+          s.src = src;
+          s.onload = resolve;
+          s.onerror = onFail;
+          document.head.appendChild(s);
+      };
+      add('./vendor/playcanvas/playcanvas.js',
+          () => add('https://code.playcanvas.com/playcanvas-2.22.0.js', reject));
+  });
+</script>
+
+<script type="module">
+  import { FloatingOrigin } from './js/origin.js';
+  import { TileStreamer, cameraState } from './js/tiles.js';
+  import { Player, Terrain, WALK } from './js/player.js';
+
+  const status = document.getElementById('status');
+  const hint = document.getElementById('hint');
+
+  const base = document.querySelector('meta[name="splatworld:world"]')?.content ?? '.';
+  const at = (p) => `${base.replace(/\/$/, '')}/${p}`;
+
+  await window.__pcReady.catch(() => {
+      status.textContent = 'could not load the 3D engine (no network?)';
+      throw new Error('playcanvas unavailable');
+  });
+
+  // Every tile row the export carried, published or not: the traversal has to
+  // tell an unpublished child from ground nobody has drawn on.
+  const rows = await fetch(at('index.json'))
+      .then((r) => { if (!r.ok) throw new Error(`${r.status}`); return r.json(); })
+      .then((j) => (Array.isArray(j) ? j : j.tiles ?? []))
+      .catch((err) => {
+          status.textContent = `no world here (${at('index.json')}: ${err.message})`;
+          return [];
+      });
+
+  const live = rows.filter((r) => r.published_version > 0 && r.manifest?.origin);
+  if (!live.length) status.textContent = 'this world has no published tiles';
+
+  const anchor = (live.find((r) => r.z === 10) ?? live[0])?.manifest.origin
+      ?? { lon: 0, lat: 0, h: 0 };
+  const origin = new FloatingOrigin(anchor);
+
+  const app = new pc.Application(document.getElementById('view'), {
+      graphicsDeviceOptions: { antialias: false },
+  });
+  app.setCanvasFillMode(pc.FILLMODE_FILL_WINDOW);
+  app.setCanvasResolution(pc.RESOLUTION_AUTO);
+
+  const camera = new pc.Entity('camera');
+  camera.addComponent('camera', {
+      fov: 45, nearClip: 1, farClip: 5e7,
+      clearColor: new pc.Color(0.05, 0.06, 0.07),
+  });
+  camera.setPosition(0, 2000, 0);
+  camera.setEulerAngles(-90, 0, 0);
+  app.root.addChild(camera);
+
+  // A snapshot never changes under the viewer, so there is no polling and no
+  // fetchRows: what was exported is the whole world for as long as it is open.
+  const streamer = new TileStreamer(app, pc, { origin, filesUrl: base });
+  streamer.setTiles(rows);
+
+  const terrain = new Terrain(streamer);
+  const player = new Player(terrain, { mode: WALK });
+  const view = document.getElementById('view');
+  player.attach(view);
+
+  const setHint = () => { hint.hidden = document.pointerLockElement === view; };
+  document.addEventListener('pointerlockchange', setHint);
+  setHint();
+
+  app.on('update', (dt) => {
+      player.update(dt);
+      const q = player.position;
+      camera.setPosition(q.x, q.y, q.z);
+      camera.setEulerAngles(player.pitch / Math.PI * 180, player.yaw / Math.PI * 180, 0);
+
+      const p = camera.getPosition();
+      const moved = streamer.rebase({ x: p.x, y: p.y, z: p.z });
+      if (moved) {
+          camera.setPosition(moved.x, moved.y, moved.z);
+          player.position = { ...moved };
+      }
+      streamer.update(cameraState(camera, app.graphicsDevice.height));
+
+      if (live.length) {
+          status.textContent = `${live.length} tiles in this world\n`
+              + `${streamer.entries.size} loaded, ${streamer.pending} loading`
+              + `${player.grounded ? '' : '\nfinding the ground…'}`;
+      }
+  });
+  app.start();
+
+  window.splatworld = { app, pc, origin, streamer, camera, rows, terrain, player };
+</script>
