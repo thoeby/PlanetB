@@ -306,6 +306,19 @@ def elevation_source(spec: dict, defaults: dict, base_dir: Path, work: Path) -> 
         if not path.is_file():
             die(f"elevation: no such file {path}")
         return path
+    if spec.get("copernicus"):
+        # Free global elevation. The region has to be known first, so the caller
+        # passes it in — padded by a whole tile, because the tiles that get cut
+        # reach past the region's edges and ground with no data becomes sea
+        # level, which would put a cliff around the world.
+        from . import copernicus
+
+        pad = 360.0 / (2 ** int(spec.get("detail", 14)))
+        west, south, east, north = spec["bbox"]
+        padded = [west - pad, max(south - pad, -85.0),
+                  east + pad, min(north + pad, 85.0)]
+        return copernicus.mosaic(padded, work / "copernicus.tif",
+                                 on_step=spec.get("on_step", lambda *_: None))
     url = spec.get("url")
     if not url and spec.get("coverage"):
         # The import page offers the coverages a GeoServer publishes by name;
@@ -359,14 +372,36 @@ def run_spec(cfg: Config, spec: dict, base_dir: Path, out=print) -> int:
         print_(f"  {layer['name']}: {len(got)} {layer['kind']}")
         rows.extend(got)
 
+    if spec.get("osm"):
+        if not spec.get("bbox"):
+            die('"osm" needs a "bbox" — it is a question about an area')
+        from . import osm
+
+        print_("  asking OpenStreetMap for that area…")
+        # `"osm": true` is the normal form; a dict may name another Overpass
+        # mirror, which is also how this is tested without leaning on the
+        # donated one.
+        options = spec["osm"] if isinstance(spec["osm"], dict) else {}
+        got = osm.rows(spec["bbox"], **options)
+        counts: dict[str, int] = {}
+        for row in got:
+            counts[row["kind"]] = counts.get(row["kind"], 0) + 1
+        print_("  OpenStreetMap: "
+               + (", ".join(f"{n} {k}" for k, n in sorted(counts.items())) or "nothing here"))
+        rows.extend(got)
+
     bbox = spec.get("bbox") or (bbox_of(rows) if rows else None)
     if not bbox or not all(map(math.isfinite, bbox)):
         die('could not work out the region — give "bbox": [west, south, east, north]')
     print_(f"  region {', '.join(f'{v:.4f}' for v in bbox)}, detail z{detail}")
 
     with TemporaryDirectory() as tmp, psycopg.connect(cfg.dsn()) as conn:
-        source = elevation_source(spec.get("elevation") or {}, defaults,
-                                  base_dir, Path(tmp))
+        elevation = dict(spec.get("elevation") or {})
+        if elevation:
+            elevation.setdefault("bbox", bbox)
+            elevation.setdefault("detail", detail)
+            elevation.setdefault("on_step", print_)
+        source = elevation_source(elevation, defaults, base_dir, Path(tmp))
         uid = ensure_owner(conn, owner, password)
         print_(f"  {seed_areas(conn, uid, bbox, detail)} new area(s)")
         print_(f"  {mark_dirty(conn, bbox, detail)} new tile(s) to compile")

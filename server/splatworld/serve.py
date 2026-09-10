@@ -225,12 +225,44 @@ class Handler(BaseHTTPRequestHandler):
             self._text(404, "not found")
         elif not self._from_this_machine():
             self._text(403, "the import page only works on this machine")
+        elif path == "/import/place":
+            self._place(self._read_json())
         elif path == "/import/probe":
             self._probe(self._read_json())
         elif path == "/import/run":
             self._import(self._read_json())
         else:
             self._text(404, "not found")
+
+    def _place(self, body: dict) -> None:
+        """Turns "Aarau" into a point, so nobody types coordinates.
+
+        Nominatim is OpenStreetMap's own free search. It asks for a real
+        User-Agent and no hammering, which one search per keypress-and-enter
+        satisfies.
+        """
+        query = (body.get("q") or "").strip()
+        if not query:
+            self._json(400, {"error": "type a place first"})
+            return
+        url = ("https://nominatim.openstreetmap.org/search?"
+               + urllib.parse.urlencode(
+                   {"q": query, "format": "json", "limit": "8"}))
+        req = urllib.request.Request(
+            url, headers={"User-Agent": "splatworld/0.1 (world builder)"})
+        try:
+            with urllib.request.urlopen(req, timeout=30) as res:
+                found = json.loads(res.read())
+        except (OSError, ValueError) as err:
+            self._json(200, {"error":
+                             f"could not reach OpenStreetMap's place search ({err}).\n"
+                             "You can type coordinates below instead."})
+            return
+        self._json(200, {"places": [
+            {"name": p.get("display_name", ""),
+             "lat": float(p["lat"]), "lon": float(p["lon"])}
+            for p in found if p.get("lat") and p.get("lon")
+        ]})
 
     def _probe(self, body: dict) -> None:
         """What a GeoServer has, so the page can offer it as a list."""

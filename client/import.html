@@ -42,11 +42,46 @@
   [hidden] { display: none !important; }
 </style>
 
-<h1>Import a region</h1>
-<p class="lede">Point this at your GeoServer, say which layer is which, and import.
-Nothing here needs a config file.</p>
+<h1>Make a world</h1>
+<p class="lede">Pick somewhere real. Buildings, roads and the shape of the ground
+come from OpenStreetMap and Copernicus — both free, no account, nothing to
+install.</p>
 
-<h2>1 · Your GeoServer</h2>
+<h2>1 · Where</h2>
+<fieldset>
+  <label for="place">Search for a place</label>
+  <div class="row">
+    <input id="place" placeholder="Aarau, Switzerland" autocomplete="off"
+           style="flex:3 1 20rem">
+    <button id="find" class="ghost" type="button" style="flex:0 0 auto">Search</button>
+  </div>
+  <div id="place-msg"></div>
+  <select id="found" size="4" hidden style="margin-top:8px"></select>
+
+  <div class="row" style="margin-top:14px">
+    <div><label for="lat">Latitude</label><input id="lat" inputmode="decimal"
+      placeholder="47.3900"></div>
+    <div><label for="lon">Longitude</label><input id="lon" inputmode="decimal"
+      placeholder="8.0450"></div>
+    <div><label for="size">How much of it</label>
+      <select id="size">
+        <option value="1">1 km across — a few minutes to compile</option>
+        <option value="2" selected>2 km across</option>
+        <option value="4">4 km across — much longer</option>
+      </select></div>
+  </div>
+  <p class="hint">No idea what the numbers are? Right-click anywhere on
+    <a href="https://www.openstreetmap.org" target="_blank" rel="noreferrer"
+       style="color:#6ba3e0">openstreetmap.org</a> and choose "Show address" —
+    the coordinates are at the top.</p>
+
+  <p style="margin-top:14px"><button id="go-osm">Make a world here</button></p>
+  <div id="osm-msg"></div>
+</fieldset>
+
+<h2 style="margin-top:34px">Or: your own GeoServer</h2>
+<p class="lede">Only if you already have layers published. Everything above
+needs none.</p>
 <fieldset>
   <label for="url">Address</label>
   <input id="url" placeholder="https://gis.example.com/geoserver" autocomplete="off">
@@ -135,6 +170,83 @@ Nothing here needs a config file.</p>
       body: JSON.stringify(body),
     });
     return res.json();
+  };
+
+  // -------------------------------------------------- somewhere real, no data
+
+  // A degree of latitude is ~111.32 km everywhere; a degree of longitude only
+  // at the equator, so it is divided by cos(lat).
+  const boxAround = (lat, lon, km) => {
+    const dLat = (km / 2) / 111.32;
+    const dLon = (km / 2) / (111.32 * Math.cos(lat * Math.PI / 180));
+    return [lon - dLon, lat - dLat, lon + dLon, lat + dLat];
+  };
+
+  $('find').onclick = async () => {
+    const q = $('place').value.trim();
+    if (!q) { say('place-msg', 'Type a place name first.', 'bad'); return; }
+    $('find').disabled = true;
+    say('place-msg', 'Searching…', 'good');
+    try {
+      const out = await post('/import/place', { q });
+      if (out.error) { say('place-msg', out.error, 'bad'); return; }
+      const places = out.places ?? [];
+      if (!places.length) { say('place-msg', `Nothing found for "${q}".`, 'bad'); return; }
+      const list = $('found');
+      list.replaceChildren(...places.map((p) => {
+        const o = new Option(p.name, `${p.lat},${p.lon}`);
+        return o;
+      }));
+      list.hidden = false;
+      list.size = Math.min(places.length, 6);
+      list.selectedIndex = 0;
+      list.onchange = () => {
+        const [lat, lon] = list.value.split(',');
+        $('lat').value = Number(lat).toFixed(5);
+        $('lon').value = Number(lon).toFixed(5);
+      };
+      list.onchange();
+      say('place-msg', `${places.length} match(es) — pick one, then "Make a world here".`, 'good');
+    } catch (err) {
+      say('place-msg', `The local server did not answer: ${err.message}`, 'bad');
+    } finally {
+      $('find').disabled = false;
+    }
+  };
+  $('place').onkeydown = (e) => { if (e.key === 'Enter') { e.preventDefault(); $('find').click(); } };
+
+  $('go-osm').onclick = async () => {
+    const lat = Number($('lat').value);
+    const lon = Number($('lon').value);
+    if (!Number.isFinite(lat) || !Number.isFinite(lon)) {
+      say('osm-msg', 'Search for a place, or type a latitude and longitude.', 'bad');
+      return;
+    }
+    const spec = {
+      owner: { email: 'me@splatworld.local', password: 'splatworld' },
+      detail: 14,
+      bbox: boxAround(lat, lon, Number($('size').value)),
+      osm: true,
+      elevation: { copernicus: true },
+    };
+    $('go-osm').disabled = true;
+    say('osm-msg', 'Fetching the map and the ground. A minute or two — leave this open.', 'good');
+    $('log').hidden = false;
+    $('log').textContent = '';
+    try {
+      const out = await post('/import/run', spec);
+      $('log').textContent = (out.log ?? []).join('\n');
+      if (out.ok) {
+        say('osm-msg', 'Done. Open play.html, sign in as me@splatworld.local '
+          + 'with the password "splatworld", and tick "work in the background".', 'good');
+      } else {
+        say('osm-msg', out.error ?? 'It did not work.', 'bad');
+      }
+    } catch (err) {
+      say('osm-msg', `The local server stopped answering: ${err.message}`, 'bad');
+    } finally {
+      $('go-osm').disabled = false;
+    }
   };
 
   // ------------------------------------------------------------- connecting
