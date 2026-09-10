@@ -380,7 +380,12 @@ class Handler(BaseHTTPRequestHandler):
         user = (body.get("user") or "admin").strip()
         password = body.get("password") or saved.get("GEOSERVER_ADMIN_PASSWORD", "")
 
-        log: list[str] = []
+        # First line of every run: which file this is and what version, so the
+        # log itself answers "is this even the code you pulled" and nobody has
+        # to be asked to run anything to find out.
+        from . import gsprovision as _module
+
+        log: list[str] = [f"  running {_module.__file__} (version {__version__})"]
         try:
             if body.get("provision"):
                 wfs = gsprovision.provision(self.cfg, url, user, password,
