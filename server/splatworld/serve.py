@@ -16,6 +16,7 @@ from __future__ import annotations
 import json
 import re
 import shutil
+import time
 import urllib.error
 import urllib.parse
 import urllib.request
@@ -48,6 +49,30 @@ CORS = {
 }
 
 MAX_UPLOAD = 512 * 1024 * 1024
+
+
+# When this process loaded its code. A running server keeps executing what it
+# read at start, so `git pull` changes the checkout and nothing else — every
+# symptom of that is indistinguishable from the fix not working.
+STARTED = time.time()
+
+
+def code_is_stale(cfg: Config) -> str | None:
+    """Say so when the code on disk is newer than the code that is running."""
+    from . import __file__ as package_file
+
+    newest = 0.0
+    for directory in {Path(package_file).resolve().parent,
+                      (cfg.repo / "server" / "splatworld").resolve()}:
+        if not directory.is_dir():
+            continue
+        for source in directory.glob("*.py"):
+            newest = max(newest, source.stat().st_mtime)
+    if newest <= STARTED:
+        return None
+    return ("The code on disk has changed since this server started, so what "
+            "is running here is the old code. Stop it in the terminal "
+            "(Ctrl-C) and run `splatworld run` again, then try this again.")
 
 
 def content_type(path: Path) -> str:
@@ -232,12 +257,24 @@ class Handler(BaseHTTPRequestHandler):
         # which tells nobody anything.
         if not path.startswith(("/import/", "/setup/")):
             self._json(404, {"ok": False, "error": f"no such thing as {path}"})
-        elif not self._from_this_machine():
+            return
+        if not self._from_this_machine():
             self._json(403, {"ok": False,
                              "error": "this page only works on this machine"})
-        elif path == "/setup/state":
+            return
+        if path == "/setup/state":
             self._setup_state()
-        elif path == "/setup/geoserver":
+            return
+
+        # The rest do real work with the code this process loaded at start, so
+        # a checkout that has moved on since then must not quietly pretend to
+        # be the fix that was just pulled.
+        stale = code_is_stale(self.cfg)
+        if stale:
+            self._json(200, {"ok": False, "log": [], "error": stale})
+            return
+
+        if path == "/setup/geoserver":
             self._setup_geoserver(body)
         elif path == "/setup/account":
             self._setup_account(body)
