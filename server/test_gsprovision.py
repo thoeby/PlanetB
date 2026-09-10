@@ -93,7 +93,10 @@ class FakeGeoServer(BaseHTTPRequestHandler):
         self._send(200)
 
     def do_GET(self):
-        if "/datastores/" in self.path and self.path.endswith(".json"):
+        if self.path.endswith("/featuretypes.json?list=configured"):
+            self._send(200, json.dumps({"featureTypes": {"featureType": [
+                {"name": n} for n in type(self).published]}}).encode())
+        elif "/datastores/" in self.path and self.path.endswith(".json"):
             name = self.path.rsplit("/", 1)[1][:-len(".json")]
             self._send(200, json.dumps(type(self).stores.get(name, {})).encode())
         elif "request=GetCapabilities" in self.path or "/wfs?" in self.path and "GetFeature" not in self.path:
@@ -132,6 +135,7 @@ class ProvisionTest(unittest.TestCase):
         # What an earlier setup left behind: every layer in the old, single store.
         FakeGeoServer.published = {n: gsprovision.STORE for n in gsprovision.LAYERS}
         FakeGeoServer.published["tile"] = "splatworld_gis"  # an earlier layout
+        FakeGeoServer.published["feature"] = gsprovision.STORE  # a layer this world no longer has
         self.server = ThreadingHTTPServer(("127.0.0.1", 0), FakeGeoServer)
         threading.Thread(target=self.server.serve_forever, daemon=True).start()
         self.url = f"http://127.0.0.1:{self.server.server_port}"
@@ -168,6 +172,10 @@ class ProvisionTest(unittest.TestCase):
         self.run_it()
         self.assertEqual(FakeGeoServer.published["tile"], gsprovision.STORE)
         self.assertEqual(FakeGeoServer.published["area"], gsprovision.STORE)
+
+    def test_a_layer_this_world_no_longer_has_is_removed(self):
+        self.run_it()
+        self.assertNotIn("feature", FakeGeoServer.published)
 
     def test_the_cached_pools_are_dropped(self):
         self.run_it()

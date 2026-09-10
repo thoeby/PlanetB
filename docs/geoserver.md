@@ -47,8 +47,12 @@ ends with a real write to be sure.
 | layer | geometry | what it is |
 |---|---|---|
 | `area` | polygon | a region somebody owns and may draw in — draw this first |
-| `feature` | any | a road, woods, water, a building, reshaped ground — `kind` says which |
-| `instance` | point | a placed catalog model |
+| `feature_road` | line | a road |
+| `feature_forest` | polygon | woods |
+| `feature_water` | polygon | lake, river, pond |
+| `feature_footprint` | polygon | a building |
+| `feature_terrainmod` | polygon | ground reshaped |
+| `instance` | point | a placed catalog model (`san` = catalog id) |
 | `tile` | polygon | **read-only** — compile state |
 
 ### Fields on the feature layers
@@ -56,11 +60,14 @@ ends with a real write to be sure.
 | field | fill it in? | meaning |
 |---|---|---|
 | `id` | no | uuid, generated |
-| `kind` | **yes** | `road`, `forest`, `water`, `footprint` or `terrainmod` |
-| `geom` | you draw it | the layer is EPSG:3857 (x/y, no lat/lon ambiguity); GeoServer stores 4326. 2D is fine — a Z is added on the way in (`db/0029`) |
+| `geom` | you draw it | EPSG:4326; 2D — a Z is added on the way in (`db/0029`) |
 
-`area_id`, `props`, `rev` and so on are not in the layer: the area is worked
-out from where you drew (`db/0028`), the rest from defaults (`db/0030`).
+That is the whole layer. `kind` is the layer you drew on (`db/0034`), the
+area is worked out from where you drew (`db/0028`), the rest from defaults
+(`db/0030`). The QGIS connection is WFS **1.0.0** on purpose: in 1.1 and 2.0
+QGIS sends latitude first with a plain `EPSG:4326`, and GeoServer reads that
+as longitude first — verified against GeoServer 2.26 — so the polygon lands
+off Somalia. 1.0.0 is longitude first on both ends.
 | `props` | optional | JSON. `{"height": 12.5}` on a building, `{"width": 7}` on a road. Metres |
 | `rev` | no | bumped by a trigger |
 | `deleted_at` | no | set instead of deleting, so a tile knows it changed |
@@ -149,11 +156,11 @@ endpoint.
 
 1. *Layer → Data Source Manager → WFS / OGC API-Features*
 2. **Load Connections**, choose `gis\splatworld-wfs.xml`, then **Connect**
-3. Add `area` and `feature`, plus `tile` to watch
+3. Add `area` and the `feature_*` layers you want, plus `tile` to watch
 
-To draw: select the layer, press the pencil (*Toggle Editing*), draw, set
-`kind` on a feature, then press **Save Layer Edits**. The write reaches the
-database on save, not on draw. Draw an area before anything inside it.
+To draw: select the layer, press the pencil (*Toggle Editing*), draw, then
+press **Save Layer Edits**. The write reaches the database on save, not on
+draw. Draw an area before anything inside it.
 
 ## Why this bypasses the security model, deliberately
 

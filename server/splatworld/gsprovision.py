@@ -4,8 +4,9 @@ This is infra/geoserver/provision.sh without the bash, so it runs on Windows.
 It talks to GeoServer's REST API and makes it publish the editable layers that
 live in this world's database:
 
-    area  feature  instance          (editable views, schema gis)
-    tile                             (read-only overview of compile state)
+    area  feature_road  feature_forest  feature_water  feature_footprint
+    feature_terrainmod  instance          (editable views, schema gis)
+    tile                                  (read-only overview of compile state)
 
 Views with only the columns a drawer touches (db/0031): GeoServer sends every
 published column and fills a blank with a placeholder rather than NULL, and
@@ -35,7 +36,8 @@ from .importer import absolute_url, fetch
 WORKSPACE = "splatworld"
 STORE = "splatworld_pg"
 SCHEMA = "gis"
-LAYERS = ("area", "feature", "instance", "tile")
+LAYERS = ("area", "feature_road", "feature_forest", "feature_water",
+          "feature_footprint", "feature_terrainmod", "instance", "tile")
 STYLES = ("tile", "area")
 
 
@@ -128,23 +130,19 @@ def featuretype_body(layer: str) -> bytes:
     unusable. Declaring the whole earth avoids depending on rows existing; the
     real extent is recomputed by GeoServer as data arrives.
 
-    Published in EPSG:3857, not the database's EPSG:4326. In 4326 the order of
-    the two numbers is a decade-old disagreement between clients and servers
-    (latitude first since WFS 1.1, longitude first before), and the first area
-    drawn from QGIS was stored off the coast of Somalia. 3857 is x then y and
-    nothing else; GeoServer converts to 4326 on every write and back on every
-    read, so the database never sees the argument.
+    Declared and native are both EPSG:4326. Publishing in 3857 to dodge the
+    axis-order argument was tried, and GeoServer stored the Mercator numbers
+    raw: REPROJECT_TO_DECLARED reprojects what it serves, not what it is sent.
     """
-    native = {"minx": -180.0, "maxx": 180.0, "miny": -85.05, "maxy": 85.05,
-              "crs": "EPSG:4326"}
+    whole_earth = {"minx": -180.0, "maxx": 180.0, "miny": -90.0, "maxy": 90.0,
+                   "crs": "EPSG:4326"}
     body = {
         "name": layer,
         "nativeName": layer,
-        "nativeCRS": "EPSG:4326",
-        "srs": "EPSG:3857",
-        "nativeBoundingBox": native,
-        "latLonBoundingBox": native,
-        "projectionPolicy": "REPROJECT_TO_DECLARED",
+        "srs": "EPSG:4326",
+        "nativeBoundingBox": whole_earth,
+        "latLonBoundingBox": whole_earth,
+        "projectionPolicy": "FORCE_DECLARED",
         "enabled": True,
     }
     return json.dumps({"featureType": body}).encode()
@@ -158,7 +156,7 @@ def store_body(cfg: Config, db_host: str, db_password: str) -> bytes:
     entries = {
         "host": db_host, "port": str(cfg.pg_port), "database": cfg.pg_database,
         "user": "geoserver", "passwd": db_password, "dbtype": "postgis",
-        "schema": SCHEMA, "Expose primary keys": "true",
+        "schema": SCHEMA, "Expose primary keys": "false",
         "validate connections": "true",
         # Everything drawable is a view, and a view has no primary key of its
         # own; without this GeoTools finds none and serves the layer read-only.
@@ -203,6 +201,17 @@ def ensure_store(gs: GeoServer, cfg: Config, host: str, on_step) -> None:
     # reset drops them, so what was just written is what the next request uses.
     gs.call("POST", "/rest/reset")
     check_store(gs, on_step)
+
+    # Layers an earlier layout published and this one does not: a layer whose
+    # view is gone makes GeoServer fail every transaction in the workspace
+    # with "Schema 'feature' does not exist", not only requests for that layer.
+    listed = gs.read(f"/rest/workspaces/{WORKSPACE}/datastores/{STORE}/featuretypes.json?list=configured")
+    names = [ft["name"] for ft in (listed.get("featureTypes") or {}).get("featureType", [])
+             if isinstance(ft, dict)]
+    for stale in [n for n in names if n not in LAYERS]:
+        on_step(f"  removing layer {stale}, which this world no longer has")
+        gs.call("DELETE", f"/rest/workspaces/{WORKSPACE}/datastores/{STORE}"
+                          f"/featuretypes/{stale}?recurse=true", tolerate=(404,))
 
     for layer in LAYERS:
         on_step(f"  layer {layer}")
@@ -338,9 +347,9 @@ def check_drawing(cfg: Config, on_step=print) -> None:
         ("an area", "INSERT INTO gis.area (geom, detail)"
                     " VALUES (st_geomfromtext('POLYGON((0 0, 0.001 0,"
                     " 0.001 0.001, 0 0.001, 0 0))', 4326), 0) RETURNING id"),
-        ("a feature", "INSERT INTO gis.feature (kind, geom)"
-                      " VALUES ('road', st_geomfromtext("
-                      "'LINESTRING(0.0002 0.0002, 0.0004 0.0004)', 4326)) RETURNING id"),
+        ("a road", "INSERT INTO gis.feature_road (geom)"
+                   " VALUES (st_geomfromtext("
+                   "'LINESTRING(0.0002 0.0002, 0.0004 0.0004)', 4326)) RETURNING id"),
     )
     try:
         with psycopg.connect(dsn, connect_timeout=5) as conn:

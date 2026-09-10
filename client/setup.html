@@ -103,7 +103,10 @@
     what you drew and fetches free elevation for exactly that. Nothing to type.
     Run it again whenever you draw somewhere new.</p>
   <p id="drawn" class="hint"></p>
-  <div class="buttons"><button id="elevation" type="button">Fetch elevation</button></div>
+  <div class="buttons">
+    <button id="elevation" type="button">Fetch elevation</button>
+    <button id="clear" class="ghost" type="button">Remove everything drawn</button>
+  </div>
   <div id="elev-msg"></div>
   <pre id="elev-log" hidden></pre>
 </fieldset>
@@ -112,10 +115,10 @@
   <p><strong>Ready.</strong> Your GeoServer now publishes the world's layers.</p>
   <p>Open QGIS: <em>Layer → Data Source Manager → WFS / OGC API-Features →
      Load Connections</em>, and pick <code id="qgis-file">gis/splatworld-wfs.xml</code>
-     from the folder this is running in. Add <code>area</code> and
-     <code>feature</code>. Draw an area first, then features inside it —
-     set <code>kind</code> (road, forest, water, footprint, terrainmod) and
-     press Save. Nothing else to fill in.</p>
+     from the folder this is running in. Add <code>area</code> and the
+     <code>feature_*</code> layers. Draw an area first, then roads, forests,
+     water, buildings inside it on their own layers, and press Save. Nothing
+     to fill in.</p>
   <p>Then <a href="./play.html">open the world</a> and turn on background work.</p>
 </div>
 
@@ -198,6 +201,19 @@
     } catch (err) {
       shout('account-msg', `The local server did not answer: ${err.message}`, 'bad');
     } finally { $('make-account').disabled = false; }
+  };
+
+  $('clear').onclick = async () => {
+    if (!confirm('Delete every area, feature and instance drawn so far?')) return;
+    $('clear').disabled = true;
+    try {
+      const out = await post('/setup/clear');
+      shout('elev-msg', out.ok ? out.log.join('\n') : (out.error ?? 'It did not work.'),
+            out.ok ? 'good' : 'bad');
+      if (out.ok) $('drawn').textContent = 'Nothing drawn yet — draw an area in QGIS, then come back.';
+    } catch (err) {
+      shout('elev-msg', `The local server did not answer: ${err.message}`, 'bad');
+    } finally { $('clear').disabled = false; }
   };
 
   $('elevation').onclick = async () => {

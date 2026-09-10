@@ -299,6 +299,8 @@ class Handler(BaseHTTPRequestHandler):
             self._setup_elevation()
         elif path == "/setup/lastfail":
             self._last_db_errors()
+        elif path == "/setup/clear":
+            self._clear_drawn()
         elif path == "/import/probe":
             self._probe(body)
         elif path == "/import/run":
@@ -348,6 +350,28 @@ class Handler(BaseHTTPRequestHandler):
             return
         configmod.save(self.cfg, {"SPLATWORLD_ACCOUNT": email})
         self._json(200, {"ok": True, "log": [f"  account {email} is ready"]})
+
+    def _clear_drawn(self) -> None:
+        """Everything drawn, gone — for a world that is being set up.
+
+        A polygon saved in the wrong place (an axis-order mishap puts one off
+        Somalia; a reprojection one puts it at longitude 877197) is hard to
+        even select in QGIS. This is the one place it can be undone without
+        typing SQL. Accounts, elevation and the catalogue are untouched.
+        """
+        import psycopg
+
+        try:
+            with psycopg.connect(self.cfg.dsn(), connect_timeout=5) as conn:
+                gone = {t: conn.execute(f"DELETE FROM {t}").rowcount
+                        for t in ("instance", "feature", "area")}
+                conn.commit()
+        except psycopg.Error as err:
+            self._json(200, {"ok": False, "error": f"could not clear: {err}"})
+            return
+        self._json(200, {"ok": True, "log": [
+            f"  removed {gone['area']} area(s), {gone['feature']} feature(s), "
+            f"{gone['instance']} instance(s)"]})
 
     def _last_db_errors(self) -> None:
         """What Postgres refused lately, in its own words.

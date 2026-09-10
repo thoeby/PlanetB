@@ -413,12 +413,17 @@ def run_spec(cfg: Config, spec: dict, base_dir: Path, out=print) -> int:
 
 # ------------------------------------------------- elevation for what exists
 
-def world_bbox(conn) -> list[float] | None:
-    """The extent of everything drawn, which is the region — nobody types it."""
-    row = conn.execute(
-        "SELECT st_xmin(e), st_ymin(e), st_xmax(e), st_ymax(e)"
-        " FROM (SELECT st_extent(geom) AS e FROM area) s").fetchone()
-    return [float(v) for v in row] if row and row[0] is not None else None
+def area_bboxes(conn) -> list[list[float]]:
+    """One region per area drawn — nobody types it.
+
+    Per area, not one box over all of them: two areas far apart make a box
+    that covers everything between, and one polygon drawn in the wrong place
+    once turned "a valley" into "Africa to the Alps" and an hour of download.
+    """
+    rows = conn.execute(
+        "SELECT st_xmin(geom), st_ymin(geom), st_xmax(geom), st_ymax(geom)"
+        " FROM area ORDER BY created_at").fetchall()
+    return [[float(v) for v in row] for row in rows]
 
 
 def fetch_elevation(cfg: Config, out=print) -> int:
@@ -432,8 +437,8 @@ def fetch_elevation(cfg: Config, out=print) -> int:
     from . import copernicus, dem
 
     with TemporaryDirectory() as tmp, psycopg.connect(cfg.dsn()) as conn:
-        bbox = world_bbox(conn)
-        if not bbox:
+        regions = area_bboxes(conn)
+        if not regions:
             die("nothing has been drawn yet. Draw an area in QGIS first — the "
                 "region is worked out from what you drew.")
         detail = conn.execute(
@@ -444,27 +449,31 @@ def fetch_elevation(cfg: Config, out=print) -> int:
         if not uid:
             die("no account exists yet — make one on the setup page first.")
 
-        out(f"  region {', '.join(f'{v:.4f}' for v in bbox)} (from what you drew)")
-        # Padded by a tile: the tiles that get cut reach past the region's edges,
-        # and ground with no data becomes sea level, which is a cliff.
-        pad = 360.0 / (2 ** int(detail))
-        padded = [bbox[0] - pad, max(bbox[1] - pad, -85.0),
-                  bbox[2] + pad, min(bbox[3] + pad, 85.0)]
-        source = copernicus.mosaic(padded, Path(tmp) / "elevation.tif", on_step=out)
-
-        tiles = region_tiles(conn, bbox, int(detail))
-        if len(tiles) > MAX_TILES:
-            die(f"that is {len(tiles)} elevation tiles (limit {MAX_TILES}). "
-                "Draw a smaller area, or lower its detail.")
-        out(f"  cutting {len(tiles)} elevation tile(s)")
-        written, blank = dem.cut(source, cfg.files, tiles)
-        register_artifacts(conn, uid[0], written, "dem", DEM_ALGO)
-        out(f"  {mark_dirty(conn, bbox, int(detail))} new tile(s) to compile")
-        conn.commit()
-        if blank:
-            out(f"  warning: {len(blank)} tile(s) have no elevation data and "
-                "will be flat at sea level")
-        return len(written)
+        total = 0
+        for n, bbox in enumerate(regions, 1):
+            out(f"  area {n} of {len(regions)}: {', '.join(f'{v:.4f}' for v in bbox)}")
+            # Counted before anything is downloaded: a polygon in the wrong
+            # place is refused in a second, not discovered after an hour.
+            tiles = region_tiles(conn, bbox, int(detail))
+            if len(tiles) > MAX_TILES:
+                die(f"that area is {len(tiles)} elevation tiles (limit {MAX_TILES}). "
+                    "Draw a smaller area, or lower its detail.")
+            # Padded by a tile: the tiles that get cut reach past the region's
+            # edges, and ground with no data becomes sea level, which is a cliff.
+            pad = 360.0 / (2 ** int(detail))
+            padded = [bbox[0] - pad, max(bbox[1] - pad, -85.0),
+                      bbox[2] + pad, min(bbox[3] + pad, 85.0)]
+            source = copernicus.mosaic(padded, Path(tmp) / f"elevation-{n}.tif", on_step=out)
+            out(f"  cutting {len(tiles)} elevation tile(s)")
+            written, blank = dem.cut(source, cfg.files, tiles)
+            register_artifacts(conn, uid[0], written, "dem", DEM_ALGO)
+            out(f"  {mark_dirty(conn, bbox, int(detail))} new tile(s) to compile")
+            conn.commit()
+            if blank:
+                out(f"  warning: {len(blank)} tile(s) have no elevation data and "
+                    "will be flat at sea level")
+            total += len(written)
+        return total
 
 
 def ensure_account(cfg: Config, email: str, password: str) -> str:
