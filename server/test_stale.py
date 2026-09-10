@@ -20,6 +20,30 @@ class Config:
     repo = Path(__file__).resolve().parents[1]
 
 
+class CopyTest(unittest.TestCase):
+    """A copy install that has fallen behind the checkout is the same trap."""
+
+    def test_a_copy_behind_the_checkout_says_so(self):
+        import tempfile
+
+        with tempfile.TemporaryDirectory() as tmp:
+            fake_repo = Path(tmp)
+            (fake_repo / "server" / "splatworld").mkdir(parents=True)
+            newer = fake_repo / "server" / "splatworld" / "serve.py"
+            newer.write_text("# newer than anything installed\n")
+            import os
+
+            os.utime(newer, (time.time() + 10_000, time.time() + 10_000))
+
+            class Elsewhere:
+                repo = fake_repo
+
+            serve.STARTED = time.time()
+            message = serve.code_is_stale(Elsewhere)
+            self.assertIsNotNone(message)
+            self.assertIn("pip install -e ./server", message)
+
+
 class StaleTest(unittest.TestCase):
     def test_unchanged_code_is_not_stale(self):
         serve.STARTED = time.time()

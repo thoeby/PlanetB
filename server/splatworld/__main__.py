@@ -120,23 +120,34 @@ def cmd_doctor(args: argparse.Namespace) -> int:
 
 
 def _warn_if_a_copy(cfg: config.Config) -> None:
-    """Say so when the code running is not the code in the checkout.
+    """Stop when the code running is not the code in the checkout.
 
     `pip install ./server` copies the package into site-packages, so `git pull`
     updates the repository and changes nothing about what runs. Every symptom of
     that looks exactly like the fix not working, which is a miserable thing to
-    debug and an easy thing to detect.
+    debug and an easy thing to detect. A copy that is not behind is fine — that
+    is an ordinary deployment — so only a checkout that has moved on is fatal.
     """
     from pathlib import Path
 
     from . import __file__ as package_file
+    from .serve import newest_source
 
-    installed = Path(package_file).resolve().parents[1]
-    if installed != (cfg.repo / "server").resolve():
-        print(f"  note: running the copy in {installed},\n"
-              f"        not the code in {cfg.repo}. `git pull` will not change\n"
-              "        what runs. To follow the checkout instead:\n"
-              "          python -m pip install -e ./server")
+    loaded = Path(package_file).resolve().parent
+    checkout = (cfg.repo / "server" / "splatworld").resolve()
+    if loaded == checkout:
+        return
+    if newest_source(checkout) <= newest_source(loaded):
+        print(f"  note: running the copy in {loaded.parent}, not {cfg.repo}")
+        return
+    raise SystemExit(
+        f"splatworld: what is installed is a copy in {loaded.parent},\n"
+        f"  and the code in {cfg.repo} is newer. `git pull` does not change a\n"
+        "  copy, so this would run the old code and every fix would look like\n"
+        "  it had not worked. Install it as a link to the checkout, once:\n\n"
+        "    python -m pip install -e ./server\n\n"
+        "  then run `splatworld run` again."
+    )
 
 
 def _has_a_region(cfg: config.Config) -> bool:

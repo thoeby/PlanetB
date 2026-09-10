@@ -57,22 +57,37 @@ MAX_UPLOAD = 512 * 1024 * 1024
 STARTED = time.time()
 
 
+def newest_source(directory: Path) -> float:
+    if not directory.is_dir():
+        return 0.0
+    return max((f.stat().st_mtime for f in directory.glob("*.py")), default=0.0)
+
+
 def code_is_stale(cfg: Config) -> str | None:
-    """Say so when the code on disk is newer than the code that is running."""
+    """Say so when the code that is running is not the code in the checkout.
+
+    Two ways to end up running yesterday's fix, and both look exactly like the
+    fix not working: the server was started before the pull, or the package was
+    installed as a copy (`pip install ./server` rather than `-e ./server`), so
+    the checkout moves and site-packages does not.
+    """
     from . import __file__ as package_file
 
-    newest = 0.0
-    for directory in {Path(package_file).resolve().parent,
-                      (cfg.repo / "server" / "splatworld").resolve()}:
-        if not directory.is_dir():
-            continue
-        for source in directory.glob("*.py"):
-            newest = max(newest, source.stat().st_mtime)
-    if newest <= STARTED:
-        return None
-    return ("The code on disk has changed since this server started, so what "
-            "is running here is the old code. Stop it in the terminal "
-            "(Ctrl-C) and run `splatworld run` again, then try this again.")
+    loaded = Path(package_file).resolve().parent
+    checkout = (cfg.repo / "server" / "splatworld").resolve()
+
+    if loaded != checkout and newest_source(checkout) > newest_source(loaded):
+        return (f"What is running is the copy in {loaded}, and the code in "
+                f"{cfg.repo} is newer. `git pull` does not change a copy. "
+                "Install it as a link to the checkout instead, once:\n"
+                "    python -m pip install -e ./server\n"
+                "then stop this server (Ctrl-C) and run `splatworld run` again.")
+
+    if max(newest_source(loaded), newest_source(checkout)) > STARTED:
+        return ("The code on disk has changed since this server started, so "
+                "what is running here is the old code. Stop it in the terminal "
+                "(Ctrl-C) and run `splatworld run` again, then try this again.")
+    return None
 
 
 def content_type(path: Path) -> str:
