@@ -108,6 +108,7 @@ def cmd_doctor(args: argparse.Namespace) -> int:
     print(f"client        {cfg.client_dir}")
     print(f"listen        http://{cfg.host}:{cfg.port}")
     print(f"api           {cfg.api_url}")
+    _warn_if_a_copy(cfg)
     problems = _preflight(cfg)
     if not problems:
         print("\nEverything is ready. `splatworld run`.")
@@ -116,6 +117,26 @@ def cmd_doctor(args: argparse.Namespace) -> int:
     for p in problems:
         print(f"  - {p}")
     return 1
+
+
+def _warn_if_a_copy(cfg: config.Config) -> None:
+    """Say so when the code running is not the code in the checkout.
+
+    `pip install ./server` copies the package into site-packages, so `git pull`
+    updates the repository and changes nothing about what runs. Every symptom of
+    that looks exactly like the fix not working, which is a miserable thing to
+    debug and an easy thing to detect.
+    """
+    from pathlib import Path
+
+    from . import __file__ as package_file
+
+    installed = Path(package_file).resolve().parents[1]
+    if installed != (cfg.repo / "server").resolve():
+        print(f"  note: running the copy in {installed},\n"
+              f"        not the code in {cfg.repo}. `git pull` will not change\n"
+              "        what runs. To follow the checkout instead:\n"
+              "          python -m pip install -e ./server")
 
 
 def _has_a_region(cfg: config.Config) -> bool:
@@ -143,6 +164,7 @@ def cmd_run(args: argparse.Namespace) -> int:
         return 1
 
     cfg.files.mkdir(parents=True, exist_ok=True)
+    _warn_if_a_copy(cfg)
     with services.PostgREST(cfg, verbose=args.verbose):
         server = serve.listen(cfg, verbose=args.verbose)
         url = f"http://{'127.0.0.1' if cfg.host in ('0.0.0.0', '::') else cfg.host}:{cfg.port}"
