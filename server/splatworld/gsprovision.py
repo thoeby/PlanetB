@@ -52,12 +52,16 @@ class GeoServer:
             with urllib.request.urlopen(request, timeout=60) as res:
                 return res.status
         except urllib.error.HTTPError as err:
-            # 409 is GeoServer saying "that is already there", which is the
-            # normal answer on a second run. 401 is not: it means the admin
-            # password was refused, and treating it as success reports a
-            # provisioning that never happened and leaves an empty GeoServer.
-            if err.code == 409:
-                return err.code
+            detail = err.read()[:300].decode("utf8", "replace")
+            # "Already exists" is 409 from some GeoServer versions and a plain
+            # 500 from others — the status cannot be trusted, so the sentence is
+            # read instead. Either way it means the same thing: it is there, and
+            # the caller should write its settings rather than give up.
+            if err.code == 409 or "already exists" in detail.lower():
+                return 409
+            # 401 is not "already there": it means the admin password was
+            # refused, and treating it as success reports a provisioning that
+            # never happened and leaves an empty GeoServer.
             if err.code == 401:
                 raise SystemExit(
                     f"geoserver: {self.base} refused the login.\n"
@@ -66,7 +70,6 @@ class GeoServer:
                     "  GeoServer's own default is admin / geoserver, but any real\n"
                     "  installation will have changed it."
                 ) from err
-            detail = err.read()[:300].decode("utf8", "replace")
             raise SystemExit(
                 f"geoserver: {method} {path} was refused ({err.code} {err.reason}).\n"
                 f"  {detail}\n"

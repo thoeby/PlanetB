@@ -226,10 +226,15 @@ class Handler(BaseHTTPRequestHandler):
         # beginning of the next request — which then arrives as a method named
         # "{}POST" and takes the rest of the conversation down with it.
         body = self._read_json()
+        # These are answered to a page that does JSON.parse on everything it
+        # gets back, so even the refusals are JSON. A plain-text 404 here
+        # surfaces in the browser as "unexpected keyword at line 1 column 1",
+        # which tells nobody anything.
         if not path.startswith(("/import/", "/setup/")):
-            self._text(404, "not found")
+            self._json(404, {"ok": False, "error": f"no such thing as {path}"})
         elif not self._from_this_machine():
-            self._text(403, "this page only works on this machine")
+            self._json(403, {"ok": False,
+                             "error": "this page only works on this machine"})
         elif path == "/setup/state":
             self._setup_state()
         elif path == "/setup/geoserver":
@@ -243,7 +248,7 @@ class Handler(BaseHTTPRequestHandler):
         elif path == "/import/run":
             self._import(body)
         else:
-            self._text(404, "not found")
+            self._json(404, {"ok": False, "error": f"no such thing as {path}"})
 
     # ---------------------------------------------------------------- setup
 

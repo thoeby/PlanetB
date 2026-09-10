@@ -127,7 +127,14 @@
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(body ?? {}),
     });
-    return res.json();
+    const text = await res.text();
+    try {
+      return JSON.parse(text);
+    } catch {
+      // Whatever came back was not JSON. Showing it beats reporting that it
+      // could not be parsed, which describes the reader rather than the fault.
+      return { ok: false, error: `The server answered ${res.status} with:\n${text.slice(0, 400)}` };
+    }
   };
 
   // What is already configured, so a second visit is not a blank form.
