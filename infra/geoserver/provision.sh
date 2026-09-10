@@ -38,7 +38,8 @@ cat > "$tmp/store.json" <<JSON
  {"@key":"database","\$":"$DB_NAME"},{"@key":"user","\$":"$DB_USER"},
  {"@key":"passwd","\$":"$DB_PASS"},{"@key":"dbtype","\$":"postgis"},
  {"@key":"schema","\$":"gis"},{"@key":"Expose primary keys","\$":"true"},
- {"@key":"validate connections","\$":"true"}]}}}
+ {"@key":"validate connections","\$":"true"},
+ {"@key":"Primary key metadata table","\$":"gis.gt_pk_metadata"}]}}}
 JSON
 gs POST "/rest/workspaces/$WS/datastores" "$tmp/store.json" application/json
 

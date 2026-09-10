@@ -83,6 +83,16 @@ class GeoServer:
                 "  Is GeoServer running, and is that its address?"
             ) from err
 
+    def read(self, path: str) -> dict:
+        """What GeoServer actually holds, as opposed to what it was sent."""
+        answer = fetch(f"{self.base}{path}",
+                       {"Authorization": self.auth, "Accept": "application/json"},
+                       what=f"reading {path}")
+        try:
+            return json.loads(answer)
+        except ValueError:
+            return {}
+
 
 def featuretype_body(layer: str) -> bytes:
     """A layer GeoServer will actually serve, including when it holds no rows.
@@ -125,6 +135,34 @@ def store_body(cfg: Config, db_host: str, db_password: str) -> bytes:
         "entry": [{"@key": k, "$": v} for k, v in entries.items()]}}}).encode()
 
 
+def check_store(gs: GeoServer, on_step=print) -> None:
+    """Confirm the settings that decide whether QGIS may draw actually landed.
+
+    Writing a store and having GeoServer accept it says nothing about what it
+    kept. The one that matters is the primary-key metadata table: without it
+    every layer here is a read-only view and drawing fails at Save, which is a
+    miserable thing to discover in QGIS an hour later.
+    """
+    store = gs.read(f"/rest/workspaces/{WORKSPACE}/datastores/{STORE}.json")
+    entries = store.get("dataStore", {}).get("connectionParameters", {}).get("entry", [])
+    held = {e.get("@key"): e.get("$") for e in entries if isinstance(e, dict)}
+    if held.get("Primary key metadata table") != "gis.gt_pk_metadata":
+        raise SystemExit(
+            "geoserver: the store was written but did not keep its settings.\n"
+            "  'Primary key metadata table' should be gis.gt_pk_metadata and is "
+            f"{held.get('Primary key metadata table')!r}.\n"
+            "  Without it the layers are published read-only and QGIS cannot\n"
+            "  save. Set it by hand under Data > Stores > splatworld_pg, or\n"
+            "  delete that store there and press 'Set it up' again."
+        )
+    if held.get("schema") != "gis":
+        raise SystemExit(
+            f"geoserver: the store points at schema {held.get('schema')!r}, not gis.\n"
+            "  Delete it under Data > Stores > splatworld_pg and set it up again."
+        )
+    on_step("    settings confirmed: schema gis, primary keys from gis.gt_pk_metadata")
+
+
 def provision(cfg: Config, url: str, user: str, password: str,
               db_host: str | None = None, on_step=print) -> str:
     gs = GeoServer(url, user, password)
@@ -148,6 +186,12 @@ def provision(cfg: Config, url: str, user: str, password: str,
         on_step("    it was already there; writing the settings over it")
         gs.call("PUT", f"/rest/workspaces/{WORKSPACE}/datastores/{STORE}",
                 body, "application/json")
+
+    # GeoServer keeps live connection pools keyed by the store, and a store it
+    # already has open is not necessarily reopened when its settings change. A
+    # reset drops them, so what was just written is what the next request uses.
+    gs.call("POST", "/rest/reset")
+    check_store(gs, on_step)
 
     for layer in LAYERS:
         on_step(f"  layer {layer}")

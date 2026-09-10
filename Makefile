@@ -68,6 +68,7 @@ api-test:
 	@if [ -x tools/seed-test.sh ]; then bash tools/seed-test.sh; else echo 'api-test: seed-test not implemented yet (WP2.1)'; fi
 	@if [ -x tools/seed-ch-test.sh ]; then bash tools/seed-ch-test.sh; else echo 'api-test: seed-ch-test not implemented yet (WP5.1)'; fi
 	@if [ -x tools/ops-test.sh ]; then bash tools/ops-test.sh; else echo 'api-test: ops-test not implemented yet (WP5.5)'; fi
+	@python3 -m unittest discover -q -s server -p 'test_*.py'
 
 client-test:
 	@if compgen -G 'client/test/*.test.js' > /dev/null; then node --test client/test/*.test.js; else echo 'client-test: no tests yet (WP1)'; fi
