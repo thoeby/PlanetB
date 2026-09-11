@@ -75,6 +75,7 @@
   import { XR_LIMITS, teleportTarget, xrRequested, xrSupported } from './js/xr.js';
   import { mountHud } from './js/hud.js';
   import { mountSetup } from './js/setupui.js';
+  import { mountAdmin } from './js/adminui.js';
 
   api.configure();
 
@@ -120,6 +121,9 @@
   const setup = mountSetup(hud.panel('Setup'), {
       onGround: () => location.reload(),
   });
+  // What the world may say about itself. The same rows drive this tool's forms,
+  // QGIS's layer forms and the rules the compiler matches on (T3).
+  const admin = mountAdmin(hud.panel('Admin'));
   if (!ground?.coverage) hud.show('Setup');
 
   // Reading tiles needs no token: everyone reads the world (db/0003_rls.sql).
@@ -349,7 +353,7 @@
   // The handle the browser tests fly.
   window.splatworld = {
     app, pc, api, origin, streamer, camera, rows, terrain, player, setDriving, work,
-    hud, setup, ground,
+    hud, setup, admin, ground,
     spot, build, preview, nearby, areas, wallet, xr: { wants: wantsXr, rig: () => rig },
   };
 </script>

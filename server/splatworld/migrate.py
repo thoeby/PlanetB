@@ -33,6 +33,12 @@ ALREADY_THERE = frozenset({
     "42P06",  # duplicate_schema
     "42723",  # duplicate_function
     "23505",  # unique_violation: a migration that seeds a row, seeded again
+    # And the other half of the same story: a migration that drops what an
+    # earlier layout left behind has nothing to drop the second time. A later
+    # file having already removed it is exactly the "already applied" case —
+    # db/0034 drops the views db/0041 replaced with generated ones.
+    "42P01",  # undefined_table: a table or view that is already gone
+    "42704",  # undefined_object: a constraint, type or trigger already gone
 })
 
 

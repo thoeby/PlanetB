@@ -112,7 +112,7 @@ CAPABILITIES = b"""<?xml version="1.0"?>
   <FeatureTypeList>
 """ + b"".join(
     f"    <FeatureType><Name>splatworld:{n}</Name></FeatureType>\n".encode()
-    for n in gsprovision.LAYERS
+    for n in gsprovision.FIXED_LAYERS
 ) + b"""  </FeatureTypeList>
 </WFS_Capabilities>
 """
@@ -133,7 +133,7 @@ class ProvisionTest(unittest.TestCase):
         FakeGeoServer.writable = True
         FakeGeoServer.seen = []
         # What an earlier setup left behind: every layer in the old, single store.
-        FakeGeoServer.published = {n: gsprovision.STORE for n in gsprovision.LAYERS}
+        FakeGeoServer.published = {n: gsprovision.STORE for n in gsprovision.FIXED_LAYERS}
         FakeGeoServer.published["tile"] = "splatworld_gis"  # an earlier layout
         FakeGeoServer.published["feature"] = gsprovision.STORE  # a layer this world no longer has
         self.server = ThreadingHTTPServer(("127.0.0.1", 0), FakeGeoServer)

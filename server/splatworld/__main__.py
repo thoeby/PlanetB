@@ -54,6 +54,9 @@ def parse(argv: list[str]) -> argparse.Namespace:
                     help="how GeoServer reaches this database, if not localhost")
     _common(gs)
 
+    _common(sub.add_parser("qgis",
+        help="rewrite gis/splatworld.qgs from the world's own vocabulary"))
+
     _common(sub.add_parser("doctor", help="check what is ready"))
     return parser.parse_args(argv)
 
@@ -250,10 +253,21 @@ def cmd_geoserver(args: argparse.Namespace) -> int:
     return 0
 
 
+def cmd_qgis(args: argparse.Namespace) -> int:
+    """The QGIS project, rewritten from what the world says it holds (T2)."""
+    from . import qgis
+
+    cfg = _cfg(args)
+    print(f"  wrote {qgis.write(cfg)}")
+    print("  open it in QGIS: it draws against the GeoServer the world is set up with")
+    return 0
+
+
 def main(argv: list[str] | None = None) -> int:
     args = parse(argv if argv is not None else sys.argv[1:])
     commands = {"init": cmd_init, "run": cmd_run, "doctor": cmd_doctor,
-                "import": cmd_import, "geoserver": cmd_geoserver}
+                "import": cmd_import, "geoserver": cmd_geoserver,
+                "qgis": cmd_qgis}
     try:
         return commands[args.command](args)
     except psycopg.OperationalError as err:

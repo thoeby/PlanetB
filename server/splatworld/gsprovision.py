@@ -4,8 +4,9 @@ This is infra/geoserver/provision.sh without the bash, so it runs on Windows.
 It talks to GeoServer's REST API and makes it publish the editable layers that
 live in this world's database:
 
-    area  feature_road  feature_forest  feature_water  feature_footprint
-    feature_terrainmod  instance          (editable views, schema gis)
+    area  instance                        (editable views, schema gis)
+    f_<kind>                              (one per kind people draw, generated
+                                           from the world's vocabulary)
     tile                                  (read-only overview of compile state)
 
 Views with only the columns a drawer touches (db/0031): GeoServer sends every
@@ -36,9 +37,31 @@ from .importer import absolute_url, fetch
 WORKSPACE = "splatworld"
 STORE = "splatworld_pg"
 SCHEMA = "gis"
-LAYERS = ("area", "feature_road", "feature_forest", "feature_water",
-          "feature_footprint", "feature_terrainmod", "instance", "tile")
+# The layers every world has whatever its vocabulary is. The drawable ones are
+# generated from `kind` (db/0041_gisforms.sql) and asked for at publish time, so
+# a kind an admin invented this morning is a QGIS layer this afternoon.
+FIXED_LAYERS = ("area", "instance", "tile")
 STYLES = ("tile", "area")
+
+
+def drawable_layers(cfg: Config | None) -> tuple[str, ...]:
+    """One layer per kind people draw, straight from the world's vocabulary.
+
+    Generated views (db/0041_gisforms.sql), so publishing asks the world what it
+    holds instead of carrying a list that goes stale the moment an admin adds a
+    kind. A database that cannot be reached publishes the fixed layers only,
+    which is what an operator setting GeoServer up before the world exists gets.
+    """
+    if cfg is None:
+        return ()
+    import psycopg
+
+    try:
+        with psycopg.connect(cfg.dsn(), autocommit=True, connect_timeout=5) as conn:
+            rows = conn.execute("SELECT gis_layers()").fetchone()[0]
+    except Exception:  # noqa: BLE001 - the store check below says it properly
+        return ()
+    return tuple(row["layer"] for row in rows)
 
 
 class GeoServer:
@@ -202,18 +225,22 @@ def ensure_store(gs: GeoServer, cfg: Config, host: str, on_step) -> None:
     gs.call("POST", "/rest/reset")
     check_store(gs, on_step)
 
+    # What this world holds, asked of this world: the drawable layers are
+    # generated from `kind`, so publishing reads them rather than knowing them.
+    layers = FIXED_LAYERS + drawable_layers(cfg)
+
     # Layers an earlier layout published and this one does not: a layer whose
     # view is gone makes GeoServer fail every transaction in the workspace
     # with "Schema 'feature' does not exist", not only requests for that layer.
     listed = gs.read(f"/rest/workspaces/{WORKSPACE}/datastores/{STORE}/featuretypes.json?list=configured")
     names = [ft["name"] for ft in (listed.get("featureTypes") or {}).get("featureType", [])
              if isinstance(ft, dict)]
-    for stale in [n for n in names if n not in LAYERS]:
+    for stale in [n for n in names if n not in layers]:
         on_step(f"  removing layer {stale}, which this world no longer has")
         gs.call("DELETE", f"/rest/workspaces/{WORKSPACE}/datastores/{STORE}"
                           f"/featuretypes/{stale}?recurse=true", tolerate=(404,))
 
-    for layer in LAYERS:
+    for layer in layers:
         on_step(f"  layer {layer}")
         body = featuretype_body(layer)
         if gs.call("POST",
@@ -269,6 +296,7 @@ def provision(cfg: Config, url: str, user: str, password: str,
     # store whose database credentials are wrong is accepted happily and then
     # publishes nothing, and "Done" would be a lie.
     on_step("  checking what it now publishes")
+    layers = FIXED_LAYERS + drawable_layers(cfg)
     from . import geoserver as gsread
 
     try:
@@ -281,7 +309,7 @@ def provision(cfg: Config, url: str, user: str, password: str,
             "  GeoServer under Data > Stores > splatworld_pg that host, port,\n"
             "  database and the 'geoserver' password are right for this machine."
         ) from err
-    missing = [name for name in LAYERS
+    missing = [name for name in layers
                if f"{WORKSPACE}:{name}" not in published and name not in published]
     if missing:
         on_step(f"  warning: not published yet: {', '.join(missing)}")
@@ -347,7 +375,7 @@ def check_drawing(cfg: Config, on_step=print) -> None:
         ("an area", "INSERT INTO gis.area (geom, detail)"
                     " VALUES (st_geomfromtext('POLYGON((0 0, 0.001 0,"
                     " 0.001 0.001, 0 0.001, 0 0))', 4326), 0) RETURNING id"),
-        ("a road", "INSERT INTO gis.feature_road (geom)"
+        ("a road", "INSERT INTO gis.f_road (geom)"
                    " VALUES (st_geomfromtext("
                    "'LINESTRING(0.0002 0.0002, 0.0004 0.0004)', 4326)) RETURNING id"),
     )
