@@ -97,7 +97,22 @@ def field_config(layer_node, fields: list[dict]) -> None:
              unique_strength=0, exp_strength=0)
 
 
-def map_layer(parent, layer: dict, wfs_url: str) -> str:
+# TASKS-usable T8: right-click a piece of land in QGIS and stand on it. The
+# expression is evaluated by QGIS per feature; the link is the same one the
+# Share panel writes (client/js/visit.js).
+def visit_action(node, app_url: str, ident: str) -> None:
+    actions = _sub(node, "attributeactions", default="0")
+    at = ("[% format('%1,%2', y(centroid($geometry)), x(centroid($geometry))) %]")
+    setting = _sub(actions, "actionsetting",
+                   type=5, name="Visit in splatworld", shortTitle="Visit",
+                   action=f"{app_url}#at={at}", capture="0", icon="",
+                   isEnabledOnlyWhenEditable="0", notificationMessage="",
+                   id="{" + hashlib.md5(f"visit:{ident}".encode()).hexdigest() + "}")
+    _sub(setting, "actionScope", id="Feature")
+    _sub(setting, "actionScope", id="Canvas")
+
+
+def map_layer(parent, layer: dict, wfs_url: str, app_url: str = "") -> str:
     # A stable id: Python's hash() is salted per process, and a project file
     # that changes on every run is not a file anybody can keep in a repo.
     digest = hashlib.md5(layer["layer"].encode()).hexdigest()[:12]
@@ -111,6 +126,8 @@ def map_layer(parent, layer: dict, wfs_url: str) -> str:
     crs(node)
     _sub(node, "provider", "WFS", encoding="UTF-8")
     field_config(node, layer.get("fields") or [])
+    if app_url:
+        visit_action(node, app_url, ident)
     return ident
 
 
@@ -128,7 +145,7 @@ def raster_layer(parent, wms_url: str, coverage: str) -> str:
 
 
 def project_xml(layers: list[dict], wfs_url: str, wms_url: str,
-                coverage: str | None) -> bytes:
+                coverage: str | None, app_url: str = "") -> bytes:
     root = ET.Element("qgis", {"projectname": "splatworld", "version": QGIS_VERSION})
     _sub(root, "homePath", path="")
     _sub(root, "title", "splatworld")
@@ -146,7 +163,8 @@ def project_xml(layers: list[dict], wfs_url: str, wms_url: str,
                              ("Tiles", "tile")):
         ident = map_layer(project_layers,
                           {"layer": layer_name, "label": name, "geometry": "polygon",
-                           "fields": []}, wfs_url)
+                           "fields": []}, wfs_url,
+                          app_url if layer_name == "area" else "")
         entries.append((ident, name, wfs_source(wfs_url, layer_name)))
     if coverage:
         ident = raster_layer(project_layers, wms_url, coverage)
@@ -175,6 +193,8 @@ def write(cfg: Config, out: Path | None = None) -> Path:
     if not base.startswith("http"):
         base = f"http://{base}"
     target.parent.mkdir(parents=True, exist_ok=True)
+    host = "127.0.0.1" if cfg.host in ("0.0.0.0", "::") else cfg.host
     target.write_bytes(project_xml(layers, f"{base}/splatworld/wfs",
-                                   f"{base}/wms", row[1] if row else None))
+                                   f"{base}/wms", row[1] if row else None,
+                                   f"http://{host}:{cfg.port}/app/play.html"))
     return target

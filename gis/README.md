@@ -30,7 +30,7 @@ everything drawn ends up in the Indian Ocean. Do not change it.
 ## Checklist — tick these on a real QGIS
 
 This is the part no test here can do. `splatworld geoserver <url>` checks the
-server end by writing through it; these are the four things only a person with
+server end by writing through it; these are the five things only a person with
 QGIS open can confirm.
 
 - [ ] The project opens and lists the layers: your land, one per kind, what is
@@ -41,3 +41,5 @@ QGIS open can confirm.
       form offered the leaf type as a dropdown rather than a free-text box.
 - [ ] The tiles the wood covers turn dirty (the Tiles layer, or the world's
       Render pool tab).
+- [ ] Right-clicking a piece of land offers **Visit in splatworld**, and it
+      opens the world standing on that land.

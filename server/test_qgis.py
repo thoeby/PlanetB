@@ -75,3 +75,23 @@ def test_the_geometry_is_what_the_kind_is_drawn_as():
 
 def test_the_file_does_not_change_between_runs():
     assert qgis.project_xml(LAYERS, "u", "w", "c") == qgis.project_xml(LAYERS, "u", "w", "c")
+
+
+def test_a_piece_of_land_can_be_visited_from_qgis():
+    """TASKS-usable T8: right-click the land, stand on it."""
+    root = ET.fromstring(qgis.project_xml(
+        LAYERS, "u", "w", None, "http://host:8090/app/play.html"))
+    land = [m for m in root.findall(".//maplayer")
+            if m.find("layername").text == "Your land"][0]
+    action = land.find(".//actionsetting")
+    assert action.get("type") == "5", "an OpenUrl action, not a script"
+    assert action.get("action").startswith("http://host:8090/app/play.html#at=")
+    assert "centroid($geometry)" in action.get("action")
+
+
+def test_the_action_is_only_on_the_land():
+    root = ET.fromstring(qgis.project_xml(
+        LAYERS, "u", "w", None, "http://host:8090/app/play.html"))
+    with_action = {m.find("layername").text for m in root.findall(".//maplayer")
+                   if m.find(".//actionsetting") is not None}
+    assert with_action == {"Your land"}

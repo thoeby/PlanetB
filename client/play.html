@@ -80,6 +80,7 @@
   import { drawAreas, mountLand } from './js/land.js';
   import { mountPool, mountSubmit } from './js/pool.js';
   import { mountPermission } from './js/permission.js';
+  import { mountShare, parseVisit, visitHash } from './js/visit.js';
 
   api.configure();
 
@@ -201,6 +202,17 @@
   const view = document.getElementById('view');
   player.attach(view);
 
+  // T8: a link is a place. Somebody sent this address because of what is at
+  // that spot, so the page opens there rather than wherever the anchor is.
+  const goTo = ({ lat, lon, h = 0, heading }) => {
+      const q = origin.localOf({ lon, lat, h });
+      const ground = terrain.heightAt(q);
+      player.position = { x: q.x, y: (ground ?? q.y) + 2, z: q.z };
+      if (Number.isFinite(heading)) player.yaw = heading * Math.PI / 180;
+  };
+  const arrivedAt = parseVisit(location.href);
+  if (arrivedAt) goTo(arrivedAt);
+
   // WP4.2: build mode. The preview draws what has been placed but not yet
   // compiled — a published tile is splats, and a bench put down a second ago is
   // in none of them until some tab renders that tile again.
@@ -274,6 +286,15 @@
       },
       onDecided: () => { land.refresh(); submit.refresh(); },
       onCount: (n) => { hud.badge('Permission', n); hud.stat('approval', String(n)); },
+  });
+
+  // T8: the link, to hand to somebody.
+  const share = mountShare(hud.panel('Share'), {
+      where: () => {
+          const p = camera.getPosition();
+          return { ...origin.geodeticOf({ x: p.x, y: p.y, z: p.z }),
+              heading: player.yaw / Math.PI * 180 };
+      },
   });
 
   // WP4.3: my land, who may touch it, and what they have asked to change.
@@ -355,6 +376,17 @@
   }
   offerXr();
 
+  // The address bar says where you are, so copying it out of the browser is the
+  // same as the Share panel's button. Twice a second at most: it is a string,
+  // but replaceState on every frame is not free and fills nothing useful.
+  let stamped = 0;
+  function keepTheAddressBar(where) {
+      if (Date.now() - stamped < 2000) return;
+      stamped = Date.now();
+      history.replaceState(null, '', visitHash(where));
+      share.refresh();
+  }
+
   // The land under the player, and whether they may build on it. area_at is a
   // spatial question no filter can ask, so it is asked when the ground changes
   // rather than every frame.
@@ -411,8 +443,10 @@
     // coordinates are the real ones, and the land under you is asked for only
     // when you have actually walked somewhere else.
     const here = origin.geodeticOf({ x: p.x, y: p.y, z: p.z });
-    hud.at(here.lon, here.lat, here.h, player.yaw / Math.PI * 180);
+    const heading = player.yaw / Math.PI * 180;
+    hud.at(here.lon, here.lat, here.h, heading);
     whereAmI(here);
+    keepTheAddressBar({ ...here, heading });
     world.textContent = `${live.length} published tiles\n`
       + `${streamer.entries.size} loaded, ${streamer.pending} loading\n`
       + `${origin.rebases} rebases, ${streamer.swaps} swaps — ${player.mode}`
@@ -423,7 +457,7 @@
   // The handle the browser tests fly.
   window.splatworld = {
     app, pc, api, origin, streamer, camera, rows, terrain, player, setDriving, work,
-    hud, setup, admin, catalog, land, submit, pool, permission, ground,
+    hud, setup, admin, catalog, land, submit, pool, permission, ground, share, goTo,
     spot, build, preview, nearby, areas, wallet, xr: { wants: wantsXr, rig: () => rig },
   };
 </script>

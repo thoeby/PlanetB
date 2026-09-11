@@ -490,6 +490,12 @@
       <fieldConfiguration />
       <aliases />
       <constraints />
+      <attributeactions default="0">
+        <actionsetting type="5" name="Visit in splatworld" shortTitle="Visit" action="http://127.0.0.1:8080/app/play.html#at=[% format('%1,%2', y(centroid($geometry)), x(centroid($geometry))) %]" capture="0" icon="" isEnabledOnlyWhenEditable="0" notificationMessage="" id="{fff4fa92a7d7301bbc4b36833afa89ac}">
+          <actionScope id="Feature" />
+          <actionScope id="Canvas" />
+        </actionsetting>
+      </attributeactions>
     </maplayer>
     <maplayer type="vector" hasScaleBasedVisibilityFlag="0" geometry="Polygon" readOnly="0">
       <id>instance_7123a699d77d</id>

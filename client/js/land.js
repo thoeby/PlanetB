@@ -9,6 +9,7 @@
 // else's. The same three colours the legend uses (client/hud.css).
 
 import * as api from './api.js';
+import { copyLink, visitLink } from './visit.js';
 
 const HTML = `
 <ul class="land-areas"></ul>
@@ -63,11 +64,20 @@ function areaRow(area, onPick, chosen) {
     return li;
 }
 
-function contentRow(item, onGo, onDrop) {
+// A link to what is on your land, so somebody else can stand in front of it
+// (T8). The position is the thing's own, not the camera's.
+const linkTo = (item) => visitLink(globalThis.location.href,
+    { lat: item.lat, lon: item.lon, h: item.h ?? 0, heading: 0 });
+
+function contentRow(item, onGo, onDrop, say) {
     const go = el('button', { type: 'button',
         textContent: item.name || item.san || 'something' });
     go.onclick = () => onGo(item);
-    const row = el('li', { className: 'land-item' }, go);
+    const share = el('button', { type: 'button', textContent: 'link' });
+    share.onclick = async () => say(await copyLink(document, linkTo(item))
+        ? 'link copied — it puts somebody in front of it'
+        : linkTo(item));
+    const row = el('li', { className: 'land-item' }, go, share);
     if (item.mine) {
         const drop = el('button', { type: 'button', textContent: 'remove' });
         drop.onclick = () => onDrop(item);
@@ -93,7 +103,7 @@ export function mountLand(host, { onGo = () => {}, onRemove = () => {} } = {}) {
         state.contents = area ? await api.rpc('area_contents', { area_id: area.id })
             .catch(() => []) : [];
         q('.land-contents').replaceChildren(...state.contents.map(
-            (item) => contentRow(item, onGo, remove)));
+            (item) => contentRow(item, onGo, remove, say)));
         if (area && !state.contents.length) {
             q('.land-contents').append(el('li', { className: 'muted',
                 textContent: 'nothing on it yet — the Place tab puts something here' }));
