@@ -7,8 +7,10 @@ answer, and stops it again.
 """
 from __future__ import annotations
 
+import os
 import shutil
 import subprocess
+import sys
 import tempfile
 import time
 import urllib.error
@@ -42,6 +44,40 @@ def missing_message(cfg: Config) -> str:
         "  https://github.com/PostgREST/postgrest/releases and either put it on\n"
         "  your PATH or point POSTGREST at it."
     )
+
+
+# Windows only. PostgREST's Windows build links libpq dynamically and ships
+# without it: started with PostgreSQL's bin directory off PATH, it dies before
+# it prints anything, with a "libpq.dll was not found" box. That directory is
+# where psql lives, and where the installer puts every world by default.
+def _candidate_pg_bins() -> list[Path]:
+    found: list[Path] = []
+    psql = shutil.which("psql")
+    if psql:
+        found.append(Path(psql).parent)
+    for drive in ("C:/Program Files", "C:/Program Files (x86)"):
+        root = Path(drive) / "PostgreSQL"
+        if root.is_dir():
+            found += sorted((v / "bin" for v in root.iterdir()), reverse=True)
+    return found
+
+
+def pg_bin(candidates) -> Path | None:
+    """The first of these that actually holds libpq.dll."""
+    for path in candidates:
+        if (Path(path) / "libpq.dll").is_file():
+            return Path(path)
+    return None
+
+
+def with_libpq(env: dict[str, str]) -> dict[str, str]:
+    """PostgreSQL's bin on PATH, so postgrest.exe can load libpq.dll."""
+    if not sys.platform.startswith("win"):
+        return env
+    found = pg_bin(_candidate_pg_bins())
+    if not found or str(found).lower() in env.get("PATH", "").lower():
+        return env
+    return {**env, "PATH": f"{found}{os.pathsep}{env.get('PATH', '')}"}
 
 
 def alive(cfg: Config, timeout: float = 2.0) -> bool:
@@ -90,6 +126,7 @@ class PostgREST:
 
         # PGRST_* in the environment would override the file, and .env sets some.
         env = {k: v for k, v in _clean_env().items() if not k.startswith("PGRST_")}
+        env = with_libpq(env)
         self.proc = subprocess.Popen(
             [binary, str(self._conf)], env=env,
             stdout=None if self.verbose else subprocess.DEVNULL,
@@ -106,6 +143,13 @@ class PostgREST:
                     "PostgREST stopped straight away. Run with --verbose to see why;\n"
                     "  the usual cause is the authenticator password not matching\n"
                     "  the database (re-run `splatworld init`)."
+                    + (
+                        "\n  On Windows it is more often libpq.dll: postgrest.exe needs\n"
+                        "  PostgreSQL's bin directory (the one with psql.exe in it) on\n"
+                        "  PATH. This looked and did not find it."
+                        if sys.platform.startswith("win") and not pg_bin(_candidate_pg_bins())
+                        else ""
+                    )
                 )
             if alive(self.cfg, timeout=1.0):
                 print(f"  API on {self.cfg.api_url}")

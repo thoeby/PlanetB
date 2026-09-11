@@ -109,6 +109,8 @@ compile what you drew, tile by tile, and the viewer streams it.
 |---|---|
 | QGIS says *Error inserting features* | Setup page → **Why did the last save fail?** It reads the Postgres log and shows the actual reason — GeoServer swallows it. |
 | An area ended up in the wrong place | Setup page → **Remove everything drawn**, then check the WFS version is 1.0.0 and draw again. |
+| *libpq.dll was not found* (Windows) | PostgREST does not ship it. Put PostgreSQL's `bin` directory — the one with `psql.exe` — on PATH. `splatworld run` does this for you when it can find that directory. |
+| *Could not find a version that satisfies setuptools* when installing | `pip` could not reach an index to build in isolation: `python -m pip install -U pip setuptools wheel` then `python -m pip install --no-build-isolation -e ./server`. |
 | A fix from `git pull` seems to do nothing | The setup page shows a red bar when the server answering it is older than the page, and the setup buttons refuse to run stale code. Restart `splatworld run`; if it persists, `python -m pip install -e ./server`. |
 | Anything else | `splatworld doctor` |
 

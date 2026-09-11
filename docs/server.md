@@ -29,9 +29,16 @@ from top to bottom.
 
 **PostgREST.** One file, no installer. Download the build for your machine from
 [its releases](https://github.com/PostgREST/postgrest/releases), put it on your
-PATH, or point the `POSTGREST` environment variable at it. It stays the API:
-the schema's grants and row-level security are what authorise every write
-(Invariant 6), and none of that survives being reimplemented.
+PATH, or point the `POSTGREST` environment variable at it.
+
+On Windows its build links libpq dynamically and does not ship it: started with
+PostgreSQL's `bin` directory (the one with `psql.exe`) off PATH, it dies with
+*libpq.dll was not found*. `splatworld run` puts that directory on PATH for it
+when it can find it — under `C:\Program Files\PostgreSQL\<version>\bin`, or
+wherever `psql` already is. If yours is somewhere else, add it to PATH yourself.
+
+It stays the API: the schema's grants and row-level security are what authorise
+every write (Invariant 6), and none of that survives being reimplemented.
 
 Then `python -m pip install -e ./server` from the checkout.
 
