@@ -133,6 +133,27 @@ Re-running after editing a layer in QGIS adds what is new. It does not yet
 notice deletions or moved geometry on a feature it has already seen; delete
 those rows by `props ->> 'src'` if you need to redo one.
 
+## If elevation fails with an EPSG error
+
+    CRSError: The EPSG code is unknown. PROJ: proj_create_from_database:
+    ...\postgis-3.6\proj\proj.db contains DATABASE.LAYOUT.VERSION.MINOR = 2
+    whereas a number >= 6 is expected. It comes from another PROJ installation.
+
+Nothing is wrong with the install: PostgreSQL's Windows installer sets
+`PROJ_LIB` machine-wide to the PROJ data beside PostGIS, which is older than
+the one rasterio carries, and PROJ prefers whatever that variable points at.
+The server drops `PROJ_LIB` and `PROJ_DATA` from its own environment before
+anything touches rasterio, so this is fixed as of 0.8.1 — if you still see it,
+`splatworld doctor` prints one `note: ignoring PROJ_LIB=...` line per variable
+it dropped, and the absence of that line means the code running is not this
+code (see the copy warning in the same output).
+
+The same variable breaks QGIS, which ships its own PROJ 9 and cannot be told
+to ignore it from here. If QGIS reports unknown EPSG codes, remove `PROJ_LIB`
+and `PROJ_DATA` from the Windows environment (System Properties → Environment
+Variables) and restart it. PostGIS does not read them — it uses the copy it
+was built against.
+
 ## Then
 
 Start the server, sign in as the owner, tick **work in the background**, and

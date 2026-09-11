@@ -16,7 +16,7 @@ import webbrowser
 
 import psycopg
 
-from . import __version__, config, migrate, serve, services
+from . import IGNORED_PROJ_DATA, __version__, config, migrate, serve, services
 
 
 def _common(parser: argparse.ArgumentParser) -> None:
@@ -108,6 +108,9 @@ def cmd_doctor(args: argparse.Namespace) -> int:
     print(f"client        {cfg.client_dir}")
     print(f"listen        http://{cfg.host}:{cfg.port}")
     print(f"api           {cfg.api_url}")
+    for var, value in IGNORED_PROJ_DATA.items():
+        print(f"  note: ignoring {var}={value} — it is another PROJ "
+              "installation's data; elevation uses the one in rasterio")
     _warn_if_a_copy(cfg)
     problems = _preflight(cfg)
     if not problems:
