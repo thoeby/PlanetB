@@ -219,10 +219,10 @@ export class WorkLoop {
         return state;
     }
 
-    // The tile's pointer moves last, by the worker that made the .sog and only
-    // if the world has not moved on: publish_tile is a compare-and-swap
-    // (Invariant 3). A merged or sampled tile is finished the moment its sog
-    // verifies; a trained one waits for its three perceptual checks.
+    // The tile's candidate moves last, by the worker that made the .sog and
+    // only if the world has not moved on: publish_tile is a compare-and-swap
+    // (Invariant 3). What lands is a candidate, whatever the op: a person
+    // publishes it (T7, db/0044_permission.sql).
     async publish(atom, result, sha) {
         if (atom.op !== 'sog' || !result.manifest || !result.tile) return;
         const { z, x, y, target_version: version } = result.tile;

@@ -1,13 +1,12 @@
-// WP3's gate, at a size a software GPU can finish: one tab trains a real z16
-// tile of the pilot region, three other tabs verify it, and the tile publishes
-// itself without the trainer coming back.
+// One tab trains a real z16 tile of the pilot region, at a size a software GPU
+// can finish, and the person who owns the ground publishes what came back.
 //
 // The DAG here is built by hand rather than by ensure_job, with the budgets,
 // the iteration count and the frame size turned down — 600 000 splats over
 // 5 000 iterations is what a real GPU is for (client/atoms/train.js). What is
-// being tested is the machinery: that the trained ply becomes a .sog, that
-// three independent tabs render it and agree, and that the third agreement is
-// what moves the tile's pointer.
+// being tested is the machinery: that the trained ply becomes a .sog, that the
+// .sog lands on the tile as a candidate, and that approving it is what moves
+// the tile's pointer (T7, db/0044_permission.sql).
 
 import { test, expect } from '@playwright/test';
 import { existsSync } from 'node:fs';
@@ -27,7 +26,9 @@ const BUDGET = 60000;
 const FRAME_SIZE = 192;
 const TRAIN_SIZE = 128;
 const MIN_PSNR = 12;
-const WHO = ['trainer', 'checker-a', 'checker-b', 'checker-c'];
+const WHO = ['trainer'];
+// Not the trainer: a person who did not make it is the one who says yes (T7).
+const APPROVER = 'train-owner@splatworld.local';
 
 test.use({
     launchOptions: {
@@ -64,8 +65,8 @@ function insert(job, op, algo, inputs, params, deps) {
          RETURNING id`));
 }
 
-// assemble -> frame x3 -> train -> sog -> verify x3, the shape
-// db/0017_verifydag.sql builds, with everything turned down.
+// assemble -> frame x3 -> train -> sog, the shape db/0044_permission.sql
+// builds, with everything turned down.
 function buildDag() {
     psql(`INSERT INTO tile (z, x, y, dirty, expected_version)
           VALUES (${TILE.z}, ${TILE.x}, ${TILE.y}, true, 1)
@@ -86,11 +87,7 @@ function buildDag() {
         { budget: BUDGET, iters: 80, camera_set: 'z16-v1', size: TRAIN_SIZE,
             needs_webgpu: true, min_vram_gb: 1 }, frames);
     const sog = insert(job, 'sog', 'sog-v1', { ply: trn }, { budget: BUDGET }, [trn]);
-    const checks = [1, 2, 3].map((index) => insert(job, 'verify', 'verify-v1',
-        { sog, frames },
-        { index, min_psnr: MIN_PSNR, camera_set: 'z16-v1', size: TRAIN_SIZE,
-            require_distinct_workers: true }, [sog]));
-    return { job, asm, frames, trn, sog, checks };
+    return { job, asm, frames, trn, sog };
 }
 
 test.beforeAll(async () => {
@@ -100,9 +97,6 @@ test.beforeAll(async () => {
     try { psql('SELECT 1'); } catch (err) { test.skip(true, `no database: ${err.message}`); }
     seedGround(PARENT.z, PARENT.x, PARENT.y);
     seedWorld(PARENT.z, PARENT.x, PARENT.y);
-    // Judging somebody else's tile needs trust >= 0.6 (db/0019_trust.sql), which
-    // a tab earns by having its own work accepted. These three are established
-    // players who have never worked on this tile.
     for (const who of WHO) {
         psql(`DO $$ DECLARE uid uuid;
               BEGIN
@@ -114,6 +108,12 @@ test.beforeAll(async () => {
                   UPDATE worker SET trust = 0.8 WHERE user_id = uid;
               END $$`);
     }
+    psql(`DO $$ DECLARE uid uuid;
+          BEGIN
+              SELECT id INTO uid FROM auth.user WHERE email = '${APPROVER}';
+              IF uid IS NULL THEN uid := register('${APPROVER}', '${PW}'); END IF;
+              UPDATE auth.user SET role = 'admin' WHERE id = uid;
+          END $$`);
     svc = await startServices();
     if (!svc.ok) { svc.stop(); test.skip(true, 'postgrest or nginx would not start'); }
     parked = park();
@@ -155,13 +155,26 @@ async function workAs(page, who, done, timeout) {
     throw new Error(`${who} did not finish in ${timeout} ms; the panel said:\n${seen}`);
 }
 
-test('one tab trains a z16 tile and three others verify it into the world',
+const tileRow = () => JSON.parse(psql(`SELECT row_to_json(t)::text FROM
+    (SELECT published_version, sog_sha256, manifest, candidate_version,
+            candidate_sha256 FROM tile
+     WHERE z = ${TILE.z} AND x = ${TILE.x} AND y = ${TILE.y}) t`));
+
+// Somebody who did not make it says yes to it (T7).
+const approve = () => psql(`DO $$ BEGIN
+        PERFORM set_config('request.jwt.claims', json_build_object(
+            'sub', (SELECT id FROM auth.user WHERE email = '${APPROVER}'),
+            'role', 'admin')::text, true);
+        PERFORM approve_tile(${TILE.z}, ${TILE.x}, ${TILE.y});
+    END $$;`);
+
+test('one tab trains a z16 tile and a person publishes what came back',
     async ({ page }) => {
         const errors = [];
         page.on('pageerror', (e) => errors.push(String(e)));
         await openPage(page, svc.pageUrl);
 
-        await workAs(page, WHO[0], () => stateOf(dag.sog) === 'submitted', 780000);
+        await workAs(page, WHO[0], () => stateOf(dag.sog) === 'verified', 780000);
         const trained = resultOf(dag.trn);
         expect(trained.backend, `trained on ${trained.backend}`).toBe('webgpu');
         expect(trained.splat_count).toBeGreaterThan(0);
@@ -170,31 +183,18 @@ test('one tab trains a z16 tile and three others verify it into the world',
             .toBeGreaterThan(trained.psnr_before);
         expect(trained.psnr).toBeGreaterThan(MIN_PSNR);
 
-        // Three other tabs, none of which trained or encoded it.
-        for (let i = 0; i < 3; i++) {
-            const before = Number(psql(`SELECT count(*) FROM verification
-                                        WHERE atom_id = ${dag.sog} AND kind = 'perceptual'`));
-            await workAs(page, WHO[i + 1],
-                () => Number(psql(`SELECT count(*) FROM verification
-                                   WHERE atom_id = ${dag.sog} AND kind = 'perceptual'`))
-                    > before, 300000);
-        }
-
-        const checks = JSON.parse(psql(`SELECT coalesce(json_agg(row_to_json(v)), '[]')
-                                        FROM (SELECT passed, metrics -> 'psnr' AS psnr
-                                              FROM verification
-                                              WHERE atom_id = ${dag.sog}
-                                                AND kind = 'perceptual') v`));
-        expect(checks.length, JSON.stringify(checks)).toBe(3);
-        expect(checks.every((c) => c.passed), JSON.stringify(checks)).toBe(true);
-        expect(stateOf(dag.sog)).toBe('verified');
-
-        const tile = JSON.parse(psql(`SELECT row_to_json(t)::text FROM
-            (SELECT published_version, sog_sha256, manifest FROM tile
-             WHERE z = ${TILE.z} AND x = ${TILE.x} AND y = ${TILE.y}) t`));
-        expect(Number(tile.published_version)).toBe(1);
+        // The bytes are in the store and on the tile, and nobody else can see
+        // them yet: what a renderer produces is a candidate.
+        const waiting = tileRow();
+        expect(Number(waiting.candidate_version)).toBe(1);
+        expect(Number(waiting.published_version)).toBe(0);
         expect(existsSync(join(FILES_ROOT,
-            `tiles/${TILE.z}/${TILE.x}/${TILE.y}/${tile.sog_sha256}.sog`))).toBe(true);
+            `tiles/${TILE.z}/${TILE.x}/${TILE.y}/${waiting.candidate_sha256}.sog`))).toBe(true);
+
+        approve();
+        const tile = tileRow();
+        expect(Number(tile.published_version)).toBe(1);
+        expect(tile.sog_sha256).toBe(waiting.candidate_sha256);
         expect(tile.manifest.splats).toBe(trained.splat_count);
         expect(errors, errors.join('\n')).toEqual([]);
     });

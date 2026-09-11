@@ -48,6 +48,7 @@ export function resetJob(job) {
     psql(`DELETE FROM artifact a
           WHERE NOT EXISTS (SELECT 1 FROM atom WHERE output_sha256 = a.sha256)
             AND NOT EXISTS (SELECT 1 FROM tile WHERE sog_sha256 = a.sha256)
+            AND NOT EXISTS (SELECT 1 FROM tile WHERE candidate_sha256 = a.sha256)
             AND NOT EXISTS (SELECT 1 FROM asset WHERE sha256 = a.sha256)
             AND NOT EXISTS (SELECT 1 FROM asset WHERE thumb_sha256 = a.sha256)
             AND a.kind NOT IN ('dem', 'ortho')`);
