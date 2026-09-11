@@ -32,6 +32,20 @@ function newBytes(z, x, y) {
 // back this job's work. Claimed atoms count: expire_claims() runs inside
 // claim_atom and frees whatever a dead worker left behind, which is exactly what
 // an abandoned api-test run leaves lying around. They go back at the end.
+// The last two steps: a renderer puts the bytes forward, and a person publishes
+// them (T7, db/0044_permission.sql). Here both are the admin whose claims the
+// block above set.
+const putForward = (z, x, y, sha) => `
+            IF NOT publish_tile(${z}, ${x}, ${y}, ev, '${sha}',
+                (SELECT manifest FROM tile
+                 WHERE tile.z = ${z} AND tile.x = ${x} AND tile.y = ${y})) THEN
+                RAISE EXCEPTION 'publish_tile refused version %', ev;
+            END IF;
+            IF NOT approve_tile(${z}, ${x}, ${y}) THEN
+                RAISE EXCEPTION 'approve_tile refused version %', ev;
+            END IF;
+            RAISE NOTICE 'published % at %', '${sha}', ev;`;
+
 function publishSql(z, x, y, sha, size) {
     return `
         DO $$
@@ -83,12 +97,7 @@ function publishSql(z, x, y, sha, size) {
             UPDATE atom SET state = 'ready'
             WHERE id = ANY (coalesce(parked, '{}'::bigint []));
 
-            IF NOT publish_tile(${z}, ${x}, ${y}, ev, '${sha}',
-                (SELECT manifest FROM tile
-                 WHERE tile.z = ${z} AND tile.x = ${x} AND tile.y = ${y})) THEN
-                RAISE EXCEPTION 'publish_tile refused version %', ev;
-            END IF;
-            RAISE NOTICE 'published % at %', '${sha}', ev;
+            ${putForward(z, x, y, sha)}
         END $$;
         SELECT sog_sha256 FROM tile WHERE z = ${z} AND x = ${x} AND y = ${y};`;
 }

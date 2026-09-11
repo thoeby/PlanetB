@@ -1,178 +1,101 @@
--- The perceptual half of Invariant 8: three independent tabs, none of them the
--- one that made the tile, and what happens when one of them says no
--- (db/0017_verify.sql, db/0017_verifydag.sql).
+-- A person is the gate (db/0044_permission.sql, TASKS-usable T7).
+--
+-- This file used to assert the other answer: three strangers rendering two
+-- held-out poses each and agreeing about a PSNR before a trained tile could be
+-- published. That was never the same question as "is this what I wanted on my
+-- land", and it stood in the way of the one person who could answer it. What is
+-- left of Invariant 8 is the honest half — the deterministic ops still have to
+-- agree with themselves, and nobody is asked to look at that.
 BEGIN;
-SELECT plan(21);
+SELECT plan(15);
 
 SET client_min_messages = warning;
 
-INSERT INTO auth.user (id, email, pw_hash, role)
-SELECT ('00000000-0000-0000-0000-00000000f00' || n)::uuid,
-       'verify-' || n || '@example.com', 'x', 'player'
-FROM generate_series(1, 5) AS n;
-INSERT INTO account (owner_id)
-SELECT ('00000000-0000-0000-0000-00000000f00' || n)::uuid FROM generate_series(1, 5) AS n;
--- Established workers: judging somebody else's tile needs trust >= 0.6
--- (db/0019_trust.sql), which a tab earns by having its own work accepted.
-INSERT INTO worker (id, user_id, caps, trust)
-SELECT ('00000000-0000-0000-0000-00000000e00' || n)::uuid,
-       ('00000000-0000-0000-0000-00000000f00' || n)::uuid, '{}', 0.8
-FROM generate_series(1, 5) AS n;
+CREATE TEMP TABLE ids AS
+SELECT register('land@example.com', 'password12') AS owner_id,
+       register('render@example.com', 'password12') AS worker_id,
+       register('passer@example.com', 'password12') AS stranger_id;
 
-CREATE FUNCTION as_user(n int) RETURNS void LANGUAGE plpgsql AS $$
-BEGIN
-    EXECUTE format('SET LOCAL request.jwt.claims = %L',
-        json_build_object('sub', '00000000-0000-0000-0000-00000000f00' || n,
-                          'role', 'player')::text);
-END
-$$;
+INSERT INTO area (id, geom, owner_id, detail)
+SELECT '00000000-0000-0000-0000-0000000000a7'::uuid,
+       st_geomfromtext('POLYGON((9.4 48.4,9.6 48.4,9.6 48.6,9.4 48.6,9.4 48.4))', 4326),
+       ids.owner_id, 14
+FROM ids;
+INSERT INTO feature (area_id, kind, geom)
+VALUES ('00000000-0000-0000-0000-0000000000a7', 'footprint',
+        st_geomfromtext('POINTZ(9.5 48.5 400)', 4326));
 
--- claim_atom picks globally (db/0005_state.sql), so anything else left ready by
--- an earlier run would be handed out here instead. This transaction rolls back.
-UPDATE atom SET state = 'waiting' WHERE state = 'ready';
+-- A leaf, not a merge: a merge with nothing published under it is not handed
+-- out at all (db/0035_mergeready.sql), which is right and not what this is
+-- about.
+CREATE TEMP TABLE tt AS
+SELECT t.z, t.x, t.y FROM tile t WHERE t.z = 14 LIMIT 1;
 
-CREATE FUNCTION settle(p_job bigint, p_ops text [], p_worker uuid) RETURNS void
-LANGUAGE sql AS $$
-UPDATE atom SET state = 'ready' WHERE job_id = p_job AND op = ANY (p_ops)
-                                  AND state = 'waiting';
-UPDATE atom SET state = 'claimed', worker_id = p_worker, claimed_at = now(),
-                heartbeat_at = now()
-WHERE job_id = p_job AND op = ANY (p_ops) AND state = 'ready';
-UPDATE atom SET state = 'verified' WHERE job_id = p_job AND op = ANY (p_ops)
-                                     AND state = 'claimed';
-SELECT advance_atoms(p_job);
-$$;
+-- the dag ----------------------------------------------------------------
+SELECT set_config('request.jwt.claims',
+    json_build_object('sub', owner_id, 'role', 'player')::text, true) FROM ids;
+CREATE TEMP TABLE jobs AS
+SELECT ensure_job((SELECT z FROM tt), (SELECT x FROM tt), (SELECT y FROM tt)) AS jid;
 
--- ------------------------------------------------------------------ the dag
-
-INSERT INTO tile (z, x, y, dirty, expected_version) VALUES (16, 40001, 30001, true, 1);
-INSERT INTO job (id, z, x, y, target_version, state)
-VALUES (930001, 16, 40001, 30001, 1, 'open');
-SELECT build_dag(930001, 16, 40001, 30001);
-
-SELECT is((SELECT count(*)::int FROM atom WHERE job_id = 930001 AND op = 'verify'), 3,
-          'a trained tile is checked three times');
-SELECT is((SELECT count(DISTINCT params ->> 'index')::int FROM atom
-           WHERE job_id = 930001 AND op = 'verify'), 3,
-          'and each check takes a different pair of held-out poses');
-SELECT is((SELECT params ->> 'camera_set' FROM atom
-           WHERE job_id = 930001 AND op = 'verify' ORDER BY id LIMIT 1), 'z16-v1',
-          'a verify atom is told which camera set to look up');
-SELECT ok((SELECT jsonb_array_length(inputs -> 'frames') FROM atom
-           WHERE job_id = 930001 AND op = 'verify' ORDER BY id LIMIT 1) = 3,
-          'and is given the frames as well as the sog');
-
--- ------------------------------------------------------- up to the .sog
-
-INSERT INTO artifact (sha256, kind, bytes, algo_version) VALUES
-(repeat('c', 64), 'sog', 5000, 'sog-v1'), (repeat('d', 64), 'sog', 5000, 'sog-v1');
-
-SELECT settle(930001, ARRAY['assemble', 'frame', 'train'],
-              '00000000-0000-0000-0000-00000000e001');
-
-SELECT as_user(2);
-UPDATE atom SET state = 'claimed', worker_id = '00000000-0000-0000-0000-00000000e002',
-                claimed_at = now(), heartbeat_at = now()
-WHERE job_id = 930001 AND op = 'sog';
-SELECT is(submit_atom((SELECT id FROM atom WHERE job_id = 930001 AND op = 'sog'),
-    repeat('c', 64),
-    ('{"bytes": 5000, "splat_count": 10, "finite": true,'
-     || '"bbox": [-10, -5, -10, 10, 30, 10],'
-     || '"manifest": {"splats": 10, "origin": {"lon": 8, "lat": 47, "h": 400}}}')::jsonb),
-    'submitted', 'the sog of a trained tile waits for its perceptual checks');
 SELECT is((SELECT count(*)::int FROM atom
-           WHERE job_id = 930001 AND op = 'verify' AND state = 'ready'), 3,
-          'and the three checks are claimable as soon as it is submitted');
+           WHERE job_id = (SELECT jid FROM jobs) AND op = 'verify'), 0,
+    'nothing is built to check a tile perceptually');
+SELECT is((SELECT count(*)::int FROM atom WHERE job_id = (SELECT jid FROM jobs)), 3,
+    'a leaf is assembled, sampled and encoded, and that is all');
 
--- ------------------------------------------------------------ who may check
+-- rendering it -----------------------------------------------------------
+SELECT set_config('request.jwt.claims',
+    json_build_object('sub', worker_id, 'role', 'player')::text, true) FROM ids;
 
-SELECT as_user(1);
-SELECT is((SELECT (claim_atom('{}'::jsonb)).op), null,
-          'the tab that trained the tile is offered no check of it');
-SELECT as_user(3);
-SELECT is((SELECT (claim_atom('{}'::jsonb)).op), 'verify',
-          'a third party is');
-SELECT is((SELECT (claim_atom('{}'::jsonb)).op), null,
-          'and may not take a second check of the same tile');
+CREATE TEMP TABLE ca AS SELECT (claim_atom('{}'::jsonb)).id AS id;
+SELECT is(register_artifact(repeat('6', 64), 'init_ply', 512, 'assemble-v1'),
+    repeat('6', 64), 'the assembled scene is registered');
+SELECT is(submit_atom((SELECT id FROM ca), repeat('6', 64),
+    '{"splat_count": 1000, "finite": true, "gpu_seconds": 1,
+      "bbox": [-50, -5, -50, 50, 20, 50]}'::jsonb),
+    'verified', 'and accepted on its structural checks');
 
-SELECT as_user(2);
+CREATE TEMP TABLE cm AS SELECT (claim_atom('{}'::jsonb)).id AS id;
+SELECT is(register_artifact(repeat('7', 64), 'ply', 1024, 'sample-v1'),
+    repeat('7', 64), 'the samples are registered');
+SELECT is(submit_atom((SELECT id FROM cm), repeat('7', 64),
+    '{"splat_count": 1000, "finite": true, "gpu_seconds": 1,
+      "bbox": [-50, -5, -50, 50, 20, 50]}'::jsonb),
+    'verified', 'and accepted too');
+
+CREATE TEMP TABLE cs AS SELECT (claim_atom('{}'::jsonb)).id AS id;
+SELECT is(register_artifact(repeat('8', 64), 'sog', 2048, 'sog-v1'),
+    repeat('8', 64), 'the sog is registered');
+SELECT is(submit_atom((SELECT id FROM cs), repeat('8', 64),
+    '{"splat_count": 1000, "finite": true, "gpu_seconds": 2,
+      "bbox": [-50, -5, -50, 50, 20, 50]}'::jsonb),
+    'verified', 'and is verified without waiting for anybody''s opinion');
+
+SELECT ok(publish_tile((SELECT z FROM tt), (SELECT x FROM tt), (SELECT y FROM tt), 1,
+    repeat('8', 64), '{"origin": {"lon": 9.5, "lat": 48.5, "h": 400}}'::jsonb),
+    'the worker puts it forward');
+
+-- what everybody else sees ------------------------------------------------
+SELECT is((SELECT published_version FROM tile WHERE z = (SELECT z FROM tt)), 0::bigint,
+    'until somebody approves it, nobody sees it');
+SELECT is((SELECT candidate_version FROM tile WHERE z = (SELECT z FROM tt)), 1::bigint,
+    'it waits on the tile as a candidate');
+
+-- who may say yes ---------------------------------------------------------
+SELECT set_config('request.jwt.claims',
+    json_build_object('sub', stranger_id, 'role', 'player')::text, true) FROM ids;
 SELECT throws_ok(
-    format('SELECT submit_verification(%s, true)',
-           (SELECT id FROM atom WHERE job_id = 930001 AND op = 'sog')),
-    null::text, null, 'the tab that encoded the sog may not vouch for it');
+    format($$SELECT approve_tile(%s, %s, %s)$$,
+           (SELECT z FROM tt), (SELECT x FROM tt), (SELECT y FROM tt)),
+    '42501', NULL, 'a passer-by does not get to approve somebody''s land');
 
--- ------------------------------------------------------------ three passes
+SELECT set_config('request.jwt.claims',
+    json_build_object('sub', owner_id, 'role', 'player')::text, true) FROM ids;
+SELECT ok(approve_tile((SELECT z FROM tt), (SELECT x FROM tt), (SELECT y FROM tt)),
+    'the owner does');
+SELECT is((SELECT published_version FROM tile WHERE z = (SELECT z FROM tt)), 1::bigint,
+    'and then everybody sees it');
+SELECT is((SELECT candidate_sha256 FROM tile WHERE z = (SELECT z FROM tt)), NULL,
+    'with nothing left waiting');
 
-CREATE FUNCTION says(n int, ok boolean) RETURNS text LANGUAGE plpgsql AS $$
-DECLARE
-    out text;
-BEGIN
-    PERFORM as_user(n);
-    SELECT submit_verification(a.id, ok, '{"psnr": 27.5}'::jsonb) INTO out
-    FROM atom a WHERE a.job_id = 930001 AND a.op = 'sog';
-    RETURN out;
-END
-$$;
-
-SELECT is(says(3, true), 'submitted', 'one pass is not enough');
-SELECT is(says(4, true), 'submitted', 'nor two');
-SELECT is(says(5, true), 'verified', 'three independent passes verify the sog');
-SELECT is((SELECT published_version FROM tile WHERE z = 16 AND x = 40001 AND y = 30001),
-          1::bigint, 'and the tile is published without the encoder coming back');
-SELECT is((SELECT state FROM job WHERE id = 930001), 'done', 'the job is done');
-
--- ------------------------------------------------------------ a rejection
-
-INSERT INTO tile (z, x, y, dirty, expected_version) VALUES (16, 40002, 30001, true, 1);
-INSERT INTO job (id, z, x, y, target_version, state)
-VALUES (930002, 16, 40002, 30001, 1, 'open');
-SELECT build_dag(930002, 16, 40002, 30001);
-SELECT settle(930002, ARRAY['assemble', 'frame', 'train'],
-              '00000000-0000-0000-0000-00000000e001');
-UPDATE atom SET state = 'claimed', worker_id = '00000000-0000-0000-0000-00000000e002',
-                claimed_at = now(), heartbeat_at = now()
-WHERE job_id = 930002 AND op = 'sog';
-UPDATE atom SET state = 'submitted', output_sha256 = repeat('d', 64),
-                result = '{"manifest": {"splats": 10}}'::jsonb
-WHERE job_id = 930002 AND op = 'sog';
-
-SELECT as_user(3);
-SELECT is((SELECT submit_verification(a.id, false, '{"psnr": 9.1}'::jsonb)
-           FROM atom a WHERE a.job_id = 930002 AND a.op = 'sog'), 'waiting',
-          'one rejection sends the tile back to its trainer');
-SELECT is((SELECT bad FROM worker_op_stats
-           WHERE worker_id = '00000000-0000-0000-0000-00000000e001' AND op = 'train'), 1,
-          'and the trainer, not the encoder, is marked bad for it');
-SELECT is((SELECT state FROM atom WHERE job_id = 930002 AND op = 'train'), 'ready',
-          'the train atom is offered again');
-
--- Twice more, and the tile gives up at this version, which is what every other
--- unresolvable result here does (db/0015_structural.sql).
-CREATE FUNCTION rejects(n int) RETURNS text LANGUAGE plpgsql AS $$
-DECLARE
-    out text;
-BEGIN
-    -- The same trainer has another go, and produces the same bad tile.
-    PERFORM settle(930002, ARRAY['train'], '00000000-0000-0000-0000-00000000e001');
-    UPDATE atom SET state = 'ready' WHERE job_id = 930002 AND op = 'sog';
-    UPDATE atom SET state = 'claimed', worker_id = '00000000-0000-0000-0000-00000000e002',
-                    claimed_at = now(), heartbeat_at = now()
-    WHERE job_id = 930002 AND op = 'sog';
-    UPDATE atom SET state = 'submitted', output_sha256 = repeat('d', 64),
-                    result = '{"manifest": {"splats": 10}}'::jsonb
-    WHERE job_id = 930002 AND op = 'sog';
-    PERFORM as_user(n);
-    SELECT submit_verification(a.id, false, '{"psnr": 9.1}'::jsonb) INTO out
-    FROM atom a WHERE a.job_id = 930002 AND a.op = 'sog';
-    RETURN out;
-END
-$$;
-
-SELECT is(rejects(4), 'waiting', 'a second rejection sends it back once more');
-SELECT is(rejects(5), 'failed', 'the third fails the sog for good');
-SELECT is((SELECT sum(bad)::int FROM worker_op_stats
-           WHERE worker_id = '00000000-0000-0000-0000-00000000e001' AND op = 'train'), 3,
-          'and the trainer wears all three');
-
-SELECT finish();
 ROLLBACK;

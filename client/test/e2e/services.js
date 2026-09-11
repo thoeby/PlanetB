@@ -8,7 +8,7 @@
 // not there at all: hence localhost, over a real socket, rather than a made-up
 // hostname.
 
-import { spawn } from 'node:child_process';
+import { spawn, spawnSync } from 'node:child_process';
 import { createServer } from 'node:http';
 import { chmodSync, mkdtempSync, readFileSync, writeFileSync, existsSync, mkdirSync }
     from 'node:fs';
@@ -46,6 +46,20 @@ function startApi(work) {
     const clean = { ...env };
     for (const k of Object.keys(clean)) if (k.startsWith('PGRST_')) delete clean[k];
     const p = spawn('postgrest', [conf], { env: clean, stdio: 'ignore' });
+    return () => p.kill();
+}
+
+const haveBinary = (name) => spawnSync(name, ['-v'], { stdio: 'ignore' }).error === undefined;
+
+// The other file store: the `splatworld` server in server/, which holds the
+// same contract and passes nginx's own gate (tools/files-test.sh, Invariant 10).
+// It is what runs on a machine with no nginx — a Windows box, and this one. It
+// supervises PostgREST itself, so it replaces both processes rather than one.
+function startPythonStack() {
+    mkdirSync(FILES_ROOT, { recursive: true });
+    const p = spawn('splatworld',
+        ['run', '--port', String(FILES_PORT), '--api-port', String(API_PORT), '--no-browser'],
+        { env: { ...process.env, FILES_ROOT }, stdio: 'ignore' });
     return () => p.kill();
 }
 
@@ -91,8 +105,12 @@ export async function startServices() {
     // without this the body temp files land nowhere and a PUT is a 500.
     chmodSync(work, 0o777);
     const stops = [];
-    if (!await up(`http://localhost:${API_PORT}/`)) stops.push(startApi(work));
-    if (!await up(`http://localhost:${FILES_PORT}/healthz`)) stops.push(startFiles(work));
+    if (haveBinary('nginx')) {
+        if (!await up(`http://localhost:${API_PORT}/`)) stops.push(startApi(work));
+        if (!await up(`http://localhost:${FILES_PORT}/healthz`)) stops.push(startFiles(work));
+    } else if (!await up(`http://localhost:${FILES_PORT}/healthz`)) {
+        stops.push(startPythonStack());
+    }
     const client = await startClient();
     stops.push(client.stop);
 

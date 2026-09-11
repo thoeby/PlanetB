@@ -40,9 +40,13 @@ SELECT columns_are('public', 'asset_right', ARRAY[
     'san', 'holder_id', 'acquired_at', 'ref']);
 -- `suspect` is WP3.3's (db/0018_spot.sql): a failed spot check flags the tile
 -- rather than unpublishing it.
+-- The candidate columns are db/0044_permission.sql's: what a renderer produced
+-- waits on the tile until a person approves it (T7).
 SELECT columns_are('public', 'tile', ARRAY[
     'z', 'x', 'y', 'dirty', 'expected_version', 'published_version',
-    'sog_sha256', 'manifest', 'published_at', 'published_by', 'suspect']);
+    'sog_sha256', 'manifest', 'published_at', 'published_by', 'suspect',
+    'candidate_version', 'candidate_sha256', 'candidate_manifest',
+    'candidate_by', 'candidate_at', 'refused_note']);
 SELECT columns_are('public', 'job', ARRAY[
     'id', 'z', 'x', 'y', 'target_version', 'bounty', 'state', 'created_at']);
 SELECT columns_are('public', 'atom', ARRAY[

@@ -78,6 +78,8 @@
   import { mountAdmin } from './js/adminui.js';
   import { mountCatalogPanel } from './js/catalogpanel.js';
   import { drawAreas, mountLand } from './js/land.js';
+  import { mountPool, mountSubmit } from './js/pool.js';
+  import { mountPermission } from './js/permission.js';
 
   api.configure();
 
@@ -137,7 +139,8 @@
   // Every row is fetched, not only the published ones — the traversal has to
   // tell an unpublished child from one that does not exist.
   const rows = await api.selectAll('tile', {
-    select: 'z,x,y,dirty,published_version,sog_sha256,manifest',
+    select: 'z,x,y,dirty,published_version,sog_sha256,manifest,'
+      + 'candidate_version,candidate_sha256,candidate_manifest',
     order: 'z,x,y',
   }).catch((err) => {
     world.textContent = `api unreachable (${api.endpoints().api}): ${err.message}`;
@@ -168,7 +171,8 @@
   // as one `or=(and(z.eq..,x.eq..,y.eq..), ...)` filter, so it is one request
   // however many tiles are on screen.
   const fetchRows = (loaded) => api.select('tile', {
-    select: 'z,x,y,published_version,sog_sha256,manifest',
+    select: 'z,x,y,published_version,sog_sha256,manifest,'
+      + 'candidate_version,candidate_sha256,candidate_manifest',
     or: `(${loaded.map((t) => `and(z.eq.${t.z},x.eq.${t.x},y.eq.${t.y})`).join(',')})`,
   });
 
@@ -219,6 +223,9 @@
 
   // WP4.4: the wallet, and the bounty that puts a tile in front of a stranger.
   const wallet = mountWallet(panelFor('Wallet', 'wallet'));
+  const showCredits = () => wallet.refresh().then(
+      (account) => hud.stat('credits', account ? String(account.amount) : '—'));
+  showCredits();
 
   const build = mountBuild(panelFor('Place', 'build'), {
     app, pc, api, camera, origin, terrain, streamer, player, work, preview,
@@ -236,6 +243,39 @@
           .then(() => build.refresh()),
   });
 
+  // T6: what you built has to be compiled before anybody else can see it.
+  // Submit puts your tiles in a public pool at a price; the pool is where
+  // anybody's tab takes them.
+  const submit = mountSubmit(hud.panel('Submit'), {
+      onSubmitted: () => { pool.refresh(); land.refresh(); },
+      onCount: (n) => hud.stat('unsubmitted', String(n)),
+  });
+  const pool = mountPool(hud.panel('Render pool'), {
+      loop: () => work.ready(),
+      where: () => {
+          const p = camera.getPosition();
+          return origin.geodeticOf({ x: p.x, y: p.y, z: p.z });
+      },
+  });
+
+  // T7: what has been rendered on your land and is waiting for you to say yes.
+  // The switch shows the waiting version in place; approving publishes it for
+  // everybody, refusing leaves what was there and sends a note back.
+  const permission = mountPermission(hud.panel('Permission'), {
+      streamer,
+      onGo: (centre) => {
+          if (centre.lon === undefined) return;
+          const p = origin.localOf({ lon: centre.lon, lat: centre.lat, h: 0 });
+          player.position = { x: p.x, y: (terrain.heightAt(p) ?? p.y) + 60, z: p.z };
+      },
+      where: () => {
+          const p = camera.getPosition();
+          return origin.geodeticOf({ x: p.x, y: p.y, z: p.z });
+      },
+      onDecided: () => { land.refresh(); submit.refresh(); },
+      onCount: (n) => { hud.badge('Permission', n); hud.stat('approval', String(n)); },
+  });
+
   // WP4.3: my land, who may touch it, and what they have asked to change.
   // Merging a proposal changes the world, so the build panel is told to look
   // again — its dirty badge is what a merge produces.
@@ -243,10 +283,18 @@
     onSelect: () => build.refresh(),
   });
 
+  // Where the last area_at was asked, so it is asked again only when the player
+  // has walked somewhere else — or when who they are changes, below.
+  let asked = { lon: 0, lat: 0, at: 0 };
+
   mountAuth(panelFor('Setup', 'auth'), {
     onChange: () => {
-        work.refresh(); build.refresh(); areas.refresh(); wallet.refresh();
+        // Who you are changes what the land under you says, and the answer is
+        // cached until you walk somewhere else — so forget it.
+        asked = { lon: 0, lat: 0, at: 0 };
+        build.refresh(); areas.refresh(); showCredits();
         catalog.refresh(); admin.refresh(); setup.refresh(); land.refresh();
+        submit.refresh(); pool.refresh(); permission.refresh();
         showWho();
     },
   });
@@ -310,7 +358,6 @@
   // The land under the player, and whether they may build on it. area_at is a
   // spatial question no filter can ask, so it is asked when the ground changes
   // rather than every frame.
-  let asked = { lon: 0, lat: 0, at: 0 };
   function whereAmI(g) {
       const moved = Math.hypot(g.lon - asked.lon, g.lat - asked.lat) > 0.0005;
       if (!moved || Date.now() - asked.at < 2000) return;
@@ -376,7 +423,7 @@
   // The handle the browser tests fly.
   window.splatworld = {
     app, pc, api, origin, streamer, camera, rows, terrain, player, setDriving, work,
-    hud, setup, admin, catalog, land, ground,
+    hud, setup, admin, catalog, land, submit, pool, permission, ground,
     spot, build, preview, nearby, areas, wallet, xr: { wants: wantsXr, rig: () => rig },
   };
 </script>

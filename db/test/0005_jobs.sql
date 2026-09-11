@@ -46,8 +46,10 @@ SELECT results_eq(
 SELECT results_eq(
     $$SELECT op, count(*)::int FROM atom
       WHERE job_id = (SELECT j18 FROM jobs) GROUP BY op ORDER BY op$$,
-    $$VALUES ('assemble', 1), ('frame', 6), ('sog', 1), ('train', 1), ('verify', 3)$$,
-    'z18 DAG = 1 assemble, 6 frame, 1 train, 1 sog, 3 verify');
+    $$VALUES ('assemble', 1), ('frame', 6), ('sog', 1), ('train', 1)$$,
+    -- No verify atoms: a person approves the tile now, not three strangers
+    -- agreeing about a PSNR (db/0044_permission.sql, T7).
+    'z18 DAG = 1 assemble, 6 frame, 1 train, 1 sog');
 SELECT is((SELECT count(*)::int FROM atom
            WHERE job_id = (SELECT j18 FROM jobs) AND state = 'ready'), 1,
     'only the assemble atom starts ready');

@@ -14,7 +14,6 @@ const HTML = `
   help render the world</label>
 <div class="work-state">idle</div>
 <div class="work-progress muted"></div>
-<ul class="work-tiles"></ul>
 <pre class="work-log"></pre>`;
 
 const LOG_LINES = 6;
@@ -32,17 +31,6 @@ const describe = (caps) => (caps.webgpu
     ? `WebGPU · ${caps.adapter?.vendor ?? 'gpu'} · ~${caps.vram_gb} GB (estimated)`
     : `WebGL2 only · ${caps.renderer ?? 'unknown renderer'}`);
 
-function tileRow(t, onRender) {
-    const li = document.createElement('li');
-    li.className = 'work-tile';
-    li.textContent = `${t.z}/${t.x}/${t.y} v${t.expected_version} `;
-    const b = document.createElement('button');
-    b.type = 'button';
-    b.textContent = t.job_id ? `job ${t.job_id}` : 'render';
-    b.onclick = () => onRender(t, b);
-    li.append(b);
-    return li;
-}
 
 // One line per zoom of how far the world has got. Public (db/0024_progress.sql):
 // what is drawn and what is not is not a secret.
@@ -85,28 +73,12 @@ async function onWorld(world, ready, toggle, showProgress) {
     return showProgress();
 }
 
-// One click opens the job; a refusal re-enables the button and says why.
-async function openJob(tile, btn, log) {
-    btn.disabled = true;
-    const at = `${tile.z}/${tile.x}/${tile.y}`;
-    try {
-        const job = await api.rpc('ensure_job', { z: tile.z, x: tile.x, y: tile.y });
-        btn.textContent = `job ${job}`;
-        log({ event: 'ensure_job', atom: at, op: job });
-        return true;
-    } catch (err) {
-        btn.disabled = false;
-        log({ event: 'ensure_job-failed', atom: at, err: String(err?.message ?? err) });
-        return false;
-    }
-}
 
 export function mountWork(host, { loop, autostart = false, frames, where } = {}) {
     host.innerHTML = HTML;
     const gpu = host.querySelector('.work-gpu');
     const toggle = host.querySelector('.work-toggle');
     const state = host.querySelector('.work-state');
-    const list = host.querySelector('.work-tiles');
     const logEl = host.querySelector('.work-log');
     const lines = [];
 
@@ -144,23 +116,13 @@ export function mountWork(host, { loop, autostart = false, frames, where } = {})
         render();
     };
 
-    // My dirty tiles, and one button each to open the job for them. Opening a
-    // job creates no work for this tab in particular — any worker may claim it.
-    async function refresh() {
-        if (!api.token()) { list.replaceChildren(); return; }
-        const tiles = await api.rpc('my_dirty_tiles', { p_limit: 20 }).catch(() => []);
-        list.replaceChildren(...tiles.map((t) => tileRow(t, onRender)));
-    }
-
-    async function onRender(tile, btn) {
-        if (!await openJob(tile, btn, log)) return;
-        if (!work?.running) { toggle.checked = true; toggle.onchange(); }
-    }
-
     ready().then(() => { if (autostart) { toggle.checked = true; toggle.onchange(); } })
         .catch((err) => log({ event: 'probe-failed', err: String(err?.message ?? err) }));
     render();
     showProgress();
-    return { refresh, ready, loop: () => work, log, progress: showProgress,
+    // No refresh: the list of my dirty tiles with a Render button each is gone
+    // (T6). Work reaches a tab through the pool, where it carries a price and
+    // anybody can take it, rather than through a list only its owner could see.
+    return { ready, loop: () => work, log, progress: showProgress,
         world: (on) => { world.checked = on; return world.onchange(); } };
 }

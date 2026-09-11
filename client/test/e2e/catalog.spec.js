@@ -68,7 +68,11 @@ async function upload(page, which, label) {
     await expect(page.locator('#canon')).toContainText(/^S[A-Z2-7]{12} · 36 tris/);
     const san = (await page.locator('#canon').textContent()).split(' ')[0];
     await page.fill('#name', label);
-    await page.selectOption('#upload-category', 'furniture');
+    // Whatever this world calls its first category: the list comes from the
+    // `product` kind's properties, which an admin edits (T3), so no name can be
+    // written down here.
+    await page.selectOption('#upload-category',
+        await page.locator('#upload-category option').first().getAttribute('value'));
     await page.click('#publish');
     await expect(page.locator('#upload-status')).toHaveText(`published ${san}`);
     return san;

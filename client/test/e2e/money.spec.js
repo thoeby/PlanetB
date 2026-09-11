@@ -111,6 +111,9 @@ test.afterAll(() => {
 
 const published = () => psql(`SELECT coalesce(published_version, 0)::text FROM tile
                               WHERE z = ${TILE.z} AND x = ${TILE.x} AND y = ${TILE.y}`);
+// What a renderer produces waits on the tile until a person approves it (T7).
+const waiting = () => psql(`SELECT coalesce(candidate_version, 0)::text FROM tile
+                            WHERE z = ${TILE.z} AND x = ${TILE.x} AND y = ${TILE.y}`);
 
 test('a stranger renders my bounty and is paid for it', async ({ page, browser }) => {
     const ownerBefore = balance(OWNER);
@@ -147,10 +150,17 @@ test('a stranger renders my bounty and is paid for it', async ({ page, browser }
     await openPage(other, svc.pageUrl);
     await signIn(other, WORKER, PW);
     await other.locator('.work-toggle').check();
-    await expect.poll(published, { timeout: 600000 }).toBe(String(
-        psql(`SELECT expected_version::text FROM tile
-              WHERE z = ${TILE.z} AND x = ${TILE.x} AND y = ${TILE.y}`)));
+    const target = String(psql(`SELECT expected_version::text FROM tile
+              WHERE z = ${TILE.z} AND x = ${TILE.x} AND y = ${TILE.y}`));
+    await expect.poll(waiting, { timeout: 600000 }).toBe(target);
     await other.locator('.work-toggle').uncheck();
+
+    // ---- which nobody else sees until the owner of the ground says yes (T7)
+    expect(published(), 'a stranger cannot publish onto my land').toBe('0');
+    await page.evaluate(() => window.splatworld.hud.show('Permission'));
+    await page.locator('.pm-refresh').click();
+    await page.locator('.pm-yes').first().click();
+    await expect.poll(published, { timeout: 30000 }).toBe(target);
 
     // ---- and is paid the whole bounty, because they did all of it
     expect(balance(WORKER), 'the worker was not paid').toBe(workerBefore + BOUNTY);

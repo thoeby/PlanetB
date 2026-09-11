@@ -91,9 +91,19 @@ function fakeTraining() {
 
 function publishByHand() {
     psql(`UPDATE atom SET state = 'verified' WHERE id = ${dag.sog}`);
-    return psql(`SELECT publish_sog(a, (SELECT user_id FROM worker WHERE id = a.worker_id),
+    const done = psql(`SELECT publish_sog(a, (SELECT user_id FROM worker WHERE id = a.worker_id),
                                     a.result -> 'manifest')
                  FROM atom a WHERE a.id = ${dag.sog}`);
+    // It is a candidate until the owner of the ground says yes (T7). This test
+    // is about what happens to a tile after it is in the world, so the owner
+    // says yes here rather than through the panel.
+    psql(`DO $$ BEGIN
+              PERFORM set_config('request.jwt.claims', json_build_object(
+                  'sub', (SELECT id FROM auth.user WHERE email = '${OWNER}'),
+                  'role', 'player')::text, true);
+              PERFORM approve_tile(${TILE.z}, ${TILE.x}, ${TILE.y});
+          END $$;`);
+    return done;
 }
 
 test.beforeAll(async () => {

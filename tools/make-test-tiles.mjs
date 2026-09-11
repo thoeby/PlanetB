@@ -267,8 +267,15 @@ async function compileTile(t) {
                 count: JSON.parse(art.colliders).boxes.length },
         },
     });
-    if (done) ok(`${name} published at version ${row.expected_version}`);
-    else no(`${name} publish_tile returned false`);
+    if (!done) { no(`${name} publish_tile returned false`); return; }
+    // What a renderer publishes is a candidate; a person approves it (T7,
+    // db/0044_permission.sql). This tool owns the land it seeded, so it is the
+    // person.
+    if (await api.rpc('approve_tile', { z: t.z, x: t.x, y: t.y })) {
+        ok(`${name} published at version ${row.expected_version}`);
+    } else {
+        no(`${name} approve_tile returned false`);
+    }
 }
 
 async function main() {

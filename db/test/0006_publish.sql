@@ -2,7 +2,7 @@
 -- nothing, a double publish is a no-op, a bounty of 10 splits 6/4 by
 -- gpu_seconds, and a repeated pay ref raises without moving money.
 BEGIN;
-SELECT plan(26);
+SELECT plan(29);
 
 SELECT has_function('public', 'publish_tile',
     ARRAY['integer', 'integer', 'integer', 'bigint', 'text', 'jsonb'],
@@ -76,9 +76,21 @@ SELECT is(submit_atom((SELECT id FROM cb), repeat('2', 64),
     'verified', 'a merged tile needs no perceptual check (Invariant 7)');
 
 -- publish ---------------------------------------------------------------
+-- What a worker produces is a candidate; a person publishes it (T7,
+-- db/0044_permission.sql). The compare-and-swap is unchanged — it is the
+-- candidate that cannot run ahead of the world.
 SELECT ok(publish_tile(12, (SELECT x FROM tt), (SELECT y FROM tt), 1,
     repeat('2', 64), '{"origin": {"lon": 7.5, "lat": 46.5, "h": 500}}'::jsonb),
-    'publish at the expected version succeeds');
+    'a rendered tile is put forward');
+SELECT is((SELECT candidate_version FROM tile WHERE z = 12), 1::bigint,
+    'the tile holds it as a candidate');
+SELECT is((SELECT published_version FROM tile WHERE z = 12), 0::bigint,
+    'and nobody else sees it yet');
+-- The owner of the ground is the one who says yes, not the worker who made it.
+SELECT set_config('request.jwt.claims',
+    json_build_object('sub', owner_id, 'role', 'player')::text, true) FROM ids;
+SELECT ok(approve_tile(12, (SELECT x FROM tt), (SELECT y FROM tt)),
+    'the owner of the ground approves it');
 SELECT is((SELECT published_version FROM tile WHERE z = 12), 1::bigint,
     'the tile records the published version');
 SELECT is((SELECT expected_version FROM tile WHERE z = 10), 2::bigint,
@@ -97,6 +109,9 @@ SELECT is((SELECT account_balance(id) FROM account WHERE owner_id = ids.wb_id),
 SELECT is(account_balance(escrow_account()), 0::numeric, 'escrow is empty again');
 
 -- double publish ---------------------------------------------------------
+-- back to the worker: publishing is the worker's act, approving is the owner's.
+SELECT set_config('request.jwt.claims',
+    json_build_object('sub', wb_id, 'role', 'player')::text, true) FROM ids;
 SELECT ok(NOT publish_tile(12, (SELECT x FROM tt), (SELECT y FROM tt), 1,
     repeat('2', 64), '{}'::jsonb),
     'publishing the same version twice is a no-op');

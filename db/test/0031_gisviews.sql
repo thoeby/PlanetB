@@ -1,5 +1,5 @@
 BEGIN;
-SELECT plan(3);
+SELECT plan(2);
 
 SELECT is(
     (SELECT array_agg(column_name::text ORDER BY ordinal_position)
@@ -15,12 +15,9 @@ INSERT INTO gis.area (geom, detail)
 VALUES (st_geomfromtext('POLYGON((7 46, 7.1 46, 7.1 46.1, 7 46.1, 7 46))', 4326), 0);
 SELECT is((SELECT detail FROM area), 14::smallint, 'drawn through the view, defaulted by the table');
 
--- gis.feature itself is gone: 0034 replaced it with one typed layer per kind,
--- because a layer of unknown geometry type cannot be drawn on in QGIS.
-INSERT INTO gis.feature_road (geom)
-VALUES (st_geomfromtext('LINESTRING(7.01 46.01, 7.02 46.02)', 4326));
-SELECT is((SELECT st_ndims(geom)::int FROM feature), 3,
-          'a 2D road through the view is stored 3D');
+-- Drawing a feature is db/test/0034_giskinds.sql's: there is no gis.feature and
+-- no fixed set of layers any more — one is generated per kind the world has
+-- (db/0041_gisforms.sql), and that is where the 2D-to-3D check lives.
 
 SELECT * FROM finish();
 ROLLBACK;

@@ -59,7 +59,10 @@ class StaleTest(unittest.TestCase):
         self.assertIsNone(serve.code_is_stale(Config))
 
     def test_a_source_file_newer_than_the_process_is_stale(self):
-        serve.STARTED = time.time() - 3600
+        # Zero, not "an hour ago": with an hour ago this passed only on a
+        # checkout somebody had edited within the hour, and failed on every
+        # other one.
+        serve.STARTED = 0.0
         message = serve.code_is_stale(Config)
         self.assertIsNotNone(message)
         self.assertIn("splatworld run", message)

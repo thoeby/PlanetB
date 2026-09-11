@@ -108,6 +108,15 @@ export class WorkLoop {
         this.atom = null;
         this.done = 0;
         this.failed = 0;
+        // The job this tab is working on, if somebody picked one out of the
+        // pool (T6, client/js/pool.js). Null means take whatever pays best.
+        this.job = null;
+    }
+
+    // Work this job and nothing else, or null for the whole pool.
+    focus(job) {
+        this.job = job ?? null;
+        return this.job;
     }
 
     // One atom, start to finish. Returns the state submit_atom settled on, or
@@ -157,7 +166,9 @@ export class WorkLoop {
         const near = this.where();
         const caps = near ? { ...this.caps, near } : this.caps;
         try {
-            const atom = await this.api.rpc('claim_atom', { caps });
+            const atom = this.job
+                ? await this.api.rpc('claim_for', { job_id: this.job, caps })
+                : await this.api.rpc('claim_atom', { caps });
             this.claimFailures = 0;
             return atom?.id ? atom : null;
         } catch (err) {

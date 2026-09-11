@@ -97,10 +97,15 @@ body {
 #where {
   position: absolute; top: 20px; left: 50%; transform: translateX(-50%);
   display: flex; flex-direction: column; align-items: center; gap: 8px;
-  pointer-events: none; max-width: 44vw;
+  pointer-events: none;
+  /* Never wider than the gap between the brand and the stats, whichever of
+     them is the wider — the compass used to slide under the stat cards on a
+     laptop screen. Below the breakpoint the stats are gone and it has the
+     width to itself. */
+  max-width: min(44vw, calc(100vw - 940px));
 }
 #compass {
-  position: relative; width: 520px; max-width: 44vw; height: 26px;
+  position: relative; width: 100%; max-width: 520px; height: 26px; overflow: hidden;
   font-family: var(--head); font-weight: 700; font-size: 13px;
   letter-spacing: 0.1em; --cut: 8px;
 }
@@ -277,10 +282,14 @@ body {
 #panel .status { min-height: 1.2em; font-size: 12px; color: var(--ink-3); }
 #panel .status[data-bad="1"] { color: var(--bad); }
 
+@media (max-width: 1200px) {
+  #stats { display: none; }
+  #where { max-width: 90vw; }
+}
+
 @media (max-width: 900px) {
   #panel { width: auto; right: 24px; }
-  #stats, #legend, #hints { display: none; }
-  #where { max-width: 90vw; }
+  #legend, #hints { display: none; }
 }
 
 /* A thumbnail is a thumbnail: 256 square of canvas pushed the rest of the
@@ -298,3 +307,17 @@ body {
 #panel button[data-on="1"] {
   background: var(--accent-dim); border-color: var(--accent); color: var(--ink);
 }
+
+/* A checkbox is not a field: it sits on one line with the words that say what
+   it does, and those words are a sentence rather than a heading. */
+#panel label:has(> input[type="checkbox"]) {
+  display: flex; gap: 8px; align-items: center; text-transform: none;
+  letter-spacing: 0; font-weight: 400; color: var(--ink-2);
+}
+#panel input[type="checkbox"] { width: auto; flex: 0 0 auto; }
+
+/* A tile waiting for a person to say yes (client/js/permission.js): each row's
+   buttons sit beside the note rather than under it. */
+#panel .pm-acts { display: flex; gap: 6px; align-items: center; margin-top: 6px; }
+#panel .pm-acts .pm-note { flex: 1; min-width: 6rem; }
+#panel .pm-acts button { flex: 0 0 auto; }
