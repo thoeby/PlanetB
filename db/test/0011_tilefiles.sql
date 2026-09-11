@@ -21,9 +21,18 @@ INSERT INTO feature (area_id, kind, geom) VALUES
 -- ensure_job authorises against the caller, so the owner has to be the caller.
 SET LOCAL request.jwt.claims = '{"sub":"00000000-0000-0000-0000-0000000b1001","role":"player"}';
 
+CREATE TEMP TABLE pick AS SELECT t.z, t.x, t.y FROM tile t WHERE t.z = 10 LIMIT 1;
+
+-- One published child, because a merge that has none is not claimable at all
+-- (db/0035_mergeready.sql) and this test is about who may write tile files.
+INSERT INTO artifact (sha256, kind, bytes, algo_version)
+VALUES (repeat('9', 64), 'sog', 10, 'sog-v1');
+INSERT INTO tile (z, x, y, dirty, expected_version, sog_sha256)
+SELECT 12, p.x * 4, p.y * 4, false, 1, repeat('9', 64) FROM pick p
+ON CONFLICT (z, x, y) DO UPDATE SET sog_sha256 = excluded.sog_sha256;
+
 CREATE TEMP TABLE holder AS
-SELECT t.z, t.x, t.y, ensure_job(t.z, t.x, t.y) AS job
-FROM tile t WHERE t.z = 10 LIMIT 1;
+SELECT p.z, p.x, p.y, ensure_job(p.z, p.x, p.y) AS job FROM pick p;
 -- Created as the superuser, read after SET ROLE.
 GRANT SELECT ON holder TO player;
 

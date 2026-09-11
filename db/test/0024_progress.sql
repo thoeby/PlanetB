@@ -27,7 +27,10 @@ INSERT INTO job (id, z, x, y, target_version, state, bounty) VALUES
 
 INSERT INTO atom (id, job_id, atom_hash, op, algo_version, inputs, params, seed, state)
 VALUES
-(900001, 900001, repeat('1', 64), 'merge', 'merge-v1', '{}', '{}', 1, 'ready'),
+-- A merge carries the children it was built with; one with none at all is
+-- not claimable at all (db/0035_mergeready.sql).
+(900001, 900001, repeat('1', 64), 'merge', 'merge-v1',
+ jsonb_build_object('children', jsonb_build_array(repeat('c', 64))), '{}', 1, 'ready'),
 (900002, 900002, repeat('2', 64), 'sample', 'sample-v1', '{}', '{}', 1, 'ready'),
 (900003, 900003, repeat('3', 64), 'sog', 'sog-v1', '{}', '{}', 1, 'ready'),
 (900004, 900004, repeat('4', 64), 'sog', 'sog-v1', '{}', '{}', 1, 'ready'),

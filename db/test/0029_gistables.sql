@@ -22,7 +22,7 @@ INSERT INTO feature (kind, geom)
 VALUES ('road', st_geomfromtext('LINESTRING(7.01 46.01, 7.02 46.02)', 4326));
 
 SELECT is(
-    (SELECT st_ndims(geom) FROM feature WHERE kind = 'road' LIMIT 1),
+    (SELECT st_ndims(geom)::int FROM feature WHERE kind = 'road' LIMIT 1),
     3,
     'a 2D line drawn in QGIS is stored with a Z'
 );

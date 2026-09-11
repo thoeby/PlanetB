@@ -33,7 +33,10 @@ function seed(at) {
         far: readyAtom({ ...far, op: 'merge', algo: 'merge-v1', params: {} }),
         near: readyAtom({ ...near, op: 'merge', algo: 'merge-v1', params: {} }),
     };
-    psql(`UPDATE atom SET inputs = jsonb_build_object('ply', id)
+    // The children are a fiction, but a merge with none at all is never handed
+    // out (db/0035_mergeready.sql) and this test is about claim order.
+    psql(`UPDATE atom SET inputs = jsonb_build_object('ply', id,
+              'children', jsonb_build_array(repeat('c', 64)))
           WHERE id IN (${Object.values(made).join(',')})`);
     return made;
 }

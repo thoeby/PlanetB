@@ -61,6 +61,15 @@ SELECT ok((SELECT (params ->> 'needs_webgpu')::boolean FROM atom WHERE op = 'tra
 SELECT ok((SELECT count(DISTINCT atom_hash) = count(*) FROM atom),
     'every atom_hash is distinct');
 
+-- One published z14 child of that z12 tile: a merge with none at all is not
+-- claimable (db/0035_mergeready.sql), and the claim below is about order.
+INSERT INTO artifact (sha256, kind, bytes, algo_version)
+VALUES (repeat('9', 64), 'sog', 4096, 'sog-v1');
+INSERT INTO tile (z, x, y, dirty, expected_version, sog_sha256)
+SELECT 14, t.x * 4, t.y * 4, false, 1, repeat('9', 64)
+FROM tile t WHERE t.z = 12
+ON CONFLICT (z, x, y) DO UPDATE SET sog_sha256 = excluded.sog_sha256;
+
 -- authorisation ---------------------------------------------------------
 SELECT transfer(treasury_account(),
     (SELECT id FROM account WHERE owner_id = ids.other_id), 100, 'seed:other')

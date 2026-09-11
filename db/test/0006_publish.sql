@@ -33,6 +33,14 @@ VALUES ('00000000-0000-0000-0000-0000000000f1',
 -- rather than merged, and this is about the merge -> sog -> publish path.
 CREATE TEMP TABLE tt AS SELECT x, y FROM tile WHERE z = 12;
 
+-- One published z14 child, because a merge with none at all is not claimable
+-- (db/0035_mergeready.sql).
+INSERT INTO artifact (sha256, kind, bytes, algo_version)
+VALUES (repeat('9', 64), 'sog', 4096, 'sog-v1');
+INSERT INTO tile (z, x, y, dirty, expected_version, sog_sha256)
+SELECT 14, (SELECT x FROM tt) * 4, (SELECT y FROM tt) * 4, false, 1, repeat('9', 64)
+ON CONFLICT (z, x, y) DO UPDATE SET sog_sha256 = excluded.sog_sha256;
+
 -- owner opens the job and funds it -------------------------------------
 SELECT set_config('request.jwt.claims',
     json_build_object('sub', owner_id, 'role', 'player')::text, true) FROM ids;
