@@ -8,6 +8,7 @@
 
 import { sampleColor, sampleHeight } from './geo.js';
 import { Mesh } from './mesh.js';
+import { styleFor } from './rules.js';
 
 export const GRID = { 18: 129, 16: 129, 14: 129, 12: 97, 10: 65, 8: 49, 6: 33 };
 
@@ -68,10 +69,11 @@ export class Terrain {
 
 // raise / lower / flatten / smooth, in the order the features are given, which
 // is the order the API returns them in: by id (Invariant 2).
-export function applyTerrainmods(terrain, mods) {
+export function applyTerrainmods(terrain, mods, rules = []) {
     for (const mod of mods) {
-        const amount = Number(mod.props?.amount ?? 0);
-        const op = mod.props?.op ?? 'flatten';
+        const style = styleFor(rules, mod);
+        const amount = Number(style.amount ?? mod.props?.amount ?? 0);
+        const op = String(style.op ?? mod.props?.op ?? 'flatten').toLowerCase();
         const points = mod.rings.flat();
         if (!points.length) continue;
         const level = op === 'flatten'

@@ -56,7 +56,8 @@ same file the Makefile reads), or from flags — later wins.
 
 | | |
 |---|---|
-| `/app/import.html` | connect a GeoServer and import a region |
+| `/app/import.html` | pick layers off a GeoServer or this database and import them |
+| `/app/rules.html` | the build rules: what a feature becomes, first match wins |
 | `/app/play.html` | play, and compile tiles in your browser |
 | `/app/edit.html` | the map editor |
 | `/app/catalog.html` | the catalog |

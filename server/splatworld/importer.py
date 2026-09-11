@@ -99,7 +99,12 @@ def fetch(url: str, headers: dict[str, str], *, what: str) -> bytes:
 
 
 def wfs_url(base: str, type_name: str, count: int | None) -> str:
-    u = urllib.parse.urlparse(absolute_url(base))
+    # Whatever was typed — the root, a workspace, or a full WFS url — asked as
+    # the WFS endpoint. Without this, GetFeature against …/geoserver answers
+    # with the admin page's HTML and the import says "that was not GeoJSON".
+    from .geoserver import service_url  # imported here: geoserver imports this
+
+    u = urllib.parse.urlparse(service_url(base, "wfs"))
     query = {
         "service": "WFS", "version": "2.0.0", "request": "GetFeature",
         "typeNames": type_name, "outputFormat": "application/json",

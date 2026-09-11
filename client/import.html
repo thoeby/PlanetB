@@ -47,6 +47,9 @@
 </style>
 
 <h1>Import a region</h1>
+<p class="lede" style="color:#8fbcd4"><a href="./rules.html">Build rules</a>
+decide what these layers become — which column is a height, which word means a
+gabled roof, how tall a spruce of that age grows.</p>
 <p class="lede">Point this at a GeoServer that holds layers you want brought into
 the world. If you draw in QGIS against this world's own GeoServer, you do not
 need this page at all — see docs/geoserver.md.</p>
@@ -130,29 +133,21 @@ need this page at all — see docs/geoserver.md.</p>
   const $ = (id) => document.getElementById(id);
   const KINDS = ['footprint', 'road', 'forest', 'water', 'terrainmod'];
 
-  // What the compiler reads off a feature, per kind: the property, and what to
-  // say about the column it wants. Leave one blank and the compiler's own
-  // default stands (client/lib/props.js, client/lib/terrain.js).
-  const PROPS_FOR = {
-    footprint: [
-      ['height', 'eaves height in metres'],
-      ['levels', 'number of storeys, if there is no height'],
-      ['roof', 'flat, gabled or hipped'],
-      ['name', 'kept as a label'],
-    ],
-    road: [['width', 'carriageway width in metres'], ['name', 'kept as a label']],
-    forest: [
-      ['species', 'spruce, fagus, Buche, chêne — latin or local'],
-      ['age', 'stand age in years — young stands stay short'],
-      ['height', 'mean canopy height in metres, if measured'],
-      ['leaf_type', 'broadleaved or needleleaved'],
-    ],
-    water: [['name', 'kept as a label']],
-    terrainmod: [
-      ['amount', 'metres to raise or lower the ground'],
-      ['op', 'flatten or offset'],
-    ],
-  };
+  // What the compiler reads off a feature is not a list in this page and not
+  // a constant in the compiler: it is whatever the world's rules mention
+  // (db/0036_rules.sql). Add a rule that reads `bhd` and `bhd` is mappable.
+  // The fallback is only for a server too old to answer.
+  const PROPS_FOR = { footprint: [], road: [], forest: [], water: [], terrainmod: [] };
+
+  async function loadProperties() {
+    try {
+      const res = await fetch('/import/properties', { method: 'POST' });
+      const out = await res.json();
+      for (const [kind, props] of Object.entries(out.properties ?? {})) {
+        PROPS_FOR[kind] = props;
+      }
+    } catch { /* the columns can still be typed by hand */ }
+  }
 
   const sourceIs = () => document.querySelector('input[name=source]:checked').value;
 
@@ -188,6 +183,7 @@ need this page at all — see docs/geoserver.md.</p>
 
   $('connect').onclick = async () => {
     const source = sourceIs();
+    await loadProperties();
     const url = $('url').value.trim();
     if (source === 'geoserver' && !url) {
       say('connect-msg', 'Type your GeoServer address first.', 'bad'); return;
@@ -250,8 +246,9 @@ need this page at all — see docs/geoserver.md.</p>
 
       const syncProp = () => {
         propCell.replaceChildren(...(PROPS_FOR[pick.value] ?? []).map(
-          ([want, hint]) => columnRow(layer, want, hint)));
-        if (!PROPS_FOR[pick.value]) {
+          (want) => columnRow(layer, want)));
+        if (pick.value) propCell.append(extraRow(layer));
+        if (!pick.value) {
           const none = document.createElement('p');
           none.className = 'hint';
           none.textContent = 'not imported';
@@ -272,7 +269,7 @@ need this page at all — see docs/geoserver.md.</p>
 
   // A layer read from the database knows its own columns, so the mapping is a
   // list. WFS capabilities do not carry them, so there it stays a typed name.
-  function columnRow(layer, want, hint) {
+  function columnRow(layer, want, hint = `column holding ${want}`) {
     const row = document.createElement('div');
     row.className = 'proprow';
     const label = document.createElement('span');
@@ -294,6 +291,27 @@ need this page at all — see docs/geoserver.md.</p>
     field.dataset.prop = want;
     field.title = hint;
     row.append(label, field);
+    return row;
+  }
+
+  // Anything the rules do not mention yet can still be carried in: a property
+  // name typed here is imported and is there the moment a rule reads it.
+  function extraRow(layer) {
+    const row = document.createElement('div');
+    row.className = 'proprow';
+    const name = document.createElement('input');
+    name.placeholder = 'another property';
+    name.style.maxWidth = '9rem';
+    const field = layer.fields?.length
+      ? document.createElement('select') : document.createElement('input');
+    if (layer.fields?.length) {
+      field.append(new Option('— none —', ''));
+      for (const column of layer.fields) field.append(new Option(column, column));
+    } else {
+      field.placeholder = 'your column';
+    }
+    name.oninput = () => { field.dataset.prop = name.value.trim(); };
+    row.append(name, field);
     return row;
   }
 

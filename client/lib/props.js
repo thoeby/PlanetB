@@ -8,6 +8,7 @@
 // straight skeleton, and at 110 m a tile away nobody is counting its edges.
 
 import { Mesh, normalOf } from './mesh.js';
+import { styleFor } from './rules.js';
 import { earcut, ringArea, scatter } from './poly.js';
 
 const UP = [0, 1, 0];
@@ -95,10 +96,11 @@ function orient(ring) {
     };
 }
 
+// The three roofs this can build. Which word in your data means which is a
+// rule's job (db/0036_rules.sql), not this function's.
 function roofShape(shape) {
-    if (shape === 'gabled' || shape === 'gable') return 'gable';
-    if (shape === 'hipped' || shape === 'pyramidal' || shape === 'hip') return 'hip';
-    return 'flat';
+    const want = String(shape ?? '').trim().toLowerCase();
+    return want === 'gable' || want === 'hip' ? want : 'flat';
 }
 
 function gable(m, o, top, colour) {
@@ -128,7 +130,7 @@ function hip(m, o, top, colour) {
     }
 }
 
-export function buildings(footprints, terrain) {
+export function buildings(footprints, terrain, rules = []) {
     const walls = new Mesh('wall');
     const roofs = new Mesh('roof');
     const boxes = [];
@@ -137,14 +139,16 @@ export function buildings(footprints, terrain) {
         if (!ring || ring.length < 3) continue;
         const heights = ring.map((p) => terrain.at(p[0], p[1]));
         const base = Math.min(...heights) - 0.5;
-        const tall = Number(f.props?.height)
-            || Number(f.props?.levels) * 3 || 6;
+        const style = styleFor(rules, f);
+        const tall = pick(style.height, 6);
         const top = base + tall;
         wallsOf(walls, ring, base, top);
         const o = orient(ring);
-        const shape = roofShape(f.props?.roof);
-        if (shape === 'gable') gable(roofs, o, top, MATERIALS.roof.color);
-        else if (shape === 'hip') hip(roofs, o, top, MATERIALS.roof.color);
+        const shape = roofShape(style.roof);
+        const roofColour = Array.isArray(style.roof_color)
+            ? style.roof_color : MATERIALS.roof.color;
+        if (shape === 'gable') gable(roofs, o, top, roofColour);
+        else if (shape === 'hip') hip(roofs, o, top, roofColour);
         else flatRoof(roofs, ring, top);
         boxes.push({
             center: [o.centre[0], (base + top) / 2, o.centre[1]],
@@ -180,95 +184,47 @@ function flatRoof(m, ring, top) {
 
 // ------------------------------------------------------------------- trees
 
-// A stand is described by what grows in it and how old it is, because that is
-// what a forestry layer carries. `mature` is the age in years at which this
-// species is its full height; anything without an age is grown.
-export const SPECIES = {
-    needleleaved: { sides: 6, taper: 0.28, tall: [12, 22], mature: 70,
-        color: [0.12, 0.28, 0.16] },
-    broadleaved: { sides: 6, taper: 0.55, tall: [9, 17], mature: 80,
-        color: [0.2, 0.4, 0.16] },
-    spruce: { sides: 6, taper: 0.24, tall: [18, 30], mature: 70,
-        color: [0.10, 0.25, 0.15] },
-    fir: { sides: 6, taper: 0.26, tall: [20, 32], mature: 80,
-        color: [0.11, 0.27, 0.17] },
-    pine: { sides: 6, taper: 0.34, tall: [15, 26], mature: 60,
-        color: [0.16, 0.29, 0.14] },
-    larch: { sides: 6, taper: 0.30, tall: [16, 28], mature: 65,
-        color: [0.22, 0.36, 0.15] },
-    beech: { sides: 7, taper: 0.62, tall: [14, 24], mature: 90,
-        color: [0.21, 0.40, 0.16] },
-    oak: { sides: 7, taper: 0.70, tall: [12, 22], mature: 110,
-        color: [0.19, 0.36, 0.15] },
-    birch: { sides: 6, taper: 0.48, tall: [10, 18], mature: 50,
-        color: [0.28, 0.45, 0.20] },
-    maple: { sides: 7, taper: 0.64, tall: [11, 20], mature: 80,
-        color: [0.24, 0.42, 0.18] },
-    poplar: { sides: 6, taper: 0.38, tall: [16, 28], mature: 40,
-        color: [0.26, 0.44, 0.19] },
-    willow: { sides: 7, taper: 0.72, tall: [8, 14], mature: 40,
-        color: [0.25, 0.43, 0.21] },
-};
+// What an empty rule table falls back to, so a world with no rules still
+// builds: a plain needleleaved stand. This is a fallback, not a vocabulary —
+// every species, every column name and every size lives in `build_rule`.
+const TREE = { sides: 6, taper: 0.28, height: [12, 22], color: [0.12, 0.28, 0.16] };
 
-// What a layer is likely to say, in the languages a Swiss or German forestry
-// layer is written in. Anything unrecognised falls back to the leaf type.
-const ALIAS = {
-    picea: 'spruce', fichte: 'spruce', epicea: 'spruce',
-    abies: 'fir', tanne: 'fir', weisstanne: 'fir', sapin: 'fir',
-    pinus: 'pine', foehre: 'pine', kiefer: 'pine', fohre: 'pine',
-    larix: 'larch', laerche: 'larch', lerche: 'larch', melece: 'larch',
-    fagus: 'beech', buche: 'beech', hetre: 'beech',
-    quercus: 'oak', eiche: 'oak', chene: 'oak',
-    betula: 'birch', birke: 'birch', bouleau: 'birch',
-    acer: 'maple', ahorn: 'maple', erable: 'maple',
-    populus: 'poplar', pappel: 'poplar', peuplier: 'poplar',
-    salix: 'willow', weide: 'willow', saule: 'willow',
-    conifer: 'needleleaved', nadelwald: 'needleleaved', needleleaf: 'needleleaved',
-    deciduous: 'broadleaved', laubwald: 'broadleaved', broadleaf: 'broadleaved',
-};
-
-export function speciesOf(props) {
-    const named = String(props?.species ?? '').trim().toLowerCase();
-    const key = ALIAS[named] ?? named;
-    if (SPECIES[key]) return SPECIES[key];
-    return props?.leaf_type === 'broadleaved' ? SPECIES.broadleaved : SPECIES.needleleaved;
+// Age as a fraction of full height, so a plantation is knee-high and an old
+// stand is not. `mature` is the age at full height and comes from the rule;
+// without one, whatever is standing there is grown.
+export function maturity(age, mature) {
+    const years = Number(age);
+    const full = Number(mature);
+    if (!Number.isFinite(years) || years <= 0 || !Number.isFinite(full) || full <= 0) return 1;
+    return Math.max(0.1, Math.min(1, Math.sqrt(years / full)));
 }
 
-// Age as a fraction of full height: a plantation is knee-high, not a forest.
-// Nothing under a tenth, or a young stand disappears into the terrain.
-export function maturity(props, species) {
-    const age = Number(props?.age);
-    if (!Number.isFinite(age) || age <= 0) return 1;
-    return Math.max(0.1, Math.min(1, Math.sqrt(age / (species.mature || 70))));
-}
-
-// A canopy height in the layer beats the species' own range: it is a
-// measurement of this stand, and the range is an average of the species.
-export function heightRange(props, species) {
-    const mean = Number(props?.height);
-    if (!Number.isFinite(mean) || mean <= 0) return species.tall;
-    return [mean * 0.8, mean * 1.2];
-}
+const pick = (value, fallback) => (Number.isFinite(Number(value)) ? Number(value) : fallback);
 
 // One canopy cone and one square trunk per tree, scattered by Poisson disk. The
 // radius is set by the caller from the tile's size, so a z14 tile does not try
 // to grow a hundred thousand trees.
-export function trees(forests, terrain, random, radius) {
+export function trees(forests, terrain, random, radius, rules = []) {
     const trunks = new Mesh('trunk');
     const canopies = new Mesh('canopy');
     let count = 0;
     for (const f of forests) {
-        const s = speciesOf(f.props);
-        const grown = maturity(f.props, s);
-        const [low, high] = heightRange(f.props, s);
+        const style = styleFor(rules, f);
+        const range = Array.isArray(style.height) ? style.height : TREE.height;
+        const low = pick(style.height_min ?? range[0], TREE.height[0]);
+        const high = pick(style.height_max ?? range[1], TREE.height[1]);
+        const sides = Math.max(3, Math.round(pick(style.sides, TREE.sides)));
+        const taper = pick(style.taper, TREE.taper);
+        const colour = Array.isArray(style.color) ? style.color : TREE.color;
+        const grown = maturity((f.props ?? {})[style.age_prop ?? 'age'], style.mature);
         for (const [x, z] of scatter(f.rings, radius, random)) {
             const ground = terrain.at(x, z);
             // The draw from `random` happens whatever the age, so a stand's
             // trees stand in the same places however tall they are.
             const tall = (low + random() * (high - low)) * grown;
-            const wide = tall * s.taper;
-            cone(canopies, [x, ground + tall * 0.35, z], wide / 2, tall * 0.75, s.sides,
-                s.color.map((c) => c * (0.85 + random() * 0.3)));
+            const wide = tall * taper;
+            cone(canopies, [x, ground + tall * 0.35, z], wide / 2, tall * 0.75, sides,
+                colour.map((c) => c * (0.85 + random() * 0.3)));
             trunk(trunks, x, z, ground, tall * 0.4, wide * 0.06);
             count += 1;
         }

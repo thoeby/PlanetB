@@ -1,12 +1,12 @@
-// What a forestry layer says about a stand, and what grows because of it
-// (client/lib/props.js). A forest with no species and no age must come out
-// exactly as it did before those properties existed.
+// What the rules make of a stand and a building (client/lib/props.js). The
+// vocabulary is not here and not in props.js: these rules are what a world's
+// own `build_rule` rows say (db/0037_ruleseed.sql seeds one set of them).
 import { strict as assert } from 'node:assert';
 import test from 'node:test';
 
-import { SPECIES, heightRange, maturity, speciesOf, trees } from '../lib/props.js';
+import { buildings, maturity, trees } from '../lib/props.js';
 
-const flatGround = { at: () => 0 };
+const flat = { at: () => 0 };
 const square = [[[-20, -20], [20, -20], [20, 20], [-20, 20]]];
 
 function seeded() {
@@ -17,38 +17,70 @@ function seeded() {
     };
 }
 
-test('a species is found by latin, german, french or english name', () => {
-    for (const name of ['picea', 'Fichte', 'epicea', 'spruce']) {
-        assert.equal(speciesOf({ species: name }), SPECIES.spruce, name);
-    }
-    assert.equal(speciesOf({ species: 'fagus' }), SPECIES.beech);
+const SPRUCE = {
+    name: 'spruce', kind: 'forest',
+    filter: [{ prop: 'baumart', op: 'in', value: ['picea', 'fichte'] }],
+    style: { height: [18, 30], taper: 0.24, sides: 6, mature: 70, age_prop: 'alter' },
+};
+const ANY_FOREST = { name: 'any', kind: 'forest', filter: [], style: { height: [12, 22] } };
+
+const tallest = (mesh) => Math.max(...mesh.positions.filter((_, i) => i % 3 === 1));
+
+test('age is a fraction of the rule\'s own maturity', () => {
+    assert.equal(maturity(undefined, 70), 1, 'no age is grown');
+    assert.equal(maturity(40, undefined), 1, 'no maturity in the rule is grown');
+    assert.ok(maturity(10, 70) < maturity(40, 70));
+    assert.equal(maturity(500, 70), 1);
+    assert.ok(maturity(0.5, 70) >= 0.1, 'nothing vanishes into the ground');
 });
 
-test('an unknown species falls back to the leaf type, as before', () => {
-    assert.equal(speciesOf({ species: 'zzz' }), SPECIES.needleleaved);
-    assert.equal(speciesOf({ species: 'zzz', leaf_type: 'broadleaved' }), SPECIES.broadleaved);
-    assert.equal(speciesOf({}), SPECIES.needleleaved);
+test('a rule decides the species, by whatever column the rule names', () => {
+    const rules = [SPRUCE, ANY_FOREST];
+    const stand = (baumart) => trees(
+        [{ kind: 'forest', rings: square, props: { baumart } }], flat, seeded(), 6, rules);
+    const spruce = stand('Fichte');
+    const other = stand('Buche');
+    assert.ok(tallest(spruce.canopies) > tallest(other.canopies),
+        'the spruce rule is taller than the else-rule');
+    assert.equal(spruce.count, other.count, 'and the scatter is the same either way');
 });
 
-test('age is a fraction of full height, and no age is full height', () => {
-    const s = SPECIES.spruce;
-    assert.equal(maturity({}, s), 1);
-    assert.equal(maturity({ age: 0 }, s), 1, 'a missing age is not a seedling');
-    assert.ok(maturity({ age: 10 }, s) < maturity({ age: 40 }, s));
-    assert.equal(maturity({ age: 500 }, s), 1, 'nothing grows past its species');
-    assert.ok(maturity({ age: 0.5 }, s) >= 0.1, 'and nothing vanishes into the ground');
+test('the age column is the one the rule names, not one called age', () => {
+    const rules = [SPRUCE];
+    const stand = (props) => trees(
+        [{ kind: 'forest', rings: square, props }], flat, seeded(), 6, rules);
+    const grown = stand({ baumart: 'picea' });
+    const young = stand({ baumart: 'picea', alter: 7 });
+    assert.ok(tallest(young.canopies) < tallest(grown.canopies));
+    const ignored = stand({ baumart: 'picea', age: 7 });
+    assert.equal(tallest(ignored.canopies), tallest(grown.canopies),
+        'a column no rule names changes nothing');
 });
 
-test('a measured canopy height beats the species average', () => {
-    assert.deepEqual(heightRange({ height: 20 }, SPECIES.spruce), [16, 24]);
-    assert.deepEqual(heightRange({}, SPECIES.spruce), SPECIES.spruce.tall);
+test('with no rules at all a forest is still a forest', () => {
+    const bare = trees([{ kind: 'forest', rings: square, props: {} }], flat, seeded(), 6, []);
+    assert.ok(bare.count > 0);
+    assert.ok(tallest(bare.canopies) > 0);
 });
 
-test('a stand with no properties grows exactly where it grew before', () => {
-    const plain = trees([{ rings: square, props: {} }], flatGround, seeded(), 6);
-    const aged = trees([{ rings: square, props: { age: 10 } }], flatGround, seeded(), 6);
-    assert.equal(plain.count, aged.count, 'age moves no tree, it only shortens it');
-    assert.ok(plain.count > 0);
-    const tallest = (m) => Math.max(...m.positions.filter((_, i) => i % 3 === 1));
-    assert.ok(tallest(aged.canopies) < tallest(plain.canopies), 'a young stand is shorter');
+test('a building takes its height from the rule\'s fallback chain', () => {
+    const rules = [{ name: 'b', kind: 'footprint', filter: [],
+        style: { height: { prop: 'hoehe', else: { prop: 'geschosse', times: 3, else: 6 } } } }];
+    const block = (props) => buildings(
+        [{ kind: 'footprint', rings: square, props }], flat, rules);
+    const measured = block({ hoehe: 21 });
+    const storeys = block({ geschosse: 4 });
+    const neither = block({});
+    assert.equal(tallest(measured.walls), 21 - 0.5);
+    assert.equal(tallest(storeys.walls), 12 - 0.5);
+    assert.equal(tallest(neither.walls), 6 - 0.5);
+});
+
+test('the roof a rule asks for is the roof that is built', () => {
+    const of = (roof) => buildings([{ kind: 'footprint', rings: square, props: {} }], flat,
+        [{ name: 'r', kind: 'footprint', filter: [], style: { roof, height: 6 } }]);
+    assert.ok(tallest(of('gable').roofs) > tallest(of('flat').roofs), 'a gable has a ridge');
+    assert.ok(tallest(of('hip').roofs) > tallest(of('flat').roofs));
+    assert.equal(tallest(of('Satteldach').roofs), tallest(of('flat').roofs),
+        'an unknown word is flat: which word means gable is a rule, not a guess');
 });

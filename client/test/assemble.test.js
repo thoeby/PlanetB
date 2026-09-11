@@ -55,6 +55,21 @@ const WORLD = {
         { id: '6', kind: 'terrainmod', rev: 1, props: { op: 'flatten', amount: 0 },
             geom: { type: 'Polygon', coordinates: box(0.7, 0.1, 0.1, 0.1) } },
     ],
+    // The rules travel with the world (db/0036_rules.sql). These are the
+    // seeded ones this fixture needs: a building's height off its own column,
+    // a road's width off its own, a flattening terrainmod.
+    rules: [
+        { name: 'any building', kind: 'footprint', ordering: 999, enabled: true, filter: [],
+            style: { roof: 'flat',
+                height: { prop: 'height', else: { prop: 'levels', times: 3, else: 6 } } } },
+        { name: 'any road', kind: 'road', ordering: 999, enabled: true, filter: [],
+            style: { width: { prop: 'width', min: 2, max: 40, else: 5 } } },
+        { name: 'any terrainmod', kind: 'terrainmod', ordering: 999, enabled: true, filter: [],
+            style: { amount: { prop: 'amount', else: 0 },
+                op: { prop: 'op', text: true, else: 'flatten' } } },
+        { name: 'any forest', kind: 'forest', ordering: 999, enabled: true, filter: [],
+            style: { height: [12, 22], sides: 6, taper: 0.28, mature: 70, age_prop: 'age' } },
+    ],
 };
 
 async function serve() {

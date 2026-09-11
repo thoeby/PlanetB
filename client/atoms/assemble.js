@@ -20,6 +20,7 @@ import { boundsOf, placeMeshes } from '../lib/glbmesh.js';
 import { packMeshes } from '../lib/mesh.js';
 import { bboxOf, emptySplats, writePly } from '../lib/ply.js';
 import { contains, rng } from '../lib/poly.js';
+import { styleFor } from '../lib/rules.js';
 import { MATERIALS, buildings, roadMesh, trees, waterMesh } from '../lib/props.js';
 import { writeTar } from '../lib/tar.js';
 import {
@@ -67,10 +68,10 @@ function toLocal(frame, feature) {
 
 // A road's height follows its centreline, smoothed: the ground under a road is
 // not as bumpy as a 30 m DEM says it is.
-function roadsOf(features, terrain) {
+function roadsOf(features, terrain, rules = []) {
     const out = [];
     for (const f of features) {
-        const width = Number(f.props.width) || 5;
+        const width = Number(styleFor(rules, f).width) || 5;
         for (const line of f.lines) {
             if (line.length < 2) continue;
             const raw = line.map(([x, z]) => terrain.at(x, z));
@@ -244,19 +245,22 @@ function colliderOf(meshes, at) {
 
 // The scene itself: ground first, then everything that stands on it.
 function build({ z, sw, ne, dem, ortho, frame, world, random, assets }) {
+    // What a feature becomes is decided by the world's rules, which travel with
+    // it (db/0036_rules.sql): nothing here knows a species or a column name.
+    const rules = world.rules ?? [];
     const feats = (world.features ?? []).map((f) => toLocal(frame, f));
     const by = (kind) => feats.filter((f) => f.kind === kind);
     const terrain = new Terrain({ sw, ne, size: GRID[z] ?? 65, dem });
     // The frame's origin is the ground under the tile centre, so heights are
     // measured from there, not from the ellipsoid.
     for (let i = 0; i < terrain.h.length; i++) terrain.h[i] -= frame.h;
-    applyTerrainmods(terrain, by('terrainmod'));
-    const roads = roadsOf(by('road'), terrain);
+    applyTerrainmods(terrain, by('terrainmod'), rules);
+    const roads = roadsOf(by('road'), terrain, rules);
     cutRoads(terrain, roads);
 
     const edge = Math.hypot(ne.x - sw.x, sw.z - ne.z);
-    const built = buildings(by('footprint'), terrain);
-    const wood = trees(by('forest'), terrain, random, Math.max(6, edge / 140));
+    const built = buildings(by('footprint'), terrain, rules);
+    const wood = trees(by('forest'), terrain, random, Math.max(6, edge / 140), rules);
     const placed = placeInstances(world.instances, assets ?? new Map(), frame);
     const meshes = clip([terrainMesh(terrain, ortho), roadMesh(roads, terrain),
         built.walls, built.roofs, waterMesh(by('water'), terrain),

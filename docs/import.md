@@ -66,24 +66,54 @@ In a config file that is a layer with `table` instead of `typeName`:
 
 ## What the compiler reads off a feature
 
-Map your column to one of these and it changes what is built. Leave one unmapped
-and the compiler's own default stands.
+Nothing is fixed here. A **build rule** decides what a feature becomes, and the
+rules are rows in `build_rule` you edit at **<http://localhost:8080/app/rules.html>**
+— the same idea as QGIS's rule-based symbology, and the same order: the first
+rule whose conditions all match wins, a rule with no conditions is the
+else-rule, keep it last.
 
-| kind | property | what it does |
+A rule is two things:
+
+- **When** — conditions over the feature's own properties:
+  `species in ["picea", "fichte"]`, `alter lt 20`, `height exists`. Operators:
+  `eq ne in has lt lte gt gte exists missing`. Words compare case-blind, and a
+  number sent as text still compares as a number.
+- **Build** — what it produces. A value is a constant (`0.24`, `"gable"`,
+  `[18, 30]`) or a number read off the feature:
+
+  ```json
+  {"prop": "hoehe", "times": 1, "plus": 0, "min": 2, "max": 80, "else": 6}
+  ```
+
+  `else` may be another such object — that is how "the height column, or
+  storeys × 3, or 6 m" is said. `{"prop": "dachform", "text": true}` reads a
+  word rather than a number.
+
+What each produced property does:
+
+| kind | property | effect |
 |---|---|---|
+| `forest` | `height` `[low, high]`, or `height_min`/`height_max` | the range a tree is drawn from |
+| | `sides`, `taper`, `color` | the canopy's shape and colour |
+| | `mature` | age in years at full height |
+| | `age_prop` | which column holds the age (`"alter"`, `"age_years"`, anything) |
 | `footprint` | `height` | eaves height in metres |
-| | `levels` | storeys, used as 3 m each when there is no height |
-| | `roof` | `flat`, `gabled`/`gable`, `hipped`/`hip`/`pyramidal` |
+| | `roof` | `flat`, `gable` or `hip` — which of *your* words means which is the rule's job |
+| | `roof_color` | `[r, g, b]` |
 | `road` | `width` | carriageway width in metres |
-| `forest` | `species` | spruce, fir, pine, larch, beech, oak, birch, maple, poplar, willow — by latin, german, french or english name (`Picea`, `Fichte`, `épicéa`, `spruce`) |
-| | `age` | stand age in years: a young stand is short, and full height is reached at the species' own maturity |
-| | `height` | mean canopy height in metres, if your layer measured it — it beats the species average |
-| | `leaf_type` | `broadleaved` or `needleleaved`, used when the species is unknown |
-| `terrainmod` | `amount` | metres to raise or lower the ground |
-| | `op` | `flatten` or `offset` |
+| `terrainmod` | `amount`, `op` | metres, and `flatten`/`raise`/`lower`/`smooth` |
 
-A forest with none of these is exactly what it was before they existed:
-needleleaved, full height.
+The import page offers exactly the properties your rules mention as things to
+map a column to, and anything else can still be carried in by typing its name.
+Add a rule that reads `bhd` and `bhd` is mappable, with no code change.
+
+Editing a rule marks **every** tile dirty: a rule is global, and the rule set's
+hash is part of every tile's snapshot, so an atom already running knows the
+world moved under it.
+
+`db/0037_ruleseed.sql` seeds one set of rules — ten species by latin, german,
+french and english name, roofs, and the height fallbacks — so a fresh world
+builds something. Every row is yours to change or delete.
 
 ## The config file
 

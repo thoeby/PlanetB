@@ -89,3 +89,28 @@ class LayersTest(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class WfsUrlTest(unittest.TestCase):
+    """Whatever the address is, GetFeature is asked of the WFS endpoint.
+
+    Typing the root and getting GeoServer's admin page back as "that was not
+    GeoJSON" is the whole reason this is a test.
+    """
+
+    def test_every_shape_of_address_reaches_wfs(self):
+        from splatworld.importer import wfs_url
+
+        for typed in ("localhost:8081/geoserver",
+                      "http://localhost:8081/geoserver/",
+                      "http://localhost:8081/geoserver/wfs",
+                      "http://localhost:8081/geoserver/wfs?service=WFS&request=GetCapabilities"):
+            got = wfs_url(typed, "splatworld:feature_footprint", None)
+            self.assertTrue(got.startswith("http://localhost:8081/geoserver/wfs?"), got)
+            self.assertIn("request=GetFeature", got)
+
+    def test_a_workspace_address_keeps_its_workspace(self):
+        from splatworld.importer import wfs_url
+
+        got = wfs_url("http://h/geoserver/myws", "myws:roads", None)
+        self.assertTrue(got.startswith("http://h/geoserver/myws/wfs?"), got)

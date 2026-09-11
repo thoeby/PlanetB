@@ -301,6 +301,8 @@ class Handler(BaseHTTPRequestHandler):
             self._last_db_errors()
         elif path == "/setup/clear":
             self._clear_drawn()
+        elif path == "/import/properties":
+            self._import_properties()
         elif path == "/import/probe":
             self._probe(body)
         elif path == "/import/run":
@@ -491,6 +493,35 @@ class Handler(BaseHTTPRequestHandler):
             self._json(200, {"error": str(err)})
         except Exception as err:  # noqa: BLE001 - the page shows whatever broke
             self._json(200, {"error": f"{type(err).__name__}: {err}"})
+
+    def _import_properties(self) -> None:
+        """Which feature properties the world's rules actually read.
+
+        The import page offers these as the things a column can be mapped to.
+        They are not a list in the page and not a constant in the compiler:
+        they are whatever `build_rule` mentions (db/0036_rules.sql), so adding
+        a rule that reads `bhd` makes `bhd` mappable with nothing to change.
+        """
+        import psycopg
+
+        query = """
+            SELECT r.kind, array_agg(DISTINCT p) FROM build_rule r,
+            LATERAL (
+              SELECT jsonb_path_query(jsonb_build_array(r.filter, r.style),
+                                      '$.**.prop') #>> '{}' AS p
+              UNION
+              SELECT v #>> '{}' FROM jsonb_each(r.style) e(k, v)
+              WHERE e.k LIKE %s
+            ) q
+            WHERE p IS NOT NULL AND r.enabled GROUP BY r.kind
+        """
+        try:
+            with psycopg.connect(self.cfg.dsn(), autocommit=True,
+                                 connect_timeout=10) as conn:
+                rows = conn.execute(query, ("%\_prop",)).fetchall()
+            self._json(200, {"properties": {kind: sorted(props) for kind, props in rows}})
+        except Exception as err:  # noqa: BLE001 - the page falls back to typing
+            self._json(200, {"properties": {}, "error": f"{type(err).__name__}: {err}"})
 
     def _probe_postgis(self, body: dict) -> None:
         """The spatial tables of a database, offered exactly like WFS layers."""
