@@ -304,6 +304,10 @@ class Handler(BaseHTTPRequestHandler):
 
         if path == "/setup/geoserver":
             self._setup_geoserver(body)
+        elif path == "/setup/probe":
+            # What that GeoServer publishes, for the Setup panel to offer as the
+            # ground (T0). The import page that used to ask this is gone.
+            self._probe(body)
         elif path == "/setup/account":
             self._setup_account(body)
         elif path == "/setup/lastfail":
@@ -480,10 +484,16 @@ class Handler(BaseHTTPRequestHandler):
         if not url:
             self._json(400, {"error": "type your GeoServer address first"})
             return
+        # The wording comes from the importer, which says "import:" because that
+        # is where it is usually read. This is the Setup panel.
+        plain = lambda text: str(text).replace("import: ", "", 1)  # noqa: E731
         try:
-            self._json(200, geoserver.probe(url, body.get("user"), body.get("password")))
+            found = geoserver.probe(url, body.get("user"), body.get("password"))
+            if found.get("error"):
+                found["error"] = plain(found["error"])
+            self._json(200, found)
         except SystemExit as err:
-            self._json(200, {"error": str(err)})
+            self._json(200, {"error": plain(err)})
         except Exception as err:  # noqa: BLE001 - the page shows whatever broke
             self._json(200, {"error": f"{type(err).__name__}: {err}"})
 

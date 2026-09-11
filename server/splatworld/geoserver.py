@@ -80,7 +80,7 @@ def exception_text(root) -> str | None:
 
 def _nothing_listed(service: str, tried: list[tuple[str, str, bytes]]) -> SystemExit:
     """Everything answered, nothing was in it. Say what came back."""
-    lines = [f"import: connected, but no {service} layers were listed."]
+    lines = [f"connected, but no {service} layers were listed."]
     for version, url, raw in tried:
         try:
             root = ET.fromstring(raw)
@@ -166,7 +166,10 @@ def coverages(base: str, auth: dict) -> list[dict]:
                 # The extent is what makes a coverage choosable: it is where the
                 # world will be, and the viewer needs it to say where the edge
                 # is (TASKS-usable T0, T1).
-                out.append({"id": ident, "title": first_text(node, "Title") or ident,
+                # WCS 2.0 and 1.1 say Title; 1.0 says label.
+                out.append({"id": ident,
+                            "title": (first_text(node, "Title")
+                                      or first_text(node, "label") or ident),
                             "bbox": bbox_of(node)})
         if out:
             return sorted(out, key=lambda c: c["id"])
@@ -196,14 +199,21 @@ def coverage_tile_url(base: str, coverage_id: str, bbox: tuple, size: int,
 
 
 def probe(base: str, user: str | None, password: str | None) -> dict:
-    """What this GeoServer has, for the import page to offer as choices."""
+    """What this GeoServer has: its rasters, and its vector layers if any.
+
+    Neither half is allowed to hide the other. The Setup panel asks this to
+    offer the ground (TASKS-usable T0), which is a coverage — and a GeoServer
+    where somebody has published their elevation and nothing else lists no WFS
+    layers at all, which is not an error and must not read like one.
+    """
     auth = _auth_header(user, password)
     result: dict = {"wfs": service_url(base, "wfs"), "layers": [], "coverages": []}
-    result["layers"] = feature_types(base, auth)
-    try:
-        result["coverages"] = coverages(base, auth)
-    except SystemExit as err:
-        # A GeoServer with no raster published, or WCS switched off, is a normal
-        # thing to meet; elevation can still come from a file.
-        result["coverages_error"] = str(err)
+    for key, fetch in (("layers", feature_types), ("coverages", coverages)):
+        try:
+            result[key] = fetch(base, auth)
+        except SystemExit as err:
+            result[f"{key}_error"] = str(err)
+    if not result["layers"] and not result["coverages"]:
+        return {"error": result.get("coverages_error") or result.get("layers_error")
+                or "connected, but this GeoServer publishes nothing"}
     return result
