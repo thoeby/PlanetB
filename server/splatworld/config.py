@@ -41,6 +41,12 @@ def load_dotenv(path: Path) -> dict[str, str]:
     return out
 
 
+# One value of a libpq keyword connection string. Single quotes around it, with
+# backslashes and quotes escaped, is what libpq itself documents.
+def _libpq(value: str) -> str:
+    return "'" + str(value).replace("\\", "\\\\").replace("'", "\\'") + "'"
+
+
 @dataclass
 class Config:
     repo: Path = field(default_factory=_repo_root)
@@ -85,9 +91,18 @@ class Config:
         )
 
     def authenticator_dsn(self) -> str:
+        # Keyword form, like dsn() above, not a URL. A URL has nowhere to put a
+        # Unix socket directory, and PGHOST=/var/run/postgresql is the default a
+        # Debian or Ubuntu install leaves behind: the URL came out as
+        # postgres://authenticator:pw@/var/run/postgresql:5432/splatworld, which
+        # PostgREST cannot parse, so it answered 503 "Could not query the
+        # database for the schema cache" for ever while `doctor` reported the
+        # database healthy — psycopg takes the keyword form and connected fine.
+        # Values are quoted because a password may hold a space or a quote.
         return (
-            f"postgres://authenticator:{self.authenticator_password}"
-            f"@{self.pg_host}:{self.pg_port}/{self.pg_database}"
+            f"host={_libpq(self.pg_host)} port={_libpq(str(self.pg_port))} "
+            f"user=authenticator password={_libpq(self.authenticator_password)} "
+            f"dbname={_libpq(self.pg_database)}"
         )
 
 

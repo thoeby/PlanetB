@@ -95,7 +95,22 @@
 
 <!-- PlayCanvas 2.x, pinned. The browser tests route this URL to the copy
      `make vendor` puts under client/vendor/, so they run without a network. -->
-<script src="https://code.playcanvas.com/playcanvas-2.22.0.js"></script>
+<script>
+  // The copy `make vendor` puts in client/vendor/playcanvas/ first, the CDN
+  // second — the same two-step view.html uses. Loading only from the CDN left
+  // this page with no world and no message on a machine with no network.
+  window.__pcReady = new Promise((resolve, reject) => {
+      const add = (src, onFail) => {
+          const s = document.createElement('script');
+          s.src = src;
+          s.onload = resolve;
+          s.onerror = onFail;
+          document.head.appendChild(s);
+      };
+      add('./vendor/playcanvas/playcanvas.js',
+          () => add('https://code.playcanvas.com/playcanvas-2.22.0.js', reject));
+  });
+</script>
 
 <script type="module">
   import * as api from './js/api.js';
@@ -114,6 +129,13 @@
 
   api.configure();
   const world = document.getElementById('world');
+  try {
+      await window.__pcReady;
+  } catch {
+      world.textContent = 'could not load the 3D engine — no network, and '
+          + 'client/vendor/playcanvas is missing. Run `make vendor` once.';
+      throw new Error('PlayCanvas did not load');
+  }
 
   // The work panel lists the dirty tiles of whoever is signed in, so it is
   // re-read every time that changes.

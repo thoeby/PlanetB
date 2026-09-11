@@ -48,8 +48,14 @@ def alive(cfg: Config, timeout: float = 2.0) -> bool:
     try:
         with urllib.request.urlopen(cfg.api_url, timeout=timeout) as res:
             return res.status < 500
-    except urllib.error.HTTPError:
-        return True  # answering at all is enough; 404 on / is normal
+    except urllib.error.HTTPError as err:
+        # 404 on / is normal and means it is up. A 5xx is not: a PostgREST that
+        # cannot reach the database answers 503 "Could not query the database
+        # for the schema cache" to everything, and counting that as alive meant
+        # run() adopted it, started nothing, and served a world whose every API
+        # call failed — through restart after restart, saying "API already
+        # running" each time.
+        return err.code < 500
     except OSError:
         return False
 

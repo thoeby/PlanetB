@@ -9,8 +9,26 @@
      those import each other by bare specifier, which a client with no bundler
      cannot resolve. `make vendor` puts the same files in client/vendor/ol/ and
      the browser tests route these URLs there. -->
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/ol@10.10.0/ol.css">
-<script src="https://cdn.jsdelivr.net/npm/ol@10.10.0/dist/ol.js"></script>
+<link rel="stylesheet" href="./vendor/ol/ol.css" onerror="this.onerror=null;
+      this.href='https://cdn.jsdelivr.net/npm/ol@10.10.0/ol.css'">
+<script>
+  // The copy `make vendor` puts in client/vendor/ol/ first, the CDN second.
+  // Loading only from the CDN left this page blank — no map, no panel, no
+  // message — on a machine with no network or with a firewall in front of
+  // jsdelivr, which is the machine the README describes. Same two-step
+  // view.html already uses for the engine.
+  window.__olReady = new Promise((resolve, reject) => {
+      const add = (src, onFail) => {
+          const s = document.createElement('script');
+          s.src = src;
+          s.onload = resolve;
+          s.onerror = onFail;
+          document.head.appendChild(s);
+      };
+      add('./vendor/ol/ol.js',
+          () => add('https://cdn.jsdelivr.net/npm/ol@10.10.0/dist/ol.js', reject));
+  });
+</script>
 <style>
   :root { color-scheme: dark; font: 14px/1.5 system-ui, sans-serif; }
   body { margin: 0; background: #0d1013; color: #e6e9ec; overflow: hidden; }
@@ -66,6 +84,14 @@
   import { mountEditor } from './js/editui.js';
 
   api.configure();
+  try {
+      await window.__olReady;
+  } catch {
+      document.getElementById('panel').textContent =
+          'could not load OpenLayers — no network, and client/vendor/ol is '
+          + 'missing. Run `make vendor` once, then reload.';
+      throw new Error('OpenLayers did not load');
+  }
   const edit = mountEditor(document, { mountAuth });
   // The browser tests drive the page through this, exactly as catalog.html does.
   window.splatworld = { api, edit };
