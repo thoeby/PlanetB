@@ -19,6 +19,27 @@ from .config import Config
 # Makefile's $(sort) produces and the order the migrations depend on.
 MIGRATION_RE = re.compile(r"^\d+.*\.sql$")
 
+# Held for the length of an apply, so two `splatworld run` starting together
+# cannot both apply the same file. Any constant will do; this one is "splat".
+APPLY_LOCK = 0x5350_4C41
+
+# "This object is already there" — what a migration that has already been
+# applied says. A database made before the migration ledger existed has the
+# schema and no record of it, and these are the errors re-running produces.
+ALREADY_THERE = frozenset({
+    "42710",  # duplicate_object: a constraint, domain, trigger, role, policy
+    "42P07",  # duplicate_table: a table, view, index or sequence
+    "42701",  # duplicate_column
+    "42P06",  # duplicate_schema
+    "42723",  # duplicate_function
+    "23505",  # unique_violation: a migration that seeds a row, seeded again
+})
+
+
+def already_there(err: psycopg.Error) -> bool:
+    """Whether the error says the object exists, not that something is wrong."""
+    return err.sqlstate in ALREADY_THERE
+
 
 def migrations(cfg: Config) -> list[Path]:
     return sorted(
@@ -99,27 +120,52 @@ def apply(cfg: Config, *, on_step=print) -> int:
     arrives as a new migration is picked up by the next `splatworld run`
     instead of needing `init --reset` — which also deletes the account and
     everything drawn, an unreasonable price for one more table.
+
+    The record is younger than some of the databases it describes: one made
+    before it existed has the whole schema and an empty ledger, and re-running
+    those files raises "already exists" on the first thing that is not written
+    defensively. That is not damage and not a reason to refuse to start, so a
+    file whose objects are all already there is recorded as applied rather than
+    re-run. Anything else still stops the run.
     """
     files = migrations(cfg)
     if not files:
         raise SystemExit(f"no migrations found in {cfg.migrations_dir}")
-    with psycopg.connect(cfg.dsn(), autocommit=True) as conn:
-        conn.execute("CREATE EXTENSION IF NOT EXISTS postgis")
-        conn.execute("CREATE EXTENSION IF NOT EXISTS pgcrypto")
-        conn.execute("CREATE TABLE IF NOT EXISTS migration"
-                     " (name text PRIMARY KEY, applied_at timestamptz NOT NULL DEFAULT now())")
-        done = {r[0] for r in conn.execute("SELECT name FROM migration")}
     count = 0
-    for path in files:
-        if path.name in done:
-            continue
-        on_step(f"  apply {path.name}")
+    # One applier at a time: two processes that both saw the same file pending
+    # would otherwise race, and the loser would stop on the winner's objects.
+    with psycopg.connect(cfg.dsn(), autocommit=True) as guard:
+        guard.execute("SELECT pg_advisory_lock(%s)", (APPLY_LOCK,))
+        guard.execute("CREATE EXTENSION IF NOT EXISTS postgis")
+        guard.execute("CREATE EXTENSION IF NOT EXISTS pgcrypto")
+        guard.execute("CREATE TABLE IF NOT EXISTS migration"
+                      " (name text PRIMARY KEY, applied_at timestamptz NOT NULL DEFAULT now())")
+        done = {r[0] for r in guard.execute("SELECT name FROM migration")}
+        for path in files:
+            if path.name in done:
+                continue
+            on_step(f"  apply {path.name}")
+            if not _apply_one(cfg, path):
+                guard.execute("INSERT INTO migration (name) VALUES (%s)"
+                              " ON CONFLICT DO NOTHING", (path.name,))
+                on_step(f"  {path.name} was already in this database — "
+                        "recorded, not re-run")
+            count += 1
+    return count
+
+
+def _apply_one(cfg: Config, path: Path) -> bool:
+    """Applies one file. False if the database already had everything in it."""
+    try:
         with psycopg.connect(cfg.dsn()) as conn:
             conn.execute(_substitute(path.read_text(encoding="utf8"), cfg))
             conn.execute("INSERT INTO migration (name) VALUES (%s)", (path.name,))
             conn.commit()
-        count += 1
-    return count
+    except psycopg.Error as err:
+        if not already_there(err):
+            raise
+        return False
+    return True
 
 
 def pending(cfg: Config) -> list[str]:
