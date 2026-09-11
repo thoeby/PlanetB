@@ -16,8 +16,8 @@ const HTML = `
   <button id="refresh" type="button">Find</button>
 </div>
 <div class="row">
-  <select id="category"></select>
-  <select id="license"></select>
+  <label>Kind of thing<select id="category"></select></label>
+  <label>Licence<select id="license"></select></label>
 </div>
 <ul id="results"></ul>
 <p id="status" class="status"></p>

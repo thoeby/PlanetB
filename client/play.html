@@ -76,6 +76,7 @@
   import { mountHud } from './js/hud.js';
   import { mountSetup } from './js/setupui.js';
   import { mountAdmin } from './js/adminui.js';
+  import { mountRules } from './js/rulesui.js';
   import { mountCatalogPanel } from './js/catalogpanel.js';
   import { drawAreas, mountLand } from './js/land.js';
   import { mountPool, mountSubmit } from './js/pool.js';
@@ -129,6 +130,9 @@
   // What the world may say about itself. The same rows drive this tool's forms,
   // QGIS's layer forms and the rules the compiler matches on (T3).
   const admin = mountAdmin(hud.panel('Admin'));
+  // The other half of the vocabulary: what the compiler makes of a thing that
+  // carries those properties. It was a page of its own until T9.
+  const rules = mountRules(hud.panel('Admin'));
   // Who you are, in the corner, from the moment the page knows.
   const showWho = () => hud.signedIn(api.claims()?.email
       ?? (api.userId() ? 'signed in' : null));
@@ -314,7 +318,8 @@
         // cached until you walk somewhere else — so forget it.
         asked = { lon: 0, lat: 0, at: 0 };
         build.refresh(); areas.refresh(); showCredits();
-        catalog.refresh(); admin.refresh(); setup.refresh(); land.refresh();
+        catalog.refresh(); admin.refresh(); rules.refresh(); setup.refresh();
+        land.refresh();
         submit.refresh(); pool.refresh(); permission.refresh();
         showWho();
     },
@@ -457,7 +462,8 @@
   // The handle the browser tests fly.
   window.splatworld = {
     app, pc, api, origin, streamer, camera, rows, terrain, player, setDriving, work,
-    hud, setup, admin, catalog, land, submit, pool, permission, ground, share, goTo,
+    hud, setup, admin, rules, catalog, land, submit, pool, permission, ground,
+    share, goTo,
     spot, build, preview, nearby, areas, wallet, xr: { wants: wantsXr, rig: () => rig },
   };
 </script>

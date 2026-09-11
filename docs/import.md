@@ -67,7 +67,7 @@ In a config file that is a layer with `table` instead of `typeName`:
 ## What the compiler reads off a feature
 
 Nothing is fixed here. A **build rule** decides what a feature becomes, and the
-rules are rows in `build_rule` you edit at **<http://localhost:8080/app/rules.html>**
+rules are rows in `build_rule` you edit in the **Admin tab of the world**
 — the same idea as QGIS's rule-based symbology, and the same order: the first
 rule whose conditions all match wins, a rule with no conditions is the
 else-rule, keep it last.

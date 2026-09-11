@@ -15,6 +15,7 @@ const TYPES = ['text', 'number', 'boolean', 'choice'];
 const GEOMETRIES = ['', 'polygon', 'line', 'point'];
 
 const HTML = `
+<label>What a thing may say about itself</label>
 <div class="row">
   <select class="ad-kind"></select>
   <button type="button" class="ad-newkind">New kind</button>

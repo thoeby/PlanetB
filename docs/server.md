@@ -56,12 +56,10 @@ same file the Makefile reads), or from flags — later wins.
 
 | | |
 |---|---|
-| `/app/import.html` | pick layers off a GeoServer or this database and import them |
-| `/app/rules.html` | the build rules: what a feature becomes, first match wins |
-| `/app/play.html` | play, and compile tiles in your browser |
+| `/app/play.html` | the world, and everything in it: setup, your land, the catalog, the pool, permission, the wallet, sharing, admin |
 | `/app/edit.html` | the map editor |
-| `/app/catalog.html` | the catalog |
 | `/app/view.html` | the read-only viewer |
+| `/app/setup.html` `/app/import.html` `/app/catalog.html` `/app/rules.html` | redirects to the world: each of these is a tab of it now |
 | `/assets /tiles /jobs /geo` | the file store: public to read, authorised to write |
 
 ## Commands

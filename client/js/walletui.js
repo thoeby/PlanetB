@@ -9,9 +9,11 @@
 import { myAccount, myLedger, setBounty } from './wallet.js';
 
 const HTML = `
-<div class="wallet-head">wallet</div>
+<label>What you have</label>
 <div class="wallet-balance muted">—</div>
+<label>What moved</label>
 <ul class="wallet-ledger"></ul>
+<label>What to pay for the tile you are looking at</label>
 <div class="wallet-bounty">
   <input class="wallet-amount" type="number" min="0" step="1" value="10">
   <span class="wallet-target muted">no tile chosen</span>

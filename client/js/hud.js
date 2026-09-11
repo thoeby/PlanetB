@@ -29,7 +29,8 @@ export const TABS = [
     { name: 'Share', glyph: 'circle(50%)',
         lede: 'A link that puts somebody else where you are standing.' },
     { name: 'Admin', glyph: 'polygon(50% 0,100% 25%,100% 75%,50% 100%,0 75%,0 25%)',
-        lede: 'Properties land, features and products may carry.' },
+        lede: 'What things may say about themselves, and what the compiler'
+            + ' makes of them.' },
     { name: 'Setup', glyph: 'circle(50%)',
         lede: 'Your account, your GeoServer, and the ground the world sits on.' },
 ];

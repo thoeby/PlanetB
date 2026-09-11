@@ -12,6 +12,7 @@
 import * as api from './api.js';
 
 const SUBMIT_HTML = `
+<label>Which land</label>
 <select class="su-area"></select>
 <label>What to pay for each tile</label>
 <div class="row">
