@@ -11,6 +11,15 @@ import * as api from './api.js';
 export const RIGHTS = ['direct_edit', 'edit', 'approve'];
 
 export const myAreas = () => api.rpc('my_areas');
+
+// Your own ground. Until db/0038_authoring.sql there was no way to get any:
+// `area` has no INSERT grant and nothing exposed an RPC, so every area in the
+// world was made with psql. `detail` 0 means the baseline (db/0032_zerodetail).
+export const createArea = (geojson, detail = 0, name = '') =>
+    api.rpc('create_area', { geojson, detail, name });
+export const setAreaDetail = (areaId, detail) =>
+    api.rpc('set_area_detail', { area_id: areaId, detail });
+export const deleteArea = (areaId) => api.rpc('delete_area', { area_id: areaId });
 export const areaGrants = (areaId) => api.rpc('area_grants', { area_id: areaId });
 export const myProposals = (state = 'open') => api.rpc('my_proposals', { state });
 

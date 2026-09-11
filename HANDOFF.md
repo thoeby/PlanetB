@@ -412,3 +412,29 @@ changing an RPC signature, or adding a dependency. Several of those came up in
 WP0 and WP1 and are documented as numbered deviations in `PROGRESS.md`; treat
 the list as binding. The dependencies added so far are dev tooling only —
 eslint and `@playwright/test` — and the client itself still has none.
+
+## Running Postgres without Docker
+
+`infra/compose.yml` has still never been started in a session; no Docker daemon
+has been available. A plain cluster runs every migration and every pgTAP test:
+
+```
+apt-get install -y postgresql-16-postgis-3 postgresql-16-pgtap
+D=/var/lib/postgresql/sw
+su postgres -c "/usr/lib/postgresql/16/bin/initdb -D $D/data -U postgres --auth=trust"
+su postgres -c "/usr/lib/postgresql/16/bin/pg_ctl -D $D/data -l $D/log \
+    -o '-p 5432 -k /var/run/postgresql' start"
+PGHOST=/var/run/postgresql PGUSER=postgres make db-reset
+```
+
+Two traps paid for:
+
+- **Do not put the data directory under the session scratchpad.** Its
+  permissions get reset underneath a running server; the checkpointer then
+  PANICs on `pg_control` and the cluster shuts itself down mid-run. Use a
+  directory `postgres` owns.
+- `pg_prove` is not in the Ubuntu packages, so `make db-test` cannot run as
+  written. Until it is installed, each file runs under
+  `psql -f db/test/000x.sql` — pgTAP prints TAP either way, and counting
+  `^ ok` against `not ok` is the whole check. The suite is 502 assertions
+  across 31 files.

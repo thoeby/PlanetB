@@ -10,6 +10,7 @@
 // going to say, and a refusal still comes back from the database (Invariant 6).
 
 import * as api from './api.js';
+import { createArea } from './areas.js';
 import { KIND_NAMES, KINDS, dropFeature, geometryOf, permissionOf, propsFrom,
     readAreas, readFeatures, saveFeature, valuesOf } from './edit.js';
 import { PROJ, buildMap, geoOf, viewBbox } from './editmap.js';
@@ -18,6 +19,10 @@ const HTML = `
 <div class="edit-head">areas</div>
 <ul class="edit-areas"></ul>
 <p class="edit-perm muted"></p>
+<div class="edit-acts">
+  <input class="edit-area-name" type="text" placeholder="new area's name">
+  <button type="button" class="edit-area-new">claim ground</button>
+</div>
 <div class="edit-head">feature</div>
 <label>kind <select class="edit-kind"></select></label>
 <div class="edit-props"></div>
@@ -239,6 +244,36 @@ function startDraw(ctx) {
     ctx.say(`click to draw a ${ctx.q('.edit-kind').value}`);
 }
 
+// Drawing the ground itself, rather than something standing on it. Without this
+// a signed-in player sees "no area — move the map over one" for ever: there was
+// no way to make one (db/0038_authoring.sql). The sketch goes nowhere near the
+// feature layer — it is not a feature — and the area arrives back through
+// refresh() like any other.
+function startAreaDraw(ctx) {
+    const { ol, map, state } = ctx;
+    if (state.draw) map.removeInteraction(state.draw);
+    state.pending = null;
+    ctx.select.getFeatures().clear();
+    ctx.select.setActive(false);
+    state.draw = new ol.interaction.Draw({ type: 'Polygon' });
+    state.draw.on('drawend', async (e) => {
+        state.draw.setActive(false);
+        ctx.select.setActive(true);
+        try {
+            const id = await createArea(geoOf(ctx, e.feature), 0,
+                ctx.q('.edit-area-name').value.trim());
+            ctx.q('.edit-area-name').value = '';
+            ctx.say(`claimed ${short(id)} — draw in it now`);
+            await refresh(ctx);
+            await pick(ctx, ctx.state.areas.find((a) => a.id === id) ?? null);
+        } catch (err) {
+            ctx.fail(err);
+        }
+    });
+    map.addInteraction(state.draw);
+    ctx.say('click to draw the outline of your ground');
+}
+
 function selectionChanged(ctx, feature) {
     // Picking up the shape just drawn must not throw away the sketch, or the
     // props typed for it: it is still the thing waiting to be saved.
@@ -295,6 +330,7 @@ export function mountEditor(doc, { mountAuth } = {}) {
         refresh: () => refresh(ctx),
         pick: (id) => pick(ctx, ctx.state.areas.find((a) => a.id === id) ?? null),
         draw: () => startDraw(ctx),
+        claimGround: () => startAreaDraw(ctx),
         save: () => save(ctx),
         remove: () => remove(ctx),
     };
@@ -303,6 +339,7 @@ export function mountEditor(doc, { mountAuth } = {}) {
 function wire(ctx, mountAuth) {
     const { q, state } = ctx;
     q('.edit-draw').onclick = () => startDraw(ctx);
+    q('.edit-area-new').onclick = () => startAreaDraw(ctx);
     q('.edit-save').onclick = () => save(ctx);
     q('.edit-delete').onclick = () => remove(ctx);
     q('.edit-kind').onchange = () => {
