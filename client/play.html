@@ -5,93 +5,40 @@
 <!-- Endpoints, so the same static files run against compose or a dev box. -->
 <meta name="splatworld:api" content="http://localhost:3000">
 <meta name="splatworld:files" content="http://localhost:8080">
+<link rel="stylesheet" href="./hud.css">
 <style>
-  :root { color-scheme: dark; font: 14px/1.5 system-ui, sans-serif; }
-  body { margin: 0; background: #0d1013; color: #e6e9ec; overflow: hidden; }
-  #view { display: block; width: 100vw; height: 100vh; }
-  #hud {
-    position: fixed; top: 12px; left: 12px; width: 20rem; padding: 12px 14px;
-    background: #161b20e6; border: 1px solid #2a3138; border-radius: 6px;
-    /* Build mode adds a catalog and a tile list; without this the panel grows
-       past the window and its buttons cannot be reached. */
-    max-height: calc(100vh - 40px); overflow-y: auto;
-  }
-  h1 { margin: 0 0 8px; font-size: 15px; font-weight: 600; letter-spacing: .02em; }
-  label { display: block; margin: 6px 0; }
-  input { width: 100%; box-sizing: border-box; padding: 4px 6px;
-    background: #0d1013; color: inherit; border: 1px solid #2a3138; border-radius: 4px; }
-  .auth-buttons { display: flex; gap: 6px; margin-top: 8px; }
-  button { flex: 1; padding: 5px 8px; background: #222a31; color: inherit;
-    border: 1px solid #39424b; border-radius: 4px; cursor: pointer; }
-  button:hover { background: #2b343d; }
-  .auth-who { display: flex; gap: 8px; align-items: baseline; }
-  .auth-role, #world { color: #8b959e; }
-  .auth-status { margin: 6px 0 0; min-height: 1.2em; color: #8b959e; }
-  .auth-status[data-bad="1"] { color: #e2867a; }
-  #world { margin: 10px 0 0; padding-top: 8px; border-top: 1px solid #2a3138;
-    white-space: pre-line; }
-  #work { margin: 10px 0 0; padding-top: 8px; border-top: 1px solid #2a3138; }
-  #build { margin: 10px 0 0; padding-top: 8px; border-top: 1px solid #2a3138; }
-  #areas { margin: 10px 0 0; padding-top: 8px; border-top: 1px solid #2a3138; }
-  #wallet { margin: 10px 0 0; padding-top: 8px; border-top: 1px solid #2a3138; }
-  .wallet-head { font-weight: 600; margin: 6px 0 2px; }
-  .wallet-ledger { margin: 4px 0; padding: 0; list-style: none;
-    max-height: 7rem; overflow-y: auto; }
-  .wallet-line { font-family: ui-monospace, monospace; font-size: 12px; }
-  .wallet-delta { display: inline-block; min-width: 3.5rem; text-align: right; }
-  .wallet-bounty { display: flex; gap: 6px; align-items: center; margin: 4px 0; }
-  .wallet-amount { width: 4.5rem; }
-  .wallet-bounty button { flex: 0 0 auto; padding: 1px 6px; }
-  .wallet-status { min-height: 1.2em; }
-  .area-head { font-weight: 600; margin: 6px 0 2px; }
-  .area-list, .area-granted, .area-proposals { margin: 4px 0; padding: 0;
-    list-style: none; max-height: 9rem; overflow-y: auto; }
-  .area-item button, .area-grant button, .area-acts button { padding: 1px 6px; }
-  .area-item[data-on="1"] button { border-color: #4a7a52; }
-  .area-grant, .area-add, .area-acts { display: flex; gap: 6px; align-items: center;
-    margin: 2px 0; }
-  .area-add input, .area-add select { flex: 1; }
-  .area-proposal { border: 1px solid #2a3138; border-radius: 4px; padding: 4px 6px;
-    margin: 4px 0; }
-  .area-op { font-family: ui-monospace, monospace; font-size: 12px; }
-  .area-rules input { width: 4rem; }
-  .area-status { min-height: 1.2em; }
-  #build[data-on="1"] { border-color: #4a7a52; }
-  .build-where, .build-sel { margin: 4px 0; }
-  .build-assets, .build-tiles { margin: 4px 0; padding: 0; list-style: none;
-    max-height: 7rem; overflow-y: auto; }
-  .build-asset button, .build-tile button { padding: 1px 6px; }
-  .build-tile { display: flex; gap: 6px; align-items: baseline; margin: 2px 0; }
-  .build-gizmo, .build-acts { display: flex; gap: 6px; align-items: center; margin: 4px 0; }
-  .build-gizmo button, .build-acts button { flex: 0 0 auto; padding: 1px 6px; }
-  .build-axis { font-family: ui-monospace, monospace; color: #8b959e; }
-  .build-snap { display: flex; gap: 4px; align-items: center; margin: 0; }
-  .build-snap input, .build-on input { width: auto; }
-  .build-on { display: flex; gap: 6px; align-items: center; }
-  .work-gpu, .work-state, .work-progress { color: #8b959e; }
+  /* Only what a module's own markup needs and hud.css cannot know about. */
   .work-progress { white-space: pre-line; font-size: 12px; margin: 4px 0; }
-  .work-bg { display: flex; gap: 6px; align-items: center; margin: 6px 0; }
-  .work-bg input { width: auto; }
-  .work-tiles { margin: 6px 0; padding: 0; list-style: none; max-height: 8rem;
+  .work-log { margin: 6px 0 0; color: var(--ink-3); font-size: 11px;
+    font-family: var(--mono); white-space: pre-wrap; max-height: 7rem;
     overflow-y: auto; }
-  .work-tile { display: flex; gap: 6px; align-items: baseline; margin: 2px 0; }
-  .work-tile button { flex: 0 0 auto; padding: 1px 6px; }
-  .work-log { margin: 4px 0 0; color: #6f7a84; font-size: 12px;
-    white-space: pre-wrap; }
+  .work-bg, .build-on, .build-snap, .wallet-bounty, .area-add, .area-acts,
+  .area-grant, .build-gizmo, .build-acts { display: flex; gap: 6px;
+    align-items: center; margin: 6px 0; }
+  .work-bg input, .build-on input, .build-snap input { width: auto; }
+  .work-tiles, .build-assets, .build-tiles, .wallet-ledger, .area-list,
+  .area-granted, .area-proposals { max-height: 9rem; overflow-y: auto; }
+  .work-tile, .build-tile, .build-asset, .area-item, .area-grant {
+    display: flex; gap: 6px; align-items: baseline; }
+  .work-tile button, .build-tile button, .build-asset button,
+  .area-item button, .area-grant button, .area-acts button,
+  .wallet-bounty button { flex: 0 0 auto; padding: 3px 8px; font-size: 11px; }
+  .wallet-line { font-family: var(--mono); font-size: 11px; }
+  .wallet-delta { display: inline-block; min-width: 3.5rem; text-align: right; }
+  .build-axis { font-family: var(--mono); color: var(--ink-3); }
+  .area-item[data-on="1"] button { border-color: var(--accent); }
+  .area-proposal { border: 1px solid var(--edge); padding: 6px 8px; margin: 6px 0; }
+  .area-op { font-family: var(--mono); font-size: 11px; }
+  .area-rules input, .wallet-amount { width: 5rem; }
+  .auth-who { display: flex; gap: 8px; align-items: baseline; }
+  .auth-buttons { display: flex; gap: 6px; margin-top: 8px; }
+  .auth-status, .work-gpu, .work-state, .auth-role { color: var(--ink-3);
+    font-size: 12px; }
+  .auth-status[data-bad="1"] { color: var(--bad); }
+  #xr { margin-top: 10px; }
 </style>
 
 <canvas id="view"></canvas>
-<section id="hud">
-  <h1>splatworld</h1>
-  <div id="auth"></div>
-  <p id="world">…</p>
-  <div id="work"></div>
-  <div id="build"></div>
-  <div id="areas"></div>
-  <div id="wallet"></div>
-  <div id="xr" hidden><button type="button" class="xr-enter">enter VR</button>
-    <span class="xr-status muted"></span></div>
-</section>
 
 <!-- PlayCanvas 2.x, pinned. The browser tests route this URL to the copy
      `make vendor` puts under client/vendor/, so they run without a network. -->
@@ -126,9 +73,23 @@
   import { nearbyInstances } from './js/build.js';
   import { InstancePreview } from './js/preview.js';
   import { XR_LIMITS, teleportTarget, xrRequested, xrSupported } from './js/xr.js';
+  import { mountHud } from './js/hud.js';
 
   api.configure();
-  const world = document.getElementById('world');
+
+  // The chrome first: it owns the tabs, and every module below is mounted into
+  // one of them. Nothing is reachable by a key nobody told you about.
+  const hud = mountHud(document);
+  const world = document.createElement('p');
+  world.id = 'world';
+  world.className = 'muted mono';
+  hud.panel('Setup').append(world);
+  const panelFor = (tab, id) => {
+      const host = document.createElement('div');
+      host.id = id;
+      hud.panel(tab).append(host);
+      return host;
+  };
   try {
       await window.__pcReady;
   } catch {
@@ -143,7 +104,7 @@
   // taking, so background work can stand aside while the tab is being played,
   // and where the player is, so the nearest unfinished tile is claimed first.
   const frame = { ms: 0 };
-  const work = mountWork(document.getElementById('work'), {
+  const work = mountWork(panelFor('Render pool', 'work'), {
     frames: () => frame.ms,
     where: () => {
       const p = camera.getPosition();
@@ -237,9 +198,9 @@
   }
 
   // WP4.4: the wallet, and the bounty that puts a tile in front of a stranger.
-  const wallet = mountWallet(document.getElementById('wallet'));
+  const wallet = mountWallet(panelFor('Wallet', 'wallet'));
 
-  const build = mountBuild(document.getElementById('build'), {
+  const build = mountBuild(panelFor('Place', 'build'), {
     app, pc, api, camera, origin, terrain, streamer, player, work, preview,
     canvas: view, nearby, wallet,
   });
@@ -247,11 +208,11 @@
   // WP4.3: my land, who may touch it, and what they have asked to change.
   // Merging a proposal changes the world, so the build panel is told to look
   // again — its dirty badge is what a merge produces.
-  const areas = mountAreas(document.getElementById('areas'), {
+  const areas = mountAreas(panelFor('Your land', 'areas'), {
     onSelect: () => build.refresh(),
   });
 
-  mountAuth(document.getElementById('auth'), {
+  mountAuth(panelFor('Setup', 'auth'), {
     onChange: () => { work.refresh(); build.refresh(); areas.refresh(); wallet.refresh(); },
   });
 
@@ -268,7 +229,10 @@
   // is what makes people sick.
   //
   // Not run on a headset: there is none here. docs/xr.md says what to check.
-  const xrPanel = document.getElementById('xr');
+  const xrPanel = panelFor('Setup', 'xr');
+  xrPanel.hidden = true;
+  xrPanel.innerHTML = '<button type="button" class="xr-enter">enter VR</button>'
+      + ' <span class="xr-status muted"></span>';
   let rig = null;
   async function offerXr() {
     if (!wantsXr) return;
@@ -308,6 +272,31 @@
   }
   offerXr();
 
+  // The land under the player, and whether they may build on it. area_at is a
+  // spatial question no filter can ask, so it is asked when the ground changes
+  // rather than every frame.
+  let asked = { lon: 0, lat: 0, at: 0 };
+  function whereAmI(g) {
+      const moved = Math.hypot(g.lon - asked.lon, g.lat - asked.lat) > 0.0005;
+      if (!moved || Date.now() - asked.at < 2000) return;
+      asked = { lon: g.lon, lat: g.lat, at: Date.now() };
+      api.rpc('area_at', { lon: g.lon, lat: g.lat }).then((areas) => {
+          const a = areas?.[0];
+          if (!a) {
+              hud.standing({ land: 'unclaimed ground', owner: '',
+                  right: 'nobody owns this', may: false });
+              return;
+          }
+          hud.standing({
+              land: a.rules?.name || 'unnamed land',
+              owner: a.mine ? 'you' : (a.owner_id ?? '').slice(0, 8),
+              right: a.may_write ? 'you may build here'
+                  : a.may_propose ? 'you may propose here' : 'read only',
+              may: Boolean(a.may_write),
+          });
+      }).catch(() => {});
+  }
+
   app.on('update', (dt) => {
     // A smoothed frame time, so one slow frame does not stall background work
     // and one fast one does not let it back in too early.
@@ -327,6 +316,12 @@
     }
     build.drawGizmo();
     streamer.update(cameraState(camera, app.graphicsDevice.height));
+    // Where you are, in the chrome: the compass follows the camera, the
+    // coordinates are the real ones, and the land under you is asked for only
+    // when you have actually walked somewhere else.
+    const here = origin.geodeticOf({ x: p.x, y: p.y, z: p.z });
+    hud.at(here.lon, here.lat, here.h, player.yaw / Math.PI * 180);
+    whereAmI(here);
     world.textContent = `${live.length} published tiles\n`
       + `${streamer.entries.size} loaded, ${streamer.pending} loading\n`
       + `${origin.rebases} rebases, ${streamer.swaps} swaps — ${player.mode}`
@@ -337,6 +332,7 @@
   // The handle the browser tests fly.
   window.splatworld = {
     app, pc, api, origin, streamer, camera, rows, terrain, player, setDriving, work,
+    hud,
     spot, build, preview, nearby, areas, wallet, xr: { wants: wantsXr, rig: () => rig },
   };
 </script>

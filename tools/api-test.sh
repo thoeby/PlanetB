@@ -30,7 +30,10 @@ if ! curl -sf -o /dev/null "$API_URL/"; then
     [ -x "${PGRST:-}" ] || { echo "not ok - nothing serving $API_URL and no postgrest binary"; exit 1; }
     conf=$(mktemp)
     cat > "$conf" <<CONF
-db-uri = "postgres://authenticator:${AUTHENTICATOR_PASSWORD:-authenticator}@${PGHOST:-localhost}:${PGPORT:-5432}/${PGDATABASE:-splatworld}"
+# Keyword form, not a URL: a URL has nowhere to put a Unix socket
+# directory, and PGHOST=/var/run/postgresql is what a Debian or Ubuntu
+# install leaves behind. PostgREST then answers 503 to everything.
+db-uri = "host='${PGHOST:-localhost}' port='${PGPORT:-5432}' user=authenticator password='${AUTHENTICATOR_PASSWORD:-authenticator}' dbname='${PGDATABASE:-splatworld}'"
 db-schemas = "api"
 db-anon-role = "anon"
 jwt-secret = "${JWT_SECRET:?JWT_SECRET must be set}"

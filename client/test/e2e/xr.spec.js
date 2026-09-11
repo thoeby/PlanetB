@@ -8,6 +8,7 @@ import { existsSync } from 'node:fs';
 import { join } from 'node:path';
 
 import { install, testTileRows, CLIENT, FILES_ROOT } from './serve.js';
+import { revealPanels } from './worker.js';
 
 let rows = [];
 
@@ -31,6 +32,7 @@ async function boot(page, query = '') {
     await page.goto(`/play.html${query}`);
     await page.waitForFunction(() => window.splatworld?.app?.graphicsDevice, null,
         { timeout: 60000 });
+    await revealPanels(page);
     return errors;
 }
 

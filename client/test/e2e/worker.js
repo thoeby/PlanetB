@@ -76,6 +76,22 @@ export async function openPage(page, pageUrl) {
         body: readFileSync(join(CLIENT, 'vendor/playcanvas/playcanvas.js')),
     }));
     await page.goto(pageUrl);
+    await revealPanels(page);
+}
+
+// play.html's panels live in tabs now (client/js/hud.js) and only the open one
+// is shown. A spec is about what a panel does, not about which tab is open, so
+// every body is revealed once and the selectors go on working. Pages without
+// the chrome — edit.html, catalog.html — are left alone.
+export async function revealPanels(page) {
+    await page.waitForFunction(() => window.splatworld !== undefined, null,
+        { timeout: 60000 }).catch(() => {});
+    await page.evaluate(() => {
+        const panel = document.getElementById('panel');
+        if (!panel || !window.splatworld?.hud) return;
+        panel.dataset.open = '1';
+        for (const body of panel.querySelectorAll('.tab-body')) body.hidden = false;
+    }).catch(() => {});
 }
 
 export async function signIn(page, email, pw) {
