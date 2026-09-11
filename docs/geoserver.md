@@ -37,7 +37,7 @@ do it by hand.
 ## What gets published
 
 The editable layers are views holding only the columns you touch
-(`db/0031`). GeoServer sends every column of a layer and fills a blank with a
+(`db/0029`). GeoServer sends every column of a layer and fills a blank with a
 placeholder (`''`, `0`) rather than NULL, so columns the world fills in itself
 are kept out of sight. A view has no primary key of its own, so the store
 names `gis.gt_pk_metadata`, where they are recorded; without that, GeoTools
@@ -62,9 +62,9 @@ ends with a real write to be sure.
 | `id` | no | uuid, generated |
 | `geom` | you draw it | EPSG:4326; 2D — a Z is added on the way in (`db/0029`) |
 
-That is the whole layer. `kind` is the layer you drew on (`db/0034`), the
+That is the whole layer. `kind` is the layer you drew on (`db/0029`), the
 area is worked out from where you drew (`db/0028`), the rest from defaults
-(`db/0030`). The QGIS connection is WFS **1.0.0** on purpose: in 1.1 and 2.0
+(`db/0029`). The QGIS connection is WFS **1.0.0** on purpose: in 1.1 and 2.0
 QGIS sends latitude first with a plain `EPSG:4326`, and GeoServer reads that
 as longitude first — verified against GeoServer 2.26 — so the polygon lands
 off Somalia. 1.0.0 is longitude first on both ends.

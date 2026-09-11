@@ -8,7 +8,7 @@ live in this world's database:
     feature_terrainmod  instance          (editable views, schema gis)
     tile                                  (read-only overview of compile state)
 
-Views with only the columns a drawer touches (db/0031): GeoServer sends every
+Views with only the columns a drawer touches (db/0029): GeoServer sends every
 published column and fills a blank with a placeholder rather than NULL, and
 publishing a subset of a table's columns makes the layer read-only. A view has
 no primary key of its own, so the store is told where gis.gt_pk_metadata

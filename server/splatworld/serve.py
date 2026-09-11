@@ -16,7 +16,6 @@ from __future__ import annotations
 import json
 import re
 import shutil
-import time
 import urllib.error
 import urllib.parse
 import urllib.request
@@ -51,45 +50,6 @@ CORS = {
 }
 
 MAX_UPLOAD = 512 * 1024 * 1024
-
-
-# When this process loaded its code. A running server keeps executing what it
-# read at start, so `git pull` changes the checkout and nothing else — every
-# symptom of that is indistinguishable from the fix not working.
-STARTED = time.time()
-
-
-def newest_source(directory: Path) -> float:
-    if not directory.is_dir():
-        return 0.0
-    return max((f.stat().st_mtime for f in directory.glob("*.py")), default=0.0)
-
-
-def code_is_stale(cfg: Config) -> str | None:
-    """Say so when the code that is running is not the code in the checkout.
-
-    Two ways to end up running yesterday's fix, and both look exactly like the
-    fix not working: the server was started before the pull, or the package was
-    installed as a copy (`pip install ./server` rather than `-e ./server`), so
-    the checkout moves and site-packages does not.
-    """
-    from . import __file__ as package_file
-
-    loaded = Path(package_file).resolve().parent
-    checkout = (cfg.repo / "server" / "splatworld").resolve()
-
-    if loaded != checkout and newest_source(checkout) > newest_source(loaded):
-        return (f"What is running is the copy in {loaded}, and the code in "
-                f"{cfg.repo} is newer. `git pull` does not change a copy. "
-                "Install it as a link to the checkout instead, once:\n"
-                "    python -m pip install -e ./server\n"
-                "then stop this server (Ctrl-C) and run `splatworld run` again.")
-
-    if max(newest_source(loaded), newest_source(checkout)) > STARTED:
-        return ("The code on disk has changed since this server started, so "
-                "what is running here is the old code. Stop it in the terminal "
-                "(Ctrl-C) and run `splatworld run` again, then try this again.")
-    return None
 
 
 def content_type(path: Path) -> str:
@@ -281,14 +241,6 @@ class Handler(BaseHTTPRequestHandler):
             return
         if path == "/setup/state":
             self._setup_state()
-            return
-
-        # The rest do real work with the code this process loaded at start, so
-        # a checkout that has moved on since then must not quietly pretend to
-        # be the fix that was just pulled.
-        stale = code_is_stale(self.cfg)
-        if stale:
-            self._json(200, {"ok": False, "log": [], "error": stale})
             return
 
         if path == "/setup/geoserver":
@@ -570,17 +522,6 @@ class Server(ThreadingHTTPServer):
 PORT_ATTEMPTS = 20
 
 
-def already_running(host: str, port: int) -> bool:
-    """Whether the thing holding that port is another splatworld."""
-    where = "127.0.0.1" if host in ("0.0.0.0", "::", "") else host
-    try:
-        with urllib.request.urlopen(
-                f"http://{where}:{port}/app/version.txt", timeout=2) as res:
-            return res.status == 200
-    except Exception:  # noqa: BLE001 - anything else is not one of ours
-        return False
-
-
 def listen(cfg: Config, *, verbose: bool = False) -> Server:
     first = cfg.port
     for offset in range(PORT_ATTEMPTS):
@@ -588,19 +529,6 @@ def listen(cfg: Config, *, verbose: bool = False) -> Server:
         try:
             server = Server(cfg, verbose=verbose)
         except OSError as err:
-            if offset == 0 and already_running(cfg.host, cfg.port):
-                # Quietly moving to the next port leaves the old process
-                # serving the browser tab that is already open, so every fix
-                # appears to do nothing while the old code answers the buttons.
-                raise SystemExit(
-                    f"splatworld: another splatworld is already running on "
-                    f"port {cfg.port}.\n"
-                    "  That one is what your browser is talking to, and it is\n"
-                    "  running the code it was started with. Close it (Ctrl-C in\n"
-                    "  its window, or end the python process) and start this one\n"
-                    "  again. To run a second world alongside it on purpose:\n"
-                    f"    splatworld run --port {cfg.port + 1}"
-                ) from err
             if offset == 0:
                 print(f"  port {cfg.port} is not available ({err.strerror or err}); "
                       "looking for a free one")

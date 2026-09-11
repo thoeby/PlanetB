@@ -131,13 +131,15 @@ def _warn_if_a_copy(cfg: config.Config) -> None:
     from pathlib import Path
 
     from . import __file__ as package_file
-    from .serve import newest_source
+
+    def newest(directory: Path) -> float:
+        return max((f.stat().st_mtime for f in directory.glob("*.py")), default=0.0)
 
     loaded = Path(package_file).resolve().parent
     checkout = (cfg.repo / "server" / "splatworld").resolve()
-    if loaded == checkout:
+    if loaded == checkout or not checkout.is_dir():
         return
-    if newest_source(checkout) <= newest_source(loaded):
+    if newest(checkout) <= newest(loaded):
         print(f"  note: running the copy in {loaded.parent}, not {cfg.repo}")
         return
     raise SystemExit(
