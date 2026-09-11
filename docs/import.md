@@ -8,8 +8,9 @@ Your elevation, your map layers, your region.
 splatworld run
 ```
 
-then open **<http://localhost:8080/app/import.html>**. Type your GeoServer
-address, press Connect, and it lists what your GeoServer publishes: pick which
+then open **<http://localhost:8080/app/import.html>** (the setup page links to
+it). Choose where your layers are — a GeoServer, or this world's own database —
+press Connect, and it lists what is there: pick which
 layer is which from the dropdowns, pick your elevation raster, press Import.
 The region is filled in from the layers you chose. No config file.
 
@@ -43,6 +44,46 @@ carried along or ignored; it does no harm.
 
 Geometry goes in flat. The world keeps plan geometry at Z = 0 and takes ground
 height from your elevation when a tile is compiled, so you never draw in 3D.
+
+## Layers already in a database
+
+The import page has two sources. **A GeoServer** lists what it publishes over
+WFS (and rasters over WCS). **This world's own database** lists every spatial
+table Postgres can see — everything except the world's own `area`, `feature`,
+`instance` and `tile`. Load your shapefiles or GeoPackages into it once (QGIS:
+*Database → DB Manager → Import layer*) and they appear in the list.
+
+A table layer knows its own columns, so the property mapping is a list to pick
+from rather than a name to type, and the geometry is reprojected to WGS84 on
+the way in whatever it is stored as.
+
+In a config file that is a layer with `table` instead of `typeName`:
+
+```json
+{ "name": "forest", "kind": "forest", "table": "public.wald",
+  "props": { "species": "baumart", "age": "alter_j" } }
+```
+
+## What the compiler reads off a feature
+
+Map your column to one of these and it changes what is built. Leave one unmapped
+and the compiler's own default stands.
+
+| kind | property | what it does |
+|---|---|---|
+| `footprint` | `height` | eaves height in metres |
+| | `levels` | storeys, used as 3 m each when there is no height |
+| | `roof` | `flat`, `gabled`/`gable`, `hipped`/`hip`/`pyramidal` |
+| `road` | `width` | carriageway width in metres |
+| `forest` | `species` | spruce, fir, pine, larch, beech, oak, birch, maple, poplar, willow — by latin, german, french or english name (`Picea`, `Fichte`, `épicéa`, `spruce`) |
+| | `age` | stand age in years: a young stand is short, and full height is reached at the species' own maturity |
+| | `height` | mean canopy height in metres, if your layer measured it — it beats the species average |
+| | `leaf_type` | `broadleaved` or `needleleaved`, used when the species is unknown |
+| `terrainmod` | `amount` | metres to raise or lower the ground |
+| | `op` | `flatten` or `offset` |
+
+A forest with none of these is exactly what it was before they existed:
+needleleaved, full height.
 
 ## The config file
 

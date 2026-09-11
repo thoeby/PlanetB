@@ -180,10 +180,75 @@ function flatRoof(m, ring, top) {
 
 // ------------------------------------------------------------------- trees
 
-const SPECIES = {
-    needleleaved: { sides: 6, taper: 0.28, tall: [12, 22], color: [0.12, 0.28, 0.16] },
-    broadleaved: { sides: 6, taper: 0.55, tall: [9, 17], color: [0.2, 0.4, 0.16] },
+// A stand is described by what grows in it and how old it is, because that is
+// what a forestry layer carries. `mature` is the age in years at which this
+// species is its full height; anything without an age is grown.
+export const SPECIES = {
+    needleleaved: { sides: 6, taper: 0.28, tall: [12, 22], mature: 70,
+        color: [0.12, 0.28, 0.16] },
+    broadleaved: { sides: 6, taper: 0.55, tall: [9, 17], mature: 80,
+        color: [0.2, 0.4, 0.16] },
+    spruce: { sides: 6, taper: 0.24, tall: [18, 30], mature: 70,
+        color: [0.10, 0.25, 0.15] },
+    fir: { sides: 6, taper: 0.26, tall: [20, 32], mature: 80,
+        color: [0.11, 0.27, 0.17] },
+    pine: { sides: 6, taper: 0.34, tall: [15, 26], mature: 60,
+        color: [0.16, 0.29, 0.14] },
+    larch: { sides: 6, taper: 0.30, tall: [16, 28], mature: 65,
+        color: [0.22, 0.36, 0.15] },
+    beech: { sides: 7, taper: 0.62, tall: [14, 24], mature: 90,
+        color: [0.21, 0.40, 0.16] },
+    oak: { sides: 7, taper: 0.70, tall: [12, 22], mature: 110,
+        color: [0.19, 0.36, 0.15] },
+    birch: { sides: 6, taper: 0.48, tall: [10, 18], mature: 50,
+        color: [0.28, 0.45, 0.20] },
+    maple: { sides: 7, taper: 0.64, tall: [11, 20], mature: 80,
+        color: [0.24, 0.42, 0.18] },
+    poplar: { sides: 6, taper: 0.38, tall: [16, 28], mature: 40,
+        color: [0.26, 0.44, 0.19] },
+    willow: { sides: 7, taper: 0.72, tall: [8, 14], mature: 40,
+        color: [0.25, 0.43, 0.21] },
 };
+
+// What a layer is likely to say, in the languages a Swiss or German forestry
+// layer is written in. Anything unrecognised falls back to the leaf type.
+const ALIAS = {
+    picea: 'spruce', fichte: 'spruce', epicea: 'spruce',
+    abies: 'fir', tanne: 'fir', weisstanne: 'fir', sapin: 'fir',
+    pinus: 'pine', foehre: 'pine', kiefer: 'pine', fohre: 'pine',
+    larix: 'larch', laerche: 'larch', lerche: 'larch', melece: 'larch',
+    fagus: 'beech', buche: 'beech', hetre: 'beech',
+    quercus: 'oak', eiche: 'oak', chene: 'oak',
+    betula: 'birch', birke: 'birch', bouleau: 'birch',
+    acer: 'maple', ahorn: 'maple', erable: 'maple',
+    populus: 'poplar', pappel: 'poplar', peuplier: 'poplar',
+    salix: 'willow', weide: 'willow', saule: 'willow',
+    conifer: 'needleleaved', nadelwald: 'needleleaved', needleleaf: 'needleleaved',
+    deciduous: 'broadleaved', laubwald: 'broadleaved', broadleaf: 'broadleaved',
+};
+
+export function speciesOf(props) {
+    const named = String(props?.species ?? '').trim().toLowerCase();
+    const key = ALIAS[named] ?? named;
+    if (SPECIES[key]) return SPECIES[key];
+    return props?.leaf_type === 'broadleaved' ? SPECIES.broadleaved : SPECIES.needleleaved;
+}
+
+// Age as a fraction of full height: a plantation is knee-high, not a forest.
+// Nothing under a tenth, or a young stand disappears into the terrain.
+export function maturity(props, species) {
+    const age = Number(props?.age);
+    if (!Number.isFinite(age) || age <= 0) return 1;
+    return Math.max(0.1, Math.min(1, Math.sqrt(age / (species.mature || 70))));
+}
+
+// A canopy height in the layer beats the species' own range: it is a
+// measurement of this stand, and the range is an average of the species.
+export function heightRange(props, species) {
+    const mean = Number(props?.height);
+    if (!Number.isFinite(mean) || mean <= 0) return species.tall;
+    return [mean * 0.8, mean * 1.2];
+}
 
 // One canopy cone and one square trunk per tree, scattered by Poisson disk. The
 // radius is set by the caller from the tile's size, so a z14 tile does not try
@@ -193,11 +258,14 @@ export function trees(forests, terrain, random, radius) {
     const canopies = new Mesh('canopy');
     let count = 0;
     for (const f of forests) {
-        const kind = f.props?.leaf_type === 'broadleaved' ? 'broadleaved' : 'needleleaved';
-        const s = SPECIES[kind];
+        const s = speciesOf(f.props);
+        const grown = maturity(f.props, s);
+        const [low, high] = heightRange(f.props, s);
         for (const [x, z] of scatter(f.rings, radius, random)) {
             const ground = terrain.at(x, z);
-            const tall = s.tall[0] + random() * (s.tall[1] - s.tall[0]);
+            // The draw from `random` happens whatever the age, so a stand's
+            // trees stand in the same places however tall they are.
+            const tall = (low + random() * (high - low)) * grown;
             const wide = tall * s.taper;
             cone(canopies, [x, ground + tall * 0.35, z], wide / 2, tall * 0.75, s.sides,
                 s.color.map((c) => c * (0.85 + random() * 0.3)));

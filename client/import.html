@@ -39,6 +39,10 @@
   pre { background: #0a0d10; border: 1px solid #1d242a; border-radius: 6px;
         padding: 12px; overflow-x: auto; font-size: 13px; color: #b6bfc7; }
   .hint { color: #6f7a84; font-size: 12px; margin: 2px 0 0; }
+  td.props { display: flex; flex-wrap: wrap; gap: 6px 10px; }
+  .proprow { display: flex; align-items: center; gap: 6px; flex: 1 1 15rem; }
+  .propname { color: #8b959e; font-size: 12px; min-width: 5rem; }
+  .proprow select, .proprow input { flex: 1 1 auto; }
   [hidden] { display: none !important; }
 </style>
 
@@ -47,8 +51,18 @@
 the world. If you draw in QGIS against this world's own GeoServer, you do not
 need this page at all — see docs/geoserver.md.</p>
 
-<h2>1 · Your GeoServer</h2>
+<h2>1 · Where your layers are</h2>
 <fieldset>
+  <div class="row">
+    <label style="flex:0 0 auto"><input type="radio" name="source" value="geoserver"
+      checked style="width:auto"> A GeoServer</label>
+    <label style="flex:0 0 auto"><input type="radio" name="source" value="postgis"
+      style="width:auto"> This world's own database</label>
+  </div>
+  <p class="hint">Either one is a list to pick from — nothing is typed as a path.
+    The database option reads the spatial tables this server can already see.</p>
+
+  <div id="gs-fields">
   <label for="url">Address</label>
   <input id="url" placeholder="https://gis.example.com/geoserver" autocomplete="off">
   <p class="hint">The root, a workspace, or a full WFS URL — any of them work.</p>
@@ -57,6 +71,7 @@ need this page at all — see docs/geoserver.md.</p>
       <input id="user" autocomplete="off"></div>
     <div><label for="pass">Password</label>
       <input id="pass" type="password" autocomplete="off"></div>
+  </div>
   </div>
   <p style="margin-top:12px"><button id="connect">Connect</button></p>
   <div id="connect-msg"></div>
@@ -68,7 +83,7 @@ need this page at all — see docs/geoserver.md.</p>
     <p class="lede">Leave a layer as <em>ignore</em> and it is not imported.</p>
     <table id="layers"><thead><tr>
       <th>Layer</th><th style="width:11rem">Import as</th>
-      <th style="width:13rem">Height/width column</th>
+      <th>Properties — your column, the world's property</th>
     </tr></thead><tbody></tbody></table>
   </fieldset>
 
@@ -114,8 +129,32 @@ need this page at all — see docs/geoserver.md.</p>
 <script type="module">
   const $ = (id) => document.getElementById(id);
   const KINDS = ['footprint', 'road', 'forest', 'water', 'terrainmod'];
-  // Only these two carry a number the compiler reads; the rest need no column.
-  const PROP_OF = { footprint: 'height', road: 'width' };
+
+  // What the compiler reads off a feature, per kind: the property, and what to
+  // say about the column it wants. Leave one blank and the compiler's own
+  // default stands (client/lib/props.js, client/lib/terrain.js).
+  const PROPS_FOR = {
+    footprint: [
+      ['height', 'eaves height in metres'],
+      ['levels', 'number of storeys, if there is no height'],
+      ['roof', 'flat, gabled or hipped'],
+      ['name', 'kept as a label'],
+    ],
+    road: [['width', 'carriageway width in metres'], ['name', 'kept as a label']],
+    forest: [
+      ['species', 'spruce, fagus, Buche, chêne — latin or local'],
+      ['age', 'stand age in years — young stands stay short'],
+      ['height', 'mean canopy height in metres, if measured'],
+      ['leaf_type', 'broadleaved or needleleaved'],
+    ],
+    water: [['name', 'kept as a label']],
+    terrainmod: [
+      ['amount', 'metres to raise or lower the ground'],
+      ['op', 'flatten or offset'],
+    ],
+  };
+
+  const sourceIs = () => document.querySelector('input[name=source]:checked').value;
 
   let layers = [];
   let coverages = [];
@@ -140,30 +179,46 @@ need this page at all — see docs/geoserver.md.</p>
 
   // ------------------------------------------------------------- connecting
 
+  for (const radio of document.querySelectorAll('input[name=source]')) {
+    radio.onchange = () => {
+      $('gs-fields').hidden = sourceIs() !== 'geoserver';
+      $('rest').hidden = true;
+    };
+  }
+
   $('connect').onclick = async () => {
+    const source = sourceIs();
     const url = $('url').value.trim();
-    if (!url) { say('connect-msg', 'Type your GeoServer address first.', 'bad'); return; }
+    if (source === 'geoserver' && !url) {
+      say('connect-msg', 'Type your GeoServer address first.', 'bad'); return;
+    }
     $('connect').disabled = true;
-    say('connect-msg', 'Asking your GeoServer what it has…', 'good');
+    say('connect-msg', source === 'postgis'
+      ? 'Looking for spatial tables…' : 'Asking your GeoServer what it has…', 'good');
     try {
-      const out = await post('/import/probe',
-        { url, user: $('user').value || null, password: $('pass').value || null });
+      const out = await post('/import/probe', source === 'postgis'
+        ? { source }
+        : { url, user: $('user').value || null, password: $('pass').value || null });
       if (out.error) { say('connect-msg', out.error, 'bad'); return; }
       layers = out.layers ?? [];
       coverages = out.coverages ?? [];
       if (!layers.length) {
         // The server now explains an empty list itself (geoserver.py), so this
         // is only reached if it answered with a genuinely empty catalogue.
-        say('connect-msg', 'Connected, but that address lists no vector layers.\n'
-          + 'If your layers sit in one workspace, try its own address — '
-          + 'for example …/geoserver/myworkspace.', 'bad');
+        say('connect-msg', source === 'postgis'
+          ? 'This database has no spatial tables other than the world\'s own.\n'
+            + 'Load your layers into it (QGIS: Database → DB Manager → Import), '
+            + 'or import them from a GeoServer instead.'
+          : 'Connected, but that address lists no vector layers.\n'
+            + 'If your layers sit in one workspace, try its own address — '
+            + 'for example …/geoserver/myworkspace.', 'bad');
         return;
       }
       renderLayers();
       renderCoverages(out.coverages_error);
       $('rest').hidden = false;
       say('connect-msg',
-        `Connected: ${layers.length} layer(s), ${coverages.length} raster(s).`, 'good');
+        `${layers.length} layer(s), ${coverages.length} raster(s) to pick from.`, 'good');
     } catch (err) {
       say('connect-msg', `Could not reach the local server: ${err.message}`, 'bad');
     } finally {
@@ -190,15 +245,18 @@ need this page at all — see docs/geoserver.md.</p>
       const guess = guessKind(layer.name);
       if (guess) pick.value = guess;
 
-      const prop = document.createElement('input');
-      prop.placeholder = 'column name';
-      prop.dataset.index = String(i);
+      const propCell = document.createElement('td');
+      propCell.className = 'props';
 
       const syncProp = () => {
-        const want = PROP_OF[pick.value];
-        prop.disabled = !want;
-        prop.placeholder = want ? `column holding ${want} in metres` : 'not needed';
-        if (!want) prop.value = '';
+        propCell.replaceChildren(...(PROPS_FOR[pick.value] ?? []).map(
+          ([want, hint]) => columnRow(layer, want, hint)));
+        if (!PROPS_FOR[pick.value]) {
+          const none = document.createElement('p');
+          none.className = 'hint';
+          none.textContent = 'not imported';
+          propCell.append(none);
+        }
         updateBbox();
       };
       pick.onchange = syncProp;
@@ -206,12 +264,37 @@ need this page at all — see docs/geoserver.md.</p>
 
       const kindCell = document.createElement('td');
       kindCell.append(pick);
-      const propCell = document.createElement('td');
-      propCell.append(prop);
       tr.append(name, kindCell, propCell);
       return tr;
     }));
     updateBbox();
+  }
+
+  // A layer read from the database knows its own columns, so the mapping is a
+  // list. WFS capabilities do not carry them, so there it stays a typed name.
+  function columnRow(layer, want, hint) {
+    const row = document.createElement('div');
+    row.className = 'proprow';
+    const label = document.createElement('span');
+    label.className = 'propname';
+    label.textContent = want;
+
+    let field;
+    if (layer.fields?.length) {
+      field = document.createElement('select');
+      field.append(new Option('— none —', ''));
+      for (const column of layer.fields) field.append(new Option(column, column));
+      const guess = layer.fields.find((c) => c.toLowerCase() === want)
+        ?? layer.fields.find((c) => c.toLowerCase().includes(want));
+      if (guess) field.value = guess;
+    } else {
+      field = document.createElement('input');
+      field.placeholder = hint;
+    }
+    field.dataset.prop = want;
+    field.title = hint;
+    row.append(label, field);
+    return row;
   }
 
   const guessKind = (name) => {
@@ -236,9 +319,23 @@ need this page at all — see docs/geoserver.md.</p>
 
   // ------------------------------------------------------------ the region
 
-  const chosen = () => [...$('layers').querySelectorAll('select')]
-    .map((select) => ({ layer: layers[+select.dataset.index], kind: select.value }))
+  const chosen = () => [...$('layers').querySelectorAll('select[data-index]')]
+    .map((select) => ({
+      layer: layers[+select.dataset.index],
+      kind: select.value,
+      props: mappingOf(select.closest('tr')),
+    }))
     .filter((row) => row.kind);
+
+  // {world property: your column} for one row, skipping the blanks.
+  function mappingOf(tr) {
+    const out = {};
+    for (const field of tr.querySelectorAll('[data-prop]')) {
+      const column = field.value.trim();
+      if (column) out[field.dataset.prop] = column;
+    }
+    return out;
+  }
 
   function updateBbox() {
     const boxes = chosen().map((row) => row.layer.bbox).filter(Boolean);
@@ -257,21 +354,26 @@ need this page at all — see docs/geoserver.md.</p>
   // ------------------------------------------------------------ the import
 
   function buildSpec() {
-    const props = [...$('layers').querySelectorAll('input')];
     const spec = {
       owner: { email: $('email').value.trim(), password: $('pw').value },
       detail: Number($('detail').value),
-      geoserver: {
-        wfs: $('url').value.trim(),
-        user: $('user').value || null,
-        password: $('pass').value || null,
-      },
+      ...(sourceIs() === 'geoserver' ? {
+        geoserver: {
+          wfs: $('url').value.trim(),
+          user: $('user').value || null,
+          password: $('pass').value || null,
+        },
+      } : {}),
       bbox: [$('w'), $('s'), $('e'), $('n')].map((el) => Number(el.value)),
-      layers: chosen().map(({ layer, kind }) => {
-        const i = layers.indexOf(layer);
-        const column = props[i]?.value?.trim();
-        const entry = { name: layer.name.replace(/^.*:/, ''), kind, typeName: layer.name };
-        if (column && PROP_OF[kind]) entry.props = { [PROP_OF[kind]]: column };
+      layers: chosen().map(({ layer, kind, props }) => {
+        const entry = { name: layer.name.replace(/^.*[:.]/, ''), kind };
+        if (sourceIs() === 'postgis') {
+          entry.table = layer.name;
+          if (layer.geometry_column) entry.geometry_column = layer.geometry_column;
+        } else {
+          entry.typeName = layer.name;
+        }
+        if (Object.keys(props).length) entry.props = props;
         return entry;
       }),
     };

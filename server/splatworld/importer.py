@@ -110,7 +110,15 @@ def wfs_url(base: str, type_name: str, count: int | None) -> str:
     return u._replace(query=urllib.parse.urlencode(query)).geturl()
 
 
-def load_layer(spec: dict, defaults: dict, base_dir: Path) -> dict:
+def load_layer(spec: dict, defaults: dict, base_dir: Path, cfg=None) -> dict:
+    if spec.get("table"):
+        # A layer that is already a table here: read it, do not copy it.
+        from . import postgis
+
+        if cfg is None:
+            die(f"{spec['name']}: a table layer needs the server's database")
+        return postgis.as_geojson(cfg, spec)
+
     if spec.get("file"):
         path = Path(spec["file"])
         path = path if path.is_absolute() else base_dir / path
@@ -150,11 +158,20 @@ def as_number(value) -> float | None:
     return number if math.isfinite(number) else None
 
 
+# What the compiler reads as words rather than numbers (client/lib/props.js).
+TEXT_PROPS = ("species", "leaf_type", "roof", "name", "model")
+
+
 def props_of(spec: dict, attrs: dict | None) -> dict:
     """`{"height": "bldg_hoehe"}` — your column, the world's property."""
     out: dict = {}
     for want, source in (spec.get("props") or {}).items():
-        value = as_number((attrs or {}).get(source))
+        raw = (attrs or {}).get(source)
+        if want in TEXT_PROPS:
+            if raw is not None and str(raw).strip():
+                out[want] = str(raw).strip()
+            continue
+        value = as_number(raw)
         if value is not None:
             out[want] = value
     for key in spec.get("keep") or []:
@@ -368,7 +385,7 @@ def run_spec(cfg: Config, spec: dict, base_dir: Path, out=print) -> int:
         layer["name"] = layer.get("name") or layer.get("typeName") or f"layer{index}"
         if layer.get("kind") not in KINDS:
             die(f"{layer['name']}: \"kind\" must be one of {', '.join(KINDS)}")
-        got = rows_of(layer, load_layer(layer, defaults, base_dir), index)
+        got = rows_of(layer, load_layer(layer, defaults, base_dir, cfg), index)
         print_(f"  {layer['name']}: {len(got)} {layer['kind']}")
         rows.extend(got)
 

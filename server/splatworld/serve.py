@@ -474,8 +474,12 @@ class Handler(BaseHTTPRequestHandler):
         self._json(200, {"ok": True, "log": log, "wfs": wfs})
 
     def _probe(self, body: dict) -> None:
-        """What a GeoServer has, so the page can offer it as a list."""
+        """What a GeoServer — or this database — has, as a list to pick from."""
         from . import geoserver
+
+        if (body.get("source") or "").strip() == "postgis":
+            self._probe_postgis(body)
+            return
 
         url = (body.get("url") or "").strip()
         if not url:
@@ -483,6 +487,21 @@ class Handler(BaseHTTPRequestHandler):
             return
         try:
             self._json(200, geoserver.probe(url, body.get("user"), body.get("password")))
+        except SystemExit as err:
+            self._json(200, {"error": str(err)})
+        except Exception as err:  # noqa: BLE001 - the page shows whatever broke
+            self._json(200, {"error": f"{type(err).__name__}: {err}"})
+
+    def _probe_postgis(self, body: dict) -> None:
+        """The spatial tables of a database, offered exactly like WFS layers."""
+        from . import postgis
+
+        try:
+            found = postgis.layers(self.cfg, body)
+            self._json(200, {"layers": found, "coverages": [],
+                             "coverages_error": "a database holds no rasters "
+                             "the importer can read — give a GeoTIFF or a "
+                             "GeoServer coverage for elevation"})
         except SystemExit as err:
             self._json(200, {"error": str(err)})
         except Exception as err:  # noqa: BLE001 - the page shows whatever broke
