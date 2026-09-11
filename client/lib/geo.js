@@ -1,5 +1,5 @@
-// geo.js — the seeded inputs: /geo/dem/{z}/{x}/{y}.r16 and
-// /geo/ortho/{z}/{x}/{y}.webp (infra/seed/README.md).
+// geo.js — the ground: /geo/dem/{z}/{x}/{y}.r16, cut from the world's coverage
+// by the server when a tab first asks for it (server/splatworld/ground.py).
 //
 // A tile is not always cut at its own zoom — the seed covers z10..z14 and one
 // deeper pocket — so a missing tile falls back to an ancestor and samples the
@@ -86,10 +86,4 @@ export async function decodeImage(buf, canvas) {
     return { data, size };
 }
 
-export const loadOrtho = (z, x, y, opts) => loadRaster('ortho', z, x, y, {
-    ...opts,
-    decode: opts.decode ?? ((buf) => decodeImage(buf, opts.canvas)),
-});
 
-export const sampleColor = (ortho, u, v) =>
-    bilinear(ortho, u, v, 4, (i) => ortho.data[i]).slice(0, 3).map((c) => c / 255);

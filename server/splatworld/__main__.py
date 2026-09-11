@@ -187,17 +187,13 @@ def cmd_run(args: argparse.Namespace) -> int:
         server = serve.listen(cfg, verbose=args.verbose)
         url = f"http://{'127.0.0.1' if cfg.host in ('0.0.0.0', '::') else cfg.host}:{cfg.port}"
         print(f"  files and client on {url}")
-        # An empty world has nothing to show and nothing to do; send the first
-        # run to the page that fills it instead of to a black screen.
-        configured = bool(config.load_dotenv(cfg.repo / ".env").get("GEOSERVER_URL"))
-        landing = "play.html" if configured and _has_a_region(cfg) else "setup.html"
-        if landing == "setup.html":
-            print(f"\n  Nothing is set up yet. Start here:\n  Setup       {url}/app/setup.html")
-        print(f"\n  Setup        {url}/app/setup.html")
-        print(f"  Play/build   {url}/app/play.html")
-        print(f"  Import       {url}/app/import.html")
-        print(f"  Edit         {url}/app/edit.html")
-        print(f"  Catalog      {url}/app/catalog.html")
+        # One page. Setup, the catalog, the pool and the rest are panels of it
+        # (TASKS-usable T9), so there is one address to remember and a first run
+        # lands on the same world as every run after it.
+        landing = "play.html"
+        print(f"\n  The world   {url}/app/play.html")
+        print("  Everything — setup, your land, the catalog, the render pool —")
+        print("  is a tab along the bottom of it.")
         print("\nCtrl-C to stop.")
         if not args.no_browser:
             threading.Timer(0.5, webbrowser.open, [f"{url}/app/{landing}"]).start()

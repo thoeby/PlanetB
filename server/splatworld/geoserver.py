@@ -122,7 +122,8 @@ def feature_types(base: str, auth: dict) -> list[dict]:
 
 
 def bbox_of(node) -> list[float] | None:
-    """WGS84BoundingBox (WFS 2.0) or LatLongBoundingBox (WFS 1.1)."""
+    """WGS84BoundingBox (WFS 2.0/WCS 1.1), LatLongBoundingBox or lonLatEnvelope
+    (WCS 1.0). All of them are lon/lat, whatever the service's own CRS is."""
     lower = first_text(node, "LowerCorner")
     upper = first_text(node, "UpperCorner")
     if lower and upper:
@@ -133,6 +134,16 @@ def bbox_of(node) -> list[float] | None:
         except ValueError:
             return None
     for child in node.iter():
+        # WCS 1.0 puts the extent in <lonLatEnvelope> as two <gml:pos>.
+        if local(child.tag) == "lonLatEnvelope":
+            pos = [c.text for c in child if local(c.tag) == "pos" and c.text]
+            if len(pos) >= 2:
+                try:
+                    west, south = (float(v) for v in pos[0].split()[:2])
+                    east, north = (float(v) for v in pos[1].split()[:2])
+                    return [west, south, east, north]
+                except ValueError:
+                    return None
         if local(child.tag) in ("LatLongBoundingBox", "WGS84BoundingBox"):
             try:
                 return [float(child.get(k)) for k in ("minx", "miny", "maxx", "maxy")]
@@ -152,20 +163,36 @@ def coverages(base: str, auth: dict) -> list[dict]:
             ident = (first_text(node, "CoverageId") or first_text(node, "Identifier")
                      or first_text(node, "name"))
             if ident:
-                out.append({"id": ident, "title": first_text(node, "Title") or ident})
+                # The extent is what makes a coverage choosable: it is where the
+                # world will be, and the viewer needs it to say where the edge
+                # is (TASKS-usable T0, T1).
+                out.append({"id": ident, "title": first_text(node, "Title") or ident,
+                            "bbox": bbox_of(node)})
         if out:
             return sorted(out, key=lambda c: c["id"])
         tried.append((version, url, raw))
     raise _nothing_listed("WCS", tried)
 
 
-def coverage_url(base: str, coverage_id: str) -> str:
-    """A GetCoverage request for the whole coverage, as a GeoTIFF."""
+def coverage_tile_url(base: str, coverage_id: str, bbox: tuple, size: int,
+                      crs: str = "EPSG:3857") -> str:
+    """One tile of a coverage: exactly this box, exactly this many samples.
+
+    WCS 1.0.0 rather than 2.0.1 on purpose. 2.0 subsetting names its axes after
+    whatever the coverage calls them — X/Y, E/N, Long/Lat, i/j — so a request
+    that works against one raster fails against the next. 1.0.0 takes a plain
+    BBOX with WIDTH and HEIGHT, which is the whole question being asked here,
+    and GeoServer has answered it since forever.
+    """
+    west, south, east, north = bbox
     query = urllib.parse.urlencode({
-        "service": "WCS", "version": "2.0.1", "request": "GetCoverage",
-        "coverageId": coverage_id, "format": "image/tiff",
+        "service": "WCS", "version": "1.0.0", "request": "GetCoverage",
+        "coverage": coverage_id, "CRS": crs, "RESPONSE_CRS": crs,
+        "BBOX": f"{west},{south},{east},{north}",
+        "WIDTH": size, "HEIGHT": size, "FORMAT": "GeoTIFF",
     })
     return f"{service_url(base, 'wcs')}?{query}"
+
 
 
 def probe(base: str, user: str | None, password: str | None) -> dict:

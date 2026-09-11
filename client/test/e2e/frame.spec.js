@@ -4,11 +4,10 @@
 // cross-GPU comparison needs two machines and is what that bar is really for.
 
 import { test, expect } from '@playwright/test';
-import { execFileSync } from 'node:child_process';
 import { existsSync } from 'node:fs';
 import { join } from 'node:path';
 
-import { CLIENT, demSeeded } from './serve.js';
+import { CLIENT, seedGround, seedWorld } from './serve.js';
 import { startServices } from './services.js';
 import { openPage, park, psql, readyAtom, signIn, unpark } from './worker.js';
 import { readTar } from '../../lib/tar.js';
@@ -32,13 +31,8 @@ test.beforeAll(async () => {
     try { psql('SELECT 1'); } catch (err) {
         test.skip(true, `no database: ${err.message}`);
     }
-    if (!demSeeded(TILE.z, TILE.x, TILE.y)) {
-        test.skip(true, 'the pilot dem is not seeded — run `bash tools/seed-dem.sh`');
-    }
-    if (psql("SELECT count(*) FROM feature WHERE props ? 'osm'") === '0') {
-        execFileSync('bash', ['tools/seed-osm.sh'],
-            { env: { ...process.env, OSM_FILE: 'infra/seed/pilot-fixture.osm' }, stdio: 'ignore' });
-    }
+    seedGround(TILE.z, TILE.x, TILE.y);
+    seedWorld(TILE.z, TILE.x, TILE.y);
     svc = await startServices();
     if (!svc.ok) {
         svc.stop();

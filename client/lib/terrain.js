@@ -6,7 +6,7 @@
 // corners span in its own frame, north-west first, exactly as
 // client/js/player.js reads it back.
 
-import { sampleColor, sampleHeight } from './geo.js';
+import { sampleHeight } from './geo.js';
 import { Mesh } from './mesh.js';
 import { styleFor } from './rules.js';
 
@@ -136,17 +136,19 @@ export function distanceToSegment(p, a, b) {
     return { d: Math.hypot(p[0] - (a[0] + t * vx), p[1] - (a[1] + t * vz)), t };
 }
 
-// Ortho draped, then pulled towards rock where it is steep and towards bare
-// ground where it is high: the imagery is 10 m and the hillside is not.
-export function terrainColour(ortho, u, v, slope, height) {
-    const base = ortho ? sampleColor(ortho, u, v) : [0.35, 0.4, 0.3];
+// The ground's colour, from the ground itself: grass, turning to rock where it
+// is steep and to snow where it is high. No imagery is draped over the world —
+// there is none to drape (TASKS-usable: real ground, empty). When ground types
+// exist they will decide this; until then the terrain says what it is.
+export function terrainColour(slope, height) {
+    const base = [0.35, 0.4, 0.3];
     const rock = Math.min(1, Math.max(0, (slope - 0.4) / 0.8)) * 0.7;
     const alp = Math.min(1, Math.max(0, (height - 1800) / 900)) * 0.6;
     const mix = (c, t, to) => c * (1 - t) + to * t;
     return base.map((c, i) => mix(mix(c, rock, [0.42, 0.4, 0.38][i]), alp, 0.9));
 }
 
-export function terrainMesh(terrain, ortho, material = 'terrain') {
+export function terrainMesh(terrain, material = 'terrain') {
     const m = new Mesh(material);
     const n = terrain.size;
     for (let j = 0; j < n; j++) {
@@ -154,7 +156,7 @@ export function terrainMesh(terrain, ortho, material = 'terrain') {
             const h = terrain.h[j * n + i];
             const s = terrain.slope(i, j);
             m.vertex([terrain.x(i), h, terrain.z(j)], normalAt(terrain, i, j),
-                terrainColour(ortho, i / (n - 1), j / (n - 1), s, h));
+                terrainColour(s, h));
         }
     }
     for (let j = 0; j < n - 1; j++) {

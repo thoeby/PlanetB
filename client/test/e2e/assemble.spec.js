@@ -4,11 +4,10 @@
 // the rest of the pipeline reads.
 
 import { test, expect } from '@playwright/test';
-import { execFileSync } from 'node:child_process';
 import { existsSync } from 'node:fs';
 import { join } from 'node:path';
 
-import { CLIENT, demSeeded } from './serve.js';
+import { CLIENT, seedGround, seedWorld } from './serve.js';
 import { startServices } from './services.js';
 import { openPage, park, psql, readyAtom, signIn, unpark } from './worker.js';
 import { readTar } from '../../lib/tar.js';
@@ -39,15 +38,8 @@ test.beforeAll(async () => {
     try { psql('SELECT 1'); } catch (err) {
         test.skip(true, `no database: ${err.message}`);
     }
-    if (!demSeeded(BUILT.z, BUILT.x, BUILT.y)) {
-        test.skip(true, 'the pilot dem is not seeded — run `bash tools/seed-dem.sh`');
-    }
-    // The world the atom compiles. seed-osm is idempotent, so this is a no-op
-    // when `make api-test` has already run it.
-    if (psql("SELECT count(*) FROM feature WHERE props ? 'osm'") === '0') {
-        execFileSync('bash', ['tools/seed-osm.sh'],
-            { env: { ...process.env, OSM_FILE: 'infra/seed/pilot-fixture.osm' }, stdio: 'ignore' });
-    }
+    seedGround(BUILT.z, BUILT.x, BUILT.y);
+    seedWorld(BUILT.z, BUILT.x, BUILT.y);
     svc = await startServices();
     if (!svc.ok) {
         svc.stop();

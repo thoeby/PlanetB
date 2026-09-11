@@ -10,7 +10,7 @@ import { test, expect } from '@playwright/test';
 import { existsSync, mkdirSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 
-import { CLIENT, REPO, demSeeded } from './serve.js';
+import { CLIENT, REPO, seedGround, seedWorld } from './serve.js';
 import { startServices } from './services.js';
 import { openPage, park, psql, signIn, unpark } from './worker.js';
 import { tileX, tileY } from '../../lib/tilemath.js';
@@ -48,9 +48,8 @@ test.beforeAll(async () => {
     if (!existsSync(join(CLIENT, 'vendor/playcanvas/playcanvas.js'))) {
         test.skip(true, 'no vendored engine — run `make vendor`');
     }
-    if (!demSeeded(BLOCK.z, BLOCK.x, BLOCK.y)) {
-        test.skip(true, 'the pilot dem is not seeded — run `bash tools/seed-dem.sh`');
-    }
+    seedGround(BLOCK.z, BLOCK.x, BLOCK.y);
+    seedWorld(BLOCK.z, BLOCK.x, BLOCK.y);
     psql(`UPDATE auth.user SET role = 'admin' WHERE email = '${EMAIL}'`);
     svc = await startServices();
     if (!svc.ok) { svc.stop(); test.skip(true, 'postgrest or nginx would not start'); }

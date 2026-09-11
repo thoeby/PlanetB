@@ -24,6 +24,7 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 
 from . import __version__
+from . import ground
 from .config import Config
 
 STORE_PREFIXES = ("assets", "tiles", "jobs", "geo")
@@ -221,6 +222,16 @@ class Handler(BaseHTTPRequestHandler):
 
     def _serve_store(self, path: str) -> None:
         target = safe_join(self.cfg.files, path)
+        # T1: the ground is cut when somebody first walks onto it, not seeded
+        # ahead of time. Outside the coverage there is no world, and 404 is the
+        # honest answer — client/lib/geo.js reads it as "no ground here".
+        if target and not target.is_file():
+            tile = ground.parse_request(path)
+            if tile:
+                try:
+                    target = ground.cut(self.cfg, *tile) or target
+                except Exception as err:  # noqa: BLE001 - one tile, not the server
+                    self.log_message("could not cut %s: %s", path, err)
         if not target or not target.is_file():
             self._text(404, "no such file")
             return
@@ -295,8 +306,6 @@ class Handler(BaseHTTPRequestHandler):
             self._setup_geoserver(body)
         elif path == "/setup/account":
             self._setup_account(body)
-        elif path == "/setup/elevation":
-            self._setup_elevation()
         elif path == "/setup/lastfail":
             self._last_db_errors()
         elif path == "/setup/clear":
@@ -406,22 +415,6 @@ class Handler(BaseHTTPRequestHandler):
         self._json(200, {"ok": True, "log": keep[-40:] or
                          ["nothing refused in the last part of the log"],
                          "file": logfile})
-
-    def _setup_elevation(self) -> None:
-        """Elevation for whatever has been drawn — the region is not typed."""
-        from . import importer
-
-        log: list[str] = []
-        try:
-            count = importer.fetch_elevation(self.cfg, out=log.append)
-        except SystemExit as err:
-            self._json(200, {"ok": False, "log": log, "error": str(err)})
-            return
-        except Exception as err:  # noqa: BLE001
-            self._json(200, {"ok": False, "log": log,
-                             "error": f"{type(err).__name__}: {err}"})
-            return
-        self._json(200, {"ok": True, "log": log, "tiles": count})
 
     def _setup_geoserver(self, body: dict) -> None:
         """Test, or set up, the GeoServer — and remember what worked.

@@ -7,11 +7,10 @@
 // move — out of the owner's wallet at once, into the worker's at publish.
 
 import { test, expect } from '@playwright/test';
-import { execFileSync } from 'node:child_process';
 import { existsSync, mkdirSync, writeFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 
-import { CLIENT, FILES_ROOT, demSeeded } from './serve.js';
+import { CLIENT, FILES_ROOT, seedGround, seedWorld } from './serve.js';
 import { startServices } from './services.js';
 import { openPage, park, psql, signIn, unpark } from './worker.js';
 import { canonicalise } from '../../lib/canon.js';
@@ -72,13 +71,8 @@ test.beforeAll(async () => {
     try { psql('SELECT 1'); } catch (err) {
         test.skip(true, `no database: ${err.message}`);
     }
-    if (!demSeeded(TILE.z, TILE.x, TILE.y)) {
-        test.skip(true, 'the pilot dem is not seeded — run `bash tools/seed-dem.sh`');
-    }
-    if (psql("SELECT count(*) FROM feature WHERE props ? 'osm'") === '0') {
-        execFileSync('bash', ['tools/seed-osm.sh'],
-            { env: { ...process.env, OSM_FILE: 'infra/seed/pilot-fixture.osm' }, stdio: 'ignore' });
-    }
+    seedGround(TILE.z, TILE.x, TILE.y);
+    seedWorld(TILE.z, TILE.x, TILE.y);
     for (const email of [OWNER, WORKER]) {
         psql(`DO $$ DECLARE u uuid;
               BEGIN

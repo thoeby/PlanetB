@@ -1,7 +1,7 @@
 // assemble.js — `assemble-v1`. The world, as geometry, in one tile's own frame.
 //
 // Terrain from the seeded DEM, cut by terrainmods and roads; footprints
-// extruded; forests scattered; water laid flat; the ortho draped over the
+// extruded; forests scattered; water laid flat; the ground coloured by its own
 // ground and blended by slope and height. Out come four files in one tar:
 //
 //   scene.json   what the scene is, and where every buffer lives in mesh.bin
@@ -15,7 +15,7 @@
 // seeded from the atom, and the tar carries no timestamps.
 
 import { fetchJson } from '../js/api.js';
-import { DEM_OFFSET, DEM_SCALE, loadDem, loadOrtho } from '../lib/geo.js';
+import { DEM_OFFSET, DEM_SCALE, loadDem } from '../lib/geo.js';
 import { boundsOf, placeMeshes } from '../lib/glbmesh.js';
 import { packMeshes } from '../lib/mesh.js';
 import { bboxOf, emptySplats, writePly } from '../lib/ply.js';
@@ -244,7 +244,7 @@ function colliderOf(meshes, at) {
 }
 
 // The scene itself: ground first, then everything that stands on it.
-function build({ z, sw, ne, dem, ortho, frame, world, random, assets }) {
+function build({ z, sw, ne, dem, frame, world, random, assets }) {
     // What a feature becomes is decided by the world's rules, which travel with
     // it (db/0036_rules.sql): nothing here knows a species or a column name.
     const rules = world.rules ?? [];
@@ -262,7 +262,7 @@ function build({ z, sw, ne, dem, ortho, frame, world, random, assets }) {
     const built = buildings(by('footprint'), terrain, rules);
     const wood = trees(by('forest'), terrain, random, Math.max(6, edge / 140), rules);
     const placed = placeInstances(world.instances, assets ?? new Map(), frame);
-    const meshes = clip([terrainMesh(terrain, ortho), roadMesh(roads, terrain),
+    const meshes = clip([terrainMesh(terrain), roadMesh(roads, terrain),
         built.walls, built.roofs, waterMesh(by('water'), terrain),
         wood.trunks, wood.canopies, ...placed.meshes], sw, ne);
     built.boxes = [...built.boxes, ...placed.boxes].filter((b) => b.center[0] >= sw.x - CLIP_M
@@ -273,7 +273,7 @@ function build({ z, sw, ne, dem, ortho, frame, world, random, assets }) {
 
 // -------------------------------------------------------------------- atom
 
-export async function run({ atom, canvas, log, apiUrl, filesUrl }) {
+export async function run({ atom, log, apiUrl, filesUrl }) {
     const { z, x, y, budget } = atom.params;
     const world = await fetchJson(`${apiUrl}/rpc/tile_world`, {
         method: 'POST',
@@ -287,10 +287,9 @@ export async function run({ atom, canvas, log, apiUrl, filesUrl }) {
     }
 
     const dem = await loadDem(z, x, y, { filesUrl });
-    if (!dem) throw new Error(`no dem covers ${z}/${x}/${y} — seed it (infra/seed)`);
-    // No ortho seeded is a grey tile and says so in the result; a failed fetch
-    // is a failed atom.
-    const ortho = await loadOrtho(z, x, y, { filesUrl, canvas });
+    if (!dem) {
+        throw new Error(`no ground at ${z}/${x}/${y}: it is outside the world's coverage`);
+    }
 
     const b = tileBbox(z, x, y);
     const centre = { lon: (b.west + b.east) / 2, lat: (b.south + b.north) / 2 };
@@ -301,7 +300,7 @@ export async function run({ atom, canvas, log, apiUrl, filesUrl }) {
 
     const assets = await loadAssets(world.instances, { filesUrl });
     const { terrain, meshes, built, wood, roads, placed } =
-        build({ z, sw, ne, dem, ortho, frame, world, random: rngOf(atom, z, x, y), assets });
+        build({ z, sw, ne, dem, frame, world, random: rngOf(atom, z, x, y), assets });
     log?.({ event: 'assembled', z, x, y, meshes: meshes.length, trees: wood.count,
         buildings: built.boxes.length, roads: roads.length,
         instances: placed.meshes.length, missing: placed.missing });
@@ -334,7 +333,6 @@ export async function run({ atom, canvas, log, apiUrl, filesUrl }) {
             bbox: bboxOf(splats),
             trees: wood.count, buildings: built.boxes.length, snapshot: world.snapshot,
             instances: (world.instances ?? []).length - placed.missing,
-            ortho: Boolean(ortho),
         },
     };
 }

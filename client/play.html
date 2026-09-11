@@ -74,6 +74,7 @@
   import { InstancePreview } from './js/preview.js';
   import { XR_LIMITS, teleportTarget, xrRequested, xrSupported } from './js/xr.js';
   import { mountHud } from './js/hud.js';
+  import { mountSetup } from './js/setupui.js';
 
   api.configure();
 
@@ -113,6 +114,14 @@
     },
   });
 
+  // Where the world is. Until somebody picks a coverage there is nowhere to
+  // stand, and the Setup panel is what the tab opens on (T0).
+  const ground = await api.rpc('ground').catch(() => ({}));
+  const setup = mountSetup(hud.panel('Setup'), {
+      onGround: () => location.reload(),
+  });
+  if (!ground?.coverage) hud.show('Setup');
+
   // Reading tiles needs no token: everyone reads the world (db/0003_rls.sql).
   // Every row is fetched, not only the published ones — the traversal has to
   // tell an unpublished child from one that does not exist.
@@ -126,7 +135,7 @@
 
   const live = rows.filter((r) => r.published_version > 0 && r.manifest?.origin);
   const anchor = (live.find((r) => r.z === 10) ?? live[0])?.manifest.origin
-    ?? { lon: 0, lat: 0, h: 0 };
+    ?? (ground?.centre ? { ...ground.centre, h: 0 } : { lon: 0, lat: 0, h: 0 });
   const origin = new FloatingOrigin(anchor);
 
   const app = new pc.Application(document.getElementById('view'), {
@@ -280,6 +289,14 @@
       const moved = Math.hypot(g.lon - asked.lon, g.lat - asked.lat) > 0.0005;
       if (!moved || Date.now() - asked.at < 2000) return;
       asked = { lon: g.lon, lat: g.lat, at: Date.now() };
+      // Outside the coverage there is no world at all, which is a different
+      // thing from ground nobody has claimed (T1).
+      if (ground?.coverage && (g.lon < ground.west || g.lon > ground.east
+          || g.lat < ground.south || g.lat > ground.north)) {
+          hud.standing({ land: 'off the edge of the world', owner: '',
+              right: `outside ${ground.coverage}`, may: false });
+          return;
+      }
       api.rpc('area_at', { lon: g.lon, lat: g.lat }).then((areas) => {
           const a = areas?.[0];
           if (!a) {
@@ -332,7 +349,7 @@
   // The handle the browser tests fly.
   window.splatworld = {
     app, pc, api, origin, streamer, camera, rows, terrain, player, setDriving, work,
-    hud,
+    hud, setup, ground,
     spot, build, preview, nearby, areas, wallet, xr: { wants: wantsXr, rig: () => rig },
   };
 </script>

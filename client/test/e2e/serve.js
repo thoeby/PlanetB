@@ -3,7 +3,7 @@
 // files and the file store is a directory of immutable blobs.
 
 import { execFileSync } from 'node:child_process';
-import { existsSync, readFileSync } from 'node:fs';
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { join, extname } from 'node:path';
 
 export const CLIENT = new URL('../../', import.meta.url).pathname;
@@ -42,11 +42,79 @@ export const TEST_TILES = new Set([
 export const testTileRows = () =>
     tileRows().filter((r) => TEST_TILES.has(`${r.z}/${r.x}/${r.y}`));
 
-// Does the seed cover this tile? tools/seed-test.sh cuts one z14 tile to prove
-// the path works, which is not at all the same thing as the pilot being seeded,
-// and a spec that only asks whether geo/dem exists fails minutes later with
-// "no dem covers ...". This walks the same ancestor fallback client/lib/geo.js
-// does (tools/seed-dem.sh is what fills it in).
+// Ground for a spec, without a GeoServer.
+//
+// The world's elevation comes from the operator's coverage, cut per tile by the
+// server (server/splatworld/ground.py). A test has no GeoServer, so it writes
+// the same bytes the cut would have written — dem-v1, 256x256, a gentle ramp so
+// a walk has something to climb — and tells the database the world is here.
+// Nothing about the compile path is special-cased: the atom reads the same file
+// at the same address.
+export function seedGround(z, x, y, { slopeMetres = 120 } = {}) {
+    const n = 256;
+    const samples = new Uint16Array(n * n);
+    for (let row = 0; row < n; row++) {
+        for (let col = 0; col < n; col++) {
+            // dem-v1: metres = value * 0.2 - 500, so sea level is 2500.
+            const metres = 400 + (slopeMetres * (col + row)) / (2 * n);
+            samples[row * n + col] = Math.round((metres + 500) / 0.2);
+        }
+    }
+    const dir = join(FILES_ROOT, `geo/dem/${z}/${x}`);
+    mkdirSync(dir, { recursive: true });
+    writeFileSync(join(dir, `${y}.r16`), Buffer.from(samples.buffer));
+    const span = 360 / 2 ** z;
+    const west = x * span - 180;
+    psqlHere(`INSERT INTO ground (only_one, geoserver_url, coverage, extent)
+              VALUES (true, 'http://test.invalid/geoserver', 'test:ground',
+                      st_makeenvelope(${west - span}, -80, ${west + 2 * span}, 80, 4326))
+              ON CONFLICT (only_one) DO UPDATE SET extent = excluded.extent`);
+    return join(dir, `${y}.r16`);
+}
+
+// A world to compile, drawn rather than imported. One area over the tile with a
+// forest and a building in it: enough for assemble to have something to build,
+// and nothing that came from OSM (TASKS-usable: the world is what people draw).
+export function seedWorld(z, x, y) {
+    const span = 360 / 2 ** z;
+    const west = x * span - 180;
+    const lat = (row) => (180 / Math.PI)
+        * Math.atan(Math.sinh(Math.PI * (1 - (2 * (y + row)) / 2 ** z)));
+    const north = lat(0);
+    const south = lat(1);
+    const at = (fx, fy) => `${west + fx * span} ${south + fy * (north - south)}`;
+    const ring = (a, b, c, d) => `POLYGON((${a},${b},${c},${d},${a}))`;
+    const wood = ring(at(0.1, 0.1), at(0.4, 0.1), at(0.4, 0.4), at(0.1, 0.4));
+    const house = ring(at(0.6, 0.6), at(0.7, 0.6), at(0.7, 0.7), at(0.6, 0.7));
+    psqlHere(`DO $$
+        DECLARE uid uuid; aid uuid;
+        BEGIN
+            SELECT id INTO uid FROM auth.user WHERE email = 'world@test.local';
+            IF uid IS NULL THEN uid := register('world@test.local', 'seedseed'); END IF;
+            SELECT id INTO aid FROM area WHERE rules ->> 'seed' = '${z}/${x}/${y}';
+            IF aid IS NULL THEN
+                INSERT INTO area (geom, owner_id, detail, rules) VALUES (
+                    st_makeenvelope(${west}, ${south}, ${west + span}, ${north}, 4326),
+                    uid, 14, jsonb_build_object('seed', '${z}/${x}/${y}',
+                                                'required_approvals', 1))
+                RETURNING id INTO aid;
+                INSERT INTO feature (area_id, kind, geom, props) VALUES
+                    (aid, 'forest',
+                     st_force3d(st_geomfromtext('${wood}', 4326)),
+                     '{"leaf_type": "broadleaved"}'),
+                    (aid, 'footprint',
+                     st_force3d(st_geomfromtext('${house}', 4326)),
+                     '{"height": 9, "roof": "gabled"}');
+            END IF;
+        END $$`);
+}
+
+const psqlHere = (sql) => execFileSync('psql',
+    ['-v', 'ON_ERROR_STOP=1', '--no-psqlrc', '-q', '-t', '-A', '-c', sql],
+    { encoding: 'utf8', env: process.env }).trim();
+
+// Does the ground cover this tile? Walks the same ancestor fallback
+// client/lib/geo.js does.
 export function demSeeded(z, x, y) {
     for (let az = z; az >= 6; az -= 2) {
         const f = 2 ** (z - az);

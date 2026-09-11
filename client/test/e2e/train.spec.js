@@ -13,7 +13,7 @@ import { test, expect } from '@playwright/test';
 import { existsSync } from 'node:fs';
 import { join } from 'node:path';
 
-import { CLIENT, FILES_ROOT, demSeeded, install } from './serve.js';
+import { CLIENT, FILES_ROOT, install, seedGround, seedWorld } from './serve.js';
 import { startServices } from './services.js';
 import { openPage, park, psql, resetJob, signIn, unpark } from './worker.js';
 import { tileX, tileY } from '../../lib/tilemath.js';
@@ -98,9 +98,8 @@ test.beforeAll(async () => {
         test.skip(true, 'no vendored engine — run `make vendor`');
     }
     try { psql('SELECT 1'); } catch (err) { test.skip(true, `no database: ${err.message}`); }
-    if (!demSeeded(PARENT.z, PARENT.x, PARENT.y)) {
-        test.skip(true, 'the pilot dem is not seeded — run `bash tools/seed-dem.sh`');
-    }
+    seedGround(PARENT.z, PARENT.x, PARENT.y);
+    seedWorld(PARENT.z, PARENT.x, PARENT.y);
     // Judging somebody else's tile needs trust >= 0.6 (db/0019_trust.sql), which
     // a tab earns by having its own work accepted. These three are established
     // players who have never worked on this tile.

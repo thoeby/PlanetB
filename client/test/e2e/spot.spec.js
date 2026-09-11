@@ -10,7 +10,7 @@ import { test, expect } from '@playwright/test';
 import { existsSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 
-import { CLIENT, FILES_ROOT, demSeeded } from './serve.js';
+import { CLIENT, FILES_ROOT, seedGround, seedWorld } from './serve.js';
 import { startServices } from './services.js';
 import { openPage, park, psql, resetJob, signIn, unpark } from './worker.js';
 import { tileBbox, tileX, tileY } from '../../lib/tilemath.js';
@@ -101,9 +101,8 @@ test.beforeAll(async () => {
         test.skip(true, 'no vendored engine — run `make vendor`');
     }
     try { psql('SELECT 1'); } catch (err) { test.skip(true, `no database: ${err.message}`); }
-    if (!demSeeded(TILE.z, TILE.x, TILE.y)) {
-        test.skip(true, 'the pilot dem is not seeded — run `bash tools/seed-dem.sh`');
-    }
+    seedGround(TILE.z, TILE.x, TILE.y);
+    seedWorld(TILE.z, TILE.x, TILE.y);
     for (const who of [MAKER, OWNER]) {
         psql(`DO $$ DECLARE uid uuid;
               BEGIN
