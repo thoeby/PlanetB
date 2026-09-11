@@ -282,3 +282,19 @@ body {
   #stats, #legend, #hints { display: none; }
   #where { max-width: 90vw; }
 }
+
+/* A thumbnail is a thumbnail: 256 square of canvas pushed the rest of the
+   register form below the fold. */
+#panel canvas.preview {
+  display: block; width: 100%; max-width: 12rem; height: auto;
+  margin: 8px 0; border: 1px solid var(--edge); background: rgba(0, 0, 0, 0.35);
+}
+#panel #results { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+#panel #results li { border-bottom: 0; }
+#panel #results img { width: 100%; aspect-ratio: 1; object-fit: cover;
+  border: 1px solid var(--edge); }
+
+/* A button that is the current choice (the gizmo's mode and axis). */
+#panel button[data-on="1"] {
+  background: var(--accent-dim); border-color: var(--accent); color: var(--ink);
+}

@@ -76,6 +76,8 @@
   import { mountHud } from './js/hud.js';
   import { mountSetup } from './js/setupui.js';
   import { mountAdmin } from './js/adminui.js';
+  import { mountCatalogPanel } from './js/catalogpanel.js';
+  import { drawAreas, mountLand } from './js/land.js';
 
   api.configure();
 
@@ -124,6 +126,11 @@
   // What the world may say about itself. The same rows drive this tool's forms,
   // QGIS's layer forms and the rules the compiler matches on (T3).
   const admin = mountAdmin(hud.panel('Admin'));
+  // Who you are, in the corner, from the moment the page knows.
+  const showWho = () => hud.signedIn(api.claims()?.email
+      ?? (api.userId() ? 'signed in' : null));
+  // The catalog: what anybody may build with, and where you register your own.
+  const catalog = await mountCatalogPanel(hud.panel('Catalog'));
   if (!ground?.coverage) hud.show('Setup');
 
   // Reading tiles needs no token: everyone reads the world (db/0003_rls.sql).
@@ -218,6 +225,17 @@
     canvas: view, nearby, wallet,
   });
 
+  // T5: the land you own, outlined in the world and listed in the panel, with
+  // what stands on it. Going to something puts you in front of it.
+  const land = mountLand(hud.panel('Your land'), {
+      onGo: (item) => {
+          const p = origin.localOf({ lon: item.lon, lat: item.lat, h: item.h ?? 0 });
+          player.position = { x: p.x, y: p.y + 2, z: p.z + 8 };
+      },
+      onRemove: (item) => api.remove('instance', { id: `eq.${item.id}` })
+          .then(() => build.refresh()),
+  });
+
   // WP4.3: my land, who may touch it, and what they have asked to change.
   // Merging a proposal changes the world, so the build panel is told to look
   // again — its dirty badge is what a merge produces.
@@ -226,7 +244,11 @@
   });
 
   mountAuth(panelFor('Setup', 'auth'), {
-    onChange: () => { work.refresh(); build.refresh(); areas.refresh(); wallet.refresh(); },
+    onChange: () => {
+        work.refresh(); build.refresh(); areas.refresh(); wallet.refresh();
+        catalog.refresh(); admin.refresh(); setup.refresh(); land.refresh();
+        showWho();
+    },
   });
 
   // The player drives the camera unless something else has taken the wheel —
@@ -336,6 +358,7 @@
       preview.rebased();
     }
     build.drawGizmo();
+    drawAreas({ pc, app, origin, terrain }, land.areas());
     streamer.update(cameraState(camera, app.graphicsDevice.height));
     // Where you are, in the chrome: the compass follows the camera, the
     // coordinates are the real ones, and the land under you is asked for only
@@ -353,7 +376,7 @@
   // The handle the browser tests fly.
   window.splatworld = {
     app, pc, api, origin, streamer, camera, rows, terrain, player, setDriving, work,
-    hud, setup, admin, ground,
+    hud, setup, admin, catalog, land, ground,
     spot, build, preview, nearby, areas, wallet, xr: { wants: wantsXr, rig: () => rig },
   };
 </script>

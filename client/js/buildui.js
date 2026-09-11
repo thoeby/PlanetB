@@ -24,7 +24,13 @@ const HTML = `
   <button type="button" data-mode="move">move</button>
   <button type="button" data-mode="turn">turn</button>
   <button type="button" data-mode="size">size</button>
-  <span class="build-axis">x</span>
+</div>
+<div class="build-gizmo">
+  <button type="button" data-axis="x">x</button>
+  <button type="button" data-axis="y">up</button>
+  <button type="button" data-axis="z">z</button>
+  <button type="button" class="build-less">&minus;</button>
+  <button type="button" class="build-more">+</button>
   <label class="build-snap"><input type="checkbox" class="build-snap-on" checked> snap</label>
 </div>
 <div class="build-acts">
@@ -210,9 +216,11 @@ function drawGizmo(ctx, state) {
     }
 }
 
-// G/R/T pick what a step does, X/Y/Z pick the axis, the brackets and the arrows
-// take a step, Delete removes and Ctrl-Z undoes. A key typed into the search
-// box is a search, not a command.
+// Every one of these is a button on the panel as well (T5: no key you have to
+// know). G/R/T pick what a step does, X/Y/Z pick the axis, the brackets and the
+// arrows take a step, Delete removes and Ctrl-Z undoes — for the hands that
+// already know them. A key typed into the search box is a search, not a
+// command.
 function keyHandler(state, acts, say) {
     return (e) => {
         if (!state.on || e.target.tagName === 'INPUT') return;
@@ -291,6 +299,22 @@ function wire(host, state, { toggle, catalog, acts, say }) {
     for (const b of host.querySelectorAll('[data-mode]')) {
         b.onclick = () => { state.mode = b.dataset.mode; say(); };
     }
+    for (const b of host.querySelectorAll('[data-axis]')) {
+        b.onclick = () => { state.axis = b.dataset.axis; say(); };
+    }
+    q('.build-less').onclick = () => acts.step(-1);
+    q('.build-more').onclick = () => acts.step(1);
+}
+
+// The buttons say what is chosen, so nothing on this panel is only in
+// somebody's head (T5).
+function showChosen(host, state) {
+    for (const b of host.querySelectorAll('[data-mode]')) {
+        b.dataset.on = b.dataset.mode === state.mode ? '1' : '';
+    }
+    for (const b of host.querySelectorAll('[data-axis]')) {
+        b.dataset.on = b.dataset.axis === state.axis ? '1' : '';
+    }
 }
 
 export function mountBuild(host, ctx) {
@@ -301,7 +325,7 @@ export function mountBuild(host, ctx) {
 
     const say = () => {
         q('.build-sel').textContent = describe(state, session.edits.depth);
-        q('.build-axis').textContent = state.axis;
+        showChosen(host, state);
     };
 
     async function render(tile, btn) {

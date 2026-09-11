@@ -11,7 +11,7 @@
 import { test, expect } from '@playwright/test';
 
 import { startServices } from './services.js';
-import { psql } from './worker.js';
+import { psql, revealPanels } from './worker.js';
 import { encodePng } from '../../lib/png.js';
 import { FIXTURES } from '../../../tools/make-asset-fixtures.mjs';
 
@@ -50,7 +50,9 @@ test.afterAll(() => svc?.stop());
 // The catalog page has no worker, so it signs in through its own api module
 // rather than through worker.js's helper.
 async function open(page) {
-    await page.goto(`${svc.baseUrl}/catalog.html`);
+    // The catalog is a tab of the world now (T4).
+    await page.goto(`${svc.baseUrl}/play.html`);
+    await revealPanels(page);
     await page.waitForFunction(() => window.splatworld?.catalog, null, { timeout: 30000 });
     await page.evaluate(async ([e, p]) => {
         const { api } = window.splatworld;

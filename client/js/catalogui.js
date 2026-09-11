@@ -177,14 +177,23 @@ class Upload {
 
 // --------------------------------------------------------------------- mount
 
-export function mountCatalog(doc, { mountAuth }) {
+// What a product may be and how it may be licensed are the `product` kind's
+// properties, so an admin decides them (db/0040_properties.sql). The constants
+// are only what a world whose admin has not said otherwise falls back to.
+function fillChoices(doc, choices) {
+    const categories = choices?.categories ?? CATEGORIES;
+    const licences = choices?.licences ?? LICENSES;
+    options(doc.getElementById('category'), categories, 'any');
+    options(doc.getElementById('license'), licences, 'any');
+    options(doc.getElementById('upload-category'), categories);
+    options(doc.getElementById('upload-license'), licences);
+}
+
+export function mountCatalog(doc, { mountAuth, choices } = {}) {
     const results = doc.getElementById('results');
     const status = doc.getElementById('status');
     const detail = doc.getElementById('detail');
-    options(doc.getElementById('category'), CATEGORIES, 'any');
-    options(doc.getElementById('license'), LICENSES, 'any');
-    options(doc.getElementById('upload-category'), CATEGORIES);
-    options(doc.getElementById('upload-license'), LICENSES);
+    fillChoices(doc, choices);
 
     const held = new Set();
     const open = async (san) => {
@@ -226,7 +235,9 @@ export function mountCatalog(doc, { mountAuth }) {
     };
     const upload = new Upload(doc, say);
 
-    mountAuth(doc.getElementById('auth'), { onChange: refresh });
+    // On its own page the catalog carried the sign-in box; as a tab of the
+    // world the Setup panel has it, and this only follows what it does.
+    if (mountAuth) mountAuth(doc.getElementById('auth'), { onChange: refresh });
     doc.getElementById('refresh').addEventListener('click', refresh);
     doc.getElementById('q').addEventListener('change', refresh);
     doc.getElementById('category').addEventListener('change', refresh);

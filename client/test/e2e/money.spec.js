@@ -12,7 +12,7 @@ import { dirname, join } from 'node:path';
 
 import { CLIENT, FILES_ROOT, seedGround, seedWorld } from './serve.js';
 import { startServices } from './services.js';
-import { openPage, park, psql, signIn, unpark } from './worker.js';
+import { openPage, park, psql, revealPanels, signIn, unpark } from './worker.js';
 import { canonicalise } from '../../lib/canon.js';
 import { encodePng } from '../../lib/png.js';
 import { tileBbox, tileX, tileY } from '../../lib/tilemath.js';
@@ -162,7 +162,9 @@ test('a stranger renders my bounty and is paid for it', async ({ page, browser }
 
 test('I buy their asset, and the edition count says so', async ({ page }) => {
     const before = balance(WORKER);
-    await page.goto(`${svc.baseUrl}/catalog.html`);
+    // The catalog is a tab of the world now (T4).
+    await page.goto(`${svc.baseUrl}/play.html`);
+    await revealPanels(page);
     await page.waitForFunction(() => window.splatworld?.catalog, null, { timeout: 30000 });
     await page.evaluate(async ([e, p]) => {
         const { api } = window.splatworld;
