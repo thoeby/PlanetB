@@ -169,9 +169,17 @@ const shape = (art) => ({
     splat_count: art.count, gpu_seconds: 0.5, finite: true, bbox: art.bbox,
 });
 
+// A tile with nothing under it is assembled and sampled rather than merged
+// (db/0045_coarseleaf.sql), which is what the test region's area at detail 10
+// gets. Both produce a ply; this tool makes the same one either way, because
+// what it is testing is the ladder and the viewer, not the geometry.
+const PLY_OPS = { merge: 'merge-v1', assemble: 'assemble-v1', sample: 'sample-v1' };
+const PLY_KIND = { merge: 'ply', assemble: 'init_ply', sample: 'ply' };
+
 async function runAtom(atom, t, art) {
-    if (atom.op === 'merge') {
-        await upload(`/jobs/${atom.id}/merge.ply`, art.ply, art.plySha, 'ply', 'merge-v1');
+    if (PLY_OPS[atom.op]) {
+        await upload(`/jobs/${atom.id}/${atom.op}.ply`, art.ply, art.plySha,
+            PLY_KIND[atom.op], PLY_OPS[atom.op]);
         return api.rpc('submit_atom', {
             atom_id: atom.id, output_sha256: art.plySha,
             result: { ...shape(art), bytes: art.ply.length },
@@ -190,7 +198,7 @@ async function runAtom(atom, t, art) {
             result: { ...shape(art), bytes: art.sog.length },
         });
     }
-    throw new Error(`unexpected op ${atom.op} at z${t.z} (merge and sog only below z16)`);
+    throw new Error(`unexpected op ${atom.op} at z${t.z}`);
 }
 
 // The bundle is decoded again with the engine's own dequantisation before it is

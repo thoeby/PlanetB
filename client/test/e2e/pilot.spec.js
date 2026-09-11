@@ -61,6 +61,20 @@ const rowOf = (t) => psql(`SELECT coalesce(published_version, 0) || '|'
                            || coalesce(manifest ->> 'splats', '0')
                            FROM tile WHERE z = ${t.z} AND x = ${t.x} AND y = ${t.y}`);
 
+// What a renderer produces waits on the tile until a person approves it (T7,
+// db/0044_permission.sql). This tab is the admin, so it is that person — and a
+// rung is only published, and only then dirties the rung above it, once it says
+// so.
+const waitingFor = (t) => psql(`SELECT coalesce(candidate_version, 0)::text FROM tile
+                                WHERE z = ${t.z} AND x = ${t.x} AND y = ${t.y}`);
+
+const approve = (t) => psql(`DO $$ BEGIN
+    PERFORM set_config('request.jwt.claims', json_build_object(
+        'sub', (SELECT id FROM auth.user WHERE email = '${EMAIL}'),
+        'role', 'admin')::text, true);
+    PERFORM approve_tile(${t.z}, ${t.x}, ${t.y});
+END $$;`);
+
 test('one tab compiles the pilot from z14 up to z6, and the viewer streams it',
     async ({ page }) => {
         const errors = [];
@@ -75,8 +89,8 @@ test('one tab compiles the pilot from z14 up to z6, and the viewer streams it',
             const job = await page.evaluate(
                 (tile) => window.splatworld.api.rpc('ensure_job', tile), t);
             expect(job, `a job for ${t.z}/${t.x}/${t.y}`).toBeTruthy();
-            await expect.poll(() => rowOf(t).split('|')[0], { timeout: 300000 })
-                .not.toBe('0');
+            await expect.poll(() => waitingFor(t), { timeout: 300000 }).not.toBe('0');
+            approve(t);
         }
         await page.locator('.work-toggle').uncheck();
 
