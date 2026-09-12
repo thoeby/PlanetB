@@ -97,6 +97,30 @@ def cmd_init(args: argparse.Namespace) -> int:
     return 0
 
 
+def _forget_cached_layers(cfg: config.Config) -> None:
+    """Best effort: tell GeoServer to re-read the views it publishes."""
+    from . import gsprovision
+
+    url = (cfg.geoserver_url or "").strip()
+    if not url:
+        # Setup stores the address it was given; the environment need not.
+        try:
+            with psycopg.connect(cfg.dsn(), autocommit=True, connect_timeout=5) as conn:
+                row = conn.execute("SELECT geoserver_url FROM ground").fetchone()
+            url = (row[0] if row else "") or ""
+        except psycopg.Error:
+            return
+    if not url.strip():
+        return
+    try:
+        gs = gsprovision.GeoServer(url, cfg.geoserver_user,
+                                   cfg.geoserver_admin_password)
+        gs.call("POST", "/rest/reset", b"", tolerate=(404,))
+        print("  GeoServer was asked to re-read its layers")
+    except Exception as err:  # noqa: BLE001 - GeoServer is optional and external
+        print(f"  note: could not reach GeoServer to refresh its layers ({err})")
+
+
 def _preflight(cfg: config.Config) -> list[str]:
     problems = []
     try:
@@ -187,6 +211,10 @@ def cmd_run(args: argparse.Namespace) -> int:
         # A fix that came as a migration is applied here, not by asking for a
         # reset that would also delete the account and everything drawn.
         print(f"  {migrate.apply(cfg, on_step=lambda _: None)} new migration(s) applied")
+        # A migration can change the shape of a drawn layer, and GeoServer only
+        # ever read it once. Without this it keeps serving yesterday's idea of
+        # the view — "read-only" being the one that costs an afternoon.
+        _forget_cached_layers(cfg)
 
     problems = _preflight(cfg)
     if problems:
