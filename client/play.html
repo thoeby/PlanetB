@@ -73,7 +73,7 @@
   import { nearbyInstances } from './js/build.js';
   import { InstancePreview } from './js/preview.js';
   import { XR_LIMITS, teleportTarget, xrRequested, xrSupported } from './js/xr.js';
-  import { mountHud } from './js/hud.js';
+  import { mountHud, whatIsMissing } from './js/hud.js';
   import { mountSetup } from './js/setupui.js';
   import { mountAdmin } from './js/adminui.js';
   import { mountRules } from './js/rulesui.js';
@@ -423,6 +423,21 @@
           });
       }).catch(() => {});
   }
+
+  // What is missing, in the middle of the screen. Re-asked when the answer can
+  // have changed — a tile publishing, land appearing — not every frame.
+  function sayWhatIsMissing() {
+      const areas = land.areas() ?? [];
+      hud.notice(whatIsMissing({
+          coverage: ground?.coverage,
+          areas: areas.length,
+          mine: areas.filter((a) => a.mine).length,
+          published: [...streamer.tiles.values()].filter(
+              (t) => t.published_version > 0).length,
+      }));
+  }
+  setInterval(sayWhatIsMissing, 5000);
+  sayWhatIsMissing();
 
   app.on('update', (dt) => {
     // A smoothed frame time, so one slow frame does not stall background work

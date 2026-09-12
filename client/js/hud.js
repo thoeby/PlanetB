@@ -37,6 +37,26 @@ export const TABS = [
 
 const POINTS = ['N', 'NE', 'E', 'SE', 'S', 'SW', 'W', 'NW'];
 
+// An empty world is black, and black says nothing. What is missing is always
+// one of four things, and each of them is somebody's next move.
+export function whatIsMissing({ coverage, areas = 0, mine = 0, published = 0 } = {}) {
+    if (!coverage) {
+        return 'No ground yet. Setup \u00b7 connect your GeoServer and pick the'
+            + ' coverage the world stands on.';
+    }
+    if (!areas) {
+        return 'No land yet. Draw an area in QGIS — run `splatworld qgis`, open'
+            + ' gis/splatworld.qgs, draw on Your land and save.';
+    }
+    if (!published) {
+        return mine
+            ? 'Nothing here is compiled yet. Submit \u00b7 put your land in the'
+              + ' render pool, then render it and approve what comes back.'
+            : 'Nothing here is compiled yet, and none of the land is yours.';
+    }
+    return '';
+}
+
 const el = (tag, props = {}, ...kids) => {
     const node = Object.assign(document.createElement(tag), props);
     node.append(...kids.filter((k) => k !== null && k !== undefined));
@@ -146,6 +166,8 @@ function buildFrame(doc, show) {
         frame.body.append(host);
     }
 
+    const notice = el('div', { id: 'notice', className: 'glass' });
+    notice.hidden = true;
     const hud = el('div', { id: 'hud' },
         el('div', { id: 'brand', className: 'glass' },
             el('span', { className: 'mark', textContent: 'splatworld' }),
@@ -162,15 +184,16 @@ function buildFrame(doc, show) {
             el('span', { className: 'candidate' }, el('i'),
                 'Candidate \u00b7 awaiting approval'),
             el('span', { className: 'mine' }, el('i'), 'Yours \u00b7 not yet submitted')),
-        el('div', { id: 'crosshair' }, el('i'), el('i'), el('i'), el('i')));
+        el('div', { id: 'crosshair' }, el('i'), el('i'), el('i'), el('i')),
+        notice);
 
     doc.body.append(el('div', { id: 'vignette' }), hud);
-    return { top, who, stats, frame, buttons, bodies };
+    return { top, who, stats, frame, buttons, bodies, notice };
 }
 
 export function mountHud(doc) {
     let open = 'World';
-    const { top, who, stats, frame, buttons, bodies } =
+    const { top, who, stats, frame, buttons, bodies, notice } =
         buildFrame(doc, (name) => show(name));
 
     function show(name) {
@@ -195,6 +218,12 @@ export function mountHud(doc) {
             if (n > 0) b.append(el('span', { className: 'count', textContent: String(n) }));
         },
         signedIn(label) { who.textContent = label ?? 'not signed in'; },
+        // The one line an empty world needs: what is missing, and where to do
+        // something about it. Empty text takes it away.
+        notice(text) {
+            notice.textContent = text ?? '';
+            notice.hidden = !text;
+        },
         stat(key, value) {
             if (stats[key]) stats[key].value.textContent = value;
         },

@@ -334,3 +334,11 @@ body {
 #panel .ru-row .op { flex: 0 0 5rem; }
 #panel .ru-row button { flex: 0 0 auto; padding: 4px 8px; }
 #panel .ru-rule button { text-align: left; }
+
+/* What an empty world says. Middle of the screen, because that is where
+   somebody stares when there is nothing to see (client/js/hud.js). */
+#notice {
+  position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
+  max-width: 32rem; padding: 18px 22px; text-align: center; line-height: 1.6;
+  color: var(--ink-2); font-size: 14px; --cut: 10px;
+}
