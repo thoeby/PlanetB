@@ -12,6 +12,7 @@ a project should not require running anything first.
 from __future__ import annotations
 
 import hashlib
+import urllib.parse
 import xml.etree.ElementTree as ET
 from pathlib import Path
 
@@ -141,9 +142,12 @@ def raster_layer(parent, wms_url: str, coverage: str) -> str:
     ident = "ground_hillshade"
     node = _sub(parent, "maplayer", type="raster", hasScaleBasedVisibilityFlag="0")
     _sub(node, "id", ident)
-    _sub(node, "datasource",
-         f"crs=EPSG:4326&format=image/png&layers={wms_name(coverage)}"
-         f"&styles=&url={wms_url}")
+    # Every value encoded: a layer named "dem visp demo" carries spaces, and a
+    # raw space in a WMS URI is a layer GeoServer is never asked for.
+    _sub(node, "datasource", urllib.parse.urlencode({
+        "crs": "EPSG:4326", "format": "image/png",
+        "layers": wms_name(coverage), "styles": "", "url": wms_url,
+    }))
     _sub(node, "layername", f"Ground ({coverage})")
     crs(node)
     _sub(node, "provider", "wms")

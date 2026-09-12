@@ -16,7 +16,7 @@ import webbrowser
 
 import psycopg
 
-from . import IGNORED_PROJ_DATA, __version__, config, migrate, serve, services
+from . import IGNORED_PROJ_DATA, __version__, config, migrate, qgis, serve, services
 
 
 def _common(parser: argparse.ArgumentParser) -> None:
@@ -195,6 +195,14 @@ def cmd_run(args: argparse.Namespace) -> int:
         return 1
 
     cfg.files.mkdir(parents=True, exist_ok=True)
+    # gis/splatworld.qgs is generated, not edited: the layers, their fields and
+    # the ground's real name all come out of the database, and all of them
+    # change under it. Written on every start, so the project QGIS opens is
+    # never yesterday's — which is indistinguishable from a fix not working.
+    try:
+        qgis.write(cfg)
+    except Exception as err:  # noqa: BLE001 - a stale project must not stop the server
+        print(f"  note: could not rewrite the QGIS project ({err})")
     _warn_if_a_copy(cfg)
     with services.PostgREST(cfg, verbose=args.verbose):
         server = serve.listen(cfg, verbose=args.verbose)
