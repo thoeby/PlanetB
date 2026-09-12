@@ -183,6 +183,9 @@ class _Wcs(http.server.BaseHTTPRequestHandler):
                 b'<gml:lowerCorner>2633000 1124000</gml:lowerCorner>'
                 b'<gml:upperCorner>2640000 1130000</gml:upperCorner>'
                 b'</gml:Envelope></gml:boundedBy>'
+                b'<gml:domainSet><gml:RectifiedGrid dimension="2">'
+                b'<gml:axisLabels>i j</gml:axisLabels>'
+                b'</gml:RectifiedGrid></gml:domainSet>'
                 b'</CoverageDescription></CoverageDescriptions>')
 
     def do_GET(self):  # noqa: N802 - http.server's name
@@ -223,8 +226,9 @@ def test_the_version_that_answers_is_the_one_used():
     assert raw[:4] == b"II*\x00"
     assert "version=2.0.1" in url
     # The axes the coverage named, and its own CRS: asked for X/Y in Mercator,
-    # GeoServer answers ScaleAxisUndefined.
-    assert "scalesize=E%28256%29%2CN%28256%29" in url
+    # GeoServer answers ScaleAxisUndefined. Subsetting names the envelope's
+    # axes and scaling names the grid's, which are not the same two names.
+    assert "scalesize=i%28256%29%2Cj%28256%29" in url
     assert "subset=E(26" in url
 
 
@@ -358,3 +362,84 @@ def test_the_probe_says_so_when_the_tile_is_not_in_the_world(monkeypatch):
     said: list[str] = []
     assert ground.probe(Config(), 14, 9700, 7000, out=said.append) == 1
     assert "outside that extent" in "\n".join(said)
+
+
+class _ScaleFussy(_Wcs):
+    """A GeoServer that scales its grid's axes and nothing else.
+
+    This is what a swisstopo DEM in LV95 did: subset E/N fine, scalesize E
+    refused with "ScaleAxisUndefined" and E as the locator.
+    """
+    answers = "2.0.1"
+    scales = ("i", "j")
+    refuse_scale = (b'<?xml version="1.0"?><ows:ExceptionReport '
+                    b'xmlns:ows="http://www.opengis.net/ows/2.0" version="2.0.0">'
+                    b'<ows:Exception exceptionCode="ScaleAxisUndefined" locator="E">'
+                    b'<ows:ExceptionText>Could not find axis E</ows:ExceptionText>'
+                    b'</ows:Exception></ows:ExceptionReport>')
+
+    def do_GET(self):  # noqa: N802 - http.server's name
+        import urllib.parse
+        q = urllib.parse.parse_qs(urllib.parse.urlparse(self.path).query)
+        if q.get("request", [""])[0] == "DescribeCoverage":
+            return super().do_GET()
+        body = self.tiff
+        if q.get("version", [""])[0] != self.answers:
+            body = self.refuse
+        else:
+            asked = q.get("scalesize", [""])[0]
+            if asked and not asked.startswith(f"{self.scales[0]}("):
+                body = self.refuse_scale
+        self.send_response(200)
+        self.send_header("Content-Length", str(len(body)))
+        self.end_headers()
+        self.wfile.write(body)
+
+
+def _fussy(scales):
+    handler = type("H", (_ScaleFussy,), {"scales": scales})
+    srv = http.server.HTTPServer(("127.0.0.1", 0), handler)
+    threading.Thread(target=srv.serve_forever, daemon=True).start()
+    return srv, {"url": f"http://127.0.0.1:{srv.server_address[1]}/geoserver",
+                 "coverage": "splatworld__dem_visp_demo", "extent": (7, 45, 10, 48)}
+
+
+def test_scalesize_names_the_grids_axes_not_the_crss():
+    srv, world = _fussy(("i", "j"))
+    try:
+        raw, url = ground._ask(world, (878108.0, 5823890.0, 880554.0, 5826336.0),
+                               {}, "14/1/1")
+    finally:
+        srv.shutdown()
+    assert raw[:4] == b"II*\x00"
+    # The subset is still the envelope's axes; only the scaling changed.
+    assert "scalesize=i%28256%29%2Cj%28256%29" in url
+    assert "subset=E(26" in url
+
+
+def test_a_coverage_that_will_not_be_scaled_is_asked_for_unscaled():
+    # Nothing this server scales is called i, j, E or N: every scalesize is
+    # refused, and the coverage is asked for whole and resampled here.
+    srv, world = _fussy(("nothing", "at-all"))
+    try:
+        raw, url = ground._ask(world, (878108.0, 5823890.0, 880554.0, 5826336.0),
+                               {}, "14/1/1")
+    finally:
+        srv.shutdown()
+    assert raw[:4] == b"II*\x00"
+    assert "scalesize" not in url
+    assert "subset=E(26" in url
+
+
+def test_the_grid_axes_are_read_out_of_the_description():
+    from splatworld import geoserver
+    import xml.etree.ElementTree as ET
+
+    assert geoserver.grid_axes(ET.fromstring(_Wcs.describe)) == ["i", "j"]
+    assert geoserver.grid_axes(ET.fromstring(b"<nothing/>")) is None
+
+
+def test_the_scalings_tried_end_with_not_scaling():
+    assert ground._scalings(["i", "j"]) == [("i", "j"), None]
+    assert ground._scalings(["x", "y"]) == [("x", "y"), ("i", "j"), None]
+    assert ground._scalings(None) == [("i", "j"), None]

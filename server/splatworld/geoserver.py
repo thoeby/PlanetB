@@ -204,11 +204,17 @@ def coverages(base: str, auth: dict) -> list[dict]:
 
 
 def describe_coverage(base: str, coverage_id: str, auth: dict) -> dict:
-    """A coverage's own CRS and the names it gives its two axes.
+    """A coverage's own CRS, the names it gives its two axes, and its grid's.
 
     WCS 2.0 subsetting and scaling name axes, and every coverage names them
     differently — E/N, X/Y, Long/Lat, i/j. Guessing produced
     "ScaleAxisUndefined"; DescribeCoverage says, in gml:Envelope's axisLabels.
+
+    They are not the same two names. `subset` names the axes of the envelope's
+    CRS (E and N on a Swiss coverage); `scalesize` names the axes of the grid,
+    which are i and j, and asking it to scale E gave ScaleAxisUndefined with E
+    as the locator. So both are read: gml:Envelope's attribute for the one, the
+    domain set's gml:axisLabels for the other.
     """
     query = urllib.parse.urlencode({
         "service": "WCS", "version": "2.0.1", "request": "DescribeCoverage",
@@ -221,6 +227,7 @@ def describe_coverage(base: str, coverage_id: str, auth: dict) -> dict:
     except ET.ParseError as err:
         raise SystemExit(f"{url}\n  did not answer with XML ({err})") from err
     said = exception_text(root)
+    grid = grid_axes(root)
     for node in root.iter():
         if local(node.tag) != "Envelope":
             continue
@@ -228,10 +235,30 @@ def describe_coverage(base: str, coverage_id: str, auth: dict) -> dict:
         srs = node.get("srsName") or ""
         if len(labels) >= 2:
             return {"axes": labels[:2], "crs": srs.rsplit("/", 1)[-1] or None,
-                    "url": url}
+                    "grid_axes": grid, "url": url}
     raise SystemExit(
         f"that coverage did not describe its axes.\n  asked: {url}"
         + (f"\n  it said: {said}" if said else ""))
+
+
+def grid_axes(root) -> list[str] | None:
+    """What the coverage calls the two axes of its grid, for `scalesize`.
+
+    In a WCS 2.0 description the domain set is a gml:RectifiedGrid, and its
+    gml:axisLabels is a child element rather than an attribute. Unreadable or
+    absent is not fatal: the caller falls back to i and j, and then to asking
+    for the coverage unscaled.
+    """
+    for node in root.iter():
+        if local(node.tag) not in ("RectifiedGrid", "Grid"):
+            continue
+        for child in node:
+            if local(child.tag) == "axisLabels" and (child.text or "").split():
+                return (child.text or "").split()[:2]
+        labels = (node.get("axisLabels") or "").split()
+        if len(labels) >= 2:
+            return labels[:2]
+    return None
 
 
 def spellings(coverage_id: str) -> list[str]:
@@ -262,7 +289,8 @@ def wcs10_name(coverage_id: str) -> str:
 
 def coverage_tile_url(base: str, coverage_id: str, bbox: tuple, size: int,
                       crs: str = "EPSG:3857", version: str = "1.0.0",
-                      axes: tuple | None = None) -> str:
+                      axes: tuple | None = None,
+                      scale_axes: tuple | None = None) -> str:
     """One tile of a coverage: exactly this box, exactly this many samples.
 
     WCS 1.0.0 rather than 2.0.1 by default, on purpose. 2.0 subsetting names its
@@ -291,12 +319,20 @@ def coverage_tile_url(base: str, coverage_id: str, bbox: tuple, size: int,
         # 2.0.1. The axes are named by the coverage, not by us (`axes`), and the
         # box is in the coverage's own CRS: asking GeoServer to reproject as
         # well is one more thing to be refused, and rasterio warps it here.
+        #
+        # `scalesize` names the grid's axes, not the CRS's: E and N subset a
+        # Swiss coverage, and i and j are what can be scaled. With no scale
+        # axes at all the coverage is asked for unscaled and resampled here.
         first, second = axes or ("E", "N")
-        query = urllib.parse.urlencode({
+        fields = {
             "service": "WCS", "version": version, "request": "GetCoverage",
             "coverageId": coverage_id, "format": "image/tiff",
-            "scalesize": f"{first}({size}),{second}({size})",
-        }, quote_via=urllib.parse.quote) + f"&subset={first}({west},{east})&subset={second}({south},{north})"
+        }
+        if scale_axes:
+            si, sj = scale_axes
+            fields["scalesize"] = f"{si}({size}),{sj}({size})"
+        query = (urllib.parse.urlencode(fields, quote_via=urllib.parse.quote)
+                 + f"&subset={first}({west},{east})&subset={second}({south},{north})")
     return f"{service_url(base, 'wcs')}?{query}"
 
 

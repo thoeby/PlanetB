@@ -165,6 +165,12 @@ def _ask(world: dict, bounds: tuple, auth: dict, at: str) -> tuple[bytes, str]:
     version:1.0.0", which is not a reason to give up on the tile — so the
     others are tried, and only if none of them returns a raster is the failure
     reported, with what each one said.
+
+    2.0.1 is asked more than once. Scaling names the grid's axes, which the
+    description gives; where it does not, i and j are the usual pair; and a
+    coverage that will not be scaled at all is asked for unscaled, because
+    encode_geotiff() resamples onto the tile's box regardless. That last one
+    costs bandwidth, so it is the last thing tried rather than the first.
     """
     from . import geoserver
 
@@ -172,6 +178,7 @@ def _ask(world: dict, bounds: tuple, auth: dict, at: str) -> tuple[bytes, str]:
     for version, name in [(v, n) for v in ("1.0.0", "2.0.1", "1.1.1")
                           for n in geoserver.spellings(world["coverage"])]:
         box, axes = bounds, None
+        scalings: list[tuple | None] = [None]
         if version == "2.0.1":
             # What this coverage calls its axes, and the box in its own CRS.
             try:
@@ -182,23 +189,45 @@ def _ask(world: dict, bounds: tuple, auth: dict, at: str) -> tuple[bytes, str]:
             axes = tuple(about["axes"])
             box = native_bounds(about["crs"], bounds)
             world.setdefault("native", {})[version] = box
-        url = geoserver.coverage_tile_url(
-            world["url"], name, box, DEM_SIZE, version=version, axes=axes)
-        try:
-            raw = fetch(url, auth, what=f"elevation for {at}")
-        except SystemExit as err:
-            said.append(f"WCS {version} as {name!r}: {_said(str(err))}")
-            continue
-        if not raw:
-            return b"", url
-        problem = not_a_raster(raw)
-        if not problem:
-            return raw, url
-        said.append(f"WCS {version}: {problem}")
+            scalings = _scalings(about.get("grid_axes"))
+        for scale_axes in scalings:
+            url = geoserver.coverage_tile_url(
+                world["url"], name, box, DEM_SIZE, version=version, axes=axes,
+                scale_axes=scale_axes)
+            how = f" scaled on {'/'.join(scale_axes)}" if scale_axes else ""
+            try:
+                raw = fetch(url, auth, what=f"elevation for {at}")
+            except SystemExit as err:
+                said.append(f"WCS {version} as {name!r}{how}: {_said(str(err))}")
+                continue
+            if not raw:
+                return b"", url
+            problem = not_a_raster(raw)
+            if not problem:
+                return raw, url
+            said.append(f"WCS {version}{how}: {problem}")
     raise CutFailed(
         "no version of WCS on that GeoServer returned this tile as a GeoTIFF.\n  "
         + "\n  ".join(said)
         + f"\n  the coverage is {world['coverage']!r} at {world['url']}")
+
+
+def _scalings(grid: list[str] | None) -> list[tuple | None]:
+    """The scale axes to try, in order, ending with not scaling at all.
+
+    GeoServer answered "ScaleAxisUndefined, locator E": `subset` names the
+    envelope's axes (E and N on a Swiss coverage) and `scalesize` names the
+    grid's (i and j). The description is asked for them; i/j is what every
+    GeoServer has called them anyway; and an unscaled coverage still becomes
+    this tile, because encode_geotiff() warps it onto the tile's own box.
+    """
+    out: list[tuple | None] = []
+    if grid and len(grid) >= 2:
+        out.append((grid[0], grid[1]))
+    if ("i", "j") not in out:
+        out.append(("i", "j"))
+    out.append(None)
+    return out
 
 
 class CutFailed(Exception):
@@ -310,6 +339,7 @@ def probe(cfg: Config, z: int, x: int, y: int, out=print) -> int:
         for name in geoserver.spellings(world["coverage"]):
             out(f"\n--- WCS {version} as {name!r}")
             box, axes = bounds, None
+            scalings: list[tuple | None] = [None]
             if version == "2.0.1":
                 try:
                     about = geoserver.describe_coverage(world["url"], name, auth)
@@ -318,19 +348,25 @@ def probe(cfg: Config, z: int, x: int, y: int, out=print) -> int:
                     continue
                 axes = tuple(about["axes"])
                 box = native_bounds(about["crs"], bounds)
-                out(f"  DescribeCoverage: axes {axes}, CRS {about['crs']}")
+                out(f"  DescribeCoverage: axes {axes}, CRS {about['crs']},"
+                    f" grid axes {about.get('grid_axes')}")
                 out(f"  the box in that CRS: {box}")
-            url = geoserver.coverage_tile_url(
-                world["url"], name, box, DEM_SIZE, version=version, axes=axes)
-            out(f"  GET {url}")
-            try:
-                raw = fetch(url, auth, what="the coverage")
-            except SystemExit as err:
-                out(f"  it refused: {err}")
-                continue
-            problem = not_a_raster(raw)
-            if problem:
-                out(f"  it answered, but not with a raster: {problem}")
-            else:
-                out(f"  a GeoTIFF, {len(raw)} bytes — this one works")
+                scalings = _scalings(about.get("grid_axes"))
+            for scale_axes in scalings:
+                url = geoserver.coverage_tile_url(
+                    world["url"], name, box, DEM_SIZE, version=version,
+                    axes=axes, scale_axes=scale_axes)
+                out(f"  scalesize on {'/'.join(scale_axes) if scale_axes else 'nothing'}")
+                out(f"  GET {url}")
+                try:
+                    raw = fetch(url, auth, what="the coverage")
+                except SystemExit as err:
+                    out(f"  it refused: {err}")
+                    continue
+                problem = not_a_raster(raw)
+                if problem:
+                    out(f"  it answered, but not with a raster: {problem}")
+                else:
+                    out(f"  a GeoTIFF, {len(raw)} bytes — this one works")
+                    break
     return 0
