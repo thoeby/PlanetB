@@ -40,26 +40,35 @@ const post = async (path, body) => {
 
 const bbox = (c) => (Array.isArray(c.bbox) && c.bbox.length === 4 ? c.bbox : null);
 
+// GeoServer answers a refused REST call with a page of HTML, and the whole of
+// it in a status line is worse than none of it. The first few lines carry what
+// went wrong; the rest is in the terminal.
+const short = (text) => String(text ?? '').split('\n').filter((l) => l.trim())
+    .slice(0, 3).join(' ').slice(0, 240);
+
 const describe = (g) => (g?.coverage
     ? `${g.coverage} — ${g.west.toFixed(2)},${g.south.toFixed(2)} to `
       + `${g.east.toFixed(2)},${g.north.toFixed(2)}`
     : 'no ground yet: the world has nowhere to be');
 
-// One button: prove the address and the login, then ask what it publishes.
-// Nothing is saved until Done, except the credentials the local server needs to
-// cut elevation later.
+// One button: prove the address and the login, set the world's drawing layers
+// up on it, then ask what it publishes. Setting up is several REST calls and is
+// safe to repeat — a missing layer is made, one in an old store is moved, one
+// the world no longer has is removed. Nothing about the ground is saved until
+// Done; the credentials are, because the local server cuts elevation with them.
 async function connect(q, say) {
     const url = q('.gs-url').value.trim();
     if (!url) { say('.gs-status', 'type the address your GeoServer opens on', true); return []; }
     const user = q('.gs-user').value.trim() || 'admin';
     const password = q('.gs-pw').value;
-    say('.gs-status', 'asking\u2026');
-    const test = await post('/setup/geoserver', { url, user, password })
+    say('.gs-status', 'setting your GeoServer up\u2026 (this takes a moment)');
+    const test = await post('/setup/geoserver', { url, user, password, provision: true })
         .catch((err) => ({ ok: false, error: String(err.message ?? err) }));
-    if (!test.ok) { say('.gs-status', test.error ?? 'that did not work', true); return []; }
+    if (!test.ok) { say('.gs-status', short(test.error) || 'that did not work', true); return []; }
+    say('.gs-status', 'set up \u2014 asking what it publishes\u2026');
     const probe = await post('/setup/probe', { url, user, password })
         .catch((err) => ({ error: String(err.message ?? err) }));
-    if (probe.error) { say('.gs-status', probe.error, true); return []; }
+    if (probe.error) { say('.gs-status', short(probe.error), true); return []; }
     const found = (probe.coverages ?? []).filter(bbox);
     const select = q('.gs-coverage');
     select.replaceChildren(...(found.length
