@@ -213,7 +213,7 @@ def describe_coverage(base: str, coverage_id: str, auth: dict) -> dict:
     query = urllib.parse.urlencode({
         "service": "WCS", "version": "2.0.1", "request": "DescribeCoverage",
         "coverageId": coverage_id,
-    })
+    }, quote_via=urllib.parse.quote)
     url = f"{service_url(base, 'wcs')}?{query}"
     raw = fetch(url, auth, what=f"description of {coverage_id}")
     try:
@@ -232,6 +232,21 @@ def describe_coverage(base: str, coverage_id: str, auth: dict) -> dict:
     raise SystemExit(
         f"that coverage did not describe its axes.\n  asked: {url}"
         + (f"\n  it said: {said}" if said else ""))
+
+
+def spellings(coverage_id: str) -> list[str]:
+    """The names one coverage might answer to, most likely first.
+
+    A layer named "dem visp demo" is published as `splatworld__dem visp demo`,
+    and GeoServer's own conventions for spaces are not the same in every
+    service: some paths want them as they are, some as underscores. Rather than
+    decide which, ask in order and take whichever answers.
+    """
+    out = [coverage_id]
+    for swap in (coverage_id.replace(" ", "_"), coverage_id.replace(" ", "")):
+        if swap not in out:
+            out.append(swap)
+    return out
 
 
 def wcs10_name(coverage_id: str) -> str:
@@ -264,14 +279,14 @@ def coverage_tile_url(base: str, coverage_id: str, bbox: tuple, size: int,
             "coverage": wcs10_name(coverage_id), "CRS": crs, "RESPONSE_CRS": crs,
             "BBOX": f"{west},{south},{east},{north}",
             "WIDTH": size, "HEIGHT": size, "FORMAT": "GeoTIFF",
-        })
+        }, quote_via=urllib.parse.quote)
     elif version.startswith("1.1"):
         query = urllib.parse.urlencode({
             "service": "WCS", "version": version, "request": "GetCoverage",
             "identifier": wcs10_name(coverage_id), "format": "image/tiff",
             "BoundingBox": f"{west},{south},{east},{north},urn:ogc:def:crs:{crs}",
             "GridBaseCRS": f"urn:ogc:def:crs:{crs}",
-        })
+        }, quote_via=urllib.parse.quote)
     else:
         # 2.0.1. The axes are named by the coverage, not by us (`axes`), and the
         # box is in the coverage's own CRS: asking GeoServer to reproject as
@@ -281,7 +296,7 @@ def coverage_tile_url(base: str, coverage_id: str, bbox: tuple, size: int,
             "service": "WCS", "version": version, "request": "GetCoverage",
             "coverageId": coverage_id, "format": "image/tiff",
             "scalesize": f"{first}({size}),{second}({size})",
-        }) + f"&subset={first}({west},{east})&subset={second}({south},{north})"
+        }, quote_via=urllib.parse.quote) + f"&subset={first}({west},{east})&subset={second}({south},{north})"
     return f"{service_url(base, 'wcs')}?{query}"
 
 

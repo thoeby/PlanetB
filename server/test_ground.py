@@ -262,3 +262,62 @@ def test_an_ogc_exception_in_a_fetch_failure_is_read():
 
 def test_a_failure_with_no_xml_in_it_is_left_alone():
     assert ground._said("could not reach http://h/wcs") == "could not reach http://h/wcs"
+
+
+class _Spelling(http.server.BaseHTTPRequestHandler):
+    """Only answers to the underscored name, and only over 2.0.1."""
+
+    wanted = "splatworld__dem_visp_demo"
+    tiff = b"II*\x00" + b"\0" * 64
+    describe = (b'<?xml version="1.0"?><CoverageDescriptions '
+                b'xmlns:gml="http://www.opengis.net/gml/3.2"><gml:Envelope '
+                b'srsName="http://www.opengis.net/def/crs/EPSG/0/2056" '
+                b'axisLabels="E N"/></CoverageDescriptions>')
+    nosuch = (b'<?xml version="1.0"?><ows:ExceptionReport '
+              b'xmlns:ows="http://www.opengis.net/ows/2.0"><ows:Exception '
+              b'exceptionCode="NoSuchCoverage"><ows:ExceptionText>'
+              b'Could not find the requested coverage</ows:ExceptionText>'
+              b'</ows:Exception></ows:ExceptionReport>')
+
+    def do_GET(self):  # noqa: N802 - http.server's name
+        import urllib.parse
+        q = urllib.parse.parse_qs(urllib.parse.urlparse(self.path).query)
+        cid = q.get("coverageId", [""])[0]
+        if q.get("version", [""])[0] != "2.0.1":
+            body, code = (b"<ServiceExceptionReport><ServiceException>Could not "
+                          b"understand version</ServiceException>"
+                          b"</ServiceExceptionReport>"), 200
+        elif cid != self.wanted:
+            body, code = self.nosuch, 404
+        elif q.get("request", [""])[0] == "DescribeCoverage":
+            body, code = self.describe, 200
+        else:
+            body, code = self.tiff, 200
+        self.send_response(code)
+        self.send_header("Content-Length", str(len(body)))
+        self.end_headers()
+        self.wfile.write(body)
+
+    def log_message(self, *args):
+        pass
+
+
+def test_a_name_with_spaces_is_asked_for_every_way_it_may_be_spelled():
+    srv = http.server.HTTPServer(("127.0.0.1", 0), _Spelling)
+    threading.Thread(target=srv.serve_forever, daemon=True).start()
+    world = {"url": f"http://127.0.0.1:{srv.server_address[1]}/geoserver",
+             "coverage": "splatworld__dem visp demo", "extent": (7, 45, 10, 48)}
+    try:
+        raw, url = ground._ask(world, (878108.0, 5823890.0, 880554.0, 5826336.0),
+                               {}, "14/1/1")
+    finally:
+        srv.shutdown()
+    assert raw[:4] == b"II*\x00"
+    assert "splatworld__dem_visp_demo" in url
+
+
+def test_a_space_is_never_sent_as_a_plus():
+    from splatworld import geoserver
+    url = geoserver.coverage_tile_url("http://h/geoserver", "ws__a b", (1, 2, 3, 4),
+                                      256, version="2.0.1", axes=("E", "N"))
+    assert "ws__a%20b" in url and "+" not in url.split("coverageId=")[1][:20]

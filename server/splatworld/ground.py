@@ -169,26 +169,25 @@ def _ask(world: dict, bounds: tuple, auth: dict, at: str) -> tuple[bytes, str]:
     from . import geoserver
 
     said: list[str] = []
-    for version in ("1.0.0", "2.0.1", "1.1.1"):
+    for version, name in [(v, n) for v in ("1.0.0", "2.0.1", "1.1.1")
+                          for n in geoserver.spellings(world["coverage"])]:
         box, axes = bounds, None
         if version == "2.0.1":
             # What this coverage calls its axes, and the box in its own CRS.
             try:
-                about = geoserver.describe_coverage(
-                    world["url"], world["coverage"], auth)
+                about = geoserver.describe_coverage(world["url"], name, auth)
             except SystemExit as err:
-                said.append(f"WCS {version}: {_said(str(err))}")
+                said.append(f"WCS {version} as {name!r}: {_said(str(err))}")
                 continue
             axes = tuple(about["axes"])
             box = native_bounds(about["crs"], bounds)
             world.setdefault("native", {})[version] = box
         url = geoserver.coverage_tile_url(
-            world["url"], world["coverage"], box, DEM_SIZE, version=version,
-            axes=axes)
+            world["url"], name, box, DEM_SIZE, version=version, axes=axes)
         try:
             raw = fetch(url, auth, what=f"elevation for {at}")
         except SystemExit as err:
-            said.append(f"WCS {version}: {_said(str(err))}")
+            said.append(f"WCS {version} as {name!r}: {_said(str(err))}")
             continue
         if not raw:
             return b"", url
