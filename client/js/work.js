@@ -67,7 +67,11 @@ export function spawnAtomWorker() {
         run: (msg, onLog) => new Promise((resolve, reject) => {
             w.onmessage = (ev) => {
                 if (ev.data?.log) return onLog(ev.data.log);
-                if (ev.data?.error) return reject(new Error(ev.data.error));
+                if (ev.data?.error) {
+                    const err = new Error(ev.data.error);
+                    err.where = ev.data.where ?? '';
+                    return reject(err);
+                }
                 return resolve(ev.data?.done);
             };
             w.onerror = (e) => reject(new Error(e.message ?? 'atom worker failed'));
@@ -150,7 +154,8 @@ export class WorkLoop {
             // The message, not the stack: the panel is one line per event, and
             // the stack is the atom worker's, not this one's.
             this.log({ event: 'error', atom: atom.id, op: atom.op,
-                err: String(err?.message ?? err).split('\n')[0] });
+                err: String(err?.message ?? err).split('\n')[0],
+                ...(err?.where ? { where: err.where } : {}) });
             throw err;
         } finally {
             this.timers.clearInterval(timer);

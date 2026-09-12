@@ -37,6 +37,12 @@ self.onmessage = async (ev) => {
         });
         self.postMessage({ done: out }, transfers(out));
     } catch (err) {
-        self.postMessage({ error: String(err?.stack ?? err) });
+        // The message, and where it came from, separately: Firefox's err.stack
+        // holds only the frames, so sending the stack alone threw the reason
+        // away and every failure in the panel read "run@…/assemble.js:291:15".
+        self.postMessage({
+            error: String(err?.message ?? err),
+            where: String(err?.stack ?? '').split('\n')[0].trim(),
+        });
     }
 };
