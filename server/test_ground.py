@@ -70,9 +70,9 @@ def test_a_tile_outside_the_coverage_is_not_world():
 
 def test_the_request_names_a_tile_not_a_coverage(wcs):
     from splatworld import geoserver
-    from splatworld.importer import tile_bounds_3857
+    from splatworld.crs import tile_bounds
 
-    url = geoserver.coverage_tile_url(wcs, "ch:alti", tile_bounds_3857(14, 8557, 5736), 256)
+    url = geoserver.coverage_tile_url(wcs, "ch:alti", tile_bounds(14, 8557, 5736), 256)
     assert "WIDTH=256" in url and "HEIGHT=256" in url
     assert "BBOX=" in url and "version=1.0.0" in url
     # The box is the tile's own, in metres, not the whole country.
