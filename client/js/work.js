@@ -26,6 +26,8 @@ export const ALGO = {
 };
 
 const HEARTBEAT_MS = 60_000;
+// How many waiting tiles one idle pass opens a job for.
+const REOPEN_MAX = 8;
 const IDLE_MS = 15_000;
 
 // ------------------------------------------------------------------ capability
@@ -295,6 +297,29 @@ export class WorkLoop {
         throw new Error(`artifact ${sha} is registered but is nowhere in the store`);
     }
 
+    // Nothing to claim, and tiles still waiting: open the jobs for them.
+    //
+    // A job compiles one version of a tile, and claim_atom stopped offering the
+    // atoms of a job the tile has moved past — those can finish and publish
+    // nothing. Publishing a child moves its parent on, so the ladder supersedes
+    // itself as it climbs, and without this the pool goes quiet with every
+    // ancestor waiting on a button nobody is going to press. ensure_job is
+    // idempotent and decides for itself whether this player may open one
+    // (Invariant 4); a refusal is not this loop's business.
+    async reopen() {
+        let tiles;
+        try {
+            tiles = await this.api.rpc('my_dirty_tiles', { p_limit: REOPEN_MAX });
+        } catch { return; }
+        for (const t of (tiles ?? []).filter((r) => !r.job_id).slice(0, REOPEN_MAX)) {
+            try {
+                const job = await this.api.rpc('ensure_job',
+                    { z: t.z, x: t.x, y: t.y });
+                this.log({ event: 'opened', job, tile: `${t.z}/${t.x}/${t.y}` });
+            } catch { /* not this player's ground, or nothing to do there */ }
+        }
+    }
+
     // Keeps claiming until stopped. An empty claim is not an error: it means
     // the world is compiled, so wait before asking again. A loop that stop()
     // then start() has superseded finishes its atom and exits.
@@ -313,6 +338,7 @@ export class WorkLoop {
             }
             try {
                 idle = (await this.step()) === null;
+                if (idle) await this.reopen();
             } catch { idle = true; }
             if (idle && live()) {
                 await new Promise((r) => this.timers.setTimeout(r, IDLE_MS));

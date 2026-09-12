@@ -261,3 +261,53 @@ test('an upload refused because its own bytes are already there is not a failure
         [`http://files/tiles/14/8550/5809/${sha}.r16`],
         'the path it asked for is the first one looked at');
 });
+
+test('an idle worker opens the jobs for tiles that are still waiting', async () => {
+    // claim_atom stops offering a job the tile has moved past (db/0052), and
+    // publishing a child moves its parent past its job. Without this the pool
+    // goes quiet with every ancestor waiting for a button nobody will press.
+    const opened = [];
+    const api = fakeApi({}, {
+        claim_atom: null,
+        my_dirty_tiles: [
+            { z: 12, x: 2137, y: 1452, job_id: null },
+            { z: 10, x: 534, y: 363, job_id: 7 },
+            { z: 8, x: 133, y: 90, job_id: null },
+        ],
+        ensure_job: 99,
+    });
+    const loop = new WorkLoop({
+        api,
+        filesUrl: 'http://files',
+        spawn: () => ({ run: async () => OUT, terminate: () => {} }),
+        fetchFn: async () => new Response('', { status: 201 }),
+        timers: { setInterval: () => 1, clearInterval: () => {}, setTimeout: () => {} },
+    });
+    assert.equal(await loop.step(), null, 'nothing to claim');
+    await loop.reopen();
+    for (const call of api.calls) {
+        if (call[1] === 'ensure_job') opened.push(`${call[2].z}/${call[2].x}/${call[2].y}`);
+    }
+    assert.deepEqual(opened, ['12/2137/1452', '8/133/90'],
+        'a job is opened for each waiting tile that has none, and no other');
+});
+
+test('a tile the player may not open is not an error', async () => {
+    const api = fakeApi({}, { claim_atom: null,
+        my_dirty_tiles: [{ z: 6, x: 33, y: 22, job_id: null }] });
+    api.rpc = async (name, args) => {
+        api.calls.push(['rpc', name, args]);
+        if (name === 'ensure_job') throw new Error('not authorised for 6/33/22');
+        if (name === 'my_dirty_tiles') return [{ z: 6, x: 33, y: 22, job_id: null }];
+        return null;
+    };
+    const loop = new WorkLoop({
+        api,
+        filesUrl: 'http://files',
+        spawn: () => ({ run: async () => OUT, terminate: () => {} }),
+        fetchFn: async () => new Response('', { status: 201 }),
+        timers: { setInterval: () => 1, clearInterval: () => {}, setTimeout: () => {} },
+    });
+    await loop.reopen();
+    assert.equal(loop.failed, 0, 'a refusal is not a failed atom');
+});
