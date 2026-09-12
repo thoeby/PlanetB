@@ -1,8 +1,10 @@
--- Land drawn in QGIS reaches the world (db/0048_groundowner.sql).
+-- Land reaches the world, and the ground under it becomes tiles
+-- (db/0048_groundowner.sql).
 --
--- db/test/0046_gisgrants.sql draws a road as the `geoserver` login; this draws
--- the land itself, which since db/0047_landisground.sql writes tiles — and
--- since db/0064 writes them clean.
+-- It drew the land itself as the `geoserver` login, because that is how land
+-- was made. Land is assigned by an admin now (SPEC §3.2, db/0063), and what
+-- this still has to show is what having land does to the tiles under it: they
+-- exist, and none of them is waiting (db/0064).
 BEGIN;
 SELECT plan(4);
 
@@ -11,13 +13,12 @@ SET client_min_messages = warning;
 INSERT INTO auth.user (id, email, pw_hash, role)
 VALUES ('00000000-0000-0000-0000-0000000d0001', 'land@example.com', 'x', 'admin');
 
-SET ROLE geoserver;
 SELECT lives_ok($$
-    INSERT INTO gis.area (geom, detail)
+    INSERT INTO area (geom, owner_id, detail)
     VALUES (st_envelope(st_buffer(
-        tile_bbox(14, tile_x(7.5, 14), tile_y(46.5, 14)), -0.0005)), 14)
-$$, 'an area drawn in QGIS is saved');
-RESET ROLE;
+        tile_bbox(14, tile_x(7.5, 14), tile_y(46.5, 14)), -0.0005)),
+        '00000000-0000-0000-0000-0000000d0001', 14)
+$$, 'land assigned to somebody is saved');
 
 SELECT is((SELECT count(*)::int FROM area), 1, 'the land is there');
 -- The tiles exist — they are what a compile attaches to — and none of them is

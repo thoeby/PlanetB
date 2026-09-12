@@ -61,7 +61,6 @@ class Config:
 
     jwt_secret: str = "dev-secret-change-me-0123456789abcdef"
     authenticator_password: str = "authenticator"
-    geoserver_password: str = "geoserver"
 
     # The operator's GeoServer: where it is and how to log in. The setup panel
     # writes these once; cutting elevation reads them on every miss.
@@ -122,7 +121,6 @@ _FIELDS = {
     "PGDATABASE": "pg_database",
     "JWT_SECRET": "jwt_secret",
     "AUTHENTICATOR_PASSWORD": "authenticator_password",
-    "GEOSERVER_DB_PASSWORD": "geoserver_password",
     "GEOSERVER_URL": "geoserver_url",
     "GEOSERVER_ADMIN_USER": "geoserver_user",
     "GEOSERVER_ADMIN_PASSWORD": "geoserver_admin_password",

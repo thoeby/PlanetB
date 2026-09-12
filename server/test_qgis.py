@@ -1,9 +1,10 @@
-"""The QGIS project, written from the world's vocabulary (TASKS-usable T2).
+"""The QGIS project, written from the world's vocabulary.
 
-No QGIS here, so what is asserted is the file: the layers it names, the version
-of WFS it asks for, and that a property with values becomes a dropdown. Whether
-QGIS likes it is a thing only QGIS can say — gis/README.md's checklist is where
-that is ticked.
+What is asserted here is the file: the layers it names, that they are
+PostgreSQL layers keyed on `id`, and that a property with values becomes a
+dropdown. Whether QGIS likes it is a thing only QGIS can say — the player-run
+opens it in a real headless QGIS and draws through it
+(client/test/run/qgis/draw.py).
 """
 from __future__ import annotations
 
@@ -24,9 +25,12 @@ LAYERS = [
 ]
 
 
-def project():
-    raw = qgis.project_xml(LAYERS, "http://gs.example/splatworld/wfs",
-                           "http://gs.example/wms", "ch:alti")
+CONN = {"dbname": "splatworld", "host": "127.0.0.1", "port": 5432,
+        "user": "p_0123456789ab", "password": "not-a-real-one"}
+
+
+def project(conn=None):
+    raw = qgis.project_xml(LAYERS, conn or CONN, "http://gs.example/wms", "ch:alti")
     return ET.fromstring(raw)
 
 
@@ -43,10 +47,35 @@ def test_the_ground_is_in_it():
     assert raster and "ch:alti" in raster[0].find("datasource").text
 
 
-def test_wfs_one_zero_because_of_the_axis_order():
-    for source in project().findall(".//maplayer/datasource"):
-        if "typename" in (source.text or ""):
-            assert "version='1.0.0'" in source.text
+def test_the_layers_are_postgres_layers_keyed_on_id():
+    root = project()
+    vectors = [m for m in root.findall(".//maplayer") if m.get("type") == "vector"]
+    assert vectors
+    for layer in vectors:
+        assert layer.find("provider").text == "postgres"
+        source = layer.find("datasource").text
+        # A view has no primary key to find, and the provider will not edit
+        # one without being told which column identifies a row.
+        assert "key='id'" in source
+        assert 'table="gis"' in source
+    # Nothing about this project speaks WFS any more.
+    assert "typename" not in ET.tostring(root, encoding="unicode")
+
+
+def test_the_committed_project_carries_nobody_s_password():
+    root = project({"service": "splatworld"})
+    for source in root.findall(".//maplayer/datasource"):
+        assert "password" not in (source.text or "")
+    assert "service='splatworld'" in (
+        root.find(".//maplayer/datasource").text or "")
+
+
+def test_land_and_tiles_are_there_to_look_at_not_to_edit():
+    by_name = {m.find("layername").text: m
+               for m in project().findall(".//maplayer")}
+    assert by_name["Your land"].get("readOnly") == "1"
+    assert by_name["Tiles"].get("readOnly") == "1"
+    assert by_name["Wood"].get("readOnly") == "0"
 
 
 def test_a_property_with_values_becomes_a_dropdown():
@@ -74,13 +103,14 @@ def test_the_geometry_is_what_the_kind_is_drawn_as():
 
 
 def test_the_file_does_not_change_between_runs():
-    assert qgis.project_xml(LAYERS, "u", "w", "c") == qgis.project_xml(LAYERS, "u", "w", "c")
+    assert (qgis.project_xml(LAYERS, CONN, "w", "c")
+            == qgis.project_xml(LAYERS, CONN, "w", "c"))
 
 
 def test_a_piece_of_land_can_be_visited_from_qgis():
     """TASKS-usable T8: right-click the land, stand on it."""
     root = ET.fromstring(qgis.project_xml(
-        LAYERS, "u", "w", None, "http://host:8090/app/play.html"))
+        LAYERS, CONN, "w", None, "http://host:8090/app/play.html"))
     land = [m for m in root.findall(".//maplayer")
             if m.find("layername").text == "Your land"][0]
     action = land.find(".//actionsetting")
@@ -91,7 +121,7 @@ def test_a_piece_of_land_can_be_visited_from_qgis():
 
 def test_the_action_is_only_on_the_land():
     root = ET.fromstring(qgis.project_xml(
-        LAYERS, "u", "w", None, "http://host:8090/app/play.html"))
+        LAYERS, CONN, "w", None, "http://host:8090/app/play.html"))
     with_action = {m.find("layername").text for m in root.findall(".//maplayer")
                    if m.find(".//actionsetting") is not None}
     assert with_action == {"Your land"}

@@ -44,7 +44,7 @@ $PSQL_Q -c 'CREATE EXTENSION IF NOT EXISTS postgis' \
     -c 'CREATE EXTENSION IF NOT EXISTS pgcrypto' > /dev/null
 for f in db/[0-9]*.sql; do
     psql -v ON_ERROR_STOP=1 --no-psqlrc -q -v authpw="${AUTHENTICATOR_PASSWORD:-authenticator}" \
-        -v geopw="${GEOSERVER_DB_PASSWORD:-geoserver}" -f "$f" > /dev/null 2>&1 \
+        -v geopw=dropped-in-0066 -f "$f" > /dev/null 2>&1 \
         || { echo "not ok - $f would not apply to $SCRATCH_DB"; exit 1; }
 done
 echo "# ops-test: $SCRATCH_DB, store $FILES_ROOT, backups $BACKUP_ROOT"
@@ -191,7 +191,7 @@ psql -v ON_ERROR_STOP=1 --no-psqlrc -q -c 'CREATE EXTENSION IF NOT EXISTS postgi
     -c 'CREATE EXTENSION IF NOT EXISTS pgcrypto' > /dev/null
 for f in db/[0-9]*.sql; do
     psql -v ON_ERROR_STOP=1 --no-psqlrc -q -v authpw="${AUTHENTICATOR_PASSWORD:-authenticator}" \
-        -v geopw="${GEOSERVER_DB_PASSWORD:-geoserver}" -f "$f" > /dev/null 2>&1 || true
+        -v geopw=dropped-in-0066 -f "$f" > /dev/null 2>&1 || true
 done
 bash tools/restore.sh "$DEST" > /dev/null 2>&1 \
     && no "a restore over a database with tables in it needs --force" \

@@ -16,7 +16,8 @@ stories browser contexts that have only the page.
 |---|---|---|
 | 1 | first run (§3.1): sign up, name, GeoServer, coverage, standing on the DEM, walking fifty metres | green |
 | 2 | getting land (§3.2): request, admin draws it on the map, notified, Go, boundary and name on the ground; swapped coordinates refused | green |
-| 3–13 | | not started |
+| 3 | shaping land in QGIS (§3.3): the project from the Land panel, a real headless QGIS drawing a wood and a tree over a direct connection as the player, the page saying so within half a minute; drawing off your land refused in words | green |
+| 4–13 | | not started |
 
 What each story forced is in its commit message. Nothing is "done" here
 because a function exists: if the script cannot find the button, the button is

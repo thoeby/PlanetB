@@ -11,7 +11,12 @@ VALUES ('http://localhost:8080/geoserver', 'demo:dem',
         st_makeenvelope(6.9, 45.9, 9.2, 48.2, world_srid()),
         '00000000-0000-0000-0000-00000000f101');
 
-SET ROLE geoserver;
+-- Whoever is drawing here; land is assigned (SPEC §3.2) and what is drawn on
+-- it is drawn as the player, which db/test/0046_gisgrants.sql and
+-- db/test/0065_playerroles.sh show.
+SELECT set_config('request.jwt.claims',
+                  json_build_object('sub', '00000000-0000-0000-0000-00000000f101',
+                                    'role', 'admin')::text, true);
 INSERT INTO gis.area (geom, detail) VALUES
     (st_geomfromtext('MULTIPOLYGON(((7 46, 7.2 46, 7.2 46.2, 7 46.2, 7 46)))',
                      world_srid()), 0);
@@ -23,7 +28,6 @@ INSERT INTO gis.f_water (geom) VALUES
 INSERT INTO gis.f_forest (geom) VALUES
     (st_geomfromtext('MULTIPOLYGON(((7.03 46.05, 7.04 46.05, 7.04 46.06, 7.03 46.05)))',
                      world_srid()));
-RESET ROLE;
 
 CREATE TEMP TABLE mine AS SELECT id FROM area ORDER BY created_at DESC LIMIT 1;
 

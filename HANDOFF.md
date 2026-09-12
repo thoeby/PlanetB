@@ -30,6 +30,14 @@ it shadows the wheel rasterio needs: every `import rasterio` then dies in
 working one in front of it. `make api-test` also needs `pytest`, which two
 server tests import.
 
+**QGIS is an apt package here, and PyQGIS wants the system python.**
+`apt-get install -y qgis python3-qgis qgis-providers` gives QGIS 3.34 from
+Ubuntu noble/universe. `import qgis.core` works under `/usr/bin/python3.12`
+and not under the `/usr/local/bin/python3` on PATH, which is a different
+build; `client/test/run/qgis.js` finds the one that works. Every QGIS run
+needs `QT_QPA_PLATFORM=offscreen` — there is no display, and without it Qt
+aborts before any of your code runs.
+
 **No container registry is reachable from this sandbox.** `docker.osgeo.org`
 and `production.cloudfront.docker.com` are both 403 at the egress proxy, so
 the GeoServer container in `infra/compose.yml` cannot be pulled here.

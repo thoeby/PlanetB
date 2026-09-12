@@ -5,17 +5,25 @@ SELECT has_function('public', 'area_defaults', 'area_defaults exists');
 SELECT has_function('public', 'feature_defaults', 'feature_defaults exists');
 SELECT has_function('public', 'instance_defaults', 'instance_defaults exists');
 
--- Nobody to own anything yet: the reason is said, not hidden in a NOT NULL.
+-- Nobody signed in and nobody to own anything: the reason is said, not hidden
+-- in a NOT NULL.
 SELECT throws_like(
     $$INSERT INTO area (id, geom, owner_id, detail, rules, created_at)
       VALUES (gen_random_uuid(),
               st_geomfromtext('POLYGON((7 46, 7.1 46, 7.1 46.1, 7 46.1, 7 46))', 4326),
               NULL, NULL, NULL, NULL)$$,
     '%create one in Setup first%',
-    'an area with no admin to own it says so'
+    'an area with nobody to own it says so'
 );
 
 INSERT INTO auth.user (email, pw_hash, role) VALUES ('draw@example.com', 'x', 'admin');
+
+-- Who is drawing. gis.default_owner() is current_user_id() since
+-- db/0065_playerroles.sql: land nobody is signed in for is nobody's.
+SELECT set_config('request.jwt.claims',
+                  json_build_object('sub', (SELECT id FROM auth.user
+                                            WHERE email = 'draw@example.com'),
+                                    'role', 'admin')::text, true);
 
 -- What QGIS sends for a feature with every field left blank.
 INSERT INTO area (id, geom, owner_id, detail, rules, created_at)

@@ -1,6 +1,9 @@
 # Importing your own region
 
-Your elevation, your map layers, your region.
+Your map layers, your region. **Not your elevation**: the ground comes from the
+coverage the operator picked in Setup, cut one tile at a time when somebody
+first walks onto it (`server/splatworld/ground.py`), so there is one elevation
+path in this world and not two.
 
 ## The page
 
@@ -11,7 +14,7 @@ splatworld run
 then open **<http://localhost:8080/app/import.html>** (the setup page links to
 it). Choose where your layers are — a GeoServer, or this world's own database —
 press Connect, and it lists what is there: pick which
-layer is which from the dropdowns, pick your elevation raster, press Import.
+layer is which from the dropdowns, press Import.
 The region is filled in from the layers you chose. No config file.
 
 The page only answers a browser on the same machine, even when the server is
@@ -129,10 +132,6 @@ builds something. Every row is yours to change or delete.
     "password": "…"
   },
 
-  "elevation": {
-    "url": "https://gis.example.com/geoserver/myworkspace/wcs?service=WCS&version=2.0.1&request=GetCoverage&coverageId=myworkspace__dem&format=image/tiff"
-  },
-
   "layers": [
     { "name": "buildings", "kind": "footprint", "typeName": "myworkspace:buildings",
       "props": { "height": "bldg_hoehe" }, "keep": ["name"] },
@@ -143,8 +142,7 @@ builds something. Every row is yours to change or delete.
 ```
 
 - **`bbox`** — `[west, south, east, north]` in degrees. Leave it out and the
-  region is the extent of the layers you imported. Give it when you import
-  elevation alone.
+  region is the extent of the layers you imported.
 - **`detail`** — the finest zoom compiled here. 14 is the baseline; 16 and 18
   are trained tiles and want a real GPU.
 - **`owner`** — the account that ends up owning the region. Sign in as this to
@@ -161,27 +159,6 @@ To find the values: in the GeoServer admin pages, *Layer Preview* shows each
 layer's workspace and name — `myworkspace:buildings` is the `typeName`, and the
 WFS endpoint is your GeoServer URL plus `/myworkspace/wfs`.
 
-**Elevation** comes as a GeoTIFF from `elevation.url`, or from a file:
-
-```json
-"elevation": { "file": "C:/data/my-dem.tif" }
-```
-
-Any raster with a coordinate system works — GeoTIFF, a Cloud-Optimized
-GeoTIFF, whatever rasterio can open. It is reprojected and resampled to each
-tile for you, so it does not have to be in any particular projection or
-resolution.
-
-For a GeoServer coverage, the URL is a WCS `GetCoverage` request asking for
-`format=image/tiff`. The exact spelling of `coverageId` differs between
-GeoServer versions — 2.0.1 replaces the `:` with `__`. If it comes back as
-something other than a GeoTIFF, the importer prints what the server actually
-said, which is usually enough to fix the URL. **Not yet tested against a real
-GeoServer** — if yours refuses, send me the message and I will fix it.
-
-Easiest check: paste the URL into a browser. If it downloads a `.tif`, it will
-work here.
-
 ## What it does
 
 1. Creates the owner account if it is new, and makes it an admin.
@@ -189,22 +166,18 @@ work here.
    ownership, and nothing finer than `detail` is compiled inside it.
 3. Inserts your features, flattened, made valid, tagged `props.src`
    (`layername:featureid`) so importing the same layer twice changes nothing.
-4. Cuts elevation into `/geo/dem/{z}/{x}/{y}.r16` — 256×256 uint16 in
-   EPSG:3857, `elevation_m = value * 0.2 - 500` — and registers each as an
-   artifact.
-5. Marks every covering tile z6…z14 as needing a rebuild. That is the work
+4. Marks every covering tile z6…z14 as needing a rebuild. That is the work
    queue; the import compiles nothing itself.
 
-Ground your elevation does not cover becomes sea level rather than a hole, and
-the importer says how many tiles that was. A tile file already in the store is
-left alone unless the new bytes differ, which is an error rather than an
-overwrite — a store path is written once (Invariant 1).
+Ground the coverage does not reach is the edge of the world, not a hole: the
+viewer says "off the edge of the world" there and the database refuses to store
+anything outside it (db/0062_insideground.sql).
 
 Re-running after editing a layer in QGIS adds what is new. It does not yet
 notice deletions or moved geometry on a feature it has already seen; delete
 those rows by `props ->> 'src'` if you need to redo one.
 
-## If elevation fails with an EPSG error
+## If the ground fails with an EPSG error
 
     CRSError: The EPSG code is unknown. PROJ: proj_create_from_database:
     ...\postgis-3.6\proj\proj.db contains DATABASE.LAYOUT.VERSION.MINOR = 2

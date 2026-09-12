@@ -25,6 +25,7 @@ from pathlib import Path
 
 from . import __version__
 from . import ground
+from . import qgis
 from .config import Config
 
 STORE_PREFIXES = ("assets", "tiles", "jobs", "geo")
@@ -154,6 +155,29 @@ def can_write(cfg: Config, path: str, sha256: str, length: int,
         return 403, f"the API is not answering ({err})"
 
 
+def call_rpc(cfg: Config, name: str, auth: str | None,
+             body: dict | None = None) -> tuple[int, object]:
+    """One RPC, as the caller. The database decides; this relays (Invariant 6)."""
+    payload = json.dumps(body or {}).encode("utf8")
+    req = urllib.request.Request(f"{cfg.api_url}/rpc/{name}", data=payload,
+                                 method="POST")
+    req.add_header("Accept", "application/json")
+    req.add_header("Content-Type", "application/json")
+    if auth:
+        req.add_header("Authorization", auth)
+    try:
+        with urllib.request.urlopen(req, timeout=30) as res:
+            return res.status, json.loads(res.read() or b"null")
+    except urllib.error.HTTPError as err:
+        raw = err.read().decode("utf8", "replace")[:400]
+        try:
+            return err.code, json.loads(raw)
+        except ValueError:
+            return err.code, {"message": raw}
+    except OSError as err:
+        return 502, {"message": f"the API is not answering ({err})"}
+
+
 class Handler(BaseHTTPRequestHandler):
     server_version = "splatworld"
     protocol_version = "HTTP/1.1"
@@ -199,10 +223,46 @@ class Handler(BaseHTTPRequestHandler):
             self._send(200, b"ok\n")
         elif path == "/" or path == "/app" or path.startswith("/app/"):
             self._serve_client(path)
+        elif path in ("/qgis/project.qgs", "/qgis/credentials"):
+            self._qgis(path)
         elif first in STORE_PREFIXES:
             self._serve_store(path)
         else:
             self._text(404, "not found")
+
+    # SPEC §2.11: the Land panel hands you a QGIS project already connected to
+    # this world — as you. The credentials are the database's to mint
+    # (db/0065_playerroles.sql); this asks for them with the player's own token
+    # and writes the project around them.
+    def _qgis(self, path: str) -> None:
+        auth = self.headers.get("Authorization")
+        rotate = "rotate" in urllib.parse.urlparse(self.path).query
+        status, said = call_rpc(self.cfg, "qgis_credentials", auth,
+                                {"rotate": rotate})
+        if status != 200 or not isinstance(said, dict) or not said.get("role"):
+            message = (said or {}).get("message", "the world would not say")
+            self._json(status if status in (401, 403) else 502,
+                       {"ok": False, "error": message})
+            return
+        if path == "/qgis/credentials":
+            self._json(200, {"ok": True, **said,
+                             "host": qgis.connection(self.cfg, said["role"],
+                                                     "x")["host"],
+                             "port": self.cfg.pg_port})
+            return
+        if not said.get("password"):
+            # The password is shown once, when the role is made or rotated. A
+            # project without one would open onto a login box nobody can fill.
+            status, said = call_rpc(self.cfg, "qgis_credentials", auth,
+                                    {"rotate": True})
+            if status != 200:
+                self._json(502, {"ok": False, "error": "could not mint a login"})
+                return
+        conn = qgis.connection(self.cfg, said["role"], said["password"])
+        body = qgis.build(self.cfg, conn)
+        self._send(200, body, "application/x-qgis-project",
+                   {"Content-Disposition": 'attachment; filename="splatworld.qgs"',
+                    "Cache-Control": "no-store", **CORS})
 
     def _serve_client(self, path: str) -> None:
         rel = path[len("/app"):] if path.startswith("/app") else "/"
@@ -427,13 +487,17 @@ class Handler(BaseHTTPRequestHandler):
                          "file": logfile})
 
     def _setup_geoserver(self, body: dict) -> None:
-        """Test, or set up, the GeoServer — and remember what worked.
+        """Prove the address and the login, and remember them.
 
-        One button's worth of work: the page never has to know that setting up
-        is several REST calls, and nothing is typed a second time.
+        Nothing is asked of this GeoServer but the elevation (SPEC §3.1), so
+        what proves it is the service the world actually reads: its WCS. It
+        used to be several REST calls that created a workspace, a store over
+        this database and a layer per view, because QGIS drew through it; QGIS
+        now connects to the database itself (db/0065_playerroles.sql).
         """
         from . import config as configmod
-        from . import gsprovision
+        from . import geoserver
+        from .importer import _auth_header
 
         url = (body.get("url") or "").strip()
         if not url:
@@ -442,32 +506,10 @@ class Handler(BaseHTTPRequestHandler):
         saved = configmod.load_dotenv(self.cfg.repo / ".env")
         user = (body.get("user") or "admin").strip()
         password = body.get("password") or saved.get("GEOSERVER_ADMIN_PASSWORD", "")
-
-        # First line of every run: which file this is and what version, so the
-        # log itself answers "is this even the code you pulled" and nobody has
-        # to be asked to run anything to find out.
-        from . import gsprovision as _module
-
-        log: list[str] = [f"  running {_module.__file__} (version {__version__})"]
+        log: list[str] = [f"  asking {url} what it publishes (version {__version__})"]
         try:
-            if body.get("provision"):
-                wfs = gsprovision.provision(self.cfg, url, user, password,
-                                            on_step=log.append)
-                gsprovision.write_qgis_connection(
-                    self.cfg.repo / "gis" / "splatworld-wfs.xml", wfs)
-            else:
-                # SPEC §3.1: nothing is asked of this GeoServer but the
-                # elevation, so what proves the address and the login is the
-                # service the world actually reads — its WCS. A raster-only
-                # installation, or an account without the admin REST API, is
-                # exactly what an operator publishing a DEM has, and asking
-                # /rest/about/version refused them the world.
-                from . import geoserver
-                from .importer import _auth_header
-
-                found = geoserver.coverages(url, _auth_header(user, password))
-                log.append(f"  {len(found)} coverage(s) published here")
-                wfs = f"{geoserver.service_url(url, 'wfs')}"
+            found = geoserver.coverages(url, _auth_header(user, password))
+            log.append(f"  {len(found)} coverage(s) published here")
         except SystemExit as err:
             self._json(200, {"ok": False, "log": log, "error": str(err)})
             return
@@ -482,7 +524,7 @@ class Handler(BaseHTTPRequestHandler):
             **({"GEOSERVER_ADMIN_PASSWORD": password} if password else {}),
         })
         log.append("  saved, so it does not have to be typed again")
-        self._json(200, {"ok": True, "log": log, "wfs": wfs})
+        self._json(200, {"ok": True, "log": log})
 
     def _probe(self, body: dict) -> None:
         """What a GeoServer — or this database — has, as a list to pick from."""
@@ -545,9 +587,9 @@ class Handler(BaseHTTPRequestHandler):
         try:
             found = postgis.layers(self.cfg, body)
             self._json(200, {"layers": found, "coverages": [],
-                             "coverages_error": "a database holds no rasters "
-                             "the importer can read — give a GeoTIFF or a "
-                             "GeoServer coverage for elevation"})
+                             "coverages_error": "a database holds no rasters;"
+                             " the ground comes from the world's own coverage"
+                             " (Setup), not from an import"})
         except SystemExit as err:
             self._json(200, {"error": str(err)})
         except Exception as err:  # noqa: BLE001 - the page shows whatever broke

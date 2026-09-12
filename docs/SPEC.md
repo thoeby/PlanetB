@@ -273,8 +273,9 @@ rendered.
 
 ### 2.11 QGIS project (download from Land)
 The download is a `.qgs` generated for this world and this player:
-- WFS-T connection to the world's GeoServer, credentials for this player
-  embedded as a saved connection (a token, not the admin password).
+- A PostgreSQL connection to the world's database with a login of this
+  player's own embedded in it (REFACTOR-direct-pg.md S2/S3: it was WFS-T
+  through GeoServer, as one operator, until then).
 - Layers: land (yours editable, others read-only by RLS), road, forest,
   water, footprint, terrainmod, tree (points), objects (points, read-only —
   objects are placed in the page), tile state (read-only, styled by §0.2),
@@ -283,8 +284,9 @@ The download is a `.qgs` generated for this world and this player:
   choices, range for numbers, text otherwise); `model` on tree as a
   dropdown over the catalog layer showing name + maker; required fields
   enforced.
-- Saving writes through WFS-T; the trigger marks tiles `changed`; the page
-  shows it within 30 s without reload. Land features go through the same
+- Saving writes straight to the database, under the same row-level security
+  as the browser; the trigger marks tiles `changed`; the page shows it within
+  30 s without reload. Land features go through the same
   Submit → approval → render path as objects.
 - The land panel says which player's project it is and when it was
   generated; a project older than a properties change shows a banner in
@@ -313,7 +315,8 @@ returns to the admin).
 
 ### 2.14 Setup (admins, first run)
 Account (first player is admin) → display name → GeoServer address + admin
-login → "Connect" (provisions once, then only checks) → list of coverages
+login → "Connect" (asks its WCS what it publishes; nothing is created on it,
+REFACTOR-direct-pg.md S4) → list of coverages
 → pick → "This is the ground". Then the page reloads into the world at the
 coverage centre. Setup is available from any browser to an admin, not only
 the server's own machine. The QGIS admin project (all land editable) is
@@ -340,8 +343,7 @@ Pre: fresh install, GeoServer with a DEM coverage.
 1. `splatworld run` → browser opens on the page over black with a Setup
    panel open.
 2. Email + password → "your name" → Setup: GeoServer URL, login, Connect →
-   "connected; provisioning… done" → coverage dropdown → pick → "This is the
-   ground".
+   "N coverage(s)" → coverage dropdown → pick → "Use this ground".
 3. Page reloads; terrain visible; position line "unclaimed ground";
    attention chip empty; Land panel says "no land yet — assign land in
    Admin".
@@ -373,11 +375,11 @@ Pre: own land.
 4. Back in the page within 30 s: the tile shows `changed`, Land card says
    "1 tile changed — Submit".
 5. Place a tree point, model dropdown → Save → same.
-Fail: drawing outside your land → WFS-T error surfaced by QGIS as "not your
-land"; page unaffected. Stale project → banner in page.
+Fail: drawing outside your land → the database's refusal surfaced by QGIS as
+"that is not your land"; page unaffected. Stale project → banner in page.
 Post: feature rows; tiles `changed`.
 Validation: `qgis/roundtrip.spec` — headless QGIS (`qgis_process` or
-PyQGIS) opens the generated project, inserts through the same WFS-T,
+PyQGIS) opens the generated project, inserts through the same connection,
 asserts rows and tile state. This replaces the WP0.11 checklist.
 
 ### 3.4 Building

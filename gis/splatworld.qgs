@@ -16,20 +16,20 @@
     </spatialrefsys>
   </projectCrs>
   <layer-tree-group>
-    <layer-tree-layer id="f_road_71483299b8f3" name="Road" source="pagingEnabled='false' preferCoordinatesForWfsT11='false' restrictToRequestBBOX='1' srsname='EPSG:4326' typename='splatworld:f_road' url='http://localhost:8080/geoserver/splatworld/wfs' version='1.0.0'" providerKey="WFS" checked="Qt::Checked" expanded="1" />
-    <layer-tree-layer id="f_water_d662c953c8de" name="Water" source="pagingEnabled='false' preferCoordinatesForWfsT11='false' restrictToRequestBBOX='1' srsname='EPSG:4326' typename='splatworld:f_water' url='http://localhost:8080/geoserver/splatworld/wfs' version='1.0.0'" providerKey="WFS" checked="Qt::Checked" expanded="1" />
-    <layer-tree-layer id="f_forest_0846089423b0" name="Wood" source="pagingEnabled='false' preferCoordinatesForWfsT11='false' restrictToRequestBBOX='1' srsname='EPSG:4326' typename='splatworld:f_forest' url='http://localhost:8080/geoserver/splatworld/wfs' version='1.0.0'" providerKey="WFS" checked="Qt::Checked" expanded="1" />
-    <layer-tree-layer id="f_footprint_107a87b6e7e6" name="Building" source="pagingEnabled='false' preferCoordinatesForWfsT11='false' restrictToRequestBBOX='1' srsname='EPSG:4326' typename='splatworld:f_footprint' url='http://localhost:8080/geoserver/splatworld/wfs' version='1.0.0'" providerKey="WFS" checked="Qt::Checked" expanded="1" />
-    <layer-tree-layer id="f_terrainmod_943e88fad249" name="Terrain edit" source="pagingEnabled='false' preferCoordinatesForWfsT11='false' restrictToRequestBBOX='1' srsname='EPSG:4326' typename='splatworld:f_terrainmod' url='http://localhost:8080/geoserver/splatworld/wfs' version='1.0.0'" providerKey="WFS" checked="Qt::Checked" expanded="1" />
-    <layer-tree-layer id="f_tree_733f22654130" name="Single tree" source="pagingEnabled='false' preferCoordinatesForWfsT11='false' restrictToRequestBBOX='1' srsname='EPSG:4326' typename='splatworld:f_tree' url='http://localhost:8080/geoserver/splatworld/wfs' version='1.0.0'" providerKey="WFS" checked="Qt::Checked" expanded="1" />
-    <layer-tree-layer id="area_4b82677b6c14" name="Your land" source="pagingEnabled='false' preferCoordinatesForWfsT11='false' restrictToRequestBBOX='1' srsname='EPSG:4326' typename='splatworld:area' url='http://localhost:8080/geoserver/splatworld/wfs' version='1.0.0'" providerKey="WFS" checked="Qt::Checked" expanded="1" />
-    <layer-tree-layer id="instance_7123a699d77d" name="Placed" source="pagingEnabled='false' preferCoordinatesForWfsT11='false' restrictToRequestBBOX='1' srsname='EPSG:4326' typename='splatworld:instance' url='http://localhost:8080/geoserver/splatworld/wfs' version='1.0.0'" providerKey="WFS" checked="Qt::Checked" expanded="1" />
-    <layer-tree-layer id="tile_13181d8cc01e" name="Tiles" source="pagingEnabled='false' preferCoordinatesForWfsT11='false' restrictToRequestBBOX='1' srsname='EPSG:4326' typename='splatworld:tile' url='http://localhost:8080/geoserver/splatworld/wfs' version='1.0.0'" providerKey="WFS" checked="Qt::Checked" expanded="1" />
+    <layer-tree-layer id="f_road_71483299b8f3" name="Road" source="service='splatworld' key='id' srid=4326 type=MultiLineString checkPrimaryKeyUnicity='0' table=&quot;gis&quot;.&quot;f_road&quot; (geom)" providerKey="postgres" checked="Qt::Checked" expanded="1" />
+    <layer-tree-layer id="f_water_d662c953c8de" name="Water" source="service='splatworld' key='id' srid=4326 type=MultiPolygon checkPrimaryKeyUnicity='0' table=&quot;gis&quot;.&quot;f_water&quot; (geom)" providerKey="postgres" checked="Qt::Checked" expanded="1" />
+    <layer-tree-layer id="f_forest_0846089423b0" name="Wood" source="service='splatworld' key='id' srid=4326 type=MultiPolygon checkPrimaryKeyUnicity='0' table=&quot;gis&quot;.&quot;f_forest&quot; (geom)" providerKey="postgres" checked="Qt::Checked" expanded="1" />
+    <layer-tree-layer id="f_footprint_107a87b6e7e6" name="Building" source="service='splatworld' key='id' srid=4326 type=MultiPolygon checkPrimaryKeyUnicity='0' table=&quot;gis&quot;.&quot;f_footprint&quot; (geom)" providerKey="postgres" checked="Qt::Checked" expanded="1" />
+    <layer-tree-layer id="f_terrainmod_943e88fad249" name="Terrain edit" source="service='splatworld' key='id' srid=4326 type=MultiPolygon checkPrimaryKeyUnicity='0' table=&quot;gis&quot;.&quot;f_terrainmod&quot; (geom)" providerKey="postgres" checked="Qt::Checked" expanded="1" />
+    <layer-tree-layer id="f_tree_733f22654130" name="Single tree" source="service='splatworld' key='id' srid=4326 type=Point checkPrimaryKeyUnicity='0' table=&quot;gis&quot;.&quot;f_tree&quot; (geom)" providerKey="postgres" checked="Qt::Checked" expanded="1" />
+    <layer-tree-layer id="area_4b82677b6c14" name="Your land" source="service='splatworld' key='id' srid=4326 type=MultiPolygon checkPrimaryKeyUnicity='0' table=&quot;gis&quot;.&quot;area&quot; (geom)" providerKey="postgres" checked="Qt::Checked" expanded="1" />
+    <layer-tree-layer id="instance_7123a699d77d" name="Placed" source="service='splatworld' key='id' srid=4326 type=Point checkPrimaryKeyUnicity='0' table=&quot;gis&quot;.&quot;instance&quot; (geom)" providerKey="postgres" checked="Qt::Checked" expanded="1" />
+    <layer-tree-layer id="tile_13181d8cc01e" name="Tiles" source="service='splatworld' key='id' srid=4326 type=MultiPolygon checkPrimaryKeyUnicity='0' table=&quot;gis&quot;.&quot;tile&quot; (geom)" providerKey="postgres" checked="Qt::Checked" expanded="1" />
   </layer-tree-group>
   <projectlayers>
     <maplayer type="vector" hasScaleBasedVisibilityFlag="0" geometry="Line" readOnly="0">
       <id>f_road_71483299b8f3</id>
-      <datasource>pagingEnabled='false' preferCoordinatesForWfsT11='false' restrictToRequestBBOX='1' srsname='EPSG:4326' typename='splatworld:f_road' url='http://localhost:8080/geoserver/splatworld/wfs' version='1.0.0'</datasource>
+      <datasource>service='splatworld' key='id' srid=4326 type=MultiLineString checkPrimaryKeyUnicity='0' table="gis"."f_road" (geom)</datasource>
       <layername>Road</layername>
       <srs>
         <spatialrefsys>
@@ -44,7 +44,7 @@
           <geographicflag>true</geographicflag>
         </spatialrefsys>
       </srs>
-      <provider encoding="UTF-8">WFS</provider>
+      <provider encoding="UTF-8">postgres</provider>
       <fieldConfiguration>
         <field name="highway" configurationFlags="None">
           <editWidget type="ValueMap">
@@ -137,7 +137,7 @@
     </maplayer>
     <maplayer type="vector" hasScaleBasedVisibilityFlag="0" geometry="Polygon" readOnly="0">
       <id>f_water_d662c953c8de</id>
-      <datasource>pagingEnabled='false' preferCoordinatesForWfsT11='false' restrictToRequestBBOX='1' srsname='EPSG:4326' typename='splatworld:f_water' url='http://localhost:8080/geoserver/splatworld/wfs' version='1.0.0'</datasource>
+      <datasource>service='splatworld' key='id' srid=4326 type=MultiPolygon checkPrimaryKeyUnicity='0' table="gis"."f_water" (geom)</datasource>
       <layername>Water</layername>
       <srs>
         <spatialrefsys>
@@ -152,7 +152,7 @@
           <geographicflag>true</geographicflag>
         </spatialrefsys>
       </srs>
-      <provider encoding="UTF-8">WFS</provider>
+      <provider encoding="UTF-8">postgres</provider>
       <fieldConfiguration>
         <field name="water" configurationFlags="None">
           <editWidget type="ValueMap">
@@ -189,7 +189,7 @@
     </maplayer>
     <maplayer type="vector" hasScaleBasedVisibilityFlag="0" geometry="Polygon" readOnly="0">
       <id>f_forest_0846089423b0</id>
-      <datasource>pagingEnabled='false' preferCoordinatesForWfsT11='false' restrictToRequestBBOX='1' srsname='EPSG:4326' typename='splatworld:f_forest' url='http://localhost:8080/geoserver/splatworld/wfs' version='1.0.0'</datasource>
+      <datasource>service='splatworld' key='id' srid=4326 type=MultiPolygon checkPrimaryKeyUnicity='0' table="gis"."f_forest" (geom)</datasource>
       <layername>Wood</layername>
       <srs>
         <spatialrefsys>
@@ -204,7 +204,7 @@
           <geographicflag>true</geographicflag>
         </spatialrefsys>
       </srs>
-      <provider encoding="UTF-8">WFS</provider>
+      <provider encoding="UTF-8">postgres</provider>
       <fieldConfiguration>
         <field name="natural" configurationFlags="None">
           <editWidget type="ValueMap">
@@ -270,7 +270,7 @@
     </maplayer>
     <maplayer type="vector" hasScaleBasedVisibilityFlag="0" geometry="Polygon" readOnly="0">
       <id>f_footprint_107a87b6e7e6</id>
-      <datasource>pagingEnabled='false' preferCoordinatesForWfsT11='false' restrictToRequestBBOX='1' srsname='EPSG:4326' typename='splatworld:f_footprint' url='http://localhost:8080/geoserver/splatworld/wfs' version='1.0.0'</datasource>
+      <datasource>service='splatworld' key='id' srid=4326 type=MultiPolygon checkPrimaryKeyUnicity='0' table="gis"."f_footprint" (geom)</datasource>
       <layername>Building</layername>
       <srs>
         <spatialrefsys>
@@ -285,7 +285,7 @@
           <geographicflag>true</geographicflag>
         </spatialrefsys>
       </srs>
-      <provider encoding="UTF-8">WFS</provider>
+      <provider encoding="UTF-8">postgres</provider>
       <fieldConfiguration>
         <field name="building" configurationFlags="None">
           <editWidget type="ValueMap">
@@ -369,7 +369,7 @@
     </maplayer>
     <maplayer type="vector" hasScaleBasedVisibilityFlag="0" geometry="Polygon" readOnly="0">
       <id>f_terrainmod_943e88fad249</id>
-      <datasource>pagingEnabled='false' preferCoordinatesForWfsT11='false' restrictToRequestBBOX='1' srsname='EPSG:4326' typename='splatworld:f_terrainmod' url='http://localhost:8080/geoserver/splatworld/wfs' version='1.0.0'</datasource>
+      <datasource>service='splatworld' key='id' srid=4326 type=MultiPolygon checkPrimaryKeyUnicity='0' table="gis"."f_terrainmod" (geom)</datasource>
       <layername>Terrain edit</layername>
       <srs>
         <spatialrefsys>
@@ -384,7 +384,7 @@
           <geographicflag>true</geographicflag>
         </spatialrefsys>
       </srs>
-      <provider encoding="UTF-8">WFS</provider>
+      <provider encoding="UTF-8">postgres</provider>
       <fieldConfiguration>
         <field name="op" configurationFlags="None">
           <editWidget type="ValueMap">
@@ -425,7 +425,7 @@
     </maplayer>
     <maplayer type="vector" hasScaleBasedVisibilityFlag="0" geometry="Point" readOnly="0">
       <id>f_tree_733f22654130</id>
-      <datasource>pagingEnabled='false' preferCoordinatesForWfsT11='false' restrictToRequestBBOX='1' srsname='EPSG:4326' typename='splatworld:f_tree' url='http://localhost:8080/geoserver/splatworld/wfs' version='1.0.0'</datasource>
+      <datasource>service='splatworld' key='id' srid=4326 type=Point checkPrimaryKeyUnicity='0' table="gis"."f_tree" (geom)</datasource>
       <layername>Single tree</layername>
       <srs>
         <spatialrefsys>
@@ -440,7 +440,7 @@
           <geographicflag>true</geographicflag>
         </spatialrefsys>
       </srs>
-      <provider encoding="UTF-8">WFS</provider>
+      <provider encoding="UTF-8">postgres</provider>
       <fieldConfiguration>
         <field name="species" configurationFlags="None">
           <editWidget type="TextEdit">
@@ -469,9 +469,9 @@
         <constraint field="model" constraints="0" notnull_strength="0" unique_strength="0" exp_strength="0" />
       </constraints>
     </maplayer>
-    <maplayer type="vector" hasScaleBasedVisibilityFlag="0" geometry="Polygon" readOnly="0">
+    <maplayer type="vector" hasScaleBasedVisibilityFlag="0" geometry="Polygon" readOnly="1">
       <id>area_4b82677b6c14</id>
-      <datasource>pagingEnabled='false' preferCoordinatesForWfsT11='false' restrictToRequestBBOX='1' srsname='EPSG:4326' typename='splatworld:area' url='http://localhost:8080/geoserver/splatworld/wfs' version='1.0.0'</datasource>
+      <datasource>service='splatworld' key='id' srid=4326 type=MultiPolygon checkPrimaryKeyUnicity='0' table="gis"."area" (geom)</datasource>
       <layername>Your land</layername>
       <srs>
         <spatialrefsys>
@@ -486,7 +486,7 @@
           <geographicflag>true</geographicflag>
         </spatialrefsys>
       </srs>
-      <provider encoding="UTF-8">WFS</provider>
+      <provider encoding="UTF-8">postgres</provider>
       <fieldConfiguration />
       <aliases />
       <constraints />
@@ -497,9 +497,9 @@
         </actionsetting>
       </attributeactions>
     </maplayer>
-    <maplayer type="vector" hasScaleBasedVisibilityFlag="0" geometry="Polygon" readOnly="0">
+    <maplayer type="vector" hasScaleBasedVisibilityFlag="0" geometry="Point" readOnly="0">
       <id>instance_7123a699d77d</id>
-      <datasource>pagingEnabled='false' preferCoordinatesForWfsT11='false' restrictToRequestBBOX='1' srsname='EPSG:4326' typename='splatworld:instance' url='http://localhost:8080/geoserver/splatworld/wfs' version='1.0.0'</datasource>
+      <datasource>service='splatworld' key='id' srid=4326 type=Point checkPrimaryKeyUnicity='0' table="gis"."instance" (geom)</datasource>
       <layername>Placed</layername>
       <srs>
         <spatialrefsys>
@@ -514,14 +514,14 @@
           <geographicflag>true</geographicflag>
         </spatialrefsys>
       </srs>
-      <provider encoding="UTF-8">WFS</provider>
+      <provider encoding="UTF-8">postgres</provider>
       <fieldConfiguration />
       <aliases />
       <constraints />
     </maplayer>
-    <maplayer type="vector" hasScaleBasedVisibilityFlag="0" geometry="Polygon" readOnly="0">
+    <maplayer type="vector" hasScaleBasedVisibilityFlag="0" geometry="Polygon" readOnly="1">
       <id>tile_13181d8cc01e</id>
-      <datasource>pagingEnabled='false' preferCoordinatesForWfsT11='false' restrictToRequestBBOX='1' srsname='EPSG:4326' typename='splatworld:tile' url='http://localhost:8080/geoserver/splatworld/wfs' version='1.0.0'</datasource>
+      <datasource>service='splatworld' key='id' srid=4326 type=MultiPolygon checkPrimaryKeyUnicity='0' table="gis"."tile" (geom)</datasource>
       <layername>Tiles</layername>
       <srs>
         <spatialrefsys>
@@ -536,7 +536,7 @@
           <geographicflag>true</geographicflag>
         </spatialrefsys>
       </srs>
-      <provider encoding="UTF-8">WFS</provider>
+      <provider encoding="UTF-8">postgres</provider>
       <fieldConfiguration />
       <aliases />
       <constraints />

@@ -191,6 +191,20 @@ export const remove = (table, params) => request(`/${table}${qs(params)}`, { met
 
 export const rpc = (name, args = {}) => request(`/rpc/${name}`, { method: 'POST', body: args });
 
+// A file from the local server (not the API): the QGIS project, which carries
+// the player's own database login and so cannot be a plain link. The token
+// goes in the header, as it does everywhere else.
+export async function fetchFile(path) {
+    const res = await fetch(state.files + path, {
+        headers: state.token ? { Authorization: `Bearer ${state.token}` } : {},
+    });
+    if (!res.ok) {
+        const said = await res.json().catch(() => ({}));
+        throw new ApiError(res.status, said, path);
+    }
+    return res.blob();
+}
+
 // A bare fetch for the atoms, which run in a worker with no token: the JSON
 // body, or an ApiError naming the status and the url.
 export async function fetchJson(url, init = {}) {

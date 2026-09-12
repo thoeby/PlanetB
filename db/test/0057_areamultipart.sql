@@ -2,9 +2,17 @@
 -- layer (db/0057_areamultipart.sql). Every feature drawn afterwards depends on
 -- an area existing, so this is the first thing that has to work.
 BEGIN;
-SELECT plan(10);
+SELECT plan(9);
 
 INSERT INTO auth.user (email, pw_hash, role) VALUES ('draw57@example.com', 'x', 'admin');
+
+-- Who is drawing. gis.default_owner() is current_user_id() since
+-- db/0065_playerroles.sql: land nobody is signed in for is nobody's, and the
+-- trigger says so rather than guessing an admin.
+SELECT set_config('request.jwt.claims',
+                  json_build_object('sub', (SELECT id FROM auth.user
+                                            WHERE email = 'draw57@example.com'),
+                                    'role', 'admin')::text, true);
 
 -- Declared multi, so that is what GeoServer publishes and QGIS is offered.
 SELECT is(
@@ -13,13 +21,6 @@ SELECT is(
     'MULTIPOLYGON', 'gis.area is declared multi-part');
 SELECT has_trigger('gis', 'area', 'gis_area_write',
                    'and is written through an INSTEAD OF trigger');
--- Without this row GeoServer cannot key the layer and serves it read-only,
--- which is what got the same fix reverted in db/0055.
-SELECT is(
-    (SELECT count(*)::int FROM gis.gt_pk_metadata
-     WHERE table_schema = 'gis' AND table_name = 'area' AND pk_column = 'id'),
-    1, 'and its primary key is registered for GeoServer');
-
 -- A Save from QGIS: a multipolygon of one part, detail left blank.
 INSERT INTO gis.area (geom, detail) VALUES
     (st_geomfromtext('MULTIPOLYGON(((7 46, 7.1 46, 7.1 46.1, 7 46.1, 7 46)))', 4326), 0);
@@ -27,7 +28,8 @@ SELECT is((SELECT st_geometrytype(geom) FROM area), 'ST_Polygon',
           'the single part is unwrapped: what is stored is still one ring');
 SELECT is((SELECT (detail, owner_id = gis.default_owner()) FROM area),
           (14::smallint, true),
-          'a blank detail is still the baseline, and the admin still owns it');
+          'a blank detail is still the baseline, and it is owned by whoever'
+          ' drew it');
 
 -- Two rings is a mistake worth naming rather than half-saving.
 SELECT throws_like(

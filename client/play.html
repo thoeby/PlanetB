@@ -304,6 +304,7 @@
           player.position = { x: p.x, y: p.y + 2, z: p.z + 8 };
       },
       onAreas: (areas) => getland.refresh(areas),
+      openPanel: (name) => hud.show(name),
       onRemove: (item) => api.remove('instance', { id: `eq.${item.id}` })
           .then(() => build.refresh()),
   });

@@ -120,6 +120,13 @@ body {
   text-shadow: 0 1px 3px rgba(0, 0, 0, 0.9);
 }
 
+/* What changed on this land, and the one thing to do about it (SPEC §3.3). */
+.land-changed { display: flex; align-items: center; justify-content: space-between;
+  gap: 10px; margin-top: 10px; font-size: 13px; }
+.qgis-steps { margin: 8px 0 0; padding-left: 18px; color: var(--ink-2);
+  font-size: 12px; }
+.qgis-steps li { margin: 2px 0; }
+
 /* Getting land, and handing it out (SPEC §2.4, §3.2). A panel section sets
    its own display, which beats the hidden attribute unless this says so — and
    a "you have no land" block that stays after you have some is worse than no

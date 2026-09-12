@@ -31,8 +31,7 @@ const RIGHT_WORDS = {
 export function landRows(state, onPick) {
     if (!state.areas.length) {
         return [el('li', { className: 'muted',
-            textContent: 'No land yet. Draw an area on "Your land" in QGIS and'
-                + ' it appears here.' })];
+            textContent: 'No land yet — ask for some below.' })];
     }
     return state.areas.map((a) => {
         const r = role(a);
@@ -62,13 +61,55 @@ export function selected(area, state, ctx) {
     if (!area) return [];
     return [
         head(area, state, ctx),
-        counts(state.progress),
+        counts(state.progress, ctx),
+        shapeInQgis(area, ctx),
         approvals(area, ctx),
         people(area, state, ctx),
         proposals(state),
         drawn(state, ctx),
         contents(state, ctx),
     ].filter(Boolean);
+}
+
+// SPEC §2.11: a button that downloads a QGIS project already connected to this
+// world — as you — and next to it the three steps, one line each. Nothing
+// about terminals.
+//
+// The project carries the player's own database login, so it cannot be a plain
+// link: it is fetched with the token the tab already holds and handed to the
+// browser as a file.
+function shapeInQgis(area, ctx) {
+    if (!area.may_write) return null;
+    const get = el('button', { type: 'button', className: 'primary',
+        textContent: 'Shape this land in QGIS' });
+    const status = el('p', { className: 'status qgis-status' });
+    get.onclick = () => downloadProject(ctx, status);
+    return el('div', { className: 'section qgis' },
+        el('span', { className: 'label', textContent: 'Shape it' }),
+        get,
+        el('ol', { className: 'rows qgis-steps' },
+            el('li', {}, 'Open the downloaded project in QGIS.'),
+            el('li', {}, 'Draw on a layer — a wood, a road, a tree.'),
+            el('li', {}, 'Save. This page has it within half a minute.')),
+        status);
+}
+
+async function downloadProject(ctx, status) {
+    status.textContent = 'asking the world for a project\u2026';
+    status.dataset.bad = '';
+    try {
+        const file = await ctx.api.fetchFile('/qgis/project.qgs');
+        const url = URL.createObjectURL(file);
+        const link = el('a', { href: url, download: 'splatworld.qgs' });
+        document.body.append(link);
+        link.click();
+        link.remove();
+        setTimeout(() => URL.revokeObjectURL(url), 10000);
+        status.textContent = 'Downloaded. Open it in QGIS.';
+    } catch (err) {
+        status.textContent = String(err.body?.error ?? err.message ?? err);
+        status.dataset.bad = '1';
+    }
 }
 
 function head(area, state, ctx) {
@@ -109,18 +150,32 @@ async function renameArea(area, ctx) {
 
 // Published · Candidates · Unsubmitted · In the pool, as the artboard counts
 // them. area_progress is the only source; nothing is inferred.
-function counts(p) {
+function counts(p, ctx) {
     if (!p) return null;
     const tile = (v, l, tone) => el('div', { className: 'tile', 'data-tone': tone ?? '' },
         el('div', { className: 'v', textContent: String(v) }),
         el('div', { className: 'l', textContent: l }));
+    const changed = Math.max(0, p.waiting - p.open_jobs);
     return el('div', { className: 'section' },
         el('span', { className: 'label', textContent: 'Tiles on this land' }),
         el('div', { className: 'tiles' },
             tile(p.published, 'Published', 'accent'),
-            tile(Math.max(0, p.waiting - p.open_jobs), 'Unsubmitted'),
+            tile(changed, 'Unsubmitted'),
             tile(p.open_jobs, 'In the pool', 'warn'),
-            tile(p.tiles, 'Tiles in all')));
+            tile(p.tiles, 'Tiles in all')),
+        changedLine(changed, ctx));
+}
+
+// SPEC §3.3 step 4 and §3.5: what you changed and the one thing to do about
+// it, in words, on the card — a column of four numbers is not a sentence.
+function changedLine(changed, ctx) {
+    if (!changed) return null;
+    const submit = el('button', { type: 'button', className: 'primary',
+        textContent: 'Submit' });
+    submit.onclick = () => ctx?.openPanel?.('Submit');
+    return el('div', { className: 'land-changed' },
+        el('span', { textContent: `${changed} tile${changed === 1 ? '' : 's'}`
+            + ' changed' }), submit);
 }
 
 // How many people have to say yes before a rendered tile is published.

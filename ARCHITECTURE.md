@@ -1,12 +1,18 @@
 # ARCHITECTURE.md — splatworld v3.1
 
 ```
-  QGIS (admin) ── WFS-T ──▶ GeoServer ─────┐
-  browser ─────── REST/JWT ─▶ PostgREST ───┼──▶ PostgreSQL + PostGIS
-  browser ─────── GET / PUT ─▶ nginx ──────┘    /assets /tiles /jobs /geo (immutable files)
+  QGIS (a player) ─ SQL/login ─▶ PostgreSQL + PostGIS   (row-level security)
+  browser ───────── REST/JWT ──▶ PostgREST ────▶ the same database
+  browser ───────── GET / PUT ─▶ nginx ────────▶ /assets /tiles /jobs /geo
+  the server ────── WCS ───────▶ GeoServer             (the operator's elevation)
 ```
 
 Four processes. All logic = SQL + client JS.
+
+QGIS connects to the database as the player, with a login of their own
+(`db/0065_playerroles.sql`), so what a person may draw is decided by exactly
+the policies that decide it in the browser. GeoServer publishes the operator's
+elevation over WCS and is asked for nothing else.
 
 ## 1. Concepts
 

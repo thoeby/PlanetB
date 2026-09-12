@@ -122,8 +122,20 @@ async function removing(item, onRemove, say, reload) {
     }
 }
 
+// A change drawn in QGIS reaches the page by itself, within half a minute
+// (SPEC §3.3 step 4): nobody is going to press reload after every save.
+const WATCH_MS = 10000;
+
+function redraw(list, detail, state, ctx) {
+    list.replaceChildren(...landRows(state, ctx.pick));
+    const area = state.areas.find((a) => a.id === state.chosen);
+    detail.replaceChildren(...selected(area, state, {
+        ...ctx, refresh: () => ctx.load(area),
+    }));
+}
+
 export function mountLand(host, { onGo = () => {}, onRemove = () => {},
-    onAreas = () => {} } = {}) {
+    onAreas = () => {}, openPanel = () => {} } = {}) {
     const list = el('ul', { className: 'rows land-areas' });
     const detail = el('div', { className: 'land-detail' });
     const status = el('p', { className: 'land-status status' });
@@ -140,13 +152,8 @@ export function mountLand(host, { onGo = () => {}, onRemove = () => {},
     };
 
     // One place where the panel is redrawn, so every action ends the same way.
-    function draw() {
-        list.replaceChildren(...landRows(state, pick));
-        const area = state.areas.find((a) => a.id === state.chosen);
-        detail.replaceChildren(...selected(area, state, {
-            onGo, onRemove: remove, say, refresh: () => load(area), api,
-        }));
-    }
+    const draw = () => redraw(list, detail, state,
+        { pick, onGo, onRemove: remove, say, load, api, openPanel });
 
     async function pick(area) {
         state.chosen = area?.id ?? null;
@@ -161,7 +168,6 @@ export function mountLand(host, { onGo = () => {}, onRemove = () => {},
 
     const remove = (item) => removing(item, onRemove, say,
         () => load(state.areas.find((a) => a.id === state.chosen)));
-
     async function refresh() {
         state.areas = await api.rpc('my_areas').catch(() => []);
         const chosen = state.areas.find((a) => a.id === state.chosen)
@@ -174,6 +180,7 @@ export function mountLand(host, { onGo = () => {}, onRemove = () => {},
     }
 
     refresh();
+    setInterval(() => { if (api.userId()) refresh(); }, WATCH_MS);
     return {
         refresh,
         areas: () => state.areas,

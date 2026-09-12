@@ -2,13 +2,16 @@
 
 The same files, in the same order, that `make db-reset` applies with psql —
 minus psql itself, so a machine that has Python and a PostgreSQL server needs
-nothing else. Only two migrations use a psql variable (:'authpw', :'geopw') and
+nothing else. Only two migrations use a psql variable (:'authpw', and 0008's
+:'geopw' for a role db/0066_dropproxy.sql drops again) and
 those are substituted here.
 """
 from __future__ import annotations
 
 import re
 from pathlib import Path
+
+import secrets
 
 import psycopg
 from psycopg import sql
@@ -58,10 +61,16 @@ def _quote_literal(value: str) -> str:
 
 
 def _substitute(text: str, cfg: Config) -> str:
-    """psql's :'name' — the only psql syntax the migrations use."""
+    """psql's :'name' — the only psql syntax the migrations use.
+
+    `geopw` set the password of the GeoServer login. That role is created by
+    db/0008_admin.sql and dropped again by db/0066_dropproxy.sql, and nothing
+    connects as it in between, so what the password is does not matter — only
+    that the statement is valid SQL.
+    """
     return (
         text.replace(":'authpw'", _quote_literal(cfg.authenticator_password))
-        .replace(":'geopw'", _quote_literal(cfg.geoserver_password))
+            .replace(":'geopw'", _quote_literal(secrets.token_hex(16)))
     )
 
 

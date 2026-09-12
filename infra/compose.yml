@@ -12,9 +12,10 @@ services:
       - postgres
       - -c
       - app.jwt_secret=${JWT_SECRET:?set JWT_SECRET in .env}
-    # Loopback only: the geoserver login role has BYPASSRLS and the defaults in
-    # .env.example are not secrets. Only the file store (8080) faces the world;
-    # put a TLS proxy in front of it and of PostgREST for anything public.
+    # Loopback only: the defaults in .env.example are not secrets, and players
+    # connect to this database with logins of their own (db/0065_playerroles).
+    # Only the file store (8080) faces the world; put a TLS proxy in front of
+    # it and of PostgREST for anything public.
     ports:
       - "127.0.0.1:5432:5432"
     volumes:
@@ -52,12 +53,11 @@ services:
     ports:
       - "8080:80"
 
-  # Admin/visualisation only (Invariant 9). QGIS talks WFS-T to this, never the client.
+  # The operator's elevation, over WCS, and nothing else (Invariant 9): QGIS
+  # connects to the database as the player (SPEC §2.11), so this no longer
+  # needs to reach Postgres at all.
   geoserver:
     image: docker.osgeo.org/geoserver:2.26.0
-    depends_on:
-      db:
-        condition: service_healthy
     environment:
       GEOSERVER_ADMIN_USER: admin
       GEOSERVER_ADMIN_PASSWORD: ${GEOSERVER_ADMIN_PASSWORD:?set GEOSERVER_ADMIN_PASSWORD in .env}

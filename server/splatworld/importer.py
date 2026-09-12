@@ -1,4 +1,8 @@
-"""Imports a region: your elevation and your map layers.
+"""Imports a region's map layers — the roads, woods, water and buildings.
+
+Elevation is not imported: the ground is cut from the world's coverage one
+tile at a time, when somebody first walks onto it
+(server/splatworld/ground.py), so there is one elevation path and not two.
 
     splatworld import my-region.json
 
@@ -307,40 +311,6 @@ def insert_features(conn, uid, rows: list[dict]) -> int:
 
 # --------------------------------------------------------------------- run
 
-def elevation_source(spec: dict, defaults: dict, base_dir: Path, work: Path) -> Path | None:
-    """A GeoTIFF on disk, or one fetched from a URL (a WCS GetCoverage link)."""
-    if not spec:
-        return None
-    if spec.get("file"):
-        path = Path(spec["file"])
-        path = path if path.is_absolute() else base_dir / path
-        if not path.is_file():
-            die(f"elevation: no such file {path}")
-        return path
-    url = spec.get("url")
-    if not url and spec.get("coverage"):
-        # The import page offers the coverages a GeoServer publishes by name;
-        # the GetCoverage request is built here rather than pasted by hand.
-        from . import geoserver
-
-        base = spec.get("wfs") or defaults.get("wfs")
-        if not base:
-            die('elevation by "coverage" needs the GeoServer address')
-        url = geoserver.coverage_url(base, spec["coverage"])
-    if not url:
-        die('elevation needs a "file", a "url", or a "coverage"')
-    headers = _auth_header(spec.get("user") or defaults.get("user"),
-                           spec.get("password") or defaults.get("password"))
-    print(f"  fetching elevation from {url}")
-    payload = fetch(url, headers, what="elevation")
-    if payload[:4] not in (b"II*\x00", b"MM\x00*", b"II+\x00", b"MM\x00+"):
-        die("elevation: that URL did not return a GeoTIFF —\n  "
-            f"{payload[:200].decode('utf8', 'replace')}")
-    target = work / "elevation.tif"
-    target.write_bytes(payload)
-    return target
-
-
 def run(cfg: Config, spec_path: Path) -> int:
     """The command-line entry: a spec read from a file beside its data."""
     spec = json.loads(spec_path.read_text(encoding="utf8"))
@@ -353,8 +323,6 @@ def run_spec(cfg: Config, spec: dict, base_dir: Path, out=print) -> int:
     `out` collects the running commentary, so the same code serves the command
     line and the import page, which shows it back to the browser.
     """
-    from tempfile import TemporaryDirectory
-
     print_ = out
     defaults = spec.get("geoserver") or {}
     detail = int(spec.get("detail", 14))
@@ -375,31 +343,15 @@ def run_spec(cfg: Config, spec: dict, base_dir: Path, out=print) -> int:
         die('could not work out the region — give "bbox": [west, south, east, north]')
     print_(f"  region {', '.join(f'{v:.4f}' for v in bbox)}, detail z{detail}")
 
-    with TemporaryDirectory() as tmp, psycopg.connect(cfg.dsn()) as conn:
-        elevation = dict(spec.get("elevation") or {})
-        if elevation:
-            elevation.setdefault("bbox", bbox)
-            elevation.setdefault("detail", detail)
-            elevation.setdefault("on_step", print_)
-        source = elevation_source(elevation, defaults, base_dir, Path(tmp))
+    with psycopg.connect(cfg.dsn()) as conn:
         uid = ensure_owner(conn, owner, password)
         print_(f"  {seed_areas(conn, uid, bbox, detail)} new area(s)")
         print_(f"  {mark_dirty(conn, bbox, detail)} new tile(s) to compile")
         print_(f"  {insert_features(conn, uid, rows)} new feature(s)")
 
-        if source:
-            from . import dem  # imported late: rasterio is only needed for this
-
-            tiles = region_tiles(conn, bbox, detail)
-            print_(f"  cutting {len(tiles)} elevation tile(s)")
-            written, blank = dem.cut(source, cfg.files, tiles)
-            register_artifacts(conn, uid, written, "dem", DEM_ALGO)
-            print_(f"  {len(written)} elevation tile(s) in the store")
-            if blank:
-                print_(f"  warning: {len(blank)} tile(s) are outside your "
-                      "elevation data and will be flat at sea level")
-        else:
-            print_("  no elevation given — tiles cannot compile without it")
+        # No elevation here: the ground is cut from the world's coverage one
+        # tile at a time, when somebody first walks onto it
+        # (server/splatworld/ground.py). This imports what people draw.
         conn.commit()
 
     print_(f"\nDone. Sign in at /app/play.html as {owner} and turn on background work.")

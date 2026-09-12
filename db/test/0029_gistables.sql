@@ -9,6 +9,14 @@ SELECT has_trigger('public', 'feature', 'feature_3d', 'feature_3d is on feature'
 INSERT INTO auth.user (email, pw_hash, role) VALUES ('draw@example.com', 'x', 'admin')
 ON CONFLICT DO NOTHING;
 
+-- Who is drawing. gis.default_owner() is current_user_id() since
+-- db/0065_playerroles.sql: land nobody is signed in for is nobody's, and the
+-- trigger says so rather than guessing an admin.
+SELECT set_config('request.jwt.claims',
+                  json_build_object('sub', (SELECT id FROM auth.user
+                                            WHERE email = 'draw@example.com'),
+                                    'role', 'admin')::text, true);
+
 INSERT INTO area (geom)
 VALUES (st_geomfromtext('POLYGON((7 46, 7.1 46, 7.1 46.1, 7 46.1, 7 46))', 4326));
 

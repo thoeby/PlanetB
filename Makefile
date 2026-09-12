@@ -15,10 +15,11 @@ PGPASSWORD ?= postgres
 PGDATABASE ?= splatworld
 JWT_SECRET ?= dev-secret-change-me-0123456789abcdef
 AUTHENTICATOR_PASSWORD ?= authenticator
-GEOSERVER_DB_PASSWORD ?= geoserver
-export PGHOST PGPORT PGUSER PGPASSWORD PGDATABASE JWT_SECRET AUTHENTICATOR_PASSWORD GEOSERVER_DB_PASSWORD
+export PGHOST PGPORT PGUSER PGPASSWORD PGDATABASE JWT_SECRET AUTHENTICATOR_PASSWORD
 
-PSQL := psql -v ON_ERROR_STOP=1 --no-psqlrc -q -v authpw=$(AUTHENTICATOR_PASSWORD) -v geopw=$(GEOSERVER_DB_PASSWORD)
+# `geopw` is the password of a role db/0008 creates and db/0066 drops; nothing
+# connects as it in between, so it only has to be some string.
+PSQL := psql -v ON_ERROR_STOP=1 --no-psqlrc -q -v authpw=$(AUTHENTICATOR_PASSWORD) -v geopw=dropped-in-0066
 MIGRATIONS := $(sort $(wildcard db/[0-9]*.sql))
 DB_TESTS := $(sort $(wildcard db/test/[0-9]*.sql))
 DB_TEST_SCRIPTS := $(sort $(wildcard db/test/[0-9]*.sh))

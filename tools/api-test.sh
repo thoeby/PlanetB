@@ -74,6 +74,13 @@ OTHER_JWT=$(tr -d '"' < "$body")
 OFF=$(( (STAMP / 1000000) % 200 ))
 LON=$(awk "BEGIN{printf \"%.4f\", 9.0 + $OFF * 0.015}")
 LAT=$(awk "BEGIN{printf \"%.4f\", 46.0 + $OFF * 0.004}")
+# Nothing may be drawn outside the world's ground (db/0062_insideground.sql),
+# so this world reaches where this run works.
+$PSQL -c "INSERT INTO ground (only_one, geoserver_url, coverage, extent)
+    VALUES (true, 'http://test.invalid/geoserver', 'test:ground',
+            st_makeenvelope($LON - 1, $LAT - 1, $LON + 1, $LAT + 1, world_srid()))
+    ON CONFLICT (only_one) DO UPDATE
+    SET extent = st_envelope(st_collect(ground.extent, excluded.extent))" > /dev/null
 AREA=$($PSQL -c "INSERT INTO area (geom, owner_id, detail) VALUES (
     st_makeenvelope($LON - 0.02, $LAT - 0.02, $LON + 0.02, $LAT + 0.02, world_srid()),
     '$OWNER_ID', 14) RETURNING id")

@@ -16,7 +16,7 @@ full Switzerland raster seed, and WP0.11's QGIS round trip (`HANDOFF.md` §6).
 | PostgreSQL 16 + PostGIS | the world, jobs, atoms, ledger, auth | 5432 (loopback) |
 | PostgREST 12 | the only API (`http://host:3000`) | 3000 (loopback) |
 | nginx | immutable file store `/assets /tiles /jobs /geo`, static client under `/app/` | 8080 |
-| GeoServer 2.26 | admin/visualisation only, WFS-T for QGIS | 8081 (loopback) |
+| GeoServer 2.26 | publishes the operator's elevation over WCS, nothing else | 8081 (loopback) |
 
 The server executes no compute. Every atom (assemble, sample, merge, sog,
 train, verify) runs in a player's browser tab (Invariant 9). There is no cron
@@ -211,12 +211,12 @@ merge_proposal set_grant revoke_grant set_required_approvals area_grants
 my_proposals my_dirty_tiles recheck_atom spot_due can_write`. Row-level
 security decides every write; the client has no authority of its own.
 
-### Admin (QGIS)
+### Drawing (QGIS)
 
-`make up && make db-reset`, `splatworld geoserver <url>`, then load
-`gis/splatworld-wfs.xml` in QGIS and edit `area`, `feature`, `instance`
-over WFS-T. `gis/README.md` has the checklist. `splatworld:tile` shows compile
-state (red / orange / green).
+Your land → **Shape this land in QGIS** hands you a project with your own
+database login in it; QGIS edits `gis.f_*` and `gis.instance` directly, under
+the same row-level security as the browser. `gis/README.md` has the details and
+the committed project's pg_service entry. The `Tiles` layer shows compile state.
 
 ## 6. Verify an installation
 

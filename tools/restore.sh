@@ -17,8 +17,9 @@
 # What the dump does not carry, and this script therefore re-applies:
 #   * app.jwt_secret — a per-database setting (ALTER DATABASE … SET), which
 #     pg_dump never writes. Without it auth.sign() raises and nobody can log in.
-#   * the anon/player/admin/authenticator/geoserver roles, which are cluster
-#     objects. On a fresh cluster create them first; docs/runbook.md says how.
+#   * the anon/player/admin/authenticator roles and every p_<id> player login,
+#     which are cluster objects. On a fresh cluster create them first;
+#     docs/runbook.md says how.
 set -euo pipefail
 
 FILES_ROOT=${FILES_ROOT:-./infra/files}

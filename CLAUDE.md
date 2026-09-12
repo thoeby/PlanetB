@@ -23,7 +23,7 @@ A persistent digital world on real geography, compiled into Gaussian-splat LOD t
 6. All client writes are authorised by row-level security, never by client code.
 7. Merged tiles (z ≤ 14) are deterministically reproducible → verified by hash equality.
 8. Trained tiles (z16/z18) are verified probabilistically (structural → 3 independent perceptual checks). Say so in code comments; do not call it "proof".
-9. Server never decides or performs rendering. No server-side worker, no cron that computes. GeoServer is admin/visualisation only, never the app API.
+9. Server never decides or performs rendering. No server-side worker, no cron that computes. GeoServer publishes the operator's elevation over WCS and nothing else; QGIS edits the database as the player, under RLS.
 10. No new server components. Allowed processes: postgres, postgrest, geoserver, nginx — or, in place of nginx, the `splatworld` server in `server/` (Python stdlib + psycopg), which serves the file store and the static client and supervises PostgREST. It exists because nginx cannot be had with `--with-http_dav_module` on Windows without compiling it, and it is held to the same contract by `tools/files-test.sh`, nginx's own gate, which it passes unmodified. It computes nothing about the world. (Optional later: a dependency-free `ws` presence relay — not in v1.)
 
 ## Stack rules
