@@ -1,10 +1,12 @@
 // api.js — the only place the client talks to PostgREST.
 //
-// The JWT lives in a module variable and nowhere else. localStorage would hand
-// it to every script on the origin and survive the tab; a token that dies with
-// the tab is the smaller blast radius. Nothing here decides what the caller may
-// do — every write is settled by row-level security in the database
-// (Invariant 6); a 401 or 403 from PostgREST is that decision arriving.
+// The JWT is held in a module variable and mirrored into sessionStorage, so a
+// reload keeps the session the user already opened instead of asking again.
+// sessionStorage and not localStorage: the token is readable by every script on
+// the origin either way, but this copy dies with the tab rather than outliving
+// it on disk. Nothing here decides what the caller may do — every write is
+// settled by row-level security in the database (Invariant 6); a 401 or 403
+// from PostgREST is that decision arriving.
 
 const DEFAULTS = { api: 'http://localhost:3000', files: 'http://localhost:8080' };
 
@@ -12,7 +14,14 @@ const DEFAULTS = { api: 'http://localhost:3000', files: 'http://localhost:8080' 
 // token the server will have expired by the time it lands.
 const SKEW_S = 60;
 
+const STORE_KEY = 'splatworld:jwt';
+
 const state = { ...DEFAULTS, token: null, claims: null, refresh: null };
+
+// sessionStorage throws in a sandboxed frame and is absent under node.
+function store() {
+    try { return globalThis.sessionStorage ?? null; } catch { return null; }
+}
 
 export class ApiError extends Error {
     constructor(status, body, url) {
@@ -33,6 +42,7 @@ export function configure(opts = {}) {
         }
     }
     Object.assign(state, opts);
+    if (!state.token) restore();
     return { api: state.api, files: state.files };
 }
 
@@ -50,6 +60,29 @@ function claimsOf(token) {
 export function setToken(token) {
     state.token = token || null;
     state.claims = token ? claimsOf(token) : null;
+    try {
+        if (token) store()?.setItem(STORE_KEY, token);
+        else store()?.removeItem(STORE_KEY);
+    } catch { /* storage full or blocked: the tab still has its session */ }
+    return state.claims;
+}
+
+// Picks the stored token back up after a reload. A token already past its
+// expiry (or unreadable) is dropped rather than sent.
+export function restore() {
+    let token = null;
+    try { token = store()?.getItem(STORE_KEY) ?? null; } catch { return null; }
+    if (!token) return null;
+    try {
+        setToken(token);
+    } catch {
+        logout();
+        return null;
+    }
+    if (expiresIn() < SKEW_S) {
+        logout();
+        return null;
+    }
     return state.claims;
 }
 
@@ -63,6 +96,7 @@ export const expiresIn = () =>
 export function logout() {
     state.token = null;
     state.claims = null;
+    try { store()?.removeItem(STORE_KEY); } catch { /* nothing to clear */ }
 }
 
 // Called when the token is missing, stale or rejected. Return a fresh token (or

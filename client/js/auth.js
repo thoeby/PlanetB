@@ -45,7 +45,10 @@ export function mountAuth(host, { onChange } = {}) {
     const who = host.querySelector('.auth-who');
     const status = host.querySelector('.auth-status');
     let waiting = null;
-    let hadSession = false;
+    // A token restored from the tab's storage is a session too: without this a
+    // reloaded tab would go quiet instead of asking to sign in again when the
+    // token finally expires.
+    let hadSession = Boolean(api.claims());
     const render = () => onChange?.(renderIdentity(host, form, who));
 
     const say = (msg, bad = false) => {
