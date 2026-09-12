@@ -78,3 +78,44 @@ class ProbeTest(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+WCS_20 = b"""<?xml version="1.0"?>
+<Capabilities xmlns="http://www.opengis.net/wcs/2.0"
+              xmlns:ows="http://www.opengis.net/ows/2.0" version="2.0.1">
+ <Contents><CoverageSummary>
+   <CoverageId>splatworld__dem</CoverageId>
+   <ows:BoundingBox crs="EPSG:2056">
+     <ows:LowerCorner>2633000 1124000</ows:LowerCorner>
+     <ows:UpperCorner>2640000 1130000</ows:UpperCorner>
+   </ows:BoundingBox>
+   <ows:WGS84BoundingBox>
+     <ows:LowerCorner>7.80 46.20</ows:LowerCorner>
+     <ows:UpperCorner>7.90 46.30</ows:UpperCorner>
+   </ows:WGS84BoundingBox>
+ </CoverageSummary></Contents>
+</Capabilities>"""
+
+WCS_20_NATIVE_ONLY = WCS_20.replace(b"ows:WGS84BoundingBox", b"ows:OtherBoundingBox")
+
+
+class ExtentTest(unittest.TestCase):
+    """A coverage in LV95 publishes its own envelope in metres first."""
+
+    def test_the_wgs84_envelope_is_the_one_taken(self):
+        srv, base = serve({"wcs": WCS_20, "wfs": WFS_EMPTY})
+        try:
+            found = geoserver.coverages(base, {})
+        finally:
+            srv.shutdown()
+        self.assertEqual(found[0]["bbox"], [7.8, 46.2, 7.9, 46.3])
+
+    def test_an_envelope_in_metres_is_not_offered_as_lon_lat(self):
+        srv, base = serve({"wcs": WCS_20_NATIVE_ONLY, "wfs": WFS_EMPTY})
+        try:
+            found = geoserver.coverages(base, {})
+        finally:
+            srv.shutdown()
+        # Listed, because it exists; without an extent, because it has none we
+        # can use. The Setup panel only offers coverages that have one.
+        self.assertIsNone(found[0]["bbox"])

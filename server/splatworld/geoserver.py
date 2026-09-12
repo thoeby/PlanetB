@@ -121,35 +121,61 @@ def feature_types(base: str, auth: dict) -> list[dict]:
     raise _nothing_listed("WFS", tried)
 
 
+def _pair(lower: str, upper: str) -> list[float] | None:
+    try:
+        west, south = (float(v) for v in lower.split()[:2])
+        east, north = (float(v) for v in upper.split()[:2])
+    except (ValueError, AttributeError):
+        return None
+    return [west, south, east, north]
+
+
+def _lonlat(box: list[float] | None) -> list[float] | None:
+    """The box, if it is longitude and latitude at all.
+
+    A coverage in LV95 or any other projected CRS publishes its native envelope
+    in metres. Read as lon/lat that is not a small error, it is a world nothing
+    is ever inside — which is exactly what happened: every tile of a Swiss DEM
+    answered "outside the world's coverage" because the extent stored was
+    2633000 1124000.
+    """
+    if not box:
+        return None
+    west, south, east, north = box
+    if abs(west) > 180 or abs(east) > 180 or abs(south) > 90 or abs(north) > 90:
+        return None
+    return box
+
+
 def bbox_of(node) -> list[float] | None:
-    """WGS84BoundingBox (WFS 2.0/WCS 1.1), LatLongBoundingBox or lonLatEnvelope
-    (WCS 1.0). All of them are lon/lat, whatever the service's own CRS is."""
-    lower = first_text(node, "LowerCorner")
-    upper = first_text(node, "UpperCorner")
-    if lower and upper:
-        try:
-            west, south = (float(v) for v in lower.split()[:2])
-            east, north = (float(v) for v in upper.split()[:2])
-            return [west, south, east, north]
-        except ValueError:
-            return None
+    """The coverage's extent in lon/lat, from whichever element carries it.
+
+    In WCS 2.0 a CoverageSummary carries both its native <ows:BoundingBox> and
+    an <ows:WGS84BoundingBox>, in that order, and both hold LowerCorner and
+    UpperCorner. So the WGS84 one is looked for by name first; a bare corner
+    pair is only trusted when it reads as lon/lat.
+    """
     for child in node.iter():
-        # WCS 1.0 puts the extent in <lonLatEnvelope> as two <gml:pos>.
-        if local(child.tag) == "lonLatEnvelope":
-            pos = [c.text for c in child if local(c.tag) == "pos" and c.text]
-            if len(pos) >= 2:
-                try:
-                    west, south = (float(v) for v in pos[0].split()[:2])
-                    east, north = (float(v) for v in pos[1].split()[:2])
-                    return [west, south, east, north]
-                except ValueError:
-                    return None
-        if local(child.tag) in ("LatLongBoundingBox", "WGS84BoundingBox"):
+        tag = local(child.tag)
+        if tag in ("WGS84BoundingBox", "lonLatEnvelope"):
+            corners = [c.text for c in child
+                       if local(c.tag) in ("LowerCorner", "UpperCorner", "pos") and c.text]
+            if len(corners) >= 2:
+                found = _lonlat(_pair(corners[0], corners[1]))
+                if found:
+                    return found
+        if tag == "LatLongBoundingBox":
             try:
-                return [float(child.get(k)) for k in ("minx", "miny", "maxx", "maxy")]
+                found = _lonlat([float(child.get(k))
+                                 for k in ("minx", "miny", "maxx", "maxy")])
             except (TypeError, ValueError):
-                return None
-    return None
+                found = None
+            if found:
+                return found
+
+    # Nothing said WGS84. A corner pair that reads as lon/lat is one anyway;
+    # one that does not is a projected envelope, and this does not guess.
+    return _lonlat(_pair(first_text(node, "LowerCorner"), first_text(node, "UpperCorner")))
 
 
 def coverages(base: str, auth: dict) -> list[dict]:
