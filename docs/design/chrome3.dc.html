@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<div style="position:absolute;inset:0;pointer-events:none;font-family:'Sora',sans-serif;color:#f2efe8;font-size:14px">
+  <div style="position:absolute;inset:0;background:radial-gradient(ellipse at center,transparent 50%,rgba(0,0,0,0.5)),linear-gradient(180deg,rgba(0,0,0,0.35),transparent 20%,transparent 80%,rgba(0,0,0,0.45))"></div>
+  <div style="position:absolute;left:50%;top:50%;width:22px;height:22px;transform:translate(-50%,-50%)">
+    <div style="position:absolute;left:10px;top:0;width:2px;height:6px;background:#f2efe8"></div>
+    <div style="position:absolute;left:10px;bottom:0;width:2px;height:6px;background:#f2efe8"></div>
+    <div style="position:absolute;top:10px;left:0;height:2px;width:6px;background:#f2efe8"></div>
+    <div style="position:absolute;top:10px;right:0;height:2px;width:6px;background:#f2efe8"></div>
+  </div>
+  <div style="position:absolute;top:20px;left:50%;transform:translateX(-50%);display:flex;flex-direction:column;align-items:center;gap:8px">
+    <div style="position:relative;width:520px;height:26px;background:rgba(14,16,20,0.84);backdrop-filter:blur(14px);border:1px solid rgba(255,255,255,0.12);clip-path:polygon(8px 0,100% 0,100% calc(100% - 8px),calc(100% - 8px) 100%,0 100%,0 8px);font-family:'Rajdhani',sans-serif;font-weight:700;font-size:13px;letter-spacing:0.1em">
+      <span style="position:absolute;left:8%;top:4px;color:rgba(242,239,232,0.5)">W</span>
+      <span style="position:absolute;left:23%;top:4px;color:rgba(242,239,232,0.5)">NW</span>
+      <span style="position:absolute;left:39%;top:4px">N</span>
+      <span style="position:absolute;left:54%;top:4px;color:oklch(0.78 0.14 200)">NE</span>
+      <span style="position:absolute;left:70%;top:4px;color:rgba(242,239,232,0.5)">E</span>
+      <span style="position:absolute;left:85%;top:4px;color:rgba(242,239,232,0.5)">SE</span>
+      <span style="position:absolute;left:50%;top:0;width:2px;height:100%;background:oklch(0.78 0.14 200);transform:translateX(-50%)"></span>
+    </div>
+    <div style="font-family:'Rajdhani',sans-serif;font-weight:700;font-size:30px;text-transform:uppercase;letter-spacing:0.12em;text-shadow:0 2px 12px rgba(0,0,0,0.6)">{{ land }}</div>
+    <div style="display:flex;gap:10px;align-items:center;font-size:12px;text-shadow:0 1px 8px rgba(0,0,0,0.7)">
+      <span style="color:rgba(242,239,232,0.75)">Owner <b style="color:#f2efe8;font-weight:600">{{ owner }}</b></span>
+      <span style="width:4px;height:4px;background:rgba(242,239,232,0.5);transform:rotate(45deg)"></span>
+      <span style="padding:3px 10px;font-family:'Rajdhani',sans-serif;font-weight:700;font-size:12px;letter-spacing:0.1em;text-transform:uppercase;background:{{ rightBg }};color:#0b0d10;clip-path:polygon(5px 0,100% 0,100% calc(100% - 5px),calc(100% - 5px) 100%,0 100%,0 5px)">{{ right }}</span>
+      <span style="width:4px;height:4px;background:rgba(242,239,232,0.5);transform:rotate(45deg)"></span>
+      <span style="font-family:'JetBrains Mono',monospace;font-size:11px;color:rgba(242,239,232,0.75)">46.4021N 9.6912E · 1812 m</span>
+    </div>
+  </div>
+  <div style="position:absolute;top:20px;left:24px;display:flex;align-items:center;gap:14px;height:40px;padding:0 16px;background:rgba(14,16,20,0.84);backdrop-filter:blur(14px);border:1px solid rgba(255,255,255,0.12);clip-path:polygon(10px 0,100% 0,100% calc(100% - 10px),calc(100% - 10px) 100%,0 100%,0 10px)">
+    <span style="font-family:'Rajdhani',sans-serif;font-weight:700;font-size:20px;letter-spacing:0.14em;text-transform:uppercase">splatworld</span>
+    <span style="width:1px;height:18px;background:rgba(255,255,255,0.15)"></span>
+    <span style="font-size:12px;color:rgba(242,239,232,0.7)">tobias@wireon.ch</span>
+    <span style="font-family:'Rajdhani',sans-serif;font-weight:700;font-size:11px;letter-spacing:0.12em;text-transform:uppercase;padding:2px 6px;border:1px solid rgba(255,255,255,0.2);color:rgba(242,239,232,0.7)">admin</span>
+  </div>
+  <div style="position:absolute;top:20px;right:24px;display:flex;gap:8px;align-items:stretch">
+    <div style="display:flex;align-items:stretch;background:rgba(14,16,20,0.84);backdrop-filter:blur(14px);border:1px solid rgba(255,255,255,0.12);clip-path:polygon(10px 0,100% 0,100% calc(100% - 10px),calc(100% - 10px) 100%,0 100%,0 10px);padding:0 6px">
+      <sc-for list="{{ stages }}" as="s" hint-placeholder-count="5">
+        <div style="display:flex;flex-direction:column;justify-content:center;height:48px;padding:0 14px 0 18px;min-width:104px;border-right:1px solid rgba(255,255,255,0.08);position:relative">
+          <span style="font-family:'Rajdhani',sans-serif;font-weight:600;font-size:11px;letter-spacing:0.14em;text-transform:uppercase;color:rgba(242,239,232,0.55)">{{ s.label }}</span>
+          <span style="font-family:'Rajdhani',sans-serif;font-weight:700;font-size:22px;line-height:1;color:{{ s.color }}">{{ s.value }}</span>
+          <span style="position:absolute;right:-5px;top:19px;width:10px;height:10px;border-top:1px solid rgba(255,255,255,0.25);border-right:1px solid rgba(255,255,255,0.25);transform:rotate(45deg)"></span>
+        </div>
+      </sc-for>
+    </div>
+    <div style="display:flex;flex-direction:column;justify-content:center;height:48px;padding:0 16px;min-width:120px;background:rgba(14,16,20,0.84);backdrop-filter:blur(14px);border:1px solid rgba(255,255,255,0.12);clip-path:polygon(10px 0,100% 0,100% calc(100% - 10px),calc(100% - 10px) 100%,0 100%,0 10px)">
+      <span style="font-family:'Rajdhani',sans-serif;font-weight:600;font-size:11px;letter-spacing:0.14em;text-transform:uppercase;color:rgba(242,239,232,0.55)">Credits</span>
+      <span style="font-family:'Rajdhani',sans-serif;font-weight:700;font-size:22px;line-height:1;color:oklch(0.78 0.14 200)">248.40</span>
+    </div>
+  </div>
+  <div style="position:absolute;right:24px;bottom:20px;display:flex;flex-direction:column;gap:8px;align-items:flex-end">
+    <div style="display:flex;gap:14px;height:32px;align-items:center;padding:0 14px;background:rgba(14,16,20,0.84);backdrop-filter:blur(14px);border:1px solid rgba(255,255,255,0.12);clip-path:polygon(8px 0,100% 0,100% calc(100% - 8px),calc(100% - 8px) 100%,0 100%,0 8px);font-size:12px;color:rgba(242,239,232,0.7)">
+      <span><b style="color:#f2efe8;font-weight:600">Walk</b> W A S D</span>
+      <span><b style="color:#f2efe8;font-weight:600">Look</b> drag</span>
+      <span><b style="color:#f2efe8;font-weight:600">Fly</b> F</span>
+      <span><b style="color:#f2efe8;font-weight:600">Height</b> scroll</span>
+      <span><b style="color:#f2efe8;font-weight:600">Close panel</b> Esc</span>
+    </div>
+    <div style="position:relative;width:240px;height:240px;background:rgba(14,16,20,0.88);border:1px solid rgba(255,255,255,0.12);clip-path:polygon(12px 0,100% 0,100% calc(100% - 12px),calc(100% - 12px) 100%,0 100%,0 12px);overflow:hidden">
+      <div style="position:absolute;inset:0;background:repeating-linear-gradient(0deg,rgba(255,255,255,0.05) 0 1px,transparent 1px 30px),repeating-linear-gradient(90deg,rgba(255,255,255,0.05) 0 1px,transparent 1px 30px)"></div>
+      <div style="position:absolute;left:40px;top:60px;width:120px;height:90px;background:oklch(0.78 0.14 200 / 0.22);border:1px solid oklch(0.78 0.14 200);transform:rotate(-12deg)"></div>
+      <div style="position:absolute;left:150px;top:40px;width:80px;height:130px;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.25);transform:rotate(8deg)"></div>
+      <div style="position:absolute;left:10px;top:150px;width:70px;height:70px;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.25);transform:rotate(20deg)"></div>
+      <div style="position:absolute;left:96px;top:110px;width:10px;height:10px;background:oklch(0.82 0.16 80);border:2px solid #0b0d10;transform:rotate(45deg)"></div>
+      <div style="position:absolute;left:130px;top:96px;width:8px;height:8px;border-radius:50%;background:oklch(0.78 0.14 200)"></div>
+      <div style="position:absolute;left:114px;top:70px;width:0;height:0;border-left:22px solid transparent;border-right:22px solid transparent;border-bottom:44px solid oklch(0.78 0.14 200 / 0.25);transform:translate(-50%,-100%) rotate(45deg);transform-origin:50% 100%"></div>
+      <div style="position:absolute;left:114px;top:70px;width:10px;height:10px;border-radius:50%;background:#f2efe8;border:2px solid #0b0d10;transform:translate(-50%,-50%)"></div>
+      <div style="position:absolute;left:10px;top:8px;font-family:'Rajdhani',sans-serif;font-weight:600;font-size:11px;letter-spacing:0.14em;text-transform:uppercase;color:rgba(242,239,232,0.55)">Map · 500 m · M</div>
+      <div style="position:absolute;right:10px;bottom:8px;font-family:'Rajdhani',sans-serif;font-weight:600;font-size:11px;letter-spacing:0.14em;text-transform:uppercase;color:oklch(0.78 0.14 200)">Your land</div>
+    </div>
+  </div>
+  <div style="position:absolute;left:50%;bottom:20px;transform:translateX(-50%);display:flex;gap:14px;padding:8px;background:rgba(14,16,20,0.84);backdrop-filter:blur(14px);border:1px solid rgba(255,255,255,0.12);clip-path:polygon(12px 0,100% 0,100% calc(100% - 12px),calc(100% - 12px) 100%,0 100%,0 12px)">
+    <sc-for list="{{ groups }}" as="g" hint-placeholder-count="5">
+      <div style="display:flex;flex-direction:column;gap:4px">
+        <span style="font-family:'Rajdhani',sans-serif;font-weight:600;font-size:10px;letter-spacing:0.16em;text-transform:uppercase;color:rgba(242,239,232,0.4);padding-left:2px">{{ g.name }}</span>
+        <div style="display:flex;gap:6px">
+          <sc-for list="{{ g.tabs }}" as="t" hint-placeholder-count="3">
+            <div style="position:relative;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;width:92px;height:60px;background:{{ t.bg }};border:1px solid {{ t.border }};box-shadow:{{ t.glow }}">
+              <span style="position:absolute;left:5px;top:3px;font-family:'JetBrains Mono',monospace;font-size:10px;color:rgba(242,239,232,0.45)">{{ t.key }}</span>
+              <span style="width:14px;height:14px;background:{{ t.glyph }};clip-path:{{ t.shape }}"></span>
+              <span style="font-family:'Rajdhani',sans-serif;font-weight:700;font-size:12px;letter-spacing:0.08em;text-transform:uppercase;color:{{ t.fg }};text-align:center;line-height:1">{{ t.label }}</span>
+            </div>
+          </sc-for>
+        </div>
+      </div>
+    </sc-for>
+  </div>
+  <div style="position:absolute;left:24px;bottom:20px;display:flex;flex-direction:column;gap:6px;padding:10px 14px;background:rgba(14,16,20,0.84);backdrop-filter:blur(14px);border:1px solid rgba(255,255,255,0.12);clip-path:polygon(8px 0,100% 0,100% calc(100% - 8px),calc(100% - 8px) 100%,0 100%,0 8px);font-size:12px">
+    <span style="display:flex;align-items:center;gap:8px"><span style="width:10px;height:10px;background:oklch(0.78 0.14 200)"></span>Published</span>
+    <span style="display:flex;align-items:center;gap:8px"><span style="width:10px;height:10px;border:2px dashed oklch(0.82 0.16 80);box-sizing:border-box"></span>Candidate · awaiting approval</span>
+    <span style="display:flex;align-items:center;gap:8px"><span style="width:10px;height:10px;border:2px solid rgba(242,239,232,0.7);box-sizing:border-box"></span>Yours · not yet submitted</span>
+    <span style="display:flex;align-items:center;gap:8px"><span style="width:10px;height:10px;border:1px solid oklch(0.8 0.18 25);box-sizing:border-box"></span>No build rights</span>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;active&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;default&quot;:&quot;World&quot;,&quot;options&quot;:[&quot;World&quot;,&quot;Your land&quot;,&quot;Place&quot;,&quot;Catalog&quot;,&quot;Submit&quot;,&quot;Render pool&quot;,&quot;Permission&quot;,&quot;Wallet&quot;,&quot;Share&quot;,&quot;Admin&quot;,&quot;Setup&quot;],&quot;tsType&quot;:&quot;string&quot;},&quot;land&quot;:{&quot;editor&quot;:&quot;text&quot;,&quot;default&quot;:&quot;Maloja Nord&quot;,&quot;tsType&quot;:&quot;string&quot;},&quot;owner&quot;:{&quot;editor&quot;:&quot;text&quot;,&quot;default&quot;:&quot;A. Giacometti&quot;,&quot;tsType&quot;:&quot;string&quot;},&quot;right&quot;:{&quot;editor&quot;:&quot;text&quot;,&quot;default&quot;:&quot;You may build here&quot;,&quot;tsType&quot;:&quot;string&quot;},&quot;placed&quot;:{&quot;editor&quot;:&quot;text&quot;,&quot;default&quot;:&quot;4&quot;,&quot;tsType&quot;:&quot;string&quot;},&quot;inPool&quot;:{&quot;editor&quot;:&quot;text&quot;,&quot;default&quot;:&quot;6 tiles&quot;,&quot;tsType&quot;:&quot;string&quot;},&quot;rendered&quot;:{&quot;editor&quot;:&quot;text&quot;,&quot;default&quot;:&quot;2 / 6&quot;,&quot;tsType&quot;:&quot;string&quot;},&quot;awaiting&quot;:{&quot;editor&quot;:&quot;text&quot;,&quot;default&quot;:&quot;2&quot;,&quot;tsType&quot;:&quot;string&quot;},&quot;published&quot;:{&quot;editor&quot;:&quot;text&quot;,&quot;default&quot;:&quot;38&quot;,&quot;tsType&quot;:&quot;string&quot;}}">
+class Component extends DCLogic {
+  renderVals() {
+    const p = this.props;
+    const active = p.active ?? 'World';
+    const C = 'oklch(0.78 0.14 200)', A = 'oklch(0.82 0.16 80)';
+    const shapes = { World: 'circle(50%)', 'Your land': 'polygon(0 0,100% 0,100% 100%,0 100%)', Place: 'polygon(50% 0,100% 50%,50% 100%,0 50%)', Catalog: 'polygon(0 0,45% 0,45% 45%,0 45%,0 55%,45% 55%,45% 100%,0 100%,0 0,100% 0,100% 45%,55% 45%,55% 0,100% 0,100% 100%,55% 100%,55% 55%,100% 55%)', Submit: 'polygon(50% 0,100% 100%,0 100%)', 'Render pool': 'polygon(25% 0,75% 0,100% 50%,75% 100%,25% 100%,0 50%)', Permission: 'polygon(0 55%,40% 100%,100% 10%,88% 0,40% 78%,12% 43%)', Wallet: 'polygon(0 20%,100% 20%,100% 100%,0 100%)', Share: 'circle(50%)', Admin: 'polygon(50% 0,100% 25%,100% 75%,50% 100%,0 75%,0 25%)', Setup: 'polygon(50% 0,61% 35%,98% 35%,68% 57%,79% 91%,50% 70%,21% 91%,32% 57%,2% 35%,39% 35%)' };
+    const keys = { World: '1', 'Your land': '2', Place: '3', Catalog: '4', Submit: '5', 'Render pool': '6', Permission: '7', Wallet: '8', Share: '9', Admin: '0', Setup: '`' };
+    const mk = label => { const on = label === active; return { label, key: keys[label], shape: shapes[label], bg: on ? 'oklch(0.78 0.14 200 / 0.14)' : 'rgba(255,255,255,0.04)', border: on ? C : 'rgba(255,255,255,0.1)', glow: on ? 'inset 0 0 0 1px ' + C + ', 0 0 18px oklch(0.78 0.14 200 / 0.35)' : 'none', glyph: on ? C : 'rgba(242,239,232,0.7)', fg: on ? '#f2efe8' : 'rgba(242,239,232,0.7)' }; };
+    const groups = [['Look', ['World', 'Share']], ['Build', ['Your land', 'Place', 'Catalog', 'Submit']], ['Economy', ['Render pool', 'Permission', 'Wallet']], ['System', ['Admin', 'Setup']]].map(([name, t]) => ({ name, tabs: t.map(mk) }));
+    const stages = [
+      { label: 'Placed', value: p.placed ?? '4', color: '#f2efe8' },
+      { label: 'In pool', value: p.inPool ?? '6 tiles', color: '#f2efe8' },
+      { label: 'Rendered', value: p.rendered ?? '2 / 6', color: C },
+      { label: 'Awaiting', value: p.awaiting ?? '2', color: A },
+      { label: 'Published', value: p.published ?? '38', color: C },
+    ];
+    const right = p.right ?? 'You may build here';
+    const ok = /may build|You own/.test(right);
+    return { groups, stages, land: p.land ?? 'Maloja Nord', owner: p.owner ?? 'A. Giacometti', right, rightBg: ok ? C : 'oklch(0.7 0.2 25)' };
+  }
+}
+</script>
+</body>
+</html>

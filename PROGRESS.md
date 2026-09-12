@@ -12,6 +12,63 @@ Two acceptances are unrun for want of hardware and are marked as such: WP3.1's
 headset). WP5.1's raster seed has been run over a region, not over the whole of
 Switzerland — the sources for that are outside this container's egress policy.
 
+## The interface, against the design ✅
+
+`docs/SPEC.md` is the product specification and `docs/design/` the design it
+serves — eleven artboards at 1920 × 1080 plus the chrome they all import. Both
+are now in the repo; `docs/design/README.md` maps each part of the design to
+the file that holds it.
+
+The panels were already here and already in the design's language. What the
+design had and the build did not:
+
+| design | what was done |
+|---|---|
+| five-stage pipeline, credits apart | `#pipeline` + `#credits` replace the three stat cards (`client/js/hud.js`, `hud.css`) |
+| hotbar in four named groups, a number key on every tab | `GROUPS`, `TABS.key`, `bindKeys` — 1–0 and `` ` `` open a panel, Escape closes it |
+| a map in the corner | `client/js/hudmap.js`, drawn from the same outlines the Your land panel lists |
+| a panel as wide as what it shows | `TABS.width`, set on `#panel` when a tab opens |
+| the controls line and the legend in full | Run and Close panel; "No build rights" |
+| nothing over the crosshair | the empty-world notice moved above the hotbar |
+| Rajdhani, Sora, JetBrains Mono | `tools/vendor.sh` fetches all three from @fontsource; they were referenced by `hud.css` and never vendored, so the page had been running on the fallback stack |
+
+Two things this build does that neither document does, kept as they are: a
+rendered tile is a **candidate** a person approves (the spec approves before
+rendering), and land is drawn in QGIS rather than assigned by an admin.
+
+### What this container cannot run
+
+`make db-test` (614 assertions, the concurrency run and the edition race),
+`make api-test`, the node suite (189 assertions) and `make lint` are green.
+Eleven browser tests are not, and **none of them is the interface**: they are
+the ones that compile something (assemble, merge, sog, train, catalog's
+canonicalise, background, spot) plus `stream.spec`'s five checkpoints. Checked
+against a worktree of this same commit with none of the interface work in it:
+`merge.spec` and `stream.spec:106` fail there identically, on the same atoms
+and the same tile sets. This box is slower than the one they were written on —
+an assemble atom is still `claimed` when a 150 s poll gives up, and at 5 000 km
+the streamer still has the z6 tile where the test wants its two z8 parents. The
+33 that pass include all four of `hud.spec`.
+
+`make api-test` also fails about one run in two when it follows `db-test` in
+the same `make gate`: the concurrency test leaves 3 360 ready atoms behind and
+`claim_atom` picks globally, so "the claimed atom is the assemble" is handed
+somebody else's `sample`. It passes on its own. That is the trap `HANDOFF.md`
+already warns about, now with a name.
+
+### Two bugs this found
+
+- **No browser test had ever seen the stylesheet.** `client/test/e2e/serve.js`
+  and `services.js` served `.css` as `application/octet-stream`, which a
+  browser refuses to apply — the page then renders complete, correct and
+  entirely unstyled, and every assertion about text still passes.
+  `client/test/e2e/hud.spec.js` now asserts that a rule actually applies, which
+  is the assertion that would have caught it.
+- **`tools/files-test.sh` asserted a rule `db/0051_sharedbytes.sql` had
+  deliberately abandoned** ("PUT of an already registered sha is 403"). That
+  migration allows the same bytes at a second content-addressed path and keeps
+  the refusal for `/jobs/`; the test now says that, and says why.
+
 ## WP0 — Foundation ✅
 
 | task | status | commit | file(s) |

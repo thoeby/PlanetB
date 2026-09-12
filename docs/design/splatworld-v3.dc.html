@@ -1,0 +1,809 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <meta name="design_doc_mode" content="canvas">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@600;700&family=Sora:wght@400;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <style>
+    body{margin:0;background:#0b0d10;font-family:'Sora',sans-serif;color:#f2efe8}
+    a{color:#f2efe8}a:hover{color:oklch(0.78 0.14 200)}
+    *{box-sizing:border-box}
+  </style>
+</helmet>
+
+<section style="display:flex;flex-wrap:wrap;gap:56px;padding:56px;width:max-content;max-width:3960px;font-family:'Sora',sans-serif;color:#f2efe8">
+
+  <div style="width:100%;display:flex;flex-direction:column;gap:10px;max-width:1400px">
+    <div style="font-family:'Rajdhani',sans-serif;font-weight:700;font-size:28px;text-transform:uppercase;letter-spacing:0.1em">Turn 3 · refined against the build</div>
+    <div style="color:rgba(242,239,232,0.7);font-size:15px;line-height:1.5">Same style as v2. Structural changes: the three top-right counters became a five-stage pipeline (Placed → In pool → Rendered → Awaiting → Published) so the route through the app is always visible; the hotbar is grouped (Look · Build · Economy · System) with number keys; Submit and Setup are full screens; Admin is split into Kinds and Rules; each panel starts with the one thing to do next. The centre "nothing compiled yet" message is gone: that state lives in the pipeline and in the Setup panel instead, so the crosshair stays clear.</div>
+  </div>
+
+  <!-- 3a World -->
+  <div id="3a" style="display:flex;flex-direction:column;gap:12px">
+    <div style="display:flex;gap:12px;align-items:baseline;font-size:15px"><a href="#3a" style="font-family:'JetBrains Mono',monospace;font-size:12px;padding:3px 8px;background:oklch(0.78 0.14 200);color:#0b0d10;text-decoration:none">3a</a><span style="font-family:'Rajdhani',sans-serif;font-weight:700;font-size:20px;text-transform:uppercase;letter-spacing:0.08em">World</span><span style="color:rgba(242,239,232,0.6)">pipeline in the HUD, "next step" card, tagged objects, boundary</span></div>
+    <div style="position:relative;width:1920px;height:1080px;overflow:hidden;background:#0b0d10;font-size:14px">
+      <img src="assets/world.webp" alt="" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover">
+      <dc-import name="Chrome3" active="World" hint-size="100%,100%" style="position:absolute;inset:0"></dc-import>
+      <div style="position:absolute;left:760px;top:520px;width:300px;height:110px;border:2px dashed oklch(0.82 0.16 80);border-radius:50%;transform:rotateX(60deg);box-shadow:0 0 30px oklch(0.82 0.16 80 / 0.4)"></div>
+      <div style="position:absolute;left:880px;top:360px;display:flex;flex-direction:column;align-items:flex-start">
+        <div style="background:rgba(14,16,20,0.86);backdrop-filter:blur(14px);border:1px solid oklch(0.82 0.16 80 / 0.6);clip-path:polygon(8px 0,100% 0,100% calc(100% - 8px),calc(100% - 8px) 100%,0 100%,0 8px);padding:10px 14px;display:flex;flex-direction:column;gap:4px;font-size:12px">
+          <div style="display:flex;align-items:center;gap:10px"><span style="font-family:'Rajdhani',sans-serif;font-weight:700;font-size:12px;letter-spacing:0.12em;text-transform:uppercase;color:oklch(0.82 0.16 80)">Candidate</span><span style="font-family:'Rajdhani',sans-serif;font-weight:700;font-size:16px;text-transform:uppercase;letter-spacing:0.04em">3 benches, 1 shelter</span></div>
+          <div style="color:rgba(242,239,232,0.7)">Placed by M. Ruch · rendered 14 min ago · needs 1 of 2 approvers</div>
+          <div style="color:oklch(0.78 0.14 200)">You can decide · press 7</div>
+        </div>
+        <div style="width:1px;height:120px;background:oklch(0.82 0.16 80);margin-left:14px"></div>
+        <div style="width:10px;height:10px;background:oklch(0.82 0.16 80);transform:rotate(45deg);margin-left:9px"></div>
+      </div>
+      <div style="position:absolute;left:1240px;top:610px;display:flex;flex-direction:column;align-items:flex-start">
+        <div style="background:rgba(14,16,20,0.86);backdrop-filter:blur(14px);border:1px solid oklch(0.78 0.14 200 / 0.6);clip-path:polygon(8px 0,100% 0,100% calc(100% - 8px),calc(100% - 8px) 100%,0 100%,0 8px);padding:10px 14px;display:flex;flex-direction:column;gap:4px;font-size:12px">
+          <div style="display:flex;align-items:center;gap:10px"><span style="font-family:'Rajdhani',sans-serif;font-weight:700;font-size:12px;letter-spacing:0.12em;text-transform:uppercase;color:oklch(0.78 0.14 200)">Published</span><span style="font-family:'Rajdhani',sans-serif;font-weight:700;font-size:16px;text-transform:uppercase;letter-spacing:0.04em">Bus shelter</span></div>
+          <div style="color:rgba(242,239,232,0.7)">M. Ruch · approved 12 Aug by A. Giacometti · “Fits the path.”</div>
+        </div>
+        <div style="width:1px;height:60px;background:oklch(0.78 0.14 200);margin-left:14px"></div>
+        <div style="width:10px;height:10px;background:oklch(0.78 0.14 200);transform:rotate(45deg);margin-left:9px"></div>
+      </div>
+      <div style="position:absolute;left:1060px;top:700px;display:flex;flex-direction:column;align-items:flex-start">
+        <div style="background:rgba(14,16,20,0.86);backdrop-filter:blur(14px);border:1px solid oklch(0.7 0.2 25 / 0.6);clip-path:polygon(8px 0,100% 0,100% calc(100% - 8px),calc(100% - 8px) 100%,0 100%,0 8px);padding:10px 14px;display:flex;flex-direction:column;gap:4px;font-size:12px">
+          <div style="font-family:'Rajdhani',sans-serif;font-weight:700;font-size:16px;text-transform:uppercase;letter-spacing:0.04em">Boundary → Silsersee Ost</div>
+          <div style="color:rgba(242,239,232,0.7)">Owner K. Prevost · no build rights for you · ask for a grant</div>
+        </div>
+        <div style="width:1px;height:50px;background:oklch(0.8 0.18 25);margin-left:14px"></div>
+        <div style="width:10px;height:10px;background:oklch(0.8 0.18 25);transform:rotate(45deg);margin-left:9px"></div>
+      </div>
+      <div style="position:absolute;left:24px;top:80px;width:360px;background:rgba(14,16,20,0.86);backdrop-filter:blur(14px);border:1px solid rgba(255,255,255,0.12);clip-path:polygon(10px 0,100% 0,100% calc(100% - 10px),calc(100% - 10px) 100%,0 100%,0 10px);padding:14px 16px;display:flex;flex-direction:column;gap:12px">
+        <div style="display:flex;justify-content:space-between;align-items:baseline"><span style="font-family:'Rajdhani',sans-serif;font-weight:600;font-size:12px;letter-spacing:0.14em;text-transform:uppercase;color:rgba(242,239,232,0.55)">Next on Maloja Nord</span><span style="font-size:11px;color:rgba(242,239,232,0.45)">hide · H</span></div>
+        <div style="display:flex;flex-direction:column;gap:8px;font-size:13px">
+          <div style="display:flex;gap:10px;align-items:center"><span style="width:18px;height:18px;border:1px solid oklch(0.78 0.14 200);background:oklch(0.78 0.14 200);display:inline-flex;align-items:center;justify-content:center;color:#0b0d10;font-size:11px;font-weight:600">✓</span><span style="color:rgba(242,239,232,0.6)">Place</span><span>4 objects placed</span></div>
+          <div style="display:flex;gap:10px;align-items:center"><span style="width:18px;height:18px;border:1px solid oklch(0.82 0.16 80);display:inline-flex;align-items:center;justify-content:center;color:oklch(0.82 0.16 80);font-family:'JetBrains Mono',monospace;font-size:10px">2</span><span style="color:rgba(242,239,232,0.6)">Submit</span><span>6 tiles, nobody else sees them yet</span></div>
+          <div style="display:flex;gap:10px;align-items:center"><span style="width:18px;height:18px;border:1px solid rgba(255,255,255,0.25);display:inline-flex;align-items:center;justify-content:center;color:rgba(242,239,232,0.5);font-family:'JetBrains Mono',monospace;font-size:10px">3</span><span style="color:rgba(242,239,232,0.6)">Render</span><span style="color:rgba(242,239,232,0.6)">pool or your own machine</span></div>
+          <div style="display:flex;gap:10px;align-items:center"><span style="width:18px;height:18px;border:1px solid rgba(255,255,255,0.25);display:inline-flex;align-items:center;justify-content:center;color:rgba(242,239,232,0.5);font-family:'JetBrains Mono',monospace;font-size:10px">4</span><span style="color:rgba(242,239,232,0.6)">Approve</span><span style="color:rgba(242,239,232,0.6)">1 of 2 approvers, then published</span></div>
+        </div>
+        <span style="height:36px;padding:0 16px;background:oklch(0.82 0.16 80);color:#0b0d10;font-family:'Rajdhani',sans-serif;font-weight:700;font-size:14px;letter-spacing:0.08em;text-transform:uppercase;display:inline-flex;align-items:center;align-self:flex-start;clip-path:polygon(6px 0,100% 0,100% calc(100% - 6px),calc(100% - 6px) 100%,0 100%,0 6px)">Submit 6 tiles · 5</span>
+      </div>
+      <div style="position:absolute;left:50%;bottom:116px;transform:translateX(-50%);display:flex;gap:8px;font-size:12px">
+        <span style="height:30px;padding:0 12px;display:inline-flex;align-items:center;background:rgba(14,16,20,0.84);border:1px solid rgba(255,255,255,0.15);clip-path:polygon(6px 0,100% 0,100% calc(100% - 6px),calc(100% - 6px) 100%,0 100%,0 6px)">Click an object: who placed it, who approved it</span>
+        <span style="height:30px;padding:0 12px;display:inline-flex;align-items:center;background:rgba(14,16,20,0.84);border:1px solid rgba(255,255,255,0.15);clip-path:polygon(6px 0,100% 0,100% calc(100% - 6px),calc(100% - 6px) 100%,0 100%,0 6px);font-family:'Rajdhani',sans-serif;font-weight:700;letter-spacing:0.08em;text-transform:uppercase">Hide candidates · C</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- 3b Your land -->
+  <div id="3b" style="display:flex;flex-direction:column;gap:12px">
+    <div style="display:flex;gap:12px;align-items:baseline;font-size:15px"><a href="#3b" style="font-family:'JetBrains Mono',monospace;font-size:12px;padding:3px 8px;background:oklch(0.78 0.14 200);color:#0b0d10;text-decoration:none">3b</a><span style="font-family:'Rajdhani',sans-serif;font-weight:700;font-size:20px;text-transform:uppercase;letter-spacing:0.08em">Your land</span><span style="color:rgba(242,239,232,0.6)">rename, area id · detail level, approvals needed, grants with roles, proposals</span></div>
+    <div style="position:relative;width:1920px;height:1080px;overflow:hidden;background:#0b0d10;font-size:14px">
+      <img src="assets/world.webp" alt="" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover">
+      <dc-import name="Chrome3" active="Your land" right="You own this land" owner="you" hint-size="100%,100%" style="position:absolute;inset:0"></dc-import>
+      <div style="position:absolute;left:24px;top:80px;bottom:130px;width:470px;display:flex;flex-direction:column;background:rgba(14,16,20,0.88);backdrop-filter:blur(14px);border:1px solid rgba(255,255,255,0.12);clip-path:polygon(12px 0,100% 0,100% calc(100% - 12px),calc(100% - 12px) 100%,0 100%,0 12px);overflow:hidden">
+        <div style="padding:18px 20px 14px;display:flex;flex-direction:column;gap:6px;border-bottom:1px solid rgba(255,255,255,0.1)">
+          <div style="display:flex;justify-content:space-between;align-items:center"><span style="font-family:'Rajdhani',sans-serif;font-weight:700;font-size:26px;text-transform:uppercase;letter-spacing:0.08em;line-height:1">Your land</span><span style="font-size:16px;color:rgba(242,239,232,0.5)">✕</span></div>
+          <div style="font-size:12px;color:rgba(242,239,232,0.6)">The ground you own or may build on, and what stands on it.</div>
+        </div>
+        <div style="display:flex;flex-direction:column">
+          <sc-for list="{{ areas }}" as="a" hint-placeholder-count="3">
+            <div style="display:flex;justify-content:space-between;align-items:center;padding:10px 20px;border-bottom:1px solid rgba(255,255,255,0.08);background:{{ a.bg }};border-left:2px solid {{ a.edge }}">
+              <div style="display:flex;flex-direction:column;gap:3px">
+                <div style="font-family:'Rajdhani',sans-serif;font-weight:700;font-size:17px;text-transform:uppercase;letter-spacing:0.04em">{{ a.name }}</div>
+                <div style="font-family:'JetBrains Mono',monospace;font-size:11px;color:rgba(242,239,232,0.55)">{{ a.id }}</div>
+              </div>
+              <div style="display:flex;flex-direction:column;align-items:flex-end;gap:3px;font-size:12px">
+                <span style="font-family:'Rajdhani',sans-serif;font-weight:700;font-size:12px;letter-spacing:0.1em;text-transform:uppercase;color:{{ a.roleColor }}">{{ a.role }}</span>
+                <span style="color:rgba(242,239,232,0.6)">{{ a.objects }}</span>
+              </div>
+            </div>
+          </sc-for>
+        </div>
+        <div style="padding:16px 20px;display:flex;flex-direction:column;gap:16px;overflow:auto">
+          <div style="display:flex;justify-content:space-between;align-items:center">
+            <div style="display:flex;flex-direction:column;gap:2px"><span style="font-family:'Rajdhani',sans-serif;font-weight:600;font-size:12px;letter-spacing:0.14em;text-transform:uppercase;color:rgba(242,239,232,0.55)">Selected area</span><span style="font-family:'Rajdhani',sans-serif;font-weight:700;font-size:20px;text-transform:uppercase;letter-spacing:0.06em;line-height:1">Maloja Nord</span></div>
+            <div style="display:flex;gap:6px"><span style="height:30px;padding:0 10px;border:1px solid rgba(255,255,255,0.2);font-family:'Rajdhani',sans-serif;font-weight:700;font-size:12px;letter-spacing:0.1em;text-transform:uppercase;display:inline-flex;align-items:center">Rename</span><span style="height:30px;padding:0 10px;border:1px solid rgba(255,255,255,0.2);font-family:'Rajdhani',sans-serif;font-weight:700;font-size:12px;letter-spacing:0.1em;text-transform:uppercase;display:inline-flex;align-items:center">Go there</span></div>
+          </div>
+          <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:8px">
+            <div style="padding:10px 12px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.08)"><div style="font-family:'Rajdhani',sans-serif;font-weight:700;font-size:24px;line-height:1;color:oklch(0.78 0.14 200)">38</div><div style="font-size:11px;color:rgba(242,239,232,0.6)">Published</div></div>
+            <div style="padding:10px 12px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.08)"><div style="font-family:'Rajdhani',sans-serif;font-weight:700;font-size:24px;line-height:1;color:oklch(0.82 0.16 80)">2</div><div style="font-size:11px;color:rgba(242,239,232,0.6)">Candidates</div></div>
+            <div style="padding:10px 12px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.08)"><div style="font-family:'Rajdhani',sans-serif;font-weight:700;font-size:24px;line-height:1">4</div><div style="font-size:11px;color:rgba(242,239,232,0.6)">Unsubmitted</div></div>
+            <div style="padding:10px 12px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.08)"><div style="font-family:'Rajdhani',sans-serif;font-weight:700;font-size:24px;line-height:1">1</div><div style="font-size:11px;color:rgba(242,239,232,0.6)">Refused</div></div>
+          </div>
+          <div style="display:flex;flex-direction:column;gap:8px">
+            <div style="display:flex;justify-content:space-between;align-items:center"><span style="font-family:'Rajdhani',sans-serif;font-weight:600;font-size:12px;letter-spacing:0.14em;text-transform:uppercase;color:rgba(242,239,232,0.55)">Approvals needed to publish</span>
+              <div style="display:flex;border:1px solid rgba(255,255,255,0.18)"><span style="width:30px;height:30px;display:inline-flex;align-items:center;justify-content:center;color:rgba(242,239,232,0.6)">−</span><span style="width:36px;height:30px;display:inline-flex;align-items:center;justify-content:center;font-family:'JetBrains Mono',monospace;border-left:1px solid rgba(255,255,255,0.18);border-right:1px solid rgba(255,255,255,0.18)">1</span><span style="width:30px;height:30px;display:inline-flex;align-items:center;justify-content:center;color:rgba(242,239,232,0.6)">+</span></div>
+            </div>
+            <div style="font-size:12px;color:rgba(242,239,232,0.6)">Any 1 of your 2 approvers publishes a candidate. Set to 0 and direct editors publish without review.</div>
+          </div>
+          <div style="display:flex;flex-direction:column;gap:8px">
+            <div style="font-family:'Rajdhani',sans-serif;font-weight:600;font-size:12px;letter-spacing:0.14em;text-transform:uppercase;color:rgba(242,239,232,0.55)">People on this area</div>
+            <sc-for list="{{ people }}" as="q" hint-placeholder-count="4">
+              <div style="display:flex;justify-content:space-between;align-items:center;font-size:13px;padding:6px 0;border-bottom:1px solid rgba(255,255,255,0.06)">
+                <span>{{ q.who }}</span>
+                <div style="display:flex;gap:10px;align-items:center"><span style="font-family:'Rajdhani',sans-serif;font-weight:700;font-size:12px;letter-spacing:0.1em;text-transform:uppercase;color:{{ q.color }}">{{ q.role }}</span><span style="font-size:12px;color:rgba(242,239,232,0.5)">{{ q.until }}</span></div>
+              </div>
+            </sc-for>
+            <div style="display:grid;grid-template-columns:1fr 130px 90px;gap:8px">
+              <div style="height:38px;border:1px solid rgba(255,255,255,0.18);background:rgba(255,255,255,0.04);display:flex;align-items:center;padding:0 12px;font-size:13px;color:rgba(242,239,232,0.45)">email</div>
+              <div style="height:38px;border:1px solid rgba(255,255,255,0.18);background:rgba(255,255,255,0.04);display:flex;align-items:center;justify-content:space-between;padding:0 12px;font-size:13px">Propose <span style="color:rgba(242,239,232,0.5)">▾</span></div>
+              <span style="height:38px;background:oklch(0.78 0.14 200);color:#0b0d10;font-family:'Rajdhani',sans-serif;font-weight:700;font-size:14px;letter-spacing:0.08em;text-transform:uppercase;display:inline-flex;align-items:center;justify-content:center;clip-path:polygon(6px 0,100% 0,100% calc(100% - 6px),calc(100% - 6px) 100%,0 100%,0 6px)">Grant</span>
+            </div>
+            <div style="font-size:12px;color:rgba(242,239,232,0.6)"><b style="color:#f2efe8;font-weight:600">Propose</b> places candidates that need approval · <b style="color:#f2efe8;font-weight:600">Direct edit</b> publishes without it · <b style="color:#f2efe8;font-weight:600">Approve</b> decides on candidates.</div>
+          </div>
+          <div style="display:flex;flex-direction:column;gap:8px">
+            <div style="font-family:'Rajdhani',sans-serif;font-weight:600;font-size:12px;letter-spacing:0.14em;text-transform:uppercase;color:rgba(242,239,232,0.55)">Proposals on this area</div>
+            <div style="display:flex;justify-content:space-between;font-size:13px"><span>C-2291 · 3 benches, 1 shelter · M. Ruch</span><span style="color:oklch(0.82 0.16 80)">awaiting you</span></div>
+            <div style="display:flex;justify-content:space-between;font-size:13px"><span>C-2304 · Ski lift base station · you</span><span style="color:oklch(0.82 0.16 80)">awaiting L. Fasser</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 3c Place -->
+  <div id="3c" style="display:flex;flex-direction:column;gap:12px">
+    <div style="display:flex;gap:12px;align-items:baseline;font-size:15px"><a href="#3c" style="font-family:'JetBrains Mono',monospace;font-size:12px;padding:3px 8px;background:oklch(0.78 0.14 200);color:#0b0d10;text-decoration:none">3c</a><span style="font-family:'Rajdhani',sans-serif;font-weight:700;font-size:20px;text-transform:uppercase;letter-spacing:0.08em">Place</span><span style="color:rgba(242,239,232,0.6)">build mode, selection, move / turn / size with axis + step + snap, undo, catalog quick pick</span></div>
+    <div style="position:relative;width:1920px;height:1080px;overflow:hidden;background:#0b0d10;font-size:14px">
+      <img src="assets/world.webp" alt="" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover">
+      <dc-import name="Chrome3" active="Place" hint-size="100%,100%" style="position:absolute;inset:0"></dc-import>
+      <div style="position:absolute;inset:0;border:3px solid oklch(0.78 0.14 200 / 0.5);pointer-events:none"></div>
+      <div style="position:absolute;left:50%;top:186px;transform:translateX(-50%);padding:4px 12px;background:oklch(0.78 0.14 200);color:#0b0d10;font-family:'Rajdhani',sans-serif;font-weight:700;font-size:12px;letter-spacing:0.14em;text-transform:uppercase;clip-path:polygon(5px 0,100% 0,100% calc(100% - 5px),calc(100% - 5px) 100%,0 100%,0 5px)">Build mode · click the ground to drop · Esc to leave</div>
+      <div style="position:absolute;left:1000px;top:620px;width:260px;height:96px;border:2px solid oklch(0.78 0.14 200);border-radius:50%;transform:rotateX(60deg);box-shadow:0 0 0 8px oklch(0.78 0.14 200 / 0.15),0 0 40px oklch(0.78 0.14 200 / 0.5)"></div>
+      <div style="position:absolute;left:1129px;top:520px;width:2px;height:90px;background:oklch(0.78 0.14 200)"></div>
+      <div style="position:absolute;left:1122px;top:508px;width:16px;height:16px;background:oklch(0.78 0.14 200);transform:rotate(45deg)"></div>
+      <div style="position:absolute;left:1000px;top:668px;width:400px;height:2px;background:oklch(0.8 0.18 25);transform:rotate(-8deg)"></div>
+      <div style="position:absolute;left:1150px;top:500px;background:rgba(14,16,20,0.86);backdrop-filter:blur(14px);border:1px solid oklch(0.78 0.14 200 / 0.6);clip-path:polygon(8px 0,100% 0,100% calc(100% - 8px),calc(100% - 8px) 100%,0 100%,0 8px);padding:8px 12px;font-size:12px;display:flex;flex-direction:column;gap:3px">
+        <span style="font-family:'Rajdhani',sans-serif;font-weight:700;font-size:16px;text-transform:uppercase;letter-spacing:0.04em">Bench, oak · selected</span>
+        <span style="color:rgba(242,239,232,0.7)">Red line: X axis · drag to move · Shift for fine steps</span>
+      </div>
+      <div style="position:absolute;left:24px;top:80px;bottom:130px;width:470px;display:flex;flex-direction:column;background:rgba(14,16,20,0.88);backdrop-filter:blur(14px);border:1px solid rgba(255,255,255,0.12);clip-path:polygon(12px 0,100% 0,100% calc(100% - 12px),calc(100% - 12px) 100%,0 100%,0 12px);overflow:hidden">
+        <div style="padding:18px 20px 14px;display:flex;flex-direction:column;gap:12px;border-bottom:1px solid rgba(255,255,255,0.1)">
+          <div style="display:flex;justify-content:space-between;align-items:center">
+            <span style="font-family:'Rajdhani',sans-serif;font-weight:700;font-size:26px;text-transform:uppercase;letter-spacing:0.08em;line-height:1">Place</span>
+            <div style="display:flex;align-items:center;gap:8px;font-size:12px"><span>Build mode</span><span style="width:36px;height:18px;background:oklch(0.78 0.14 200);position:relative"><span style="position:absolute;right:2px;top:2px;width:12px;height:12px;background:#0b0d10"></span></span></div>
+          </div>
+          <div style="display:flex;gap:8px">
+            <div style="flex:1;height:38px;border:1px solid rgba(255,255,255,0.18);background:rgba(255,255,255,0.04);display:flex;align-items:center;padding:0 12px;font-size:13px;color:rgba(242,239,232,0.45)">Search the catalog to pick a product…</div>
+            <span style="height:38px;padding:0 12px;border:1px solid rgba(255,255,255,0.25);font-family:'Rajdhani',sans-serif;font-weight:700;font-size:13px;letter-spacing:0.08em;text-transform:uppercase;display:inline-flex;align-items:center">Catalog · 4</span>
+          </div>
+          <div style="display:flex;gap:6px">
+            <sc-for list="{{ recent }}" as="r" hint-placeholder-count="4">
+              <div style="display:flex;flex-direction:column;gap:4px;width:100px;padding:6px;background:{{ r.bg }};border:1px solid {{ r.border }}">
+                <div style="height:44px;background:repeating-linear-gradient(135deg,#2a2e35 0 6px,#1f232a 6px 12px)"></div>
+                <span style="font-size:11px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ r.name }}</span>
+              </div>
+            </sc-for>
+          </div>
+        </div>
+        <div style="padding:14px 20px;display:flex;flex-direction:column;gap:14px;border-bottom:1px solid rgba(255,255,255,0.1)">
+          <div style="display:flex;justify-content:space-between;align-items:center">
+            <div style="display:flex;flex-direction:column;gap:2px"><span style="font-family:'Rajdhani',sans-serif;font-weight:600;font-size:12px;letter-spacing:0.14em;text-transform:uppercase;color:rgba(242,239,232,0.55)">Selected</span><span style="font-family:'Rajdhani',sans-serif;font-weight:700;font-size:18px;text-transform:uppercase;letter-spacing:0.04em;line-height:1">Bench, oak · 3 of 4 unsubmitted</span></div>
+            <div style="display:flex;gap:6px"><span style="height:30px;padding:0 10px;border:1px solid rgba(255,255,255,0.2);font-family:'Rajdhani',sans-serif;font-weight:700;font-size:12px;letter-spacing:0.1em;text-transform:uppercase;display:inline-flex;align-items:center">Duplicate</span><span style="height:30px;padding:0 10px;border:1px solid oklch(0.7 0.2 25);color:oklch(0.8 0.18 25);font-family:'Rajdhani',sans-serif;font-weight:700;font-size:12px;letter-spacing:0.1em;text-transform:uppercase;display:inline-flex;align-items:center">Delete</span></div>
+          </div>
+          <div style="display:flex;border:1px solid rgba(255,255,255,0.18);font-family:'Rajdhani',sans-serif;font-weight:700;font-size:14px;letter-spacing:0.1em;text-transform:uppercase">
+            <span style="flex:1;height:36px;display:inline-flex;align-items:center;justify-content:center;gap:6px;background:oklch(0.78 0.14 200);color:#0b0d10">Move <span style="font-family:'JetBrains Mono',monospace;font-size:10px;opacity:0.7">G</span></span>
+            <span style="flex:1;height:36px;display:inline-flex;align-items:center;justify-content:center;gap:6px;border-left:1px solid rgba(255,255,255,0.18)">Turn <span style="font-family:'JetBrains Mono',monospace;font-size:10px;opacity:0.5">R</span></span>
+            <span style="flex:1;height:36px;display:inline-flex;align-items:center;justify-content:center;gap:6px;border-left:1px solid rgba(255,255,255,0.18)">Size <span style="font-family:'JetBrains Mono',monospace;font-size:10px;opacity:0.5">T</span></span>
+          </div>
+          <div style="display:grid;grid-template-columns:auto 1fr auto;gap:10px;align-items:center">
+            <div style="display:flex;border:1px solid rgba(255,255,255,0.18);font-family:'Rajdhani',sans-serif;font-weight:700;font-size:13px;letter-spacing:0.1em">
+              <span style="width:38px;height:32px;display:inline-flex;align-items:center;justify-content:center;background:oklch(0.7 0.2 25);color:#0b0d10">X</span>
+              <span style="width:38px;height:32px;display:inline-flex;align-items:center;justify-content:center;border-left:1px solid rgba(255,255,255,0.18);color:oklch(0.8 0.15 145)">UP</span>
+              <span style="width:38px;height:32px;display:inline-flex;align-items:center;justify-content:center;border-left:1px solid rgba(255,255,255,0.18);color:oklch(0.78 0.14 255)">Z</span>
+            </div>
+            <div style="display:flex;border:1px solid rgba(255,255,255,0.18);font-family:'JetBrains Mono',monospace;font-size:12px">
+              <span style="width:34px;height:32px;display:inline-flex;align-items:center;justify-content:center">−</span>
+              <span style="flex:1;height:32px;display:inline-flex;align-items:center;justify-content:center;border-left:1px solid rgba(255,255,255,0.18);border-right:1px solid rgba(255,255,255,0.18)">step 0.10 m</span>
+              <span style="width:34px;height:32px;display:inline-flex;align-items:center;justify-content:center">+</span>
+            </div>
+            <div style="display:flex;align-items:center;gap:8px;font-size:12px"><span style="width:36px;height:18px;background:oklch(0.78 0.14 200);position:relative"><span style="position:absolute;right:2px;top:2px;width:12px;height:12px;background:#0b0d10"></span></span>Snap</div>
+          </div>
+          <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px">
+            <div style="display:flex;flex-direction:column;gap:4px"><span style="font-family:'Rajdhani',sans-serif;font-weight:600;font-size:11px;letter-spacing:0.14em;text-transform:uppercase;color:rgba(242,239,232,0.55)">East</span><div style="height:36px;border:1px solid rgba(255,255,255,0.18);background:rgba(255,255,255,0.04);display:flex;align-items:center;padding:0 10px;font-family:'JetBrains Mono',monospace;font-size:12px">2 774 312.4</div></div>
+            <div style="display:flex;flex-direction:column;gap:4px"><span style="font-family:'Rajdhani',sans-serif;font-weight:600;font-size:11px;letter-spacing:0.14em;text-transform:uppercase;color:rgba(242,239,232,0.55)">North</span><div style="height:36px;border:1px solid rgba(255,255,255,0.18);background:rgba(255,255,255,0.04);display:flex;align-items:center;padding:0 10px;font-family:'JetBrains Mono',monospace;font-size:12px">1 142 880.9</div></div>
+            <div style="display:flex;flex-direction:column;gap:4px"><span style="font-family:'Rajdhani',sans-serif;font-weight:600;font-size:11px;letter-spacing:0.14em;text-transform:uppercase;color:rgba(242,239,232,0.55)">Above ground</span><div style="height:36px;border:1px solid rgba(255,255,255,0.18);background:rgba(255,255,255,0.04);display:flex;align-items:center;padding:0 10px;font-family:'JetBrains Mono',monospace;font-size:12px">0.00 m</div></div>
+          </div>
+          <div style="display:flex;flex-direction:column;gap:6px">
+            <div style="display:flex;justify-content:space-between"><span style="font-family:'Rajdhani',sans-serif;font-weight:600;font-size:11px;letter-spacing:0.14em;text-transform:uppercase;color:rgba(242,239,232,0.55)">Turn</span><span style="font-family:'JetBrains Mono',monospace;font-size:12px;color:oklch(0.78 0.14 200)">124°</span></div>
+            <div style="height:4px;background:rgba(255,255,255,0.12);position:relative"><div style="position:absolute;left:0;top:0;width:34%;height:100%;background:oklch(0.78 0.14 200)"></div><div style="position:absolute;left:34%;top:-6px;width:16px;height:16px;background:#f2efe8;transform:translateX(-50%) rotate(45deg)"></div></div>
+          </div>
+          <div style="display:flex;flex-direction:column;gap:6px">
+            <div style="display:flex;justify-content:space-between"><span style="font-family:'Rajdhani',sans-serif;font-weight:600;font-size:11px;letter-spacing:0.14em;text-transform:uppercase;color:rgba(242,239,232,0.55)">Size · maker allows 0.8× – 1.5×</span><span style="font-family:'JetBrains Mono',monospace;font-size:12px;color:oklch(0.78 0.14 200)">1.00× · 1.8 × 0.6 × 0.9 m</span></div>
+            <div style="height:4px;background:rgba(255,255,255,0.12);position:relative"><div style="position:absolute;left:0;top:0;width:28%;height:100%;background:oklch(0.78 0.14 200)"></div><div style="position:absolute;left:28%;top:-6px;width:16px;height:16px;background:#f2efe8;transform:translateX(-50%) rotate(45deg)"></div></div>
+          </div>
+        </div>
+        <div style="padding:12px 20px;display:flex;gap:8px;align-items:center;border-bottom:1px solid rgba(255,255,255,0.1)">
+          <span style="height:34px;padding:0 12px;border:1px solid rgba(255,255,255,0.25);font-family:'Rajdhani',sans-serif;font-weight:700;font-size:13px;letter-spacing:0.08em;text-transform:uppercase;display:inline-flex;align-items:center;gap:6px">Undo <span style="font-family:'JetBrains Mono',monospace;font-size:10px;opacity:0.6">3 · Ctrl Z</span></span>
+          <span style="height:34px;padding:0 12px;border:1px solid rgba(255,255,255,0.25);font-family:'Rajdhani',sans-serif;font-weight:700;font-size:13px;letter-spacing:0.08em;text-transform:uppercase;display:inline-flex;align-items:center;opacity:0.5">Redo</span>
+          <span style="margin-left:auto;font-size:12px;color:rgba(242,239,232,0.6)">Only you see these until submitted</span>
+        </div>
+        <div style="margin-top:auto;padding:14px 20px;display:flex;justify-content:space-between;align-items:center;gap:12px">
+          <div style="font-size:13px"><b style="font-weight:600">4 objects · 6 tiles</b> <span style="color:rgba(242,239,232,0.6)">placed, not submitted</span></div>
+          <span style="height:38px;padding:0 16px;background:oklch(0.82 0.16 80);color:#0b0d10;font-family:'Rajdhani',sans-serif;font-weight:700;font-size:15px;letter-spacing:0.08em;text-transform:uppercase;display:inline-flex;align-items:center;clip-path:polygon(6px 0,100% 0,100% calc(100% - 6px),calc(100% - 6px) 100%,0 100%,0 6px)">Submit · 5</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 3d Catalog -->
+  <div id="3d" style="display:flex;flex-direction:column;gap:12px">
+    <div style="display:flex;gap:12px;align-items:baseline;font-size:15px"><a href="#3d" style="font-family:'JetBrains Mono',monospace;font-size:12px;padding:3px 8px;background:oklch(0.78 0.14 200);color:#0b0d10;text-decoration:none">3d</a><span style="font-family:'Rajdhani',sans-serif;font-weight:700;font-size:20px;text-transform:uppercase;letter-spacing:0.08em">Catalog</span><span style="color:rgba(242,239,232,0.6)">browse with kind · licence · maker filters; register a product (GLB, kind, licence, price, editions)</span></div>
+    <div style="position:relative;width:1920px;height:1080px;overflow:hidden;background:#0b0d10;font-size:14px">
+      <img src="assets/world.webp" alt="" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover">
+      <dc-import name="Chrome3" active="Catalog" hint-size="100%,100%" style="position:absolute;inset:0"></dc-import>
+      <div style="position:absolute;left:24px;top:80px;bottom:130px;width:666px;display:flex;flex-direction:column;background:rgba(14,16,20,0.88);backdrop-filter:blur(14px);border:1px solid rgba(255,255,255,0.12);clip-path:polygon(12px 0,100% 0,100% calc(100% - 12px),calc(100% - 12px) 100%,0 100%,0 12px);overflow:hidden">
+        <div style="padding:18px 20px 12px;display:flex;flex-direction:column;gap:12px;border-bottom:1px solid rgba(255,255,255,0.1)">
+          <div style="display:flex;justify-content:space-between;align-items:center">
+            <div style="display:flex;align-items:baseline;gap:12px"><span style="font-family:'Rajdhani',sans-serif;font-weight:700;font-size:26px;text-transform:uppercase;letter-spacing:0.08em;line-height:1">Catalog</span><span style="color:rgba(242,239,232,0.6);font-size:12px">12,480 products anyone may build with</span></div>
+            <span style="height:34px;padding:0 14px;border:1px solid oklch(0.78 0.14 200);color:oklch(0.78 0.14 200);font-family:'Rajdhani',sans-serif;font-weight:700;font-size:13px;letter-spacing:0.08em;text-transform:uppercase;display:inline-flex;align-items:center">Register yours →</span>
+          </div>
+          <div style="height:38px;border:1px solid rgba(255,255,255,0.18);background:rgba(255,255,255,0.04);display:flex;align-items:center;padding:0 12px;color:rgba(242,239,232,0.45);font-size:13px">Search by name, maker or property</div>
+          <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:8px">
+            <div style="display:flex;flex-direction:column;gap:4px"><span style="font-family:'Rajdhani',sans-serif;font-weight:600;font-size:11px;letter-spacing:0.14em;text-transform:uppercase;color:rgba(242,239,232,0.55)">Kind of thing</span><div style="height:34px;border:1px solid rgba(255,255,255,0.18);background:rgba(255,255,255,0.04);display:flex;align-items:center;justify-content:space-between;padding:0 10px;font-size:13px">Any <span style="color:rgba(242,239,232,0.5)">▾</span></div></div>
+            <div style="display:flex;flex-direction:column;gap:4px"><span style="font-family:'Rajdhani',sans-serif;font-weight:600;font-size:11px;letter-spacing:0.14em;text-transform:uppercase;color:rgba(242,239,232,0.55)">Licence</span><div style="height:34px;border:1px solid rgba(255,255,255,0.18);background:rgba(255,255,255,0.04);display:flex;align-items:center;justify-content:space-between;padding:0 10px;font-size:13px">Any <span style="color:rgba(242,239,232,0.5)">▾</span></div></div>
+            <div style="display:flex;flex-direction:column;gap:4px"><span style="font-family:'Rajdhani',sans-serif;font-weight:600;font-size:11px;letter-spacing:0.14em;text-transform:uppercase;color:rgba(242,239,232,0.55)">Price</span><div style="height:34px;border:1px solid rgba(255,255,255,0.18);background:rgba(255,255,255,0.04);display:flex;align-items:center;justify-content:space-between;padding:0 10px;font-size:13px">Free + paid <span style="color:rgba(242,239,232,0.5)">▾</span></div></div>
+            <div style="display:flex;flex-direction:column;gap:4px"><span style="font-family:'Rajdhani',sans-serif;font-weight:600;font-size:11px;letter-spacing:0.14em;text-transform:uppercase;color:rgba(242,239,232,0.55)">Sort</span><div style="height:34px;border:1px solid rgba(255,255,255,0.18);background:rgba(255,255,255,0.04);display:flex;align-items:center;justify-content:space-between;padding:0 10px;font-size:13px">Most placed <span style="color:rgba(242,239,232,0.5)">▾</span></div></div>
+          </div>
+        </div>
+        <div style="padding:16px 20px;display:grid;grid-template-columns:repeat(3,1fr);gap:12px;overflow:auto">
+          <sc-for list="{{ products }}" as="p" hint-placeholder-count="6">
+            <div style="display:flex;flex-direction:column;gap:8px;padding:10px;background:rgba(255,255,255,0.05);border:1px solid {{ p.border }};box-shadow:{{ p.glow }}">
+              <div style="height:110px;background:repeating-linear-gradient(135deg,#2a2e35 0 6px,#1f232a 6px 12px);display:flex;align-items:center;justify-content:center;font-family:'JetBrains Mono',monospace;font-size:11px;color:rgba(242,239,232,0.5)">model thumbnail</div>
+              <div style="display:flex;flex-direction:column;gap:2px">
+                <div style="font-family:'Rajdhani',sans-serif;font-weight:700;font-size:17px;text-transform:uppercase;letter-spacing:0.04em;line-height:1.1">{{ p.name }}</div>
+                <div style="font-size:12px;color:rgba(242,239,232,0.6)">{{ p.maker }} · {{ p.kind }}</div>
+              </div>
+              <div style="display:flex;justify-content:space-between;font-size:12px"><span style="color:rgba(242,239,232,0.6)">{{ p.licence }}</span><span style="font-family:'JetBrains Mono',monospace;color:oklch(0.78 0.14 200)">{{ p.price }}</span></div>
+            </div>
+          </sc-for>
+        </div>
+        <div style="margin-top:auto;padding:10px 20px;border-top:1px solid rgba(255,255,255,0.1);font-size:12px;color:rgba(242,239,232,0.6);display:flex;justify-content:space-between"><span>Showing 1–6 of 12,480 · click a product to place it</span><span>Page 1 · Next ›</span></div>
+      </div>
+      <div style="position:absolute;right:24px;top:130px;bottom:310px;width:440px;display:flex;flex-direction:column;background:rgba(14,16,20,0.88);backdrop-filter:blur(14px);border:1px solid rgba(255,255,255,0.12);clip-path:polygon(12px 0,100% 0,100% calc(100% - 12px),calc(100% - 12px) 100%,0 100%,0 12px);overflow:hidden">
+        <div style="display:flex;border-bottom:1px solid rgba(255,255,255,0.1);font-family:'Rajdhani',sans-serif;font-weight:700;font-size:14px;letter-spacing:0.1em;text-transform:uppercase">
+          <span style="flex:1;height:44px;display:inline-flex;align-items:center;justify-content:center;color:rgba(242,239,232,0.6)">Product · Bench, oak</span>
+          <span style="flex:1;height:44px;display:inline-flex;align-items:center;justify-content:center;border-bottom:2px solid oklch(0.78 0.14 200);color:oklch(0.78 0.14 200)">Register a product</span>
+        </div>
+        <div style="padding:16px 20px;display:flex;flex-direction:column;gap:14px;overflow:auto;font-size:13px">
+          <div style="display:flex;flex-direction:column;gap:6px">
+            <span style="font-family:'Rajdhani',sans-serif;font-weight:600;font-size:12px;letter-spacing:0.14em;text-transform:uppercase;color:rgba(242,239,232,0.55)">1 · Model</span>
+            <div style="height:150px;border:1px dashed rgba(255,255,255,0.3);background:rgba(255,255,255,0.03);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;text-align:center;padding:12px">
+              <span style="font-family:'Rajdhani',sans-serif;font-weight:700;font-size:15px;letter-spacing:0.08em;text-transform:uppercase">Drop a .glb here or browse</span>
+              <span style="font-size:12px;color:rgba(242,239,232,0.6)">The model is normalised: flattened, re-centred, sorted, extensions dropped. Its catalogue number comes from the result, so the same model uploaded twice is one entry.</span>
+            </div>
+            <div style="display:flex;gap:10px;align-items:center;padding:8px 10px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.08)">
+              <div style="width:56px;height:56px;background:repeating-linear-gradient(135deg,#2a2e35 0 6px,#1f232a 6px 12px)"></div>
+              <div style="display:flex;flex-direction:column;gap:2px;flex:1"><span style="font-family:'JetBrains Mono',monospace;font-size:12px">bench_oak_v3.glb · 1.2 MB</span><span style="font-size:12px;color:oklch(0.78 0.14 200)">Normalised · 1.8 × 0.6 × 0.9 m · new entry</span></div>
+            </div>
+          </div>
+          <div style="display:flex;flex-direction:column;gap:6px">
+            <span style="font-family:'Rajdhani',sans-serif;font-weight:600;font-size:12px;letter-spacing:0.14em;text-transform:uppercase;color:rgba(242,239,232,0.55)">2 · Name and kind</span>
+            <div style="height:38px;border:1px solid rgba(255,255,255,0.18);background:rgba(255,255,255,0.04);display:flex;align-items:center;padding:0 12px">Bench, oak</div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+              <div style="height:38px;border:1px solid rgba(255,255,255,0.18);background:rgba(255,255,255,0.04);display:flex;align-items:center;justify-content:space-between;padding:0 12px">Furniture (prop) <span style="color:rgba(242,239,232,0.5)">▾</span></div>
+              <div style="height:38px;border:1px solid rgba(255,255,255,0.18);background:rgba(255,255,255,0.04);display:flex;align-items:center;justify-content:space-between;padding:0 12px">CC0 <span style="color:rgba(242,239,232,0.5)">▾</span></div>
+            </div>
+            <div style="font-size:12px;color:rgba(242,239,232,0.6)">Kind decides which admin-defined properties (Material, Seats) the product must fill in.</div>
+          </div>
+          <div style="display:flex;flex-direction:column;gap:6px">
+            <span style="font-family:'Rajdhani',sans-serif;font-weight:600;font-size:12px;letter-spacing:0.14em;text-transform:uppercase;color:rgba(242,239,232,0.55)">3 · Price and editions</span>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+              <div style="display:flex;flex-direction:column;gap:4px"><div style="height:38px;border:1px solid rgba(255,255,255,0.18);background:rgba(255,255,255,0.04);display:flex;align-items:center;justify-content:space-between;padding:0 12px;font-family:'JetBrains Mono',monospace;font-size:12px">0.00 <span style="color:rgba(242,239,232,0.5)">cr per placement</span></div><span style="font-size:11px;color:rgba(242,239,232,0.5)">0 = free to place</span></div>
+              <div style="display:flex;flex-direction:column;gap:4px"><div style="height:38px;border:1px solid rgba(255,255,255,0.18);background:rgba(255,255,255,0.04);display:flex;align-items:center;justify-content:space-between;padding:0 12px;font-family:'JetBrains Mono',monospace;font-size:12px">∞ <span style="color:rgba(242,239,232,0.5)">editions</span></div><span style="font-size:11px;color:rgba(242,239,232,0.5)">blank = unlimited</span></div>
+            </div>
+          </div>
+          <div style="display:flex;gap:8px;padding-top:4px">
+            <span style="height:40px;padding:0 18px;background:oklch(0.78 0.14 200);color:#0b0d10;font-family:'Rajdhani',sans-serif;font-weight:700;font-size:15px;letter-spacing:0.08em;text-transform:uppercase;display:inline-flex;align-items:center;clip-path:polygon(6px 0,100% 0,100% calc(100% - 6px),calc(100% - 6px) 100%,0 100%,0 6px)">Register</span>
+            <span style="height:40px;padding:0 18px;border:1px solid rgba(255,255,255,0.25);font-family:'Rajdhani',sans-serif;font-weight:700;font-size:15px;letter-spacing:0.08em;text-transform:uppercase;display:inline-flex;align-items:center">Register and place</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 3e Submit -->
+  <div id="3e" style="display:flex;flex-direction:column;gap:12px">
+    <div style="display:flex;gap:12px;align-items:baseline;font-size:15px"><a href="#3e" style="font-family:'JetBrains Mono',monospace;font-size:12px;padding:3px 8px;background:oklch(0.78 0.14 200);color:#0b0d10;text-decoration:none">3e</a><span style="font-family:'Rajdhani',sans-serif;font-weight:700;font-size:20px;text-transform:uppercase;letter-spacing:0.08em">Submit</span><span style="color:rgba(242,239,232,0.6)">which land, tile map with states, pay per tile with a pool reference, total, submit or render yourself</span></div>
+    <div style="position:relative;width:1920px;height:1080px;overflow:hidden;background:#0b0d10;font-size:14px">
+      <img src="assets/world.webp" alt="" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover">
+      <dc-import name="Chrome3" active="Submit" hint-size="100%,100%" style="position:absolute;inset:0"></dc-import>
+      <div style="position:absolute;left:640px;top:480px;width:900px;height:360px;transform:rotateX(62deg) skewX(-14deg);display:grid;grid-template-columns:repeat(4,1fr);grid-template-rows:repeat(2,1fr);gap:4px">
+        <div style="border:2px solid rgba(242,239,232,0.7);background:rgba(242,239,232,0.08)"></div>
+        <div style="border:2px solid rgba(242,239,232,0.7);background:rgba(242,239,232,0.08)"></div>
+        <div style="border:2px solid oklch(0.78 0.14 200);background:oklch(0.78 0.14 200 / 0.2)"></div>
+        <div style="border:2px solid oklch(0.78 0.14 200);background:oklch(0.78 0.14 200 / 0.2)"></div>
+        <div style="border:2px solid rgba(242,239,232,0.7);background:rgba(242,239,232,0.08)"></div>
+        <div style="border:2px solid rgba(242,239,232,0.7);background:rgba(242,239,232,0.08)"></div>
+        <div style="border:2px solid rgba(242,239,232,0.7);background:rgba(242,239,232,0.08)"></div>
+        <div style="border:2px solid rgba(242,239,232,0.7);background:rgba(242,239,232,0.08)"></div>
+      </div>
+      <div style="position:absolute;left:24px;top:80px;bottom:130px;width:470px;display:flex;flex-direction:column;background:rgba(14,16,20,0.88);backdrop-filter:blur(14px);border:1px solid rgba(255,255,255,0.12);clip-path:polygon(12px 0,100% 0,100% calc(100% - 12px),calc(100% - 12px) 100%,0 100%,0 12px);overflow:hidden">
+        <div style="padding:18px 20px 14px;display:flex;flex-direction:column;gap:6px;border-bottom:1px solid rgba(255,255,255,0.1)">
+          <span style="font-family:'Rajdhani',sans-serif;font-weight:700;font-size:26px;text-transform:uppercase;letter-spacing:0.08em;line-height:1">Submit</span>
+          <div style="font-size:12px;color:rgba(242,239,232,0.6)">Send what you placed to be rendered. Others see it only after rendering and approval.</div>
+        </div>
+        <div style="padding:16px 20px;display:flex;flex-direction:column;gap:16px;overflow:auto;font-size:13px">
+          <div style="display:flex;flex-direction:column;gap:6px">
+            <span style="font-family:'Rajdhani',sans-serif;font-weight:600;font-size:12px;letter-spacing:0.14em;text-transform:uppercase;color:rgba(242,239,232,0.55)">Which land</span>
+            <div style="height:38px;border:1px solid rgba(255,255,255,0.18);background:rgba(255,255,255,0.04);display:flex;align-items:center;justify-content:space-between;padding:0 12px">Maloja Nord · 4 objects · 6 of 8 tiles changed <span style="color:rgba(242,239,232,0.5)">▾</span></div>
+          </div>
+          <div style="display:flex;flex-direction:column;gap:8px">
+            <div style="display:flex;justify-content:space-between"><span style="font-family:'Rajdhani',sans-serif;font-weight:600;font-size:12px;letter-spacing:0.14em;text-transform:uppercase;color:rgba(242,239,232,0.55)">Tiles · z14</span><span style="font-size:12px;color:rgba(242,239,232,0.6)">shown on the ground behind this panel</span></div>
+            <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:6px">
+              <sc-for list="{{ tiles }}" as="t" hint-placeholder-count="8">
+                <div style="height:64px;border:2px solid {{ t.border }};background:{{ t.bg }};display:flex;flex-direction:column;justify-content:space-between;padding:6px 8px">
+                  <span style="font-family:'JetBrains Mono',monospace;font-size:10px;color:rgba(242,239,232,0.7)">{{ t.id }}</span>
+                  <span style="font-family:'Rajdhani',sans-serif;font-weight:700;font-size:11px;letter-spacing:0.08em;text-transform:uppercase;color:{{ t.fg }}">{{ t.state }}</span>
+                </div>
+              </sc-for>
+            </div>
+            <div style="display:flex;gap:14px;font-size:12px;color:rgba(242,239,232,0.6)"><span><b style="color:#f2efe8;font-weight:600">6</b> to submit</span><span><b style="color:oklch(0.78 0.14 200);font-weight:600">2</b> compiled</span><span><b style="color:#f2efe8;font-weight:600">0</b> waiting in pool</span><span><b style="color:oklch(0.82 0.16 80);font-weight:600">0</b> held by a renderer</span></div>
+          </div>
+          <div style="display:flex;flex-direction:column;gap:8px">
+            <span style="font-family:'Rajdhani',sans-serif;font-weight:600;font-size:12px;letter-spacing:0.14em;text-transform:uppercase;color:rgba(242,239,232,0.55)">What to pay for each tile</span>
+            <div style="display:grid;grid-template-columns:1fr auto;gap:8px">
+              <div style="height:38px;border:1px solid rgba(255,255,255,0.18);background:rgba(255,255,255,0.04);display:flex;align-items:center;justify-content:space-between;padding:0 12px;font-family:'JetBrains Mono',monospace;font-size:13px">0.70 <span style="color:rgba(242,239,232,0.5)">cr</span></div>
+              <div style="display:flex;border:1px solid rgba(255,255,255,0.18);font-family:'JetBrains Mono',monospace;font-size:12px">
+                <span style="height:38px;padding:0 10px;display:inline-flex;align-items:center">0</span>
+                <span style="height:38px;padding:0 10px;display:inline-flex;align-items:center;border-left:1px solid rgba(255,255,255,0.18)">0.50</span>
+                <span style="height:38px;padding:0 10px;display:inline-flex;align-items:center;border-left:1px solid rgba(255,255,255,0.18);background:oklch(0.78 0.14 200);color:#0b0d10">0.70</span>
+                <span style="height:38px;padding:0 10px;display:inline-flex;align-items:center;border-left:1px solid rgba(255,255,255,0.18)">1.00</span>
+              </div>
+            </div>
+            <div style="height:4px;background:rgba(255,255,255,0.1);position:relative"><div style="position:absolute;left:0;top:0;width:58%;height:100%;background:oklch(0.78 0.14 200)"></div><div style="position:absolute;left:58%;top:-8px;width:1px;height:20px;background:#f2efe8"></div></div>
+            <div style="display:flex;justify-content:space-between;font-size:12px;color:rgba(242,239,232,0.6)"><span>Pool today: 0.55 – 1.10 cr · median 0.70 · taken within ~10 min</span></div>
+            <div style="font-size:12px;color:rgba(242,239,232,0.6)">At 0 nobody else has a reason to render it. You can still render it yourself, free, on this machine.</div>
+          </div>
+          <div style="padding:12px 14px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.08);display:flex;flex-direction:column;gap:6px">
+            <div style="display:flex;justify-content:space-between"><span style="color:rgba(242,239,232,0.6)">6 tiles × 0.70 cr</span><span style="font-family:'JetBrains Mono',monospace">4.20 cr</span></div>
+            <div style="display:flex;justify-content:space-between"><span style="color:rgba(242,239,232,0.6)">Held from your credits until rendered · balance after</span><span style="font-family:'JetBrains Mono',monospace;color:oklch(0.78 0.14 200)">244.20 cr</span></div>
+          </div>
+          <div style="display:flex;gap:8px">
+            <span style="height:40px;padding:0 18px;background:oklch(0.82 0.16 80);color:#0b0d10;font-family:'Rajdhani',sans-serif;font-weight:700;font-size:15px;letter-spacing:0.08em;text-transform:uppercase;display:inline-flex;align-items:center;clip-path:polygon(6px 0,100% 0,100% calc(100% - 6px),calc(100% - 6px) 100%,0 100%,0 6px)">Submit 6 tiles · 4.20 cr</span>
+            <span style="height:40px;padding:0 18px;border:1px solid rgba(255,255,255,0.25);font-family:'Rajdhani',sans-serif;font-weight:700;font-size:15px;letter-spacing:0.08em;text-transform:uppercase;display:inline-flex;align-items:center">Render myself · free</span>
+          </div>
+        </div>
+        <div style="margin-top:auto;border-top:1px solid rgba(255,255,255,0.1);padding:12px 20px;display:flex;flex-direction:column;gap:6px;font-size:13px">
+          <span style="font-family:'Rajdhani',sans-serif;font-weight:600;font-size:12px;letter-spacing:0.14em;text-transform:uppercase;color:rgba(242,239,232,0.55)">Earlier submissions</span>
+          <div style="display:flex;justify-content:space-between"><span>Job #4812 · 2 tiles</span><span style="color:oklch(0.78 0.14 200)">rendering · 62%</span></div>
+          <div style="display:flex;justify-content:space-between"><span>Job #4790 · 1 tile</span><span style="color:oklch(0.82 0.16 80)">rendered · awaiting approval</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 3f Render pool -->
+  <div id="3f" style="display:flex;flex-direction:column;gap:12px">
+    <div style="display:flex;gap:12px;align-items:baseline;font-size:15px"><a href="#3f" style="font-family:'JetBrains Mono',monospace;font-size:12px;padding:3px 8px;background:oklch(0.78 0.14 200);color:#0b0d10;text-decoration:none">3f</a><span style="font-family:'Rajdhani',sans-serif;font-weight:700;font-size:20px;text-transform:uppercase;letter-spacing:0.08em">Render pool</span><span style="color:rgba(242,239,232,0.6)">this machine (GPU, background, help-render), running merge with zoom levels, log behind a toggle, jobs by distance and pay</span></div>
+    <div style="position:relative;width:1920px;height:1080px;overflow:hidden;background:#0b0d10;font-size:14px">
+      <img src="assets/world.webp" alt="" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover">
+      <dc-import name="Chrome3" active="Render pool" hint-size="100%,100%" style="position:absolute;inset:0"></dc-import>
+      <div style="position:absolute;left:24px;top:80px;bottom:130px;width:540px;display:flex;flex-direction:column;background:rgba(14,16,20,0.88);backdrop-filter:blur(14px);border:1px solid rgba(255,255,255,0.12);clip-path:polygon(12px 0,100% 0,100% calc(100% - 12px),calc(100% - 12px) 100%,0 100%,0 12px);overflow:hidden">
+        <div style="padding:18px 20px 14px;display:flex;flex-direction:column;gap:6px;border-bottom:1px solid rgba(255,255,255,0.1)">
+          <span style="font-family:'Rajdhani',sans-serif;font-weight:700;font-size:26px;text-transform:uppercase;letter-spacing:0.08em;line-height:1">Render pool</span>
+          <div style="font-size:12px;color:rgba(242,239,232,0.6)">Tiles waiting to be compiled and what they pay. Any browser can take one.</div>
+        </div>
+        <div style="padding:14px 20px;display:flex;flex-direction:column;gap:10px;border-bottom:1px solid rgba(255,255,255,0.1);font-size:13px">
+          <div style="display:flex;justify-content:space-between;align-items:center"><span style="font-family:'Rajdhani',sans-serif;font-weight:600;font-size:12px;letter-spacing:0.14em;text-transform:uppercase;color:rgba(242,239,232,0.55)">This machine</span><span style="font-family:'JetBrains Mono',monospace;font-size:11px;color:rgba(242,239,232,0.6)">WebGPU · ~1 GB free (estimated)</span></div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+            <div style="display:flex;justify-content:space-between;align-items:center;padding:8px 10px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.08)"><span>Help render the world</span><span style="width:36px;height:18px;background:oklch(0.78 0.14 200);position:relative"><span style="position:absolute;right:2px;top:2px;width:12px;height:12px;background:#0b0d10"></span></span></div>
+            <div style="display:flex;justify-content:space-between;align-items:center;padding:8px 10px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.08)"><span>Keep working in background</span><span style="width:36px;height:18px;background:oklch(0.78 0.14 200);position:relative"><span style="position:absolute;right:2px;top:2px;width:12px;height:12px;background:#0b0d10"></span></span></div>
+          </div>
+          <div style="padding:12px 14px;background:rgba(255,255,255,0.05);border:1px solid oklch(0.78 0.14 200 / 0.5);display:flex;flex-direction:column;gap:8px">
+            <div style="display:flex;justify-content:space-between"><span style="font-family:'Rajdhani',sans-serif;font-weight:700;font-size:17px;text-transform:uppercase;letter-spacing:0.04em">Running · merge #19 · 14/8551/5810</span><span style="font-family:'JetBrains Mono',monospace;color:oklch(0.78 0.14 200)">0.70 cr</span></div>
+            <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:4px">
+              <sc-for list="{{ zooms }}" as="z" hint-placeholder-count="5">
+                <div style="display:flex;flex-direction:column;gap:3px"><div style="height:6px;background:rgba(255,255,255,0.1)"><div style="width:{{ z.pct }};height:100%;background:oklch(0.78 0.14 200)"></div></div><span style="font-family:'JetBrains Mono',monospace;font-size:10px;color:rgba(242,239,232,0.6)">{{ z.label }}</span></div>
+              </sc-for>
+            </div>
+            <div style="display:flex;justify-content:space-between;color:rgba(242,239,232,0.6);font-size:12px"><span>0 / 8 tiles drawn · 3 atoms waiting · 2:14 elapsed</span><span>submitted by R. Keller</span></div>
+            <div style="display:flex;gap:8px;align-items:center"><span style="height:30px;padding:0 12px;border:1px solid rgba(255,255,255,0.25);font-family:'Rajdhani',sans-serif;font-weight:700;font-size:13px;letter-spacing:0.08em;text-transform:uppercase;display:inline-flex;align-items:center">Stop and return</span><span style="margin-left:auto;font-size:12px;color:oklch(0.8 0.18 25)">Log · 2 errors ▾</span></div>
+            <div style="display:flex;flex-direction:column;gap:2px;padding:8px 10px;background:rgba(0,0,0,0.4);font-family:'JetBrains Mono',monospace;font-size:11px;color:rgba(242,239,232,0.7)">
+              <span>claim 13 merge</span>
+              <span style="color:oklch(0.8 0.18 25)">error 13 merge — no published child of 12/2137/1452 to merge</span>
+              <span>claim 19 merge</span>
+              <span style="color:oklch(0.8 0.18 25)">error 19 merge — no published child of 6/33/22 to merge</span>
+            </div>
+          </div>
+          <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px">
+            <div style="padding:8px 12px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.08)"><div style="font-family:'Rajdhani',sans-serif;font-weight:700;font-size:22px;line-height:1;color:oklch(0.78 0.14 200)">3.10</div><div style="font-size:11px;color:rgba(242,239,232,0.6)">cr today</div></div>
+            <div style="padding:8px 12px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.08)"><div style="font-family:'Rajdhani',sans-serif;font-weight:700;font-size:22px;line-height:1;color:oklch(0.78 0.14 200)">41.20</div><div style="font-size:11px;color:rgba(242,239,232,0.6)">cr all time</div></div>
+            <div style="padding:8px 12px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.08)"><div style="font-family:'Rajdhani',sans-serif;font-weight:700;font-size:22px;line-height:1">58</div><div style="font-size:11px;color:rgba(242,239,232,0.6)">tiles rendered</div></div>
+          </div>
+        </div>
+        <div style="padding:12px 20px 6px;display:flex;justify-content:space-between;align-items:center"><span style="font-family:'Rajdhani',sans-serif;font-weight:600;font-size:12px;letter-spacing:0.14em;text-transform:uppercase;color:rgba(242,239,232,0.55)">61 open · 8 are yours</span><div style="display:flex;gap:6px;font-size:12px"><span style="padding:3px 8px;background:oklch(0.78 0.14 200);color:#0b0d10;font-family:'Rajdhani',sans-serif;font-weight:700;letter-spacing:0.08em;text-transform:uppercase">Nearest</span><span style="padding:3px 8px;border:1px solid rgba(255,255,255,0.2);font-family:'Rajdhani',sans-serif;font-weight:700;letter-spacing:0.08em;text-transform:uppercase">Best pay</span><span style="padding:3px 8px;border:1px solid rgba(255,255,255,0.2);font-family:'Rajdhani',sans-serif;font-weight:700;letter-spacing:0.08em;text-transform:uppercase">Mine</span></div></div>
+        <div style="display:flex;flex-direction:column;overflow:auto">
+          <sc-for list="{{ jobs }}" as="j" hint-placeholder-count="5">
+            <div style="display:flex;align-items:center;gap:12px;padding:10px 20px;border-top:1px solid rgba(255,255,255,0.08);font-size:13px">
+              <div style="display:flex;flex-direction:column;gap:2px;flex:1">
+                <div style="display:flex;gap:8px;align-items:baseline"><span style="font-family:'JetBrains Mono',monospace;font-size:13px">{{ j.id }}</span><span style="font-size:12px;color:rgba(242,239,232,0.6)">{{ j.area }} · {{ j.dist }}</span></div>
+                <div style="font-size:12px;color:rgba(242,239,232,0.6)">{{ j.detail }}</div>
+              </div>
+              <span style="font-family:'JetBrains Mono',monospace;color:oklch(0.78 0.14 200)">{{ j.pay }}</span>
+              <span style="height:32px;padding:0 14px;background:oklch(0.78 0.14 200);color:#0b0d10;font-family:'Rajdhani',sans-serif;font-weight:700;font-size:13px;letter-spacing:0.1em;text-transform:uppercase;display:inline-flex;align-items:center;clip-path:polygon(5px 0,100% 0,100% calc(100% - 5px),calc(100% - 5px) 100%,0 100%,0 5px)">Render</span>
+            </div>
+          </sc-for>
+        </div>
+      </div>
+      <div style="position:absolute;left:1180px;top:560px;width:420px;height:150px;border:2px solid oklch(0.78 0.14 200);transform:rotateX(60deg) skewX(-20deg);box-shadow:0 0 0 8px oklch(0.78 0.14 200 / 0.15),0 0 40px oklch(0.78 0.14 200 / 0.5)"></div>
+      <div style="position:absolute;left:1390px;top:470px;transform:translateX(-50%);padding:4px 10px;background:rgba(14,16,20,0.86);border:1px solid oklch(0.78 0.14 200 / 0.6);font-family:'JetBrains Mono',monospace;font-size:11px">14/8551/5810 · 953 m · rendering here</div>
+    </div>
+  </div>
+
+  <!-- 3g Permission -->
+  <div id="3g" style="display:flex;flex-direction:column;gap:12px">
+    <div style="display:flex;gap:12px;align-items:baseline;font-size:15px"><a href="#3g" style="font-family:'JetBrains Mono',monospace;font-size:12px;padding:3px 8px;background:oklch(0.78 0.14 200);color:#0b0d10;text-decoration:none">3g</a><span style="font-family:'Rajdhani',sans-serif;font-weight:700;font-size:20px;text-transform:uppercase;letter-spacing:0.08em">Permission</span><span style="color:rgba(242,239,232,0.6)">candidates waiting, before / with toggle in place, approve or refuse with a note, decisions log</span></div>
+    <div style="position:relative;width:1920px;height:1080px;overflow:hidden;background:#0b0d10;font-size:14px">
+      <img src="assets/world.webp" alt="" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover">
+      <dc-import name="Chrome3" active="Permission" right="You own this land" owner="you" hint-size="100%,100%" style="position:absolute;inset:0"></dc-import>
+      <div style="position:absolute;left:760px;top:520px;width:300px;height:110px;border:2px dashed oklch(0.82 0.16 80);border-radius:50%;transform:rotateX(60deg);box-shadow:0 0 0 8px oklch(0.82 0.16 80 / 0.15),0 0 40px oklch(0.82 0.16 80 / 0.5)"></div>
+      <div style="position:absolute;left:1120px;top:430px;display:flex;flex-direction:column;align-items:flex-start">
+        <div style="background:rgba(14,16,20,0.88);backdrop-filter:blur(14px);border:1px solid oklch(0.82 0.16 80 / 0.6);clip-path:polygon(8px 0,100% 0,100% calc(100% - 8px),calc(100% - 8px) 100%,0 100%,0 8px);padding:10px 14px;display:flex;flex-direction:column;gap:8px;font-size:12px">
+          <div style="font-family:'Rajdhani',sans-serif;font-weight:700;font-size:16px;text-transform:uppercase;letter-spacing:0.04em">Candidate C-2291 · in place</div>
+          <div style="display:flex;border:1px solid rgba(255,255,255,0.2);font-family:'Rajdhani',sans-serif;font-weight:700;font-size:13px;letter-spacing:0.08em;text-transform:uppercase">
+            <span style="height:28px;padding:0 12px;display:inline-flex;align-items:center;color:rgba(242,239,232,0.7)">Before</span>
+            <span style="height:28px;padding:0 12px;display:inline-flex;align-items:center;background:oklch(0.82 0.16 80);color:#0b0d10">With candidate</span>
+          </div>
+          <div style="color:rgba(242,239,232,0.7)">Hold Tab to compare · walk around it as usual</div>
+        </div>
+        <div style="width:1px;height:100px;background:oklch(0.82 0.16 80);margin-left:14px"></div>
+        <div style="width:10px;height:10px;background:oklch(0.82 0.16 80);transform:rotate(45deg);margin-left:9px"></div>
+      </div>
+      <div style="position:absolute;left:24px;top:80px;bottom:130px;width:500px;display:flex;flex-direction:column;background:rgba(14,16,20,0.88);backdrop-filter:blur(14px);border:1px solid rgba(255,255,255,0.12);clip-path:polygon(12px 0,100% 0,100% calc(100% - 12px),calc(100% - 12px) 100%,0 100%,0 12px);overflow:hidden">
+        <div style="padding:18px 20px 14px;display:flex;flex-direction:column;gap:4px;border-bottom:1px solid rgba(255,255,255,0.1)">
+          <div style="font-family:'Rajdhani',sans-serif;font-weight:700;font-size:26px;text-transform:uppercase;letter-spacing:0.08em;line-height:1">Permission</div>
+          <div style="color:rgba(242,239,232,0.6);font-size:12px">You approve for Maloja Nord and Piz Lunghin (owner). Each needs 1 approval.</div>
+        </div>
+        <div style="padding:14px 20px 8px;font-family:'Rajdhani',sans-serif;font-weight:600;font-size:12px;letter-spacing:0.14em;text-transform:uppercase;color:oklch(0.82 0.16 80)">2 candidates waiting for you</div>
+        <div style="display:flex;flex-direction:column">
+          <div style="padding:12px 20px;border-top:1px solid rgba(255,255,255,0.08);background:oklch(0.82 0.16 80 / 0.1);border-left:2px solid oklch(0.82 0.16 80);display:flex;justify-content:space-between;align-items:flex-start;font-size:13px">
+            <div style="display:flex;flex-direction:column;gap:2px"><span style="font-family:'Rajdhani',sans-serif;font-weight:700;font-size:17px;text-transform:uppercase;letter-spacing:0.04em">C-2291 · 3 benches, 1 shelter</span><span style="font-size:12px;color:rgba(242,239,232,0.6)">Maloja Nord · M. Ruch (propose) · rendered 14 min ago · 0 of 1 approvals</span></div>
+            <span style="font-family:'Rajdhani',sans-serif;font-weight:700;font-size:12px;letter-spacing:0.12em;text-transform:uppercase;color:oklch(0.82 0.16 80)">Viewing</span>
+          </div>
+          <div style="padding:12px 20px;border-top:1px solid rgba(255,255,255,0.08);border-left:2px solid transparent;display:flex;justify-content:space-between;align-items:flex-start;font-size:13px">
+            <div style="display:flex;flex-direction:column;gap:2px"><span style="font-family:'Rajdhani',sans-serif;font-weight:700;font-size:17px;text-transform:uppercase;letter-spacing:0.04em">C-2304 · Ski lift base station</span><span style="font-size:12px;color:rgba(242,239,232,0.6)">Piz Lunghin · placed by you · rendered 2 h ago · you cannot approve your own</span></div>
+            <span style="height:28px;padding:0 10px;border:1px solid rgba(255,255,255,0.2);font-family:'Rajdhani',sans-serif;font-weight:700;font-size:12px;letter-spacing:0.1em;text-transform:uppercase;display:inline-flex;align-items:center">Go there</span>
+          </div>
+        </div>
+        <div style="padding:16px 20px;border-top:1px solid rgba(255,255,255,0.1);display:flex;flex-direction:column;gap:10px">
+          <div style="font-family:'Rajdhani',sans-serif;font-weight:600;font-size:12px;letter-spacing:0.14em;text-transform:uppercase;color:rgba(242,239,232,0.55)">Decide on C-2291</div>
+          <div style="min-height:74px;border:1px solid rgba(255,255,255,0.18);background:rgba(255,255,255,0.04);padding:10px 12px;font-size:13px;color:rgba(242,239,232,0.45)">Note to M. Ruch — required when refusing, visible to everyone on this land</div>
+          <div style="display:flex;gap:8px">
+            <span style="height:40px;padding:0 18px;background:oklch(0.78 0.14 200);color:#0b0d10;font-family:'Rajdhani',sans-serif;font-weight:700;font-size:15px;letter-spacing:0.08em;text-transform:uppercase;display:inline-flex;align-items:center;clip-path:polygon(6px 0,100% 0,100% calc(100% - 6px),calc(100% - 6px) 100%,0 100%,0 6px)">Approve and publish</span>
+            <span style="height:40px;padding:0 18px;border:1px solid oklch(0.7 0.2 25);color:oklch(0.8 0.18 25);font-family:'Rajdhani',sans-serif;font-weight:700;font-size:15px;letter-spacing:0.08em;text-transform:uppercase;display:inline-flex;align-items:center">Refuse</span>
+          </div>
+        </div>
+        <div style="margin-top:auto;border-top:1px solid rgba(255,255,255,0.1);display:flex;flex-direction:column">
+          <div style="padding:14px 20px 8px;font-family:'Rajdhani',sans-serif;font-weight:600;font-size:12px;letter-spacing:0.14em;text-transform:uppercase;color:rgba(242,239,232,0.55)">Decided on your land</div>
+          <sc-for list="{{ decisions }}" as="d" hint-placeholder-count="3">
+            <div style="padding:10px 20px;border-top:1px solid rgba(255,255,255,0.08);display:flex;flex-direction:column;gap:2px;font-size:13px">
+              <div style="display:flex;justify-content:space-between"><span style="font-weight:600">{{ d.what }}</span><span style="font-family:'Rajdhani',sans-serif;font-weight:700;font-size:12px;letter-spacing:0.1em;text-transform:uppercase;color:{{ d.color }}">{{ d.verdict }}</span></div>
+              <div style="font-size:12px;color:rgba(242,239,232,0.6)">{{ d.who }} · “{{ d.note }}”</div>
+            </div>
+          </sc-for>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 3h Wallet -->
+  <div id="3h" style="display:flex;flex-direction:column;gap:12px">
+    <div style="display:flex;gap:12px;align-items:baseline;font-size:15px"><a href="#3h" style="font-family:'JetBrains Mono',monospace;font-size:12px;padding:3px 8px;background:oklch(0.78 0.14 200);color:#0b0d10;text-decoration:none">3h</a><span style="font-family:'Rajdhani',sans-serif;font-weight:700;font-size:20px;text-transform:uppercase;letter-spacing:0.08em">Wallet</span><span style="color:rgba(242,239,232,0.6)">balance, held for open jobs, paid, earned</span></div>
+    <div style="position:relative;width:1920px;height:1080px;overflow:hidden;background:#0b0d10;font-size:14px">
+      <img src="assets/world.webp" alt="" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover">
+      <dc-import name="Chrome3" active="Wallet" hint-size="100%,100%" style="position:absolute;inset:0"></dc-import>
+      <div style="position:absolute;left:24px;top:80px;bottom:130px;width:500px;display:flex;flex-direction:column;background:rgba(14,16,20,0.88);backdrop-filter:blur(14px);border:1px solid rgba(255,255,255,0.12);clip-path:polygon(12px 0,100% 0,100% calc(100% - 12px),calc(100% - 12px) 100%,0 100%,0 12px);overflow:hidden">
+        <div style="padding:18px 20px 16px;display:flex;flex-direction:column;gap:14px;border-bottom:1px solid rgba(255,255,255,0.1)">
+          <div style="font-family:'Rajdhani',sans-serif;font-weight:700;font-size:26px;text-transform:uppercase;letter-spacing:0.08em;line-height:1">Wallet</div>
+          <div style="display:flex;align-items:baseline;gap:10px"><span style="font-family:'Rajdhani',sans-serif;font-weight:700;font-size:56px;line-height:1;color:oklch(0.78 0.14 200)">248.40</span><span style="font-family:'Rajdhani',sans-serif;font-weight:600;font-size:14px;letter-spacing:0.14em;text-transform:uppercase;color:rgba(242,239,232,0.55)">credits available</span></div>
+          <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px">
+            <div style="padding:10px 12px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.08)"><div style="font-family:'Rajdhani',sans-serif;font-weight:700;font-size:22px;line-height:1;color:oklch(0.82 0.16 80)">1.40</div><div style="font-size:11px;color:rgba(242,239,232,0.6)">held for 2 open jobs</div></div>
+            <div style="padding:10px 12px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.08)"><div style="font-family:'Rajdhani',sans-serif;font-weight:700;font-size:22px;line-height:1">−12.60</div><div style="font-size:11px;color:rgba(242,239,232,0.6)">paid this month</div></div>
+            <div style="padding:10px 12px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.08)"><div style="font-family:'Rajdhani',sans-serif;font-weight:700;font-size:22px;line-height:1;color:oklch(0.78 0.14 200)">+41.20</div><div style="font-size:11px;color:rgba(242,239,232,0.6)">earned rendering, all time</div></div>
+          </div>
+          <div style="display:flex;gap:8px">
+            <span style="height:40px;padding:0 18px;background:oklch(0.78 0.14 200);color:#0b0d10;font-family:'Rajdhani',sans-serif;font-weight:700;font-size:15px;letter-spacing:0.08em;text-transform:uppercase;display:inline-flex;align-items:center;clip-path:polygon(6px 0,100% 0,100% calc(100% - 6px),calc(100% - 6px) 100%,0 100%,0 6px)">Add credits</span>
+            <span style="height:40px;padding:0 18px;border:1px solid rgba(255,255,255,0.25);background:rgba(255,255,255,0.06);font-family:'Rajdhani',sans-serif;font-weight:700;font-size:15px;letter-spacing:0.08em;text-transform:uppercase;display:inline-flex;align-items:center">Pay out earnings</span>
+          </div>
+        </div>
+        <div style="padding:14px 20px 8px;display:flex;justify-content:space-between;font-size:12px"><span style="font-family:'Rajdhani',sans-serif;font-weight:600;font-size:12px;letter-spacing:0.14em;text-transform:uppercase;color:rgba(242,239,232,0.55)">All movements</span><span style="color:rgba(242,239,232,0.6)">All · Paid · Earned · Export</span></div>
+        <div style="display:flex;flex-direction:column;overflow:auto">
+          <sc-for list="{{ txns }}" as="t" hint-placeholder-count="8">
+            <div style="display:flex;align-items:center;gap:12px;padding:10px 20px;border-top:1px solid rgba(255,255,255,0.08);font-size:13px">
+              <span style="font-family:'JetBrains Mono',monospace;font-size:12px;color:rgba(242,239,232,0.55);width:52px">{{ t.date }}</span>
+              <div style="display:flex;flex-direction:column;gap:1px;flex:1"><span>{{ t.what }}</span><span style="font-size:12px;color:rgba(242,239,232,0.6)">{{ t.detail }}</span></div>
+              <span style="font-family:'Rajdhani',sans-serif;font-weight:700;font-size:17px;color:{{ t.color }}">{{ t.amount }}</span>
+            </div>
+          </sc-for>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 3i Share -->
+  <div id="3i" style="display:flex;flex-direction:column;gap:12px">
+    <div style="display:flex;gap:12px;align-items:baseline;font-size:15px"><a href="#3i" style="font-family:'JetBrains Mono',monospace;font-size:12px;padding:3px 8px;background:oklch(0.78 0.14 200);color:#0b0d10;text-decoration:none">3i</a><span style="font-family:'Rajdhani',sans-serif;font-weight:700;font-size:20px;text-transform:uppercase;letter-spacing:0.08em">Share</span><span style="color:rgba(242,239,232,0.6)">a link to this place; whoever opens it stands here</span></div>
+    <div style="position:relative;width:1920px;height:1080px;overflow:hidden;background:#0b0d10;font-size:14px">
+      <img src="assets/world.webp" alt="" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover">
+      <dc-import name="Chrome3" active="Share" hint-size="100%,100%" style="position:absolute;inset:0"></dc-import>
+      <div style="position:absolute;left:24px;top:80px;width:470px;display:flex;flex-direction:column;background:rgba(14,16,20,0.88);backdrop-filter:blur(14px);border:1px solid rgba(255,255,255,0.12);clip-path:polygon(12px 0,100% 0,100% calc(100% - 12px),calc(100% - 12px) 100%,0 100%,0 12px);overflow:hidden">
+        <div style="padding:18px 20px 14px;display:flex;flex-direction:column;gap:4px;border-bottom:1px solid rgba(255,255,255,0.1)">
+          <div style="font-family:'Rajdhani',sans-serif;font-weight:700;font-size:26px;text-transform:uppercase;letter-spacing:0.08em;line-height:1">Share this place</div>
+          <div style="color:rgba(242,239,232,0.6);font-size:12px">Whoever opens the link stands where you stand, looking the same way.</div>
+        </div>
+        <div style="padding:16px 20px;display:flex;flex-direction:column;gap:14px">
+          <div style="display:flex;gap:8px">
+            <div style="flex:1;height:40px;border:1px solid rgba(255,255,255,0.18);background:rgba(255,255,255,0.04);display:flex;align-items:center;padding:0 12px;font-family:'JetBrains Mono',monospace;font-size:12px;color:oklch(0.78 0.14 200)">splat.world/p/8Fk2-maloja-nord</div>
+            <span style="height:40px;padding:0 18px;background:oklch(0.78 0.14 200);color:#0b0d10;font-family:'Rajdhani',sans-serif;font-weight:700;font-size:15px;letter-spacing:0.08em;text-transform:uppercase;display:inline-flex;align-items:center;clip-path:polygon(6px 0,100% 0,100% calc(100% - 6px),calc(100% - 6px) 100%,0 100%,0 6px)">Copy</span>
+          </div>
+          <div style="display:grid;grid-template-columns:auto 1fr;gap:6px 16px;font-size:13px">
+            <span style="color:rgba(242,239,232,0.6)">Place</span><span>Maloja Nord, above the lake</span>
+            <span style="color:rgba(242,239,232,0.6)">Position</span><span style="font-family:'JetBrains Mono',monospace;font-size:12px">46.4021N 9.6912E · 1812 m</span>
+            <span style="color:rgba(242,239,232,0.6)">Looking</span><span>north-east, slightly down</span>
+            <span style="color:rgba(242,239,232,0.6)">Land</span><span>Maloja Nord · owner A. Giacometti</span>
+          </div>
+          <div style="display:flex;flex-direction:column;gap:8px;font-size:13px;border-top:1px solid rgba(255,255,255,0.1);padding-top:12px">
+            <div style="display:flex;justify-content:space-between;align-items:center"><span>Visitor sees candidates awaiting approval</span><span style="width:36px;height:18px;background:rgba(255,255,255,0.12);border:1px solid rgba(255,255,255,0.2);position:relative"><span style="position:absolute;left:2px;top:2px;width:12px;height:12px;background:rgba(242,239,232,0.7)"></span></span></div>
+            <div style="display:flex;justify-content:space-between;align-items:center"><span>Visitor sees my unsubmitted objects</span><span style="color:rgba(242,239,232,0.6);font-size:12px">never</span></div>
+          </div>
+          <div style="height:130px;background:repeating-linear-gradient(135deg,#2a2e35 0 8px,#1f232a 8px 16px);border:1px solid rgba(255,255,255,0.1);display:flex;align-items:center;justify-content:center;font-family:'JetBrains Mono',monospace;font-size:11px;color:rgba(242,239,232,0.5)">preview of what they will see</div>
+        </div>
+      </div>
+      <div style="position:absolute;left:940px;top:560px;display:flex;flex-direction:column;align-items:center">
+        <div style="background:rgba(14,16,20,0.88);border:1px solid rgba(255,255,255,0.2);clip-path:polygon(6px 0,100% 0,100% calc(100% - 6px),calc(100% - 6px) 100%,0 100%,0 6px);padding:6px 12px;font-family:'Rajdhani',sans-serif;font-weight:700;font-size:13px;letter-spacing:0.12em;text-transform:uppercase">You are here</div>
+        <div style="width:1px;height:50px;background:#f2efe8"></div>
+        <div style="width:12px;height:12px;background:#f2efe8;transform:rotate(45deg)"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 3j Admin -->
+  <div id="3j" style="display:flex;flex-direction:column;gap:12px">
+    <div style="display:flex;gap:12px;align-items:baseline;font-size:15px"><a href="#3j" style="font-family:'JetBrains Mono',monospace;font-size:12px;padding:3px 8px;background:oklch(0.78 0.14 200);color:#0b0d10;text-decoration:none">3j</a><span style="font-family:'Rajdhani',sans-serif;font-weight:700;font-size:20px;text-transform:uppercase;letter-spacing:0.08em">Admin</span><span style="color:rgba(242,239,232,0.6)">left: Kinds (what a thing may say about itself) · right: Rules (what a drawn thing becomes), one rule open</span></div>
+    <div style="position:relative;width:1920px;height:1080px;overflow:hidden;background:#0b0d10;font-size:14px">
+      <img src="assets/world.webp" alt="" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover">
+      <dc-import name="Chrome3" active="Admin" hint-size="100%,100%" style="position:absolute;inset:0"></dc-import>
+      <div style="position:absolute;left:24px;top:80px;bottom:130px;width:470px;display:flex;flex-direction:column;background:rgba(14,16,20,0.88);backdrop-filter:blur(14px);border:1px solid rgba(255,255,255,0.12);clip-path:polygon(12px 0,100% 0,100% calc(100% - 12px),calc(100% - 12px) 100%,0 100%,0 12px);overflow:hidden">
+        <div style="padding:18px 20px 12px;display:flex;flex-direction:column;gap:10px;border-bottom:1px solid rgba(255,255,255,0.1)">
+          <div style="display:flex;justify-content:space-between;align-items:baseline"><span style="font-family:'Rajdhani',sans-serif;font-weight:700;font-size:26px;text-transform:uppercase;letter-spacing:0.08em;line-height:1">Admin · Kinds</span><span style="font-size:12px;color:rgba(242,239,232,0.6)">what a thing may say about itself</span></div>
+          <div style="display:flex;gap:6px;flex-wrap:wrap;font-family:'Rajdhani',sans-serif;font-weight:700;font-size:13px;letter-spacing:0.08em;text-transform:uppercase">
+            <sc-for list="{{ kinds }}" as="k" hint-placeholder-count="5">
+              <span style="height:28px;padding:0 12px;display:inline-flex;align-items:center;gap:6px;background:{{ k.bg }};color:{{ k.fg }};border:1px solid {{ k.border }}">{{ k.name }} <span style="font-family:'JetBrains Mono',monospace;font-size:10px;opacity:0.7">{{ k.code }}</span></span>
+            </sc-for>
+            <span style="height:28px;padding:0 12px;display:inline-flex;align-items:center;border:1px dashed rgba(255,255,255,0.3);color:rgba(242,239,232,0.7)">+ New kind</span>
+          </div>
+        </div>
+        <div style="padding:12px 20px 6px;display:flex;justify-content:space-between;align-items:center"><span style="font-family:'Rajdhani',sans-serif;font-weight:600;font-size:12px;letter-spacing:0.14em;text-transform:uppercase;color:rgba(242,239,232,0.55)">Properties of Road</span><span style="font-size:12px;color:rgba(242,239,232,0.6)">appear in QGIS forms and in Place</span></div>
+        <div style="display:flex;flex-direction:column;overflow:auto">
+          <sc-for list="{{ kindProps }}" as="kp" hint-placeholder-count="4">
+            <div style="display:flex;align-items:flex-start;gap:12px;padding:10px 20px;border-top:1px solid rgba(255,255,255,0.08);font-size:13px">
+              <div style="display:flex;flex-direction:column;gap:3px;flex:1">
+                <div style="display:flex;gap:8px;align-items:baseline"><span style="font-weight:600">{{ kp.name }}</span><span style="font-family:'JetBrains Mono',monospace;font-size:11px;color:rgba(242,239,232,0.55)">{{ kp.code }}</span><span style="font-family:'Rajdhani',sans-serif;font-weight:700;font-size:11px;letter-spacing:0.1em;text-transform:uppercase;color:{{ kp.reqColor }}">{{ kp.req }}</span></div>
+                <div style="font-size:12px;color:rgba(242,239,232,0.6)"><span style="color:oklch(0.78 0.14 200)">{{ kp.type }}</span> {{ kp.values }}</div>
+              </div>
+              <span style="height:26px;padding:0 8px;border:1px solid rgba(255,255,255,0.2);font-family:'Rajdhani',sans-serif;font-weight:700;font-size:11px;letter-spacing:0.1em;text-transform:uppercase;display:inline-flex;align-items:center;color:rgba(242,239,232,0.7)">Remove</span>
+            </div>
+          </sc-for>
+        </div>
+        <div style="margin-top:auto;padding:14px 20px;border-top:1px solid rgba(255,255,255,0.1);display:flex;flex-direction:column;gap:8px">
+          <span style="font-family:'Rajdhani',sans-serif;font-weight:600;font-size:12px;letter-spacing:0.14em;text-transform:uppercase;color:rgba(242,239,232,0.55)">New property on Road</span>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+            <div style="height:38px;border:1px solid rgba(255,255,255,0.18);background:rgba(255,255,255,0.04);display:flex;align-items:center;padding:0 12px;font-size:13px">Lit at night <span style="margin-left:auto;font-family:'JetBrains Mono',monospace;font-size:11px;color:rgba(242,239,232,0.5)">lit</span></div>
+            <div style="height:38px;border:1px solid rgba(255,255,255,0.18);background:rgba(255,255,255,0.04);display:flex;align-items:center;justify-content:space-between;padding:0 12px;font-size:13px">Yes / no <span style="color:rgba(242,239,232,0.5)">▾</span></div>
+          </div>
+          <div style="display:flex;justify-content:space-between;align-items:center">
+            <div style="display:flex;align-items:center;gap:8px;font-size:12px"><span style="width:36px;height:18px;background:rgba(255,255,255,0.12);border:1px solid rgba(255,255,255,0.2);position:relative"><span style="position:absolute;left:2px;top:2px;width:12px;height:12px;background:rgba(242,239,232,0.7)"></span></span>Required</div>
+            <span style="height:36px;padding:0 16px;background:oklch(0.78 0.14 200);color:#0b0d10;font-family:'Rajdhani',sans-serif;font-weight:700;font-size:14px;letter-spacing:0.08em;text-transform:uppercase;display:inline-flex;align-items:center;clip-path:polygon(6px 0,100% 0,100% calc(100% - 6px),calc(100% - 6px) 100%,0 100%,0 6px)">Add property</span>
+          </div>
+        </div>
+      </div>
+      <div style="position:absolute;right:24px;top:130px;bottom:310px;width:520px;display:flex;flex-direction:column;background:rgba(14,16,20,0.88);backdrop-filter:blur(14px);border:1px solid rgba(255,255,255,0.12);clip-path:polygon(12px 0,100% 0,100% calc(100% - 12px),calc(100% - 12px) 100%,0 100%,0 12px);overflow:hidden">
+        <div style="padding:18px 20px 12px;display:flex;flex-direction:column;gap:10px;border-bottom:1px solid rgba(255,255,255,0.1)">
+          <div style="display:flex;justify-content:space-between;align-items:center">
+            <div style="display:flex;align-items:baseline;gap:10px"><span style="font-family:'Rajdhani',sans-serif;font-weight:700;font-size:22px;text-transform:uppercase;letter-spacing:0.08em;line-height:1">Rule · Birch forest</span><span style="font-family:'JetBrains Mono',monospace;font-size:11px;color:rgba(242,239,232,0.5)">2 of 4</span></div>
+            <div style="display:flex;gap:6px"><span style="height:28px;padding:0 10px;border:1px solid rgba(255,255,255,0.2);font-family:'Rajdhani',sans-serif;font-weight:700;font-size:12px;letter-spacing:0.1em;text-transform:uppercase;display:inline-flex;align-items:center">‹ Gabled roof</span><span style="height:28px;padding:0 10px;border:1px solid rgba(255,255,255,0.2);font-family:'Rajdhani',sans-serif;font-weight:700;font-size:12px;letter-spacing:0.1em;text-transform:uppercase;display:inline-flex;align-items:center">Other forest ›</span><span style="height:28px;padding:0 10px;border:1px solid rgba(255,255,255,0.2);font-family:'Rajdhani',sans-serif;font-weight:700;font-size:12px;letter-spacing:0.1em;text-transform:uppercase;display:inline-flex;align-items:center">All rules ▾</span></div>
+          </div>
+        </div>
+        <div style="padding:12px 20px;display:flex;flex-direction:column;gap:10px;overflow:auto;font-size:13px">
+          <div style="display:grid;grid-template-columns:1fr 100px auto;gap:8px;align-items:end">
+            <div style="display:flex;flex-direction:column;gap:4px"><span style="font-family:'Rajdhani',sans-serif;font-weight:600;font-size:11px;letter-spacing:0.14em;text-transform:uppercase;color:rgba(242,239,232,0.55)">Applies to</span><div style="height:36px;border:1px solid rgba(255,255,255,0.18);background:rgba(255,255,255,0.04);display:flex;align-items:center;justify-content:space-between;padding:0 10px">Forest (forest) <span style="color:rgba(242,239,232,0.5)">▾</span></div></div>
+            <div style="display:flex;flex-direction:column;gap:4px"><span style="font-family:'Rajdhani',sans-serif;font-weight:600;font-size:11px;letter-spacing:0.14em;text-transform:uppercase;color:rgba(242,239,232,0.55)">Order</span><div style="height:36px;border:1px solid rgba(255,255,255,0.18);background:rgba(255,255,255,0.04);display:flex;align-items:center;padding:0 10px;font-family:'JetBrains Mono',monospace;font-size:12px">70</div></div>
+            <div style="display:flex;align-items:center;gap:8px;font-size:12px;height:36px"><span style="width:36px;height:18px;background:oklch(0.78 0.14 200);position:relative"><span style="position:absolute;right:2px;top:2px;width:12px;height:12px;background:#0b0d10"></span></span>In use</div>
+          </div>
+          <div style="display:flex;flex-direction:column;gap:6px">
+            <div style="display:flex;justify-content:space-between"><span style="font-family:'Rajdhani',sans-serif;font-weight:600;font-size:11px;letter-spacing:0.14em;text-transform:uppercase;color:oklch(0.82 0.16 80)">When · all of these are true</span><span style="font-size:11px;color:rgba(242,239,232,0.5)">none = catches everything else</span></div>
+            <div style="display:grid;grid-template-columns:1fr 80px 1.4fr 30px;gap:6px">
+              <div style="height:34px;border:1px solid rgba(255,255,255,0.18);background:rgba(255,255,255,0.04);display:flex;align-items:center;padding:0 10px;font-family:'JetBrains Mono',monospace;font-size:12px">species</div>
+              <div style="height:34px;border:1px solid rgba(255,255,255,0.18);background:rgba(255,255,255,0.04);display:flex;align-items:center;justify-content:space-between;padding:0 10px;font-size:12px">in <span style="color:rgba(242,239,232,0.5)">▾</span></div>
+              <div style="height:34px;border:1px solid rgba(255,255,255,0.18);background:rgba(255,255,255,0.04);display:flex;align-items:center;padding:0 10px;font-family:'JetBrains Mono',monospace;font-size:12px">["birch","betula"]</div>
+              <span style="height:34px;border:1px solid rgba(255,255,255,0.18);display:inline-flex;align-items:center;justify-content:center;color:rgba(242,239,232,0.6)">✕</span>
+            </div>
+            <span style="height:30px;padding:0 10px;border:1px solid rgba(255,255,255,0.2);font-family:'Rajdhani',sans-serif;font-weight:700;font-size:12px;letter-spacing:0.1em;text-transform:uppercase;display:inline-flex;align-items:center;align-self:flex-start">+ Condition</span>
+          </div>
+          <div style="display:flex;flex-direction:column;gap:6px">
+            <div style="display:flex;justify-content:space-between"><span style="font-family:'Rajdhani',sans-serif;font-weight:600;font-size:11px;letter-spacing:0.14em;text-transform:uppercase;color:oklch(0.78 0.14 200)">Build · what it produces</span><span style="font-size:11px;color:rgba(242,239,232,0.5)">number · word · list · {"prop": …}</span></div>
+            <sc-for list="{{ outputs }}" as="o" hint-placeholder-count="6">
+              <div style="display:grid;grid-template-columns:1fr 1.6fr 30px;gap:6px">
+                <div style="height:30px;border:1px solid rgba(255,255,255,0.18);background:rgba(255,255,255,0.04);display:flex;align-items:center;padding:0 10px;font-family:'JetBrains Mono',monospace;font-size:12px">{{ o.k }}</div>
+                <div style="height:30px;border:1px solid rgba(255,255,255,0.18);background:rgba(255,255,255,0.04);display:flex;align-items:center;justify-content:space-between;padding:0 10px;font-family:'JetBrains Mono',monospace;font-size:12px">{{ o.v }} <span style="font-family:'Sora',sans-serif;font-size:11px;color:rgba(242,239,232,0.45)">{{ o.hint }}</span></div>
+                <span style="height:30px;border:1px solid rgba(255,255,255,0.18);display:inline-flex;align-items:center;justify-content:center;color:rgba(242,239,232,0.6)">✕</span>
+              </div>
+            </sc-for>
+            <span style="height:30px;padding:0 10px;border:1px solid rgba(255,255,255,0.2);font-family:'Rajdhani',sans-serif;font-weight:700;font-size:12px;letter-spacing:0.1em;text-transform:uppercase;display:inline-flex;align-items:center;align-self:flex-start">+ Property</span>
+          </div>
+          <div style="padding:10px 12px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.08);font-size:12px;color:rgba(242,239,232,0.7)">Reads as: <b style="color:#f2efe8;font-weight:600">forest</b> whose species is birch or betula becomes 6-sided tapered trunks 10–18 m high, green [0.28,0.45,0.2], mature at 50, aged by its own <span style="font-family:'JetBrains Mono',monospace">age</span>. Currently matches <b style="color:#f2efe8;font-weight:600">412</b> features.</div>
+        </div>
+        <div style="margin-top:auto;padding:12px 20px;border-top:1px solid rgba(255,255,255,0.1);display:flex;gap:8px">
+          <span style="height:38px;padding:0 16px;background:oklch(0.78 0.14 200);color:#0b0d10;font-family:'Rajdhani',sans-serif;font-weight:700;font-size:14px;letter-spacing:0.08em;text-transform:uppercase;display:inline-flex;align-items:center;clip-path:polygon(6px 0,100% 0,100% calc(100% - 6px),calc(100% - 6px) 100%,0 100%,0 6px)">Save rule</span>
+          <span style="height:38px;padding:0 16px;border:1px solid rgba(255,255,255,0.25);font-family:'Rajdhani',sans-serif;font-weight:700;font-size:14px;letter-spacing:0.08em;text-transform:uppercase;display:inline-flex;align-items:center">Cancel</span>
+          <span style="margin-left:auto;height:38px;padding:0 16px;border:1px solid oklch(0.7 0.2 25);color:oklch(0.8 0.18 25);font-family:'Rajdhani',sans-serif;font-weight:700;font-size:14px;letter-spacing:0.08em;text-transform:uppercase;display:inline-flex;align-items:center">Delete</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 3k Setup -->
+  <div id="3k" style="display:flex;flex-direction:column;gap:12px">
+    <div style="display:flex;gap:12px;align-items:baseline;font-size:15px"><a href="#3k" style="font-family:'JetBrains Mono',monospace;font-size:12px;padding:3px 8px;background:oklch(0.78 0.14 200);color:#0b0d10;text-decoration:none">3k</a><span style="font-family:'Rajdhani',sans-serif;font-weight:700;font-size:20px;text-transform:uppercase;letter-spacing:0.08em">Setup</span><span style="color:rgba(242,239,232,0.6)">three numbered steps: account · GeoServer · ground; live tile status; first-run state with no ground</span></div>
+    <div style="position:relative;width:1920px;height:1080px;overflow:hidden;background:#0b0d10;font-size:14px">
+      <div style="position:absolute;inset:0;background:radial-gradient(ellipse at 50% 60%,#171a20,#0b0d10 70%)"></div>
+      <div style="position:absolute;left:660px;top:280px;width:600px;height:520px;border:1px solid oklch(0.78 0.14 200 / 0.7);clip-path:polygon(12% 8%,55% 0,90% 22%,100% 62%,75% 100%,32% 92%,0 55%)"></div>
+      <dc-import name="Chrome3" active="Setup" land="Unnamed land" owner="you" right="You own this land" placed="0" in-pool="0" rendered="0 / 0" awaiting="0" published="0" hint-size="100%,100%" style="position:absolute;inset:0"></dc-import>
+      <div style="position:absolute;left:24px;top:80px;bottom:130px;width:470px;display:flex;flex-direction:column;background:rgba(14,16,20,0.88);backdrop-filter:blur(14px);border:1px solid rgba(255,255,255,0.12);clip-path:polygon(12px 0,100% 0,100% calc(100% - 12px),calc(100% - 12px) 100%,0 100%,0 12px);overflow:hidden">
+        <div style="padding:18px 20px 14px;display:flex;flex-direction:column;gap:6px;border-bottom:1px solid rgba(255,255,255,0.1)">
+          <span style="font-family:'Rajdhani',sans-serif;font-weight:700;font-size:26px;text-transform:uppercase;letter-spacing:0.08em;line-height:1">Setup</span>
+          <div style="font-size:12px;color:rgba(242,239,232,0.6)">Your account, your GeoServer, and the ground the world sits on.</div>
+        </div>
+        <div style="padding:16px 20px;display:flex;flex-direction:column;gap:18px;overflow:auto;font-size:13px">
+          <div style="display:flex;gap:12px">
+            <span style="width:24px;height:24px;flex:none;background:oklch(0.78 0.14 200);color:#0b0d10;display:inline-flex;align-items:center;justify-content:center;font-size:12px;font-weight:600">✓</span>
+            <div style="display:flex;flex-direction:column;gap:6px;flex:1">
+              <span style="font-family:'Rajdhani',sans-serif;font-weight:700;font-size:16px;text-transform:uppercase;letter-spacing:0.06em">1 · Account</span>
+              <div style="display:flex;justify-content:space-between;align-items:center"><span>tobias@wireon.ch <span style="color:rgba(242,239,232,0.5)">· admin</span></span><span style="height:30px;padding:0 10px;border:1px solid rgba(255,255,255,0.2);font-family:'Rajdhani',sans-serif;font-weight:700;font-size:12px;letter-spacing:0.1em;text-transform:uppercase;display:inline-flex;align-items:center">Sign out</span></div>
+            </div>
+          </div>
+          <div style="display:flex;gap:12px">
+            <span style="width:24px;height:24px;flex:none;background:oklch(0.78 0.14 200);color:#0b0d10;display:inline-flex;align-items:center;justify-content:center;font-size:12px;font-weight:600">✓</span>
+            <div style="display:flex;flex-direction:column;gap:6px;flex:1">
+              <span style="font-family:'Rajdhani',sans-serif;font-weight:700;font-size:16px;text-transform:uppercase;letter-spacing:0.06em">2 · GeoServer</span>
+              <div style="height:38px;border:1px solid rgba(255,255,255,0.18);background:rgba(255,255,255,0.04);display:flex;align-items:center;padding:0 12px;font-family:'JetBrains Mono',monospace;font-size:12px">http://localhost:8080/geoserver</div>
+              <div style="display:grid;grid-template-columns:1fr 1fr auto;gap:8px">
+                <div style="height:38px;border:1px solid rgba(255,255,255,0.18);background:rgba(255,255,255,0.04);display:flex;align-items:center;padding:0 12px">admin</div>
+                <div style="height:38px;border:1px solid rgba(255,255,255,0.18);background:rgba(255,255,255,0.04);display:flex;align-items:center;padding:0 12px;letter-spacing:0.2em">••••••••</div>
+                <span style="height:38px;padding:0 14px;border:1px solid rgba(255,255,255,0.25);font-family:'Rajdhani',sans-serif;font-weight:700;font-size:13px;letter-spacing:0.08em;text-transform:uppercase;display:inline-flex;align-items:center">Reconnect</span>
+              </div>
+              <div style="font-size:12px;color:oklch(0.78 0.14 200)">Connected · 3 workspaces · 12 layers</div>
+            </div>
+          </div>
+          <div style="display:flex;gap:12px">
+            <span style="width:24px;height:24px;flex:none;border:1px solid oklch(0.82 0.16 80);color:oklch(0.82 0.16 80);display:inline-flex;align-items:center;justify-content:center;font-family:'JetBrains Mono',monospace;font-size:11px">3</span>
+            <div style="display:flex;flex-direction:column;gap:6px;flex:1">
+              <span style="font-family:'Rajdhani',sans-serif;font-weight:700;font-size:16px;text-transform:uppercase;letter-spacing:0.06em">3 · Ground</span>
+              <div style="height:38px;border:1px solid oklch(0.82 0.16 80 / 0.7);background:rgba(255,255,255,0.04);display:flex;align-items:center;justify-content:space-between;padding:0 12px">splatworld_dem_visp_demo <span style="color:rgba(242,239,232,0.5)">▾</span></div>
+              <div style="display:grid;grid-template-columns:auto 1fr;gap:4px 14px;font-size:12px;color:rgba(242,239,232,0.6)">
+                <span>Covers</span><span style="font-family:'JetBrains Mono',monospace;font-size:11px;color:#f2efe8">7.87, 46.27 → 7.92, 46.30 · about 4 × 3 km</span>
+                <span>Resolution</span><span style="color:#f2efe8">2 m DEM · tiles to z14</span>
+                <span>Ownership layer</span><span style="color:#f2efe8">splatworld_land · 3 areas, 1 is yours</span>
+              </div>
+              <span style="height:38px;padding:0 16px;background:oklch(0.82 0.16 80);color:#0b0d10;font-family:'Rajdhani',sans-serif;font-weight:700;font-size:14px;letter-spacing:0.08em;text-transform:uppercase;display:inline-flex;align-items:center;align-self:flex-start;clip-path:polygon(6px 0,100% 0,100% calc(100% - 6px),calc(100% - 6px) 100%,0 100%,0 6px)">Use this ground</span>
+            </div>
+          </div>
+        </div>
+        <div style="margin-top:auto;padding:12px 20px;border-top:1px solid rgba(255,255,255,0.1);display:flex;flex-direction:column;gap:6px">
+          <span style="font-family:'Rajdhani',sans-serif;font-weight:600;font-size:12px;letter-spacing:0.14em;text-transform:uppercase;color:rgba(242,239,232,0.55)">World status</span>
+          <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:6px">
+            <sc-for list="{{ status }}" as="s" hint-placeholder-count="5">
+              <div style="display:flex;flex-direction:column;gap:1px"><span style="font-family:'Rajdhani',sans-serif;font-weight:700;font-size:18px;line-height:1">{{ s.v }}</span><span style="font-size:10px;color:rgba(242,239,232,0.55)">{{ s.l }}</span></div>
+            </sc-for>
+          </div>
+          <div style="font-size:12px;color:oklch(0.82 0.16 80)">Flying · no ground loaded yet. Finish step 3 to stand on it.</div>
+        </div>
+      </div>
+      <div style="position:absolute;left:50%;top:640px;transform:translateX(-50%);display:flex;flex-direction:column;align-items:center;gap:8px;text-align:center">
+        <span style="font-family:'Rajdhani',sans-serif;font-weight:700;font-size:16px;letter-spacing:0.12em;text-transform:uppercase;color:rgba(242,239,232,0.7);text-shadow:0 2px 12px rgba(0,0,0,0.8)">No ground yet</span>
+        <span style="font-size:12px;color:rgba(242,239,232,0.55);max-width:360px">The outline is your land from GeoServer. Pick a ground in Setup and it fills in beneath you.</span>
+      </div>
+    </div>
+  </div>
+
+</section>
+</x-dc>
+<script type="text/x-dc" data-dc-script>
+class Component extends DCLogic {
+  renderVals() {
+    const C = 'oklch(0.78 0.14 200)', A = 'oklch(0.82 0.16 80)', R = 'oklch(0.8 0.18 25)', W = '#f2efe8', M = 'rgba(242,239,232,0.6)';
+    const nb = 'rgba(255,255,255,0.08)';
+    return {
+      areas: [
+        { name: 'Maloja Nord', id: '4E84AFBD · detail 14', role: 'Owner', roleColor: C, objects: '38 published · 2 candidates · 4 unsubmitted', bg: 'oklch(0.78 0.14 200 / 0.1)', edge: C },
+        { name: 'Piz Lunghin', id: '9B21C0F3 · detail 12', role: 'Owner', roleColor: C, objects: '12 published · 1 candidate', bg: 'transparent', edge: 'transparent' },
+        { name: 'Silsersee Ost', id: '77D0A1E2 · detail 14', role: 'Propose · until Mar 2027', roleColor: A, objects: '3 published · K. Prevost', bg: 'transparent', edge: 'transparent' },
+      ],
+      people: [
+        { who: 'R. Keller (you)', role: 'Owner', color: C, until: '' },
+        { who: 'L. Fasser', role: 'Approve', color: C, until: 'named 2 Jun' },
+        { who: 'M. Ruch', role: 'Propose', color: A, until: 'until Mar 2027' },
+        { who: 'Holzbau Fex', role: 'Direct edit', color: W, until: 'until Dec 2026' },
+      ],
+      recent: [
+        { name: 'Bench, oak', bg: 'oklch(0.78 0.14 200 / 0.14)', border: C },
+        { name: 'Path lamp', bg: 'rgba(255,255,255,0.04)', border: 'rgba(255,255,255,0.1)' },
+        { name: 'Bus shelter', bg: 'rgba(255,255,255,0.04)', border: 'rgba(255,255,255,0.1)' },
+        { name: 'Larch, mature', bg: 'rgba(255,255,255,0.04)', border: 'rgba(255,255,255,0.1)' },
+      ],
+      products: [
+        { name: 'Bench, oak', maker: 'Studio Kurz', kind: 'Furniture', licence: 'CC-BY 4.0', price: 'free', border: C, glow: '0 0 16px oklch(0.78 0.14 200 / 0.35)' },
+        { name: 'Bus shelter', maker: 'M. Ruch', kind: 'Building', licence: 'CC-BY 4.0', price: 'free', border: nb, glow: 'none' },
+        { name: 'Alpine hut, 6 × 8 m', maker: 'Holzbau Fex', kind: 'Building', licence: 'Paid · 40 editions left', price: '12.00 cr', border: nb, glow: 'none' },
+        { name: 'Ski lift, base station', maker: 'Seilbahn AG', kind: 'Transport', licence: 'Paid', price: '40.00 cr', border: nb, glow: 'none' },
+        { name: 'Path lamp', maker: 'Studio Kurz', kind: 'Lighting', licence: 'CC-BY 4.0', price: 'free', border: nb, glow: 'none' },
+        { name: 'Larch, mature', maker: 'Forst Bregaglia', kind: 'Tree', licence: 'CC0', price: 'free', border: nb, glow: 'none' },
+      ],
+      tiles: [
+        { id: '14/8551/5810', state: 'to submit', border: 'rgba(242,239,232,0.7)', bg: 'rgba(242,239,232,0.06)', fg: W },
+        { id: '14/8552/5810', state: 'to submit', border: 'rgba(242,239,232,0.7)', bg: 'rgba(242,239,232,0.06)', fg: W },
+        { id: '14/8553/5810', state: 'compiled', border: C, bg: 'oklch(0.78 0.14 200 / 0.18)', fg: C },
+        { id: '14/8554/5810', state: 'compiled', border: C, bg: 'oklch(0.78 0.14 200 / 0.18)', fg: C },
+        { id: '14/8551/5809', state: 'to submit', border: 'rgba(242,239,232,0.7)', bg: 'rgba(242,239,232,0.06)', fg: W },
+        { id: '14/8552/5809', state: 'to submit', border: 'rgba(242,239,232,0.7)', bg: 'rgba(242,239,232,0.06)', fg: W },
+        { id: '14/8553/5809', state: 'to submit', border: 'rgba(242,239,232,0.7)', bg: 'rgba(242,239,232,0.06)', fg: W },
+        { id: '14/8554/5809', state: 'to submit', border: 'rgba(242,239,232,0.7)', bg: 'rgba(242,239,232,0.06)', fg: W },
+      ],
+      zooms: [{ label: 'z6', pct: '100%' }, { label: 'z8', pct: '100%' }, { label: 'z10', pct: '100%' }, { label: 'z12', pct: '60%' }, { label: 'z14 0/4', pct: '0%' }],
+      jobs: [
+        { id: '14/8551/5809', area: 'Maloja Nord', dist: '1.1 km', detail: '2 pieces to do, 1 in hand · yours · about 4 min', pay: '0.70 cr' },
+        { id: '14/8550/5810', area: 'Maloja Nord', dist: '1.3 km', detail: '2 pieces to do, 1 in hand · yours · about 4 min', pay: '0.70 cr' },
+        { id: '14/8550/5809', area: 'Piz Lunghin', dist: '1.5 km', detail: '2 pieces to do · R. Keller · about 4 min', pay: '1.10 cr' },
+        { id: '12/2137/1452', area: 'Val Fex, Curtins', dist: '2.0 km', detail: '1 piece to do · Holzbau Fex · about 6 min', pay: '0.95 cr' },
+        { id: '10/534/363', area: 'Sils Baselgia', dist: '10.2 km', detail: '1 piece to do · K. Prevost · about 3 min', pay: '0.80 cr' },
+      ],
+      decisions: [
+        { what: 'Bus shelter · Maloja Nord', verdict: 'Approved 12 Aug', color: C, who: 'by A. Giacometti', note: 'Fits the path.' },
+        { what: 'Sign post · Maloja Nord', verdict: 'Refused 3 Aug', color: R, who: 'by L. Fasser', note: 'Too close to the boundary with Silsersee Ost. Move it 4 m in.' },
+        { what: 'Dry-stone wall · Piz Lunghin', verdict: 'Approved 28 Jul', color: C, who: 'by you', note: 'Good.' },
+      ],
+      txns: [
+        { date: '11 Sep', what: 'Held · render pool', detail: 'Job #4812 · 2 tiles · released when rendered', amount: '−1.40', color: A },
+        { date: '11 Sep', what: 'Earned · rendered tile', detail: '10/534/363 · Isola', amount: '+0.65', color: C },
+        { date: '10 Sep', what: 'Paid · render pool', detail: 'Job #4790 · Maloja Nord · 1 tile', amount: '−0.70', color: W },
+        { date: '9 Sep', what: 'Paid · product licence', detail: 'Alpine hut, 6 × 8 m · Holzbau Fex', amount: '−12.00', color: W },
+        { date: '7 Sep', what: 'Paid · render pool', detail: 'Job #4711 · Maloja Nord · 3 tiles', amount: '−2.10', color: W },
+        { date: '4 Sep', what: 'Earned · rendered tile', detail: '12/2137/1452 · Val Fex', amount: '+1.05', color: C },
+        { date: '1 Sep', what: 'Added credits', detail: 'Card ending 4417', amount: '+50.00', color: C },
+        { date: '28 Aug', what: 'Earned · rendered tile', detail: '14/8549/5811 · Grevasalvas', amount: '+0.60', color: C },
+      ],
+      kinds: [
+        { name: 'Road', code: 'road', bg: C, fg: '#0b0d10', border: C },
+        { name: 'Building', code: 'bldg', bg: 'transparent', fg: W, border: 'rgba(255,255,255,0.18)' },
+        { name: 'Forest', code: 'forest', bg: 'transparent', fg: W, border: 'rgba(255,255,255,0.18)' },
+        { name: 'Water', code: 'water', bg: 'transparent', fg: W, border: 'rgba(255,255,255,0.18)' },
+        { name: 'Furniture', code: 'prop', bg: 'transparent', fg: W, border: 'rgba(255,255,255,0.18)' },
+      ],
+      kindProps: [
+        { name: 'Class', code: 'highway', req: 'required', reqColor: A, type: 'choice', values: 'motorway · trunk · primary · secondary · tertiary · residential · service · track · path · footway' },
+        { name: 'Width (m)', code: 'width', req: '', reqColor: M, type: 'number', values: '0.5 – 40' },
+        { name: 'Lanes', code: 'lanes', req: '', reqColor: M, type: 'number', values: '1 – 8, whole' },
+        { name: 'Surface', code: 'surface', req: '', reqColor: M, type: 'choice', values: 'asphalt · concrete · gravel · ground · grass' },
+      ],
+      rules: [
+        { order: '10', name: 'Gabled roof', summary: 'footprint · roof in [gable, gabled, satteldach, pitch…]', bg: 'transparent', border: 'rgba(255,255,255,0.08)', dot: C },
+        { order: '70', name: 'Birch forest', summary: 'forest · species in [birch, betula]', bg: 'oklch(0.78 0.14 200 / 0.12)', border: C, dot: C },
+        { order: '90', name: 'Other forest', summary: 'forest · no conditions, catches the rest', bg: 'transparent', border: 'rgba(255,255,255,0.08)', dot: C },
+        { order: '120', name: 'Old road style', summary: 'road · class = track', bg: 'transparent', border: 'rgba(255,255,255,0.08)', dot: 'rgba(242,239,232,0.3)' },
+      ],
+      outputs: [
+        { k: 'color', v: '[0.28,0.45,0.2]', hint: 'rgb 0–1' },
+        { k: 'sides', v: '6', hint: '' },
+        { k: 'taper', v: '0.48', hint: '' },
+        { k: 'height', v: '[10,18]', hint: 'random in range, m' },
+        { k: 'mature', v: '50', hint: 'years' },
+        { k: 'age_prop', v: '"age"', hint: 'read off the feature' },
+      ],
+      status: [{ v: '0', l: 'published tiles' }, { v: '0', l: 'loaded' }, { v: '0', l: 'loading' }, { v: '0', l: 'rebases' }, { v: '0', l: 'swaps' }],
+    };
+  }
+}
+</script>
+</body>
+</html>

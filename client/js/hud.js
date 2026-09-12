@@ -10,30 +10,60 @@ const CUT = (n) => `polygon(${n}px 0, 100% 0, 100% calc(100% - ${n}px),`
 
 // Every tab is a thing a person does. "World" is the world itself — choosing it
 // closes whatever is open rather than showing a panel.
+//
+// `group` and `key` are the design's: four named groups along the hotbar, and a
+// number key for each so nothing is reachable only by aiming at it. `width` is
+// how wide that panel wants to be — a catalog of pictures needs more than a
+// wallet.
 export const TABS = [
-    { name: 'World', glyph: 'circle(50%)', lede: '' },
-    { name: 'Your land', glyph: 'polygon(0 0,100% 0,100% 100%,0 100%)',
-        lede: 'The ground you own, and what stands on it.' },
-    { name: 'Place', glyph: 'polygon(50% 0,100% 50%,50% 100%,0 50%)',
-        lede: 'Put a product from the catalog on your own land.' },
-    { name: 'Catalog', glyph: CUT(6),
-        lede: 'Products anyone may build with. Register your own.' },
-    { name: 'Submit', glyph: 'polygon(50% 0,100% 100%,0 100%)',
-        lede: 'Send what you placed to be rendered.' },
-    { name: 'Render pool', glyph: 'polygon(25% 0,75% 0,100% 50%,75% 100%,25% 100%,0 50%)',
-        lede: 'Tiles waiting to be compiled, and what they pay.' },
-    { name: 'Permission', glyph: 'polygon(0 55%,40% 100%,100% 10%,88% 0,40% 78%,12% 43%)',
-        lede: 'Rendered tiles waiting for a person to approve them.' },
-    { name: 'Wallet', glyph: 'polygon(0 20%,100% 20%,100% 100%,0 100%)',
-        lede: 'What you have, and what moved.' },
-    { name: 'Share', glyph: 'circle(50%)',
+    { name: 'World', group: 'Look', key: '1', glyph: 'circle(50%)', lede: '' },
+    { name: 'Share', group: 'Look', key: '9', glyph: 'circle(50%)', width: 470,
         lede: 'A link that puts somebody else where you are standing.' },
-    { name: 'Admin', glyph: 'polygon(50% 0,100% 25%,100% 75%,50% 100%,0 75%,0 25%)',
+    { name: 'Your land', group: 'Build', key: '2',
+        glyph: 'polygon(0 0,100% 0,100% 100%,0 100%)', width: 500,
+        lede: 'The ground you own, and what stands on it.' },
+    { name: 'Place', group: 'Build', key: '3',
+        glyph: 'polygon(50% 0,100% 50%,50% 100%,0 50%)', width: 470,
+        lede: 'Put a product from the catalog on your own land.' },
+    { name: 'Catalog', group: 'Build', key: '4', glyph: CUT(6), width: 666,
+        lede: 'Products anyone may build with. Register your own.' },
+    { name: 'Submit', group: 'Build', key: '5',
+        glyph: 'polygon(50% 0,100% 100%,0 100%)', width: 470,
+        lede: 'Send what you placed to be rendered.' },
+    { name: 'Render pool', group: 'Economy', key: '6',
+        glyph: 'polygon(25% 0,75% 0,100% 50%,75% 100%,25% 100%,0 50%)', width: 540,
+        lede: 'Tiles waiting to be compiled, and what they pay.' },
+    { name: 'Permission', group: 'Economy', key: '7',
+        glyph: 'polygon(0 55%,40% 100%,100% 10%,88% 0,40% 78%,12% 43%)', width: 500,
+        lede: 'Rendered tiles waiting for a person to approve them.' },
+    { name: 'Wallet', group: 'Economy', key: '8',
+        glyph: 'polygon(0 20%,100% 20%,100% 100%,0 100%)', width: 500,
+        lede: 'What you have, and what moved.' },
+    { name: 'Admin', group: 'System', key: '0',
+        glyph: 'polygon(50% 0,100% 25%,100% 75%,50% 100%,0 75%,0 25%)', width: 666,
         lede: 'What things may say about themselves, and what the compiler'
             + ' makes of them.' },
-    { name: 'Setup', glyph: 'circle(50%)',
+    { name: 'Setup', group: 'System', key: '`',
+        glyph: 'polygon(50% 0,61% 35%,98% 35%,68% 57%,79% 91%,50% 70%,21% 91%,'
+            + '32% 57%,2% 35%,39% 35%)', width: 470,
         lede: 'Your account, your GeoServer, and the ground the world sits on.' },
 ];
+
+export const GROUPS = ['Look', 'Build', 'Economy', 'System'];
+
+// The five stages of the route through the app, in order, as the chrome shows
+// them. Credits are not a stage: they sit in their own chip beside these.
+export const STAGES = [
+    { key: 'placed', label: 'Placed' },
+    { key: 'pool', label: 'In pool' },
+    { key: 'rendered', label: 'Rendered', tone: 'accent' },
+    { key: 'awaiting', label: 'Awaiting', tone: 'warn' },
+    { key: 'published', label: 'Published', tone: 'accent' },
+];
+
+// Which tab a key opens. Typing into a field must not teleport you, so the
+// caller checks that first.
+export const keyed = (key) => TABS.find((t) => t.key === key)?.name ?? null;
 
 const POINTS = ['N', 'NE', 'E', 'SE', 'S', 'SW', 'W', 'NW'];
 
@@ -71,15 +101,6 @@ const el = (tag, props = {}, ...kids) => {
     return node;
 };
 
-const stat = (key, label, tone) => {
-    const value = el('span', { className: 'value', textContent: '—' });
-    const node = el('div', { className: 'stat glass' },
-        el('span', { className: 'label', textContent: label }), value);
-    if (tone) node.dataset.tone = tone;
-    node.dataset.stat = key;
-    return { node, value };
-};
-
 // A strip of headings that slides under a fixed needle: the point under the
 // needle is the way the camera is facing.
 function compass() {
@@ -100,7 +121,9 @@ function compass() {
         for (const m of marks) {
             let d = Number(m.dataset.deg) - heading;
             d = ((d + 540) % 360) - 180;
-            m.style.display = Math.abs(d) > 92 ? 'none' : '';
+            // A mark at the very edge is cut in half by the strip's own clip,
+            // which reads as a typo rather than as a compass.
+            m.style.display = Math.abs(d) > 80 ? 'none' : '';
             m.style.left = `${50 + (d / 92) * 50}%`;
         }
     };
@@ -121,20 +144,56 @@ function topCentre() {
         face: c.face, land, owner, right, coords };
 }
 
+// The hotbar: four named groups, each tab with the key that opens it. A key
+// hint is not decoration — it is the only way to learn that the keys work.
 function tabBar(onPick) {
     const bar = el('div', { id: 'tabs', className: 'glass' });
     const buttons = new Map();
-    for (const t of TABS) {
-        const glyph = el('span', { className: 'glyph' });
-        glyph.style.clipPath = t.glyph;
-        const b = el('button', { type: 'button', className: 'tab' },
-            glyph, el('span', { className: 'label', textContent: t.name }));
-        b.setAttribute('aria-selected', String(t.name === 'World'));
-        b.onclick = () => onPick(t.name);
-        buttons.set(t.name, b);
-        bar.append(b);
+    for (const name of GROUPS) {
+        const tabs = el('div', { className: 'tabs' });
+        for (const t of TABS.filter((x) => x.group === name)) {
+            buttons.set(t.name, tabButton(t, onPick));
+            tabs.append(buttons.get(t.name));
+        }
+        bar.append(el('div', { className: 'hotgroup' },
+            el('span', { className: 'name', textContent: name }), tabs));
     }
     return { bar, buttons };
+}
+
+function tabButton(t, onPick) {
+    const glyph = el('span', { className: 'glyph' });
+    glyph.style.clipPath = t.glyph;
+    const b = el('button', { type: 'button', className: 'tab' },
+        el('span', { className: 'key', textContent: t.key }), glyph,
+        el('span', { className: 'label', textContent: t.name }));
+    b.setAttribute('aria-selected', String(t.name === 'World'));
+    b.dataset.tab = t.name;
+    b.onclick = () => onPick(t.name);
+    return b;
+}
+
+// The route through the app, always visible: how many things you have placed,
+// how many tiles are in the pool, how many of those a renderer holds, how many
+// are waiting for a person, how many are published. Credits sit beside them.
+function pipeline() {
+    const strip = el('div', { id: 'pipeline', className: 'glass' });
+    const cells = {};
+    for (const st of STAGES) {
+        const value = el('span', { className: 'value', textContent: '0' });
+        const cell = el('div', { className: 'stage' },
+            el('span', { className: 'label', textContent: st.label }), value,
+            el('i', {}));
+        if (st.tone) cell.dataset.tone = st.tone;
+        cell.dataset.stat = st.key;
+        cells[st.key] = value;
+        strip.append(cell);
+    }
+    const credits = el('span', { className: 'value', textContent: '—' });
+    cells.credits = credits;
+    const chip = el('div', { id: 'credits', className: 'glass' },
+        el('span', { className: 'label', textContent: 'Credits' }), credits);
+    return { node: el('div', { id: 'stats' }, strip, chip), cells };
 }
 
 function panelFrame(onClose) {
@@ -153,13 +212,11 @@ function panelFrame(onClose) {
 function buildFrame(doc, show) {
     const top = topCentre();
     const who = el('span', { className: 'who', textContent: 'not signed in' });
-    const stats = {
-        credits: stat('credits', 'Credits', 'accent'),
-        approval: stat('approval', 'Awaiting approval', 'warn'),
-        unsubmitted: stat('unsubmitted', 'Not yet submitted'),
-    };
+    const pipe = pipeline();
     const frame = panelFrame(() => show('World'));
     const { bar, buttons } = tabBar(show);
+    const map = el('canvas', { id: 'minimap', width: 240, height: 240 });
+    const scale = el('span', { className: 'scale', textContent: 'Map · M' });
 
     // Each tab gets its body once and keeps it, so a module mounted into it
     // survives the panel being closed and opened again. The lede is written
@@ -180,29 +237,46 @@ function buildFrame(doc, show) {
         el('div', { id: 'brand', className: 'glass' },
             el('span', { className: 'mark', textContent: 'splatworld' }),
             el('span', { className: 'rule' }), who),
-        top.node,
-        el('div', { id: 'stats' }, ...Object.values(stats).map((x) => x.node)),
-        frame.node, bar,
-        el('div', { id: 'hints', className: 'glass' },
-            el('span', {}, el('b', { textContent: 'Walk' }), ' W A S D'),
-            el('span', {}, el('b', { textContent: 'Look' }), ' drag'),
-            el('span', {}, el('b', { textContent: 'Fly' }), ' F')),
+        top.node, pipe.node, frame.node, bar,
+        el('div', { id: 'corner' },
+            el('div', { id: 'hints', className: 'glass' },
+                el('span', {}, el('b', { textContent: 'Walk' }), ' W A S D'),
+                el('span', {}, el('b', { textContent: 'Look' }), ' drag'),
+                el('span', {}, el('b', { textContent: 'Fly' }), ' F'),
+                el('span', {}, el('b', { textContent: 'Run' }), ' Shift'),
+                el('span', {}, el('b', { textContent: 'Close panel' }), ' Esc')),
+            el('div', { id: 'map', className: 'glass' }, map, scale)),
         el('div', { id: 'legend', className: 'glass' },
             el('span', { className: 'published' }, el('i'), 'Published'),
             el('span', { className: 'candidate' }, el('i'),
                 'Candidate \u00b7 awaiting approval'),
-            el('span', { className: 'mine' }, el('i'), 'Yours \u00b7 not yet submitted')),
+            el('span', { className: 'mine' }, el('i'), 'Yours \u00b7 not yet submitted'),
+            el('span', { className: 'theirs' }, el('i'), 'No build rights')),
         el('div', { id: 'crosshair' }, el('i'), el('i'), el('i'), el('i')),
         notice);
 
     doc.body.append(el('div', { id: 'vignette' }), hud);
-    return { top, who, stats, frame, buttons, bodies, notice };
+    return { top, who, stats: pipe.cells, frame, buttons, bodies, notice, map, scale };
+}
+
+// A number key opens its panel; Escape closes whatever is open. Neither fires
+// while somebody is typing — a land called "5" has to be nameable.
+function bindKeys(doc, show) {
+    doc.addEventListener('keydown', (e) => {
+        if (e.ctrlKey || e.metaKey || e.altKey) return;
+        if (e.target?.closest?.('input, select, textarea, [contenteditable]')) return;
+        if (e.key === 'Escape') { show('World'); return; }
+        const name = keyed(e.key);
+        if (!name) return;
+        e.preventDefault();
+        show(name);
+    });
 }
 
 export function mountHud(doc) {
     let open = 'World';
-    const { top, who, stats, frame, buttons, bodies, notice } =
-        buildFrame(doc, (name) => show(name));
+    const f = buildFrame(doc, (name) => show(name));
+    const { top, who, stats, frame, buttons, bodies, notice } = f;
 
     function show(name) {
         if (name === open && name !== 'World') name = 'World';
@@ -211,8 +285,13 @@ export function mountHud(doc) {
         for (const [tab, host] of bodies) host.hidden = tab !== name;
         frame.title.textContent = name;
         frame.node.dataset.open = name === 'World' ? '' : '1';
+        // Each panel is as wide as what it has to show (TABS.width).
+        const want = TABS.find((t) => t.name === name)?.width;
+        frame.node.style.width = want ? `${want}px` : '';
         return bodies.get(name);
     }
+
+    bindKeys(doc, show);
 
     return {
         show,
@@ -233,8 +312,11 @@ export function mountHud(doc) {
             notice.hidden = !text;
         },
         stat(key, value) {
-            if (stats[key]) stats[key].value.textContent = value;
+            if (stats[key]) stats[key].textContent = value;
         },
+        // The minimap, and the scale it is drawn at.
+        minimap: () => f.map,
+        mapScale(text) { f.scale.textContent = text; },
         // Where the player is standing: the land under them, who owns it, and
         // whether they may build. Plain strings — the HUD decides nothing.
         standing({ land, owner, right, may }) {
@@ -251,7 +333,7 @@ export function mountHud(doc) {
             const ew = lon >= 0 ? 'E' : 'W';
             top.coords.textContent =
                 `${Math.abs(lat).toFixed(4)}${ns} ${Math.abs(lon).toFixed(4)}${ew}`
-                + ` · ${Math.round(h)} m`;
+                + ` \u00b7 ${Math.round(h)} m`;
             if (Number.isFinite(heading)) top.face(((heading % 360) + 360) % 360);
         },
     };

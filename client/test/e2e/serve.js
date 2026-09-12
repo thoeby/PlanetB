@@ -14,6 +14,9 @@ export const FILES_ROOT = process.env.FILES_ROOT
 
 const TYPES = {
     '.html': 'text/html', '.js': 'text/javascript', '.json': 'application/json',
+    // A browser refuses a stylesheet served as anything else, and then the
+    // page renders correctly and completely unstyled.
+    '.css': 'text/css', '.woff2': 'font/woff2',
     '.sog': 'application/octet-stream', '.webp': 'image/webp',
 };
 const mime = (p) => TYPES[extname(p)] ?? 'application/octet-stream';

@@ -1,0 +1,80 @@
+/* panel.css — the house styles a module mounted into a panel inherits, so no
+ * module carries its own look. Split out of hud.css to keep both under the 400
+ * lines CLAUDE.md allows; hud.css is the chrome, this is what fills it.
+ */
+
+#panel label { display: block; margin: 8px 0 2px; font-size: 12px;
+  color: var(--ink-3); font-family: var(--head); font-weight: 600;
+  letter-spacing: 0.1em; text-transform: uppercase; }
+#panel input, #panel select, #panel textarea {
+  width: 100%; padding: 7px 9px; background: rgba(0, 0, 0, 0.35);
+  color: var(--ink); border: 1px solid var(--edge); font: inherit;
+  font-size: 13px;
+}
+#panel input:focus, #panel select:focus { outline: 1px solid var(--accent); }
+#panel button, .act {
+  padding: 7px 12px; background: rgba(255, 255, 255, 0.06); color: var(--ink);
+  border: 1px solid var(--edge); cursor: pointer; font-family: var(--head);
+  font-weight: 700; font-size: 12px; letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+#panel button:hover, .act:hover { background: rgba(255, 255, 255, 0.12); }
+#panel button.primary, .act.primary {
+  background: var(--accent); color: var(--ground); border-color: var(--accent);
+}
+#panel button.primary:hover { filter: brightness(1.1); }
+#panel button:disabled { opacity: 0.45; cursor: default; }
+#panel .row { display: flex; gap: 6px; align-items: center; }
+#panel .row > * { flex: 1; }
+#panel .row > button { flex: 0 0 auto; }
+#panel ul { margin: 6px 0; padding: 0; list-style: none; }
+#panel li { padding: 6px 0; border-bottom: 1px solid var(--edge-2); }
+#panel li:last-child { border-bottom: 0; }
+#panel .muted { color: var(--ink-3); }
+#panel .bad { color: var(--bad); }
+#panel .mono { font-family: var(--mono); font-size: 11px; }
+#panel .status { min-height: 1.2em; font-size: 12px; color: var(--ink-3); }
+#panel .status[data-bad="1"] { color: var(--bad); }
+
+/* A thumbnail is a thumbnail: 256 square of canvas pushed the rest of the
+   register form below the fold. */
+#panel canvas.preview {
+  display: block; width: 100%; max-width: 12rem; height: auto;
+  margin: 8px 0; border: 1px solid var(--edge); background: rgba(0, 0, 0, 0.35);
+}
+#panel #results { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+#panel #results li { border-bottom: 0; }
+#panel #results img { width: 100%; aspect-ratio: 1; object-fit: cover;
+  border: 1px solid var(--edge); }
+
+/* A button that is the current choice (the gizmo's mode and axis). */
+#panel button[data-on="1"] {
+  background: var(--accent-dim); border-color: var(--accent); color: var(--ink);
+}
+
+/* A checkbox is not a field: it sits on one line with the words that say what
+   it does, and those words are a sentence rather than a heading. */
+#panel label:has(> input[type="checkbox"]) {
+  display: flex; gap: 8px; align-items: center; text-transform: none;
+  letter-spacing: 0; font-weight: 400; color: var(--ink-2);
+}
+#panel input[type="checkbox"] { width: auto; flex: 0 0 auto; }
+
+/* A tile waiting for a person to say yes (client/js/permission.js): each row's
+   buttons sit beside the note rather than under it. */
+#panel .pm-acts { display: flex; gap: 6px; align-items: center; margin-top: 6px; }
+#panel .pm-acts .pm-note { flex: 1; min-width: 6rem; }
+#panel .pm-acts button { flex: 0 0 auto; }
+
+/* A label that is wrapped round its own field (the catalog's two filters):
+   the words sit above the control, not beside it. */
+#panel label > select { margin-top: 2px; }
+
+/* A build rule (client/js/rulesui.js): a condition or a produced property is
+   three fields on one line, and the last of them is the × that drops it. */
+#panel .ru-row { display: flex; gap: 4px; margin: 4px 0; }
+#panel .ru-row .prop { flex: 2; min-width: 4rem; }
+#panel .ru-row .val { flex: 3; min-width: 4rem; }
+#panel .ru-row .op { flex: 0 0 5rem; }
+#panel .ru-row button { flex: 0 0 auto; padding: 4px 8px; }
+#panel .ru-rule button { text-align: left; }

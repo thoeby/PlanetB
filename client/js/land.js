@@ -140,5 +140,10 @@ export function mountLand(host, { onGo = () => {}, onRemove = () => {} } = {}) {
     }
 
     refresh();
-    return { refresh, areas: () => state.areas, chosen: () => state.chosen, inside };
+    return {
+        refresh, areas: () => state.areas, chosen: () => state.chosen, inside,
+        // What stands on the chosen land, for the map and for the first of the
+        // chrome's five stages.
+        things: () => state.contents,
+    };
 }

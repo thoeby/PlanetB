@@ -155,10 +155,16 @@ else
     echo "# canon-v1 could not run under node, catalog round-trip skipped"
 fi
 
-# Once registered, the sha can never be uploaded again (Invariant 1).
+# A registered sha at a second content-addressed path is the same bytes at the
+# address something else asks for, not a rewrite: db/0051_sharedbytes.sql lets
+# /assets/ and /tiles/ have it, and keeps the refusal for /jobs/, which is a
+# working directory. Invariant 1 is about a path, not about a sha.
 $PSQL -c "INSERT INTO artifact (sha256, kind, bytes, algo_version)
           VALUES ('$SHA2', 'sog', 1, 'sog-v1')" > /dev/null
-is "PUT of an already registered sha is 403" 403 "$(put "/assets/$SHA2.glb" "$SHA2" "$JWT")"
+is "PUT of a registered sha at its own address is 201" 201 \
+    "$(put "/assets/$SHA2.glb" "$SHA2" "$JWT")"
+is "PUT of a registered sha into a job directory is 403" 403 \
+    "$(put "/jobs/$ATOM/$SHA2.ply" "$SHA2" "$JWT")"
 
 echo "# $PASS passed, $FAIL failed"
 [ "$FAIL" -eq 0 ]

@@ -98,6 +98,31 @@ every other test still sees the WebGL2-only machine it was written for.
 If Docker *is* available, `make up` + `make gate` should work — but nobody has
 run `infra/compose.yml` yet, so expect to debug it and commit the fix.
 
+**The design is `docs/design/`, and `docs/design/README.md` says which file
+holds which part of it.** Do not restyle the chrome without reading it.
+
+**A stylesheet served with the wrong media type is refused silently.** The page
+then renders complete, correct and unstyled, and every browser assertion about
+text still passes — which is how `client/hud.css` went unexercised by the whole
+e2e suite. `serve.js` and `services.js` have a `.css` type now, and
+`client/test/e2e/hud.spec.js` asserts that a rule actually applies rather than
+that an element exists.
+
+**`make vendor` fetches the fonts too.** `client/hud.css` @font-face's Rajdhani,
+Sora and JetBrains Mono out of `client/vendor/fonts`; `tools/vendor.sh` pulls
+them from @fontsource on npm, because fonts.gstatic.com is outside this
+container's egress policy. Every rule that names them names a system fallback,
+so a checkout that never ran it still reads.
+
+**`tools/test-tiles.sh` wants a world nobody has seeded yet.** It publishes
+three versions of a tile in a row, and reads the version to publish after its
+atoms have run; in a world with thousands of features already drawn, something
+dirties the tile in between and the publish is refused with "no verified sog of
+yours for …". `make db-reset` then `bash tools/test-tiles.sh`, before
+`api-test` seeds anything, works. Run out of order it does not, so a bare
+`make gate` on a seeded box fails here and the viewer tests then skip for want
+of published tiles.
+
 ## 2. Traps already paid for
 
 Things that cost time once. Do not rediscover them.

@@ -6,6 +6,7 @@
 <meta name="splatworld:api" content="http://localhost:3000">
 <meta name="splatworld:files" content="http://localhost:8080">
 <link rel="stylesheet" href="./hud.css">
+<link rel="stylesheet" href="./panel.css">
 <style>
   /* Only what a module's own markup needs and hud.css cannot know about. */
   .work-progress { white-space: pre-line; font-size: 12px; margin: 4px 0; }
@@ -74,11 +75,12 @@
   import { InstancePreview } from './js/preview.js';
   import { XR_LIMITS, teleportTarget, xrRequested, xrSupported } from './js/xr.js';
   import { mountHud, whatIsMissing } from './js/hud.js';
+  import { drawMinimap } from './js/hudmap.js';
   import { mountSetup } from './js/setupui.js';
   import { mountAdmin } from './js/adminui.js';
   import { mountRules } from './js/rulesui.js';
   import { mountCatalogPanel } from './js/catalogpanel.js';
-  import { drawAreas, mountLand } from './js/land.js';
+  import { drawAreas, mountLand, ringsOf } from './js/land.js';
   import { mountPool, mountSubmit } from './js/pool.js';
   import { mountPermission } from './js/permission.js';
   import { mountShare, parseVisit, visitHash } from './js/visit.js';
@@ -240,7 +242,8 @@
   // WP4.4: the wallet, and the bounty that puts a tile in front of a stranger.
   const wallet = mountWallet(panelFor('Wallet', 'wallet'));
   const showCredits = () => wallet.refresh().then(
-      (account) => hud.stat('credits', account ? String(account.amount) : '—'));
+      (account) => hud.stat('credits',
+          account ? Number(account.amount).toFixed(2) : '—'));
   showCredits();
 
   const build = mountBuild(panelFor('Place', 'build'), {
@@ -265,7 +268,12 @@
   const submit = mountSubmit(hud.panel('Submit'), {
       onSubmitted: () => { pool.refresh(); land.refresh(); },
       onCount: (p) => {
-          hud.stat('unsubmitted', String(Math.max(0, p.waiting - p.open_jobs)));
+          // The route through the app, as the chrome shows it. Every number
+          // is one area_progress already reports; none is invented here.
+          hud.stat('placed', String(land.things?.().length ?? 0));
+          hud.stat('pool', `${p.open_jobs ?? 0} tiles`);
+          hud.stat('rendered', `${p.published ?? 0} / ${p.tiles ?? 0}`);
+          hud.stat('published', String(p.published ?? 0));
           // A tile exists where something stands, so this is how many things
           // are on the land that is chosen in the panel — nothing, and there is
           // nothing to submit however much land you own.
@@ -295,7 +303,7 @@
           return origin.geodeticOf({ x: p.x, y: p.y, z: p.z });
       },
       onDecided: () => { land.refresh(); submit.refresh(); },
-      onCount: (n) => { hud.badge('Permission', n); hud.stat('approval', String(n)); },
+      onCount: (n) => { hud.badge('Permission', n); hud.stat('awaiting', String(n)); },
   });
 
   // T8: the link, to hand to somebody.
@@ -447,6 +455,24 @@
   }
   setInterval(sayWhatIsMissing, 5000);
   sayWhatIsMissing();
+
+  // The map in the corner, on a slow tick: it is a canvas, and nothing on it
+  // changes between frames. Your land is drawn from the same outlines the Your
+  // land panel lists, so the two cannot disagree.
+  function drawTheMap() {
+      const p = camera.getPosition();
+      const span = drawMinimap(hud.minimap(), {
+          areas: (land.areas() ?? []).map((a) => ({
+              mine: a.mine, ring: ringsOf(a.outline)[0] ?? null,
+          })),
+          things: land.things?.() ?? [],
+          at: origin.geodeticOf({ x: p.x, y: p.y, z: p.z }),
+          heading: player.yaw / Math.PI * 180,
+      });
+      if (span) hud.mapScale(`Map · ${span} m · M`);
+  }
+  setInterval(drawTheMap, 1000);
+  drawTheMap();
 
   app.on('update', (dt) => {
     // A smoothed frame time, so one slow frame does not stall background work

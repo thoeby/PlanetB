@@ -4,6 +4,8 @@ Read `ARCHITECTURE.md` first, then work through `TASKS.md` in order. One task = 
 
 State of the work so far: `PROGRESS.md`. Environment setup and the traps already paid for: `HANDOFF.md`.
 
+What the player meets, and what it looks like: `docs/SPEC.md` (the product specification) and `docs/design/` (eleven artboards, with `docs/design/README.md` mapping each part of the design to the file that holds it). Read them before changing anything anyone sees.
+
 ## What this is
 
 A persistent digital world on real geography, compiled into Gaussian-splat LOD tiles (z6…z18). Server = Postgres/PostGIS + PostgREST + GeoServer + nginx. **Server executes no compute.** Every atom (assemble, frame, train, merge, sog, verify) runs in a player's browser tab. Publishing is a conditional pointer update in Postgres.

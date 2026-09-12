@@ -11,6 +11,9 @@ PLAYCANVAS_VERSION=${PLAYCANVAS_VERSION:-2.22.0}
 DRACO_VERSION=${DRACO_VERSION:-1.5.7}
 OL_VERSION=${OL_VERSION:-10.10.0}
 DEST=client/vendor/playcanvas
+RAJDHANI_VERSION=${RAJDHANI_VERSION:-5.2.6}
+SORA_VERSION=${SORA_VERSION:-5.2.6}
+JETBRAINS_VERSION=${JETBRAINS_VERSION:-5.2.6}
 
 # Google's Draco codec (Apache-2.0), for the GLBs canon-v1 is handed compressed.
 # npm only: there is no CDN copy this repo pins. Without it a Draco GLB is
@@ -62,8 +65,43 @@ vendor_ol () {
     echo "vendor: openlayers ${OL_VERSION} from npm"
 }
 
+# The three typefaces hud.css names (all OFL-1.1). They are @font-face'd from
+# client/vendor/fonts, and every rule that uses them names a system fallback —
+# a checkout that never ran this still reads, it just loses the condensed caps.
+# @fontsource ships the woff2 files on npm, which is reachable where
+# fonts.gstatic.com often is not.
+vendor_font () {
+    local pkg=$1 version=$2 face=$3 out=$4
+    local dest=client/vendor/fonts tmp
+    [ -f "$dest/$out" ] && [ "${FORCE:-}" != "1" ] && {
+        echo "vendor: $dest/$out is already here (FORCE=1 to refetch)"; return 0; }
+    mkdir -p "$dest"
+    tmp=$(mktemp -d)
+    ( cd "$tmp" && npm pack "@fontsource/${pkg}@${version}" --silent > /dev/null ) || {
+        echo "vendor: @fontsource/${pkg} unreachable, skipping"; rm -rf "$tmp"; return 0; }
+    tar xzf "$tmp"/fontsource-*.tgz -C "$tmp"
+    if [ -f "$tmp/package/files/$face" ]; then
+        cp "$tmp/package/files/$face" "$dest/$out"
+        cp "$tmp/package/LICENSE" "$dest/LICENSE-${pkg}" 2>/dev/null || true
+        echo "vendor: $pkg $version from npm"
+    else
+        echo "vendor: $pkg $version has no $face, skipping"
+    fi
+    rm -rf "$tmp"
+}
+
+vendor_fonts () {
+    vendor_font rajdhani "$RAJDHANI_VERSION" \
+        rajdhani-latin-600-normal.woff2 rajdhani-600.woff2
+    vendor_font sora "$SORA_VERSION" \
+        sora-latin-400-normal.woff2 sora.woff2
+    vendor_font jetbrains-mono "$JETBRAINS_VERSION" \
+        jetbrains-mono-latin-400-normal.woff2 jetbrains-mono.woff2
+}
+
 vendor_draco
 vendor_ol
+vendor_fonts
 
 mkdir -p "$DEST"
 if [ -f "$DEST/playcanvas.js" ] && [ "${FORCE:-}" != "1" ]; then
