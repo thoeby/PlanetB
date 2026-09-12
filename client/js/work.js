@@ -153,8 +153,11 @@ export class WorkLoop {
             this.failed += 1;
             // The message, not the stack: the panel is one line per event, and
             // the stack is the atom worker's, not this one's.
+            // Whole, with its lines run together: a message that says what
+            // each of three attempts complained about is useless cut at the
+            // first newline, which is where its summary line ends.
             this.log({ event: 'error', atom: atom.id, op: atom.op,
-                err: String(err?.message ?? err).split('\n')[0],
+                err: String(err?.message ?? err).replace(/\s*\n\s*/g, ' · ').slice(0, 600),
                 ...(err?.where ? { where: err.where } : {}) });
             throw err;
         } finally {
