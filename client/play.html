@@ -315,11 +315,13 @@
       },
   });
 
-  // WP4.3: my land, who may touch it, and what they have asked to change.
-  // Merging a proposal changes the world, so the build panel is told to look
-  // again — its dirty badge is what a merge produces.
-  const areas = mountAreas(panelFor('Your land', 'areas'), {
-    onSelect: () => build.refresh(),
+  // WP4.3's grants and proposals live in the Your land panel itself now
+  // (design 3b): one card per area, with the people on it and what is waiting
+  // for a decision. The old module stays mounted for the one thing the card
+  // does not do — merging a proposal — in a tab of its own under Permission,
+  // where deciding already happens.
+  const areas = mountAreas(panelFor('Permission', 'areas'), {
+    onSelect: () => { build.refresh(); land.refresh(); },
   });
 
   // Where the last area_at was asked, so it is asked again only when the player

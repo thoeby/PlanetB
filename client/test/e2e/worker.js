@@ -96,7 +96,7 @@ export async function revealPanels(page) {
 }
 
 export async function signIn(page, email, pw) {
-    await page.waitForFunction(() => window.splatworld?.work, null, { timeout: 60000 });
+    await page.waitForFunction(() => window.splatworld?.api, null, { timeout: 60000 });
     await page.evaluate(async ([e, p]) => {
         const { api } = window.splatworld;
         await api.register(e, p).catch(() => {});

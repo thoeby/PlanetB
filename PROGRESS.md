@@ -69,6 +69,73 @@ already warns about, now with a name.
   migration allows the same bytes at a second content-addressed path and keeps
   the refusal for `/jobs/`; the test now says that, and says why.
 
+## What is actually done against the spec and the design
+
+`docs/SPEC.md` names eleven surfaces; `docs/design/` draws them. This is where
+each one stands, honestly, so nobody has to guess from a commit list.
+
+| surface | chrome | interior |
+|---|---|---|
+| World | done | the "next step" card is not built |
+| Your land | done | **done** — rows, counts, approvals stepper, people, proposals, drawn kinds, contents |
+| Place | done | untouched: no axis/step/snap row, no undo, no size limits |
+| Catalog | done | untouched: no cards, no register form as drawn |
+| Submit | done | untouched: no tile map, no price presets, no pool reference |
+| Render pool | done | untouched: no "this machine", no running job, no log toggle, no distance/pay sort |
+| Permission | done | untouched: no before/with toggle |
+| Wallet | done | untouched: no four totals, no movements list |
+| Share | done | untouched |
+| Admin | done | untouched: Kinds and Rules are not the two-column layout |
+| Setup | done | says who owns what you draw; the three numbered steps are not built |
+
+"Chrome" is the frame: the hotbar, the five-stage pipeline, the map, the panel
+docking, the type and colour. "Interior" is what the artboard shows inside the
+panel, which is where the features are. Nine interiors remain.
+
+### Bugs found and fixed while doing it
+
+- **Drawing land in QGIS was refused** (`db/0057`). `gis.area` was a plain view
+  over a Polygon column and QGIS sends a multipolygon of one part, so no land
+  saved and every feature drawn afterwards failed with "nothing here belongs to
+  an area yet" — which is the error that reached the drawer. Third time round
+  this loop; the reasoning is in the migration so it is not reverted a fourth.
+- **What you draw belonged to the wrong account** (`db/0058`). `gis.default_owner()`
+  answered "the oldest admin", which on any world with a second admin — a seed,
+  a test fixture, a colleague — is not the operator. Land was saved, silently,
+  to somebody else, and Your land was empty. It is `ground.set_by` now: the
+  account that set this world's ground. Setup says which account that is, so it
+  can never be silent again.
+- **The Your land panel ignored everything drawn in QGIS** (`db/0059`).
+  `area_contents` lists placed products only, so a world with a lake and a wood
+  in it answered "nothing stands on it yet".
+- **The setup probe passed while every Save failed.** It drew a single POLYGON
+  on two layers out of seven. It now draws on every drawable kind, read from
+  the `kind` table, multi-part, with required properties filled — which
+  immediately found a terrainmod refused for a blank `op`.
+- **`make db-test` was red** before any of this: `db/test/0029_qgis.sql` died at
+  its seventh assertion on a pgTAP record comparison. 635 assertions green now.
+- **No browser test had ever seen the stylesheet**: both test servers served
+  `.css` as `application/octet-stream`, which a browser refuses, and an
+  unstyled page passes every assertion about text.
+- **The fonts were never vendored.** `hud.css` has @font-face'd Rajdhani, Sora
+  and JetBrains Mono since it was written; `make vendor` now fetches them.
+
+### The CRS rework: checked, and now held to it
+
+It landed and it is coherent. `world_srid()` and `tile_srid()` are the only
+places an EPSG code is chosen in SQL, `crs.py` and `lib/crs.js` are the same
+for Python and JavaScript, and guards keep Python and JS from spelling one out.
+Two holes, now closed by `server/test_crs_agree.py`:
+
+- **SQL was unguarded.** A migration could pass 4326 to PostGIS by hand and
+  nothing noticed. Geometry typmods are stripped first — `geometry(Polygon,
+  4326)` is a declaration, not a choice — and any bare SRID left in a migration
+  after `db/0056` now fails the test.
+- **Nothing checked the copies agree.** `tile_bbox_merc()` in SQL and
+  `crs.tile_bounds()` in Python are compared over five tiles from z0 to z18,
+  to six decimal places, along with the pair of SRIDs they name. They agree
+  exactly today; now they have to.
+
 ## WP0 — Foundation ✅
 
 | task | status | commit | file(s) |

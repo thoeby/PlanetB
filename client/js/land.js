@@ -1,27 +1,22 @@
-// land.js — your land, in the world and in the panel.
+// land.js — your land, in the world and in the panel (design 3b).
 //
-// TASKS-usable T5: the ground you own is outlined where it actually is, and the
-// panel lists what stands on it. The outline is drawn rather than modelled —
-// three lines a frame, no entity, nothing to dispose — because it is a hint
-// about permission, not part of the world.
+// The panel is the artboard: every area you may touch, then the one you chose
+// with its counts, how many approvals it needs, who else may work on it, and
+// what is waiting for a decision. Every number and every name comes from an
+// RPC that already existed — my_areas, area_progress, area_grants,
+// my_proposals — so the panel states the world rather than deciding anything.
 //
-// Cyan is yours, amber is somebody's you may propose to, grey is everyone
-// else's. The same three colours the legend uses (client/hud.css).
+// The outline in the world is drawn rather than modelled — three lines a
+// frame, no entity, nothing to dispose — because it is a hint about
+// permission, not part of the world. Cyan is yours, amber is somebody's you
+// may propose to, grey is everyone else's: the legend's three colours.
 
 import * as api from './api.js';
-import { copyLink, visitLink } from './visit.js';
-
-const HTML = `
-<ul class="land-areas"></ul>
-<div class="land-inside">
-  <label>On this land</label>
-  <ul class="land-contents"></ul>
-</div>
-<p class="land-status status"></p>`;
+import { landRows, selected } from './landui.js';
 
 const el = (tag, props = {}, ...kids) => {
     const node = Object.assign(document.createElement(tag), props);
-    node.append(...kids);
+    node.append(...kids.filter((k) => k !== null && k !== undefined));
     return node;
 };
 
@@ -54,94 +49,95 @@ export function drawAreas(ctx, areas) {
     }
 }
 
-function areaRow(area, onPick, chosen) {
-    const name = area.rules?.name || 'unnamed land';
-    const b = el('button', { type: 'button',
-        textContent: `${name}${area.mine ? '' : ' · not yours'}` });
-    b.onclick = () => onPick(area);
-    const li = el('li', { className: 'land-area' }, b);
-    li.dataset.on = area.id === chosen ? '1' : '';
-    return li;
+export const areaName = (a) => a?.rules?.name || 'unnamed land';
+
+// Everything the chosen area's card shows, in one round of requests.
+async function cardOf(area) {
+    const empty = {
+        contents: [], drawn: [], progress: null, grants: [], proposals: [],
+    };
+    if (!area) return empty;
+    const [contents, drawn, progress, grants, proposals] = await Promise.all([
+        api.rpc('area_contents', { area_id: area.id }).catch(() => []),
+        api.rpc('area_drawn', { area_id: area.id }).catch(() => []),
+        api.rpc('area_progress', { area_id: area.id }).catch(() => null),
+        api.rpc('area_grants', { area_id: area.id }).catch(() => []),
+        api.rpc('my_proposals').catch(() => []),
+    ]);
+    return {
+        contents: contents ?? [],
+        drawn: drawn ?? [],
+        progress,
+        grants: grants ?? [],
+        proposals: (proposals ?? []).filter((p) => p.area_id === area.id),
+    };
 }
 
-// A link to what is on your land, so somebody else can stand in front of it
-// (T8). The position is the thing's own, not the camera's.
-const linkTo = (item) => visitLink(globalThis.location.href,
-    { lat: item.lat, lon: item.lon, h: item.h ?? 0, heading: 0 });
-
-function contentRow(item, onGo, onDrop, say) {
-    const go = el('button', { type: 'button',
-        textContent: item.name || item.san || 'something' });
-    go.onclick = () => onGo(item);
-    const share = el('button', { type: 'button', textContent: 'link' });
-    share.onclick = async () => say(await copyLink(document, linkTo(item))
-        ? 'link copied — it puts somebody in front of it'
-        : linkTo(item));
-    const row = el('li', { className: 'land-item' }, go, share);
-    if (item.mine) {
-        const drop = el('button', { type: 'button', textContent: 'remove' });
-        drop.onclick = () => onDrop(item);
-        row.append(drop);
+async function removing(item, onRemove, say, reload) {
+    try {
+        await onRemove(item);
+        say(`${item.name || item.san} removed`);
+        await reload();
+    } catch (err) {
+        say(String(err.body?.message ?? err.message ?? err), true);
     }
-    return row;
 }
 
 export function mountLand(host, { onGo = () => {}, onRemove = () => {} } = {}) {
-    const box = el('div');
-    box.innerHTML = HTML;
-    host.append(box);
-    const q = (sel) => box.querySelector(sel);
-    const state = { areas: [], chosen: null, contents: [] };
+    const list = el('ul', { className: 'rows land-areas' });
+    const detail = el('div', { className: 'land-detail' });
+    const status = el('p', { className: 'land-status status' });
+    host.append(list, detail, status);
 
-    const say = (msg, bad = false) => {
-        q('.land-status').textContent = msg;
-        q('.land-status').dataset.bad = bad ? '1' : '';
+    const state = {
+        areas: [], chosen: null, contents: [], drawn: [], progress: null,
+        grants: [], proposals: [],
     };
 
-    async function inside(area) {
+    const say = (msg, bad = false) => {
+        status.textContent = msg;
+        status.dataset.bad = bad ? '1' : '';
+    };
+
+    // One place where the panel is redrawn, so every action ends the same way.
+    function draw() {
+        list.replaceChildren(...landRows(state, pick));
+        const area = state.areas.find((a) => a.id === state.chosen);
+        detail.replaceChildren(...selected(area, state, {
+            onGo, onRemove: remove, say, refresh: () => load(area), api,
+        }));
+    }
+
+    async function pick(area) {
         state.chosen = area?.id ?? null;
-        state.contents = area ? await api.rpc('area_contents', { area_id: area.id })
-            .catch(() => []) : [];
-        q('.land-contents').replaceChildren(...state.contents.map(
-            (item) => contentRow(item, onGo, remove, say)));
-        if (area && !state.contents.length) {
-            q('.land-contents').append(el('li', { className: 'muted',
-                textContent: 'nothing on it yet — the Place tab puts something here' }));
-        }
+        draw();
+        await load(area);
+    }
+
+    async function load(area) {
+        Object.assign(state, await cardOf(area));
         draw();
     }
 
-    async function remove(item) {
-        try {
-            await onRemove(item);
-            say(`${item.name || item.san} removed`);
-            await inside(state.areas.find((a) => a.id === state.chosen));
-        } catch (err) {
-            say(String(err.body?.message ?? err.message ?? err), true);
-        }
-    }
-
-    function draw() {
-        q('.land-areas').replaceChildren(...state.areas.map(
-            (a) => areaRow(a, inside, state.chosen)));
-        if (!state.areas.length) {
-            q('.land-areas').append(el('li', { className: 'muted',
-                textContent: 'no land yet — draw an area in QGIS and it appears here' }));
-        }
-    }
+    const remove = (item) => removing(item, onRemove, say,
+        () => load(state.areas.find((a) => a.id === state.chosen)));
 
     async function refresh() {
         state.areas = await api.rpc('my_areas').catch(() => []);
-        draw();
         const chosen = state.areas.find((a) => a.id === state.chosen)
             ?? state.areas.find((a) => a.mine) ?? state.areas[0];
-        if (chosen) await inside(chosen);
+        state.chosen = chosen?.id ?? null;
+        draw();
+        if (chosen) await load(chosen);
         return state.areas;
     }
 
     refresh();
     return {
-        refresh, areas: () => state.areas, chosen: () => state.chosen, inside,
+        refresh,
+        areas: () => state.areas,
+        chosen: () => state.chosen,
+        inside: pick,
         // What stands on the chosen land, for the map and for the first of the
         // chrome's five stages.
         things: () => state.contents,

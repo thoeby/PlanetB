@@ -28,7 +28,8 @@ const HTML = `
 <div class="row">
   <button type="button" class="gs-done" disabled>Done</button>
 </div>
-<p class="gs-ground status"></p>`;
+<p class="gs-ground status"></p>
+<p class="gs-drawer note"></p>`;
 
 const post = async (path, body) => {
     const res = await fetch(path, {
@@ -81,6 +82,24 @@ async function connect(q, say) {
     return found;
 }
 
+// Whose land it becomes when somebody draws in QGIS. GeoServer connects as
+// one database role and carries no person, so the world has to answer this for
+// itself (db/0058) — and say so, because getting it wrong is invisible: the
+// land is saved, to somebody else, and Your land is empty.
+async function sayWhoDraws(say) {
+    const who = await api.rpc('drawing_as').catch(() => null);
+    if (!who?.email) {
+        say('.gs-drawer', 'Nobody can own what is drawn yet — create an'
+            + ' account above first.', true);
+        return;
+    }
+    say('.gs-drawer', who.from_ground
+        ? `What you draw in QGIS belongs to ${who.email}, who set this ground.`
+        : `What you draw in QGIS would belong to ${who.email} — the oldest`
+          + ' admin account, because no ground is set yet. Pick a ground and'
+          + ' it becomes yours.', !who.from_ground);
+}
+
 export function mountSetup(host, { onGround = () => {} } = {}) {
     const box = document.createElement('div');
     box.innerHTML = HTML;
@@ -98,6 +117,7 @@ export function mountSetup(host, { onGround = () => {} } = {}) {
         const g = await api.rpc('ground').catch(() => null);
         say('.gs-ground', describe(g));
         if (g?.geoserver_url && !q('.gs-url').value) q('.gs-url').value = g.geoserver_url;
+        await sayWhoDraws(say);
         return g;
     }
 

@@ -78,3 +78,85 @@
 #panel .ru-row .op { flex: 0 0 5rem; }
 #panel .ru-row button { flex: 0 0 auto; padding: 4px 8px; }
 #panel .ru-rule button { text-align: left; }
+
+/* ------------------------------------------------- the design's components
+ *
+ * The parts every panel in docs/design/ is built from. A module uses these
+ * rather than carrying its own look, so a panel written today matches one
+ * written last month (docs/design/README.md).
+ */
+
+/* A labelled block. The label is the design's 12px tracked caps. */
+#panel .section { display: flex; flex-direction: column; gap: 8px; margin: 16px 0; }
+#panel .section > .label, #panel .label {
+  font-family: var(--head); font-weight: 600; font-size: 12px;
+  letter-spacing: 0.14em; text-transform: uppercase; color: var(--ink-3);
+  display: block; margin: 0;
+}
+#panel .spread { display: flex; justify-content: space-between; align-items: center; gap: 10px; }
+#panel .note { font-size: 12px; color: var(--ink-2); line-height: 1.45; }
+
+/* A list of things, each with something on the left and something on the
+   right. Full-bleed to the panel's edges, as the design draws it. */
+#panel .rows { display: flex; flex-direction: column; margin: 0 -20px; padding: 0; list-style: none; }
+#panel .rows > li, #panel .rows > .row {
+  display: flex; justify-content: space-between; align-items: center; gap: 12px;
+  padding: 10px 20px; border-top: 1px solid var(--edge-2); border-bottom: 0;
+}
+#panel .rows > li:first-child { border-top: 0; }
+#panel .rows > li[aria-current="true"] {
+  background: var(--accent-dim); box-shadow: inset 2px 0 0 var(--accent);
+}
+#panel .rows .who { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
+#panel .rows .end { display: flex; flex-direction: column; align-items: flex-end; gap: 3px;
+  font-size: 12px; text-align: right; }
+#panel .rows .name {
+  font-family: var(--head); font-weight: 700; font-size: 17px;
+  text-transform: uppercase; letter-spacing: 0.04em; line-height: 1.1;
+}
+#panel .rows .sub { font-family: var(--mono); font-size: 11px; color: var(--ink-3); }
+#panel .rows .role {
+  font-family: var(--head); font-weight: 700; font-size: 12px;
+  letter-spacing: 0.1em; text-transform: uppercase;
+}
+#panel .rows button.bare {
+  background: none; border: 0; padding: 0; margin: 0; color: inherit;
+  font: inherit; text-transform: none; letter-spacing: normal; text-align: left;
+  cursor: pointer; width: 100%;
+}
+
+/* A value over a label, in a row of them. */
+#panel .tiles { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
+#panel .tiles.three { grid-template-columns: repeat(3, 1fr); }
+#panel .tile { padding: 10px 12px; background: rgba(255, 255, 255, 0.05);
+  border: 1px solid var(--edge-2); }
+#panel .tile .v { font-family: var(--head); font-weight: 700; font-size: 24px; line-height: 1; }
+#panel .tile .l { font-size: 11px; color: var(--ink-2); margin-top: 4px; }
+#panel .tile[data-tone="accent"] .v { color: var(--accent); }
+#panel .tile[data-tone="warn"] .v { color: var(--warn); }
+#panel .tile[data-tone="bad"] .v { color: var(--bad); }
+
+/* − N + : one number, changed by the two buttons beside it. */
+#panel .stepper { display: flex; border: 1px solid rgba(255, 255, 255, 0.18); }
+#panel .stepper button {
+  width: 30px; height: 30px; padding: 0; border: 0; background: none;
+  color: var(--ink-2); font-size: 15px;
+}
+#panel .stepper button:hover { background: rgba(255, 255, 255, 0.1); color: var(--ink); }
+#panel .stepper .v {
+  width: 36px; height: 30px; display: inline-flex; align-items: center;
+  justify-content: center; font-family: var(--mono); font-size: 13px;
+  border-left: 1px solid rgba(255, 255, 255, 0.18);
+  border-right: 1px solid rgba(255, 255, 255, 0.18);
+}
+
+/* A word that carries a state: cyan for done, amber for waiting, red for no. */
+#panel .chip {
+  font-family: var(--head); font-weight: 700; font-size: 11px;
+  letter-spacing: 0.1em; text-transform: uppercase; padding: 2px 8px;
+  border: 1px solid currentColor;
+}
+#panel .chip[data-tone="accent"] { color: var(--accent); }
+#panel .chip[data-tone="warn"] { color: var(--warn); }
+#panel .chip[data-tone="bad"] { color: var(--bad); }
+#panel .chip[data-tone="dim"] { color: var(--ink-3); }
