@@ -62,6 +62,11 @@ def parse(argv: list[str]) -> argparse.Namespace:
     gnd.add_argument("tile", help="the tile, as z/x/y — e.g. 14/8550/5809")
     _common(gnd)
 
+    tl = sub.add_parser("tile",
+        help="say why one tile is not finished: its versions, jobs and children")
+    tl.add_argument("tile", help="the tile, as z/x/y — e.g. 12/2137/1452")
+    _common(tl)
+
     _common(sub.add_parser("doctor", help="check what is ready"))
     return parser.parse_args(argv)
 
@@ -261,11 +266,20 @@ def cmd_geoserver(args: argparse.Namespace) -> int:
 def cmd_ground(args: argparse.Namespace) -> int:
     from . import ground
 
-    parts = args.tile.split("/")
+    return ground.probe(_cfg(args), *_zxy(args.tile))
+
+
+def _zxy(text: str) -> tuple[int, int, int]:
+    parts = text.split("/")
     if len(parts) != 3 or not all(p.isdigit() for p in parts):
-        raise SystemExit(f"splatworld: {args.tile!r} is not a tile — write it as z/x/y")
-    z, x, y = (int(p) for p in parts)
-    return ground.probe(_cfg(args), z, x, y)
+        raise SystemExit(f"splatworld: {text!r} is not a tile — write it as z/x/y")
+    return tuple(int(p) for p in parts)
+
+
+def cmd_tile(args: argparse.Namespace) -> int:
+    from . import tilestate
+
+    return tilestate.report(_cfg(args), *_zxy(args.tile))
 
 
 def cmd_qgis(args: argparse.Namespace) -> int:
@@ -282,7 +296,8 @@ def main(argv: list[str] | None = None) -> int:
     args = parse(argv if argv is not None else sys.argv[1:])
     commands = {"init": cmd_init, "run": cmd_run, "doctor": cmd_doctor,
                 "import": cmd_import, "geoserver": cmd_geoserver,
-                "qgis": cmd_qgis, "ground": cmd_ground}
+                "qgis": cmd_qgis, "ground": cmd_ground,
+                "tile": cmd_tile}
     try:
         return commands[args.command](args)
     except psycopg.OperationalError as err:
