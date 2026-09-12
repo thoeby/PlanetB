@@ -19,3 +19,4 @@ __pycache__/
 *.pyc
 /data
 postgrest.exe
+infra/seed/dem-visp.tif
