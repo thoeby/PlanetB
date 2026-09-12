@@ -175,9 +175,26 @@ class _Wcs(http.server.BaseHTTPRequestHandler):
               b'</ServiceExceptionReport>')
     answers = "2.0.1"
 
+    describe = (b'<?xml version="1.0"?><CoverageDescriptions '
+                b'xmlns="http://www.opengis.net/wcs/2.0" '
+                b'xmlns:gml="http://www.opengis.net/gml/3.2"><CoverageDescription>'
+                b'<gml:boundedBy><gml:Envelope srsName="http://www.opengis.net/def/'
+                b'crs/EPSG/0/2056" axisLabels="E N" srsDimension="2">'
+                b'<gml:lowerCorner>2633000 1124000</gml:lowerCorner>'
+                b'<gml:upperCorner>2640000 1130000</gml:upperCorner>'
+                b'</gml:Envelope></gml:boundedBy>'
+                b'</CoverageDescription></CoverageDescriptions>')
+
     def do_GET(self):  # noqa: N802 - http.server's name
         import urllib.parse
         q = urllib.parse.parse_qs(urllib.parse.urlparse(self.path).query)
+        if q.get("request", [""])[0] == "DescribeCoverage":
+            body = self.describe
+            self.send_response(200)
+            self.send_header("Content-Length", str(len(body)))
+            self.end_headers()
+            self.wfile.write(body)
+            return
         body = self.tiff if q.get("version", [""])[0] == self.answers else self.refuse
         self.send_response(200)
         self.send_header("Content-Length", str(len(body)))
@@ -199,11 +216,16 @@ def _wcs(answers):
 def test_the_version_that_answers_is_the_one_used():
     srv, world = _wcs("2.0.1")
     try:
-        raw, url = ground._ask(world, (1, 2, 3, 4), {}, "14/1/1")
+        raw, url = ground._ask(world, (878108.0, 5823890.0, 880554.0, 5826336.0),
+                               {}, "14/1/1")
     finally:
         srv.shutdown()
     assert raw[:4] == b"II*\x00"
     assert "version=2.0.1" in url
+    # The axes the coverage named, and its own CRS: asked for X/Y in Mercator,
+    # GeoServer answers ScaleAxisUndefined.
+    assert "scalesize=E%28256%29%2CN%28256%29" in url
+    assert "subset=E(26" in url
 
 
 def test_when_none_of_them_answers_every_refusal_is_reported():

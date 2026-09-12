@@ -203,6 +203,37 @@ def coverages(base: str, auth: dict) -> list[dict]:
     raise _nothing_listed("WCS", tried)
 
 
+def describe_coverage(base: str, coverage_id: str, auth: dict) -> dict:
+    """A coverage's own CRS and the names it gives its two axes.
+
+    WCS 2.0 subsetting and scaling name axes, and every coverage names them
+    differently — E/N, X/Y, Long/Lat, i/j. Guessing produced
+    "ScaleAxisUndefined"; DescribeCoverage says, in gml:Envelope's axisLabels.
+    """
+    query = urllib.parse.urlencode({
+        "service": "WCS", "version": "2.0.1", "request": "DescribeCoverage",
+        "coverageId": coverage_id,
+    })
+    url = f"{service_url(base, 'wcs')}?{query}"
+    raw = fetch(url, auth, what=f"description of {coverage_id}")
+    try:
+        root = ET.fromstring(raw)
+    except ET.ParseError as err:
+        raise SystemExit(f"{url}\n  did not answer with XML ({err})") from err
+    said = exception_text(root)
+    for node in root.iter():
+        if local(node.tag) != "Envelope":
+            continue
+        labels = (node.get("axisLabels") or "").split()
+        srs = node.get("srsName") or ""
+        if len(labels) >= 2:
+            return {"axes": labels[:2], "crs": srs.rsplit("/", 1)[-1] or None,
+                    "url": url}
+    raise SystemExit(
+        f"that coverage did not describe its axes.\n  asked: {url}"
+        + (f"\n  it said: {said}" if said else ""))
+
+
 def wcs10_name(coverage_id: str) -> str:
     """A WCS 2.0 CoverageId as WCS 1.0 spells the same layer.
 
@@ -215,7 +246,8 @@ def wcs10_name(coverage_id: str) -> str:
 
 
 def coverage_tile_url(base: str, coverage_id: str, bbox: tuple, size: int,
-                      crs: str = "EPSG:3857", version: str = "1.0.0") -> str:
+                      crs: str = "EPSG:3857", version: str = "1.0.0",
+                      axes: tuple | None = None) -> str:
     """One tile of a coverage: exactly this box, exactly this many samples.
 
     WCS 1.0.0 rather than 2.0.1 by default, on purpose. 2.0 subsetting names its
@@ -241,14 +273,15 @@ def coverage_tile_url(base: str, coverage_id: str, bbox: tuple, size: int,
             "GridBaseCRS": f"urn:ogc:def:crs:{crs}",
         })
     else:
-        # 2.0.1, axes named the way GeoServer names a projected coverage.
+        # 2.0.1. The axes are named by the coverage, not by us (`axes`), and the
+        # box is in the coverage's own CRS: asking GeoServer to reproject as
+        # well is one more thing to be refused, and rasterio warps it here.
+        first, second = axes or ("E", "N")
         query = urllib.parse.urlencode({
             "service": "WCS", "version": version, "request": "GetCoverage",
             "coverageId": coverage_id, "format": "image/tiff",
-            "subsettingCrs": f"http://www.opengis.net/def/crs/EPSG/0/{crs.split(':')[-1]}",
-            "outputCrs": f"http://www.opengis.net/def/crs/EPSG/0/{crs.split(':')[-1]}",
-            "scalesize": f"X({size}),Y({size})",
-        }) + f"&subset=X({west},{east})&subset=Y({south},{north})"
+            "scalesize": f"{first}({size}),{second}({size})",
+        }) + f"&subset={first}({west},{east})&subset={second}({south},{north})"
     return f"{service_url(base, 'wcs')}?{query}"
 
 

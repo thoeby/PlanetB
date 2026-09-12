@@ -84,21 +84,47 @@ def not_a_raster(raw: bytes) -> str | None:
     return raw[:300].decode("utf8", "replace").replace("\n", " ").strip()
 
 
-def encode_geotiff(raw: bytes) -> bytes:
-    """A GeoTIFF of one tile's box to dem-v1 samples, north-west first."""
+def encode_geotiff(raw: bytes, bounds: tuple | None = None) -> bytes:
+    """A GeoTIFF to dem-v1 samples of one tile's box, north-west first.
+
+    `bounds` is the tile in EPSG:3857. The coverage is asked for in its own CRS
+    — a Swiss DEM is LV95, and asking GeoServer to reproject as well is one more
+    thing that can be refused — so what comes back is warped here, onto exactly
+    the box the tile is.
+    """
     import numpy as np
     import rasterio
     from rasterio.io import MemoryFile
+    from rasterio.vrt import WarpedVRT
 
     from . import dem
 
     with MemoryFile(raw) as memfile, memfile.open() as src:
-        band = src.read(1, out_shape=(DEM_SIZE, DEM_SIZE),
-                        resampling=rasterio.enums.Resampling.bilinear)
+        if bounds is None or src.crs is None:
+            band = src.read(1, out_shape=(DEM_SIZE, DEM_SIZE),
+                            resampling=rasterio.enums.Resampling.bilinear)
+        else:
+            west, south, east, north = bounds
+            with WarpedVRT(src, crs="EPSG:3857",
+                           transform=rasterio.transform.from_bounds(
+                               west, south, east, north, DEM_SIZE, DEM_SIZE),
+                           width=DEM_SIZE, height=DEM_SIZE,
+                           resampling=rasterio.enums.Resampling.bilinear) as vrt:
+                band = vrt.read(1)
         values = band.astype("float64")
         if src.nodata is not None:
             values = np.where(values == src.nodata, np.nan, values)
         return dem.encode(values)
+
+
+def native_bounds(crs: str | None, bounds: tuple) -> tuple:
+    """The tile's box in the coverage's own CRS."""
+    if not crs:
+        return bounds
+    from rasterio.warp import transform_bounds
+
+    target = crs if ":" in str(crs) else f"EPSG:{crs}"
+    return tuple(transform_bounds("EPSG:3857", target, *bounds))
 
 
 def _ask(world: dict, bounds: tuple, auth: dict, at: str) -> tuple[bytes, str]:
@@ -114,8 +140,21 @@ def _ask(world: dict, bounds: tuple, auth: dict, at: str) -> tuple[bytes, str]:
 
     said: list[str] = []
     for version in ("1.0.0", "2.0.1", "1.1.1"):
+        box, axes = bounds, None
+        if version == "2.0.1":
+            # What this coverage calls its axes, and the box in its own CRS.
+            try:
+                about = geoserver.describe_coverage(
+                    world["url"], world["coverage"], auth)
+            except SystemExit as err:
+                said.append(f"WCS {version}: {err}")
+                continue
+            axes = tuple(about["axes"])
+            box = native_bounds(about["crs"], bounds)
+            world.setdefault("native", {})[version] = box
         url = geoserver.coverage_tile_url(
-            world["url"], world["coverage"], bounds, DEM_SIZE, version=version)
+            world["url"], world["coverage"], box, DEM_SIZE, version=version,
+            axes=axes)
         try:
             raw = fetch(url, auth, what=f"elevation for {at}")
         except SystemExit as err:
@@ -164,7 +203,7 @@ def cut(cfg: Config, z: int, x: int, y: int) -> Path | None:
             if not raw:
                 return None
             try:
-                body = encode_geotiff(raw)
+                body = encode_geotiff(raw, tile_bounds_3857(z, x, y))
             except Exception as err:  # noqa: BLE001 - said back to the browser
                 raise CutFailed(f"the coverage came back but could not be read:"
                                 f" {err} — asked: {url}") from err
