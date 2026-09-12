@@ -443,3 +443,43 @@ def test_the_scalings_tried_end_with_not_scaling():
     assert ground._scalings(["i", "j"]) == [("i", "j"), None]
     assert ground._scalings(["x", "y"]) == [("x", "y"), ("i", "j"), None]
     assert ground._scalings(None) == [("i", "j"), None]
+
+
+def test_the_version_that_answered_is_asked_first_next_time():
+    """Two doomed requests per tile, times every tile of a world, is the cost."""
+    ground._worked.clear()
+    srv, world = _fussy(("i", "j"))
+    counted: list[str] = []
+    real = ground.fetch
+
+    def counting(url, auth, *, what):
+        counted.append(url)
+        return real(url, auth, what=what)
+
+    ground.fetch = counting
+    try:
+        ground._ask(world, (878108.0, 5823890.0, 880554.0, 5826336.0), {}, "14/1/1")
+        first = len(counted)
+        counted.clear()
+        ground._ask(world, (878108.0, 5823890.0, 880554.0, 5826336.0), {}, "14/1/2")
+    finally:
+        ground.fetch = real
+        srv.shutdown()
+        ground._worked.clear()
+    # Counted here are the GetCoverage calls; DescribeCoverage goes through
+    # geoserver.py's own import of fetch. First time: 1.0.0 is refused, then
+    # 2.0.1 answers. Second time: 2.0.1 is asked first and nothing is refused.
+    assert first == 2
+    assert len(counted) == 1
+    assert all("version=1.0.0" not in u for u in counted)
+
+
+def test_nothing_is_remembered_until_something_answers():
+    ground._worked.clear()
+    srv, world = _wcs("nothing")
+    try:
+        with pytest.raises(ground.CutFailed):
+            ground._ask(world, (1, 2, 3, 4), {}, "14/1/1")
+    finally:
+        srv.shutdown()
+    assert ground._worked == {}

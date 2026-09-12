@@ -171,12 +171,16 @@ def _ask(world: dict, bounds: tuple, auth: dict, at: str) -> tuple[bytes, str]:
     coverage that will not be scaled at all is asked for unscaled, because
     encode_geotiff() resamples onto the tile's box regardless. That last one
     costs bandwidth, so it is the last thing tried rather than the first.
+
+    The combination that answered is remembered and tried first next time. A
+    GeoServer with 1.0.0 and 1.1.1 switched off refuses those two on every
+    tile of every zoom, and a world is thousands of tiles: the order is a
+    guess only until the first answer.
     """
     from . import geoserver
 
     said: list[str] = []
-    for version, name in [(v, n) for v in ("1.0.0", "2.0.1", "1.1.1")
-                          for n in geoserver.spellings(world["coverage"])]:
+    for version, name in _attempts(world, geoserver.spellings(world["coverage"])):
         box, axes = bounds, None
         scalings: list[tuple | None] = [None]
         if version == "2.0.1":
@@ -189,7 +193,7 @@ def _ask(world: dict, bounds: tuple, auth: dict, at: str) -> tuple[bytes, str]:
             axes = tuple(about["axes"])
             box = native_bounds(about["crs"], bounds)
             world.setdefault("native", {})[version] = box
-            scalings = _scalings(about.get("grid_axes"))
+            scalings = _remembered_scalings(world, about.get("grid_axes"))
         for scale_axes in scalings:
             url = geoserver.coverage_tile_url(
                 world["url"], name, box, DEM_SIZE, version=version, axes=axes,
@@ -204,12 +208,33 @@ def _ask(world: dict, bounds: tuple, auth: dict, at: str) -> tuple[bytes, str]:
                 return b"", url
             problem = not_a_raster(raw)
             if not problem:
+                _worked[_world_key(world)] = (version, name, scale_axes)
                 return raw, url
             said.append(f"WCS {version}{how}: {problem}")
     raise CutFailed(
         "no version of WCS on that GeoServer returned this tile as a GeoTIFF.\n  "
         + "\n  ".join(said)
         + f"\n  the coverage is {world['coverage']!r} at {world['url']}")
+
+
+# What answered last time, per coverage: (version, spelling, scale axes).
+_worked: dict[tuple[str, str], tuple] = {}
+
+
+def _world_key(world: dict) -> tuple[str, str]:
+    return (world["url"], world["coverage"])
+
+
+def _attempts(world: dict, names: list[str]) -> list[tuple[str, str]]:
+    """Every version and spelling to try, the one that worked last time first."""
+    out = [(v, n) for v in ("1.0.0", "2.0.1", "1.1.1") for n in names]
+    known = _worked.get(_world_key(world))
+    if known:
+        first = (known[0], known[1])
+        if first in out:
+            out.remove(first)
+            out.insert(0, first)
+    return out
 
 
 def _scalings(grid: list[str] | None) -> list[tuple | None]:
@@ -227,6 +252,16 @@ def _scalings(grid: list[str] | None) -> list[tuple | None]:
     if ("i", "j") not in out:
         out.append(("i", "j"))
     out.append(None)
+    return out
+
+
+def _remembered_scalings(world: dict, grid: list[str] | None) -> list[tuple | None]:
+    """The scalings to try, the one that answered last time first."""
+    out = _scalings(grid)
+    known = _worked.get(_world_key(world))
+    if known and known[2] in out:
+        out.remove(known[2])
+        out.insert(0, known[2])
     return out
 
 
