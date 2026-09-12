@@ -27,10 +27,10 @@ DB_TEST_SCRIPTS := $(sort $(wildcard db/test/[0-9]*.sh))
 # the repo, where every tool and .env.example root them too.
 COMPOSE := docker compose -f infra/compose.yml --project-directory . --env-file .env
 
-.PHONY: help up down logs db-reset db-migrate db-test api-test client-test lint gate vendor
+.PHONY: help up down logs db-reset db-migrate db-test api-test client-test lint gate vendor player-run
 
 help:
-	@echo 'targets: up down logs vendor db-reset db-migrate db-test api-test client-test lint gate'
+	@echo 'targets: up down logs vendor db-reset db-migrate db-test api-test client-test lint gate player-run'
 
 # Third-party code client/ loads from a CDN, copied locally so the browser tests
 # can run offline. Gitignored; tools/vendor.sh holds the pinned versions.
@@ -72,6 +72,12 @@ client-test:
 	@if compgen -G 'client/test/*.test.js' > /dev/null; then node --test client/test/*.test.js; else echo 'client-test: no tests yet (WP1)'; fi
 	@if $(PSQL) -c 'SELECT 1' > /dev/null 2>&1; then bash tools/test-tiles.sh; else echo 'client-test: no database, test tiles skipped'; fi
 	@if [ -f playwright.config.js ] && [ -d node_modules/@playwright ]; then npx playwright test; else echo 'client-test: playwright not installed, browser tests skipped'; fi
+
+# PLAYER-RUN.md: the stories of docs/SPEC.md §3, done by a script that behaves
+# like a player, from an empty database, in one run. This is the gate the
+# operator waits for; db-test, api-test and client-test stay underneath it.
+player-run:
+	@npx playwright test --config client/test/run/playwright.config.js $(RUN_ARGS)
 
 lint:
 	@if command -v sqlfluff > /dev/null; then sqlfluff lint db tools --disable-progress-bar; else echo 'lint: sqlfluff not installed, skipped'; fi
