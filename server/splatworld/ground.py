@@ -57,6 +57,33 @@ def covers(extent: tuple, z: int, x: int, y: int) -> bool:
     return not (east <= w or west >= e or north <= s or south >= nth)
 
 
+# A GeoTIFF begins "II*\0" (little-endian), "MM\0*" (big-endian), or their
+# BigTIFF forms. Anything else is not a raster.
+TIFF_MAGIC = (b"II*\x00", b"MM\x00*", b"II+\x00", b"MM\x00+")
+
+
+def not_a_raster(raw: bytes) -> str | None:
+    """What the server said instead of a coverage, if it is not one.
+
+    An OGC service reports a refusal as an XML exception with a 200, so bytes
+    came back and rasterio was handed them: "not recognized as being in a
+    supported file format" is GeoServer's complaint, unread.
+    """
+    if raw[:4] in TIFF_MAGIC:
+        return None
+    from . import geoserver
+
+    try:
+        import xml.etree.ElementTree as ET
+
+        said = geoserver.exception_text(ET.fromstring(raw))
+        if said:
+            return said.strip()
+    except Exception:  # noqa: BLE001 - not XML either, then; show what it is
+        pass
+    return raw[:300].decode("utf8", "replace").replace("\n", " ").strip()
+
+
 def encode_geotiff(raw: bytes) -> bytes:
     """A GeoTIFF of one tile's box to dem-v1 samples, north-west first."""
     import numpy as np
@@ -96,6 +123,11 @@ def cut(cfg: Config, z: int, x: int, y: int) -> Path | None:
             raw = fetch(url, auth, what=f"elevation for {z}/{x}/{y}")
             if not raw:
                 return None
+            said = not_a_raster(raw)
+            if said:
+                raise SystemExit(
+                    f"the coverage did not come back as a GeoTIFF. GeoServer "
+                    f"said: {said}\n  asked: {url}")
             body = encode_geotiff(raw)
             sha = hashlib.sha256(body).hexdigest()
             target.parent.mkdir(parents=True, exist_ok=True)

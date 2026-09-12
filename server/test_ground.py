@@ -135,3 +135,24 @@ def test_outside_the_coverage_nothing_is_cut(wcs, tmp_path: Path, monkeypatch):
 
     monkeypatch.setattr(ground.psycopg, "connect", lambda *a, **k: NoDatabase())
     assert ground.cut(cfg, 14, 9700, 7000) is None
+
+
+# A refusal comes back as XML with a 200, and used to reach rasterio, which
+# said only "not recognized as being in a supported file format".
+
+def test_a_geotiff_is_a_geotiff():
+    assert ground.not_a_raster(b"II*\x00rest of the tile") is None
+
+
+def test_an_ogc_exception_is_read_and_repeated():
+    said = ground.not_a_raster(
+        b'<?xml version="1.0"?><ServiceExceptionReport>'
+        b'<ServiceException code="InvalidParameterValue">'
+        b'Could not find layer splatworld__dem</ServiceException>'
+        b'</ServiceExceptionReport>')
+    assert said == "Could not find layer splatworld__dem"
+
+
+def test_anything_else_is_shown_as_it_came():
+    said = ground.not_a_raster(b"<html><body>404 Not Found</body></html>")
+    assert "404 Not Found" in said
