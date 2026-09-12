@@ -66,3 +66,13 @@ GRANT EXECUTE ON FUNCTION api.set_my_name(text) TO player, admin;
 CREATE FUNCTION api.player_name(who uuid) RETURNS text
 LANGUAGE sql STABLE AS $$SELECT public.player_name(who)$$;
 GRANT EXECUTE ON FUNCTION api.player_name(uuid) TO anon, player, admin;
+
+-- PUBLIC gets EXECUTE on a new function unless it is taken away: the roles
+-- named above are the whole list (db/0007_api.sql does the same for the api
+-- schema as it stood then).
+REVOKE ALL ON FUNCTION me(), set_my_name(text), player_name(uuid),
+    api.me(), api.set_my_name(text), api.player_name(uuid) FROM PUBLIC;
+GRANT EXECUTE ON FUNCTION me(), set_my_name(text) TO player, admin;
+GRANT EXECUTE ON FUNCTION player_name(uuid) TO anon, player, admin;
+GRANT EXECUTE ON FUNCTION api.me(), api.set_my_name(text) TO player, admin;
+GRANT EXECUTE ON FUNCTION api.player_name(uuid) TO anon, player, admin;

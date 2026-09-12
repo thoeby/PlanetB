@@ -1,7 +1,26 @@
 # PROGRESS.md — where splatworld stands
 
-Task list: `TASKS.md`. Rules: `CLAUDE.md`. Design: `ARCHITECTURE.md`.
-Picking up the work: `HANDOFF.md`.
+Task list: **`PLAYER-RUN.md`** — the stories of `docs/SPEC.md` §3, each proven
+by a script that behaves like a player, in one run from an empty database.
+`TASKS.md` and `TASKS-usable.md` are history. Rules: `CLAUDE.md`. Design:
+`ARCHITECTURE.md`. Picking up the work: `HANDOFF.md`.
+
+## The player-run
+
+`make player-run` — `client/test/run/`, a Playwright project of its own. It
+resets the database, empties the file store, starts the server and a GeoServer
+over a 4 x 4 km DEM cutout of Visp (`tools/make-seed-dem.sh`), and hands the
+stories browser contexts that have only the page.
+
+| story | what it proves | state |
+|---|---|---|
+| 1 | first run (§3.1): sign up, name, GeoServer, coverage, standing on the DEM, walking fifty metres | green |
+| 2 | getting land (§3.2): request, admin draws it on the map, notified, Go, boundary and name on the ground; swapped coordinates refused | green |
+| 3–13 | | not started |
+
+What each story forced is in its commit message. Nothing is "done" here
+because a function exists: if the script cannot find the button, the button is
+missing.
 
 **WP0 through WP5 are closed.** `make gate` is green end to end, about twenty
 minutes: the concurrency torture test, the edition race, the restore drill, the

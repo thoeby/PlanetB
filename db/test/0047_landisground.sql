@@ -1,4 +1,8 @@
 -- Drawing land is enough to have something to compile.
+--
+-- Not enough to be compiling it, though: SPEC §3.2 says claiming land renders
+-- nothing, and db/0064_claimingrendersnothing.sql made that true once the
+-- viewer could draw the ground without anybody compiling it.
 BEGIN;
 SELECT plan(5);
 
@@ -18,8 +22,8 @@ FROM ids;
 
 SELECT cmp_ok((SELECT count(*)::int FROM tile WHERE z = 14), '>', 0,
     'drawing land makes the tiles that cover it');
-SELECT ok((SELECT bool_and(dirty) FROM tile),
-    'and every one of them is waiting to be compiled');
+SELECT ok(NOT (SELECT bool_or(dirty) FROM tile),
+    'and not one of them is waiting to be compiled');
 SELECT ok(EXISTS (SELECT 1 FROM tile WHERE z = 6),
     'the ladder above it is there too');
 

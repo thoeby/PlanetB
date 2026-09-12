@@ -233,10 +233,16 @@ function buildFrame(doc, show) {
 
     const notice = el('div', { id: 'notice', className: 'glass' });
     notice.hidden = true;
+    // SPEC §2.1: the chip that says how many things are waiting for you sits
+    // next to who you are. js/attention.js fills it.
+    const waiting = el('div', { id: 'waiting' });
+    // SPEC §3.2: a land's name is drawn on the ground, and letters are HTML.
+    const labels = el('div', { id: 'world-labels' });
     const hud = el('div', { id: 'hud' },
+        labels,
         el('div', { id: 'brand', className: 'glass' },
             el('span', { className: 'mark', textContent: 'splatworld' }),
-            el('span', { className: 'rule' }), who),
+            el('span', { className: 'rule' }), who, waiting),
         top.node, pipe.node, frame.node, bar,
         el('div', { id: 'corner' },
             el('div', { id: 'hints', className: 'glass' },
@@ -256,7 +262,8 @@ function buildFrame(doc, show) {
         notice);
 
     doc.body.append(el('div', { id: 'vignette' }), hud);
-    return { top, who, stats: pipe.cells, frame, buttons, bodies, notice, map, scale };
+    return { top, who, stats: pipe.cells, frame, buttons, bodies, notice, map,
+        scale, waiting };
 }
 
 // A number key opens its panel; Escape closes whatever is open. Neither fires
@@ -276,7 +283,7 @@ function bindKeys(doc, show) {
 export function mountHud(doc) {
     let open = 'World';
     const f = buildFrame(doc, (name) => show(name));
-    const { top, who, stats, frame, buttons, bodies, notice } = f;
+    const { top, who, stats, frame, buttons, bodies, notice, waiting } = f;
 
     function show(name) {
         if (name === open && name !== 'World') name = 'World';
@@ -309,6 +316,8 @@ export function mountHud(doc) {
             if (n > 0) b.append(el('span', { className: 'count', textContent: String(n) }));
         },
         signedIn(label) { who.textContent = label ?? 'not signed in'; },
+        // Where the attention chip is mounted (SPEC §2.1).
+        waitingSlot: () => waiting,
         // The one line an empty world needs: what is missing, and where to do
         // something about it. Empty text takes it away.
         notice(text) {

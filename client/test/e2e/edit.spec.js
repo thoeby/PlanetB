@@ -12,7 +12,7 @@ import { test, expect } from '@playwright/test';
 import { existsSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 
-import { CLIENT } from './serve.js';
+import { CLIENT, groundReaches } from './serve.js';
 import { startServices } from './services.js';
 import { psql } from './worker.js';
 
@@ -43,6 +43,9 @@ test.beforeAll(async () => {
     try { psql('SELECT 1'); } catch (err) {
         test.skip(true, `no database: ${err.message}`);
     }
+    // Nothing may be drawn outside the world's coverage (db/0062), and this
+    // spec's patch is its own: say the world reaches it.
+    groundReaches(WEST - 0.5, SOUTH - 0.5, WEST + 0.6, SOUTH + 0.6);
     for (const email of [OWNER, PROPOSER, STRANGER]) {
         psql(`DO $$ DECLARE u uuid;
               BEGIN

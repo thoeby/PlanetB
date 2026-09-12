@@ -12,7 +12,13 @@ test('the world comes up empty, and the page opens over it', async ({ browser, w
     }).then((r) => r.json());
     expect(setup.account, 'a fresh world has no account').toBe('');
     expect(setup.areas, 'a fresh world has no land').toBe(0);
-    expect(setup.geoserver_url, 'a fresh world has no ground').toBe('');
+    // The world's ground is a row in the world, not the address this machine
+    // happens to remember in .env: a re-run on a box that has run before still
+    // starts from nowhere to stand.
+    const ground = await fetch(`${world.apiUrl}/rpc/ground`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{}',
+    }).then((r) => r.json());
+    expect(ground.coverage, 'a fresh world has no ground').toBeUndefined();
 
     // The GeoServer publishes exactly one coverage, with an extent, so the
     // operator has something to pick in story 1.

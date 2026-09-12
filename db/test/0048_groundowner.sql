@@ -1,9 +1,10 @@
 -- Land drawn in QGIS reaches the world (db/0048_groundowner.sql).
 --
 -- db/test/0046_gisgrants.sql draws a road as the `geoserver` login; this draws
--- the land itself, which since db/0047_landisground.sql writes tiles.
+-- the land itself, which since db/0047_landisground.sql writes tiles — and
+-- since db/0064 writes them clean.
 BEGIN;
-SELECT plan(3);
+SELECT plan(4);
 
 SET client_min_messages = warning;
 
@@ -19,8 +20,13 @@ $$, 'an area drawn in QGIS is saved');
 RESET ROLE;
 
 SELECT is((SELECT count(*)::int FROM area), 1, 'the land is there');
-SELECT cmp_ok((SELECT count(*)::int FROM tile WHERE dirty), '>', 0,
-    'and its ground is waiting to be compiled');
+-- The tiles exist — they are what a compile attaches to — and none of them is
+-- waiting, because claiming land renders nothing (SPEC §3.2,
+-- db/0064_claimingrendersnothing.sql).
+SELECT cmp_ok((SELECT count(*)::int FROM tile), '>', 0,
+    'and its ground is a tile');
+SELECT is((SELECT count(*)::int FROM tile WHERE dirty), 0,
+    'which is waiting for nothing');
 
 SELECT * FROM finish();
 ROLLBACK;

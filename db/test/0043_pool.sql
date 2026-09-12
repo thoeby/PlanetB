@@ -10,8 +10,7 @@ INSERT INTO auth.user (id, email, pw_hash, role) VALUES
 ('00000000-0000-0000-0000-0000000c0002', 'pool-b@example.com', 'x', 'player');
 INSERT INTO account (owner_id) VALUES
 ('00000000-0000-0000-0000-0000000c0001'), ('00000000-0000-0000-0000-0000000c0002');
--- A has a thousand coins to spend: since db/0047_landisground.sql the land
--- itself is work, so a submit pays for every tile that covers it.
+-- A has a thousand coins to spend: a submit pays for every tile it opens.
 SELECT transfer(treasury_account(),
     (SELECT id FROM account WHERE owner_id = '00000000-0000-0000-0000-0000000c0001'),
     1000, 'test:float:a');
@@ -25,11 +24,11 @@ INSERT INTO area (id, geom, owner_id, detail) VALUES
 SET LOCAL request.jwt.claims = '{"sub":"00000000-0000-0000-0000-0000000c0001","role":"player"}';
 SET LOCAL role = 'player';
 
--- Land on its own is already work: it is ground, and ground is a tile
--- (db/0047_landisground.sql).
-SELECT cmp_ok((SELECT (submit_area('00000000-0000-0000-0000-0000000c0003', 1)
-                       ->> 'tiles')::int), '>', 0,
-    'the land itself is something to compile');
+-- Land on its own is nothing to compile: claiming ground renders nothing
+-- (SPEC §3.2, db/0064_claimingrendersnothing.sql). What is on it is the work.
+SELECT is((SELECT (submit_area('00000000-0000-0000-0000-0000000c0003', 1)
+                   ->> 'tiles')::int), 0,
+    'empty land is nothing to compile');
 
 INSERT INTO feature (area_id, kind, geom)
 SELECT '00000000-0000-0000-0000-0000000c0003', 'forest',

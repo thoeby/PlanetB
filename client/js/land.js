@@ -51,6 +51,45 @@ export function drawAreas(ctx, areas) {
 
 export const areaName = (a) => a?.rules?.name || 'unnamed land';
 
+// The name on the ground (SPEC §3.2: "the boundary and name are drawn on the
+// ground"). A line in the world cannot carry letters, so the letters are HTML
+// held over the spot the land's centre projects to — it moves with the camera
+// and disappears when the land is behind you.
+export function labelAreas(ctx, areas, host) {
+    const { pc, app, origin, terrain } = ctx;
+    if (!host) return;
+    const seen = new Set();
+    const camera = app.root.children.find((c) => c.camera)?.camera;
+    for (const area of areas ?? []) {
+        const centre = area.centre;
+        if (!camera || centre?.lon === undefined) continue;
+        seen.add(area.id);
+        let label = host.querySelector(`[data-area="${area.id}"]`);
+        if (!label) {
+            label = document.createElement('div');
+            label.className = 'world-label';
+            label.dataset.area = area.id;
+            host.append(label);
+        }
+        label.textContent = areaName(area);
+        const p = origin.localOf({ lon: centre.lon, lat: centre.lat, h: 0 });
+        const ground = terrain?.heightAt(p);
+        const at = new pc.Vec3(p.x, (ground ?? p.y) + 3, p.z);
+        const screen = camera.worldToScreen(at);
+        // Behind the camera, or off the side: not drawn rather than drawn in
+        // the wrong place.
+        const off = screen.z <= 0 || screen.x < 0 || screen.y < 0
+            || screen.x > app.graphicsDevice.canvas.clientWidth
+            || screen.y > app.graphicsDevice.canvas.clientHeight;
+        label.hidden = off;
+        label.style.left = `${Math.round(screen.x)}px`;
+        label.style.top = `${Math.round(screen.y)}px`;
+    }
+    for (const node of host.querySelectorAll('.world-label')) {
+        if (!seen.has(node.dataset.area)) node.remove();
+    }
+}
+
 // Everything the chosen area's card shows, in one round of requests.
 async function cardOf(area) {
     const empty = {
@@ -83,7 +122,8 @@ async function removing(item, onRemove, say, reload) {
     }
 }
 
-export function mountLand(host, { onGo = () => {}, onRemove = () => {} } = {}) {
+export function mountLand(host, { onGo = () => {}, onRemove = () => {},
+    onAreas = () => {} } = {}) {
     const list = el('ul', { className: 'rows land-areas' });
     const detail = el('div', { className: 'land-detail' });
     const status = el('p', { className: 'land-status status' });
@@ -128,6 +168,7 @@ export function mountLand(host, { onGo = () => {}, onRemove = () => {} } = {}) {
             ?? state.areas.find((a) => a.mine) ?? state.areas[0];
         state.chosen = chosen?.id ?? null;
         draw();
+        onAreas(state.areas);
         if (chosen) await load(chosen);
         return state.areas;
     }

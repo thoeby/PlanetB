@@ -43,7 +43,16 @@ async function knowsTheSchema(apiUrl) {
         body: JSON.stringify({ email: 'schema@probe.invalid', pw: 'not-a-password' }),
     }).catch(() => null);
     if (!res) return false;
-    return (await res.json().catch(() => ({})))?.code !== 'PGRST202';
+    // An answer that is not JSON at all is PostgREST with no database behind
+    // it — "Something went wrong", which one left running across a db-reset
+    // says to everything. Reading that as "fine" is how a whole run failed at
+    // its first assertion with nothing to read.
+    const said = await res.text();
+    try {
+        return JSON.parse(said)?.code !== 'PGRST202';
+    } catch {
+        return false;
+    }
 }
 
 function emptyDatabase() {
@@ -148,8 +157,10 @@ export async function startWorld() {
         throw new Error(err.message + whatTheServerSaid());
     }
     if (!await knowsTheSchema(apiUrl)) {
-        throw new Error(`a PostgREST on ${API_PORT} is serving another database's schema`
-            + ' — it was started before this run reset the database. Kill it.');
+        stops.forEach((s) => s());
+        throw new Error(`a PostgREST on ${API_PORT} does not know this database`
+            + ' — it was left running across a db-reset by an earlier run.'
+            + ' Kill it and start again.');
     }
     return {
         apiUrl,

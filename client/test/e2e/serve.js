@@ -45,6 +45,22 @@ export const TEST_TILES = new Set([
 export const testTileRows = () =>
     tileRows().filter((r) => TEST_TILES.has(`${r.z}/${r.x}/${r.y}`));
 
+// The world's coverage reaches here too.
+//
+// There is one ground row (`only_one`), and since db/0062_insideground.sql
+// nothing may be drawn outside its extent. Every spec works its own patch of
+// the world — 8°E, 21°E, 31°E, 70°E — so a fixture that *replaced* the extent
+// left the specs after it drawing outside the world. The coverage grows
+// instead: each spec says where its own patch is, and the row is the union.
+export function groundReaches(west, south, east, north) {
+    psqlHere(`INSERT INTO ground (only_one, geoserver_url, coverage, extent)
+              VALUES (true, 'http://test.invalid/geoserver', 'test:ground',
+                      st_makeenvelope(${west}, ${south}, ${east}, ${north},
+                                      world_srid()))
+              ON CONFLICT (only_one) DO UPDATE
+              SET extent = st_envelope(st_collect(ground.extent, excluded.extent))`);
+}
+
 // Ground for a spec, without a GeoServer.
 //
 // The world's elevation comes from the operator's coverage, cut per tile by the
@@ -68,10 +84,7 @@ export function seedGround(z, x, y, { slopeMetres = 120 } = {}) {
     writeFileSync(join(dir, `${y}.r16`), Buffer.from(samples.buffer));
     const span = 360 / 2 ** z;
     const west = x * span - 180;
-    psqlHere(`INSERT INTO ground (only_one, geoserver_url, coverage, extent)
-              VALUES (true, 'http://test.invalid/geoserver', 'test:ground',
-                      st_makeenvelope(${west - span}, -80, ${west + 2 * span}, 80, 4326))
-              ON CONFLICT (only_one) DO UPDATE SET extent = excluded.extent`);
+    groundReaches(west - span, -80, west + 2 * span, 80);
     return join(dir, `${y}.r16`);
 }
 

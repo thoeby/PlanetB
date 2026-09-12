@@ -139,10 +139,17 @@ async function parse(res, url) {
 }
 
 export async function request(path, opts = {}) {
+    const had = Boolean(state.token);
     let res = await send(path, opts);
     // The token was rejected (revoked, secret rotated, clock skew): drop it, ask
     // for another, and give the call exactly one more chance.
-    if (res.status === 401 && opts.auth !== false) {
+    //
+    // Only when there was a token to reject. PostgREST answers 401 to an
+    // anonymous request it will not serve — "permission denied for table x" —
+    // and reading that as "your session is bad" signed people out of a tab
+    // they had only just signed into, because one panel had asked a question
+    // that is not anon's to ask.
+    if (res.status === 401 && opts.auth !== false && had) {
         logout();
         if (await refresh()) res = await send(path, opts);
     }

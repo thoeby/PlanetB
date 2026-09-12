@@ -1,6 +1,9 @@
 # CLAUDE.md — splatworld
 
-Read `ARCHITECTURE.md` first, then work through `TASKS.md` in order. One task = one commit. Do not start a task whose predecessors' gates are not green.
+Read `ARCHITECTURE.md` first, then work through **`PLAYER-RUN.md`** in order:
+the stories of `docs/SPEC.md` §3, each proven by a script that behaves like a
+player. One story = one commit. Do not start a story whose predecessor is not
+green on the same run. `TASKS.md` and `TASKS-usable.md` are history.
 
 State of the work so far: `PROGRESS.md`. Environment setup and the traps already paid for: `HANDOFF.md`.
 
@@ -45,13 +48,15 @@ A persistent digital world on real geography, compiled into Gaussian-splat LOD t
 ## Gates (run before every commit)
 
 ```
+make player-run     # the stories, through the page, from an empty database
 make db-test        # resets DB, applies migrations, runs pgTAP
 make api-test       # PostgREST smoke: login, RLS denials, RPCs
 make client-test    # node unit tests + playwright headless (skips GPU tests if unavailable)
 make lint           # sqlfluff + eslint (flat config, no build)
 ```
 
-`make gate` runs all four. A task is done only when `make gate` is green.
+`make gate` runs the last four. A story is done when `make player-run` is
+green through it and `make gate` is green under it.
 
 ## Layout
 

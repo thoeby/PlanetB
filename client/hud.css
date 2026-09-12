@@ -92,6 +92,50 @@ body {
 #brand .rule { width: 1px; height: 18px; background: rgba(255, 255, 255, 0.15); }
 #brand .who { font-size: 12px; color: var(--ink-2); }
 
+/* The attention chip (SPEC §2.1): how many things are waiting for you, and
+   the list of them under it. Dim at zero, accented when something waits. */
+#waiting { position: relative; display: flex; align-items: center; }
+#attention {
+  display: flex; align-items: center; gap: 8px; height: 26px; padding: 0 10px;
+  --cut: 6px; font-family: var(--head); font-weight: 600; font-size: 11px;
+  letter-spacing: 0.14em; text-transform: uppercase; color: var(--ink-3);
+  cursor: pointer;
+}
+#attention .count { font-family: var(--mono); font-size: 12px; }
+#attention[data-waiting="1"] { color: var(--warn); border-color: var(--warn); }
+#attention-list {
+  position: absolute; top: 34px; left: 0; width: 320px; padding: 10px 12px;
+  display: flex; flex-direction: column; gap: 6px; --cut: 8px; font-size: 12px;
+  z-index: 3;
+}
+#attention-list button { text-align: left; }
+
+/* A land's name, over the spot it stands on (SPEC §3.2). Not a control: it
+   takes no clicks, so walking is never blocked by a word on the ground. */
+#world-labels { position: absolute; inset: 0; pointer-events: none; }
+.world-label {
+  position: absolute; transform: translate(-50%, -50%); pointer-events: none;
+  font-family: var(--head); font-weight: 700; font-size: 13px;
+  letter-spacing: 0.12em; text-transform: uppercase; color: var(--ink);
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.9);
+}
+
+/* Getting land, and handing it out (SPEC §2.4, §3.2). A panel section sets
+   its own display, which beats the hidden attribute unless this says so — and
+   a "you have no land" block that stays after you have some is worse than no
+   block at all. */
+.section[hidden] { display: none; }
+
+.getland label, .assign label { display: block; margin: 8px 0 4px;
+  font-size: 11px; letter-spacing: 0.1em; text-transform: uppercase;
+  color: var(--ink-3); }
+.getland input, .assign input, .assign textarea { width: 100%; }
+.assign textarea { font-family: var(--mono); font-size: 11px; }
+#assign-map { display: block; width: 100%; height: auto; margin: 8px 0;
+  border: 1px solid var(--edge); }
+.assign .row { display: flex; gap: 6px; margin: 6px 0; }
+.assign-requests button[aria-current="true"] { border-color: var(--accent); }
+
 /* ----------------------------------------------------------- top centre */
 
 #where {

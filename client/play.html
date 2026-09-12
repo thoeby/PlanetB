@@ -81,7 +81,10 @@
   import { mountAdmin } from './js/adminui.js';
   import { mountRules } from './js/rulesui.js';
   import { mountCatalogPanel } from './js/catalogpanel.js';
-  import { drawAreas, mountLand, ringsOf } from './js/land.js';
+  import { drawAreas, labelAreas, mountLand, ringsOf } from './js/land.js';
+  import { mountGetLand } from './js/getland.js';
+  import { mountAssignLand } from './js/assignland.js';
+  import { mountAttention } from './js/attention.js';
   import { mountPool, mountSubmit } from './js/pool.js';
   import { mountPermission } from './js/permission.js';
   import { mountShare, parseVisit, visitHash } from './js/visit.js';
@@ -138,6 +141,10 @@
   // QGIS's layer forms and the rules the compiler matches on (T3).
   // What the streamer is doing, under the three steps it is the result of.
   hud.panel('Setup').append(world);
+  // SPEC §3.2: land is assigned by an admin, who draws it on the map here.
+  // First in the panel, because it is the only thing in it that somebody else
+  // is waiting for.
+  const assignLand = mountAssignLand(hud.panel('Admin'));
   const admin = mountAdmin(hud.panel('Admin'));
   // The other half of the vocabulary: what the compiler makes of a thing that
   // carries those properties. It was a page of its own until T9.
@@ -145,6 +152,22 @@
   // Who you are, in the corner, from the moment the page knows.
   const showWho = () => hud.signedIn(api.claims()?.email
       ?? (api.userId() ? 'signed in' : null));
+  // SPEC §2.1 and §2.15: what is waiting for you, and one click to the thing.
+  const attention = mountAttention(hud.waitingSlot(), {
+      openPanel: (name) => hud.show(name),
+      onChange: () => {
+          assignLand.refresh();
+          land.refresh();
+          // The ground under you can become yours while you stand still, so
+          // the answer that was cached until you walked somewhere else is not
+          // the answer any more.
+          asked = { lon: 0, lat: 0, at: 0 };
+      },
+      onGo: (at) => {
+          const p = origin.localOf({ lon: at.lon, lat: at.lat, h: 0 });
+          player.position = { x: p.x, y: p.y + 2, z: p.z };
+      },
+  });
   // The catalog: what anybody may build with, and where you register your own.
   const catalog = await mountCatalogPanel(hud.panel('Catalog'));
   if (!ground?.coverage) hud.show('Setup');
@@ -268,6 +291,11 @@
     canvas: view, nearby, wallet,
   });
 
+  // SPEC §2.4 "Get land": somebody with none is told who hands it out, and
+  // given the one thing they can do about it. Mounted before the list, so the
+  // list's first refresh has something to hand its areas to.
+  const getland = mountGetLand(hud.panel('Your land'));
+
   // T5: the land you own, outlined in the world and listed in the panel, with
   // what stands on it. Going to something puts you in front of it.
   const land = mountLand(hud.panel('Your land'), {
@@ -275,6 +303,7 @@
           const p = origin.localOf({ lon: item.lon, lat: item.lat, h: item.h ?? 0 });
           player.position = { x: p.x, y: p.y + 2, z: p.z + 8 };
       },
+      onAreas: (areas) => getland.refresh(areas),
       onRemove: (item) => api.remove('instance', { id: `eq.${item.id}` })
           .then(() => build.refresh()),
   });
@@ -362,7 +391,7 @@
         asked = { lon: 0, lat: 0, at: 0 };
         build.refresh(); areas.refresh(); showCredits();
         catalog.refresh(); admin.refresh(); rules.refresh(); setup.refresh();
-        land.refresh();
+        land.refresh(); assignLand.refresh(); attention.refresh();
         submit.refresh(); pool.refresh(); permission.refresh();
         showWho();
     },
@@ -544,6 +573,8 @@
     }
     build.drawGizmo();
     drawAreas({ pc, app, origin, terrain }, land.areas());
+    labelAreas({ pc, app, origin, terrain }, land.areas(),
+        document.getElementById('world-labels'));
     streamer.update(cameraState(camera, app.graphicsDevice.height));
     // Where you are, in the chrome: the compass follows the camera, the
     // coordinates are the real ones, and the land under you is asked for only

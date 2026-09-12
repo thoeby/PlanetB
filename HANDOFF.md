@@ -1,12 +1,44 @@
 # HANDOFF.md — for the next instance
 
-Read `CLAUDE.md`, then `ARCHITECTURE.md`, then `PROGRESS.md`. One task, one
-commit, `make gate` green before you commit.
+Read `CLAUDE.md`, then `PLAYER-RUN.md`, then `ARCHITECTURE.md` and
+`PROGRESS.md`. One story, one commit, `make player-run` green — and `make
+gate` under it — before you commit.
 
-**Every task in `TASKS.md` is done.** What is left is the work that needs
-hardware or data this container has not got, and it is listed in §6: WP3.1's
-acceptance on a GPU, WP5.4's on a headset, the full Switzerland raster seed, and
-WP0.11's QGIS round trip.
+**`TASKS.md` is history.** Every task in it is done, and finishing them did not
+make the thing usable: `PLAYER-RUN.md` is the task list now, and a story counts
+only when a script that behaves like a player completes it through the page.
+What is still unrun for want of hardware or data this container has not got is
+in §6: WP3.1's acceptance on a GPU, WP5.4's on a headset, and the full
+Switzerland raster seed.
+
+## 0. The task is `PLAYER-RUN.md`
+
+`make player-run` is the gate that matters now; `make gate` stays underneath
+it. It needs, on top of §1's environment:
+
+```sh
+pip3 install --break-system-packages --ignore-installed numpy   # see below
+pip3 install --break-system-packages pytest -e server/
+bash tools/make-seed-dem.sh        # 4 x 4 km of Visp, off AWS open data, once
+make player-run
+```
+
+**`gdal-bin` brings a Debian numpy that this image's python cannot import.**
+`apt-get install gdal-bin` pulls `python3-numpy` built for another python, and
+it shadows the wheel rasterio needs: every `import rasterio` then dies in
+`numpy.core._multiarray_umath`. `pip3 install --ignore-installed numpy` puts a
+working one in front of it. `make api-test` also needs `pytest`, which two
+server tests import.
+
+**No container registry is reachable from this sandbox.** `docker.osgeo.org`
+and `production.cloudfront.docker.com` are both 403 at the egress proxy, so
+the GeoServer container in `infra/compose.yml` cannot be pulled here.
+`client/test/run/world.js` therefore falls back to
+`tools/geoserver-fixture.py`, which serves `infra/seed/dem-visp.tif` as a WCS
+1.0.0 coverage and a WMS hillshade — the two conversations the world has with
+a GeoServer. The run prints which one answered. **A story that passed against
+the fixture has passed against the fixture only**; the operator's machine runs
+the container.
 
 ## 1. Get a working environment first
 

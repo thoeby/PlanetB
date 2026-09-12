@@ -9,7 +9,7 @@ import { test, expect } from '@playwright/test';
 import { existsSync } from 'node:fs';
 import { join } from 'node:path';
 
-import { CLIENT } from './serve.js';
+import { CLIENT, groundReaches } from './serve.js';
 import { startServices } from './services.js';
 import { openPage, psql, signIn } from './worker.js';
 
@@ -31,6 +31,9 @@ test.describe.configure({ timeout: 300000 });
 const uid = (email) => psql(`SELECT id FROM auth.user WHERE email = '${email}'`);
 
 test.beforeAll(async () => {
+    // Nothing may be drawn outside the world's coverage (db/0062). This spec
+    // works 21°E/21°N and puts a second area at 22°/22°.
+    groundReaches(20.5, 20.5, 22.6, 22.6);
     if (!existsSync(join(CLIENT, 'vendor/playcanvas/playcanvas.js'))) {
         test.skip(true, 'no vendored engine — run `make vendor`');
     }
