@@ -40,7 +40,8 @@ const when = (at) => (at
     ? new Date(at).toLocaleDateString(undefined, { day: 'numeric', month: 'short' })
     : '');
 
-const tile = (v, l, tone) => el('div', { className: 'tile', 'data-tone': tone ?? '' },
+const tile = (v, l, tone, cls) => el('div',
+    { className: `tile${cls ? ` ${cls}` : ''}`, 'data-tone': tone ?? '' },
     el('div', { className: 'v', textContent: v }),
     el('div', { className: 'l', textContent: l }));
 
@@ -112,7 +113,8 @@ function drawTotals(host, state) {
     const { held, n } = heldFor(state.rows, state.open);
     const sum = (f) => state.rows.filter(f).reduce((a, r) => a + Math.abs(r.delta), 0);
     host.replaceChildren(
-        tile(cr(state.account.amount), 'credits available', 'accent'),
+        // .wallet-balance is what anything outside this panel looks for.
+        tile(cr(state.account.amount), 'credits available', 'accent', 'wallet-balance'),
         tile(cr(held), `held for ${n} open job${n === 1 ? '' : 's'}`, 'warn'),
         tile(signed(-sum((r) => r.delta < 0)), 'paid'),
         tile(signed(sum((r) => r.delta > 0)), 'earned', 'accent'));
