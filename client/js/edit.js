@@ -9,6 +9,7 @@
 
 import * as api from './api.js';
 import { deleteOp, diffOf, insertOp, myAreas, propose, updateOp } from './areas.js';
+import { WORLD_SRID } from '../lib/crs.js';
 import { tileX, tileY } from '../lib/tilemath.js';
 
 // The five kinds of db/0001_schema.sql's CHECK constraint, each with the
@@ -80,7 +81,7 @@ export function valuesOf(kind, props = {}) {
 
 // --------------------------------------------------------------------- wkt
 
-// feature.geom is geometry(GeometryZ, 4326): a 2D geometry is refused outright
+// feature.geom is geometry(GeometryZ, WORLD_SRID): a 2D geometry is refused outright
 // ("Column has Z dimension but geometry does not"), and st_force3d is a
 // server-side function that a plain PostgREST insert has no way to call. So
 // the height goes on every vertex here, before the row leaves the tab. A
@@ -98,13 +99,13 @@ const poly = (rings, h) => `(${rings.map((r) => list(r, h)).join(', ')})`;
 export function ewkt(geom, h = 0) {
     const c = geom?.coordinates;
     switch (geom?.type) {
-        case 'Point': return `SRID=4326;POINT Z (${point(c, h)})`;
-        case 'LineString': return `SRID=4326;LINESTRING Z ${list(c, h)}`;
-        case 'Polygon': return `SRID=4326;POLYGON Z ${poly(c, h)}`;
+        case 'Point': return `SRID=${WORLD_SRID};POINT Z (${point(c, h)})`;
+        case 'LineString': return `SRID=${WORLD_SRID};LINESTRING Z ${list(c, h)}`;
+        case 'Polygon': return `SRID=${WORLD_SRID};POLYGON Z ${poly(c, h)}`;
         case 'MultiLineString':
-            return `SRID=4326;MULTILINESTRING Z (${c.map((l) => list(l, h)).join(', ')})`;
+            return `SRID=${WORLD_SRID};MULTILINESTRING Z (${c.map((l) => list(l, h)).join(', ')})`;
         case 'MultiPolygon':
-            return `SRID=4326;MULTIPOLYGON Z (${c.map((p) => poly(p, h)).join(', ')})`;
+            return `SRID=${WORLD_SRID};MULTIPOLYGON Z (${c.map((p) => poly(p, h)).join(', ')})`;
         default: throw new Error(`no wkt for ${geom?.type ?? 'nothing'}`);
     }
 }

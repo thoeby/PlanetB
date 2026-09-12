@@ -81,11 +81,11 @@ LAT=$(awk "BEGIN{printf \"%.4f\", 46.0 + $OFF * 0.004}")
 $PSQL <<SQL > /dev/null
 SET client_min_messages = warning;
 INSERT INTO area (id, geom, owner_id, detail) VALUES (gen_random_uuid(),
-    st_makeenvelope($LON - 0.02, $LAT - 0.02, $LON + 0.02, $LAT + 0.02, 4326),
+    st_makeenvelope($LON - 0.02, $LAT - 0.02, $LON + 0.02, $LAT + 0.02, world_srid()),
     '$UID_', 14);
 INSERT INTO feature (area_id, kind, geom)
 VALUES ((SELECT id FROM area WHERE owner_id = '$UID_'), 'footprint',
-        st_setsrid(st_makepoint($LON, $LAT, 500), 4326));
+        st_setsrid(st_makepoint($LON, $LAT, 500), world_srid()));
 DO \$\$
 BEGIN
     PERFORM set_config('request.jwt.claims',

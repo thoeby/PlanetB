@@ -31,6 +31,7 @@ import urllib.error
 import urllib.request
 from pathlib import Path
 
+from . import crs
 from .config import Config
 from .importer import absolute_url, fetch
 
@@ -153,16 +154,19 @@ def featuretype_body(layer: str) -> bytes:
     unusable. Declaring the whole earth avoids depending on rows existing; the
     real extent is recomputed by GeoServer as data arrives.
 
-    Declared and native are both EPSG:4326. Publishing in 3857 to dodge the
-    axis-order argument was tried, and GeoServer stored the Mercator numbers
-    raw: REPROJECT_TO_DECLARED reprojects what it serves, not what it is sent.
+    Declared and native are both the world SRS (crs.WORLD), FORCE_DECLARED:
+    GeoServer serves what Postgres stores and never guesses a native SRS off a
+    view. Publishing in the tile projection to dodge the axis-order argument
+    was tried, and GeoServer stored the Mercator numbers raw:
+    REPROJECT_TO_DECLARED reprojects what it serves, not what it is sent.
     """
     whole_earth = {"minx": -180.0, "maxx": 180.0, "miny": -90.0, "maxy": 90.0,
-                   "crs": "EPSG:4326"}
+                   "crs": crs.WORLD}
     body = {
         "name": layer,
         "nativeName": layer,
-        "srs": "EPSG:4326",
+        "srs": crs.WORLD,
+        "nativeCRS": crs.WORLD,
         "nativeBoundingBox": whole_earth,
         "latLonBoundingBox": whole_earth,
         "projectionPolicy": "FORCE_DECLARED",
@@ -374,10 +378,10 @@ def check_drawing(cfg: Config, on_step=print) -> None:
     probe = (
         ("an area", "INSERT INTO gis.area (geom, detail)"
                     " VALUES (st_geomfromtext('POLYGON((0 0, 0.001 0,"
-                    " 0.001 0.001, 0 0.001, 0 0))', 4326), 0) RETURNING id"),
+                    " 0.001 0.001, 0 0.001, 0 0))', world_srid()), 0) RETURNING id"),
         ("a road", "INSERT INTO gis.f_road (geom)"
                    " VALUES (st_geomfromtext("
-                   "'LINESTRING(0.0002 0.0002, 0.0004 0.0004)', 4326)) RETURNING id"),
+                   "'LINESTRING(0.0002 0.0002, 0.0004 0.0004)', world_srid())) RETURNING id"),
     )
     try:
         with psycopg.connect(dsn, connect_timeout=5) as conn:
@@ -422,7 +426,7 @@ WRITE_PROBE = (
 def write_qgis_connection(target: Path, wfs_url: str) -> Path:
     """A file QGIS loads instead of being told the address by hand.
 
-    WFS 1.0.0 on purpose. From 1.1 on, EPSG:4326 means latitude first, and
+    WFS 1.0.0 on purpose. From 1.1 on, the world SRS means latitude first, and
     which side is supposed to swap is a decade-old argument between clients
     and servers; the first Save from QGIS came back as "-100.9 outside of
     (-90, 90)" — a longitude read as a latitude. 1.0.0 is longitude first,

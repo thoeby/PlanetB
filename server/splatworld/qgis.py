@@ -17,18 +17,11 @@ from pathlib import Path
 
 import psycopg
 
+from . import crs as world
 from .config import Config
 
 # QGIS writes the version it saved with; it opens anything from 3.x.
 QGIS_VERSION = "3.34.0-Prizren"
-
-WGS84_WKT = (
-    'GEOGCRS["WGS 84",DATUM["World Geodetic System 1984",'
-    'ELLIPSOID["WGS 84",6378137,298.257223563]],'
-    'PRIMEM["Greenwich",0],CS[ellipsoidal,2],'
-    'AXIS["geodetic latitude (Lat)",north],AXIS["geodetic longitude (Lon)",east],'
-    'ANGLEUNIT["degree",0.0174532925199433],ID["EPSG",4326]]'
-)
 
 GEOMETRY_NAMES = {"polygon": "Polygon", "line": "Line", "point": "Point"}
 
@@ -43,14 +36,14 @@ def _sub(parent, tag, text=None, **attrs):
 def crs(parent, tag: str = "srs"):
     holder = _sub(parent, tag)
     srs = _sub(holder, "spatialrefsys")
-    _sub(srs, "wkt", WGS84_WKT)
-    _sub(srs, "proj4", "+proj=longlat +datum=WGS84 +no_defs")
-    _sub(srs, "srsid", "3452")
-    _sub(srs, "srid", "4326")
-    _sub(srs, "authid", "EPSG:4326")
+    _sub(srs, "wkt", world.QGIS_WKT)
+    _sub(srs, "proj4", world.QGIS_PROJ4)
+    _sub(srs, "srsid", world.QGIS_SRSID)
+    _sub(srs, "srid", str(world.WORLD_SRID))
+    _sub(srs, "authid", world.WORLD)
     _sub(srs, "description", "WGS 84")
     _sub(srs, "projectionacronym", "longlat")
-    _sub(srs, "ellipsoidacronym", "EPSG:7030")
+    _sub(srs, "ellipsoidacronym", world.QGIS_ELLIPSOID)
     _sub(srs, "geographicflag", "true")
     return holder
 
@@ -59,11 +52,11 @@ def wfs_source(wfs_url: str, layer: str) -> str:
     """What QGIS needs to open one WFS-T layer.
 
     WFS 1.0.0 on purpose: in 1.1 and 2.0 QGIS and GeoServer disagree about which
-    of the two numbers in EPSG:4326 comes first, and everything drawn ends up in
+    of the two numbers in the world SRS comes first, and everything drawn ends up in
     the Indian Ocean. gis/README.md says the same thing about the connection.
     """
     return (f"pagingEnabled='false' preferCoordinatesForWfsT11='false' "
-            f"restrictToRequestBBOX='1' srsname='EPSG:4326' "
+            f"restrictToRequestBBOX='1' srsname='{world.WORLD}' "
             f"typename='splatworld:{layer}' url='{wfs_url}' version='1.0.0'")
 
 
@@ -137,7 +130,7 @@ def raster_layer(parent, wms_url: str, coverage: str) -> str:
     node = _sub(parent, "maplayer", type="raster", hasScaleBasedVisibilityFlag="0")
     _sub(node, "id", ident)
     _sub(node, "datasource",
-         f"crs=EPSG:4326&format=image/png&layers={coverage}&styles=&url={wms_url}")
+         f"crs={world.WORLD}&format=image/png&layers={coverage}&styles=&url={wms_url}")
     _sub(node, "layername", f"Ground ({coverage})")
     crs(node)
     _sub(node, "provider", "wms")

@@ -75,7 +75,7 @@ OFF=$(( (STAMP / 1000000) % 200 ))
 LON=$(awk "BEGIN{printf \"%.4f\", 9.0 + $OFF * 0.015}")
 LAT=$(awk "BEGIN{printf \"%.4f\", 46.0 + $OFF * 0.004}")
 AREA=$($PSQL -c "INSERT INTO area (geom, owner_id, detail) VALUES (
-    st_makeenvelope($LON - 0.02, $LAT - 0.02, $LON + 0.02, $LAT + 0.02, 4326),
+    st_makeenvelope($LON - 0.02, $LAT - 0.02, $LON + 0.02, $LAT + 0.02, world_srid()),
     '$OWNER_ID', 14) RETURNING id")
 
 # ------------------------------------------------------------------- reads
@@ -85,7 +85,7 @@ is "anon can read areas" 200 "$(code GET /area)"
 
 # ------------------------------------------------------------------- writes
 GEOM=$($PSQL -c "SELECT encode(st_asewkb(st_force3d(st_buffer(
-    st_setsrid(st_makepoint($LON, $LAT), 4326), 0.004))), 'hex')")
+    st_setsrid(st_makepoint($LON, $LAT), world_srid()), 0.004))), 'hex')")
 FEATURE="{\"area_id\":\"$AREA\",\"kind\":\"forest\",\"geom\":\"$GEOM\"}"
 is "anon cannot write a feature" 401 "$(code POST /feature "$FEATURE")"
 is "a stranger cannot write in my area" 403 "$(code POST /feature "$FEATURE" "$OTHER_JWT")"

@@ -7,6 +7,8 @@
 // (the built bundle in the page's script tag), because a no-bundler client
 // cannot resolve the bare specifiers its ES modules import each other by.
 
+import { TILE, WORLD } from '../lib/crs.js';
+
 export const COLOURS = {
     road: '#d8b84a', forest: '#54a15a', water: '#4a8fc4',
     footprint: '#d0794f', terrainmod: '#9b7fd0',
@@ -26,7 +28,7 @@ const rgba = (hex, a) => `rgba(${parseInt(hex.slice(1, 3), 16)},`
 
 export function orthoLayer(ol, filesUrl) {
     const grid = new ol.tilegrid.TileGrid({
-        extent: ol.proj.get('EPSG:3857').getExtent(),
+        extent: ol.proj.get(TILE).getExtent(),
         resolutions: ORTHO_ZOOMS.map((z) => R0 / 2 ** z),
         // CSS pixels; the files are 512 (tools/seed-ortho.sh), which is what
         // tilePixelRatio below says. Without it they are drawn at half their
@@ -79,14 +81,14 @@ export function buildMap(ol, target, filesUrl) {
     return { map, layer, areas, features, style, gj: new ol.format.GeoJSON() };
 }
 
-export const PROJ = { dataProjection: 'EPSG:4326', featureProjection: 'EPSG:3857' };
+export const PROJ = { dataProjection: WORLD, featureProjection: TILE };
 
 export const geoOf = (ctx, feature) =>
     ctx.gj.writeGeometryObject(feature.getGeometry(), { ...PROJ, decimals: 9 });
 
 export function viewBbox(map, ol) {
     const [west, south, east, north] = ol.proj.transformExtent(
-        map.getView().calculateExtent(map.getSize()), 'EPSG:3857', 'EPSG:4326');
+        map.getView().calculateExtent(map.getSize()), TILE, WORLD);
     return { west, south, east, north };
 }
 

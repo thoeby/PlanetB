@@ -1009,3 +1009,15 @@ OpenLayers and Draco vendored.
 - Token expiry (12 h) has no refresh: a background worker tab is asked to sign
   in again and its claim expires.
 
+
+## Coordinate systems, defined once
+
+`db/0056_crs.sql` adds `world_srid()` (read off `area.geom`), `tile_srid()`
+and `tile_bbox_merc()`. `server/splatworld/crs.py` and `client/lib/crs.js`
+repeat the two codes for code that runs without a database, and a test in each
+(`server/test_crs.py`, `client/test/crs.test.js`) pins them to the database
+and refuses an EPSG code spelled anywhere else in that tree. `gis.tile` has a
+typed geometry column, so GeoServer no longer sees an unknown native SRS on it.
+`infra/geoserver/provision.sh` is gone: it published the layers in the tile
+projection with `REPROJECT_TO_DECLARED`, which `gsprovision.py` had already
+found to store Mercator numbers raw; the Python provisioner is the one path.

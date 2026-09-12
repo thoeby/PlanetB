@@ -30,7 +30,7 @@ export function tileY(lat, z) {
         Math.floor((1 - Math.asinh(Math.tan(phi)) / Math.PI) / 2 * n), 0, n - 1);
 }
 
-// Matches st_makeenvelope(...) in tile_bbox(): west/south/east/north, 4326.
+// Matches st_makeenvelope(...) in tile_bbox(): west/south/east/north, lon/lat.
 export function tileBbox(z, x, y) {
     const n = 2 ** z;
     return {

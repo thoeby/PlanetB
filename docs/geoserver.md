@@ -60,7 +60,7 @@ ends with a real write to be sure.
 | field | fill it in? | meaning |
 |---|---|---|
 | `id` | no | uuid, generated |
-| `geom` | you draw it | EPSG:4326; 2D — a Z is added on the way in (`db/0029`) |
+| `geom` | you draw it | the world SRS (`world_srid()`, EPSG:4326); 2D — a Z is added on the way in (`db/0029`) |
 
 That is the whole layer. `kind` is the layer you drew on (`db/0034`), the
 area is worked out from where you drew (`db/0028`), the rest from defaults

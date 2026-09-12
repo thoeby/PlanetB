@@ -23,7 +23,9 @@ Four processes. All logic = SQL + client JS.
 
 ## 2. Tile frame & LOD
 
-Web-Mercator ZXY. Local frame per tile: origin = tile centre at DEM height, X east, Y up, Z south, metres, float32. Manifest gives `origin {lon,lat,h}`; viewer places entity relative to a floating origin (rebase every 5 km).
+Web-Mercator ZXY. Two coordinate systems exist, defined once: `world_srid()` (what every geometry column stores, read off the schema) and `tile_srid()` (the ZXY grid and every ground raster), in `db/0056_crs.sql`; `server/splatworld/crs.py` and `client/lib/crs.js` repeat them for code that runs without the database, and a test in each refuses an EPSG code spelled anywhere else. `tile_bbox()` gives a tile in the world SRID, `tile_bbox_merc()` in the tile SRID.
+
+Local frame per tile: origin = tile centre at DEM height, X east, Y up, Z south, metres, float32. Manifest gives `origin {lon,lat,h}`; viewer places entity relative to a floating origin (rebase every 5 km).
 
 | z | edge @46°N | source | budget |
 |---|---|---|---|

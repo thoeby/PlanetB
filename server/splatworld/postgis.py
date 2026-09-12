@@ -3,7 +3,7 @@
 The same shape as `geoserver.probe()` — {name, title, bbox, fields} per layer —
 so the import page offers both the same way, and `importer.load_layer()` reads
 one as GeoJSON with `st_asgeojson` instead of over WFS. Nothing is copied to
-disk on the way: a table is read, reprojected to 4326 and inserted.
+disk on the way: a table is read, reprojected to the world SRID and inserted.
 
 The world's own tables are not layers to import: `area`, `feature`, `instance`
 and `tile` are the world, and offering them would invite importing the world
@@ -64,7 +64,7 @@ def extent(conn, schema: str, table: str, geom: str) -> list[float] | None:
     """The layer's extent in degrees, so the page can fill the region in."""
     query = sql.SQL(
         "SELECT st_xmin(e), st_ymin(e), st_xmax(e), st_ymax(e) FROM ("
-        " SELECT st_extent(st_transform({geom}, 4326))::geometry AS e FROM {tbl}) s"
+        " SELECT st_extent(st_transform({geom}, world_srid()))::geometry AS e FROM {tbl}) s"
     ).format(geom=sql.Identifier(geom), tbl=sql.Identifier(schema, table))
     try:
         row = conn.execute(query).fetchone()
@@ -74,7 +74,7 @@ def extent(conn, schema: str, table: str, geom: str) -> list[float] | None:
 
 
 def as_geojson(cfg: Config, spec: dict) -> dict:
-    """One table as a GeoJSON FeatureCollection, in 4326, like WFS returns."""
+    """One table as a GeoJSON FeatureCollection, in the world SRID, like WFS."""
     name = str(spec.get("table") or "")
     schema, _, table = name.rpartition(".")
     if not table:
@@ -85,7 +85,7 @@ def as_geojson(cfg: Config, spec: dict) -> dict:
             "SELECT jsonb_build_object('type', 'FeatureCollection', 'features',"
             " coalesce(jsonb_agg(jsonb_build_object("
             "   'type', 'Feature',"
-            "   'geometry', st_asgeojson(st_transform(t.{geom}, 4326))::jsonb,"
+            "   'geometry', st_asgeojson(st_transform(t.{geom}, world_srid()))::jsonb,"
             "   'properties', to_jsonb(t) - {geomname})), '[]'::jsonb))"
             " FROM {tbl} t WHERE t.{geom} IS NOT NULL"
         ).format(geom=sql.Identifier(geom), geomname=sql.Literal(geom),

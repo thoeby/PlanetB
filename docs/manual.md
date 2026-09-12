@@ -213,7 +213,7 @@ security decides every write; the client has no authority of its own.
 
 ### Admin (QGIS)
 
-`make up && make db-reset`, `bash infra/geoserver/provision.sh`, then load
+`make up && make db-reset`, `splatworld geoserver <url>`, then load
 `gis/splatworld-wfs.xml` in QGIS and edit `area`, `feature`, `instance`
 over WFS-T. `gis/README.md` has the checklist. `splatworld:tile` shows compile
 state (red / orange / green).

@@ -18,7 +18,8 @@ from pathlib import Path
 import psycopg
 
 from .config import Config
-from .importer import DEM_SIZE, _auth_header, fetch, tile_bounds_3857
+from . import crs
+from .importer import DEM_SIZE, _auth_header, fetch
 
 # Two tabs walking onto the same tile at the same moment must not both cut it.
 _cutting: dict[tuple[int, int, int], threading.Lock] = {}
@@ -87,7 +88,7 @@ def not_a_raster(raw: bytes) -> str | None:
 def encode_geotiff(raw: bytes, bounds: tuple | None = None) -> bytes:
     """A GeoTIFF to dem-v1 samples of one tile's box, north-west first.
 
-    `bounds` is the tile in EPSG:3857. The coverage is asked for in its own CRS
+    `bounds` is the tile in the tile projection. The coverage is asked for in its own CRS
     — a Swiss DEM is LV95, and asking GeoServer to reproject as well is one more
     thing that can be refused — so what comes back is warped here, onto exactly
     the box the tile is.
@@ -105,7 +106,7 @@ def encode_geotiff(raw: bytes, bounds: tuple | None = None) -> bytes:
                             resampling=rasterio.enums.Resampling.bilinear)
         else:
             west, south, east, north = bounds
-            with WarpedVRT(src, crs="EPSG:3857",
+            with WarpedVRT(src, crs=crs.TILE,
                            transform=rasterio.transform.from_bounds(
                                west, south, east, north, DEM_SIZE, DEM_SIZE),
                            width=DEM_SIZE, height=DEM_SIZE,
@@ -117,14 +118,14 @@ def encode_geotiff(raw: bytes, bounds: tuple | None = None) -> bytes:
         return dem.encode(values)
 
 
-def native_bounds(crs: str | None, bounds: tuple) -> tuple:
+def native_bounds(native: str | None, bounds: tuple) -> tuple:
     """The tile's box in the coverage's own CRS."""
-    if not crs:
+    if not native:
         return bounds
     from rasterio.warp import transform_bounds
 
-    target = crs if ":" in str(crs) else f"EPSG:{crs}"
-    return tuple(transform_bounds("EPSG:3857", target, *bounds))
+    target = native if ":" in str(native) else f"EPSG:{native}"
+    return tuple(transform_bounds(crs.TILE, target, *bounds))
 
 
 def _said(text: str) -> str:
@@ -292,11 +293,11 @@ def cut(cfg: Config, z: int, x: int, y: int) -> Path | None:
             if not world or not covers(world["extent"], z, x, y):
                 return None
             auth = _auth_header(cfg.geoserver_user, cfg.geoserver_admin_password)
-            raw, url = _ask(world, tile_bounds_3857(z, x, y), auth, f"{z}/{x}/{y}")
+            raw, url = _ask(world, crs.tile_bounds(z, x, y), auth, f"{z}/{x}/{y}")
             if not raw:
                 return None
             try:
-                body = encode_geotiff(raw, tile_bounds_3857(z, x, y))
+                body = encode_geotiff(raw, crs.tile_bounds(z, x, y))
             except Exception as err:  # noqa: BLE001 - said back to the browser
                 raise CutFailed(f"the coverage came back but could not be read:"
                                 f" {err} — asked: {url}") from err
@@ -368,8 +369,8 @@ def probe(cfg: Config, z: int, x: int, y: int, out=print) -> int:
         return 1
 
     auth = _auth_header(cfg.geoserver_user, cfg.geoserver_admin_password)
-    bounds = tile_bounds_3857(z, x, y)
-    out(f"\n{z}/{x}/{y} is {bounds} in EPSG:3857")
+    bounds = crs.tile_bounds(z, x, y)
+    out(f"\n{z}/{x}/{y} is {bounds} in {crs.TILE}")
     for version in ("1.0.0", "2.0.1", "1.1.1"):
         for name in geoserver.spellings(world["coverage"]):
             out(f"\n--- WCS {version} as {name!r}")

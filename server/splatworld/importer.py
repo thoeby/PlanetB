@@ -24,13 +24,14 @@ from pathlib import Path
 import psycopg
 from psycopg import sql
 
+from . import crs
 from .config import Config
 
 KINDS = ("road", "forest", "water", "footprint", "terrainmod")
 AREA_ZOOM = 12
 MIN_ZOOM = 6
 
-# dem-v1: uint16, 256x256, row-major, north-west first, EPSG:3857,
+# dem-v1: uint16, 256x256, row-major, north-west first, in the tile projection,
 # elevation_m = value * 0.2 - 500. The same encoding tools/seed-dem.sh writes
 # with gdal_translate -scale -500 12607 0 65535, and the one client/lib/geo.js
 # reads back (DEM_SCALE, DEM_OFFSET).
@@ -40,23 +41,12 @@ DEM_SCALE = 0.2
 DEM_OFFSET = -500.0
 DEM_MIN, DEM_MAX = -500.0, 12607.0
 
-MERC_R = 20037508.342789244
-
-
 class ImportError_(SystemExit):
     """A problem with the config or the sources, phrased for a person."""
 
 
 def die(message: str) -> None:
     raise ImportError_(f"import: {message}")
-
-
-# --------------------------------------------------------------- tile maths
-
-def tile_bounds_3857(z: int, x: int, y: int) -> tuple[float, float, float, float]:
-    span = 2 * MERC_R / (2 ** z)
-    return (-MERC_R + x * span, MERC_R - (y + 1) * span,
-            -MERC_R + (x + 1) * span, MERC_R - y * span)
 
 
 # ------------------------------------------------------------------ sources
@@ -107,7 +97,7 @@ def wfs_url(base: str, type_name: str, count: int | None) -> str:
     query = {
         "service": "WFS", "version": "2.0.0", "request": "GetFeature",
         "typeNames": type_name, "outputFormat": "application/json",
-        "srsName": "EPSG:4326",
+        "srsName": crs.WORLD,
     }
     if count:
         query["count"] = str(count)
@@ -227,7 +217,7 @@ def region_tiles(conn, bbox: list[float], max_zoom: int) -> list[tuple[int, int,
     """
     rows = conn.execute(
         "SELECT t.z, t.x, t.y FROM tiles_for_geom("
-        "  st_makeenvelope(%s, %s, %s, %s, 4326), %s, %s) AS t"
+        "  st_makeenvelope(%s, %s, %s, %s, world_srid()), %s, %s) AS t"
         " ORDER BY t.z, t.x, t.y",
         (*bbox, MIN_ZOOM, max_zoom),
     ).fetchall()
@@ -250,7 +240,7 @@ def seed_areas(conn, uid, bbox: list[float], detail: int) -> int:
         "INSERT INTO area (geom, owner_id, detail, rules)"
         " SELECT tile_bbox(%s, t.x, t.y), %s, %s,"
         "        jsonb_build_object('src', 'import', 'z12', t.x || '/' || t.y)"
-        " FROM tiles_for_geom(st_makeenvelope(%s, %s, %s, %s, 4326), %s, %s) AS t"
+        " FROM tiles_for_geom(st_makeenvelope(%s, %s, %s, %s, world_srid()), %s, %s) AS t"
         " WHERE NOT EXISTS (SELECT 1 FROM area a WHERE a.owner_id = %s"
         "                   AND a.rules ->> 'z12' = t.x || '/' || t.y)",
         (AREA_ZOOM, uid, detail, *bbox, AREA_ZOOM, AREA_ZOOM, uid),
@@ -267,7 +257,7 @@ def mark_dirty(conn, bbox: list[float], detail: int) -> int:
     return conn.execute(
         "INSERT INTO tile (z, x, y, dirty, expected_version)"
         " SELECT t.z, t.x, t.y, true, 1"
-        " FROM tiles_for_geom(st_makeenvelope(%s, %s, %s, %s, 4326), %s, %s) AS t"
+        " FROM tiles_for_geom(st_makeenvelope(%s, %s, %s, %s, world_srid()), %s, %s) AS t"
         " ON CONFLICT (z, x, y) DO NOTHING",
         (*bbox, MIN_ZOOM, detail),
     ).rowcount
@@ -300,7 +290,7 @@ def insert_features(conn, uid, rows: list[dict]) -> int:
     with conn.cursor().copy("COPY import_raw (doc) FROM STDIN") as copy:
         for row in rows:
             copy.write_row([json.dumps(row)])
-    geom = ("st_makevalid(st_setsrid(st_geomfromgeojson(r.doc -> 'geom'), 4326))")
+    geom = ("st_makevalid(st_setsrid(st_geomfromgeojson(r.doc -> 'geom'), world_srid()))")
     return conn.execute(
         f"INSERT INTO feature (area_id, kind, geom, props)"
         f" SELECT a.id, r.doc ->> 'kind', st_force3d({geom}),"

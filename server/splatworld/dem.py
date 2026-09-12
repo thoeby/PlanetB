@@ -1,7 +1,7 @@
 """Cuts elevation into the dem-v1 tiles the compiler reads.
 
-One tile is 256x256 uint16 samples, row-major, north-west first, in EPSG:3857
-over exactly the tile's bounds, with `elevation_m = value * 0.2 - 500`. That is
+One tile is 256x256 uint16 samples, row-major, north-west first, in the tile
+projection (crs.TILE) over exactly the tile's bounds, with `elevation_m = value * 0.2 - 500`. That is
 what tools/seed-dem.sh produces with gdalwarp, and what client/lib/geo.js reads
 back; this does the same with rasterio so nothing has to be installed by hand.
 
@@ -17,7 +17,8 @@ import rasterio
 from rasterio.transform import from_bounds
 from rasterio.warp import Resampling, reproject
 
-from .importer import DEM_MAX, DEM_MIN, DEM_SIZE, tile_bounds_3857
+from . import crs
+from .importer import DEM_MAX, DEM_MIN, DEM_SIZE
 
 # Ground with no data becomes sea level rather than a hole: the terrain mesh has
 # to be continuous, and a NaN would travel into every vertex that samples it.
@@ -40,7 +41,7 @@ def decode(raw: bytes) -> np.ndarray:
 
 def cut_tile(src, z: int, x: int, y: int) -> bytes:
     """One tile, reprojected and resampled to its own bounds."""
-    west, south, east, north = tile_bounds_3857(z, x, y)
+    west, south, east, north = crs.tile_bounds(z, x, y)
     destination = np.full((DEM_SIZE, DEM_SIZE), np.nan, dtype="float32")
     reproject(
         source=rasterio.band(src, 1),
@@ -49,7 +50,7 @@ def cut_tile(src, z: int, x: int, y: int) -> bytes:
         src_crs=src.crs,
         src_nodata=src.nodata,
         dst_transform=from_bounds(west, south, east, north, DEM_SIZE, DEM_SIZE),
-        dst_crs="EPSG:3857",
+        dst_crs=crs.TILE,
         dst_nodata=float("nan"),
         resampling=Resampling.cubic,
     )
@@ -60,10 +61,10 @@ def covers(src, tiles: list[tuple[int, int, int]]) -> list[tuple[int, int, int]]
     """Tiles the source has no data for at all, so the caller can say so."""
     from rasterio.warp import transform_bounds
 
-    west, south, east, north = transform_bounds(src.crs, "EPSG:3857", *src.bounds)
+    west, south, east, north = transform_bounds(src.crs, crs.TILE, *src.bounds)
     missing = []
     for z, x, y in tiles:
-        tw, ts, te, tn = tile_bounds_3857(z, x, y)
+        tw, ts, te, tn = crs.tile_bounds(z, x, y)
         if te <= west or tw >= east or tn <= south or ts >= north:
             missing.append((z, x, y))
     return missing
@@ -101,7 +102,7 @@ def cut(source: Path, files_root: Path, tiles: list[tuple[int, int, int]],
         if src.crs is None:
             raise SystemExit(
                 f"import: {source} has no coordinate system, so it cannot be "
-                "placed on the earth. Export it with one (EPSG:4326 or 3857)."
+                f"placed on the earth. Export it with one ({crs.WORLD} or {crs.TILE})."
             )
         blank = covers(src, tiles)
         for index, (z, x, y) in enumerate(tiles, 1):

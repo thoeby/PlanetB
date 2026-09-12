@@ -13,6 +13,7 @@ from __future__ import annotations
 import urllib.parse
 import xml.etree.ElementTree as ET
 
+from .crs import TILE
 from .importer import _auth_header, absolute_url, fetch
 
 # Newest first. GeoServer has answered WFS 1.1.0 for twenty years and some
@@ -288,7 +289,7 @@ def wcs10_name(coverage_id: str) -> str:
 
 
 def coverage_tile_url(base: str, coverage_id: str, bbox: tuple, size: int,
-                      crs: str = "EPSG:3857", version: str = "1.0.0",
+                      crs: str = TILE, version: str = "1.0.0",
                       axes: tuple | None = None,
                       scale_axes: tuple | None = None) -> str:
     """One tile of a coverage: exactly this box, exactly this many samples.
