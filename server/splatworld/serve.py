@@ -560,27 +560,49 @@ class Handler(BaseHTTPRequestHandler):
             self._json(200, {"ok": False, "log": lines,
                              "error": f"{type(err).__name__}: {err}"})
 
+    def _drain(self, length: int) -> None:
+        """Read the body and throw it away, before refusing the request.
+
+        A browser sends a PUT in one go. Answer before its body has been read
+        and the rest of it lands on a socket nobody is reading: the connection
+        is reset, and fetch() reports "NetworkError when attempting to fetch
+        resource" — never the status, and never the reason. A sog is megabytes,
+        so this happened to every upload that was refused, including the 409
+        that means "these bytes are already here", which is not an error at all.
+        """
+        remaining = max(0, length)
+        while remaining > 0:
+            chunk = self.rfile.read(min(1 << 20, remaining))
+            if not chunk:
+                return
+            remaining -= len(chunk)
+
+    def _refuse(self, status: int, message: str, length: int) -> None:
+        self._drain(length)
+        self._text(status, message)
+
     def do_PUT(self) -> None:  # noqa: N802
+        length = int(self.headers.get("Content-Length") or 0)
         path, first = self._route()
         if first not in STORE_PREFIXES:
-            self._text(405, "nothing is writable here")
+            self._refuse(405, "nothing is writable here", length)
             return
         target = safe_join(self.cfg.files, path)
         if not target:
-            self._text(400, "bad path")
+            self._refuse(400, "bad path", length)
             return
         # Invariant 1: a path is written once. Overwriting is a conflict, not an
-        # update, and needs nobody's opinion.
+        # update, and needs nobody's opinion. The worker reads 409 as "already
+        # there", so it has to arrive as 409 rather than as a dropped socket.
         if target.exists():
-            self._text(409, "already written")
+            self._refuse(409, "already written", length)
             return
 
-        length = int(self.headers.get("Content-Length") or 0)
         if length <= 0:
             self._text(411, "length required")
             return
         if length > MAX_UPLOAD:
-            self._text(413, "too large")
+            self._refuse(413, "too large", length)
             return
 
         status, why = can_write(
@@ -588,7 +610,7 @@ class Handler(BaseHTTPRequestHandler):
             self.headers.get("Authorization"),
         )
         if status != 200:
-            self._text(status, why or "refused")
+            self._refuse(status, why or "refused", length)
             return
 
         target.parent.mkdir(parents=True, exist_ok=True)
