@@ -246,10 +246,10 @@ def cmd_geoserver(args: argparse.Namespace) -> int:
     print(f"\nDone. Your GeoServer now publishes the world's editable layers.\n"
           f"  WFS-T endpoint: {wfs}\n"
           f"  QGIS connection file: {connection}\n\n"
-          "In QGIS: Layer > Data Source Manager > WFS / OGC API-Features,\n"
-          "press 'Load Connections', pick that file, then Connect. Add\n"
-          "'area' and the feature_* layers, draw, and press Save. Then open\n"
-          "/app/play.html and turn on background work — what you drew compiles.")
+          "Now `splatworld qgis`, which writes gis/splatworld.qgs from what the\n"
+          "world says it holds — one layer per kind, with its form. Open that\n"
+          "project, draw on 'Your land', save, and the world's Your land tab\n"
+          "has it. Re-run both after adding a kind in the Admin tab.")
     return 0
 
 
