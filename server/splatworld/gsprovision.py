@@ -368,6 +368,49 @@ def provision(cfg: Config, url: str, user: str, password: str,
     return f"{gs.base}/{WORKSPACE}/wfs"
 
 
+def drawable_probes(conn) -> list:
+    """One insert per drawable kind, shaped the way QGIS sends it.
+
+    The layers are built from the `kind` table (db/0041), one view per kind
+    named gis.f_<kind>, typed multi for anything but a point. The probe reads
+    the same table so it cannot fall behind the vocabulary.
+    """
+    kinds = conn.execute(
+        "SELECT name, geometry FROM kind"
+        " WHERE geometry IS NOT NULL AND applies_to = 'feature'"
+        " ORDER BY ordering, name").fetchall()
+    # A kind can have properties the world insists on — terrainmod has `op`,
+    # because a terrain edit that does not say what it does is not one. QGIS
+    # puts those in the form and the drawer fills them, so the probe fills them
+    # too; leaving them blank tests a Save nobody makes.
+    required = {}
+    for kind, name, ptype, choices in conn.execute(
+            "SELECT kind, name, type, choices FROM property WHERE required"
+            " ORDER BY kind, ordering, name").fetchall():
+        value = (choices[0] if ptype == "choice" and choices
+                 else "1" if ptype == "number"
+                 else "true" if ptype == "boolean" else "probe")
+        required.setdefault(kind, []).append((name, value))
+    out = []
+    for i, (name, geometry) in enumerate(kinds):
+        # Each one its own patch of ground, inside the area drawn just above.
+        x = 0.0002 + i * 0.0001
+        if geometry == "point":
+            wkt = f"POINT({x} 0.0002)"
+        elif geometry == "line":
+            wkt = f"MULTILINESTRING(({x} 0.0002, {x + 0.00005} 0.00025))"
+        else:
+            wkt = (f"MULTIPOLYGON((({x} 0.0002, {x + 0.00005} 0.0002,"
+                   f" {x + 0.00005} 0.00025, {x} 0.0002)))")
+        cols = "".join(f", {p}" for p, _ in required.get(name, []))
+        vals = "".join(f", '{v}'" for _, v in required.get(name, []))
+        out.append((
+            f"a {name}",
+            f"INSERT INTO gis.f_{name} (geom{cols}) VALUES"
+            f" (st_geomfromtext('{wkt}', world_srid()){vals}) RETURNING id"))
+    return out
+
+
 def check_drawing(cfg: Config, on_step=print) -> None:
     import psycopg
 
@@ -375,16 +418,23 @@ def check_drawing(cfg: Config, on_step=print) -> None:
            f"password={cfg.geoserver_password} dbname={cfg.pg_database}")
     # Exactly the statements GeoServer builds for a Save with the fields left
     # blank: every column of the view, a blank number as 0, the id fetched back.
-    probe = (
-        ("an area", "INSERT INTO gis.area (geom, detail)"
-                    " VALUES (st_geomfromtext('POLYGON((0 0, 0.001 0,"
-                    " 0.001 0.001, 0 0.001, 0 0))', world_srid()), 0) RETURNING id"),
-        ("a road", "INSERT INTO gis.f_road (geom)"
-                   " VALUES (st_geomfromtext("
-                   "'LINESTRING(0.0002 0.0002, 0.0004 0.0004)', world_srid())) RETURNING id"),
-    )
+    #
+    # Multi-part geometry, because that is what QGIS sends: its editing buffer
+    # hands the provider the layer's own type, and for a polygon layer that is
+    # MULTIPOLYGON even when the drawer drew a single ring. Probing a plain
+    # POLYGON is why this check passed while every Save failed — twice, in
+    # db/0054 and again in db/0057.
+    #
+    # And every drawable layer, read from the vocabulary rather than listed
+    # here, so a kind somebody adds tomorrow is checked without editing this.
+    probe = [
+        ("an area", "INSERT INTO gis.area (geom, detail) VALUES (st_geomfromtext("
+                    "'MULTIPOLYGON(((0 0, 0.001 0, 0.001 0.001, 0 0.001, 0 0)))',"
+                    " world_srid()), 0) RETURNING id"),
+    ]
     try:
         with psycopg.connect(dsn, connect_timeout=5) as conn:
+            probe.extend(drawable_probes(conn))
             for what, sql in probe:
                 try:
                     conn.execute(sql)
