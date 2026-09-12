@@ -245,3 +245,20 @@ def test_wcs_10_spells_the_workspace_with_a_colon():
     assert geoserver.wcs10_name("splatworld__dem visp demo") == "splatworld:dem visp demo"
     url = geoserver.coverage_tile_url("http://h/geoserver", "ws__layer", (1, 2, 3, 4), 256)
     assert "coverage=ws%3Alayer" in url
+
+
+def test_an_ogc_exception_in_a_fetch_failure_is_read():
+    said = ground._said(
+        'import: elevation for 14/1/1: 404 Not Found from http://h/wcs?x=1\n'
+        '  <?xml version="1.0"?><ows:ExceptionReport '
+        'xmlns:ows="http://www.opengis.net/ows/2.0">'
+        '<ows:Exception exceptionCode="NoSuchCoverage" locator="coverageId">'
+        '<ows:ExceptionText>Could not find the requested coverage'
+        '</ows:ExceptionText></ows:Exception></ows:ExceptionReport>')
+    assert "NoSuchCoverage" in said
+    assert "Could not find the requested coverage" in said
+    assert "xmlns" not in said
+
+
+def test_a_failure_with_no_xml_in_it_is_left_alone():
+    assert ground._said("could not reach http://h/wcs") == "could not reach http://h/wcs"

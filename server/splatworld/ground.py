@@ -127,6 +127,36 @@ def native_bounds(crs: str | None, bounds: tuple) -> tuple:
     return tuple(transform_bounds("EPSG:3857", target, *bounds))
 
 
+def _said(text: str) -> str:
+    """A failure from fetch(), with any OGC exception in it read.
+
+    An HTTP error carries the body, and the body is an ExceptionReport: what
+    matters is the code and the sentence in it, not four hundred characters of
+    namespace declarations.
+    """
+    start = text.find("<?xml")
+    if start < 0:
+        start = text.find("<ows:ExceptionReport")
+    if start < 0:
+        return text
+    from . import geoserver
+
+    head = text[:start].strip()
+    try:
+        import xml.etree.ElementTree as ET
+
+        root = ET.fromstring(text[start:])
+    except Exception:  # noqa: BLE001 - truncated or not XML after all
+        return text
+    code = ""
+    for node in root.iter():
+        if geoserver.local(node.tag) == "Exception":
+            code = node.get("exceptionCode") or ""
+            break
+    words = geoserver.exception_text(root) or ""
+    return " ".join(p for p in (head, code, words.strip()) if p)
+
+
 def _ask(world: dict, bounds: tuple, auth: dict, at: str) -> tuple[bytes, str]:
     """The coverage for one tile, in whichever WCS version answers with one.
 
@@ -147,7 +177,7 @@ def _ask(world: dict, bounds: tuple, auth: dict, at: str) -> tuple[bytes, str]:
                 about = geoserver.describe_coverage(
                     world["url"], world["coverage"], auth)
             except SystemExit as err:
-                said.append(f"WCS {version}: {err}")
+                said.append(f"WCS {version}: {_said(str(err))}")
                 continue
             axes = tuple(about["axes"])
             box = native_bounds(about["crs"], bounds)
@@ -158,7 +188,7 @@ def _ask(world: dict, bounds: tuple, auth: dict, at: str) -> tuple[bytes, str]:
         try:
             raw = fetch(url, auth, what=f"elevation for {at}")
         except SystemExit as err:
-            said.append(f"WCS {version}: {err}")
+            said.append(f"WCS {version}: {_said(str(err))}")
             continue
         if not raw:
             return b"", url
