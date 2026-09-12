@@ -264,7 +264,13 @@
   // anybody's tab takes them.
   const submit = mountSubmit(hud.panel('Submit'), {
       onSubmitted: () => { pool.refresh(); land.refresh(); },
-      onCount: (n) => hud.stat('unsubmitted', String(n)),
+      onCount: (p) => {
+          hud.stat('unsubmitted', String(Math.max(0, p.waiting - p.open_jobs)));
+          // A tile exists where something stands, so this is how many things
+          // are on the land that is chosen in the panel — nothing, and there is
+          // nothing to submit however much land you own.
+          onMyLand = p.tiles;
+      },
   });
   const pool = mountPool(hud.panel('Render pool'), {
       loop: () => work.ready(),
@@ -424,6 +430,8 @@
       }).catch(() => {});
   }
 
+  let onMyLand = null;
+
   // What is missing, in the middle of the screen. Re-asked when the answer can
   // have changed — a tile publishing, land appearing — not every frame.
   function sayWhatIsMissing() {
@@ -432,6 +440,7 @@
           coverage: ground?.coverage,
           areas: areas.length,
           mine: areas.filter((a) => a.mine).length,
+          things: onMyLand,
           published: [...streamer.tiles.values()].filter(
               (t) => t.published_version > 0).length,
       }));

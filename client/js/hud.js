@@ -39,7 +39,8 @@ const POINTS = ['N', 'NE', 'E', 'SE', 'S', 'SW', 'W', 'NW'];
 
 // An empty world is black, and black says nothing. What is missing is always
 // one of four things, and each of them is somebody's next move.
-export function whatIsMissing({ coverage, areas = 0, mine = 0, published = 0 } = {}) {
+export function whatIsMissing({ coverage, areas = 0, mine = 0, things = null,
+    published = 0 } = {}) {
     if (!coverage) {
         return 'No ground yet. Setup \u00b7 connect your GeoServer and pick the'
             + ' coverage the world stands on.';
@@ -47,6 +48,13 @@ export function whatIsMissing({ coverage, areas = 0, mine = 0, published = 0 } =
     if (!areas) {
         return 'No land yet. Draw an area in QGIS — run `splatworld qgis`, open'
             + ' gis/splatworld.qgs, draw on Your land and save.';
+    }
+    // Land on its own holds nothing to compile: a tile exists where something
+    // stands. This is the step people fall down, because the land is drawn and
+    // the world still says nothing is waiting.
+    if (things === 0) {
+        return 'Nothing stands on your land yet. In QGIS, draw a road, a wood or'
+            + ' a building inside it and save — that is what there is to compile.';
     }
     if (!published) {
         return mine

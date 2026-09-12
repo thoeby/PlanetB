@@ -64,7 +64,7 @@ export function mountSubmit(host, { onSubmitted = () => {}, onCount = () => {} }
             el('li', {}, `${p.waiting} waiting`),
             el('li', {}, `${p.open_jobs} in the pool, ${p.in_escrow} held`
                 + ' for whoever renders them'));
-        onCount(Math.max(0, p.waiting - p.open_jobs));
+        onCount(p);
     }
 
     async function refresh() {

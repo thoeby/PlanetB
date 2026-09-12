@@ -27,3 +27,13 @@ test('standing on somebody else\'s uncompiled land is not your job', () => {
 test('a world with a published tile in it says nothing', () => {
     assert.equal(whatIsMissing({ coverage: 'ch:alti', areas: 1, mine: 1, published: 1 }), '');
 });
+
+test('land with nothing on it has nothing to compile', () => {
+    const said = whatIsMissing({ coverage: 'ch:alti', areas: 1, mine: 1, things: 0 });
+    assert.match(said, /draw a road, a wood or a building/);
+});
+
+test('land with something on it is a Submit away', () => {
+    const said = whatIsMissing({ coverage: 'ch:alti', areas: 1, mine: 1, things: 4 });
+    assert.match(said, /Submit/);
+});
