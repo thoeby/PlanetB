@@ -278,9 +278,13 @@ export class WorkLoop {
         const rows = await this.api.select('atom',
             { output_sha256: `eq.${sha}`, select: 'id,result', order: 'id.asc', limit: '20' });
         const said = rows.find((r) => r.result?.path)?.result?.path;
-        // An atom that ran before paths were recorded still put its output
-        // where its claim reserved room for it; ask the store.
-        for (const path of [said, ...rows.map((r) => `/jobs/${r.id}/${sha}.${ext}`)]) {
+        // The path asked for, first. can_write refuses a registered sha before
+        // it looks at the path at all (Invariant 1), so an atom that uploaded
+        // this file and then failed later is refused its own bytes back at the
+        // address they are already at. A tile's height and colliders are that
+        // case: they belong to no atom's output_sha256, so nothing below finds
+        // them.
+        for (const path of [wanted, said, ...rows.map((r) => `/jobs/${r.id}/${sha}.${ext}`)]) {
             if (!path) continue;
             const res = await this.fetchFn(this.filesUrl + path, { method: 'HEAD' });
             if (res.ok) {

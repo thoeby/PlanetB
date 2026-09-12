@@ -143,10 +143,12 @@ test('an artifact the store already holds is pointed at, not written again', asy
         filesUrl: 'http://files',
         spawn: () => ({ run: async () => OUT, terminate: () => {} }),
         // Invariant 1: can_write refuses a sha the artifact table already
-        // knows; the copy that is already there answers a HEAD.
-        fetchFn: async (url, opts) => new Response('', {
-            status: opts?.method === 'HEAD' ? 200 : 403,
-        }),
+        // knows; only the copy that is really there answers a HEAD, and it is
+        // under the earlier atom, not under this one.
+        fetchFn: async (url, opts) => {
+            if (opts?.method !== 'HEAD') return new Response('', { status: 403 });
+            return new Response('', { status: url.includes('/jobs/9/') ? 200 : 404 });
+        },
         timers: { setInterval: () => 1, clearInterval: () => {}, setTimeout: () => {} },
     });
     assert.equal(await loop.step(), 'verified');
@@ -230,4 +232,32 @@ test('stop() then start() leaves one loop running, not two', async () => {
     loop.stop();
     wake.shift()();
     await second;
+});
+
+test('an upload refused because its own bytes are already there is not a failure', async () => {
+    // A sog atom uploads the tile's sog, height and colliders. If it fails
+    // after the height is registered, the retry is refused (Invariant 1: the
+    // sha is known) at exactly the path the bytes are already at — and the
+    // height belongs to no atom's output_sha256, so nothing else names it.
+    const bytes = new TextEncoder().encode('height');
+    const sha = await import('../lib/hash.js').then((m) => m.sha256(bytes));
+    const api = fakeApi({}, { claim_atom: ATOM });
+    api.select = async (table) => (table === 'artifact' ? [{ sha256: sha }] : []);
+    const asked = [];
+    const loop = new WorkLoop({
+        api,
+        filesUrl: 'http://files',
+        spawn: () => ({ run: async () => OUT, terminate: () => {} }),
+        fetchFn: async (url, opts) => {
+            asked.push([opts?.method ?? 'GET', url]);
+            return new Response('', { status: opts?.method === 'HEAD' ? 200 : 403 });
+        },
+        timers: { setInterval: () => 1, clearInterval: () => {}, setTimeout: () => {} },
+    });
+    const where = await loop.upload({ id: 3 }, { ext: 'r16', kind: 'height', bytes,
+        dir: '/tiles/14/8550/5809' }, sha);
+    assert.equal(where, `/tiles/14/8550/5809/${sha}.r16`);
+    assert.deepEqual(asked.filter((a) => a[0] === 'HEAD').map((a) => a[1]),
+        [`http://files/tiles/14/8550/5809/${sha}.r16`],
+        'the path it asked for is the first one looked at');
 });
