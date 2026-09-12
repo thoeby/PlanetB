@@ -29,7 +29,12 @@ VALUES ('00000000-0000-0000-0000-0000000000a7', 'footprint',
 -- out at all (db/0035_mergeready.sql), which is right and not what this is
 -- about.
 CREATE TEMP TABLE tt AS
-SELECT t.z, t.x, t.y FROM tile t WHERE t.z = 14 LIMIT 1;
+SELECT 14 AS z, tile_x(9.5, 14) AS x, tile_y(48.5, 14) AS y;
+-- Claiming the land is an edit too (db/0047_landisground.sql), so the version
+-- this tile is waiting for is not always 1.
+CREATE TEMP TABLE ver AS
+SELECT t.expected_version AS v FROM tile t, tt
+WHERE t.z = tt.z AND t.x = tt.x AND t.y = tt.y;
 
 -- the dag ----------------------------------------------------------------
 SELECT set_config('request.jwt.claims',
@@ -71,14 +76,17 @@ SELECT is(submit_atom((SELECT id FROM cs), repeat('8', 64),
       "bbox": [-50, -5, -50, 50, 20, 50]}'::jsonb),
     'verified', 'and is verified without waiting for anybody''s opinion');
 
-SELECT ok(publish_tile((SELECT z FROM tt), (SELECT x FROM tt), (SELECT y FROM tt), 1,
+SELECT ok(publish_tile((SELECT z FROM tt), (SELECT x FROM tt), (SELECT y FROM tt),
+    (SELECT v FROM ver),
     repeat('8', 64), '{"origin": {"lon": 9.5, "lat": 48.5, "h": 400}}'::jsonb),
     'the worker puts it forward');
 
 -- what everybody else sees ------------------------------------------------
-SELECT is((SELECT published_version FROM tile WHERE z = (SELECT z FROM tt)), 0::bigint,
+SELECT is((SELECT t.published_version FROM tile t, tt
+           WHERE t.z = tt.z AND t.x = tt.x AND t.y = tt.y), 0::bigint,
     'until somebody approves it, nobody sees it');
-SELECT is((SELECT candidate_version FROM tile WHERE z = (SELECT z FROM tt)), 1::bigint,
+SELECT is((SELECT t.candidate_version FROM tile t, tt
+           WHERE t.z = tt.z AND t.x = tt.x AND t.y = tt.y), (SELECT v FROM ver),
     'it waits on the tile as a candidate');
 
 -- who may say yes ---------------------------------------------------------
@@ -93,9 +101,11 @@ SELECT set_config('request.jwt.claims',
     json_build_object('sub', owner_id, 'role', 'player')::text, true) FROM ids;
 SELECT ok(approve_tile((SELECT z FROM tt), (SELECT x FROM tt), (SELECT y FROM tt)),
     'the owner does');
-SELECT is((SELECT published_version FROM tile WHERE z = (SELECT z FROM tt)), 1::bigint,
+SELECT is((SELECT t.published_version FROM tile t, tt
+           WHERE t.z = tt.z AND t.x = tt.x AND t.y = tt.y), (SELECT v FROM ver),
     'and then everybody sees it');
-SELECT is((SELECT candidate_sha256 FROM tile WHERE z = (SELECT z FROM tt)), NULL,
+SELECT is((SELECT t.candidate_sha256 FROM tile t, tt
+           WHERE t.z = tt.z AND t.x = tt.x AND t.y = tt.y), NULL,
     'with nothing left waiting');
 
 ROLLBACK;

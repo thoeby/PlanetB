@@ -36,7 +36,9 @@ SELECT lives_ok($$
     INSERT INTO instance (area_id, san, lon, lat, h)
     VALUES ('00000000-0000-0000-0000-0000000000b1', 'SAAAAAAAAAAAA', 7.5, 46.5, 0)
 $$, 'one inside is accepted');
-SELECT is((SELECT count(*)::int FROM tile WHERE dirty), 5,
+-- Five, and only the five above it: the land's own tiles are there too since
+-- db/0047_landisground.sql, so what this counts is what the instance moved.
+SELECT is((SELECT count(*)::int FROM tile WHERE expected_version > 1), 5,
           'and dirties the five tiles above it, nowhere else');
 
 -- ------------------------------------------------------------ system refs
@@ -52,7 +54,9 @@ SELECT throws_ok($$ SELECT pay(treasury_account(), 1, 'pay:1:x') $$, '23505',
 
 -- ------------------------------------------------------------- bounties
 
-CREATE TEMP TABLE tt AS SELECT x, y FROM tile WHERE z = 12;
+-- The z12 tile the instance above is standing on. Since land is ground there
+-- are many z12 tiles now, and any one of them is not this one.
+CREATE TEMP TABLE tt AS SELECT tile_x(7.5, 12) AS x, tile_y(46.5, 12) AS y;
 CREATE TEMP TABLE j1 AS
 SELECT ensure_job(12, (SELECT x FROM tt), (SELECT y FROM tt), 10) AS jid;
 SELECT is(ensure_job(12, (SELECT x FROM tt), (SELECT y FROM tt), 10),

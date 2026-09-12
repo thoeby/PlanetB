@@ -12,11 +12,11 @@ INSERT INTO account (owner_id) VALUES
 ('00000000-0000-0000-0000-0000000c2001'), ('00000000-0000-0000-0000-0000000c2002');
 INSERT INTO area (id, geom, owner_id, detail) VALUES
 ('00000000-0000-0000-0000-0000000c2003',
- st_makeenvelope(40.0, 40.0, 40.2, 40.2, 4326),
+ st_envelope(st_buffer(tile_bbox(10, tile_x(40.1, 10), tile_y(40.1, 10)), -0.002)),
  '00000000-0000-0000-0000-0000000c2001', 10);
 INSERT INTO feature (area_id, kind, geom) VALUES
 ('00000000-0000-0000-0000-0000000c2003', 'forest',
- st_force3d(st_makeenvelope(40.01, 40.01, 40.02, 40.02, 4326)));
+ st_force3d(st_envelope(st_buffer(tile_bbox(10, tile_x(40.1, 10), tile_y(40.1, 10)), -0.05))));
 
 SET LOCAL request.jwt.claims = '{"sub":"00000000-0000-0000-0000-0000000c2001","role":"player"}';
 SET LOCAL role = 'player';

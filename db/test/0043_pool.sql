@@ -10,32 +10,37 @@ INSERT INTO auth.user (id, email, pw_hash, role) VALUES
 ('00000000-0000-0000-0000-0000000c0002', 'pool-b@example.com', 'x', 'player');
 INSERT INTO account (owner_id) VALUES
 ('00000000-0000-0000-0000-0000000c0001'), ('00000000-0000-0000-0000-0000000c0002');
--- A has a hundred coins to spend.
+-- A has a thousand coins to spend: since db/0047_landisground.sql the land
+-- itself is work, so a submit pays for every tile that covers it.
 SELECT transfer(treasury_account(),
     (SELECT id FROM account WHERE owner_id = '00000000-0000-0000-0000-0000000c0001'),
-    100, 'test:float:a');
+    1000, 'test:float:a');
 
+-- One z14 tile's worth of land, inset so it touches no neighbour.
 INSERT INTO area (id, geom, owner_id, detail) VALUES
 ('00000000-0000-0000-0000-0000000c0003',
- st_makeenvelope(70.0, 10.0, 70.05, 10.05, 4326),
+ st_envelope(st_buffer(tile_bbox(14, tile_x(70.02, 14), tile_y(10.02, 14)), -0.0005)),
  '00000000-0000-0000-0000-0000000c0001', 14);
 
 SET LOCAL request.jwt.claims = '{"sub":"00000000-0000-0000-0000-0000000c0001","role":"player"}';
 SET LOCAL role = 'player';
 
--- Nothing is waiting until something is drawn.
-SELECT is((SELECT (submit_area('00000000-0000-0000-0000-0000000c0003', 10) ->> 'tiles')::int),
-    0, 'an area with nothing new on it submits nothing');
+-- Land on its own is already work: it is ground, and ground is a tile
+-- (db/0047_landisground.sql).
+SELECT cmp_ok((SELECT (submit_area('00000000-0000-0000-0000-0000000c0003', 1)
+                       ->> 'tiles')::int), '>', 0,
+    'the land itself is something to compile');
 
 INSERT INTO feature (area_id, kind, geom)
-VALUES ('00000000-0000-0000-0000-0000000c0003', 'forest',
-        st_force3d(st_makeenvelope(70.01, 10.01, 70.02, 10.02, 4326)));
+SELECT '00000000-0000-0000-0000-0000000c0003', 'forest',
+       st_force3d(st_envelope(st_buffer(a.geom, -0.002)))
+FROM area a WHERE a.id = '00000000-0000-0000-0000-0000000c0003';
 
 CREATE TEMP TABLE sent AS
 SELECT submit_area('00000000-0000-0000-0000-0000000c0003', 10) AS out;
 
 SELECT cmp_ok((SELECT (out ->> 'tiles')::int FROM sent), '>', 0,
-    'a wood on your land is work for somebody');
+    'and a wood on it is work again');
 SELECT is((SELECT (out ->> 'price_each')::numeric FROM sent), 10::numeric,
     'at the price you attached');
 
@@ -47,7 +52,7 @@ SELECT is((SELECT count(DISTINCT bounty) FROM job WHERE state = 'open'), 1::bigi
 -- The money is in escrow, not in A's pocket. (escrow_account() is the
 -- database's own; a player reads the ledger's effect, not the system accounts.)
 SELECT cmp_ok(
-    (SELECT amount FROM balance WHERE account_id = my_account()), '<', 100::numeric,
+    (SELECT amount FROM balance WHERE account_id = my_account()), '<', 1000::numeric,
     'the price left the submitter''s wallet');
 SET LOCAL role = 'postgres';
 SELECT cmp_ok(

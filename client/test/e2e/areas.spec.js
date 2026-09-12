@@ -111,9 +111,16 @@ test('the owner grants by email, through the panel', async ({ page }) => {
     await expect(page.locator('.area-status')).toContainText('no account');
 });
 
+// What the tile under AT is waiting for. Land is ground, so the tile exists and
+// is dirty before anybody places anything on it; what tells an edit from a
+// proposal is whether this moves.
+const versionAt = () => psql(`SELECT coalesce(max(expected_version), 0)::text FROM tile
+    WHERE z = 14 AND x = tile_x(${AT.lon}, 14) AND y = tile_y(${AT.lat}, 14)`);
+
 test("an edit grantee's placement becomes a proposal and changes nothing",
     async ({ page }) => {
         const before = instances();
+        const versionBefore = versionAt();
         await open(page, EDITOR);
 
         const made = await page.evaluate(async ([areaId, s, at]) => {
@@ -124,8 +131,9 @@ test("an edit grantee's placement becomes a proposal and changes nothing",
         expect(made).toBeTruthy();
         expect(proposals()).toBe(1);
         expect(instances(), 'the world must not have moved').toBe(before);
-        expect(psql(`SELECT count(*) FROM tile WHERE dirty AND z = 14
-                     AND x = tile_x(${AT.lon}, 14) AND y = tile_y(${AT.lat}, 14)`)).toBe('0');
+        // The land's own tile is there and dirty from the moment it was claimed
+        // (db/0047_landisground.sql). What a proposal must not do is move it.
+        expect(versionAt(), 'a proposal moves no tile').toBe(versionBefore);
 
         // The proposer sees their own proposal, and cannot approve it.
         await page.evaluate(() => window.splatworld.areas.refresh());
@@ -136,6 +144,7 @@ test("an edit grantee's placement becomes a proposal and changes nothing",
 
 test('the owner approves and merges it, and the tile goes dirty', async ({ page }) => {
     const before = instances();
+    const versionBefore = versionAt();
     await open(page, OWNER);
     await expect(page.locator('.area-proposal')).toHaveCount(1);
 
@@ -147,8 +156,8 @@ test('the owner approves and merges it, and the tile goes dirty', async ({ page 
     await expect(page.locator('.area-status')).toHaveText('merged 1 op(s)');
     expect(instances()).toBe(before + 1);
     expect(proposals(), 'the proposal is closed').toBe(0);
-    expect(psql(`SELECT dirty::text FROM tile WHERE z = 14
-                 AND x = tile_x(${AT.lon}, 14) AND y = tile_y(${AT.lat}, 14)`)).toBe('true');
+    expect(Number(versionAt()), 'merging moves the tile on').toBeGreaterThan(
+        Number(versionBefore));
 });
 
 test('a direct_edit grantee writes the world without asking', async ({ page }) => {

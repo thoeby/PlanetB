@@ -19,8 +19,10 @@ VALUES ('00000000-0000-0000-0000-0000000000a1', 'footprint',
 SELECT set_config('request.jwt.claims',
     json_build_object('sub', owner_id, 'role', 'player')::text, true) FROM ids;
 
-CREATE TEMP TABLE t14 AS SELECT z, x, y FROM tile WHERE z = 14;
-CREATE TEMP TABLE t18 AS SELECT z, x, y FROM tile WHERE z = 18;
+-- The tiles under the features below. Since db/0047_landisground.sql the land
+-- itself has tiles, so "the z14 tile" is no longer a thing to select.
+CREATE TEMP TABLE t14 AS SELECT 14 AS z, tile_x(7.5, 14) AS x, tile_y(46.5, 14) AS y;
+CREATE TEMP TABLE t18 AS SELECT 18 AS z, tile_x(7.5, 18) AS x, tile_y(46.5, 18) AS y;
 
 -- ensure_job ------------------------------------------------------------
 CREATE TEMP TABLE jobs AS
@@ -31,7 +33,9 @@ SELECT is((SELECT ensure_job(14, (SELECT x FROM t14), (SELECT y FROM t14))),
           (SELECT j14 FROM jobs), 'ensure_job twice returns the same job id');
 SELECT is((SELECT count(*)::int FROM job), 2, 'exactly two jobs');
 SELECT is((SELECT target_version FROM job WHERE id = (SELECT j14 FROM jobs)),
-          1::bigint, 'job targets the tile expected_version');
+          (SELECT t.expected_version FROM tile t, t14
+           WHERE t.z = 14 AND t.x = t14.x AND t.y = t14.y),
+          'job targets the tile expected_version');
 
 -- DAG shape -------------------------------------------------------------
 -- Since db/0016_sample.sql a z14 tile is the baseline: assembled and sampled at
@@ -80,11 +84,11 @@ SELECT set_config('request.jwt.claims',
     json_build_object('sub', other_id, 'role', 'player')::text, true) FROM ids;
 SELECT throws_ok(
     format($$SELECT ensure_job(12, %s, %s)$$,
-           (SELECT x FROM tile WHERE z = 12), (SELECT y FROM tile WHERE z = 12)),
+           (SELECT tile_x(7.5, 12)), (SELECT tile_y(46.5, 12))),
     null, 'a stranger without a bounty cannot open a job');
 SELECT lives_ok(
     format($$SELECT ensure_job(12, %s, %s, 5)$$,
-           (SELECT x FROM tile WHERE z = 12), (SELECT y FROM tile WHERE z = 12)),
+           (SELECT tile_x(7.5, 12)), (SELECT tile_y(46.5, 12))),
     'a stranger with a bounty can');
 SELECT is((SELECT jsonb_array_length(inputs -> 'children') FROM atom WHERE op = 'merge'),
     16, 'the z12 merge pins all 16 grandchildren');

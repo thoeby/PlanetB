@@ -31,7 +31,12 @@ VALUES ('00000000-0000-0000-0000-0000000000f1',
 
 -- z12, because since db/0016_sample.sql a z14 tile is assembled and sampled
 -- rather than merged, and this is about the merge -> sog -> publish path.
-CREATE TEMP TABLE tt AS SELECT x, y FROM tile WHERE z = 12;
+CREATE TEMP TABLE tt AS SELECT tile_x(7.5, 12) AS x, tile_y(46.5, 12) AS y;
+-- What that tile is waiting for. Claiming the land is itself an edit
+-- (db/0047_landisground.sql), so this is not always 1.
+CREATE TEMP TABLE ver AS
+SELECT t.expected_version AS v FROM tile t, tt
+WHERE t.z = 12 AND t.x = tt.x AND t.y = tt.y;
 
 -- One published z14 child, because a merge with none at all is not claimable
 -- (db/0035_mergeready.sql).
@@ -79,24 +84,30 @@ SELECT is(submit_atom((SELECT id FROM cb), repeat('2', 64),
 -- What a worker produces is a candidate; a person publishes it (T7,
 -- db/0044_permission.sql). The compare-and-swap is unchanged — it is the
 -- candidate that cannot run ahead of the world.
-SELECT ok(publish_tile(12, (SELECT x FROM tt), (SELECT y FROM tt), 1,
+SELECT ok(publish_tile(12, (SELECT x FROM tt), (SELECT y FROM tt), (SELECT v FROM ver),
     repeat('2', 64), '{"origin": {"lon": 7.5, "lat": 46.5, "h": 500}}'::jsonb),
     'a rendered tile is put forward');
-SELECT is((SELECT candidate_version FROM tile WHERE z = 12), 1::bigint,
+SELECT is((SELECT t.candidate_version FROM tile t, tt
+           WHERE t.z = 12 AND t.x = tt.x AND t.y = tt.y), (SELECT v FROM ver),
     'the tile holds it as a candidate');
-SELECT is((SELECT published_version FROM tile WHERE z = 12), 0::bigint,
+SELECT is((SELECT t.published_version FROM tile t, tt
+           WHERE t.z = 12 AND t.x = tt.x AND t.y = tt.y), 0::bigint,
     'and nobody else sees it yet');
 -- The owner of the ground is the one who says yes, not the worker who made it.
 SELECT set_config('request.jwt.claims',
     json_build_object('sub', owner_id, 'role', 'player')::text, true) FROM ids;
 SELECT ok(approve_tile(12, (SELECT x FROM tt), (SELECT y FROM tt)),
     'the owner of the ground approves it');
-SELECT is((SELECT published_version FROM tile WHERE z = 12), 1::bigint,
+SELECT is((SELECT t.published_version FROM tile t, tt
+           WHERE t.z = 12 AND t.x = tt.x AND t.y = tt.y), (SELECT v FROM ver),
     'the tile records the published version');
-SELECT is((SELECT expected_version FROM tile WHERE z = 10), 2::bigint,
-    'the parent expected_version is bumped');
-SELECT ok((SELECT dirty FROM tile WHERE z = 10), 'the parent is dirty');
-SELECT ok(NOT (SELECT dirty FROM tile WHERE z = 12),
+SELECT is((SELECT t.expected_version FROM tile t, tt
+           WHERE t.z = 10 AND t.x = tt.x / 4 AND t.y = tt.y / 4),
+    (SELECT v + 1 FROM ver), 'the parent expected_version is bumped');
+SELECT ok((SELECT t.dirty FROM tile t, tt
+           WHERE t.z = 10 AND t.x = tt.x / 4 AND t.y = tt.y / 4), 'the parent is dirty');
+SELECT ok(NOT (SELECT t.dirty FROM tile t, tt
+                WHERE t.z = 12 AND t.x = tt.x AND t.y = tt.y),
     'the published tile is clean again');
 SELECT is((SELECT state FROM job WHERE id = (SELECT jid FROM jobs)), 'done',
     'the job is done');
@@ -112,11 +123,12 @@ SELECT is(account_balance(escrow_account()), 0::numeric, 'escrow is empty again'
 -- back to the worker: publishing is the worker's act, approving is the owner's.
 SELECT set_config('request.jwt.claims',
     json_build_object('sub', wb_id, 'role', 'player')::text, true) FROM ids;
-SELECT ok(NOT publish_tile(12, (SELECT x FROM tt), (SELECT y FROM tt), 1,
+SELECT ok(NOT publish_tile(12, (SELECT x FROM tt), (SELECT y FROM tt), (SELECT v FROM ver),
     repeat('2', 64), '{}'::jsonb),
     'publishing the same version twice is a no-op');
-SELECT is((SELECT expected_version FROM tile WHERE z = 10), 2::bigint,
-    'and does not bump the parent again');
+SELECT is((SELECT t.expected_version FROM tile t, tt
+           WHERE t.z = 10 AND t.x = tt.x / 4 AND t.y = tt.y / 4),
+    (SELECT v + 1 FROM ver), 'and does not bump the parent again');
 
 -- stale publish -----------------------------------------------------------
 SELECT set_config('request.jwt.claims',
@@ -125,10 +137,11 @@ UPDATE feature SET props = '{"height": 9}'::jsonb
 WHERE id = '00000000-0000-0000-0000-0000000000f1';
 SELECT set_config('request.jwt.claims',
     json_build_object('sub', wb_id, 'role', 'player')::text, true) FROM ids;
-SELECT ok(NOT publish_tile(12, (SELECT x FROM tt), (SELECT y FROM tt), 1,
+SELECT ok(NOT publish_tile(12, (SELECT x FROM tt), (SELECT y FROM tt), (SELECT v FROM ver),
     repeat('2', 64), '{}'::jsonb),
     'a stale worker can never publish (Invariant 3)');
-SELECT is((SELECT published_version FROM tile WHERE z = 12), 1::bigint,
+SELECT is((SELECT t.published_version FROM tile t, tt
+           WHERE t.z = 12 AND t.x = tt.x AND t.y = tt.y), (SELECT v FROM ver),
     'and the tile is unchanged');
 
 -- ledger idempotency -------------------------------------------------------

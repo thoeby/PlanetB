@@ -60,6 +60,11 @@ $$;
 CREATE FUNCTION p(t text) RETURNS uuid
 LANGUAGE sql STABLE AS $$SELECT id FROM prop WHERE prop.tag = t$$;
 
+-- What the world is before anybody proposes anything, to compare against.
+CREATE TEMP TABLE before_proposal AS
+SELECT coalesce(sum(expected_version), 0) AS total FROM tile;
+GRANT SELECT ON before_proposal TO player;
+
 -- an edit grantee proposes ---------------------------------------------
 SET LOCAL ROLE player;
 SELECT become(editor_id, 'player') FROM ids;
@@ -84,7 +89,10 @@ INSERT INTO prop VALUES ('f1', propose('00000000-0000-0000-0000-0000000000a1',
 SELECT is((SELECT state FROM proposal WHERE id = p('f1')), 'open',
     'their write becomes an open proposal');
 SELECT is((SELECT count(*)::int FROM feature), 0, 'the world is unchanged');
-SELECT is((SELECT count(*)::int FROM tile), 0, 'and no tile is dirty');
+-- The land's own tiles exist (db/0047_landisground.sql); what a proposal must
+-- not do is move any of them, because nothing has been agreed yet.
+SELECT is((SELECT sum(expected_version) FROM tile), (SELECT total FROM before_proposal),
+    'and the proposal moved no tile');
 
 -- a malformed diff is refused where it is made, not where it is merged
 SELECT throws_ok($$SELECT propose('00000000-0000-0000-0000-0000000000a1',

@@ -84,13 +84,17 @@ SELECT is((my_candidates() -> 0 ->> 'was_published')::boolean, false,
 -- no ----------------------------------------------------------------------
 SELECT ok(refuse_tile((SELECT z FROM tt), (SELECT x FROM tt), (SELECT y FROM tt),
     'the roof is in the wrong place'), 'the owner refuses it');
-SELECT is((SELECT refused_note FROM tile WHERE z = (SELECT z FROM tt)),
+SELECT is((SELECT t.refused_note FROM tile t, tt
+           WHERE t.z = tt.z AND t.x = tt.x AND t.y = tt.y),
     'the roof is in the wrong place', 'the note is left for whoever rendered it');
-SELECT is((SELECT candidate_sha256 FROM tile WHERE z = (SELECT z FROM tt)), NULL,
+SELECT is((SELECT t.candidate_sha256 FROM tile t, tt
+           WHERE t.z = tt.z AND t.x = tt.x AND t.y = tt.y), NULL,
     'nothing is waiting any more');
-SELECT is((SELECT published_version FROM tile WHERE z = (SELECT z FROM tt)), 0::bigint,
+SELECT is((SELECT t.published_version FROM tile t, tt
+           WHERE t.z = tt.z AND t.x = tt.x AND t.y = tt.y), 0::bigint,
     'what was published is untouched');
-SELECT ok((SELECT dirty FROM tile WHERE z = (SELECT z FROM tt)),
+SELECT ok((SELECT t.dirty FROM tile t, tt
+           WHERE t.z = tt.z AND t.x = tt.x AND t.y = tt.y),
     'and the tile is dirty again, so it can be tried');
 SELECT ok(NOT refuse_tile((SELECT z FROM tt), (SELECT x FROM tt), (SELECT y FROM tt)),
     'refusing nothing is a no-op');
@@ -111,7 +115,8 @@ SELECT is(jsonb_array_length(my_candidates()), 1,
     'whoever was granted approve is shown it too');
 SELECT ok(approve_tile((SELECT z FROM tt), (SELECT x FROM tt), (SELECT y FROM tt)),
     'and may say yes');
-SELECT is((SELECT sog_sha256 FROM tile WHERE z = (SELECT z FROM tt)), repeat('c', 64),
+SELECT is((SELECT t.sog_sha256 FROM tile t, tt
+           WHERE t.z = tt.z AND t.x = tt.x AND t.y = tt.y), repeat('c', 64),
     'what was waiting is what everybody now sees');
 
 SELECT * FROM finish();

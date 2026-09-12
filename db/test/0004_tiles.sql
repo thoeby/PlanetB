@@ -1,5 +1,12 @@
 -- WP0.5 acceptance: a feature in a detail-14 area bumps exactly the 5 tiles
 -- (z6…z14) that contain it; two edits bump by 2; an edit outside any area raises.
+--
+-- The two areas are one tile of their own detail wide, inset so they touch no
+-- neighbour. They used to be a fifth of a degree, because claiming land created
+-- no tiles at all; since db/0047_landisground.sql land is ground, and an area
+-- of that size would make hundreds of tiles that have nothing to do with what
+-- is being tested here. Claiming the land is itself the first edit, which is
+-- why the versions below start where they do.
 BEGIN;
 SELECT plan(22);
 
@@ -31,21 +38,16 @@ SELECT register('owner@example.com', 'password12') AS owner_id;
 
 INSERT INTO area (id, geom, owner_id, detail)
 SELECT '00000000-0000-0000-0000-0000000000a1'::uuid,
-       st_geomfromtext('POLYGON((7.4 46.4,7.6 46.4,7.6 46.6,7.4 46.6,7.4 46.4))', 4326),
+       st_envelope(st_buffer(tile_bbox(14, tile_x(7.5, 14), tile_y(46.5, 14)), -0.0005)),
        ids.owner_id, 14
-FROM ids;
--- a second, deeper area far away, to prove detail is read per area
-INSERT INTO area (id, geom, owner_id, detail)
-SELECT '00000000-0000-0000-0000-0000000000a2'::uuid,
-       st_geomfromtext('POLYGON((8.4 47.4,8.6 47.4,8.6 47.6,8.4 47.6,8.4 47.4))', 4326),
-       ids.owner_id, 18
 FROM ids;
 
 -- one edit -------------------------------------------------------------
 INSERT INTO feature (id, area_id, kind, geom)
-VALUES ('00000000-0000-0000-0000-0000000000f1',
-        '00000000-0000-0000-0000-0000000000a1', 'footprint',
-        st_geomfromtext('POINTZ(7.5 46.5 500)', 4326));
+SELECT '00000000-0000-0000-0000-0000000000f1',
+       '00000000-0000-0000-0000-0000000000a1', 'footprint',
+       st_force3d(st_centroid(a.geom))
+FROM area a WHERE a.id = '00000000-0000-0000-0000-0000000000a1';
 
 SELECT is((SELECT count(*)::int FROM tile), 5,
     'one feature in a detail-14 area creates exactly 5 tiles');
@@ -54,12 +56,11 @@ SELECT results_eq(
     $$VALUES (6), (8), (10), (12), (14)$$,
     'the 5 tiles are z6, z8, z10, z12, z14');
 SELECT is((SELECT count(*)::int FROM tile WHERE dirty), 5, 'all 5 are dirty');
-SELECT is((SELECT max(expected_version) FROM tile), 1::bigint,
-    'expected_version is 1 after one edit');
+SELECT is((SELECT max(expected_version) FROM tile), 2::bigint,
+    'expected_version is 2: the land, then the feature on it');
 SELECT ok(
-    (SELECT bool_and(st_contains(tile_bbox(z, x, y),
-                                 st_setsrid(st_makepoint(7.5, 46.5), 4326)))
-     FROM tile),
+    (SELECT bool_and(st_contains(tile_bbox(t.z, t.x, t.y), st_centroid(a.geom)))
+     FROM tile t, area a WHERE a.id = '00000000-0000-0000-0000-0000000000a1'),
     'every dirtied tile contains the feature');
 
 -- second edit ----------------------------------------------------------
@@ -67,16 +68,23 @@ UPDATE feature SET props = '{"height": 12}'::jsonb
 WHERE id = '00000000-0000-0000-0000-0000000000f1';
 
 SELECT is((SELECT count(*)::int FROM tile), 5, 'still 5 tiles after an update');
-SELECT is((SELECT min(expected_version) FROM tile), 2::bigint,
-    'two edits bump expected_version to 2');
+SELECT is((SELECT min(expected_version) FROM tile), 3::bigint,
+    'a third edit bumps it again');
 SELECT is((SELECT rev FROM feature
            WHERE id = '00000000-0000-0000-0000-0000000000f1'), 2::bigint,
     'feature.rev follows the edit count');
 
 -- deeper area: detail is read per area --------------------------------
+-- Claimed here rather than with the first: since land is ground, claiming it is
+-- what makes its tiles, and the counts above are about the first area's.
+INSERT INTO area (id, geom, owner_id, detail)
+SELECT '00000000-0000-0000-0000-0000000000a2'::uuid,
+       st_envelope(st_buffer(tile_bbox(18, tile_x(8.5, 18), tile_y(47.5, 18)), -0.00005)),
+       ids.owner_id, 18
+FROM ids;
 INSERT INTO feature (area_id, kind, geom)
-VALUES ('00000000-0000-0000-0000-0000000000a2', 'water',
-        st_geomfromtext('POINTZ(8.5 47.5 400)', 4326));
+SELECT '00000000-0000-0000-0000-0000000000a2', 'water', st_force3d(st_centroid(a.geom))
+FROM area a WHERE a.id = '00000000-0000-0000-0000-0000000000a2';
 SELECT is((SELECT count(*)::int FROM tile WHERE z > 14), 2,
     'a detail-18 area also dirties z16 and z18');
 SELECT is((SELECT count(*)::int FROM tile), 11,

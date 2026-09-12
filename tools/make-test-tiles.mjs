@@ -260,9 +260,13 @@ async function compileTile(t) {
     const b = tm.tileBbox(t.z, t.x, t.y);
     const span = tm.localFromLonLat(origin, b.east, b.north).x
         - tm.localFromLonLat(origin, b.west, b.north).x;
+    // What the tile is waiting for *now*: claiming land is an edit too
+    // (db/0047_landisground.sql), and the seed claims land and draws on it, so
+    // the version read before the atoms ran is not always the one to publish.
+    const want = tileRow(t).expected_version;
     const done = await api.rpc('publish_tile', {
         z: t.z, x: t.x, y: t.y,
-        target_version: row.expected_version,
+        target_version: want,
         sog_sha256: art.sogSha,
         manifest: {
             origin: { lon: origin.lon, lat: origin.lat, h: origin.h },
@@ -280,7 +284,7 @@ async function compileTile(t) {
     // db/0044_permission.sql). This tool owns the land it seeded, so it is the
     // person.
     if (await api.rpc('approve_tile', { z: t.z, x: t.x, y: t.y })) {
-        ok(`${name} published at version ${row.expected_version}`);
+        ok(`${name} published at version ${want}`);
     } else {
         no(`${name} approve_tile returned false`);
     }
