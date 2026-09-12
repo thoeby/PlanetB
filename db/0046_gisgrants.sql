@@ -1,0 +1,13 @@
+-- 0046_gisgrants.sql — the drawing role may read the world's vocabulary.
+--
+-- Drawing a road in QGIS goes through gis.f_road, whose INSTEAD OF trigger asks
+-- `property` which of the row's columns are properties of a road
+-- (db/0041_gisforms.sql). That trigger runs as whoever is writing — the
+-- `geoserver` login — and db/0008_admin.sql granted it the tables that existed
+-- then, which the vocabulary did not.
+--
+-- So every save from QGIS failed with "permission denied for table property",
+-- and the world could not be drawn at all. Nothing here is a secret: what a
+-- thing may say about itself is public (`vocabulary()` is granted to anon), and
+-- these are SELECT only — an admin edits the vocabulary through the world.
+GRANT SELECT ON kind, property TO geoserver;
