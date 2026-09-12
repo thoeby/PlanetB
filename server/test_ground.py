@@ -321,3 +321,40 @@ def test_a_space_is_never_sent_as_a_plus():
     url = geoserver.coverage_tile_url("http://h/geoserver", "ws__a b", (1, 2, 3, 4),
                                       256, version="2.0.1", axes=("E", "N"))
     assert "ws__a%20b" in url and "+" not in url.split("coverageId=")[1][:20]
+
+
+def test_the_probe_prints_every_question_and_the_whole_answer(monkeypatch):
+    """A truncated one-line failure is why the probe exists: it shows the lot."""
+    srv, world = _wcs("2.0.1")
+
+    class NoDatabase:
+        def __enter__(self): return self
+        def __exit__(self, *a): return False
+
+    monkeypatch.setattr(ground, "ground_of", lambda conn: world)
+    monkeypatch.setattr(ground.psycopg, "connect", lambda *a, **k: NoDatabase())
+    said: list[str] = []
+    try:
+        code = ground.probe(Config(), 14, 8557, 5736, out=said.append)
+    finally:
+        srv.shutdown()
+    out = "\n".join(said)
+    assert code == 0
+    assert "WCS 1.0.0" in out and "WCS 2.0.1" in out and "WCS 1.1.1" in out
+    # What each one said, in full: the refusal, and the one that worked.
+    assert "Could not understand version:1.0.0" in out
+    assert "this one works" in out
+    assert "DescribeCoverage: axes ('E', 'N')" in out
+
+
+def test_the_probe_says_so_when_the_tile_is_not_in_the_world(monkeypatch):
+    class NoDatabase:
+        def __enter__(self): return self
+        def __exit__(self, *a): return False
+
+    monkeypatch.setattr(ground, "ground_of", lambda conn: {
+        "url": "http://nowhere/geoserver", "coverage": "c", "extent": SWISS})
+    monkeypatch.setattr(ground.psycopg, "connect", lambda *a, **k: NoDatabase())
+    said: list[str] = []
+    assert ground.probe(Config(), 14, 9700, 7000, out=said.append) == 1
+    assert "outside that extent" in "\n".join(said)

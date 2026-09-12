@@ -277,3 +277,60 @@ def parse_request(path: str) -> tuple[int, int, int] | None:
     if z % 2 or z < 6 or z > 18 or x >= 2 ** z or y >= 2 ** z:
         return None
     return z, x, y
+
+
+def probe(cfg: Config, z: int, x: int, y: int, out=print) -> int:
+    """Every WCS request this tile would make, and the whole answer to each.
+
+    `cut()` reports a failure in one line, and one line is not enough to tell a
+    coverage that is not there from one that will not scale: the reason is an
+    OGC exception report, and it arrives truncated wherever it is shown. This
+    asks the same questions `_ask()` asks and prints what came back, so the
+    reason can be read rather than guessed at.
+    """
+    from . import geoserver
+
+    with psycopg.connect(cfg.dsn(), autocommit=True) as conn:
+        world = ground_of(conn)
+    if not world:
+        out("no ground is chosen yet — pick a coverage in Setup first")
+        return 1
+    out(f"coverage      {world['coverage']!r}")
+    out(f"geoserver     {world['url']}")
+    out(f"extent        {world['extent']} (lon/lat)")
+    if not covers(world["extent"], z, x, y):
+        out(f"\n{z}/{x}/{y} is outside that extent: no world here, and nothing"
+            " would be asked for.")
+        return 1
+
+    auth = _auth_header(cfg.geoserver_user, cfg.geoserver_admin_password)
+    bounds = tile_bounds_3857(z, x, y)
+    out(f"\n{z}/{x}/{y} is {bounds} in EPSG:3857")
+    for version in ("1.0.0", "2.0.1", "1.1.1"):
+        for name in geoserver.spellings(world["coverage"]):
+            out(f"\n--- WCS {version} as {name!r}")
+            box, axes = bounds, None
+            if version == "2.0.1":
+                try:
+                    about = geoserver.describe_coverage(world["url"], name, auth)
+                except SystemExit as err:
+                    out(f"  DescribeCoverage failed: {err}")
+                    continue
+                axes = tuple(about["axes"])
+                box = native_bounds(about["crs"], bounds)
+                out(f"  DescribeCoverage: axes {axes}, CRS {about['crs']}")
+                out(f"  the box in that CRS: {box}")
+            url = geoserver.coverage_tile_url(
+                world["url"], name, box, DEM_SIZE, version=version, axes=axes)
+            out(f"  GET {url}")
+            try:
+                raw = fetch(url, auth, what="the coverage")
+            except SystemExit as err:
+                out(f"  it refused: {err}")
+                continue
+            problem = not_a_raster(raw)
+            if problem:
+                out(f"  it answered, but not with a raster: {problem}")
+            else:
+                out(f"  a GeoTIFF, {len(raw)} bytes — this one works")
+    return 0

@@ -57,6 +57,11 @@ def parse(argv: list[str]) -> argparse.Namespace:
     _common(sub.add_parser("qgis",
         help="rewrite gis/splatworld.qgs from the world's own vocabulary"))
 
+    gnd = sub.add_parser("ground",
+        help="ask your GeoServer for one tile's elevation and print what it says")
+    gnd.add_argument("tile", help="the tile, as z/x/y — e.g. 14/8550/5809")
+    _common(gnd)
+
     _common(sub.add_parser("doctor", help="check what is ready"))
     return parser.parse_args(argv)
 
@@ -253,6 +258,16 @@ def cmd_geoserver(args: argparse.Namespace) -> int:
     return 0
 
 
+def cmd_ground(args: argparse.Namespace) -> int:
+    from . import ground
+
+    parts = args.tile.split("/")
+    if len(parts) != 3 or not all(p.isdigit() for p in parts):
+        raise SystemExit(f"splatworld: {args.tile!r} is not a tile — write it as z/x/y")
+    z, x, y = (int(p) for p in parts)
+    return ground.probe(_cfg(args), z, x, y)
+
+
 def cmd_qgis(args: argparse.Namespace) -> int:
     """The QGIS project, rewritten from what the world says it holds (T2)."""
     from . import qgis
@@ -267,7 +282,7 @@ def main(argv: list[str] | None = None) -> int:
     args = parse(argv if argv is not None else sys.argv[1:])
     commands = {"init": cmd_init, "run": cmd_run, "doctor": cmd_doctor,
                 "import": cmd_import, "geoserver": cmd_geoserver,
-                "qgis": cmd_qgis}
+                "qgis": cmd_qgis, "ground": cmd_ground}
     try:
         return commands[args.command](args)
     except psycopg.OperationalError as err:
