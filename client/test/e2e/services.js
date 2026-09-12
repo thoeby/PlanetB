@@ -29,6 +29,20 @@ const TYPES = {
 
 const up = async (url) => fetch(url).then((r) => r.ok || r.status === 404).catch(() => false);
 
+// An API that answers is not the same as an API that knows this database.
+// PostgREST caches the schema at startup, so one left running across a
+// `make db-reset` answers 200 to everything and PGRST202 to every RPC — and a
+// suite that reuses it fails at sign-in, which reads like a broken login.
+async function knowsTheSchema(url) {
+    const res = await fetch(`${url}/rpc/login`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: 'schema@probe.invalid', pw: 'not-a-password' }),
+    }).catch(() => null);
+    if (!res) return false;
+    const body = await res.json().catch(() => ({}));
+    return body?.code !== 'PGRST202';
+}
+
 async function waitFor(url, tries = 60) {
     for (let i = 0; i < tries; i++) {
         if (await up(url)) return true;
@@ -122,7 +136,13 @@ export async function startServices() {
     openToNginx();
     const stops = [];
     if (haveBinary('nginx')) {
-        if (!await up(`http://localhost:${API_PORT}/`)) stops.push(startApi(work));
+        if (!await up(`http://localhost:${API_PORT}/`)) {
+            stops.push(startApi(work));
+        } else if (!await knowsTheSchema(`http://localhost:${API_PORT}`)) {
+            throw new Error(`a PostgREST on ${API_PORT} is serving another database's`
+                + ' schema — it was started before the last `make db-reset`. Restart it'
+                + ' (or kill it and let the suite start its own).');
+        }
         if (!await up(`http://localhost:${FILES_PORT}/healthz`)) stops.push(startFiles(work));
     } else if (!await up(`http://localhost:${FILES_PORT}/healthz`)) {
         stops.push(startPythonStack());

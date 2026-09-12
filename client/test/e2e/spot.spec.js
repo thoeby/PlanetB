@@ -89,11 +89,24 @@ function fakeTraining() {
     psql(`SELECT advance_atoms(${dag.job})`);
 }
 
+// The tile, in the world, at the version it is waiting for.
+//
+// Whoever gets there first: the tab's own loop publishes what it verified, and
+// when it has, publish_sog says false because there is nothing left to put
+// forward. So this asks for the outcome rather than for the call — what this
+// test needs is a published tile to tamper with, not a particular publisher.
 function publishByHand() {
     psql(`UPDATE atom SET state = 'verified' WHERE id = ${dag.sog}`);
-    const done = psql(`SELECT publish_sog(a, (SELECT user_id FROM worker WHERE id = a.worker_id),
-                                    a.result -> 'manifest')
-                 FROM atom a WHERE a.id = ${dag.sog}`);
+    // What the tile is waiting for now: publish_sog compares the job's target
+    // against tile.expected_version (Invariant 3), and anything that touched
+    // this ground while the atoms ran — claiming land is an edit too
+    // (db/0047) — moves it.
+    psql(`UPDATE job SET target_version = (SELECT expected_version FROM tile
+              WHERE z = ${TILE.z} AND x = ${TILE.x} AND y = ${TILE.y})
+          WHERE id = ${dag.job} AND state <> 'done'`);
+    psql(`SELECT publish_sog(a, (SELECT user_id FROM worker WHERE id = a.worker_id),
+                             a.result -> 'manifest')
+          FROM atom a WHERE a.id = ${dag.sog}`);
     // It is a candidate until the owner of the ground says yes (T7). This test
     // is about what happens to a tile after it is in the world, so the owner
     // says yes here rather than through the panel.
@@ -103,7 +116,9 @@ function publishByHand() {
                   'role', 'player')::text, true);
               PERFORM approve_tile(${TILE.z}, ${TILE.x}, ${TILE.y});
           END $$;`);
-    return done;
+    return psql(`SELECT (published_version = expected_version
+                         AND sog_sha256 IS NOT NULL)::text FROM tile
+                 WHERE z = ${TILE.z} AND x = ${TILE.x} AND y = ${TILE.y}`);
 }
 
 test.beforeAll(async () => {
@@ -165,8 +180,17 @@ test('a tampered tile is caught by the next owner to look at it',
         await workAs(page, MAKER,
             () => dag.frames.every((f) => stateOf(f) === 'verified'), 300000);
         fakeTraining();
-        await workAs(page, MAKER, () => stateOf(dag.sog) === 'submitted', 300000);
-        expect(publishByHand()).toBe('t');
+        // 'submitted' is a state the sog passes through, not one it rests in:
+        // submit_atom verifies it in the same breath, so a poll that waits for
+        // exactly 'submitted' waits out its whole timeout on a tab quick enough
+        // to do both between two samples. What this step is waiting for is the
+        // sog to have been made and handed in.
+        await workAs(page, MAKER,
+            () => ['submitted', 'verified'].includes(stateOf(dag.sog)), 300000);
+        // Each pass is a no-op once the tile is in the world, so this waits
+        // for whichever publisher gets there first rather than racing the tab.
+        await expect.poll(publishByHand, { timeout: 60000, intervals: [1000] })
+            .toBe('true');
 
         const row = JSON.parse(psql(`SELECT row_to_json(t)::text FROM
             (SELECT z, x, y, sog_sha256, suspect FROM tile
