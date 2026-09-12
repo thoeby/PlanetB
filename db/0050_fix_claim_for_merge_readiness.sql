@@ -4,8 +4,15 @@
 -- 0043_pool.sql contained the same intended guard for claim_atom(), but
 -- claim_for() bypassed it. This migration replaces claim_for() in the
 -- already-migrated database.
+--
+-- CREATE OR REPLACE, not CREATE: db/0043_pool.sql already created this
+-- function, so a plain CREATE raises "function claim_for already exists" —
+-- which fails `make db-test` on a fresh database, and on an existing one is
+-- swallowed by the migration runner as an "already there" error and recorded
+-- as applied. Either way the guard below never reaches the database it was
+-- written for.
 
-CREATE FUNCTION claim_for(p_job bigint, p_caps jsonb DEFAULT '{}'::jsonb)
+CREATE OR REPLACE FUNCTION claim_for(p_job bigint, p_caps jsonb DEFAULT '{}'::jsonb)
 RETURNS atom
 LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $$
 DECLARE
