@@ -76,7 +76,12 @@ test('a merged ply becomes a sog the engine can read, twice over the same bytes'
 
         const stats = resultOf(sogs[0]);
         expect(stats.splat_count).toBe(resultOf(merge).splat_count);
-        expect(stats.tile).toEqual({ ...TILE, target_version: 1 });
+        // Whatever version the tile was waiting for when the fixture opened
+        // the job (client/test/e2e/worker.js): what matters is that the sog
+        // says which tile and which version it is for, not the number itself.
+        expect(stats.tile).toEqual({ ...TILE,
+            target_version: Number(psql(`SELECT target_version FROM job j
+                JOIN atom a ON a.job_id = j.id WHERE a.id = ${sogs[0]}`)) });
         expect(stats.manifest.geometric_error_m).toBeGreaterThan(0);
         expect(Number.isFinite(stats.manifest.origin.lon)).toBe(true);
 

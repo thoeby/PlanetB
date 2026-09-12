@@ -58,8 +58,15 @@ export function resetJob(job) {
 export function readyAtom({ z, x, y, op, algo, params, inputs = {} }) {
     psql(`INSERT INTO tile (z, x, y, dirty, expected_version) VALUES (${z}, ${x}, ${y}, true, 1)
           ON CONFLICT (z, x, y) DO UPDATE SET dirty = true`);
+    // The version the tile is actually waiting for, not 1. Since
+    // db/0052_staleclaim.sql no worker is handed a compile that could never be
+    // published, so a fixture job pointed at version 1 on a tile the world has
+    // moved past — anything that published or drew here first — is never
+    // claimed, and the atom sits `ready` until the spec times out.
+    const want = psql(`SELECT expected_version FROM tile
+                       WHERE z = ${z} AND x = ${x} AND y = ${y}`);
     const job = psql(`INSERT INTO job (z, x, y, target_version, state)
-                      VALUES (${z}, ${x}, ${y}, 1, 'open')
+                      VALUES (${z}, ${x}, ${y}, ${want}, 'open')
                       ON CONFLICT (z, x, y, target_version) DO UPDATE SET state = 'open'
                       RETURNING id`);
     return psql(`INSERT INTO atom (job_id, atom_hash, op, algo_version, inputs, params, state)
