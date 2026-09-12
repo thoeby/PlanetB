@@ -29,6 +29,12 @@ const HEARTBEAT_MS = 60_000;
 // How many waiting tiles one idle pass opens a job for.
 const REOPEN_MAX = 8;
 const IDLE_MS = 15_000;
+// How long the pace may hold the loop back before it takes an atom anyway.
+// Standing aside for a tab that is being played is the point (WP5.2); standing
+// aside for ever is not. A machine that never reaches 30 fps — a software
+// renderer, an old laptop — would otherwise offer to help the world and then
+// never claim anything, which is the same as not offering.
+const PACED_MAX_MS = 10_000;
 
 // ------------------------------------------------------------------ capability
 
@@ -329,13 +335,16 @@ export class WorkLoop {
         const live = () => this.running && this.generation === generation;
         this.running = true;
         this.log({ event: 'start', caps: this.caps });
+        let paced = 0;
         while (live()) {
             let idle = false;
             const wait = this.pace();
-            if (wait > 0) {
+            if (wait > 0 && paced < PACED_MAX_MS) {
+                paced += wait;
                 await new Promise((r) => this.timers.setTimeout(r, wait));
                 continue;
             }
+            paced = 0;
             try {
                 idle = (await this.step()) === null;
                 if (idle) await this.reopen();

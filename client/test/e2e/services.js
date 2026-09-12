@@ -59,7 +59,6 @@ const haveBinary = (name) => spawnSync(name, ['-v'], { stdio: 'ignore' }).error 
 // It is what runs on a machine with no nginx — a Windows box, and this one. It
 // supervises PostgREST itself, so it replaces both processes rather than one.
 function startPythonStack() {
-    mkdirSync(FILES_ROOT, { recursive: true });
     const p = spawn('splatworld',
         ['run', '--port', String(FILES_PORT), '--api-port', String(API_PORT), '--no-browser'],
         { env: { ...process.env, FILES_ROOT }, stdio: 'ignore' });
@@ -70,7 +69,6 @@ function startPythonStack() {
 // uses, so the test exercises the real auth_request and the real 409.
 function startFiles(work) {
     const conf = join(work, 'nginx.conf');
-    mkdirSync(FILES_ROOT, { recursive: true });
     const body = readFileSync(join(REPO, 'infra/nginx.conf'), 'utf8')
         .replace('server postgrest:3000;', `server 127.0.0.1:${API_PORT};`)
         .replace('listen 80;', `listen ${FILES_PORT};`)
@@ -102,11 +100,26 @@ function startClient() {
     });
 }
 
+// The same reasoning as the work directory, for the store itself: a PUT is a
+// rename() into the tile's or asset's directory, and nginx's worker is not
+// whoever ran the test. A root-owned 0755 `infra/files/assets` turns every
+// upload into a 500 that reads like a broken file store — tools/files-test.sh
+// never sees it because it roots its own store in a 1777 temp directory.
+function openToNginx() {
+    mkdirSync(FILES_ROOT, { recursive: true });
+    for (const dir of ['', 'assets', 'tiles', 'jobs', 'geo']) {
+        const path = dir ? join(FILES_ROOT, dir) : FILES_ROOT;
+        mkdirSync(path, { recursive: true });
+        try { chmodSync(path, 0o1777); } catch { /* not ours to chmod: let it fail loudly */ }
+    }
+}
+
 export async function startServices() {
     const work = mkdtempSync(join(tmpdir(), 'splatworld-e2e-'));
     // nginx's workers do not run as whoever started it, and mkdtemp is 0700:
     // without this the body temp files land nowhere and a PUT is a 500.
     chmodSync(work, 0o777);
+    openToNginx();
     const stops = [];
     if (haveBinary('nginx')) {
         if (!await up(`http://localhost:${API_PORT}/`)) stops.push(startApi(work));

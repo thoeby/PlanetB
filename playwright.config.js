@@ -19,6 +19,13 @@ export default defineConfig({
     reporter: [['list']],
     use: {
         baseURL: 'http://splatworld.test/',
+        // A spec that compiles a tile in software needs minutes, so the test
+        // timeouts are long (up to 900 s in build.spec.js) — but a click on
+        // something that is not there is never slow, it is wrong, and without
+        // its own limit it waits out the whole test. One dropped selector cost
+        // a quarter of an hour of a suite run; now it costs fifteen seconds.
+        actionTimeout: 15000,
+        navigationTimeout: 60000,
         launchOptions: {
             ...(existsSync(preinstalled) ? { executablePath: preinstalled } : {}),
             // No GPU here; ANGLE over SwiftShader gives a real WebGL2 context.
