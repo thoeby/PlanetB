@@ -28,7 +28,13 @@ export async function loadRaster(kind, z, x, y, { filesUrl = '', fetchFn = fetch
         const url = `${filesUrl}/geo/${kind}/${az}/${r.ax}/${r.ay}.${ext}`;
         const res = await fetchFn(url);
         if (res.status === 404) continue;
-        if (!res.ok) throw new Error(`${res.status} ${url}`);
+        if (!res.ok) {
+            // Whatever the store said, in the atom's error: the difference
+            // between "no world here" and "the cut failed" is the difference
+            // between drawing somewhere else and fixing your GeoServer.
+            const said = await res.text().catch(() => '');
+            throw new Error(`${res.status} ${url}${said ? ` — ${said}` : ''}`);
+        }
         const { data, size } = await decode(await res.arrayBuffer());
         return { kind, size, data, ...r };
     }
