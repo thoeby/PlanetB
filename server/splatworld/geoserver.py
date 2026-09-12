@@ -276,6 +276,44 @@ def spellings(coverage_id: str) -> list[str]:
     return out
 
 
+def _same_name(a: str, b: str) -> bool:
+    """Whether two spellings name the same layer.
+
+    GeoServer writes the workspace separator as "__" in WCS 2.0 and ":"
+    everywhere else, and a layer published from a file called "dem visp demo"
+    may be catalogued as "dem_visp_demo". None of that changes which layer is
+    meant.
+    """
+    def flat(name: str) -> str:
+        tail = name.replace("__", ":").rsplit(":", 1)[-1]
+        return tail.replace(" ", "_").replace("-", "_").casefold()
+
+    return flat(a) == flat(b)
+
+
+def resolve_coverage(base: str, coverage_id: str, auth: dict) -> str | None:
+    """The id this GeoServer really publishes for the coverage that was chosen.
+
+    A name is stored when the ground is picked and used verbatim afterwards —
+    by WMS, which has no spelling variants to fall back on and answers "layer
+    not found" for a name off by one underscore. So it is asked rather than
+    assumed: exact match first, then the same layer under another spelling.
+    None when this GeoServer publishes nothing like it, which is a different
+    problem and is not papered over here.
+    """
+    try:
+        published = [c["id"] for c in coverages(base, auth)]
+    except SystemExit:
+        return None
+    for name in published:
+        if name == coverage_id:
+            return name
+    for name in published:
+        if _same_name(name, coverage_id):
+            return name
+    return None
+
+
 def wcs10_name(coverage_id: str) -> str:
     """A WCS 2.0 CoverageId as WCS 1.0 spells the same layer.
 
