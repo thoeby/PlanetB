@@ -114,6 +114,26 @@ them from @fontsource on npm, because fonts.gstatic.com is outside this
 container's egress policy. Every rule that names them names a system fallback,
 so a checkout that never ran it still reads.
 
+**Two specs still depend on the order the suite runs in.** `make client-test`
+is 42 passed, 2 failed here, and both failures are one thing: the browser
+suite compiles into the very tiles `tools/test-tiles.sh` published for the
+viewer to look at.
+
+- `sog.spec.js` and `merge.spec.js` merge into 8/133/90 and publish, with
+  manifests of their own.
+- `stream.spec.js` runs later (files run alphabetically) and asserts which
+  tiles the streamer picks at each distance — an answer that comes out of
+  those manifests. It sees the z6 where it expects the two z8 parents.
+
+Both pass on their own, immediately after `bash tools/test-tiles.sh`. Two
+things were tried and are not the answer: snapshotting and restoring the tile
+rows around the mutating specs (the bytes the old manifest points at are gone
+by then), and running the viewer's specs first as a Playwright project
+dependency (a viewer failure then stops the other 34 specs from running at
+all). What it wants is for the compiling specs to own a tile the viewer does
+not assert on — which means a second published ladder in the fixture, not a
+smaller patch.
+
 **`tools/test-tiles.sh` wants a world nobody has seeded yet.** It publishes
 three versions of a tile in a row, and reads the version to publish after its
 atoms have run; in a world with thousands of features already drawn, something

@@ -142,6 +142,17 @@ with no page errors.
   best-ranked atom in the whole database and expected it to be the one it had
   just opened, which it is only on an empty world. It claims from its own job
   (`claim_for`) now.
+- **The browser suite went from 23 passed / 13 failed in 26.6 minutes to
+  42 passed / 2 failed in 9.** What the thirteen actually were: one product
+  bug (a tab that offered to help render the world claimed nothing at all
+  below 30 fps — the pace stood aside for ever), a file store nginx could not
+  write into, three of my own dropped selectors, three fixtures that asked
+  for a tile version the world had moved past, a spec polling for a state the
+  world passes straight through, a quality assertion that needs a GPU, and an
+  assertion about OSM data this container has never had. Each is fixed where
+  it was, or says plainly what it needs. The last two are order-dependence
+  between the specs that compile and the specs that look, written up in
+  HANDOFF §1.
 - **`tools/demo-world.sh` is new**: an operator, a ground, a piece of land with
   three things drawn on it, a second player with a grant, and 250 credits — so
   the panels have something to show and the browser can be pointed at it.
