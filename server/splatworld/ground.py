@@ -101,6 +101,16 @@ def encode_geotiff(raw: bytes) -> bytes:
         return dem.encode(values)
 
 
+class CutFailed(Exception):
+    """The ground could not be cut, and why — an ordinary exception.
+
+    The importer raises SystemExit for a person at a terminal, and SystemExit
+    is a BaseException: inside a request handler it walked straight past
+    `except Exception`, killed the thread and closed the socket, so curl said
+    "Empty reply from server" and the tab saw nothing at all.
+    """
+
+
 def cut(cfg: Config, z: int, x: int, y: int) -> Path | None:
     """This tile's elevation as a file, cutting it first if nobody has.
 
@@ -120,15 +130,22 @@ def cut(cfg: Config, z: int, x: int, y: int) -> Path | None:
             auth = _auth_header(cfg.geoserver_user, cfg.geoserver_admin_password)
             url = geoserver.coverage_tile_url(
                 world["url"], world["coverage"], tile_bounds_3857(z, x, y), DEM_SIZE)
-            raw = fetch(url, auth, what=f"elevation for {z}/{x}/{y}")
+            try:
+                raw = fetch(url, auth, what=f"elevation for {z}/{x}/{y}")
+            except SystemExit as err:
+                raise CutFailed(str(err)) from err
             if not raw:
                 return None
             said = not_a_raster(raw)
             if said:
-                raise SystemExit(
+                raise CutFailed(
                     f"the coverage did not come back as a GeoTIFF. GeoServer "
-                    f"said: {said}\n  asked: {url}")
-            body = encode_geotiff(raw)
+                    f"said: {said} — asked: {url}")
+            try:
+                body = encode_geotiff(raw)
+            except Exception as err:  # noqa: BLE001 - said back to the browser
+                raise CutFailed(f"the coverage came back but could not be read:"
+                                f" {err} — asked: {url}") from err
             sha = hashlib.sha256(body).hexdigest()
             target.parent.mkdir(parents=True, exist_ok=True)
             # Written beside and moved into place, so a second tab never reads

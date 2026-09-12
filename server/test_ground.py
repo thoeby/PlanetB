@@ -156,3 +156,9 @@ def test_an_ogc_exception_is_read_and_repeated():
 def test_anything_else_is_shown_as_it_came():
     said = ground.not_a_raster(b"<html><body>404 Not Found</body></html>")
     assert "404 Not Found" in said
+
+
+def test_a_failed_cut_is_an_ordinary_exception():
+    """SystemExit walks past `except Exception` and takes the socket with it."""
+    assert issubclass(ground.CutFailed, Exception)
+    assert not issubclass(ground.CutFailed, SystemExit)

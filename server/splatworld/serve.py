@@ -230,7 +230,7 @@ class Handler(BaseHTTPRequestHandler):
             if tile:
                 try:
                     target = ground.cut(self.cfg, *tile) or target
-                except Exception as err:  # noqa: BLE001 - one tile, not the server
+                except (Exception, SystemExit) as err:  # noqa: BLE001
                     # 404 here would be read as "there is no world at this
                     # tile" (client/lib/geo.js), and the tab would say the
                     # ground is outside the coverage when what actually
