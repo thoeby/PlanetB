@@ -17,5 +17,5 @@ server/*.egg-info/
 server/build/
 __pycache__/
 *.pyc
-postgrest.exe
 /data
+postgrest.exe
