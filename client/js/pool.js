@@ -105,17 +105,35 @@ export function mountSubmit(host, { onSubmitted = () => {}, onCount = () => {} }
 
 // -------------------------------------------------------------------- pool
 
-function poolRow(entry, onRender) {
+// What a tile is waiting on, in words. A piece that failed three times is not
+// handed out again (db/0005_state.sql), so a tile of nothing but those is
+// stuck until somebody says try again.
+const what = (entry) => [
+    entry.ready ? `${entry.ready} piece(s) to do` : '',
+    entry.claimed ? `${entry.claimed} in hand` : '',
+    entry.failed ? `${entry.failed} gave up` : '',
+].filter(Boolean).join(', ');
+
+function poolRow(entry, onRender, onRetry) {
+    const stuck = entry.failed > 0 && !entry.ready && !entry.claimed;
     const render = el('button', { type: 'button', className: 'po-render',
         textContent: entry.bounty > 0 ? `Render for ${entry.bounty}` : 'Render' });
     render.onclick = () => onRender(entry, render);
-    return el('li', { className: 'po-entry' },
+    const row = el('li', { className: 'po-entry' },
         el('div', {}, el('b', { textContent: `${entry.z}/${entry.x}/${entry.y}` }),
             el('span', { className: 'muted', textContent: ` ${far(entry.metres)}` })),
-        el('div', { className: 'muted',
-            textContent: `${entry.ready} piece(s) to do`
-                + (entry.claimed ? `, ${entry.claimed} in hand` : '') }),
-        render);
+        el('div', { className: 'muted', textContent: what(entry) }));
+    if (entry.failed > 0 && entry.may_retry) {
+        const again = el('button', { type: 'button', className: 'po-retry',
+            textContent: 'Try again' });
+        again.onclick = () => onRetry(entry, again);
+        row.append(again);
+    } else if (stuck) {
+        row.append(el('div', { className: 'muted',
+            textContent: 'stopped — only whoever owns this ground can try again' }));
+    }
+    if (!stuck) row.append(render);
+    return row;
 }
 
 export function mountPool(host, { loop, where = () => ({}) } = {}) {
@@ -148,11 +166,26 @@ export function mountPool(host, { loop, where = () => ({}) } = {}) {
         }
     }
 
+    // Hand the pieces that gave up back to whoever will take them. The person
+    // pressing this is the one whose ground it is; nothing is retried on its
+    // own, because three failures in a row usually mean something to fix.
+    async function retry(entry, button) {
+        button.disabled = true;
+        try {
+            const n = await api.rpc('retry_job', { job_id: entry.job });
+            say(n ? `${entry.z}/${entry.x}/${entry.y}: ${n} piece(s) to try again`
+                : 'nothing to try again');
+        } catch (err) {
+            say(String(err.body?.message ?? err.message ?? err), true);
+        }
+        await refresh();
+    }
+
     async function refresh() {
         const { lon, lat } = where() ?? {};
         const rows = await api.rpc('render_pool',
             { lon: lon ?? null, lat: lat ?? null, limit: 40 }).catch(() => []);
-        q('.po-list').replaceChildren(...rows.map((r) => poolRow(r, render)));
+        q('.po-list').replaceChildren(...rows.map((r) => poolRow(r, render, retry)));
         if (!rows.length) {
             q('.po-list').append(el('li', { className: 'muted',
                 textContent: 'nothing waiting: every tile anybody submitted is compiled' }));
@@ -164,5 +197,5 @@ export function mountPool(host, { loop, where = () => ({}) } = {}) {
     q('.po-refresh').onclick = refresh;
 
     refresh();
-    return { refresh, render };
+    return { refresh, render, retry };
 }
