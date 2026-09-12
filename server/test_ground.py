@@ -162,3 +162,64 @@ def test_a_failed_cut_is_an_ordinary_exception():
     """SystemExit walks past `except Exception` and takes the socket with it."""
     assert issubclass(ground.CutFailed, Exception)
     assert not issubclass(ground.CutFailed, SystemExit)
+
+
+# A GeoServer with WCS 1.0.0 switched off answers "Could not understand
+# version:1.0.0" — which is about the request, not the tile, so the other
+# versions are asked before the tile is given up on.
+
+class _Wcs(http.server.BaseHTTPRequestHandler):
+    tiff = b"II*\x00" + b"\0" * 64
+    refuse = (b'<?xml version="1.0"?><ServiceExceptionReport><ServiceException>'
+              b'Could not understand version:1.0.0</ServiceException>'
+              b'</ServiceExceptionReport>')
+    answers = "2.0.1"
+
+    def do_GET(self):  # noqa: N802 - http.server's name
+        import urllib.parse
+        q = urllib.parse.parse_qs(urllib.parse.urlparse(self.path).query)
+        body = self.tiff if q.get("version", [""])[0] == self.answers else self.refuse
+        self.send_response(200)
+        self.send_header("Content-Length", str(len(body)))
+        self.end_headers()
+        self.wfile.write(body)
+
+    def log_message(self, *args):
+        pass
+
+
+def _wcs(answers):
+    handler = type("H", (_Wcs,), {"answers": answers})
+    srv = http.server.HTTPServer(("127.0.0.1", 0), handler)
+    threading.Thread(target=srv.serve_forever, daemon=True).start()
+    return srv, {"url": f"http://127.0.0.1:{srv.server_address[1]}/geoserver",
+                 "coverage": "splatworld__dem visp demo", "extent": (7, 45, 10, 48)}
+
+
+def test_the_version_that_answers_is_the_one_used():
+    srv, world = _wcs("2.0.1")
+    try:
+        raw, url = ground._ask(world, (1, 2, 3, 4), {}, "14/1/1")
+    finally:
+        srv.shutdown()
+    assert raw[:4] == b"II*\x00"
+    assert "version=2.0.1" in url
+
+
+def test_when_none_of_them_answers_every_refusal_is_reported():
+    srv, world = _wcs("nothing")
+    try:
+        with pytest.raises(ground.CutFailed) as caught:
+            ground._ask(world, (1, 2, 3, 4), {}, "14/1/1")
+    finally:
+        srv.shutdown()
+    said = str(caught.value)
+    assert "WCS 1.0.0" in said and "WCS 2.0.1" in said
+    assert "dem visp demo" in said
+
+
+def test_wcs_10_spells_the_workspace_with_a_colon():
+    from splatworld import geoserver
+    assert geoserver.wcs10_name("splatworld__dem visp demo") == "splatworld:dem visp demo"
+    url = geoserver.coverage_tile_url("http://h/geoserver", "ws__layer", (1, 2, 3, 4), 256)
+    assert "coverage=ws%3Alayer" in url

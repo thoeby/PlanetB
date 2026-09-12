@@ -101,6 +101,38 @@ def encode_geotiff(raw: bytes) -> bytes:
         return dem.encode(values)
 
 
+def _ask(world: dict, bounds: tuple, auth: dict, at: str) -> tuple[bytes, str]:
+    """The coverage for one tile, in whichever WCS version answers with one.
+
+    1.0.0 first: it takes a plain BBOX and needs nothing to be named. An
+    installation with 1.0.0 switched off answers "Could not understand
+    version:1.0.0", which is not a reason to give up on the tile — so the
+    others are tried, and only if none of them returns a raster is the failure
+    reported, with what each one said.
+    """
+    from . import geoserver
+
+    said: list[str] = []
+    for version in ("1.0.0", "2.0.1", "1.1.1"):
+        url = geoserver.coverage_tile_url(
+            world["url"], world["coverage"], bounds, DEM_SIZE, version=version)
+        try:
+            raw = fetch(url, auth, what=f"elevation for {at}")
+        except SystemExit as err:
+            said.append(f"WCS {version}: {err}")
+            continue
+        if not raw:
+            return b"", url
+        problem = not_a_raster(raw)
+        if not problem:
+            return raw, url
+        said.append(f"WCS {version}: {problem}")
+    raise CutFailed(
+        "no version of WCS on that GeoServer returned this tile as a GeoTIFF.\n  "
+        + "\n  ".join(said)
+        + f"\n  the coverage is {world['coverage']!r} at {world['url']}")
+
+
 class CutFailed(Exception):
     """The ground could not be cut, and why — an ordinary exception.
 
@@ -128,19 +160,9 @@ def cut(cfg: Config, z: int, x: int, y: int) -> Path | None:
             if not world or not covers(world["extent"], z, x, y):
                 return None
             auth = _auth_header(cfg.geoserver_user, cfg.geoserver_admin_password)
-            url = geoserver.coverage_tile_url(
-                world["url"], world["coverage"], tile_bounds_3857(z, x, y), DEM_SIZE)
-            try:
-                raw = fetch(url, auth, what=f"elevation for {z}/{x}/{y}")
-            except SystemExit as err:
-                raise CutFailed(str(err)) from err
+            raw, url = _ask(world, tile_bounds_3857(z, x, y), auth, f"{z}/{x}/{y}")
             if not raw:
                 return None
-            said = not_a_raster(raw)
-            if said:
-                raise CutFailed(
-                    f"the coverage did not come back as a GeoTIFF. GeoServer "
-                    f"said: {said} — asked: {url}")
             try:
                 body = encode_geotiff(raw)
             except Exception as err:  # noqa: BLE001 - said back to the browser

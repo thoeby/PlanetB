@@ -203,23 +203,52 @@ def coverages(base: str, auth: dict) -> list[dict]:
     raise _nothing_listed("WCS", tried)
 
 
+def wcs10_name(coverage_id: str) -> str:
+    """A WCS 2.0 CoverageId as WCS 1.0 spells the same layer.
+
+    A CoverageId may not hold a colon, so GeoServer writes the workspace
+    separator as a double underscore: `splatworld__dem visp demo` in 2.0 is
+    `splatworld:dem visp demo` in 1.0. Asked with the 2.0 spelling, 1.0 does
+    not recognise the layer.
+    """
+    return coverage_id.replace("__", ":", 1)
+
+
 def coverage_tile_url(base: str, coverage_id: str, bbox: tuple, size: int,
-                      crs: str = "EPSG:3857") -> str:
+                      crs: str = "EPSG:3857", version: str = "1.0.0") -> str:
     """One tile of a coverage: exactly this box, exactly this many samples.
 
-    WCS 1.0.0 rather than 2.0.1 on purpose. 2.0 subsetting names its axes after
-    whatever the coverage calls them — X/Y, E/N, Long/Lat, i/j — so a request
-    that works against one raster fails against the next. 1.0.0 takes a plain
-    BBOX with WIDTH and HEIGHT, which is the whole question being asked here,
-    and GeoServer has answered it since forever.
+    WCS 1.0.0 rather than 2.0.1 by default, on purpose. 2.0 subsetting names its
+    axes after whatever the coverage calls them — X/Y, E/N, Long/Lat, i/j — so a
+    request that works against one raster fails against the next. 1.0.0 takes a
+    plain BBOX with WIDTH and HEIGHT, which is the whole question being asked
+    here. An installation with 1.0.0 switched off is why the version is an
+    argument: ground.py tries the others when this one is not understood.
     """
     west, south, east, north = bbox
-    query = urllib.parse.urlencode({
-        "service": "WCS", "version": "1.0.0", "request": "GetCoverage",
-        "coverage": coverage_id, "CRS": crs, "RESPONSE_CRS": crs,
-        "BBOX": f"{west},{south},{east},{north}",
-        "WIDTH": size, "HEIGHT": size, "FORMAT": "GeoTIFF",
-    })
+    if version.startswith("1.0"):
+        query = urllib.parse.urlencode({
+            "service": "WCS", "version": version, "request": "GetCoverage",
+            "coverage": wcs10_name(coverage_id), "CRS": crs, "RESPONSE_CRS": crs,
+            "BBOX": f"{west},{south},{east},{north}",
+            "WIDTH": size, "HEIGHT": size, "FORMAT": "GeoTIFF",
+        })
+    elif version.startswith("1.1"):
+        query = urllib.parse.urlencode({
+            "service": "WCS", "version": version, "request": "GetCoverage",
+            "identifier": wcs10_name(coverage_id), "format": "image/tiff",
+            "BoundingBox": f"{west},{south},{east},{north},urn:ogc:def:crs:{crs}",
+            "GridBaseCRS": f"urn:ogc:def:crs:{crs}",
+        })
+    else:
+        # 2.0.1, axes named the way GeoServer names a projected coverage.
+        query = urllib.parse.urlencode({
+            "service": "WCS", "version": version, "request": "GetCoverage",
+            "coverageId": coverage_id, "format": "image/tiff",
+            "subsettingCrs": f"http://www.opengis.net/def/crs/EPSG/0/{crs.split(':')[-1]}",
+            "outputCrs": f"http://www.opengis.net/def/crs/EPSG/0/{crs.split(':')[-1]}",
+            "scalesize": f"X({size}),Y({size})",
+        }) + f"&subset=X({west},{east})&subset=Y({south},{north})"
     return f"{service_url(base, 'wcs')}?{query}"
 
 

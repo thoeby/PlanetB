@@ -527,7 +527,7 @@ class Handler(BaseHTTPRequestHandler):
         try:
             with psycopg.connect(self.cfg.dsn(), autocommit=True,
                                  connect_timeout=10) as conn:
-                rows = conn.execute(query, ("%\_prop",)).fetchall()
+                rows = conn.execute(query, (r"%\_prop",)).fetchall()
             self._json(200, {"properties": {kind: sorted(props) for kind, props in rows}})
         except Exception as err:  # noqa: BLE001 - the page falls back to typing
             self._json(200, {"properties": {}, "error": f"{type(err).__name__}: {err}"})
