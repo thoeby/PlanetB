@@ -292,15 +292,6 @@ def provision(cfg: Config, url: str, user: str, password: str,
             b"<wfs><enabled>true</enabled><serviceLevel>COMPLETE</serviceLevel>"
             b"<maxFeatures>50000</maxFeatures></wfs>")
 
-    # GeoServer caches a feature type's columns and whether it may be written,
-    # read once when the store first opened it. A view that has since gained an
-    # INSTEAD OF trigger is still "read-only" to that cache, for ever, and no
-    # amount of fixing the database changes what QGIS is told. /rest/reset
-    # drops those caches; it is cheap and it is the only way the new shape of a
-    # layer is ever noticed.
-    on_step("  clearing its cached idea of these layers")
-    gs.call("POST", "/rest/reset", b"", tolerate=(404,))
-
     # Ask it back rather than trusting that the calls meant what they said: a
     # store whose database credentials are wrong is accepted happily and then
     # publishes nothing, and "Done" would be a lie.

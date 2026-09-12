@@ -1,0 +1,577 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<qgis projectname="splatworld" version="3.34.0-Prizren">
+  <homePath path="" />
+  <title>splatworld</title>
+  <projectCrs>
+    <spatialrefsys>
+      <wkt>GEOGCRS["WGS 84",DATUM["World Geodetic System 1984",ELLIPSOID["WGS 84",6378137,298.257223563]],PRIMEM["Greenwich",0],CS[ellipsoidal,2],AXIS["geodetic latitude (Lat)",north],AXIS["geodetic longitude (Lon)",east],ANGLEUNIT["degree",0.0174532925199433],ID["EPSG",4326]]</wkt>
+      <proj4>+proj=longlat +datum=WGS84 +no_defs</proj4>
+      <srsid>3452</srsid>
+      <srid>4326</srid>
+      <authid>EPSG:4326</authid>
+      <description>WGS 84</description>
+      <projectionacronym>longlat</projectionacronym>
+      <ellipsoidacronym>EPSG:7030</ellipsoidacronym>
+      <geographicflag>true</geographicflag>
+    </spatialrefsys>
+  </projectCrs>
+  <layer-tree-group>
+    <layer-tree-layer id="f_road_71483299b8f3" name="Road" source="pagingEnabled='false' preferCoordinatesForWfsT11='false' restrictToRequestBBOX='1' srsname='EPSG:4326' typename='splatworld:f_road' url='http://localhost:8080/geoserver/splatworld/wfs' version='1.0.0'" providerKey="WFS" checked="Qt::Checked" expanded="1" />
+    <layer-tree-layer id="f_water_d662c953c8de" name="Water" source="pagingEnabled='false' preferCoordinatesForWfsT11='false' restrictToRequestBBOX='1' srsname='EPSG:4326' typename='splatworld:f_water' url='http://localhost:8080/geoserver/splatworld/wfs' version='1.0.0'" providerKey="WFS" checked="Qt::Checked" expanded="1" />
+    <layer-tree-layer id="f_forest_0846089423b0" name="Wood" source="pagingEnabled='false' preferCoordinatesForWfsT11='false' restrictToRequestBBOX='1' srsname='EPSG:4326' typename='splatworld:f_forest' url='http://localhost:8080/geoserver/splatworld/wfs' version='1.0.0'" providerKey="WFS" checked="Qt::Checked" expanded="1" />
+    <layer-tree-layer id="f_footprint_107a87b6e7e6" name="Building" source="pagingEnabled='false' preferCoordinatesForWfsT11='false' restrictToRequestBBOX='1' srsname='EPSG:4326' typename='splatworld:f_footprint' url='http://localhost:8080/geoserver/splatworld/wfs' version='1.0.0'" providerKey="WFS" checked="Qt::Checked" expanded="1" />
+    <layer-tree-layer id="f_terrainmod_943e88fad249" name="Terrain edit" source="pagingEnabled='false' preferCoordinatesForWfsT11='false' restrictToRequestBBOX='1' srsname='EPSG:4326' typename='splatworld:f_terrainmod' url='http://localhost:8080/geoserver/splatworld/wfs' version='1.0.0'" providerKey="WFS" checked="Qt::Checked" expanded="1" />
+    <layer-tree-layer id="f_tree_733f22654130" name="Single tree" source="pagingEnabled='false' preferCoordinatesForWfsT11='false' restrictToRequestBBOX='1' srsname='EPSG:4326' typename='splatworld:f_tree' url='http://localhost:8080/geoserver/splatworld/wfs' version='1.0.0'" providerKey="WFS" checked="Qt::Checked" expanded="1" />
+    <layer-tree-layer id="area_4b82677b6c14" name="Your land" source="pagingEnabled='false' preferCoordinatesForWfsT11='false' restrictToRequestBBOX='1' srsname='EPSG:4326' typename='splatworld:area' url='http://localhost:8080/geoserver/splatworld/wfs' version='1.0.0'" providerKey="WFS" checked="Qt::Checked" expanded="1" />
+    <layer-tree-layer id="instance_7123a699d77d" name="Placed" source="pagingEnabled='false' preferCoordinatesForWfsT11='false' restrictToRequestBBOX='1' srsname='EPSG:4326' typename='splatworld:instance' url='http://localhost:8080/geoserver/splatworld/wfs' version='1.0.0'" providerKey="WFS" checked="Qt::Checked" expanded="1" />
+    <layer-tree-layer id="tile_13181d8cc01e" name="Tiles" source="pagingEnabled='false' preferCoordinatesForWfsT11='false' restrictToRequestBBOX='1' srsname='EPSG:4326' typename='splatworld:tile' url='http://localhost:8080/geoserver/splatworld/wfs' version='1.0.0'" providerKey="WFS" checked="Qt::Checked" expanded="1" />
+    <layer-tree-layer id="ground_hillshade" name="Ground (planetb__dem visp demo)" source="" providerKey="wms" checked="Qt::Checked" expanded="1" />
+  </layer-tree-group>
+  <projectlayers>
+    <maplayer type="vector" hasScaleBasedVisibilityFlag="0" geometry="Line" readOnly="0">
+      <id>f_road_71483299b8f3</id>
+      <datasource>pagingEnabled='false' preferCoordinatesForWfsT11='false' restrictToRequestBBOX='1' srsname='EPSG:4326' typename='splatworld:f_road' url='http://localhost:8080/geoserver/splatworld/wfs' version='1.0.0'</datasource>
+      <layername>Road</layername>
+      <srs>
+        <spatialrefsys>
+          <wkt>GEOGCRS["WGS 84",DATUM["World Geodetic System 1984",ELLIPSOID["WGS 84",6378137,298.257223563]],PRIMEM["Greenwich",0],CS[ellipsoidal,2],AXIS["geodetic latitude (Lat)",north],AXIS["geodetic longitude (Lon)",east],ANGLEUNIT["degree",0.0174532925199433],ID["EPSG",4326]]</wkt>
+          <proj4>+proj=longlat +datum=WGS84 +no_defs</proj4>
+          <srsid>3452</srsid>
+          <srid>4326</srid>
+          <authid>EPSG:4326</authid>
+          <description>WGS 84</description>
+          <projectionacronym>longlat</projectionacronym>
+          <ellipsoidacronym>EPSG:7030</ellipsoidacronym>
+          <geographicflag>true</geographicflag>
+        </spatialrefsys>
+      </srs>
+      <provider encoding="UTF-8">WFS</provider>
+      <fieldConfiguration>
+        <field name="highway" configurationFlags="None">
+          <editWidget type="ValueMap">
+            <config>
+              <Option type="Map">
+                <Option name="map" type="List">
+                  <Option type="Map">
+                    <Option name="motorway" value="motorway" type="QString" />
+                  </Option>
+                  <Option type="Map">
+                    <Option name="trunk" value="trunk" type="QString" />
+                  </Option>
+                  <Option type="Map">
+                    <Option name="primary" value="primary" type="QString" />
+                  </Option>
+                  <Option type="Map">
+                    <Option name="secondary" value="secondary" type="QString" />
+                  </Option>
+                  <Option type="Map">
+                    <Option name="tertiary" value="tertiary" type="QString" />
+                  </Option>
+                  <Option type="Map">
+                    <Option name="residential" value="residential" type="QString" />
+                  </Option>
+                  <Option type="Map">
+                    <Option name="service" value="service" type="QString" />
+                  </Option>
+                  <Option type="Map">
+                    <Option name="track" value="track" type="QString" />
+                  </Option>
+                  <Option type="Map">
+                    <Option name="path" value="path" type="QString" />
+                  </Option>
+                  <Option type="Map">
+                    <Option name="footway" value="footway" type="QString" />
+                  </Option>
+                </Option>
+              </Option>
+            </config>
+          </editWidget>
+        </field>
+        <field name="width" configurationFlags="None">
+          <editWidget type="Range">
+            <config />
+          </editWidget>
+        </field>
+        <field name="lanes" configurationFlags="None">
+          <editWidget type="Range">
+            <config />
+          </editWidget>
+        </field>
+        <field name="surface" configurationFlags="None">
+          <editWidget type="ValueMap">
+            <config>
+              <Option type="Map">
+                <Option name="map" type="List">
+                  <Option type="Map">
+                    <Option name="asphalt" value="asphalt" type="QString" />
+                  </Option>
+                  <Option type="Map">
+                    <Option name="concrete" value="concrete" type="QString" />
+                  </Option>
+                  <Option type="Map">
+                    <Option name="gravel" value="gravel" type="QString" />
+                  </Option>
+                  <Option type="Map">
+                    <Option name="ground" value="ground" type="QString" />
+                  </Option>
+                  <Option type="Map">
+                    <Option name="grass" value="grass" type="QString" />
+                  </Option>
+                </Option>
+              </Option>
+            </config>
+          </editWidget>
+        </field>
+      </fieldConfiguration>
+      <aliases>
+        <alias field="highway" name="Class" index="0" />
+        <alias field="width" name="Width (m)" index="1" />
+        <alias field="lanes" name="Lanes" index="2" />
+        <alias field="surface" name="Surface" index="3" />
+      </aliases>
+      <constraints>
+        <constraint field="highway" constraints="0" notnull_strength="0" unique_strength="0" exp_strength="0" />
+        <constraint field="width" constraints="0" notnull_strength="0" unique_strength="0" exp_strength="0" />
+        <constraint field="lanes" constraints="0" notnull_strength="0" unique_strength="0" exp_strength="0" />
+        <constraint field="surface" constraints="0" notnull_strength="0" unique_strength="0" exp_strength="0" />
+      </constraints>
+    </maplayer>
+    <maplayer type="vector" hasScaleBasedVisibilityFlag="0" geometry="Polygon" readOnly="0">
+      <id>f_water_d662c953c8de</id>
+      <datasource>pagingEnabled='false' preferCoordinatesForWfsT11='false' restrictToRequestBBOX='1' srsname='EPSG:4326' typename='splatworld:f_water' url='http://localhost:8080/geoserver/splatworld/wfs' version='1.0.0'</datasource>
+      <layername>Water</layername>
+      <srs>
+        <spatialrefsys>
+          <wkt>GEOGCRS["WGS 84",DATUM["World Geodetic System 1984",ELLIPSOID["WGS 84",6378137,298.257223563]],PRIMEM["Greenwich",0],CS[ellipsoidal,2],AXIS["geodetic latitude (Lat)",north],AXIS["geodetic longitude (Lon)",east],ANGLEUNIT["degree",0.0174532925199433],ID["EPSG",4326]]</wkt>
+          <proj4>+proj=longlat +datum=WGS84 +no_defs</proj4>
+          <srsid>3452</srsid>
+          <srid>4326</srid>
+          <authid>EPSG:4326</authid>
+          <description>WGS 84</description>
+          <projectionacronym>longlat</projectionacronym>
+          <ellipsoidacronym>EPSG:7030</ellipsoidacronym>
+          <geographicflag>true</geographicflag>
+        </spatialrefsys>
+      </srs>
+      <provider encoding="UTF-8">WFS</provider>
+      <fieldConfiguration>
+        <field name="water" configurationFlags="None">
+          <editWidget type="ValueMap">
+            <config>
+              <Option type="Map">
+                <Option name="map" type="List">
+                  <Option type="Map">
+                    <Option name="lake" value="lake" type="QString" />
+                  </Option>
+                  <Option type="Map">
+                    <Option name="pond" value="pond" type="QString" />
+                  </Option>
+                  <Option type="Map">
+                    <Option name="river" value="river" type="QString" />
+                  </Option>
+                  <Option type="Map">
+                    <Option name="stream" value="stream" type="QString" />
+                  </Option>
+                  <Option type="Map">
+                    <Option name="reservoir" value="reservoir" type="QString" />
+                  </Option>
+                </Option>
+              </Option>
+            </config>
+          </editWidget>
+        </field>
+      </fieldConfiguration>
+      <aliases>
+        <alias field="water" name="Water" index="0" />
+      </aliases>
+      <constraints>
+        <constraint field="water" constraints="0" notnull_strength="0" unique_strength="0" exp_strength="0" />
+      </constraints>
+    </maplayer>
+    <maplayer type="vector" hasScaleBasedVisibilityFlag="0" geometry="Polygon" readOnly="0">
+      <id>f_forest_0846089423b0</id>
+      <datasource>pagingEnabled='false' preferCoordinatesForWfsT11='false' restrictToRequestBBOX='1' srsname='EPSG:4326' typename='splatworld:f_forest' url='http://localhost:8080/geoserver/splatworld/wfs' version='1.0.0'</datasource>
+      <layername>Wood</layername>
+      <srs>
+        <spatialrefsys>
+          <wkt>GEOGCRS["WGS 84",DATUM["World Geodetic System 1984",ELLIPSOID["WGS 84",6378137,298.257223563]],PRIMEM["Greenwich",0],CS[ellipsoidal,2],AXIS["geodetic latitude (Lat)",north],AXIS["geodetic longitude (Lon)",east],ANGLEUNIT["degree",0.0174532925199433],ID["EPSG",4326]]</wkt>
+          <proj4>+proj=longlat +datum=WGS84 +no_defs</proj4>
+          <srsid>3452</srsid>
+          <srid>4326</srid>
+          <authid>EPSG:4326</authid>
+          <description>WGS 84</description>
+          <projectionacronym>longlat</projectionacronym>
+          <ellipsoidacronym>EPSG:7030</ellipsoidacronym>
+          <geographicflag>true</geographicflag>
+        </spatialrefsys>
+      </srs>
+      <provider encoding="UTF-8">WFS</provider>
+      <fieldConfiguration>
+        <field name="natural" configurationFlags="None">
+          <editWidget type="ValueMap">
+            <config>
+              <Option type="Map">
+                <Option name="map" type="List">
+                  <Option type="Map">
+                    <Option name="wood" value="wood" type="QString" />
+                  </Option>
+                  <Option type="Map">
+                    <Option name="scrub" value="scrub" type="QString" />
+                  </Option>
+                  <Option type="Map">
+                    <Option name="heath" value="heath" type="QString" />
+                  </Option>
+                </Option>
+              </Option>
+            </config>
+          </editWidget>
+        </field>
+        <field name="leaf_type" configurationFlags="None">
+          <editWidget type="ValueMap">
+            <config>
+              <Option type="Map">
+                <Option name="map" type="List">
+                  <Option type="Map">
+                    <Option name="broadleaved" value="broadleaved" type="QString" />
+                  </Option>
+                  <Option type="Map">
+                    <Option name="needleleaved" value="needleleaved" type="QString" />
+                  </Option>
+                  <Option type="Map">
+                    <Option name="mixed" value="mixed" type="QString" />
+                  </Option>
+                </Option>
+              </Option>
+            </config>
+          </editWidget>
+        </field>
+        <field name="species" configurationFlags="None">
+          <editWidget type="TextEdit">
+            <config />
+          </editWidget>
+        </field>
+        <field name="density" configurationFlags="None">
+          <editWidget type="Range">
+            <config />
+          </editWidget>
+        </field>
+      </fieldConfiguration>
+      <aliases>
+        <alias field="natural" name="Cover" index="0" />
+        <alias field="leaf_type" name="Leaves" index="1" />
+        <alias field="species" name="Species" index="2" />
+        <alias field="density" name="Trees per hectare" index="3" />
+      </aliases>
+      <constraints>
+        <constraint field="natural" constraints="0" notnull_strength="0" unique_strength="0" exp_strength="0" />
+        <constraint field="leaf_type" constraints="0" notnull_strength="0" unique_strength="0" exp_strength="0" />
+        <constraint field="species" constraints="0" notnull_strength="0" unique_strength="0" exp_strength="0" />
+        <constraint field="density" constraints="0" notnull_strength="0" unique_strength="0" exp_strength="0" />
+      </constraints>
+    </maplayer>
+    <maplayer type="vector" hasScaleBasedVisibilityFlag="0" geometry="Polygon" readOnly="0">
+      <id>f_footprint_107a87b6e7e6</id>
+      <datasource>pagingEnabled='false' preferCoordinatesForWfsT11='false' restrictToRequestBBOX='1' srsname='EPSG:4326' typename='splatworld:f_footprint' url='http://localhost:8080/geoserver/splatworld/wfs' version='1.0.0'</datasource>
+      <layername>Building</layername>
+      <srs>
+        <spatialrefsys>
+          <wkt>GEOGCRS["WGS 84",DATUM["World Geodetic System 1984",ELLIPSOID["WGS 84",6378137,298.257223563]],PRIMEM["Greenwich",0],CS[ellipsoidal,2],AXIS["geodetic latitude (Lat)",north],AXIS["geodetic longitude (Lon)",east],ANGLEUNIT["degree",0.0174532925199433],ID["EPSG",4326]]</wkt>
+          <proj4>+proj=longlat +datum=WGS84 +no_defs</proj4>
+          <srsid>3452</srsid>
+          <srid>4326</srid>
+          <authid>EPSG:4326</authid>
+          <description>WGS 84</description>
+          <projectionacronym>longlat</projectionacronym>
+          <ellipsoidacronym>EPSG:7030</ellipsoidacronym>
+          <geographicflag>true</geographicflag>
+        </spatialrefsys>
+      </srs>
+      <provider encoding="UTF-8">WFS</provider>
+      <fieldConfiguration>
+        <field name="building" configurationFlags="None">
+          <editWidget type="ValueMap">
+            <config>
+              <Option type="Map">
+                <Option name="map" type="List">
+                  <Option type="Map">
+                    <Option name="house" value="house" type="QString" />
+                  </Option>
+                  <Option type="Map">
+                    <Option name="residential" value="residential" type="QString" />
+                  </Option>
+                  <Option type="Map">
+                    <Option name="commercial" value="commercial" type="QString" />
+                  </Option>
+                  <Option type="Map">
+                    <Option name="industrial" value="industrial" type="QString" />
+                  </Option>
+                  <Option type="Map">
+                    <Option name="barn" value="barn" type="QString" />
+                  </Option>
+                  <Option type="Map">
+                    <Option name="church" value="church" type="QString" />
+                  </Option>
+                  <Option type="Map">
+                    <Option name="hut" value="hut" type="QString" />
+                  </Option>
+                  <Option type="Map">
+                    <Option name="ruins" value="ruins" type="QString" />
+                  </Option>
+                </Option>
+              </Option>
+            </config>
+          </editWidget>
+        </field>
+        <field name="height" configurationFlags="None">
+          <editWidget type="Range">
+            <config />
+          </editWidget>
+        </field>
+        <field name="building:levels" configurationFlags="None">
+          <editWidget type="Range">
+            <config />
+          </editWidget>
+        </field>
+        <field name="roof" configurationFlags="None">
+          <editWidget type="ValueMap">
+            <config>
+              <Option type="Map">
+                <Option name="map" type="List">
+                  <Option type="Map">
+                    <Option name="flat" value="flat" type="QString" />
+                  </Option>
+                  <Option type="Map">
+                    <Option name="gabled" value="gabled" type="QString" />
+                  </Option>
+                  <Option type="Map">
+                    <Option name="hipped" value="hipped" type="QString" />
+                  </Option>
+                  <Option type="Map">
+                    <Option name="pyramidal" value="pyramidal" type="QString" />
+                  </Option>
+                </Option>
+              </Option>
+            </config>
+          </editWidget>
+        </field>
+      </fieldConfiguration>
+      <aliases>
+        <alias field="building" name="Building" index="0" />
+        <alias field="height" name="Height (m)" index="1" />
+        <alias field="building:levels" name="Levels" index="2" />
+        <alias field="roof" name="Roof" index="3" />
+      </aliases>
+      <constraints>
+        <constraint field="building" constraints="0" notnull_strength="0" unique_strength="0" exp_strength="0" />
+        <constraint field="height" constraints="0" notnull_strength="0" unique_strength="0" exp_strength="0" />
+        <constraint field="building:levels" constraints="0" notnull_strength="0" unique_strength="0" exp_strength="0" />
+        <constraint field="roof" constraints="0" notnull_strength="0" unique_strength="0" exp_strength="0" />
+      </constraints>
+    </maplayer>
+    <maplayer type="vector" hasScaleBasedVisibilityFlag="0" geometry="Polygon" readOnly="0">
+      <id>f_terrainmod_943e88fad249</id>
+      <datasource>pagingEnabled='false' preferCoordinatesForWfsT11='false' restrictToRequestBBOX='1' srsname='EPSG:4326' typename='splatworld:f_terrainmod' url='http://localhost:8080/geoserver/splatworld/wfs' version='1.0.0'</datasource>
+      <layername>Terrain edit</layername>
+      <srs>
+        <spatialrefsys>
+          <wkt>GEOGCRS["WGS 84",DATUM["World Geodetic System 1984",ELLIPSOID["WGS 84",6378137,298.257223563]],PRIMEM["Greenwich",0],CS[ellipsoidal,2],AXIS["geodetic latitude (Lat)",north],AXIS["geodetic longitude (Lon)",east],ANGLEUNIT["degree",0.0174532925199433],ID["EPSG",4326]]</wkt>
+          <proj4>+proj=longlat +datum=WGS84 +no_defs</proj4>
+          <srsid>3452</srsid>
+          <srid>4326</srid>
+          <authid>EPSG:4326</authid>
+          <description>WGS 84</description>
+          <projectionacronym>longlat</projectionacronym>
+          <ellipsoidacronym>EPSG:7030</ellipsoidacronym>
+          <geographicflag>true</geographicflag>
+        </spatialrefsys>
+      </srs>
+      <provider encoding="UTF-8">WFS</provider>
+      <fieldConfiguration>
+        <field name="op" configurationFlags="None">
+          <editWidget type="ValueMap">
+            <config>
+              <Option type="Map">
+                <Option name="map" type="List">
+                  <Option type="Map">
+                    <Option name="flatten" value="flatten" type="QString" />
+                  </Option>
+                  <Option type="Map">
+                    <Option name="raise" value="raise" type="QString" />
+                  </Option>
+                  <Option type="Map">
+                    <Option name="lower" value="lower" type="QString" />
+                  </Option>
+                  <Option type="Map">
+                    <Option name="smooth" value="smooth" type="QString" />
+                  </Option>
+                </Option>
+              </Option>
+            </config>
+          </editWidget>
+        </field>
+        <field name="amount" configurationFlags="None">
+          <editWidget type="Range">
+            <config />
+          </editWidget>
+        </field>
+      </fieldConfiguration>
+      <aliases>
+        <alias field="op" name="What it does" index="0" />
+        <alias field="amount" name="Metres" index="1" />
+      </aliases>
+      <constraints>
+        <constraint field="op" constraints="1" notnull_strength="1" unique_strength="0" exp_strength="0" />
+        <constraint field="amount" constraints="0" notnull_strength="0" unique_strength="0" exp_strength="0" />
+      </constraints>
+    </maplayer>
+    <maplayer type="vector" hasScaleBasedVisibilityFlag="0" geometry="Point" readOnly="0">
+      <id>f_tree_733f22654130</id>
+      <datasource>pagingEnabled='false' preferCoordinatesForWfsT11='false' restrictToRequestBBOX='1' srsname='EPSG:4326' typename='splatworld:f_tree' url='http://localhost:8080/geoserver/splatworld/wfs' version='1.0.0'</datasource>
+      <layername>Single tree</layername>
+      <srs>
+        <spatialrefsys>
+          <wkt>GEOGCRS["WGS 84",DATUM["World Geodetic System 1984",ELLIPSOID["WGS 84",6378137,298.257223563]],PRIMEM["Greenwich",0],CS[ellipsoidal,2],AXIS["geodetic latitude (Lat)",north],AXIS["geodetic longitude (Lon)",east],ANGLEUNIT["degree",0.0174532925199433],ID["EPSG",4326]]</wkt>
+          <proj4>+proj=longlat +datum=WGS84 +no_defs</proj4>
+          <srsid>3452</srsid>
+          <srid>4326</srid>
+          <authid>EPSG:4326</authid>
+          <description>WGS 84</description>
+          <projectionacronym>longlat</projectionacronym>
+          <ellipsoidacronym>EPSG:7030</ellipsoidacronym>
+          <geographicflag>true</geographicflag>
+        </spatialrefsys>
+      </srs>
+      <provider encoding="UTF-8">WFS</provider>
+      <fieldConfiguration>
+        <field name="species" configurationFlags="None">
+          <editWidget type="TextEdit">
+            <config />
+          </editWidget>
+        </field>
+        <field name="height" configurationFlags="None">
+          <editWidget type="Range">
+            <config />
+          </editWidget>
+        </field>
+        <field name="model" configurationFlags="None">
+          <editWidget type="TextEdit">
+            <config />
+          </editWidget>
+        </field>
+      </fieldConfiguration>
+      <aliases>
+        <alias field="species" name="Species" index="0" />
+        <alias field="height" name="Height (m)" index="1" />
+        <alias field="model" name="Model" index="2" />
+      </aliases>
+      <constraints>
+        <constraint field="species" constraints="0" notnull_strength="0" unique_strength="0" exp_strength="0" />
+        <constraint field="height" constraints="0" notnull_strength="0" unique_strength="0" exp_strength="0" />
+        <constraint field="model" constraints="0" notnull_strength="0" unique_strength="0" exp_strength="0" />
+      </constraints>
+    </maplayer>
+    <maplayer type="vector" hasScaleBasedVisibilityFlag="0" geometry="Polygon" readOnly="0">
+      <id>area_4b82677b6c14</id>
+      <datasource>pagingEnabled='false' preferCoordinatesForWfsT11='false' restrictToRequestBBOX='1' srsname='EPSG:4326' typename='splatworld:area' url='http://localhost:8080/geoserver/splatworld/wfs' version='1.0.0'</datasource>
+      <layername>Your land</layername>
+      <srs>
+        <spatialrefsys>
+          <wkt>GEOGCRS["WGS 84",DATUM["World Geodetic System 1984",ELLIPSOID["WGS 84",6378137,298.257223563]],PRIMEM["Greenwich",0],CS[ellipsoidal,2],AXIS["geodetic latitude (Lat)",north],AXIS["geodetic longitude (Lon)",east],ANGLEUNIT["degree",0.0174532925199433],ID["EPSG",4326]]</wkt>
+          <proj4>+proj=longlat +datum=WGS84 +no_defs</proj4>
+          <srsid>3452</srsid>
+          <srid>4326</srid>
+          <authid>EPSG:4326</authid>
+          <description>WGS 84</description>
+          <projectionacronym>longlat</projectionacronym>
+          <ellipsoidacronym>EPSG:7030</ellipsoidacronym>
+          <geographicflag>true</geographicflag>
+        </spatialrefsys>
+      </srs>
+      <provider encoding="UTF-8">WFS</provider>
+      <fieldConfiguration />
+      <aliases />
+      <constraints />
+      <attributeactions default="0">
+        <actionsetting type="5" name="Visit in splatworld" shortTitle="Visit" action="http://127.0.0.1:8080/app/play.html#at=[% format('%1,%2', y(centroid($geometry)), x(centroid($geometry))) %]" capture="0" icon="" isEnabledOnlyWhenEditable="0" notificationMessage="" id="{fff4fa92a7d7301bbc4b36833afa89ac}">
+          <actionScope id="Feature" />
+          <actionScope id="Canvas" />
+        </actionsetting>
+      </attributeactions>
+    </maplayer>
+    <maplayer type="vector" hasScaleBasedVisibilityFlag="0" geometry="Polygon" readOnly="0">
+      <id>instance_7123a699d77d</id>
+      <datasource>pagingEnabled='false' preferCoordinatesForWfsT11='false' restrictToRequestBBOX='1' srsname='EPSG:4326' typename='splatworld:instance' url='http://localhost:8080/geoserver/splatworld/wfs' version='1.0.0'</datasource>
+      <layername>Placed</layername>
+      <srs>
+        <spatialrefsys>
+          <wkt>GEOGCRS["WGS 84",DATUM["World Geodetic System 1984",ELLIPSOID["WGS 84",6378137,298.257223563]],PRIMEM["Greenwich",0],CS[ellipsoidal,2],AXIS["geodetic latitude (Lat)",north],AXIS["geodetic longitude (Lon)",east],ANGLEUNIT["degree",0.0174532925199433],ID["EPSG",4326]]</wkt>
+          <proj4>+proj=longlat +datum=WGS84 +no_defs</proj4>
+          <srsid>3452</srsid>
+          <srid>4326</srid>
+          <authid>EPSG:4326</authid>
+          <description>WGS 84</description>
+          <projectionacronym>longlat</projectionacronym>
+          <ellipsoidacronym>EPSG:7030</ellipsoidacronym>
+          <geographicflag>true</geographicflag>
+        </spatialrefsys>
+      </srs>
+      <provider encoding="UTF-8">WFS</provider>
+      <fieldConfiguration />
+      <aliases />
+      <constraints />
+    </maplayer>
+    <maplayer type="vector" hasScaleBasedVisibilityFlag="0" geometry="Polygon" readOnly="0">
+      <id>tile_13181d8cc01e</id>
+      <datasource>pagingEnabled='false' preferCoordinatesForWfsT11='false' restrictToRequestBBOX='1' srsname='EPSG:4326' typename='splatworld:tile' url='http://localhost:8080/geoserver/splatworld/wfs' version='1.0.0'</datasource>
+      <layername>Tiles</layername>
+      <srs>
+        <spatialrefsys>
+          <wkt>GEOGCRS["WGS 84",DATUM["World Geodetic System 1984",ELLIPSOID["WGS 84",6378137,298.257223563]],PRIMEM["Greenwich",0],CS[ellipsoidal,2],AXIS["geodetic latitude (Lat)",north],AXIS["geodetic longitude (Lon)",east],ANGLEUNIT["degree",0.0174532925199433],ID["EPSG",4326]]</wkt>
+          <proj4>+proj=longlat +datum=WGS84 +no_defs</proj4>
+          <srsid>3452</srsid>
+          <srid>4326</srid>
+          <authid>EPSG:4326</authid>
+          <description>WGS 84</description>
+          <projectionacronym>longlat</projectionacronym>
+          <ellipsoidacronym>EPSG:7030</ellipsoidacronym>
+          <geographicflag>true</geographicflag>
+        </spatialrefsys>
+      </srs>
+      <provider encoding="UTF-8">WFS</provider>
+      <fieldConfiguration />
+      <aliases />
+      <constraints />
+    </maplayer>
+    <maplayer type="raster" hasScaleBasedVisibilityFlag="0">
+      <id>ground_hillshade</id>
+      <datasource>crs=EPSG:4326&amp;format=image/png&amp;layers=planetb__dem visp demo&amp;styles=&amp;url=http://localhost:8080/geoserver/wms</datasource>
+      <layername>Ground (planetb__dem visp demo)</layername>
+      <srs>
+        <spatialrefsys>
+          <wkt>GEOGCRS["WGS 84",DATUM["World Geodetic System 1984",ELLIPSOID["WGS 84",6378137,298.257223563]],PRIMEM["Greenwich",0],CS[ellipsoidal,2],AXIS["geodetic latitude (Lat)",north],AXIS["geodetic longitude (Lon)",east],ANGLEUNIT["degree",0.0174532925199433],ID["EPSG",4326]]</wkt>
+          <proj4>+proj=longlat +datum=WGS84 +no_defs</proj4>
+          <srsid>3452</srsid>
+          <srid>4326</srid>
+          <authid>EPSG:4326</authid>
+          <description>WGS 84</description>
+          <projectionacronym>longlat</projectionacronym>
+          <ellipsoidacronym>EPSG:7030</ellipsoidacronym>
+          <geographicflag>true</geographicflag>
+        </spatialrefsys>
+      </srs>
+      <provider>wms</provider>
+    </maplayer>
+  </projectlayers>
+  <layerorder>
+    <layer id="f_road_71483299b8f3" />
+    <layer id="f_water_d662c953c8de" />
+    <layer id="f_forest_0846089423b0" />
+    <layer id="f_footprint_107a87b6e7e6" />
+    <layer id="f_terrainmod_943e88fad249" />
+    <layer id="f_tree_733f22654130" />
+    <layer id="area_4b82677b6c14" />
+    <layer id="instance_7123a699d77d" />
+    <layer id="tile_13181d8cc01e" />
+    <layer id="ground_hillshade" />
+  </layerorder>
+</qgis>

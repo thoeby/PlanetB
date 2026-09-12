@@ -12,7 +12,6 @@ a project should not require running anything first.
 from __future__ import annotations
 
 import hashlib
-import urllib.parse
 import xml.etree.ElementTree as ET
 from pathlib import Path
 
@@ -132,22 +131,13 @@ def map_layer(parent, layer: dict, wfs_url: str, app_url: str = "") -> str:
     return ident
 
 
-def wms_name(coverage_id: str) -> str:
-    """A coverage id as WMS spells it: one colon between workspace and layer."""
-    return coverage_id.replace("__", ":", 1)
-
-
 def raster_layer(parent, wms_url: str, coverage: str) -> str:
     """The ground, as a picture to draw on: the same coverage, over WMS."""
     ident = "ground_hillshade"
     node = _sub(parent, "maplayer", type="raster", hasScaleBasedVisibilityFlag="0")
     _sub(node, "id", ident)
-    # Every value encoded: a layer named "dem visp demo" carries spaces, and a
-    # raw space in a WMS URI is a layer GeoServer is never asked for.
-    _sub(node, "datasource", urllib.parse.urlencode({
-        "crs": "EPSG:4326", "format": "image/png",
-        "layers": wms_name(coverage), "styles": "", "url": wms_url,
-    }))
+    _sub(node, "datasource",
+         f"crs=EPSG:4326&format=image/png&layers={coverage}&styles=&url={wms_url}")
     _sub(node, "layername", f"Ground ({coverage})")
     crs(node)
     _sub(node, "provider", "wms")
@@ -198,7 +188,6 @@ def write(cfg: Config, out: Path | None = None) -> Path:
     with psycopg.connect(cfg.dsn(), autocommit=True) as conn:
         layers = conn.execute("SELECT gis_layers()").fetchone()[0]
         row = conn.execute("SELECT geoserver_url, coverage FROM ground").fetchone()
-        coverage = _published_name(cfg, conn, row)
     base = (row[0] if row else cfg.geoserver_url) or "http://localhost:8080/geoserver"
     base = base.rstrip("/")
     if not base.startswith("http"):
@@ -206,26 +195,6 @@ def write(cfg: Config, out: Path | None = None) -> Path:
     target.parent.mkdir(parents=True, exist_ok=True)
     host = "127.0.0.1" if cfg.host in ("0.0.0.0", "::") else cfg.host
     target.write_bytes(project_xml(layers, f"{base}/splatworld/wfs",
-                                   f"{base}/wms", coverage,
+                                   f"{base}/wms", row[1] if row else None,
                                    f"http://{host}:{cfg.port}/app/play.html"))
     return target
-
-
-def _published_name(cfg: Config, conn, row) -> str | None:
-    """The coverage under the name this GeoServer answers to, stored back.
-
-    The name picked in Setup can be a spelling the catalogue does not use —
-    "dem visp demo" where the layer is published as "dem_visp_demo". WCS never
-    noticed, because it asks for every spelling in turn; WMS did, because it
-    asks for one and says "layer not found". Asked once here, and written back,
-    so everything downstream has the name that works.
-    """
-    if not row or not row[1]:
-        return None
-    from . import geoserver
-
-    auth = geoserver._auth_header(cfg.geoserver_user, cfg.geoserver_admin_password)
-    real = geoserver.resolve_coverage(row[0] or cfg.geoserver_url, row[1], auth)
-    if real and real != row[1]:
-        conn.execute("UPDATE ground SET coverage = %s", (real,))
-    return real or row[1]

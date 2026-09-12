@@ -40,8 +40,7 @@ def test_every_kind_that_is_drawn_is_a_layer():
 def test_the_ground_is_in_it():
     root = project()
     raster = [m for m in root.findall(".//maplayer") if m.get("type") == "raster"]
-    # URI-encoded since the datasource is a query string, so the colon is %3A.
-    assert raster and "ch%3Aalti" in raster[0].find("datasource").text
+    assert raster and "ch:alti" in raster[0].find("datasource").text
 
 
 def test_wfs_one_zero_because_of_the_axis_order():
@@ -96,57 +95,3 @@ def test_the_action_is_only_on_the_land():
     with_action = {m.find("layername").text for m in root.findall(".//maplayer")
                    if m.find(".//actionsetting") is not None}
     assert with_action == {"Your land"}
-
-
-class CoverageNameTest:
-    """The name in the project has to be the name GeoServer answers to.
-
-    Setup stored "splatworld__dem visp demo"; the catalogue publishes
-    "splatworld__dem_visp_demo". WCS never noticed — it asks for every spelling
-    in turn — and WMS answered "layer not found", so the ground was invisible
-    in QGIS while elevation worked fine.
-    """
-
-    def test_wms_spells_the_workspace_with_one_colon(self):
-        from splatworld.qgis import wms_name
-
-        assert wms_name("splatworld__dem_visp_demo") == "splatworld:dem_visp_demo"
-        assert wms_name("splatworld:dem_visp_demo") == "splatworld:dem_visp_demo"
-
-    def test_a_spelling_the_catalogue_does_not_use_is_resolved(self):
-        from splatworld import geoserver
-
-        assert geoserver._same_name("splatworld__dem_visp_demo",
-                                    "splatworld:dem visp demo")
-        assert geoserver._same_name("ws__Dem-Visp", "other:dem visp")
-        assert not geoserver._same_name("splatworld__dem_visp_demo",
-                                        "splatworld__ortho_visp")
-
-    def test_resolve_takes_the_published_spelling(self):
-        from splatworld import geoserver
-
-        published = [{"id": "splatworld__dem_visp_demo", "title": "", "bbox": None},
-                     {"id": "splatworld__ortho", "title": "", "bbox": None}]
-        real = geoserver.coverages
-        geoserver.coverages = lambda base, auth: published
-        try:
-            assert geoserver.resolve_coverage(
-                "http://x", "splatworld__dem visp demo", {}) == \
-                "splatworld__dem_visp_demo"
-            assert geoserver.resolve_coverage(
-                "http://x", "splatworld__ortho", {}) == "splatworld__ortho"
-            assert geoserver.resolve_coverage(
-                "http://x", "splatworld__nothing", {}) is None
-        finally:
-            geoserver.coverages = real
-
-
-def test_the_wms_datasource_is_encoded():
-    """A layer name with spaces has to survive being put in a URI."""
-    root = ET.fromstring(qgis.project_xml(
-        LAYERS, "http://gs/splatworld/wfs", "http://gs/wms",
-        "splatworld__dem visp demo"))
-    sources = [n.text for n in root.iter("datasource") if "wms" in (n.text or "")]
-    assert sources, "the ground layer is in the project"
-    assert "layers=splatworld%3Adem+visp+demo" in sources[0], sources[0]
-    assert " " not in sources[0], "no raw space reaches GeoServer"

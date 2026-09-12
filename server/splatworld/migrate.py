@@ -138,7 +138,6 @@ def apply(cfg: Config, *, on_step=print) -> int:
     if not files:
         raise SystemExit(f"no migrations found in {cfg.migrations_dir}")
     count = 0
-    adopted: list[str] = []
     # One applier at a time: two processes that both saw the same file pending
     # would otherwise race, and the loser would stop on the winner's objects.
     with psycopg.connect(cfg.dsn(), autocommit=True) as guard:
@@ -155,19 +154,9 @@ def apply(cfg: Config, *, on_step=print) -> int:
             if not _apply_one(cfg, path):
                 guard.execute("INSERT INTO migration (name) VALUES (%s)"
                               " ON CONFLICT DO NOTHING", (path.name,))
-                adopted.append(path.name)
                 on_step(f"  {path.name} was already in this database — "
                         "recorded, not re-run")
             count += 1
-    # A file is recorded as applied on the first "already exists" it raises, so
-    # anything after that statement did not run. For the files an older
-    # database already had that is right; say which they were, because a
-    # function this leaves at its old definition is a fix that did not land and
-    # looks exactly like a fix that did not work.
-    if len(adopted) > 2:
-        on_step(f"  {len(adopted)} of them were already here and were recorded "
-                "rather than re-run. If something still behaves as it did "
-                "before, `splatworld init --reset` rebuilds the schema.")
     return count
 
 
@@ -186,19 +175,10 @@ def _apply_one(cfg: Config, path: Path) -> bool:
 
 
 def pending(cfg: Config) -> list[str]:
-    """Migrations in the checkout that this database has not had.
-
-    A database made before the ledger existed has no record of anything, and
-    used to be reported as having nothing pending — so `splatworld run` applied
-    nothing to it, ever. Every fix that arrived as SQL went nowhere on exactly
-    the worlds that had been running longest, silently, while the Python and
-    the client updated around them. A missing ledger means everything is
-    pending: apply() records a file whose objects are all already there rather
-    than re-running it, so adopting the ledger is safe.
-    """
+    """Migrations in the checkout that this database has not had."""
     with psycopg.connect(cfg.dsn(), autocommit=True) as conn:
         if not conn.execute("SELECT to_regclass('public.migration')").fetchone()[0]:
-            return [p.name for p in migrations(cfg)]
+            return []  # made before this bookkeeping existed; init --reset once
         done = {r[0] for r in conn.execute("SELECT name FROM migration")}
     return [p.name for p in migrations(cfg) if p.name not in done]
 

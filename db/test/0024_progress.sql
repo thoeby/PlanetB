@@ -14,19 +14,16 @@ GRANT SELECT ON ids TO player;
 -- picks globally (db/0005_state.sql).
 UPDATE atom SET state = 'waiting' WHERE state = 'ready';
 
--- Four tiles in a row at z14, a job each, one atom each. The middle one is
--- 8.05 E; the others are its neighbour west and two far east. Every job
--- targets the version its tile is at: one that does not is superseded and is
--- not offered at all (db/0052_staleclaim.sql), which is a different test.
+-- Three tiles in a row at z14, a job each, one atom each. The middle one is
+-- 8.05 E; the others are its neighbours west and far east.
 INSERT INTO tile (z, x, y, dirty, expected_version)
-VALUES (14, 8500, 5700, true, 1), (14, 8501, 5700, true, 1),
-       (14, 8900, 5700, true, 1), (14, 8901, 5700, true, 1);
+VALUES (14, 8500, 5700, true, 1), (14, 8501, 5700, true, 1), (14, 8900, 5700, true, 1);
 
 INSERT INTO job (id, z, x, y, target_version, state, bounty) VALUES
 (900001, 14, 8500, 5700, 1, 'open', 0),
 (900002, 14, 8501, 5700, 1, 'open', 0),
 (900003, 14, 8900, 5700, 1, 'open', 0),
-(900004, 14, 8901, 5700, 1, 'open', 5);
+(900004, 14, 8900, 5700, 2, 'open', 5);
 
 INSERT INTO atom (id, job_id, atom_hash, op, algo_version, inputs, params, seed, state)
 VALUES

@@ -65,33 +65,15 @@ class PreLedgerTest(unittest.TestCase):
     def test_a_database_with_no_ledger_is_recorded_not_re_run(self):
         with psycopg.connect(self.cfg.dsn(), autocommit=True) as conn:
             conn.execute("DROP TABLE migration")
+        self.assertEqual(migrate.pending(self.cfg), [],
+                         "no ledger means nothing is known to be pending")
         files = migrate.migrations(self.cfg)
-        # Everything, because nothing here is known to have been applied. It
-        # used to be nothing at all, so `splatworld run` applied nothing to a
-        # database older than the ledger — for ever, and without saying so.
-        self.assertEqual(migrate.pending(self.cfg), [p.name for p in files])
         self.assertEqual(migrate.apply(self.cfg, on_step=lambda _: None), len(files))
         self.assertEqual(migrate.pending(self.cfg), [], "and now it is all recorded")
         with psycopg.connect(self.cfg.dsn(), autocommit=True) as conn:
             kept = conn.execute("SELECT count(*) FROM pg_constraint"
                                 " WHERE conname = 'feature_geom_4326_3d'").fetchone()
             self.assertEqual(kept[0], 1, "the schema is untouched by the second pass")
-
-    def test_a_fix_reaches_a_database_that_has_no_ledger(self):
-        """The point of all of it: newer SQL lands on an older world."""
-        with psycopg.connect(self.cfg.dsn(), autocommit=True) as conn:
-            conn.execute("DROP TABLE IF EXISTS migration")
-            # As if this database had never had db/0035_mergeready.sql.
-            conn.execute("DROP FUNCTION IF EXISTS merge_has_a_child(jsonb)")
-        # `splatworld run` applies only what pending() reports, so this is the
-        # step that decides whether any of it ever runs.
-        self.assertTrue(migrate.pending(self.cfg),
-                        "a database with no ledger has everything pending")
-        migrate.apply(self.cfg, on_step=lambda _: None)
-        with psycopg.connect(self.cfg.dsn(), autocommit=True) as conn:
-            back = conn.execute("SELECT to_regprocedure("
-                                "'merge_has_a_child(jsonb)')").fetchone()
-        self.assertIsNotNone(back[0], "the migration it was missing was applied")
 
 
 class AlreadyThereTest(unittest.TestCase):

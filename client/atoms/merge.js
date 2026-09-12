@@ -211,31 +211,16 @@ export async function run({ atom, inputs, canvas, log, apiUrl }) {
         if (sha) bytesOf.set(sha, inputs.children?.[i]);
     });
     const used = [];
-    const skipped = [];
     let taken = 0;
     for (const row of rows) {
         const bytes = bytesOf.get(row.sog_sha256);
-        const why = !bytes ? 'its bytes are not in the store'
-            : (!row.manifest?.origin ? 'its manifest names no origin' : null);
-        if (why) {
-            skipped.push(`${row.z}/${row.x}/${row.y} (${row.sog_sha256.slice(0, 8)}): ${why}`);
-            continue;
-        }
+        if (!bytes || !row.manifest?.origin) continue;
         const { splats } = await decodeSog(bytes, (b) => decodeImage(b, canvas));
         foldChild(grid, splats, transformOf(row.manifest.origin, origin));
         used.push(`${row.z}/${row.x}/${row.y}`);
         taken += splats.count;
     }
-    // Which children, and what was wrong with each. "No published child" alone
-    // cannot tell a parent whose children have not been built yet from one
-    // whose children were built and whose bytes have since gone.
-    if (!taken) {
-        const named = shas.length
-            ? `${shas.length} child sog(s) pinned, ${rows.length} tile row(s) found`
-            : 'no child was published when this merge was planned';
-        throw new Error(`no published child of ${z}/${x}/${y} to merge — ${named}`
-            + (skipped.length ? `: ${skipped.join('; ')}` : ''));
-    }
+    if (!taken) throw new Error(`no published child of ${z}/${x}/${y} to merge`);
     // Recorded, not replaced: a child that was unpublished when the DAG was
     // built is a hole this merge was told about (PROGRESS.md deviation 43).
     const missing = 16 - used.length;

@@ -1,11 +1,10 @@
 // api.js — the only place the client talks to PostgREST.
 //
-// The JWT is held in a module variable and mirrored into localStorage, so
-// signing in once is signing in once. Not sessionStorage: that is per-tab, and
-// `splatworld run` opens a new tab every time it starts, so a token kept there
-// is gone at exactly the moment it is wanted. The token is readable by every
-// script on this origin either way; it expires in twelve hours and logout
-// clears it. Nothing here decides what the caller may do — every write is
+// The JWT is held in a module variable and mirrored into sessionStorage, so a
+// reload keeps the session the user already opened instead of asking again.
+// sessionStorage and not localStorage: the token is readable by every script on
+// the origin either way, but this copy dies with the tab rather than outliving
+// it on disk. Nothing here decides what the caller may do — every write is
 // settled by row-level security in the database (Invariant 6); a 401 or 403
 // from PostgREST is that decision arriving.
 
@@ -19,9 +18,9 @@ const STORE_KEY = 'splatworld:jwt';
 
 const state = { ...DEFAULTS, token: null, claims: null, refresh: null };
 
-// localStorage throws in a sandboxed frame and is absent under node.
+// sessionStorage throws in a sandboxed frame and is absent under node.
 function store() {
-    try { return globalThis.localStorage ?? null; } catch { return null; }
+    try { return globalThis.sessionStorage ?? null; } catch { return null; }
 }
 
 export class ApiError extends Error {
@@ -68,9 +67,8 @@ export function setToken(token) {
     return state.claims;
 }
 
-// Picks the stored token back up on a reload, a new tab, or the next time the
-// server is started. A token already past its expiry (or unreadable) is
-// dropped rather than sent.
+// Picks the stored token back up after a reload. A token already past its
+// expiry (or unreadable) is dropped rather than sent.
 export function restore() {
     let token = null;
     try { token = store()?.getItem(STORE_KEY) ?? null; } catch { return null; }

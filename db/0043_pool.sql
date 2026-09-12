@@ -109,6 +109,7 @@ BEGIN
     JOIN job j ON j.id = a2.job_id AND j.state = 'open'
     WHERE a2.job_id = p_job
       AND a2.state = 'ready'
+  AND (a2.op <> 'merge' OR merge_has_a_child(a2.inputs))
       AND (NOT coalesce((a2.params ->> 'needs_webgpu')::boolean, false)
            OR coalesce((p_caps ->> 'webgpu')::boolean, false))
       AND coalesce((a2.params ->> 'min_vram_gb')::numeric, 0)

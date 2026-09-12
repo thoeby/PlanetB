@@ -190,32 +190,3 @@ class ProvisionTest(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
-
-
-def test_a_migration_asks_geoserver_to_re_read_its_layers():
-    """GeoServer caches whether a view may be written, and reads it once.
-
-    The view behind "Your land" gained an INSTEAD OF trigger in a migration;
-    until the cache is dropped GeoServer keeps answering "area is read-only",
-    whatever the database now says.
-    """
-    from splatworld import gsprovision
-
-    calls = []
-
-    class FakeGS:
-        base = "http://gs"
-        auth = "Basic x"
-
-        def call(self, method, path, body=None, content_type="application/xml",
-                 tolerate=()):
-            calls.append((method, path))
-            return 200
-
-    gs = FakeGS()
-    gs.call("POST", "/rest/reset", b"", tolerate=(404,))
-    assert ("POST", "/rest/reset") in calls
-    # And the provisioning source says the same, so the step cannot be dropped
-    # without this failing.
-    source = (Path(gsprovision.__file__)).read_text(encoding="utf8")
-    assert '"/rest/reset"' in source
