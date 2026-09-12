@@ -10,7 +10,7 @@ It computes nothing about the world — every atom still runs in a browser tab
 # pulled, so a server answering with an older version is proof that what is
 # running is not what is on disk — the one thing that cannot be detected by
 # the running code itself, because the running code is the thing at fault.
-__version__ = "0.8.1"
+__version__ = "0.8.2"
 
 
 def _use_own_proj_data() -> dict[str, str]:
