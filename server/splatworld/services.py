@@ -7,11 +7,13 @@ answer, and stops it again.
 """
 from __future__ import annotations
 
+import collections
 import os
 import shutil
 import subprocess
 import sys
 import tempfile
+import threading
 import time
 import urllib.error
 import urllib.request
@@ -104,6 +106,11 @@ class PostgREST:
         self.verbose = verbose
         self.proc: subprocess.Popen | None = None
         self._conf: Path | None = None
+        # The last of what it said. PostgREST that dies says why — in its own
+        # output, which used to go to the bin unless --verbose was on, leaving
+        # this to guess out loud instead (and guess wrong).
+        self._said: collections.deque[str] = collections.deque(maxlen=40)
+        self._keep_conf = False
 
     def __enter__(self) -> "PostgREST":
         if alive(self.cfg):
@@ -127,11 +134,16 @@ class PostgREST:
         # PGRST_* in the environment would override the file, and .env sets some.
         env = {k: v for k, v in _clean_env().items() if not k.startswith("PGRST_")}
         env = with_libpq(env)
+        # Piped, never DEVNULL: a pipe nobody reads fills up and stops the
+        # process writing to it, so the reader below runs either way and only
+        # the echoing depends on --verbose.
         self.proc = subprocess.Popen(
             [binary, str(self._conf)], env=env,
-            stdout=None if self.verbose else subprocess.DEVNULL,
-            stderr=None if self.verbose else subprocess.DEVNULL,
+            stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
+            text=True, encoding="utf8", errors="replace", bufsize=1,
         )
+        threading.Thread(target=_drain, daemon=True,
+                         args=(self.proc, self._said, self.verbose)).start()
         self._wait()
         return self
 
@@ -139,23 +151,32 @@ class PostgREST:
         deadline = time.monotonic() + seconds
         while time.monotonic() < deadline:
             if self.proc and self.proc.poll() is not None:
-                raise SystemExit(
-                    "PostgREST stopped straight away. Run with --verbose to see why;\n"
-                    "  the usual cause is the authenticator password not matching\n"
-                    "  the database (re-run `splatworld init`)."
-                    + (
-                        "\n  On Windows it is more often libpq.dll: postgrest.exe needs\n"
-                        "  PostgreSQL's bin directory (the one with psql.exe in it) on\n"
-                        "  PATH. This looked and did not find it."
-                        if sys.platform.startswith("win") and not pg_bin(_candidate_pg_bins())
-                        else ""
-                    )
-                )
+                self._keep_conf = True
+                raise SystemExit(self._died())
             if alive(self.cfg, timeout=1.0):
                 print(f"  API on {self.cfg.api_url}")
                 return
             time.sleep(0.3)
         raise SystemExit(f"PostgREST did not answer on {self.cfg.api_url}")
+
+    def _died(self) -> str:
+        """What it said before it went, which beats anything guessed here."""
+        # Give the reader a moment: the process is gone, its last lines may not
+        # have crossed the pipe yet.
+        time.sleep(0.3)
+        code = self.proc.returncode if self.proc else "?"
+        lines = [f"PostgREST stopped straight away (exit {code}). It said:"]
+        said = [line for line in self._said if line.strip()]
+        lines += [f"  {line}" for line in said[-12:]] or ["  nothing at all."]
+        if not said and sys.platform.startswith("win") and not pg_bin(_candidate_pg_bins()):
+            lines.append("  Saying nothing at all on Windows is usually libpq.dll:"
+                         " postgrest.exe")
+            lines.append("  needs PostgreSQL's bin directory (the one with psql.exe)"
+                         " on PATH.")
+        lines.append(f"\n  Its config is still at {self._conf}, so you can run it"
+                     " by hand:")
+        lines.append(f"    {self.cfg.postgrest} {self._conf}")
+        return "\n".join(lines)
 
     def __exit__(self, *exc) -> None:
         if self.proc and self.proc.poll() is None:
@@ -164,8 +185,18 @@ class PostgREST:
                 self.proc.wait(timeout=10)
             except subprocess.TimeoutExpired:
                 self.proc.kill()
-        if self._conf:
+        if self._conf and not self._keep_conf:
             self._conf.unlink(missing_ok=True)
+
+
+def _drain(proc: subprocess.Popen, into, echo: bool) -> None:
+    """Read the child's output for as long as it has any."""
+    if not proc.stdout:
+        return
+    for line in proc.stdout:
+        into.append(line.rstrip())
+        if echo:
+            print(line, end="")
 
 
 def _clean_env() -> dict[str, str]:
