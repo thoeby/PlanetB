@@ -21,12 +21,20 @@ const HTML = `
   <span class="auth-role"></span>
   <button type="button" class="auth-out">sign out</button>
 </div>
+<div class="auth-name-row" hidden>
+  <label>your name <input class="auth-name" type="text" maxlength="40"
+      autocomplete="nickname" placeholder="what the world calls you"></label>
+  <button type="button" class="auth-save-name">save name</button>
+</div>
 <p class="auth-status" role="status"></p>`;
 
 function renderIdentity(host, form, who) {
     const c = api.claims();
     form.hidden = Boolean(c);
     who.hidden = !c;
+    // SPEC §3.1: signing up is email, password, then what to call you. The
+    // name is asked for where the account is, and only once there is one.
+    host.querySelector('.auth-name-row').hidden = !c;
     if (c) {
         host.querySelector('.auth-email').textContent = c.email ?? c.sub;
         host.querySelector('.auth-role').textContent = `(${api.role()})`;
@@ -34,9 +42,33 @@ function renderIdentity(host, form, who) {
     return c;
 }
 
+// What this account is called, as the world knows it — not as this tab last
+// typed it. A tab that signs in somewhere else shows that name.
+async function showName(host, say) {
+    const me = await api.rpc('me').catch(() => null);
+    const field = host.querySelector('.auth-name');
+    if (me?.name) {
+        field.value = me.name;
+        say(`signed in as ${me.name}`);
+    }
+    return me;
+}
+
 async function signIn(act, email, pw) {
     if (act === 'register') await api.register(email, pw);
     return api.login(email, pw);
+}
+
+// Invariant 6: the database decides what a name may be, and what it said
+// belongs next to the field that caused it, never only in the console.
+async function saveName(host, say) {
+    const field = host.querySelector('.auth-name');
+    try {
+        const me = await api.rpc('set_my_name', { name: field.value });
+        say(`signed in as ${me.name}`);
+    } catch (err) {
+        say(String(err.message ?? err), true);
+    }
 }
 
 export function mountAuth(host, { onChange } = {}) {
@@ -67,6 +99,7 @@ export function mountAuth(host, { onChange } = {}) {
             hadSession = true;
             say('');
             render();
+            await showName(host, say);
             waiting?.resolve(api.token());
             waiting = null;
         } catch (err) {
@@ -76,6 +109,8 @@ export function mountAuth(host, { onChange } = {}) {
         }
     }
 
+    host.querySelector('.auth-save-name')
+        .addEventListener('click', () => saveName(host, say));
     form.addEventListener('submit', submit);
     who.querySelector('.auth-out').addEventListener('click', () => {
         api.logout();

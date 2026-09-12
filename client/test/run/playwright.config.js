@@ -22,7 +22,12 @@ export default defineConfig({
     // A story that fails leaves the world where it was for the next run to be
     // told about; carrying on into the next story proves nothing.
     maxFailures: 1,
-    reporter: [['list'], ['html', { open: 'never', outputFolder: 'playwright-report/run' }]],
+    // Kept at the repo root, where the other suite's are and where .gitignore
+    // already knows about them — a report written next to the specs is a
+    // megabyte of vendored javascript for `make lint` to read.
+    outputDir: '../../../test-results/run',
+    reporter: [['list'],
+        ['html', { open: 'never', outputFolder: '../../../playwright-report/run' }]],
     use: {
         actionTimeout: 15_000,
         navigationTimeout: 60_000,

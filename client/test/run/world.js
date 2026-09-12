@@ -7,7 +7,7 @@
 // given. Everything here is a running process or a file on disk.
 
 import { spawn, spawnSync } from 'node:child_process';
-import { chmodSync, existsSync, mkdirSync, rmSync } from 'node:fs';
+import { chmodSync, existsSync, mkdirSync, openSync, readFileSync, rmSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -108,11 +108,27 @@ async function startGeoServer() {
     return { url, kind: 'fixture', stop: () => p.kill() };
 }
 
+// The server supervises PostgREST, so killing it alone leaves an API behind
+// that the next run then collides with — and the collision surfaces as "the
+// world did not come up" with nothing to read. Its own group, its own log.
+export const SERVER_LOG = join(REPO, 'test-results/run/server.log');
+
 function startServer() {
+    mkdirSync(dirname(SERVER_LOG), { recursive: true });
+    const out = openSync(SERVER_LOG, 'w');
     const p = spawn('splatworld',
         ['run', '--port', String(PORT), '--api-port', String(API_PORT), '--no-browser'],
-        { cwd: REPO, env: { ...process.env, FILES_ROOT }, stdio: 'ignore' });
-    return () => p.kill();
+        { cwd: REPO, env: { ...process.env, FILES_ROOT }, detached: true,
+            stdio: ['ignore', out, out] });
+    return () => { try { process.kill(-p.pid); } catch { p.kill(); } };
+}
+
+function whatTheServerSaid() {
+    try {
+        return `\n  it said:\n${readFileSync(SERVER_LOG, 'utf8').trim()}`;
+    } catch {
+        return '';
+    }
 }
 
 export async function startWorld() {
@@ -124,8 +140,13 @@ export async function startWorld() {
     stops.push(geoserver.stop);
     stops.push(startServer());
     const apiUrl = `http://localhost:${API_PORT}`;
-    await waitFor(`http://localhost:${PORT}/healthz`, 60, 'the splatworld server');
-    await waitFor(apiUrl, 60, 'PostgREST');
+    try {
+        await waitFor(`http://localhost:${PORT}/healthz`, 60, 'the splatworld server');
+        await waitFor(apiUrl, 60, 'PostgREST');
+    } catch (err) {
+        stops.forEach((s) => s());
+        throw new Error(err.message + whatTheServerSaid());
+    }
     if (!await knowsTheSchema(apiUrl)) {
         throw new Error(`a PostgREST on ${API_PORT} is serving another database's schema`
             + ' — it was started before this run reset the database. Kill it.');

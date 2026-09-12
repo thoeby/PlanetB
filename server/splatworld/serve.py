@@ -456,12 +456,18 @@ class Handler(BaseHTTPRequestHandler):
                 gsprovision.write_qgis_connection(
                     self.cfg.repo / "gis" / "splatworld-wfs.xml", wfs)
             else:
-                gs = gsprovision.GeoServer(url, user, password)
-                # /rest/about/version is the smallest thing that proves both
-                # "this is a GeoServer" and "these credentials work".
-                gs.call("GET", "/rest/about/version.json")
-                log.append(f"  reached {gs.base} and the login was accepted")
-                wfs = f"{gs.base}/{gsprovision.WORKSPACE}/wfs"
+                # SPEC §3.1: nothing is asked of this GeoServer but the
+                # elevation, so what proves the address and the login is the
+                # service the world actually reads — its WCS. A raster-only
+                # installation, or an account without the admin REST API, is
+                # exactly what an operator publishing a DEM has, and asking
+                # /rest/about/version refused them the world.
+                from . import geoserver
+                from .importer import _auth_header
+
+                found = geoserver.coverages(url, _auth_header(user, password))
+                log.append(f"  {len(found)} coverage(s) published here")
+                wfs = f"{geoserver.service_url(url, 'wfs')}"
         except SystemExit as err:
             self._json(200, {"ok": False, "log": log, "error": str(err)})
             return

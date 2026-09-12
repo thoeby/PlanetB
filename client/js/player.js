@@ -110,9 +110,12 @@ export function slide(p, colliders, radius = RADIUS_M, from = null) {
 // tilemath, which is exact and does not care where the anchor happens to be.
 
 export class Terrain {
-    constructor(streamer, { fetchFn = fetch } = {}) {
+    constructor(streamer, { fetchFn = fetch, ground = null } = {}) {
         this.streamer = streamer;
         this.fetchFn = fetchFn;
+        // client/lib/groundmesh.js, or nothing: a viewer with no coverage has
+        // no floor beyond what has been published, which is what it had.
+        this.ground = ground;
         this.fields = new Map();
         this.colliders = new Map();
         this.wanted = new Set();
@@ -139,11 +142,16 @@ export class Terrain {
 
     heightAt(local) {
         const k = this.tileAt(local);
-        if (!k) return null;
-        const field = this.fields.get(k);
-        if (!field) { this.request(k); return null; }
-        const p = this.toTile(field, local);
-        return field.at(p.x, p.z);
+        const field = k && this.fields.get(k);
+        if (field) {
+            const p = this.toTile(field, local);
+            return field.at(p.x, p.z);
+        }
+        if (k) this.request(k);
+        // A published tile's own height.r16 first, the world's ground under
+        // it — everywhere the coverage reaches, rendered or not (SPEC §0.1).
+        const g = this.streamer.origin.geodeticOf(local);
+        return this.ground?.heightAt(g.lon, g.lat) ?? null;
     }
 
     // The point, expressed in the tile's own frame rather than the anchor's.

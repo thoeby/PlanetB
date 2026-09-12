@@ -6,7 +6,7 @@ SELECT plan(23);
 SELECT has_schema('auth', 'schema auth');
 SELECT has_table('auth', 'user', 'auth.user');
 SELECT columns_are('auth', 'user',
-    ARRAY['id', 'email', 'pw_hash', 'role', 'created_at']);
+    ARRAY['id', 'email', 'pw_hash', 'role', 'created_at', 'name']);
 SELECT has_function('public', 'register', ARRAY['text', 'text'], 'register()');
 SELECT has_function('public', 'login', ARRAY['text', 'text'], 'login()');
 SELECT has_function('public', 'current_user_id', 'current_user_id()');

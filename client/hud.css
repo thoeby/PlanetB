@@ -263,9 +263,11 @@ body {
 
 /* Above the tab bar, not beside it: eleven tabs are wider than the middle of a
    1400px window, and at the bottom corners these two covered the first and last
-   of them. */
+   of them. Beside it, the map's canvas took the clicks meant for Setup — the
+   tab was on the screen and could not be pressed, which is the same as not
+   being there. The hotbar is 97px tall and sits 20px up. */
 #corner {
-  position: absolute; right: 24px; bottom: 20px; display: flex;
+  position: absolute; right: 24px; bottom: 129px; display: flex;
   flex-direction: column; gap: 8px; align-items: flex-end;
 }
 #hints {
@@ -308,7 +310,12 @@ body {
 #crosshair i:nth-child(4) { top: 10px; right: 0; height: 2px; width: 6px; }
 
 @media (max-width: 1500px) {
-  #legend, #hints { display: none; }
+  #legend { display: none; }
+  /* The key hints stack into the corner rather than disappearing: hud.js
+     builds them because they are the only way to learn that the keys work,
+     and a 1280px laptop is not a reason to stop telling people how to walk. */
+  #hints { flex-direction: column; height: auto; align-items: flex-start;
+    gap: 2px; padding: 8px 12px; }
   #map { width: 180px; height: 180px; }
   .stage { min-width: 84px; padding: 0 10px 0 12px; }
 }

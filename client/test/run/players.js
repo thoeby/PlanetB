@@ -73,7 +73,11 @@ export async function shows(player, text, timeout = UI) {
         .toBeVisible({ timeout });
 }
 
-// The panel tabs along the bottom of the page (design 3k).
+// The panel tabs along the bottom of the page (design 3k). Pressing the tab
+// that is already open closes it, as it should — so a player who is already
+// looking at a panel does not press it again, and neither does this.
 export async function panel(player, name) {
-    await player.page.getByRole('button', { name, exact: false }).first().click();
+    const tab = player.page.locator(`#tabs button[data-tab="${name}"]`);
+    if (await tab.getAttribute('aria-selected') === 'true') return;
+    await tab.click();
 }

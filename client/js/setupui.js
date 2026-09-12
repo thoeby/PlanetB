@@ -30,8 +30,8 @@ const HTML = `
   <span class="n">2</span>
   <div class="t">
     <span class="head">GeoServer</span>
-    <div class="note">The GeoServer that publishes your elevation data, and an
-      account on it that may create a workspace.</div>
+    <div class="note">The GeoServer that publishes your elevation. Nothing
+      else is asked of it.</div>
     <input class="gs-url" type="text" placeholder="localhost:8080/geoserver"
       autocomplete="off">
     <div class="row">
@@ -78,21 +78,21 @@ const describe = (g) => (g?.coverage
       + `${g.east.toFixed(2)},${g.north.toFixed(2)}`
     : 'no ground yet: the world has nowhere to be');
 
-// One button: prove the address and the login, set the world's drawing layers
-// up on it, then ask what it publishes. Setting up is several REST calls and is
-// safe to repeat — a missing layer is made, one in an old store is moved, one
-// the world no longer has is removed. Nothing about the ground is saved until
-// Done; the credentials are, because the local server cuts elevation with them.
+// One button: prove the address and the login against the service the world
+// actually reads — the WCS — and ask what it publishes. Nothing is asked of
+// this GeoServer but the elevation (SPEC §3.1), so nothing is created on it.
+// Nothing about the ground is saved until Done; the credentials are, because
+// the local server cuts elevation with them.
 async function connect(q, say) {
     const url = q('.gs-url').value.trim();
     if (!url) { say('.gs-status', 'type the address your GeoServer opens on', true); return []; }
     const user = q('.gs-user').value.trim() || 'admin';
     const password = q('.gs-pw').value;
-    say('.gs-status', 'setting your GeoServer up\u2026 (this takes a moment)');
-    const test = await post('/setup/geoserver', { url, user, password, provision: true })
+    say('.gs-status', 'asking that GeoServer what it publishes\u2026');
+    const test = await post('/setup/geoserver', { url, user, password, provision: false })
         .catch((err) => ({ ok: false, error: String(err.message ?? err) }));
     if (!test.ok) { say('.gs-status', short(test.error) || 'that did not work', true); return []; }
-    say('.gs-status', 'set up \u2014 asking what it publishes\u2026');
+    say('.gs-status', 'reached \u2014 reading its coverages\u2026');
     const probe = await post('/setup/probe', { url, user, password })
         .catch((err) => ({ error: String(err.message ?? err) }));
     if (probe.error) { say('.gs-status', short(probe.error), true); return []; }
@@ -102,8 +102,11 @@ async function connect(q, say) {
         ? found.map((c) => new Option(`${c.title} (${c.id})`, c.id))
         : [new Option('this GeoServer publishes no raster with an extent', '')]));
     q('.gs-done').disabled = !found.length;
+    // The button says "Use this ground"; telling somebody to press Done sends
+    // them looking for a button that is not there.
     say('.gs-status', found.length
-        ? `${found.length} coverage(s) \u2014 pick the elevation and press Done`
+        ? `${found.length} coverage(s) \u2014 pick the elevation and press`
+          + ' "Use this ground"'
         : 'connected, but there is no coverage to stand on', !found.length);
     return found;
 }

@@ -85,6 +85,7 @@
   import { mountPool, mountSubmit } from './js/pool.js';
   import { mountPermission } from './js/permission.js';
   import { mountShare, parseVisit, visitHash } from './js/visit.js';
+  import { Ground } from './lib/groundmesh.js';
 
   api.configure();
 
@@ -127,7 +128,11 @@
   // stand, and the Setup panel is what the tab opens on (T0).
   const ground = await api.rpc('ground').catch(() => ({}));
   const setup = mountSetup(hud.panel('Setup'), {
-      onGround: () => location.reload(),
+      // Onto the world, not back to where the crosshair was pointing while
+      // there was no world: an empty page writes #at=0,0 into the address bar,
+      // and reloading with it carried the operator to null island the moment
+      // they picked their ground (SPEC §3.1 step 3).
+      onGround: () => { location.replace(location.pathname); },
   });
   // What the world may say about itself. The same rows drive this tool's forms,
   // QGIS's layer forms and the rules the compiler matches on (T3).
@@ -205,7 +210,14 @@
   });
   spot.start(streamer, { busy: () => Boolean(work.loop()?.atom) });
 
-  const terrain = new Terrain(streamer);
+  // SPEC §0.1: ground is always drawn and always walkable, whether or not
+  // anything has been rendered there. The DEM tiles the compile reads are the
+  // floor; published splats sit on top of them.
+  const groundMesh = new Ground({
+    pc, app, origin, filesUrl: api.endpoints().files,
+  });
+  groundMesh.onSaid = (what) => { world.textContent = what; };
+  const terrain = new Terrain(streamer, { ground: groundMesh });
   const player = new Player(terrain, { mode: WALK });
   const view = document.getElementById('view');
   player.attach(view);
@@ -417,6 +429,9 @@
   // but replaceState on every frame is not free and fills nothing useful.
   let stamped = 0;
   function keepTheAddressBar(where) {
+      // A world with no ground has no places in it; a link to one is a link to
+      // nowhere.
+      if (!ground?.coverage) return;
       if (Date.now() - stamped < 2000) return;
       stamped = Date.now();
       history.replaceState(null, '', visitHash(where));
@@ -525,6 +540,7 @@
       camera.setPosition(moved.x, moved.y, moved.z);
       if (driving) player.position = { ...moved };
       preview.rebased();
+      groundMesh.rebase(origin);
     }
     build.drawGizmo();
     drawAreas({ pc, app, origin, terrain }, land.areas());
@@ -533,6 +549,7 @@
     // coordinates are the real ones, and the land under you is asked for only
     // when you have actually walked somewhere else.
     const here = origin.geodeticOf({ x: p.x, y: p.y, z: p.z });
+    if (ground?.coverage) groundMesh.follow(here.lon, here.lat);
     const heading = player.yaw / Math.PI * 180;
     hud.at(here.lon, here.lat, here.h, heading);
     whereAmI(here);
