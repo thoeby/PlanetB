@@ -32,7 +32,8 @@ INSERT INTO feature (area_id, kind, geom)
 VALUES ('00000000-0000-0000-0000-0000000000b7', 'footprint',
         st_geomfromtext('POINTZ(8.5 47.5 450)', 4326));
 
-CREATE TEMP TABLE tt AS SELECT t.z, t.x, t.y FROM tile t WHERE t.z = 14 LIMIT 1;
+CREATE TEMP TABLE tt AS SELECT t.z, t.x, t.y FROM tile t WHERE t.z = 14
+ORDER BY t.x, t.y LIMIT 1;
 GRANT SELECT ON tt TO player;
 
 -- rendered by a stranger's browser ----------------------------------------
@@ -70,7 +71,7 @@ SELECT is(jsonb_array_length(my_candidates()), 0,
 SELECT throws_ok(
     format($$SELECT refuse_tile(%s, %s, %s, 'no')$$,
            (SELECT z FROM tt), (SELECT x FROM tt), (SELECT y FROM tt)),
-    '42501', NULL, 'and cannot refuse somebody else''s land');
+    '42501', null, 'and cannot refuse somebody else''s land');
 
 SELECT set_config('request.jwt.claims',
     json_build_object('sub', owner_id, 'role', 'player')::text, true) FROM ids;
@@ -88,7 +89,7 @@ SELECT is((SELECT t.refused_note FROM tile t, tt
            WHERE t.z = tt.z AND t.x = tt.x AND t.y = tt.y),
     'the roof is in the wrong place', 'the note is left for whoever rendered it');
 SELECT is((SELECT t.candidate_sha256 FROM tile t, tt
-           WHERE t.z = tt.z AND t.x = tt.x AND t.y = tt.y), NULL,
+           WHERE t.z = tt.z AND t.x = tt.x AND t.y = tt.y), null,
     'nothing is waiting any more');
 SELECT is((SELECT t.published_version FROM tile t, tt
            WHERE t.z = tt.z AND t.x = tt.x AND t.y = tt.y), 0::bigint,

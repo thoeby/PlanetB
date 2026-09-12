@@ -42,11 +42,6 @@
   display: block; width: 100%; max-width: 12rem; height: auto;
   margin: 8px 0; border: 1px solid var(--edge); background: rgba(0, 0, 0, 0.35);
 }
-#panel #results { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
-#panel #results li { border-bottom: 0; }
-#panel #results img { width: 100%; aspect-ratio: 1; object-fit: cover;
-  border: 1px solid var(--edge); }
-
 /* A button that is the current choice (the gizmo's mode and axis). */
 #panel button[data-on="1"] {
   background: var(--accent-dim); border-color: var(--accent); color: var(--ink);
@@ -160,3 +155,84 @@
 #panel .chip[data-tone="warn"] { color: var(--warn); }
 #panel .chip[data-tone="bad"] { color: var(--bad); }
 #panel .chip[data-tone="dim"] { color: var(--ink-3); }
+
+/* A grid of products, as the catalog draws them (design 3d). catalogui.js
+   builds each card's contents; this is the shape they sit in. */
+#panel .cards { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px;
+  margin: 0; padding: 0; list-style: none; }
+#panel .cards > li {
+  display: flex; flex-direction: column; gap: 6px; padding: 0 0 10px;
+  border: 1px solid var(--edge-2); border-bottom: 1px solid var(--edge-2);
+}
+#panel .cards > li > img, #panel .cards > li > .noshot {
+  width: 100%; aspect-ratio: 1; object-fit: cover; border: 0;
+  border-bottom: 1px solid var(--edge-2);
+  background: linear-gradient(160deg, rgba(255, 255, 255, 0.09), rgba(255, 255, 255, 0.02));
+}
+#panel .cards .meta { display: flex; flex-direction: column; gap: 3px; padding: 0 10px; }
+#panel .cards .meta button {
+  background: none; border: 0; padding: 0; text-align: left; width: 100%;
+  font-family: var(--head); font-weight: 700; font-size: 14px;
+  letter-spacing: 0.04em; text-transform: uppercase; color: var(--ink);
+  cursor: pointer;
+}
+#panel .cards .meta button:hover { color: var(--accent); background: none; }
+#panel .cards .san { font-family: var(--mono); font-size: 10px; color: var(--ink-3); }
+#panel .cards .muted { font-size: 11px; }
+
+/* A numbered step, as Register and Setup lay their work out. */
+#panel .step { display: flex; gap: 12px; align-items: flex-start; margin: 16px 0; }
+#panel .step > .n {
+  width: 24px; height: 24px; flex: none; border: 1px solid var(--line-3, rgba(255,255,255,0.2));
+  display: inline-flex; align-items: center; justify-content: center;
+  font-family: var(--mono); font-size: 11px; color: var(--ink-3);
+}
+#panel .step[data-done="1"] > .n { border-color: var(--accent); background: var(--accent); color: var(--ground); }
+#panel .step[data-now="1"] > .n { border-color: var(--warn); color: var(--warn); }
+#panel .step > .t { display: flex; flex-direction: column; gap: 6px; flex: 1; min-width: 0; }
+#panel .step .head {
+  font-family: var(--head); font-weight: 700; font-size: 16px;
+  letter-spacing: 0.06em; text-transform: uppercase;
+}
+
+/* The key a control also answers to, on the control (design 3c). */
+#panel button > .key {
+  font-family: var(--mono); font-size: 10px; color: rgba(242, 239, 232, 0.45);
+  margin-left: 4px; text-transform: none; letter-spacing: 0;
+}
+#panel .build-step { min-width: 6.5rem; text-align: center; color: var(--ink-2); }
+#panel .build-gizmo > button { flex: 1 1 auto; }
+/* A switch: a row whose words are on the left and whose state is on the
+   right (designs 3c, 3f, 3h). The control is a button carrying aria-checked,
+   so the state is readable by something other than the eye. */
+#panel .row-switch {
+  display: flex; align-items: center; justify-content: space-between;
+  gap: 10px; margin: 10px 0;
+}
+#panel .spread > .label { flex: 0 0 auto; white-space: nowrap; }
+/* A checkbox in a switch row is drawn as the switch, so the two kinds of
+   control in the design do not look like two kinds of thing. */
+#panel .row-switch input[type="checkbox"] {
+  appearance: none; -webkit-appearance: none; margin: 0;
+}
+#panel .row-switch input[type="checkbox"], #panel .switch {
+  flex: 0 0 auto; width: 38px; height: 20px; padding: 0; border-radius: 10px;
+  border: 1px solid var(--edge); background: rgba(255, 255, 255, 0.05);
+  position: relative; cursor: pointer;
+}
+#panel .row-switch input[type="checkbox"]::after, #panel .switch::after {
+  content: ""; position: absolute; top: 2px; left: 2px;
+  width: 14px; height: 14px; border-radius: 50%; background: var(--ink-3);
+  transition: left 0.12s ease, background 0.12s ease;
+}
+#panel .row-switch input[type="checkbox"]:checked,
+#panel .switch[aria-checked="true"] {
+  background: var(--accent-dim); border-color: var(--accent);
+}
+#panel .row-switch input[type="checkbox"]:checked::after,
+#panel .switch[aria-checked="true"]::after { left: 20px; background: var(--accent); }
+#panel input[type="checkbox"] { accent-color: var(--accent); }
+
+/* A fact: its name on the left, its value on the right (design 3i). */
+#panel .sh-facts > li { align-items: baseline; }
+#panel .sh-facts > li > span:last-child { text-align: right; font-size: 12px; }

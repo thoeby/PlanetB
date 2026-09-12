@@ -76,21 +76,23 @@ each one stands, honestly, so nobody has to guess from a commit list.
 
 | surface | chrome | interior |
 |---|---|---|
-| World | done | the "next step" card is not built |
+| World | done | **done** — the next-step card (`client/js/nextstep.js`) says which of the four steps your land is on and opens the panel for it |
 | Your land | done | **done** — rows, counts, approvals stepper, people, proposals, drawn kinds, contents |
-| Place | done | untouched: no axis/step/snap row, no undo, no size limits |
-| Catalog | done | untouched: no cards, no register form as drawn |
-| Submit | done | untouched: no tile map, no price presets, no pool reference |
-| Render pool | done | untouched: no "this machine", no running job, no log toggle, no distance/pay sort |
-| Permission | done | untouched: no before/with toggle |
-| Wallet | done | untouched: no four totals, no movements list |
-| Share | done | untouched |
-| Admin | done | untouched: Kinds and Rules are not the two-column layout |
-| Setup | done | says who owns what you draw; the three numbered steps are not built |
+| Place | done | **done** — build-mode switch, pick, selected, Move/Turn/Size, axis, step, snap, delete/undo |
+| Catalog | done | **done** — find, a grid of cards, Register as three numbered steps |
+| Submit | done | **done** — which land, the four tile counts, price presets, what the pool pays, the total and the balance after |
+| Render pool | done | **done** — This machine (caps and the two switches), the queue sorted by distance or pay, render and try-again |
+| Permission | done | **done** — the before/with row-switch, what is waiting, approve or refuse with a note |
+| Wallet | done | **done** — the four totals, All/Paid/Earned, the movements, the bounty card |
+| Share | done | **done** — the link, and the four facts about what whoever opens it will find |
+| Admin | done | **done** — Kinds and Rules, each with the artboard's heading, lede and rows |
+| Setup | done | **done** — the three numbered steps, in order, with the one to do next marked |
 
 "Chrome" is the frame: the hotbar, the five-stage pipeline, the map, the panel
 docking, the type and colour. "Interior" is what the artboard shows inside the
-panel, which is where the features are. Nine interiors remain.
+panel, which is where the features are. All eleven are built; every one
+of them was opened in a browser against a seeded world (`tools/demo-world.sh`)
+with no page errors.
 
 ### Bugs found and fixed while doing it
 
@@ -119,6 +121,30 @@ panel, which is where the features are. Nine interiors remain.
   unstyled page passes every assertion about text.
 - **The fonts were never vendored.** `hud.css` has @font-face'd Rajdhani, Sora
   and JetBrains Mono since it was written; `make vendor` now fetches them.
+- **The Render pool said everything twice.** The old work panel and the new
+  one were both mounted in that tab, so the machine's capabilities, the
+  background switch and "help render the world" each appeared twice, in two
+  different styles. `workui.js` is the design's "This machine" section now and
+  the queue below it is the only other thing in the panel.
+- **The catalog's cards were three times too big.** A leftover `#panel #results`
+  rule outranked the `.cards` grid by id, so the grid the design draws was
+  never the one in force.
+- **The switches were bare grey boxes.** `.switch` and `.row-switch` were used
+  by three panels and styled by none; a checkbox in a switch row is drawn as
+  the switch now, so the two kinds of control look like one kind of thing.
+- **Setup asked for an account last.** Step 1 is the account, and the sign-in
+  form was mounted under steps 2 and 3 — so the panel read 2, 3, 1. The form
+  goes in step 1's slot, and the step to do next is marked from the session.
+- **The chrome's credits said "—" until you signed in through the form.** The
+  wallet tells the chrome what it learned, on every refresh.
+- **`make lint` was red** on 47 sqlfluff findings and **`make api-test` had a
+  failing assertion**, both before this round: the api test claimed the
+  best-ranked atom in the whole database and expected it to be the one it had
+  just opened, which it is only on an empty world. It claims from its own job
+  (`claim_for`) now.
+- **`tools/demo-world.sh` is new**: an operator, a ground, a piece of land with
+  three things drawn on it, a second player with a grant, and 250 credits — so
+  the panels have something to show and the browser can be pointed at it.
 
 ### The CRS rework: checked, and now held to it
 
@@ -131,6 +157,13 @@ Two holes, now closed by `server/test_crs_agree.py`:
   nothing noticed. Geometry typmods are stripped first — `geometry(Polygon,
   4326)` is a declaration, not a choice — and any bare SRID left in a migration
   after `db/0056` now fails the test.
+- **Twelve function bodies still spelled 4326 out** (`db/0060`). The codes were
+  in one place *and* in twelve others, which is not one place. Every one of them
+  is redefined through `world_srid()`, and the test now reads the applied
+  catalog rather than the files: no function body in the world that runs may
+  name a code. What is left written out is fixed when the DDL runs and cannot
+  call anything — the generated `geom` column in 0001, the CHECK in 0029, the
+  typmods, and 0053's one-time UPDATE.
 - **Nothing checked the copies agree.** `tile_bbox_merc()` in SQL and
   `crs.tile_bounds()` in Python are compared over five tiles from z0 to z18,
   to six decimal places, along with the pair of SRIDs they name. They agree

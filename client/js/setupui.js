@@ -12,24 +12,50 @@
 
 import * as api from './api.js';
 
+// Design 3k: three numbered steps, in the order they have to happen. Step 1
+// is the account, and client/js/auth.js mounts its form into the slot below —
+// the order on the screen is the order of the work, so the step that has to
+// come first is drawn first rather than wherever it happened to be mounted.
 const HTML = `
-<label>GeoServer address</label>
-<input class="gs-url" type="text" placeholder="localhost:8080/geoserver" autocomplete="off">
-<div class="row">
-  <input class="gs-user" type="text" placeholder="admin" autocomplete="off">
-  <input class="gs-pw" type="password" placeholder="password" autocomplete="off">
+<div class="step gs-step1" data-now="1">
+  <span class="n">1</span>
+  <div class="t">
+    <span class="head">Account</span>
+    <div class="note">Who you are in this world. Everything you draw, place or
+      are paid for belongs to this account.</div>
+    <div class="gs-account"></div>
+  </div>
 </div>
-<div class="row">
-  <button type="button" class="gs-connect primary">Connect</button>
+<div class="step gs-step2">
+  <span class="n">2</span>
+  <div class="t">
+    <span class="head">GeoServer</span>
+    <div class="note">The GeoServer that publishes your elevation data, and an
+      account on it that may create a workspace.</div>
+    <input class="gs-url" type="text" placeholder="localhost:8080/geoserver"
+      autocomplete="off">
+    <div class="row">
+      <input class="gs-user" type="text" placeholder="admin" autocomplete="off">
+      <input class="gs-pw" type="password" placeholder="password" autocomplete="off">
+      <button type="button" class="gs-connect primary">Connect</button>
+    </div>
+    <p class="gs-status status"></p>
+  </div>
 </div>
-<p class="gs-status status"></p>
-<label>Ground</label>
-<select class="gs-coverage"><option value="">connect first</option></select>
-<div class="row">
-  <button type="button" class="gs-done" disabled>Done</button>
-</div>
-<p class="gs-ground status"></p>
-<p class="gs-drawer note"></p>`;
+<div class="step gs-step3">
+  <span class="n">3</span>
+  <div class="t">
+    <span class="head">Ground</span>
+    <div class="note">The coverage the world stands on. Everything outside it
+      is off the edge of the world.</div>
+    <select class="gs-coverage"><option value="">connect first</option></select>
+    <div class="row">
+      <button type="button" class="gs-done" disabled>Use this ground</button>
+    </div>
+    <p class="gs-ground status"></p>
+    <p class="gs-drawer note"></p>
+  </div>
+</div>`;
 
 const post = async (path, body) => {
     const res = await fetch(path, {
@@ -100,6 +126,22 @@ async function sayWhoDraws(say) {
           + ' it becomes yours.', !who.from_ground);
 }
 
+// A step that is finished says so, and the one to do next is marked, so the
+// panel reads as a route rather than three forms.
+function markSteps(q, g) {
+    const signedIn = Boolean(api.claims());
+    const at = {
+        '.gs-step1': [signedIn, !signedIn],
+        '.gs-step2': [Boolean(g?.geoserver_url), signedIn && !g?.geoserver_url],
+        '.gs-step3': [Boolean(g?.coverage),
+            signedIn && Boolean(g?.geoserver_url) && !g?.coverage],
+    };
+    for (const [sel, [done, now]] of Object.entries(at)) {
+        q(sel).dataset.done = done ? '1' : '';
+        q(sel).dataset.now = now ? '1' : '';
+    }
+}
+
 export function mountSetup(host, { onGround = () => {} } = {}) {
     const box = document.createElement('div');
     box.innerHTML = HTML;
@@ -116,6 +158,7 @@ export function mountSetup(host, { onGround = () => {} } = {}) {
     async function show() {
         const g = await api.rpc('ground').catch(() => null);
         say('.gs-ground', describe(g));
+        markSteps(q, g);
         if (g?.geoserver_url && !q('.gs-url').value) q('.gs-url').value = g.geoserver_url;
         await sayWhoDraws(say);
         return g;
@@ -150,6 +193,8 @@ export function mountSetup(host, { onGround = () => {} } = {}) {
     q('.gs-done').onclick = () => done();
 
     show();
-    return { refresh: show, done,
+    // Where client/play.html mounts the sign-in form, so step 1 is a step
+    // rather than a form at the bottom of the panel.
+    return { refresh: show, done, account: q('.gs-account'),
         connect: () => connect(q, say).then((c) => { found = c; }) };
 }

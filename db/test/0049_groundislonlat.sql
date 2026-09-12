@@ -13,7 +13,7 @@ SELECT set_config('request.jwt.claims',
 -- world that no tile in Switzerland was inside.
 SELECT throws_ok(
     $$SELECT set_ground('http://gs', 'dem', 2633000, 1124000, 2640000, 1130000)$$,
-    NULL, NULL, 'an envelope in metres is refused');
+    null, null, 'an envelope in metres is refused');
 SELECT is((SELECT count(*)::int FROM ground), 0, 'and nothing is stored');
 
 SELECT lives_ok(

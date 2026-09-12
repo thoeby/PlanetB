@@ -13,7 +13,7 @@ DROP VIEW gis.area;
 CREATE VIEW gis.area AS SELECT id, geom, detail FROM area;
 
 CREATE VIEW gis.feature AS
-SELECT id, kind, geom FROM feature WHERE deleted_at IS NULL WITH CHECK OPTION;
+SELECT id, kind, geom FROM feature WHERE deleted_at IS null WITH CHECK OPTION;
 
 GRANT SELECT, INSERT, UPDATE, DELETE ON gis.area, gis.feature TO geoserver;
 

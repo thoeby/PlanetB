@@ -335,3 +335,41 @@ body {
   max-width: 32rem; padding: 12px 18px; text-align: center; line-height: 1.5;
   color: var(--ink-2); font-size: 13px; --cut: 10px;
 }
+
+/* The next-step card (design 3a): where the panel would be, but narrow, and
+   gone the moment there is nothing to do (client/js/nextstep.js). */
+#next {
+  position: absolute; left: 24px; top: 80px; width: 360px; padding: 14px 16px;
+  display: flex; flex-direction: column; gap: 12px; --cut: 10px;
+}
+#next .spread { display: flex; justify-content: space-between; align-items: center; }
+#next .label {
+  font-family: var(--head); font-weight: 600; font-size: 12px;
+  letter-spacing: 0.14em; text-transform: uppercase; color: var(--ink-3);
+}
+#next .close { background: none; border: 0; color: var(--ink-3); cursor: pointer;
+  font-size: 16px; line-height: 1; padding: 0 2px; }
+#next .close:hover { color: var(--ink); }
+#next .steps { display: flex; flex-direction: column; gap: 8px; font-size: 13px; }
+#next .steps > .s { display: flex; gap: 10px; align-items: center; }
+#next .steps > .s > .n {
+  width: 18px; height: 18px; flex: none; border: 1px solid rgba(255, 255, 255, 0.25);
+  display: inline-flex; align-items: center; justify-content: center;
+  font-family: var(--mono); font-size: 10px; color: var(--ink-3);
+}
+#next .steps > .s[data-done="1"] > .n {
+  border-color: var(--accent); background: var(--accent); color: var(--ground);
+}
+#next .steps > .s[data-now="1"] > .n { border-color: var(--warn); color: var(--warn); }
+#next > button.primary {
+  align-self: flex-start; padding: 0 16px; height: 36px;
+  background: var(--warn); color: var(--ground); border: 0;
+  font-family: var(--head); font-weight: 700; font-size: 14px;
+  letter-spacing: 0.08em; text-transform: uppercase; cursor: pointer;
+  clip-path: polygon(6px 0, 100% 0, 100% calc(100% - 6px),
+                     calc(100% - 6px) 100%, 0 100%, 0 6px);
+}
+#next > button.primary:hover { filter: brightness(1.1); }
+
+/* The panel and the card share the same corner: the card steps aside. */
+#panel[data-open="1"] ~ #next, #next:has(~ #panel[data-open="1"]) { display: none; }

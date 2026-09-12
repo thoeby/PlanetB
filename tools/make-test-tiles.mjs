@@ -223,6 +223,31 @@ function checkRoundTrip(name, splats, bytes) {
     }
 }
 
+// Build for the version the tile is waiting for, and if something dirtied it
+// while the atoms ran, build again for the new one. Publishing the old version
+// would be refused as stale (Invariant 3) and publishing the new one has no
+// verified sog behind it — which is the "no verified sog of yours" this used to
+// die of on a database that had anything else in it.
+async function buildFor(t, name, art) {
+    for (let attempt = 1; ; attempt++) {
+        const before = tileRow(t).expected_version;
+        const job = await api.rpc('ensure_job', { z: t.z, x: t.x, y: t.y });
+        for (;;) {
+            const atom = await claimFor(job);
+            if (!atom?.id) break;
+            const state = await runAtom(atom, t, art);
+            if (state !== 'verified') {
+                throw new Error(`${name}: ${atom.op} atom ${atom.id} went ${state}`);
+            }
+        }
+        const want = tileRow(t).expected_version;
+        if (want === before) return want;
+        if (attempt === 4) {
+            throw new Error(`${name}: something keeps dirtying it (version ${want})`);
+        }
+    }
+}
+
 async function compileTile(t) {
     const name = `${t.z}/${t.x}/${t.y}`;
     const row = tileRow(t);
@@ -245,25 +270,13 @@ async function compileTile(t) {
         heightSha: sha256(height.bytes), collidersSha: sha256(colliders),
     };
 
-    const job = await api.rpc('ensure_job', { z: t.z, x: t.x, y: t.y });
-    for (;;) {
-        const atom = await claimFor(job);
-        if (!atom?.id) break;
-        const state = await runAtom(atom, t, art);
-        if (state !== 'verified') {
-            throw new Error(`${name}: ${atom.op} atom ${atom.id} went ${state}`);
-        }
-    }
+    const want = await buildFor(t, name, art);
 
     // The manifest is the tile's whole description: nothing about a tile lives
     // in a file (ARCHITECTURE §2). geometric_error_m drives WP1.3's refinement.
     const b = tm.tileBbox(t.z, t.x, t.y);
     const span = tm.localFromLonLat(origin, b.east, b.north).x
         - tm.localFromLonLat(origin, b.west, b.north).x;
-    // What the tile is waiting for *now*: claiming land is an edit too
-    // (db/0047_landisground.sql), and the seed claims land and draws on it, so
-    // the version read before the atoms ran is not always the one to publish.
-    const want = tileRow(t).expected_version;
     const done = await api.rpc('publish_tile', {
         z: t.z, x: t.x, y: t.y,
         target_version: want,

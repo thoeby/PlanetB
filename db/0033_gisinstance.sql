@@ -8,7 +8,7 @@
 
 DROP VIEW gis.instance;
 CREATE VIEW gis.instance AS
-SELECT id, san, geom, h, yaw, pitch, roll, scale FROM instance WHERE deleted_at IS NULL;
+SELECT id, san, geom, h, yaw, pitch, roll, scale FROM instance WHERE deleted_at IS null;
 
 CREATE FUNCTION gis_instance_write() RETURNS trigger
 LANGUAGE plpgsql AS $$

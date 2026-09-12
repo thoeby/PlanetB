@@ -73,6 +73,7 @@ SELECT c.z - 2 AS z, c.x / 4 AS x, c.y / 4 AS y
 FROM tile c WHERE c.z = 14
   AND st_intersects(tile_bbox(c.z, c.x, c.y),
       (SELECT geom FROM area WHERE id = '00000000-0000-0000-0000-0000000000d1'))
+ORDER BY c.x, c.y
 LIMIT 1;
 SELECT ok(NOT is_leaf_tile((SELECT z FROM fine), (SELECT x FROM fine),
                            (SELECT y FROM fine)),

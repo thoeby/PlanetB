@@ -14,20 +14,31 @@ import * as api from './api.js';
 const TYPES = ['text', 'number', 'boolean', 'choice'];
 const GEOMETRIES = ['', 'polygon', 'line', 'point'];
 
+// Design 3j, left half: Kinds — what a thing may say about itself. The right
+// half is client/js/rulesui.js, mounted into the same tab under its own
+// heading, because the chrome docks one panel at a time.
 const HTML = `
-<label>What a thing may say about itself</label>
-<div class="row">
+<div class="section">
+  <div class="spread">
+    <span class="label">Kinds · what a thing may say about itself</span>
+    <button type="button" class="ad-newkind">New kind</button>
+  </div>
   <select class="ad-kind"></select>
-  <button type="button" class="ad-newkind">New kind</button>
 </div>
-<ul class="ad-props"></ul>
-<div class="ad-add">
-  <label>New property</label>
+<div class="section">
+  <span class="label">Properties of this kind</span>
+  <div class="note">These appear in the QGIS form for anything of this kind,
+    and in the rules below, which match on them.</div>
+  <ul class="ad-props rows"></ul>
+</div>
+<div class="ad-add section">
+  <span class="label">Add a property</span>
   <div class="row">
     <input class="ad-name" type="text" placeholder="leaf_type" autocomplete="off">
     <select class="ad-type"></select>
   </div>
-  <input class="ad-choices" type="text" placeholder="broadleaved, needleleaved" autocomplete="off">
+  <input class="ad-choices" type="text" placeholder="broadleaved, needleleaved"
+    autocomplete="off">
   <div class="row">
     <label class="ad-req"><input class="ad-required" type="checkbox"> required</label>
     <button type="button" class="ad-save primary">Add</button>

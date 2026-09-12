@@ -7,14 +7,23 @@
 import * as api from './api.js';
 import { WorkLoop, probeCaps } from './work.js';
 
+// Design 3f, the top of the Render pool: what this machine can do, and the two
+// switches that decide what it does with it. The queue below it is
+// client/js/renderpool.js — this is the only place the machine is described.
 const HTML = `
-<div class="work-gpu">probing…</div>
-<label class="work-bg"><input type="checkbox" class="work-toggle"> work in the background</label>
-<label class="work-bg"><input type="checkbox" class="work-world">
-  help render the world</label>
-<div class="work-state">idle</div>
-<div class="work-progress muted"></div>
-<pre class="work-log"></pre>`;
+<div class="section">
+  <div class="spread">
+    <span class="label">This machine</span>
+    <span class="work-gpu muted mono">probing…</span>
+  </div>
+  <label class="row-switch"><span>Work in the background</span>
+    <input type="checkbox" class="work-toggle"></label>
+  <label class="row-switch"><span>Help render the world</span>
+    <input type="checkbox" class="work-world"></label>
+  <div class="work-state muted"></div>
+  <div class="work-progress note mono"></div>
+  <pre class="work-log note mono"></pre>
+</div>`;
 
 const LOG_LINES = 6;
 

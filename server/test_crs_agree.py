@@ -34,9 +34,14 @@ BARE_SRID = re.compile(r"\b(?:4326|3857)\b")
 
 
 def code_of(text: str) -> str:
-    """The SQL with its comments and its geometry typmods removed."""
+    """The SQL with its comments, strings and geometry typmods removed.
+
+    A code inside a string is a message to a person ("draw in EPSG:4326"),
+    not a choice the code makes, so it comes out with the comments.
+    """
     code = "\n".join(line.split("--")[0] for line in text.splitlines())
     code = re.sub(r"/\*.*?\*/", " ", code, flags=re.DOTALL)
+    code = re.sub(r"'(?:[^']|'')*'", " ", code)
     # A typmod can hold another: geometry(Polygon, 4326) inside a cast chain.
     for _ in range(3):
         code, n = TYPMOD.subn(" ", code)
@@ -67,6 +72,46 @@ class SqlSaysItOnce(unittest.TestCase):
                 " tile_srid() — db/0056_crs.sql defines them once.")
 
 
+# The functions whose bodies may not name a code; what is left spelling one out
+# is fixed when the DDL runs and cannot call anything (the generated `geom`
+# column in 0001, the CHECK in 0029, the typmods, 0053's one-time UPDATE).
+CATALOG_QUERY = """
+SELECT n.nspname || '.' || p.proname, p.prosrc
+FROM pg_proc p JOIN pg_namespace n ON n.oid = p.pronamespace
+WHERE n.nspname IN ('public', 'api', 'gis', 'auth')
+  AND p.proname NOT IN ('world_srid', 'tile_srid')
+"""
+
+
+def dsn() -> str:
+    return (f"host={os.environ.get('PGHOST', 'localhost')}"
+            f" port={os.environ.get('PGPORT', '5432')}"
+            f" user={os.environ.get('PGUSER', 'postgres')}"
+            f" password={os.environ.get('PGPASSWORD', 'postgres')}"
+            f" dbname={os.environ['PGDATABASE']}")
+
+
+@unittest.skipUnless(os.environ.get("PGDATABASE"), "no database in the environment")
+class TheAppliedSchemaSaysItOnce(unittest.TestCase):
+    """Not one function body in the world that runs names an EPSG code.
+
+    The file-by-file check above only covers migrations written after the
+    rework; this covers what a reset actually leaves behind, which is the
+    thing that computes (db/0060_crssaysitonce.sql).
+    """
+
+    def test_no_function_body_names_a_code(self):
+        import psycopg
+
+        with psycopg.connect(dsn(), connect_timeout=5) as conn:
+            named = [name for name, body in conn.execute(CATALOG_QUERY)
+                     if BARE_SRID.search(code_of(body))]
+        self.assertEqual(
+            named, [],
+            "these applied function bodies spell a CRS out: call world_srid()"
+            " or tile_srid() instead, in a new migration.")
+
+
 @unittest.skipUnless(os.environ.get("PGDATABASE"), "no database in the environment")
 class CopiesAgree(unittest.TestCase):
     """tile_bbox_merc() in SQL and crs.tile_bounds() in Python are one grid."""
@@ -76,12 +121,7 @@ class CopiesAgree(unittest.TestCase):
     def test_the_grids_are_the_same(self):
         import psycopg
 
-        dsn = (f"host={os.environ.get('PGHOST', 'localhost')}"
-               f" port={os.environ.get('PGPORT', '5432')}"
-               f" user={os.environ.get('PGUSER', 'postgres')}"
-               f" password={os.environ.get('PGPASSWORD', 'postgres')}"
-               f" dbname={os.environ['PGDATABASE']}")
-        with psycopg.connect(dsn, connect_timeout=5) as conn:
+        with psycopg.connect(dsn(), connect_timeout=5) as conn:
             self.assertEqual(
                 conn.execute("SELECT world_srid(), tile_srid()").fetchone(),
                 (crs.WORLD_SRID, crs.TILE_SRID),

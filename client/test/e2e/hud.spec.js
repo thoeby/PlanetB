@@ -128,3 +128,27 @@ test('a key typed into a field is text, not a teleport', async ({ page }) => {
     await expect(field).toHaveValue('4');
     expect(errors, errors.join('\n')).toEqual([]);
 });
+
+// Every tab has an interior. The chrome was built before the panels were, and
+// the failure mode then was a panel that opened onto its lede and nothing
+// else — which looks like a broken page and reads like a missing feature.
+test('every panel has something in it', async ({ page }) => {
+    const errors = await boot(page);
+    const tabs = await page.locator('#tabs .tab').evaluateAll(
+        (nodes) => nodes.map((n) => n.dataset.tab));
+    expect(tabs).toHaveLength(11);
+    // A world with no ground opens on Setup by itself, so close whatever is
+    // docked before opening them one at a time.
+    await page.evaluate(() => window.splatworld.hud.show('World'));
+    await expect(page.locator('#panel')).toBeHidden();
+    for (const name of tabs.filter((n) => n !== 'World')) {
+        await page.evaluate((n) => window.splatworld.hud.show(n), name);
+        const body = page.locator('#panel .tab-body:visible');
+        await expect(body, `${name} opened onto nothing`)
+            .not.toHaveText(/^\s*$/);
+        const parts = await body.evaluate(
+            (n) => n.querySelectorAll(':scope > *:not(.lede)').length);
+        expect(parts, `${name} has only its lede`).toBeGreaterThan(0);
+    }
+    expect(errors, errors.join('\n')).toEqual([]);
+});

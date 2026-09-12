@@ -75,6 +75,7 @@
   import { InstancePreview } from './js/preview.js';
   import { XR_LIMITS, teleportTarget, xrRequested, xrSupported } from './js/xr.js';
   import { mountHud, whatIsMissing } from './js/hud.js';
+  import { mountNextStep } from './js/nextstep.js';
   import { drawMinimap } from './js/hudmap.js';
   import { mountSetup } from './js/setupui.js';
   import { mountAdmin } from './js/adminui.js';
@@ -93,7 +94,6 @@
   const world = document.createElement('p');
   world.id = 'world';
   world.className = 'muted mono';
-  hud.panel('Setup').append(world);
   const panelFor = (tab, id) => {
       const host = document.createElement('div');
       host.id = id;
@@ -131,6 +131,8 @@
   });
   // What the world may say about itself. The same rows drive this tool's forms,
   // QGIS's layer forms and the rules the compiler matches on (T3).
+  // What the streamer is doing, under the three steps it is the result of.
+  hud.panel('Setup').append(world);
   const admin = mountAdmin(hud.panel('Admin'));
   // The other half of the vocabulary: what the compiler makes of a thing that
   // carries those properties. It was a page of its own until T9.
@@ -240,10 +242,13 @@
   }
 
   // WP4.4: the wallet, and the bounty that puts a tile in front of a stranger.
-  const wallet = mountWallet(panelFor('Wallet', 'wallet'));
-  const showCredits = () => wallet.refresh().then(
-      (account) => hud.stat('credits',
-          account ? Number(account.amount).toFixed(2) : '—'));
+  // Whatever the wallet learns, the corner of the chrome says — so a balance
+  // that changed because a bounty was paid does not wait for a sign-in.
+  const wallet = mountWallet(panelFor('Wallet', 'wallet'), {
+      onBalance: (account) => hud.stat('credits',
+          account ? Number(account.amount).toFixed(2) : '—'),
+  });
+  const showCredits = () => wallet.refresh();
   showCredits();
 
   const build = mountBuild(panelFor('Place', 'build'), {
@@ -262,6 +267,11 @@
           .then(() => build.refresh()),
   });
 
+  // What Submit and Permission last counted, which is what the next-step card
+  // needs and neither panel has to be open for.
+  let lastCount = null;
+  let lastWaiting = 0;
+
   // T6: what you built has to be compiled before anybody else can see it.
   // Submit puts your tiles in a public pool at a price; the pool is where
   // anybody's tab takes them.
@@ -270,6 +280,7 @@
       onCount: (p) => {
           // The route through the app, as the chrome shows it. Every number
           // is one area_progress already reports; none is invented here.
+          lastCount = p;
           hud.stat('placed', String(land.things?.().length ?? 0));
           hud.stat('pool', `${p.open_jobs ?? 0} tiles`);
           hud.stat('rendered', `${p.published ?? 0} / ${p.tiles ?? 0}`);
@@ -303,7 +314,11 @@
           return origin.geodeticOf({ x: p.x, y: p.y, z: p.z });
       },
       onDecided: () => { land.refresh(); submit.refresh(); },
-      onCount: (n) => { hud.badge('Permission', n); hud.stat('awaiting', String(n)); },
+      onCount: (n) => {
+          lastWaiting = n;
+          hud.badge('Permission', n);
+          hud.stat('awaiting', String(n));
+      },
   });
 
   // T8: the link, to hand to somebody.
@@ -328,7 +343,7 @@
   // has walked somewhere else — or when who they are changes, below.
   let asked = { lon: 0, lat: 0, at: 0 };
 
-  mountAuth(panelFor('Setup', 'auth'), {
+  mountAuth(setup.account, {
     onChange: () => {
         // Who you are changes what the land under you says, and the answer is
         // cached until you walk somewhere else — so forget it.
@@ -442,18 +457,36 @@
 
   let onMyLand = null;
 
-  // What is missing, in the middle of the screen. Re-asked when the answer can
-  // have changed — a tile publishing, land appearing — not every frame.
+  // What is missing, and what to do about it. The sentence is for a world
+  // that is not set up yet — no ground, no land — because until then there is
+  // no route to be on. Once there is land, the card (design 3a) says which of
+  // the four steps that land is on and opens the panel that does the next one.
+  const nextStep = mountNextStep(document.getElementById('hud'), {
+      open: (name) => hud.show(name),
+  });
+
   function sayWhatIsMissing() {
       const areas = land.areas() ?? [];
-      hud.notice(whatIsMissing({
+      const published = [...streamer.tiles.values()]
+          .filter((t) => t.published_version > 0).length;
+      const missing = whatIsMissing({
           coverage: ground?.coverage,
           areas: areas.length,
           mine: areas.filter((a) => a.mine).length,
           things: onMyLand,
-          published: [...streamer.tiles.values()].filter(
-              (t) => t.published_version > 0).length,
-      }));
+          published,
+      });
+      // Both would be shouting the same thing at once.
+      const onTheRoute = areas.some((a) => a.mine) && ground?.coverage;
+      hud.notice(onTheRoute ? '' : missing);
+      const mine = areas.find((a) => a.mine) ?? areas[0];
+      nextStep.show({
+          things: (land.things?.() ?? []).length,
+          changed: Math.max(0, (lastCount?.waiting ?? 0) - (lastCount?.open_jobs ?? 0)),
+          open: lastCount?.open_jobs ?? 0,
+          waiting: lastWaiting,
+          published,
+      }, onTheRoute ? (mine?.rules?.name || 'your land') : null);
   }
   setInterval(sayWhatIsMissing, 5000);
   sayWhatIsMissing();

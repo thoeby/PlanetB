@@ -292,6 +292,10 @@ export function mountHud(doc) {
     }
 
     bindKeys(doc, show);
+    // The world is what the tab opens on: every panel hidden, nothing docked.
+    // Said once here rather than left to the markup, so the frame's state and
+    // `open` cannot start out disagreeing.
+    show(open);
 
     return {
         show,

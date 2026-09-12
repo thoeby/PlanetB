@@ -10,34 +10,10 @@
 // a key. Snapping is on by default: a quarter metre, fifteen degrees, a tenth.
 
 import * as api from './api.js';
+import { HTML } from './buildhtml.js';
 import { placementDiff, propose } from './areas.js';
 import { Edits, SNAP, areasAt, raycastGround, snapTo, tilesAt } from './build.js';
 import { searchAssets } from './catalog.js';
-
-const HTML = `
-<label class="build-on"><input type="checkbox" class="build-toggle"> build mode</label>
-<div class="build-where muted">—</div>
-<input class="build-search" type="search" placeholder="catalog: search assets">
-<ul class="build-assets"></ul>
-<div class="build-sel muted">nothing selected</div>
-<div class="build-gizmo">
-  <button type="button" data-mode="move">move</button>
-  <button type="button" data-mode="turn">turn</button>
-  <button type="button" data-mode="size">size</button>
-</div>
-<div class="build-gizmo">
-  <button type="button" data-axis="x">x</button>
-  <button type="button" data-axis="y">up</button>
-  <button type="button" data-axis="z">z</button>
-  <button type="button" class="build-less">&minus;</button>
-  <button type="button" class="build-more">+</button>
-  <label class="build-snap"><input type="checkbox" class="build-snap-on" checked> snap</label>
-</div>
-<div class="build-acts">
-  <button type="button" class="build-del">delete</button>
-  <button type="button" class="build-undo">undo</button>
-</div>
-<ul class="build-tiles"></ul>`;
 
 const AXES = ['x', 'y', 'z'];
 const MODES = { move: 'move', turn: 'turn', size: 'size' };
@@ -306,6 +282,16 @@ function wire(host, state, { toggle, catalog, acts, say }) {
     q('.build-more').onclick = () => acts.step(1);
 }
 
+// What a step is, in the unit the chosen mode moves in — the number the two
+// buttons beside it add and take away. Fine steps are a fifth of it
+// (the `snap` branch in nudge()).
+function stepWords(state) {
+    const size = state.snap ? STEP[state.mode] : STEP[state.mode] / 5;
+    if (state.mode === 'turn') return `step ${size}°`;
+    if (state.mode === 'size') return `step ${size}×`;
+    return `step ${size.toFixed(2)} m`;
+}
+
 // The buttons say what is chosen, so nothing on this panel is only in
 // somebody's head (T5).
 function showChosen(host, state) {
@@ -315,6 +301,8 @@ function showChosen(host, state) {
     for (const b of host.querySelectorAll('[data-axis]')) {
         b.dataset.on = b.dataset.axis === state.axis ? '1' : '';
     }
+    const step = host.querySelector('.build-step');
+    if (step) step.textContent = stepWords(state);
 }
 
 export function mountBuild(host, ctx) {

@@ -16,10 +16,20 @@ import * as api from './api.js';
 const OPS = ['eq', 'ne', 'in', 'has', 'lt', 'lte', 'gt', 'gte', 'exists', 'missing'];
 const NO_VALUE = ['exists', 'missing'];
 
+// Design 3j, right half: Rules — what a drawn thing becomes when a tile is
+// compiled. Read as: a forest whose species is birch becomes tapered trunks
+// 10-18 m high.
 const HTML = `
-<label>What a drawn thing becomes</label>
-<ul class="ru-list"></ul>
-<div class="row"><button type="button" class="ru-add">New rule</button></div>
+<div class="section">
+  <div class="spread">
+    <span class="label">Rules · what a drawn thing becomes</span>
+    <button type="button" class="ru-add">New rule</button>
+  </div>
+  <div class="note">The first rule whose conditions all hold decides what the
+    compiler builds. A rule with no conditions catches everything the others
+    left.</div>
+  <ul class="ru-list rows"></ul>
+</div>
 <div class="ru-editor" hidden>
   <label>Name</label>
   <input class="ru-name" placeholder="spruce">

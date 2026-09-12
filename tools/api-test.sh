@@ -105,8 +105,11 @@ is "ensure_job is idempotent" "$JOB" \
     "$(code POST /rpc/ensure_job "{\"z\":$Z,\"x\":$X,\"y\":$Y}" "$OWNER_JWT" > /dev/null; tr -d '"' < "$body")"
 
 is "anon cannot claim work" 401 "$(code POST /rpc/claim_atom '{"caps":{}}')"
+# claim_for, not claim_atom: claim_atom hands out the best-ranked atom in the
+# whole world, and on a database that has just run the torture suite that is
+# somebody else's tile. The pool's own call takes the job this test opened.
 is "a player can claim an atom" 200 \
-    "$(code POST /rpc/claim_atom '{"caps":{"webgpu":true,"vram_gb":8}}' "$OWNER_JWT")"
+    "$(code POST /rpc/claim_for "{\"job_id\":$JOB,\"caps\":{\"webgpu\":true,\"vram_gb\":8}}" "$OWNER_JWT")"
 # Since db/0016_sample.sql a z14 job starts with the assemble atom: the
 # baseline tile is built from the world, not merged from children it has none of.
 grep -q '"op" *: *"assemble"' "$body" && ok "the claimed atom is the assemble" \

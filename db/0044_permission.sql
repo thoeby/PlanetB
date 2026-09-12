@@ -21,7 +21,7 @@ ALTER TABLE tile
     ADD COLUMN candidate_by uuid,
     ADD COLUMN candidate_at timestamptz,
     ADD COLUMN refused_note text;
-CREATE INDEX tile_candidate_idx ON tile (z, x, y) WHERE candidate_sha256 IS NOT NULL;
+CREATE INDEX tile_candidate_idx ON tile (z, x, y) WHERE candidate_sha256 IS NOT null;
 
 -- The viewer reads the candidate through the same row it reads the published
 -- tile from, so the switch has a sha to ask for (client/js/traverse.js). The
@@ -143,8 +143,8 @@ END
 $$;
 
 -- What is waiting for you to look at it, nearest first if you say where you are.
-CREATE FUNCTION my_candidates(p_lon double precision DEFAULT NULL,
-                              p_lat double precision DEFAULT NULL,
+CREATE FUNCTION my_candidates(p_lon double precision DEFAULT null,
+                              p_lat double precision DEFAULT null,
                               p_limit int DEFAULT 40) RETURNS jsonb
 LANGUAGE sql STABLE SET search_path = public AS $$
 SELECT coalesce(jsonb_agg(c ORDER BY c ->> 'metres', c ->> 'at'), '[]'::jsonb)
@@ -309,8 +309,8 @@ CREATE FUNCTION api.approve_tile(z int, x int, y int) RETURNS boolean
 LANGUAGE sql AS $$SELECT public.approve_tile(z, x, y)$$;
 CREATE FUNCTION api.refuse_tile(z int, x int, y int, note text DEFAULT '')
 RETURNS boolean LANGUAGE sql AS $$SELECT public.refuse_tile(z, x, y, note)$$;
-CREATE FUNCTION api.my_candidates(lon double precision DEFAULT NULL,
-                                  lat double precision DEFAULT NULL,
+CREATE FUNCTION api.my_candidates(lon double precision DEFAULT null,
+                                  lat double precision DEFAULT null,
                                   "limit" int DEFAULT 40) RETURNS jsonb
 LANGUAGE sql STABLE AS $$SELECT public.my_candidates(lon, lat, "limit")$$;
 

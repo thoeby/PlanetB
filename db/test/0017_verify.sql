@@ -95,7 +95,7 @@ SELECT set_config('request.jwt.claims',
 SELECT throws_ok(
     format($$SELECT approve_tile(%s, %s, %s)$$,
            (SELECT z FROM tt), (SELECT x FROM tt), (SELECT y FROM tt)),
-    '42501', NULL, 'a passer-by does not get to approve somebody''s land');
+    '42501', null, 'a passer-by does not get to approve somebody''s land');
 
 SELECT set_config('request.jwt.claims',
     json_build_object('sub', owner_id, 'role', 'player')::text, true) FROM ids;
@@ -105,7 +105,7 @@ SELECT is((SELECT t.published_version FROM tile t, tt
            WHERE t.z = tt.z AND t.x = tt.x AND t.y = tt.y), (SELECT v FROM ver),
     'and then everybody sees it');
 SELECT is((SELECT t.candidate_sha256 FROM tile t, tt
-           WHERE t.z = tt.z AND t.x = tt.x AND t.y = tt.y), NULL,
+           WHERE t.z = tt.z AND t.x = tt.x AND t.y = tt.y), null,
     'with nothing left waiting');
 
 ROLLBACK;

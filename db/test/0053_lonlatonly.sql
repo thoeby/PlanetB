@@ -35,7 +35,7 @@ SELECT throws_ok(
     $$INSERT INTO feature (area_id, kind, geom) VALUES
       ('00000000-0000-0000-0000-0000000e1002', 'forest',
        st_setsrid(st_makeenvelope(875662, 5826336, 878108, 5828782, 4326), 4326))$$,
-    '22023', NULL, 'Mercator metres labelled 4326 are refused, not stored');
+    '22023', null, 'Mercator metres labelled 4326 are refused, not stored');
 
 -- A geometry with no SRID at all is lon/lat by declaration, as it always was.
 INSERT INTO feature (id, area_id, kind, geom) VALUES
@@ -46,7 +46,7 @@ SELECT is((SELECT st_srid(geom)::int FROM feature
            WHERE id = '00000000-0000-0000-0000-0000000e1004'), 4326,
           'an unset SRID is taken as longitude and latitude');
 
-SELECT is(st_srid(as_lonlat(null)), NULL, 'and nothing is still nothing');
+SELECT is(st_srid(as_lonlat(null)), null, 'and nothing is still nothing');
 
 SELECT * FROM finish();
 ROLLBACK;

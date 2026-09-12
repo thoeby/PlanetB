@@ -46,15 +46,15 @@ GRANT SELECT ON api.feature TO anon, player, admin;
 GRANT INSERT, UPDATE, DELETE ON api.feature TO player, admin;
 
 CREATE VIEW gis.feature_road AS
-SELECT * FROM feature WHERE kind = 'road' AND deleted_at IS NULL WITH CHECK OPTION;
+SELECT * FROM feature WHERE kind = 'road' AND deleted_at IS null WITH CHECK OPTION;
 CREATE VIEW gis.feature_forest AS
-SELECT * FROM feature WHERE kind = 'forest' AND deleted_at IS NULL WITH CHECK OPTION;
+SELECT * FROM feature WHERE kind = 'forest' AND deleted_at IS null WITH CHECK OPTION;
 CREATE VIEW gis.feature_water AS
-SELECT * FROM feature WHERE kind = 'water' AND deleted_at IS NULL WITH CHECK OPTION;
+SELECT * FROM feature WHERE kind = 'water' AND deleted_at IS null WITH CHECK OPTION;
 CREATE VIEW gis.feature_footprint AS
-SELECT * FROM feature WHERE kind = 'footprint' AND deleted_at IS NULL WITH CHECK OPTION;
+SELECT * FROM feature WHERE kind = 'footprint' AND deleted_at IS null WITH CHECK OPTION;
 CREATE VIEW gis.feature_terrainmod AS
-SELECT * FROM feature WHERE kind = 'terrainmod' AND deleted_at IS NULL WITH CHECK OPTION;
+SELECT * FROM feature WHERE kind = 'terrainmod' AND deleted_at IS null WITH CHECK OPTION;
 ALTER VIEW gis.feature_road ALTER COLUMN kind SET DEFAULT 'road';
 ALTER VIEW gis.feature_forest ALTER COLUMN kind SET DEFAULT 'forest';
 ALTER VIEW gis.feature_water ALTER COLUMN kind SET DEFAULT 'water';

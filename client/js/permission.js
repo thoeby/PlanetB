@@ -10,46 +10,7 @@
 // through the same world shows the waiting version in place.
 
 import * as api from './api.js';
-
-const HTML = `
-<label><input type="checkbox" class="pm-show"> Show what is waiting, in place</label>
-<div class="row">
-  <button type="button" class="pm-refresh">Refresh</button>
-</div>
-<ul class="pm-list"></ul>
-<p class="pm-status status"></p>`;
-
-const el = (tag, props = {}, ...kids) => {
-    const node = Object.assign(document.createElement(tag), props);
-    node.append(...kids);
-    return node;
-};
-
-const far = (metres) => (!metres ? 'here'
-    : metres < 1000 ? `${Math.round(metres)} m away`
-        : `${(metres / 1000).toFixed(1)} km away`);
-
-function row(entry, acts) {
-    const go = el('button', { type: 'button', className: 'pm-go',
-        textContent: 'Go and look' });
-    go.onclick = () => acts.go(entry);
-    const yes = el('button', { type: 'button', className: 'pm-yes primary',
-        textContent: 'Approve' });
-    yes.onclick = () => acts.approve(entry);
-    const note = el('input', { type: 'text', className: 'pm-note',
-        placeholder: 'why not (optional)' });
-    const no = el('button', { type: 'button', className: 'pm-no',
-        textContent: 'Refuse' });
-    no.onclick = () => acts.refuse(entry, note.value);
-    return el('li', { className: 'pm-entry' },
-        el('div', {}, el('b', { textContent: `${entry.z}/${entry.x}/${entry.y}` }),
-            el('span', { className: 'muted', textContent: ` ${far(entry.metres)}` })),
-        el('div', { className: 'muted', textContent: entry.was_published
-            ? 'replaces what is published there'
-            : 'nothing is published there yet' }),
-        el('div', { className: 'pm-acts' }, go, yes),
-        el('div', { className: 'pm-acts' }, note, no));
-}
+import { beforeWith, decide, el, tileId, waiting } from './permissionui.js';
 
 // Say yes or no, then re-read the list and only then say what happened — a
 // refresh that ran afterwards would wipe the one line that says it.
@@ -67,69 +28,97 @@ async function decided({ say, onDecided, refresh }, rpc, args, said) {
     say(msg, bad);
 }
 
-// The list, whatever there is to show: signed out, nothing waiting, or rows.
-function fill(list, rows, acts) {
-    if (!rows) {
-        list.replaceChildren(el('li', { className: 'muted',
-            textContent: 'sign in to see what is waiting on your land' }));
-        return;
-    }
-    list.replaceChildren(...rows.map((r) => row(r, acts)));
-    if (!rows.length) {
-        list.append(el('li', { className: 'muted',
-            textContent: 'nothing waiting: every rendered tile on your land'
-                + ' has been approved' }));
-    }
+// Go and look, then yes or no. A refusal without a note is refused here: the
+// note is the only thing that reaches whoever rendered it.
+function actionsOf(decideWith, onGo, say) {
+    return {
+        go: (entry) => onGo(entry.centre ?? {}),
+        approve: (entry) => decideWith('approve_tile',
+            { z: entry.z, x: entry.x, y: entry.y },
+            `${tileId(entry)} is published — everybody sees it now`),
+        refuse: (entry, note) => {
+            if (!String(note ?? '').trim()) {
+                say('a refusal carries a note back: say what is wrong with it', true);
+                return Promise.resolve();
+            }
+            return decideWith('refuse_tile',
+                { z: entry.z, x: entry.x, y: entry.y, note },
+                `${tileId(entry)} refused; it can be rendered again`);
+        },
+    };
+}
+
+// The nodes the panel is made of, once.
+function partsOf(host) {
+    const ui = {
+        scope: el('div', { className: 'note' }),
+        toggle: el('div', { className: 'section' }),
+        count: el('span', { className: 'label', textContent: 'Waiting for you' }),
+        again: el('button', { type: 'button', className: 'pm-refresh',
+            textContent: 'Refresh' }),
+        list: el('ul', { className: 'rows' }),
+        card: el('div', { className: 'section' }),
+        status: el('p', { className: 'pm-status status' }),
+    };
+    ui.head = el('div', { className: 'spread' }, ui.count, ui.again);
+    host.append(ui.scope, ui.toggle, ui.head, ui.list, ui.card, ui.status);
+    return ui;
 }
 
 export function mountPermission(host, { streamer, onGo = () => {},
     where = () => ({}), onDecided = () => {}, onCount = () => {} } = {}) {
-    const box = el('div');
-    box.innerHTML = HTML;
-    host.append(box);
-    const q = (sel) => box.querySelector(sel);
+    const ui = partsOf(host);
+    const { scope, toggle, count, list, card, status } = ui;
+
+    const state = { rows: [], chosen: null, showing: false };
     const say = (msg, bad = false) => {
-        q('.pm-status').textContent = msg;
-        q('.pm-status').dataset.bad = bad ? '1' : '';
+        status.textContent = msg;
+        status.dataset.bad = bad ? '1' : '';
     };
 
-    const decide = (rpc, args, said) =>
+    const decideWith = (rpc, args, said) =>
         decided({ say, onDecided, refresh }, rpc, args, said);
 
-    const acts = {
-        go: (entry) => onGo(entry.centre ?? {}),
-        approve: (entry) => decide('approve_tile',
-            { z: entry.z, x: entry.x, y: entry.y },
-            `${entry.z}/${entry.x}/${entry.y} is published — everybody sees it now`),
-        refuse: (entry, note) => decide('refuse_tile',
-            { z: entry.z, x: entry.x, y: entry.y, note: note || '' },
-            `${entry.z}/${entry.x}/${entry.y} refused; it can be rendered again`),
-    };
+    const acts = actionsOf(decideWith, onGo, say);
+
+    function draw() {
+        toggle.replaceChildren(beforeWith(state.showing, (on) => {
+            state.showing = on;
+            if (streamer) streamer.candidates = on;
+            say(on ? 'showing what is waiting — it may take a moment to load'
+                : 'showing what is published');
+            draw();
+        }));
+        count.textContent = state.rows?.length
+            ? `${state.rows.length} waiting for you` : 'Waiting for you';
+        list.replaceChildren(...waiting(state.rows, state.chosen,
+            (e) => { state.chosen = tileId(e); draw(); }));
+        const one = (state.rows ?? []).find((e) => tileId(e) === state.chosen);
+        card.replaceChildren(...decide(one, acts));
+    }
 
     async function refresh() {
         if (!api.token()) {
-            fill(q('.pm-list'), null, acts);
-            say('');
+            state.rows = null;
+            scope.textContent = '';
+            draw();
             onCount(0);
             return [];
         }
         const { lon, lat } = where() ?? {};
-        const rows = await api.rpc('my_candidates',
+        state.rows = await api.rpc('my_candidates',
             { lon: lon ?? null, lat: lat ?? null, limit: 40 }).catch(() => []);
-        fill(q('.pm-list'), rows, acts);
-        say(rows.length ? `${rows.length} waiting for you` : '');
-        onCount(rows.length);
-        return rows;
+        if (!state.rows.some((e) => tileId(e) === state.chosen)) {
+            state.chosen = state.rows[0] ? tileId(state.rows[0]) : null;
+        }
+        scope.textContent = 'A rendered tile on land you decide for waits here'
+            + ' until you look at it and say yes or no.';
+        draw();
+        onCount(state.rows.length);
+        return state.rows;
     }
 
-    q('.pm-refresh').onclick = refresh;
-    q('.pm-show').onchange = (e) => {
-        if (streamer) streamer.candidates = e.target.checked;
-        say(e.target.checked
-            ? 'showing what is waiting — it may take a moment to load'
-            : 'showing what is published');
-    };
-
+    ui.again.onclick = () => refresh();
     refresh();
-    return { refresh, acts, showing: () => q('.pm-show').checked };
+    return { refresh, acts, showing: () => state.showing };
 }

@@ -40,7 +40,7 @@ SELECT set_config('request.jwt.claims',
 SELECT ok(NOT may_retry_job((SELECT jid FROM jobs)),
     'a passer-by is not offered it');
 SELECT throws_ok(format($$SELECT retry_job(%s)$$, (SELECT jid FROM jobs)),
-    '42501', NULL, 'and cannot');
+    '42501', null, 'and cannot');
 
 -- The owner's -----------------------------------------------------------
 SELECT set_config('request.jwt.claims',

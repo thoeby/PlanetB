@@ -53,8 +53,8 @@ $$;
 -- What is waiting to be rendered, nearest and best-paid first. Public: anybody
 -- may look, and a tab that is not signed in can still show the work it could do
 -- if its owner signed in.
-CREATE FUNCTION render_pool(p_lon double precision DEFAULT NULL,
-                            p_lat double precision DEFAULT NULL,
+CREATE FUNCTION render_pool(p_lon double precision DEFAULT null,
+                            p_lat double precision DEFAULT null,
                             p_limit int DEFAULT 40) RETURNS jsonb
 -- search_path is pinned on every reader here for the same reason as in
 -- db/0044_permission.sql: PostgREST puts `api` first, and api.tile is a
@@ -157,8 +157,8 @@ CREATE FUNCTION api.submit_area(area_id uuid, price numeric DEFAULT 0) RETURNS j
 LANGUAGE sql AS $$SELECT public.submit_area(area_id, price)$$;
 GRANT EXECUTE ON FUNCTION api.submit_area(uuid, numeric) TO player, admin;
 
-CREATE FUNCTION api.render_pool(lon double precision DEFAULT NULL,
-                                lat double precision DEFAULT NULL,
+CREATE FUNCTION api.render_pool(lon double precision DEFAULT null,
+                                lat double precision DEFAULT null,
                                 "limit" int DEFAULT 40) RETURNS jsonb
 LANGUAGE sql STABLE AS $$SELECT public.render_pool(lon, lat, "limit")$$;
 GRANT EXECUTE ON FUNCTION api.render_pool(double precision, double precision, int)

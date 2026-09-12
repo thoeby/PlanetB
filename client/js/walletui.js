@@ -1,87 +1,178 @@
-// walletui.js — the wallet panel: what I have, where it went, and a bounty on
-// a tile I want drawn.
+// walletui.js — the wallet panel (design 3h): what you have, what is held
+// against work you asked for, what you paid, what you earned, and every
+// movement that touched your account.
 //
 // A bounty is escrowed the moment it is set (db/0006_publish.sql) and paid out
-// pro rata by reported GPU time when the tile publishes. That is why the panel
-// says "escrowed" rather than "spent": the money is out of the wallet and not
-// yet anyone else's.
+// pro rata by reported GPU time when the tile publishes. That is why "held"
+// is its own number and not part of "paid": the money is out of the wallet and
+// not yet anybody else's.
 
+import * as api from './api.js';
 import { myAccount, myLedger, setBounty } from './wallet.js';
-
-const HTML = `
-<label>What you have</label>
-<div class="wallet-balance muted">—</div>
-<label>What moved</label>
-<ul class="wallet-ledger"></ul>
-<label>What to pay for the tile you are looking at</label>
-<div class="wallet-bounty">
-  <input class="wallet-amount" type="number" min="0" step="1" value="10">
-  <span class="wallet-target muted">no tile chosen</span>
-  <button type="button" class="wallet-set" disabled>set bounty</button>
-</div>
-<p class="wallet-status muted"></p>`;
 
 const el = (tag, props = {}, ...kids) => {
     const node = Object.assign(document.createElement(tag), props);
-    node.append(...kids);
+    node.append(...kids.filter((k) => k !== null && k !== undefined));
     return node;
 };
 
-const sign = (n) => (n > 0 ? `+${n}` : String(n));
+const cr = (n) => (Number(n) || 0).toFixed(2);
+const signed = (n) => `${n > 0 ? '+' : n < 0 ? '−' : ''}${cr(Math.abs(n))}`;
 
-// A ledger line reads as what it was for: the ref is the world's own word for
-// it (bounty:{job}, pay:{job}:{worker}, buy:{san}:{user}).
-function ledgerRow(row) {
-    return el('li', { className: 'wallet-line' },
-        el('span', { className: 'wallet-delta', textContent: sign(row.delta) }),
-        el('span', { className: 'muted', textContent: ` ${row.ref}` }));
+// The ref is the world's own word for what a movement was for
+// (bounty:{job}, pay:{job}:{worker}, buy:{san}:{user}).
+const WORDS = {
+    bounty: 'Held · render pool',
+    pay: 'Rendered a tile',
+    buy: 'Product licence',
+    topup: 'Added credits',
+    refund: 'Returned · render pool',
+};
+
+function title(row) {
+    const kind = String(row.ref ?? '').split(':')[0];
+    const words = WORDS[kind];
+    if (words) return row.delta > 0 && kind === 'pay' ? 'Earned · rendered a tile' : words;
+    return row.delta > 0 ? 'Earned' : 'Paid';
 }
 
-export function mountWallet(host) {
-    host.innerHTML = HTML;
-    const q = (sel) => host.querySelector(sel);
-    const state = { account: null, job: null, tile: null };
+const when = (at) => (at
+    ? new Date(at).toLocaleDateString(undefined, { day: 'numeric', month: 'short' })
+    : '');
 
+const tile = (v, l, tone) => el('div', { className: 'tile', 'data-tone': tone ?? '' },
+    el('div', { className: 'v', textContent: v }),
+    el('div', { className: 'l', textContent: l }));
+
+// What the pool still owes back: the bounties on jobs that are open, which are
+// the ones this wallet is holding money against.
+function heldFor(rows, open) {
+    const jobs = new Set((open ?? []).map((j) => String(j.job)));
+    let held = 0;
+    let n = 0;
+    for (const r of rows) {
+        const [kind, job] = String(r.ref ?? '').split(':');
+        if (kind === 'bounty' && jobs.has(job)) {
+            held += Math.abs(r.delta);
+            n += 1;
+        }
+    }
+    return { held, n };
+}
+
+export function mountWallet(host, { onBalance = () => {} } = {}) {
+    const totals = el('div', { className: 'tiles' });
+    const head = el('div', { className: 'spread' });
+    const rows = el('ul', { className: 'rows' });
+    const bounty = el('div', { className: 'section' });
+    const status = el('p', { className: 'wallet-status status' });
+    host.append(totals, bounty, head, rows, status);
+
+    const state = { account: null, job: null, tile: null, rows: [], open: [], filter: 'All' };
     const say = (msg, bad = false) => {
-        const node = q('.wallet-status');
-        node.textContent = msg;
-        node.className = `wallet-status ${bad ? 'bad' : 'muted'}`;
+        status.textContent = msg;
+        status.dataset.bad = bad ? '1' : '';
+    };
+
+    const draw = () => {
+        drawTotals(totals, state);
+        drawHead(head, state, draw);
+        drawRows(rows, state);
+        bounty.replaceChildren(...bountyCard(state, say, refresh));
     };
 
     async function refresh() {
-        const account = await myAccount();
-        state.account = account;
-        q('.wallet-balance').textContent = account
-            ? `${account.amount} in ${account.id.slice(0, 8)}`
-            : 'sign in to see your wallet';
-        const rows = account ? await myLedger(account.id) : [];
-        q('.wallet-ledger').replaceChildren(...rows.map(ledgerRow));
-        return account;
+        state.account = await myAccount();
+        state.rows = state.account ? await myLedger(state.account.id, 60) : [];
+        state.open = await api.rpc('render_pool', { limit: 200 }).catch(() => []);
+        draw();
+        onBalance(state.account);
+        return state.account;
     }
 
     // Build mode hands the panel the tile the player is looking at, so a
     // bounty is set on the job that would draw it.
-    function target(tile, job) {
-        state.tile = tile;
+    function target(t, job) {
+        state.tile = t;
         state.job = job;
-        q('.wallet-target').textContent = tile
-            ? `${tile.z}/${tile.x}/${tile.y}${job ? ` · job ${job}` : ' · no job yet'}`
-            : 'no tile chosen';
-        q('.wallet-set').disabled = !job;
+        draw();
         return state;
     }
 
-    q('.wallet-set').onclick = async () => {
+    refresh();
+    return { refresh, target, state, say };
+}
+
+function drawTotals(host, state) {
+    if (!state.account) {
+        host.replaceChildren(el('div', { className: 'muted',
+            textContent: 'Sign in to see your wallet.' }));
+        return;
+    }
+    const { held, n } = heldFor(state.rows, state.open);
+    const sum = (f) => state.rows.filter(f).reduce((a, r) => a + Math.abs(r.delta), 0);
+    host.replaceChildren(
+        tile(cr(state.account.amount), 'credits available', 'accent'),
+        tile(cr(held), `held for ${n} open job${n === 1 ? '' : 's'}`, 'warn'),
+        tile(signed(-sum((r) => r.delta < 0)), 'paid'),
+        tile(signed(sum((r) => r.delta > 0)), 'earned', 'accent'));
+}
+
+function drawHead(host, state, draw) {
+    const chip = (f) => {
+        const b = el('button', { type: 'button', textContent: f });
+        if (f === state.filter) b.dataset.on = '1';
+        b.onclick = () => { state.filter = f; draw(); };
+        return b;
+    };
+    host.replaceChildren(
+        el('span', { className: 'label', textContent: 'All movements' }),
+        el('div', { className: 'row' }, chip('All'), chip('Paid'), chip('Earned')));
+}
+
+function drawRows(host, state) {
+    const shown = state.rows.filter((r) => state.filter === 'All'
+        || (state.filter === 'Earned' ? r.delta > 0 : r.delta < 0));
+    host.replaceChildren(...shown.map((r) => el('li', {},
+        el('div', { className: 'who' },
+            el('div', { className: 'name', textContent: title(r) }),
+            el('div', { className: 'sub', textContent: r.ref })),
+        el('div', { className: 'end' },
+            el('span', { style: `color: var(--${r.delta > 0 ? 'accent' : 'ink'})`,
+                textContent: signed(r.delta) }),
+            el('span', { className: 'muted', textContent: when(r.at) })))));
+    if (!shown.length) {
+        host.append(el('li', { className: 'muted',
+            textContent: state.account ? 'Nothing has moved yet.'
+                : 'Your movements are private — sign in to see them.' }));
+    }
+}
+
+// The one thing the wallet does rather than reports: put a price on the tile
+// you are looking at, so a stranger's browser has a reason to draw it.
+function bountyCard(state, say, refresh) {
+    const amount = el('input', { type: 'number', min: '0', step: '1', value: '10',
+        className: 'wallet-amount' });
+    const set = el('button', { type: 'button', className: 'wallet-set primary',
+        textContent: 'Set the price', disabled: !state.job });
+    set.onclick = async () => {
         if (!state.job) return;
         try {
-            await setBounty(state.job, Number(q('.wallet-amount').value));
-            say('escrowed until the tile publishes');
+            await setBounty(state.job, Number(amount.value));
+            say('held until the tile publishes');
             await refresh();
         } catch (err) {
             say(String(err.body?.message ?? err.message ?? err), true);
         }
     };
-
-    refresh();
-    return { refresh, target, state, say };
+    return [
+        el('span', { className: 'label',
+            textContent: 'What to pay for the tile you are looking at' }),
+        el('div', { className: 'row' }, amount, set),
+        el('div', { className: 'note',
+            textContent: state.tile
+                ? `${state.tile.z}/${state.tile.x}/${state.tile.y}`
+                  + `${state.job ? ` · job ${state.job}` : ' · no job for it yet'}`
+                : 'Look at a tile in the world and it appears here.' }),
+    ];
 }

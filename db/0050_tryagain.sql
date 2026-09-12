@@ -47,8 +47,8 @@ $$;
 GRANT EXECUTE ON FUNCTION retry_job(bigint) TO player, admin;
 
 -- What is stuck, and whether the person looking may unstick it.
-CREATE OR REPLACE FUNCTION render_pool(p_lon double precision DEFAULT NULL,
-                            p_lat double precision DEFAULT NULL,
+CREATE OR REPLACE FUNCTION render_pool(p_lon double precision DEFAULT null,
+                            p_lat double precision DEFAULT null,
                             p_limit int DEFAULT 40) RETURNS jsonb
 LANGUAGE sql STABLE SET search_path = public AS $$
 SELECT coalesce(jsonb_agg(j ORDER BY j ->> 'ordering'), '[]'::jsonb)

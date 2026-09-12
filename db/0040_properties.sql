@@ -56,7 +56,7 @@ INSERT INTO kind (name, applies_to, geometry, label, ordering) VALUES
 ('footprint', 'feature', 'polygon', 'Building', 40),
 ('terrainmod', 'feature', 'polygon', 'Terrain edit', 50),
 ('tree', 'feature', 'point', 'Single tree', 60),
-('product', 'product', NULL, 'Product', 100);
+('product', 'product', null, 'Product', 100);
 
 ALTER TABLE feature DROP CONSTRAINT feature_kind_check;
 ALTER TABLE feature ADD CONSTRAINT feature_kind_fkey
@@ -134,7 +134,7 @@ FOR EACH ROW EXECUTE FUNCTION check_props();
 -- ----------------------------------------------------------------- reading
 
 -- Everything a form needs, in one answer: the kinds and their properties.
-CREATE FUNCTION vocabulary(p_applies_to text DEFAULT NULL) RETURNS jsonb
+CREATE FUNCTION vocabulary(p_applies_to text DEFAULT null) RETURNS jsonb
 LANGUAGE sql STABLE AS $$
 SELECT coalesce(jsonb_agg(k ORDER BY k ->> 'ordering', k ->> 'name'), '[]'::jsonb)
 FROM (
@@ -170,7 +170,7 @@ END
 $$;
 
 CREATE FUNCTION put_kind(p_name text, p_applies_to text DEFAULT 'feature',
-                         p_geometry text DEFAULT NULL, p_label text DEFAULT '',
+                         p_geometry text DEFAULT null, p_label text DEFAULT '',
                          p_ordering int DEFAULT 100) RETURNS text
 LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $$
 BEGIN
@@ -224,12 +224,12 @@ GRANT EXECUTE ON FUNCTION put_kind(text, text, text, text, int),
     put_property(text, text, text, text [], boolean, text, int),
     drop_property(text, text) TO player, admin;
 
-CREATE FUNCTION api.vocabulary(applies_to text DEFAULT NULL) RETURNS jsonb
+CREATE FUNCTION api.vocabulary(applies_to text DEFAULT null) RETURNS jsonb
 LANGUAGE sql STABLE AS $$SELECT public.vocabulary(applies_to)$$;
 GRANT EXECUTE ON FUNCTION api.vocabulary(text) TO anon, player, admin;
 
 CREATE FUNCTION api.put_kind(name text, applies_to text DEFAULT 'feature',
-                             geometry text DEFAULT NULL, label text DEFAULT '',
+                             geometry text DEFAULT null, label text DEFAULT '',
                              ordering int DEFAULT 100) RETURNS text
 LANGUAGE sql AS $$SELECT public.put_kind(name, applies_to, geometry, label, ordering)$$;
 

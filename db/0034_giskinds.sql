@@ -37,19 +37,19 @@ $$;
 -- the Z the table holds is put back on the way in by feature_3d (0029).
 CREATE VIEW gis.feature_road AS
 SELECT id, st_force2d(geom)::geometry(LineString, 4326) AS geom FROM feature
-WHERE kind = 'road' AND deleted_at IS NULL;
+WHERE kind = 'road' AND deleted_at IS null;
 CREATE VIEW gis.feature_forest AS
 SELECT id, st_force2d(geom)::geometry(Polygon, 4326) AS geom FROM feature
-WHERE kind = 'forest' AND deleted_at IS NULL;
+WHERE kind = 'forest' AND deleted_at IS null;
 CREATE VIEW gis.feature_water AS
 SELECT id, st_force2d(geom)::geometry(Polygon, 4326) AS geom FROM feature
-WHERE kind = 'water' AND deleted_at IS NULL;
+WHERE kind = 'water' AND deleted_at IS null;
 CREATE VIEW gis.feature_footprint AS
 SELECT id, st_force2d(geom)::geometry(Polygon, 4326) AS geom FROM feature
-WHERE kind = 'footprint' AND deleted_at IS NULL;
+WHERE kind = 'footprint' AND deleted_at IS null;
 CREATE VIEW gis.feature_terrainmod AS
 SELECT id, st_force2d(geom)::geometry(Polygon, 4326) AS geom FROM feature
-WHERE kind = 'terrainmod' AND deleted_at IS NULL;
+WHERE kind = 'terrainmod' AND deleted_at IS null;
 
 CREATE TRIGGER gis_write INSTEAD OF INSERT OR UPDATE OR DELETE ON gis.feature_road
 FOR EACH ROW EXECUTE FUNCTION gis_feature_write('road');

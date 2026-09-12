@@ -34,11 +34,20 @@ export const visitLink = (href, where) =>
 // No line of its own about what the link is: the tab already says it
 // (client/js/hud.js), and saying it twice is how a panel stops being read.
 const SHARE_HTML = `
-<input class="sh-link" type="text" readonly>
-<div class="row">
-  <button type="button" class="sh-copy primary">Copy link</button>
+<div class="note">Whoever opens this stands where you stand, looking the same
+  way.</div>
+<div class="section">
+  <span class="label">Link</span>
+  <div class="row">
+    <input class="sh-link" type="text" readonly>
+    <button type="button" class="sh-copy primary">Copy</button>
+  </div>
+  <p class="sh-status status"></p>
 </div>
-<p class="sh-status status"></p>`;
+<div class="section">
+  <span class="label">What they will find</span>
+  <ul class="sh-facts rows"></ul>
+</div>`;
 
 const el = (tag, props = {}) => Object.assign(document.createElement(tag), props);
 
@@ -69,6 +78,32 @@ export async function copyLink(doc, text) {
     }
 }
 
+const fact = (k, v) => {
+    const li = el('li');
+    li.append(el('span', { className: 'label', textContent: k }),
+        el('span', { textContent: v }));
+    return li;
+};
+
+// Where the link puts somebody, in words rather than in numbers only — the
+// heading included, because arriving facing the wrong way is disorienting.
+const POINTS = ['north', 'north-east', 'east', 'south-east', 'south',
+    'south-west', 'west', 'north-west'];
+
+function facts(here) {
+    const bearing = ((Number(here.heading ?? 0) % 360) + 360) % 360;
+    const ns = Number(here.lat) >= 0 ? 'N' : 'S';
+    const ew = Number(here.lon) >= 0 ? 'E' : 'W';
+    return [
+        fact('Position', `${Math.abs(here.lat).toFixed(4)}${ns}`
+            + ` ${Math.abs(here.lon).toFixed(4)}${ew}`),
+        fact('Height', `${Math.round(here.h ?? 0)} m`),
+        fact('Looking', POINTS[Math.round(bearing / 45) % 8]),
+        fact('They see', 'what everybody sees: the published tiles, and nothing'
+            + ' that is still waiting for a decision'),
+    ];
+}
+
 export function mountShare(host, { where, href = () => globalThis.location.href } = {}) {
     const box = el('div');
     box.innerHTML = SHARE_HTML;
@@ -80,6 +115,7 @@ export function mountShare(host, { where, href = () => globalThis.location.href 
         const here = where();
         if (!here) return '';
         q('.sh-link').value = visitLink(href(), here);
+        q('.sh-facts').replaceChildren(...facts(here));
         return q('.sh-link').value;
     }
 
