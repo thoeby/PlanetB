@@ -30,8 +30,12 @@ export { cellMetres, groundTile, heightIn } from './groundtile.js';
 //
 // The grid coarsens with the level because the far ones are a silhouette. z14
 // keeps 65 — it is the floor, and the compile's own terrain is 129.
+// The grid is what says how much of the DEM is used. A cut tile is 256 samples
+// across (server/splatworld/importer.py), so 65 threw away three quarters of
+// the ground a player is standing on; 129 is what the compile's own terrain
+// uses and is the same hillside with its shape in it.
 export const GROUND_LEVELS = [
-    { zoom: 14, grid: 65, radius: 1 },
+    { zoom: 14, grid: 129, radius: 1 },
     { zoom: 12, grid: 65, radius: 1 },
     { zoom: 10, grid: 65, radius: 1 },
 ];

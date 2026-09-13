@@ -136,16 +136,70 @@ export function distanceToSegment(p, a, b) {
     return { d: Math.hypot(p[0] - (a[0] + t * vx), p[1] - (a[1] + t * vz)), t };
 }
 
-// The ground's colour, from the ground itself: grass, turning to rock where it
-// is steep and to snow where it is high. No imagery is draped over the world —
-// there is none to drape (TASKS-usable: real ground, empty). When ground types
-// exist they will decide this; until then the terrain says what it is.
-export function terrainColour(slope, height) {
-    const base = [0.35, 0.4, 0.3];
-    const rock = Math.min(1, Math.max(0, (slope - 0.4) / 0.8)) * 0.7;
-    const alp = Math.min(1, Math.max(0, (height - 1800) / 900)) * 0.6;
-    const mix = (c, t, to) => c * (1 - t) + to * t;
-    return base.map((c, i) => mix(mix(c, rock, [0.42, 0.4, 0.38][i]), alp, 0.9));
+// The ground's colour, from the ground itself. No imagery is draped over the
+// world — there is none to drape (TASKS-usable: real ground, empty). When
+// ground types exist they will decide this; until then the terrain says what
+// it is, and what it says is where it is and how steep.
+//
+// It was three colours and two blends, which over a whole valley is one colour:
+// everything between the river and the treeline came out the same green. This
+// is a ramp with a stop for each thing a mountainside actually is, and the
+// blends between them are what the DEM's own height and slope decide. Steep
+// ground is rock at every height, because it is.
+const BANDS = [
+    { to: 600, colour: [0.33, 0.40, 0.26] },   // the valley floor
+    { to: 1300, colour: [0.36, 0.44, 0.28] },  // pasture
+    { to: 1900, colour: [0.40, 0.43, 0.30] },  // the treeline, going dry
+    { to: 2400, colour: [0.48, 0.46, 0.40] },  // scree
+    { to: 2900, colour: [0.58, 0.57, 0.55] },  // rock
+    { to: Infinity, colour: [0.92, 0.94, 0.97] }, // snow
+];
+
+const ROCK = [0.46, 0.44, 0.41];
+const mix = (a, b, t) => a.map((c, i) => c * (1 - t) + b[i] * t);
+const clamp01 = (v) => Math.min(1, Math.max(0, v));
+
+function band(height) {
+    for (let i = 0; i < BANDS.length; i++) {
+        if (height > BANDS[i].to) continue;
+        if (i === 0) return BANDS[0].colour;
+        const from = BANDS[i - 1];
+        const span = Math.min(BANDS[i].to, from.to + 900) - from.to;
+        return mix(from.colour, BANDS[i].colour,
+            clamp01((height - from.to) / (span || 1)));
+    }
+    return BANDS.at(-1).colour;
+}
+
+// `openness` is how much sky this point can see, 0..1: a crease in the
+// hillside is darker than the shoulder above it, and that darkening is the
+// only thing in a bare DEM that shows its shape at all. It is the surface's
+// own colour rather than the light, so a splat carries it wherever it is seen
+// from (client/lib/light.js).
+export function terrainColour(slope, height, openness = 1) {
+    const ground = mix(band(height), ROCK, clamp01((slope - 0.35) / 0.7) * 0.85);
+    const ao = 0.55 + 0.45 * clamp01(openness);
+    return ground.map((c) => c * ao);
+}
+
+// How much sky one grid point can see, from the ground around it: every
+// neighbour that rises above the horizontal takes a little away. Cheap, and
+// entirely the DEM's own answer.
+export function openAt(h, size, i, j, stepX, stepZ, radius = 3) {
+    const here = h[j * size + i];
+    let blocked = 0;
+    let n = 0;
+    for (let dj = -radius; dj <= radius; dj++) {
+        for (let di = -radius; di <= radius; di++) {
+            if (!di && !dj) continue;
+            const x = Math.min(Math.max(i + di, 0), size - 1);
+            const y = Math.min(Math.max(j + dj, 0), size - 1);
+            const far = Math.hypot(di * stepX, dj * stepZ) || 1;
+            blocked += Math.max(0, (h[y * size + x] - here) / far);
+            n += 1;
+        }
+    }
+    return clamp01(1 - (blocked / Math.max(n, 1)) * 1.6);
 }
 
 export function terrainMesh(terrain, material = 'terrain') {
@@ -155,8 +209,10 @@ export function terrainMesh(terrain, material = 'terrain') {
         for (let i = 0; i < n; i++) {
             const h = terrain.h[j * n + i];
             const s = terrain.slope(i, j);
+            const open = openAt(terrain.h, n, i, j,
+                Math.abs(terrain.stepX), Math.abs(terrain.stepZ));
             m.vertex([terrain.x(i), h, terrain.z(j)], normalAt(terrain, i, j),
-                terrainColour(s, h));
+                terrainColour(s, h, open));
         }
     }
     for (let j = 0; j < n - 1; j++) {

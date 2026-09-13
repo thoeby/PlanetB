@@ -1,4 +1,4 @@
-// assemble.js — `assemble-v1`. The world, as geometry, in one tile's own frame.
+// assemble.js — `assemble-v2`. The world, as geometry, in one tile's own frame.
 //
 // Terrain from the seeded DEM, cut by terrainmods and roads; footprints
 // extruded; forests scattered; water laid flat; the ground coloured by its own
@@ -18,17 +18,22 @@ import { fetchJson } from '../js/api.js';
 import { DEM_OFFSET, DEM_SCALE, loadDem } from '../lib/geo.js';
 import { boundsOf, placeMeshes } from '../lib/glbmesh.js';
 import { packMeshes } from '../lib/mesh.js';
-import { bboxOf, emptySplats, writePly } from '../lib/ply.js';
-import { contains, rng } from '../lib/poly.js';
+import { bboxOf, writePly } from '../lib/ply.js';
+import { contains } from '../lib/poly.js';
 import { styleFor } from '../lib/rules.js';
 import { MATERIALS, buildings, roadMesh, trees, waterMesh } from '../lib/props.js';
+import { rngOf, sampleSurfaces } from '../lib/sampling.js';
 import { writeTar } from '../lib/tar.js';
 import {
     GRID, Terrain, applyTerrainmods, cutRoads, heightRaster, terrainMesh,
 } from '../lib/terrain.js';
 import { localFromLonLat, tileBbox, tileFrame } from '../lib/tilemath.js';
 
-export const ALGO = 'assemble-v1';
+export const ALGO = 'assemble-v2';
+
+// What assemble and sample both use to turn surfaces into splats; re-exported
+// because both atoms have always reached for them here.
+export { rngOf, sampleSurfaces } from '../lib/sampling.js';
 const INIT_SHARE = 0.3;
 
 // ---------------------------------------------------------------- the world
@@ -87,117 +92,6 @@ function roadsOf(features, terrain, rules = []) {
     return out;
 }
 
-// ---------------------------------------------------------------- sampling
-
-const triangles = (meshes) => {
-    const out = [];
-    for (const m of meshes) {
-        for (let i = 0; i < m.indices.length; i += 3) out.push([m, i]);
-    }
-    return out;
-};
-
-const vert = (m, i) => [m.positions[i * 3], m.positions[i * 3 + 1], m.positions[i * 3 + 2]];
-const col = (m, i) => [m.colors[i * 3], m.colors[i * 3 + 1], m.colors[i * 3 + 2]];
-
-function area(m, i) {
-    const a = vert(m, m.indices[i]);
-    const b = vert(m, m.indices[i + 1]);
-    const c = vert(m, m.indices[i + 2]);
-    const u = [b[0] - a[0], b[1] - a[1], b[2] - a[2]];
-    const v = [c[0] - a[0], c[1] - a[1], c[2] - a[2]];
-    return Math.hypot(u[1] * v[2] - u[2] * v[1], u[2] * v[0] - u[0] * v[2],
-        u[0] * v[1] - u[1] * v[0]) / 2;
-}
-
-// +Y onto the surface normal, so a splat lies flat on the face it came from.
-function quatToNormal(n) {
-    const d = n[1];
-    if (d > 0.999999) return [1, 0, 0, 0];
-    if (d < -0.999999) return [0, 0, 0, 1];
-    const q = [1 + d, n[2], 0, -n[0]];
-    const len = Math.hypot(q[0], q[1], q[2], q[3]);
-    return q.map((v) => v / len);
-}
-
-// Area-weighted, by largest remainder so the counts add up exactly and do not
-// depend on the order floating point rounds in.
-function allocate(tris, total) {
-    const areas = tris.map(([m, i]) => area(m, i));
-    const sum = areas.reduce((s, a) => s + a, 0) || 1;
-    const exact = areas.map((a) => a / sum * total);
-    const counts = exact.map(Math.floor);
-    const left = total - counts.reduce((s, c) => s + c, 0);
-    const order = exact.map((e, i) => [e - Math.floor(e), i])
-        .sort((p, q) => q[0] - p[0] || p[1] - q[1]);
-    for (let k = 0; k < left; k++) counts[order[k % order.length][1]] += 1;
-    return { counts, sum };
-}
-
-// The same fixed sun the ground mesh bakes and the frame atom shades with
-// (client/lib/groundmesh.js, client/lib/render.js). A surface sampled without
-// it is a surface with no relief in it: flat colour, and darker than the ground
-// beside it, which is the seam a player sees at a compiled tile's edge.
-const SUN = [0.42, 0.83, 0.36];
-const SUN_LEN = Math.hypot(...SUN);
-const litBy = (n) => {
-    const len = Math.hypot(n[0], n[1], n[2]) || 1;
-    const d = Math.max((n[0] * SUN[0] + n[1] * SUN[1] + n[2] * SUN[2])
-        / (len * SUN_LEN), 0);
-    return 0.55 + 0.55 * d;
-};
-
-// `spread` is the in-plane radius of a splat as a share of the mean spacing.
-// Samples land at random, not on a grid, so they clump and leave holes: at 0.7
-// the holes are the background showing through, which reads as dark speckle
-// over the whole tile. Above 1 they overlap enough to be a surface.
-//
-// `shaded` multiplies the surface's own colour by the fixed sun. `assemble`
-// leaves it off: init.ply is what training starts from, and the frames it is
-// trained against carry the light themselves.
-export function sampleSurfaces(meshes, total, random,
-    { spread = 0.7, shaded = false } = {}) {
-    const tris = triangles(meshes);
-    const { counts, sum } = allocate(tris, total);
-    const f = emptySplats(total);
-    const spacing = Math.sqrt(sum / Math.max(total, 1));
-    let k = 0;
-    for (let t = 0; t < tris.length; t++) {
-        const [m, i] = tris[t];
-        const ia = m.indices[i];
-        const ib = m.indices[i + 1];
-        const ic = m.indices[i + 2];
-        const n = [m.normals[ia * 3], m.normals[ia * 3 + 1], m.normals[ia * 3 + 2]];
-        const q = quatToNormal(n);
-        const lit = shaded ? litBy(n) : 1;
-        for (let s = 0; s < counts[t]; s++, k++) {
-            let u = random();
-            let v = random();
-            if (u + v > 1) { u = 1 - u; v = 1 - v; }
-            const w = [1 - u - v, u, v];
-            for (const [j, get] of [[0, vert], [1, col]]) {
-                const p = [0, 0, 0];
-                for (let c = 0; c < 3; c++) {
-                    const val = get(m, [ia, ib, ic][c]);
-                    p[0] += val[0] * w[c]; p[1] += val[1] * w[c]; p[2] += val[2] * w[c];
-                }
-                if (j === 0) { f.x[k] = p[0]; f.y[k] = p[1]; f.z[k] = p[2]; } else {
-                    f.r[k] = Math.min(p[0] * lit, 1);
-                    f.g[k] = Math.min(p[1] * lit, 1);
-                    f.b[k] = Math.min(p[2] * lit, 1);
-                }
-            }
-            f.a[k] = 1;
-            f.sx[k] = spacing * spread;
-            f.sy[k] = spacing * 0.15;
-            f.sz[k] = spacing * spread;
-            [f.qw[k], f.qx[k], f.qy[k], f.qz[k]] = q;
-        }
-    }
-    return f;
-}
-
-export const rngOf = (atom, z, x, y) => rng((atom.seed ?? 0) + z * 1000003 + x * 1009 + y);
 
 // A feature that crosses the tile's edge arrives whole — a road runs for
 // kilometres, a forest spills into the next tile — and a tile shows its own

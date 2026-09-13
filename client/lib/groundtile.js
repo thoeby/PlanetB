@@ -17,19 +17,14 @@
 //    is what fills the crack between two levels that do not agree.
 
 import { sampleHeight } from './geo.js';
+import { shade } from './light.js';
 import * as tm from './tilemath.js';
-import { terrainColour } from './terrain.js';
+import { openAt, terrainColour } from './terrain.js';
 
-// The same fixed sun lib/render.js bakes into every compiled frame, and the
-// same floor under it. The ground a player walks on and the ground a compile
-// renders are then the same picture, which is what makes an unrendered tile
-// and a published one read as one world.
-const SUN = [0.42, 0.83, 0.36];
-const SUN_LEN = Math.hypot(...SUN);
-const shade = (n) => {
-    const d = Math.max((n[0] * SUN[0] + n[1] * SUN[1] + n[2] * SUN[2]) / SUN_LEN, 0);
-    return 0.55 + 0.55 * d;
-};
+// The sky is client/lib/light.js, the same one the frame atom renders under and
+// the same one a tile's splats are sampled with. The ground a player walks on
+// and the ground a compile renders are then the same picture, which is what
+// makes an unrendered tile and a published one read as one world.
 
 // The surface normal at one grid point, from its neighbours' own positions:
 // the grid is not flat in the local frame, so the heights alone do not say it.
@@ -120,17 +115,16 @@ function samples(z, x, y, dem, localOf, grid) {
     return { b, h, lons, lats, positions };
 }
 
-function shadeAll(h, positions, grid, b) {
+function shadeAll(h, positions, grid, b, step) {
     const normals = [];
     const colors = [];
     for (let j = 0; j < grid; j++) {
         for (let i = 0; i < grid; i++) {
             const n = normalAt(positions, grid, i, j);
-            const lit = shade(n);
             normals.push(...n);
-            for (const c of terrainColour(slopeAt(h, grid, i, j, b), h[j * grid + i])) {
-                colors.push(Math.min(c * lit, 1));
-            }
+            const open = openAt(h, grid, i, j, step, step);
+            const own = terrainColour(slopeAt(h, grid, i, j, b), h[j * grid + i], open);
+            colors.push(...shade(own, n, open));
         }
     }
     return { normals, colors };
@@ -161,15 +155,16 @@ function skirt(mesh, a, c, deep) {
 // from the geodetic samples this keeps.
 export function groundTile(z, x, y, dem, localOf, grid = 65, { hole = null } = {}) {
     const { b, h, lons, lats, positions } = samples(z, x, y, dem, localOf, grid);
-    const { normals, colors } = shadeAll(h, positions, grid, b);
+    const mid = (b.south + b.north) / 2;
+    const { normals, colors } = shadeAll(h, positions, grid, b,
+        cellMetres(z, grid, mid));
     const mesh = { positions, normals, colors, indices: [] };
-    const deep = skirtDepth(z, grid, (b.south + b.north) / 2);
+    const deep = skirtDepth(z, grid, mid);
     const covered = [];
     for (let j = 0; j < grid - 1; j++) {
         for (let i = 0; i < grid - 1; i++) {
-            const mid = { lon: (lons[i] + lons[i + 1]) / 2,
-                lat: (lats[j] + lats[j + 1]) / 2 };
-            const out = inHole(hole, mid.lon, mid.lat);
+            const out = inHole(hole, (lons[i] + lons[i + 1]) / 2,
+                (lats[j] + lats[j + 1]) / 2);
             covered.push(out);
             if (out) continue;
             const a = j * grid + i;

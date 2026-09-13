@@ -8,6 +8,7 @@
 // It runs on an OffscreenCanvas inside a Web Worker, which is where atoms live.
 
 import { perspective, viewMatrix } from './cameras.js';
+import { GLSL } from './light.js';
 
 const VERT = `#version 300 es
 in vec3 aPos;
@@ -23,19 +24,21 @@ void main() {
     gl_Position = uProj * uView * vec4(aPos, 1.0);
 }`;
 
-// A fixed sun, so two workers light the same triangle the same way.
+// The one sky, written out of client/lib/light.js so the pictures the trainer
+// is shown and the splats a tile is sampled into cannot drift apart. Fixed, so
+// two workers light the same triangle the same way (Invariant 2).
+//
+// Openness is 1 here: what a surface can see of the sky is the geometry's own
+// answer and is already in the colour it arrives with (client/lib/terrain.js).
 const FRAG = `#version 300 es
 precision highp float;
 in vec3 vNormal;
 in vec3 vColor;
 out vec4 outColor;
-const vec3 SUN = normalize(vec3(0.42, 0.83, 0.36));
+${GLSL}
 void main() {
-    float d = max(dot(normalize(vNormal), SUN), 0.0);
-    // The ortho arrives already display-encoded, so this shades it rather than
-    // lighting it: no second gamma, and a floor so nothing goes to black.
-    vec3 lit = vColor * (0.55 + 0.55 * d);
-    outColor = vec4(clamp(lit, 0.0, 1.0), 1.0);
+    vec3 lit = vColor * lightAt(normalize(vNormal), 1.0);
+    outColor = vec4(toned(lit), 1.0);
 }`;
 
 function compile(gl, type, src) {
@@ -104,7 +107,9 @@ export class Renderer {
     draw(cam, { near = 0.5, far = 20000 } = {}) {
         const gl = this.gl;
         gl.useProgram(this.program);
-        gl.clearColor(0.55, 0.68, 0.85, 1);
+        // The sky the ambient term comes from, so what is behind a hillside is
+        // the same colour as what lights it.
+        gl.clearColor(0.56, 0.68, 0.84, 1);
         gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
         gl.uniformMatrix4fv(this.uView, false, viewMatrix(cam));
         gl.uniformMatrix4fv(this.uProj, false, perspective(cam.fov, 1, near, far));

@@ -77,9 +77,9 @@ export async function run({ atom, inputs, canvas, log, apiUrl }) {
     const boxes = extra.get('colliders.json');
     if (ground && boxes) {
         const scene = JSON.parse(new TextDecoder().decode(extra.get('scene.json')));
-        files.push({ ext: 'r16', kind: 'height', algo_version: 'assemble-v1',
+        files.push({ ext: 'r16', kind: 'height', algo_version: 'assemble-v2',
             bytes: ground, dir });
-        files.push({ ext: 'json', kind: 'colliders', algo_version: 'assemble-v1',
+        files.push({ ext: 'json', kind: 'colliders', algo_version: 'assemble-v2',
             bytes: boxes, dir });
         manifest.height = { sha256: await sha256(ground), ...scene.height };
         manifest.colliders = {

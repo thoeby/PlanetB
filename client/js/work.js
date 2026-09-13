@@ -21,8 +21,8 @@ import { sha256 } from '../lib/hash.js';
 import { InputCache, resolveInputs } from './inputs.js';
 
 export const ALGO = {
-    assemble: 'assemble-v1', frame: 'frame-v1', train: 'train-v1',
-    sample: 'sample-v2', merge: 'merge-v1', sog: 'sog-v1', verify: 'verify-v1',
+    assemble: 'assemble-v2', frame: 'frame-v1', train: 'train-v1',
+    sample: 'sample-v3', merge: 'merge-v1', sog: 'sog-v1', verify: 'verify-v1',
 };
 
 const HEARTBEAT_MS = 60_000;

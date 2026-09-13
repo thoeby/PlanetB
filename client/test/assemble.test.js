@@ -1,4 +1,4 @@
-// WP2.3 — assemble-v1 without a browser: the same inputs and the same seed
+// WP2.3 — assemble-v2 without a browser: the same inputs and the same seed
 // produce the same bytes, and what comes out is the five files the rest of the
 // pipeline reads. The world and the DEM are served from memory, so this test
 // needs neither a database nor a seeded store.
@@ -91,7 +91,7 @@ async function serve() {
 }
 
 const ATOM = {
-    id: 1, op: 'assemble', algo_version: 'assemble-v1', seed: 7,
+    id: 1, op: 'assemble', algo_version: 'assemble-v2', seed: 7,
     inputs: { snapshot: WORLD.snapshot }, params: { z: Z, x: X, y: Y, budget: BUDGET },
 };
 
@@ -106,7 +106,7 @@ test('assemble produces the five files the rest of the pipeline reads', async ()
             ['scene.json', 'mesh.bin', 'init.ply', 'height.r16', 'colliders.json']);
 
         const scene = JSON.parse(new TextDecoder().decode(files.get('scene.json')));
-        assert.equal(scene.algo, 'assemble-v1');
+        assert.equal(scene.algo, 'assemble-v2');
         assert.deepEqual(scene.tile, { z: Z, x: X, y: Y });
         assert.ok(scene.origin.h > 350 && scene.origin.h < 460, 'the origin sits on the ground');
         assert.ok(scene.meshes.length >= 6, 'terrain, road, walls, roofs, water, trees');
@@ -165,7 +165,7 @@ test('a ring is triangulated, wound and scattered the same way every time', () =
     assert.deepEqual(scatter(holed, 4, rng(1)), pts, 'same seed, same trees');
 });
 
-// sample-v2 (client/atoms/sample.js): what the baseline tile is made of. A
+// sample-v3 (client/atoms/sample.js): what the baseline tile is made of. A
 // splat that carries no light is flat colour beside a ground mesh that does,
 // and one that is smaller than the gaps between its neighbours shows the
 // background through — which is what a z14 tile looked like.

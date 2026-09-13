@@ -22,10 +22,11 @@ VALUES ('00000000-0000-0000-0000-0000000000d1', 'footprint',
 
 CREATE TEMP TABLE j AS
 SELECT ensure_job(14, tile_x(7.505, 14), tile_y(46.505, 14), 0) AS id;
-SELECT is((SELECT algo_version FROM atom
-           WHERE job_id = (SELECT id FROM j) AND op = 'sample'),
-          'sample-v2',
-          'the sampler that carries the sun is the one the job asks for');
+-- Which sampler is asked for is db/0080_onesky.sql's now; what 0074 settled is
+-- how many splats a z14 tile is worth.
+SELECT ok((SELECT algo_version FROM atom
+           WHERE job_id = (SELECT id FROM j) AND op = 'sample') LIKE 'sample-v%',
+          'a z14 tile is sampled rather than trained');
 SELECT is((SELECT (params ->> 'budget')::bigint FROM atom
            WHERE job_id = (SELECT id FROM j) AND op = 'sample'),
           800000::bigint, 'and it is told how many to make');

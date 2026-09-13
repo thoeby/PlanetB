@@ -1,4 +1,4 @@
-// sample.js — `sample-v2`. The baseline tile, without training.
+// sample.js — `sample-v3`. The baseline tile, without training.
 //
 // A z14 tile is the world's floor: every area is compiled to at least that
 // depth, and there are fourteen thousand of them in Switzerland alone. Training
@@ -14,12 +14,16 @@ import { unpackMeshes } from '../lib/mesh.js';
 import { bboxOf, writePly } from '../lib/ply.js';
 import { readTar, writeTar } from '../lib/tar.js';
 
-export const ALGO = 'sample-v2';
+export const ALGO = 'sample-v3';
 
-// v2: the samples carry the sun and are wide enough to close over the surface.
-// v1 wrote flat colour at 0.7 of the mean spacing, and randomly placed points
-// that size leave holes — a z14 tile read as dark speckle next to the lit
-// ground mesh beside it, which is the same elevation drawn the other way.
+// v3: the splats go where there is something to see and are the size of the
+// triangle they came from (client/lib/sampling.js), and the light they carry is
+// a sky rather than a lamp (client/lib/light.js).
+//
+// v2 spent them evenly over area, so a bare hillside — which is most of a tile
+// — was given as many as a roof edge, and every one of them was the same size.
+// v1 before it wrote flat colour at 0.7 of the mean spacing, and randomly
+// placed points that size leave holes, which read as dark speckle.
 const SPREAD = 1.15;
 
 export async function run({ atom, inputs, log }) {

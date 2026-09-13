@@ -62,7 +62,7 @@ function buildDag() {
                              ON CONFLICT (z, x, y, target_version)
                              DO UPDATE SET state = 'open' RETURNING id`));
     resetJob(job);
-    const asm = insert(job, 'assemble', 'assemble-v1', { snapshot },
+    const asm = insert(job, 'assemble', 'assemble-v2', { snapshot },
         { ...TILE, budget: BUDGET }, []);
     const frames = [[0, 20], [20, 40], [40, 56]].map(([from, to]) =>
         insert(job, 'frame', 'frame-v1', { assemble: asm, snapshot },
