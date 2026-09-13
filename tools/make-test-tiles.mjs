@@ -61,6 +61,17 @@ function seedWorld() {
         [box.west + e, box.south + e],
     ].map(([lon, lat]) => `${lon} ${lat} 0`).join(', ');
 
+    // The world reaches at least as far as what is about to be drawn in it:
+    // since db/0062_insideground.sql a feature outside the ground is refused
+    // with a sentence, and this tool draws its own fixture. The extent only
+    // ever grows, so a run after a spec that set a narrower one still works.
+    psql(`INSERT INTO ground (only_one, geoserver_url, coverage, extent)
+          VALUES (true, 'http://test.invalid/geoserver', 'test:ground',
+                  st_makeenvelope(${box.west}, ${box.south},
+                                  ${box.east}, ${box.north}, world_srid()))
+          ON CONFLICT (only_one) DO UPDATE
+          SET extent = st_envelope(st_collect(ground.extent, excluded.extent))`);
+
     psql(`
         SET client_min_messages = warning;
         DO $$
