@@ -15,7 +15,7 @@ import { beforeAfter, decide, el, waiting } from './permissionui.js';
 
 // Say yes or no, then re-read the list and only then say what happened — a
 // refresh that ran afterwards would wipe the one line that says it.
-async function decided({ say, onDecided, refresh }, rpc, args, said) {
+async function decided({ say, onDecided, refresh, clear }, rpc, args, said) {
     let msg = said;
     let bad = false;
     try {
@@ -24,6 +24,7 @@ async function decided({ say, onDecided, refresh }, rpc, args, said) {
         msg = String(err.body?.message ?? err.message ?? err);
         bad = true;
     }
+    if (!bad) clear?.();
     onDecided();
     await refresh();
     say(msg, bad);
@@ -76,15 +77,18 @@ export function mountPermission(host, { onGo = () => {}, preview = null,
     const ui = partsOf(host);
     const { scope, toggle, count, list, card, status } = ui;
 
-    const state = { rows: [], chosen: null, after: true };
+    const state = { rows: [], chosen: null, after: true, note: '' };
     const say = (msg, bad = false) => {
         status.textContent = msg;
         status.dataset.bad = bad ? '1' : '';
     };
 
     const decideWith = (rpc, args, said) =>
-        decided({ say, onDecided, refresh }, rpc, args, said);
+        decided({ say, onDecided, refresh, clear: () => { state.note = ''; } },
+            rpc, args, said);
     const acts = actionsOf(decideWith, { onGo }, say);
+    // What is half-typed survives a redraw; a decision clears it.
+    acts.typing = (text) => { state.note = text; };
 
     function draw() {
         toggle.replaceChildren(beforeAfter(state.after, (on) => {
@@ -97,9 +101,9 @@ export function mountPermission(host, { onGo = () => {}, preview = null,
         count.textContent = state.rows?.length
             ? `${state.rows.length} waiting for you` : 'Waiting for you';
         list.replaceChildren(...waiting(state.rows, state.chosen,
-            (e) => { state.chosen = e.id; draw(); }));
+            (e) => { state.chosen = e.id; state.note = ''; draw(); }));
         card.replaceChildren(...decide(
-            (state.rows ?? []).find((e) => e.id === state.chosen), acts));
+            (state.rows ?? []).find((e) => e.id === state.chosen), acts, state.note));
     }
 
     async function refresh() {

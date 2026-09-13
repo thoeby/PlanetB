@@ -64,10 +64,16 @@ export function beforeAfter(after, onSwitch) {
 }
 
 // The card: what this submission is, and the three things to do about it.
-export function decide(entry, acts) {
+//
+// `said` is what has already been typed into the note. The card is rebuilt
+// whenever anything about the panel changes — the list refreshes, Before/After
+// is flipped — and a field that is rebuilt empty takes the sentence somebody
+// was in the middle of writing with it.
+export function decide(entry, acts, said = '') {
     if (!entry) return [];
     const note = el('input', { type: 'text', className: 'pm-note',
-        placeholder: 'why not? (a sentence)' });
+        placeholder: 'why not? (a sentence)', value: said });
+    note.oninput = () => acts.typing?.(note.value);
     const review = el('button', { type: 'button', textContent: 'Review' });
     const yes = el('button', { type: 'button', className: 'primary',
         textContent: 'Approve' });
