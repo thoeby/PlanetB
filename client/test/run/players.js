@@ -63,6 +63,7 @@ export async function open(browser, world, name, testInfo) {
     page.on('console', (m) => console_.push(`${m.type()}: ${m.text()}`));
     page.on('pageerror', (e) => console_.push(`pageerror: ${e.message}`));
     await page.goto(world.pageUrl);
+    await page.bringToFront();
     const player = { name, page, context, console: console_, close: () => context.close() };
     opened.get(testInfo)?.push(player);
     return player;
@@ -103,10 +104,19 @@ export async function signIn(player, email, name) {
     await expect(page.locator('.auth-status')).toContainText(name, { timeout: UI });
 }
 
+// The window this player is looking at. A tab nobody is looking at has its
+// animation frames throttled by the browser, and the 3D view is what writes the
+// position line, what is under you and what is on screen — so a story that
+// reads any of those from a player who is not in front reads what was there
+// when they last looked. A person has one window in front of them; this says
+// which.
+export const looking = (player) => player.page.bringToFront();
+
 // The panel tabs along the bottom of the page (design 3k). Pressing the tab
 // that is already open closes it, as it should — so a player who is already
 // looking at a panel does not press it again, and neither does this.
 export async function panel(player, name) {
+    await looking(player);
     const tab = player.page.locator(`#tabs button[data-tab="${name}"]`);
     if (await tab.getAttribute('aria-selected') === 'true') return;
     await tab.click();

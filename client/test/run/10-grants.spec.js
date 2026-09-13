@@ -8,7 +8,7 @@
 // Who put an object down is not recorded anywhere (PLAYER-RUN.md, Blocked):
 // either somebody may build on that ground or they may not.
 
-import { test, expect, open, panel, signIn, UI } from './players.js';
+import { test, expect, looking, open, panel, signIn, UI } from './players.js';
 
 const readCoords = (text) => {
     const m = /([\d.]+)\s*([NS])\s+([\d.]+)\s*([EW])/.exec(text ?? '');
@@ -25,6 +25,7 @@ async function bensLand(b) {
 
 async function cAsks(c, here) {
     await c.page.goto(`${c.world.pageUrl}#at=${here.lat},${here.lon},0,0`);
+    await looking(c);
     await expect(c.page.locator('#land')).toHaveText('Ben’s field', { timeout: UI });
     await panel(c, 'Place');
     await expect(c.page.locator('.build-where'))

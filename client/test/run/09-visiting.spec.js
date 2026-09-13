@@ -6,7 +6,7 @@
 // without a link, and goes there. And a link to somewhere outside the coverage
 // arrives at the nearest ground with a sentence rather than at nothing.
 
-import { test, expect, open, panel, signIn, UI } from './players.js';
+import { test, expect, looking, open, panel, signIn, UI } from './players.js';
 
 const readCoords = (text) => {
     const m = /([\d.]+)\s*([NS])\s+([\d.]+)\s*([EW])/.exec(text ?? '');
@@ -41,6 +41,7 @@ async function byName(a) {
 async function offTheEdge(a, world) {
     await test.step('a link to nowhere arrives at the nearest ground', async () => {
         await a.page.goto(`${world.pageUrl}#at=46.2939,9.5000,0,0`);
+        await looking(a);
         await expect(a.page.locator('#notice'))
             .toContainText('off the edge of the world', { timeout: UI });
         const arrived = await whereIs(a);
@@ -79,6 +80,7 @@ test('story 9 — a link is a place, and a name finds one',
         const a = await open(browser, world, 'A', testInfo);
         await test.step('A opens it and is standing where B was', async () => {
             await a.page.goto(link);
+            await looking(a);
             await expect(a.page.locator('#land')).toHaveText('Ben’s field',
                 { timeout: UI });
             const arrived = await whereIs(a);
@@ -88,6 +90,7 @@ test('story 9 — a link is a place, and a name finds one',
 
         await test.step('A walks off it, and the page says so', async () => {
             await a.page.goto(`${world.pageUrl}#at=46.2760,7.8560,0,0`);
+            await looking(a);
             await expect(a.page.locator('#land')).not.toHaveText('Ben’s field',
                 { timeout: UI });
         });
