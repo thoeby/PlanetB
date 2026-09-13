@@ -96,7 +96,7 @@ async function compiles(b, c) {
     await expect(b.page.locator('.pm-status')).toContainText('queued', { timeout: UI });
 
     await looking(c);
-    await panel(c, 'Render pool');
+    await panel(c, 'Work');
     const fine = c.page.locator('.rows li').filter({ hasText: 'assembled' });
     await expect(fine.first()).toBeVisible({ timeout: UI });
     await fine.first().getByRole('button', { name: 'Render' }).click();

@@ -112,12 +112,24 @@ export async function signIn(player, email, name) {
 // which.
 export const looking = (player) => player.page.bringToFront();
 
-// The panel tabs along the bottom of the page (design 3k). Pressing the tab
-// that is already open closes it, as it should — so a player who is already
-// looking at a panel does not press it again, and neither does this.
+// The bar along the bottom of the page (design 5a). Pressing the button that
+// is already open closes it, as it should — so a player who is already looking
+// at a panel does not press it again, and neither does this.
+//
+// Two surfaces hold more than one thing (Publish holds Submit and Approve), so
+// a name is either a button on the bar or a tab inside the surface that names
+// it in data-parts. Both are reached the same way from a story.
 export async function panel(player, name) {
     await looking(player);
-    const tab = player.page.locator(`#tabs button[data-tab="${name}"]`);
-    if (await tab.getAttribute('aria-selected') === 'true') return;
-    await tab.click();
+    const page = player.page;
+    const tab = page.locator(`#tabs button[data-tab="${name}"]`);
+    if (await tab.count()) {
+        if (await tab.getAttribute('aria-selected') === 'true') return;
+        await tab.click();
+        return;
+    }
+    const holder = page.locator(`#tabs button[data-parts~="${name}"]`);
+    if (await holder.getAttribute('aria-selected') !== 'true') await holder.click();
+    const part = page.locator(`#panel .parts button[data-tab="${name}"]`);
+    if (await part.getAttribute('aria-selected') !== 'true') await part.click();
 }

@@ -37,7 +37,7 @@ export function steps({ things = 0, changed = 0, open = 0, waiting = 0,
             done: open === 0 && published > 0,
             note: open ? `${open} tile(s) in the pool`
                 : 'the pool, or this machine',
-            panel: 'Render pool',
+            panel: 'Work',
         },
         {
             name: 'Approve',
@@ -89,6 +89,5 @@ export function mountNextStep(host, { open = () => {} } = {}) {
 
 // The key that opens the panel a step leads to, so the button teaches it.
 const KEY = {
-    'Your land': '2', Place: '3', Submit: '5', 'Render pool': '6',
-    Permission: '7',
+    'Your land': '3', Place: '1', Submit: '4', Work: '5', Permission: '4',
 };

@@ -19,7 +19,7 @@ const NOTICE = '#notice';
 // A job somebody can take: after story 12 published a tile, the coarse tiles
 // above it are being rebuilt, and those are in the pool at no price.
 async function takesAJob(c) {
-    await panel(c, 'Render pool');
+    await panel(c, 'Work');
     const row = c.page.locator('.po-list li').filter({ hasText: 'free' }).first();
     await expect(row).toBeVisible({ timeout: UI });
     const which = await row.locator('.name').textContent();
@@ -31,7 +31,7 @@ async function takesAJob(c) {
 
 async function findsItBack(b, which) {
     await looking(b);
-    await panel(b, 'Render pool');
+    await panel(b, 'Work');
     const row = b.page.locator('.po-list li').filter({ hasText: which });
     await expect(row.first()).toBeVisible({ timeout: UI });
     await expect(row.first()).toContainText('handed back', { timeout: UI });

@@ -1,55 +1,18 @@
 // hud.js — the chrome around the world: where you are, what you own, and one
 // visible control for everything the tool can do.
 //
-// It holds no policy and no data. It builds the frame, owns which tab is open,
-// and hands each tab a body element for whichever module fills it. A module
-// mounted here neither knows nor cares that it is in a tab.
-
-const CUT = (n) => `polygon(${n}px 0, 100% 0, 100% calc(100% - ${n}px),`
-    + ` calc(100% - ${n}px) 100%, 0 100%, 0 ${n}px)`;
-
-// Every tab is a thing a person does. "World" is the world itself — choosing it
-// closes whatever is open rather than showing a panel.
+// It holds no policy and no data. It builds the frame, owns which surface is
+// open, and hands each one a body element for whichever module fills it. A
+// module mounted here neither knows nor cares that it is in a tab.
 //
-// `group` and `key` are the design's: four named groups along the hotbar, and a
-// number key for each so nothing is reachable only by aiming at it. `width` is
-// how wide that panel wants to be — a catalog of pictures needs more than a
-// wallet.
-export const TABS = [
-    { name: 'World', group: 'Look', key: '1', glyph: 'circle(50%)', lede: '' },
-    { name: 'Share', group: 'Look', key: '9', glyph: 'circle(50%)', width: 470,
-        lede: 'A link that puts somebody else where you are standing.' },
-    { name: 'Your land', group: 'Build', key: '2',
-        glyph: 'polygon(0 0,100% 0,100% 100%,0 100%)', width: 500,
-        lede: 'The ground you own, and what stands on it.' },
-    { name: 'Place', group: 'Build', key: '3',
-        glyph: 'polygon(50% 0,100% 50%,50% 100%,0 50%)', width: 470,
-        lede: 'Put a product from the catalog on your own land.' },
-    { name: 'Catalog', group: 'Build', key: '4', glyph: CUT(6), width: 666,
-        lede: 'Products anyone may build with. Register your own.' },
-    { name: 'Submit', group: 'Build', key: '5',
-        glyph: 'polygon(50% 0,100% 100%,0 100%)', width: 470,
-        lede: 'Send what you placed to be rendered.' },
-    { name: 'Render pool', group: 'Economy', key: '6',
-        glyph: 'polygon(25% 0,75% 0,100% 50%,75% 100%,25% 100%,0 50%)', width: 540,
-        lede: 'Tiles waiting to be compiled, and what they pay.' },
-    { name: 'Permission', group: 'Economy', key: '7',
-        glyph: 'polygon(0 55%,40% 100%,100% 10%,88% 0,40% 78%,12% 43%)', width: 500,
-        lede: 'What somebody built, waiting for a person to say yes.' },
-    { name: 'Wallet', group: 'Economy', key: '8',
-        glyph: 'polygon(0 20%,100% 20%,100% 100%,0 100%)', width: 500,
-        lede: 'What you have, and what moved.' },
-    { name: 'Admin', group: 'System', key: '0',
-        glyph: 'polygon(50% 0,100% 25%,100% 75%,50% 100%,0 75%,0 25%)', width: 666,
-        lede: 'What things may say about themselves, and what the compiler'
-            + ' makes of them.' },
-    { name: 'Setup', group: 'System', key: '`',
-        glyph: 'polygon(50% 0,61% 35%,98% 35%,68% 57%,79% 91%,50% 70%,21% 91%,'
-            + '32% 57%,2% 35%,39% 35%)', width: 470,
-        lede: 'Your account, your GeoServer, and the ground the world sits on.' },
-];
+// The bar along the bottom is client/js/tabbar.js and the altimeter up the
+// right is client/js/altimeter.js; this puts them on the screen.
 
-export const GROUPS = ['Look', 'Build', 'Economy', 'System'];
+import { GROUPS, LEAVES, PART_LEDE, TABS, keyed, surfaceOf, tabBar }
+    from './tabbar.js';
+import { mountAltimeter } from './altimeter.js';
+
+export { GROUPS, TABS, keyed };
 
 // The five stages of the route through the app, in order, as the chrome shows
 // them. Credits are not a stage: they sit in their own chip beside these.
@@ -60,10 +23,6 @@ export const STAGES = [
     { key: 'awaiting', label: 'Awaiting', tone: 'warn' },
     { key: 'published', label: 'Published', tone: 'accent' },
 ];
-
-// Which tab a key opens. Typing into a field must not teleport you, so the
-// caller checks that first.
-export const keyed = (key) => TABS.find((t) => t.key === key)?.name ?? null;
 
 const POINTS = ['N', 'NE', 'E', 'SE', 'S', 'SW', 'W', 'NW'];
 
@@ -94,6 +53,14 @@ export function whatIsMissing({ coverage, areas = 0, mine = 0, things = null,
     }
     return '';
 }
+
+// Two letters off a name or an address, for the face on the bar.
+const initials = (label) => {
+    const word = String(label ?? '').split('@')[0];
+    const parts = word.split(/[^A-Za-z0-9]+/).filter(Boolean);
+    const two = parts.length > 1 ? parts[0][0] + parts[1][0] : word.slice(0, 2);
+    return (two || '\u2014').toUpperCase();
+};
 
 const el = (tag, props = {}, ...kids) => {
     const node = Object.assign(document.createElement(tag), props);
@@ -175,38 +142,10 @@ function drawHints(node, mode) {
         el('span', {}, el('b', { textContent: 'Close panel' }), ' Esc'));
 }
 
-// The hotbar: four named groups, each tab with the key that opens it. A key
-// hint is not decoration — it is the only way to learn that the keys work.
-function tabBar(onPick) {
-    const bar = el('div', { id: 'tabs', className: 'glass' });
-    const buttons = new Map();
-    for (const name of GROUPS) {
-        const tabs = el('div', { className: 'tabs' });
-        for (const t of TABS.filter((x) => x.group === name)) {
-            buttons.set(t.name, tabButton(t, onPick));
-            tabs.append(buttons.get(t.name));
-        }
-        bar.append(el('div', { className: 'hotgroup' },
-            el('span', { className: 'name', textContent: name }), tabs));
-    }
-    return { bar, buttons };
-}
-
-function tabButton(t, onPick) {
-    const glyph = el('span', { className: 'glyph' });
-    glyph.style.clipPath = t.glyph;
-    const b = el('button', { type: 'button', className: 'tab' },
-        el('span', { className: 'key', textContent: t.key }), glyph,
-        el('span', { className: 'label', textContent: t.name }));
-    b.setAttribute('aria-selected', String(t.name === 'World'));
-    b.dataset.tab = t.name;
-    b.onclick = () => onPick(t.name);
-    return b;
-}
-
 // The route through the app, always visible: how many things you have placed,
 // how many tiles are in the pool, how many of those a renderer holds, how many
-// are waiting for a person, how many are published. Credits sit beside them.
+// are waiting for a person, how many are published. Credits are not a stage —
+// they are on the bar, in the chip that is you.
 function pipeline() {
     const strip = el('div', { id: 'pipeline', className: 'glass' });
     const cells = {};
@@ -220,55 +159,72 @@ function pipeline() {
         cells[st.key] = value;
         strip.append(cell);
     }
-    const credits = el('span', { className: 'value', textContent: '—' });
-    cells.credits = credits;
-    const chip = el('div', { id: 'credits', className: 'glass' },
-        el('span', { className: 'label', textContent: 'Credits' }), credits);
-    return { node: el('div', { id: 'stats' }, strip, chip), cells };
+    return { node: el('div', { id: 'stats' }, strip), cells };
 }
 
-function panelFrame(onClose) {
+// The panel frame: a title, the parts of this surface where it has more than
+// one, and the × that closes it.
+function panelFrame(onClose, onPart) {
     const title = el('span', { className: 'title' });
     const close = el('button', { type: 'button', className: 'close',
         textContent: '×', title: 'close' });
     close.onclick = onClose;
+    const parts = el('nav', { className: 'parts' });
+    const partButtons = new Map();
+    for (const t of TABS) {
+        for (const part of t.parts ?? []) {
+            const b = el('button', { type: 'button', className: 'part',
+                textContent: part.label });
+            b.dataset.tab = part.name;
+            b.dataset.of = t.name;
+            b.setAttribute('aria-selected', 'false');
+            b.onclick = () => onPart(part.name);
+            partButtons.set(part.name, b);
+            parts.append(b);
+        }
+    }
     const body = el('div', { className: 'body' });
     const node = el('aside', { id: 'panel', className: 'glass' },
-        el('header', {}, title, close), body);
-    return { node, title, body };
+        el('header', {}, title, close), parts, body);
+    return { node, title, body, parts, partButtons };
 }
 
 // Everything that is on screen, built once. `show` is passed in because the
-// tab buttons need it before mountHud has defined it.
+// bar's buttons need it before mountHud has defined it.
 function buildFrame(doc, show) {
     const top = topCentre();
-    const who = el('span', { className: 'who', textContent: 'not signed in' });
     const pipe = pipeline();
-    const frame = panelFrame(() => show('World'));
-    const { bar, buttons } = tabBar(show);
+    const frame = panelFrame(() => show('World'), show);
+    const { bar, buttons, you } = tabBar(show);
+    // The stories and the tests reach a part by name; the button that opens it
+    // is the surface's, so the surface says which parts are behind it.
+    for (const t of TABS) {
+        if (t.parts) buttons.get(t.name).dataset.parts = t.parts.map((x) => x.name).join(' ');
+    }
     const map = el('canvas', { id: 'minimap', width: 240, height: 240 });
     // Where the map's search box goes (client/js/places.js): the map is the
     // corner one, so what it finds is a short list under it.
     const mapBox = el('div', { id: 'map-search' });
     const scale = el('span', { className: 'scale', textContent: 'Map · M' });
 
-    // Each tab gets its body once and keeps it, so a module mounted into it
+    // Each surface gets its body once and keeps it, so a module mounted into it
     // survives the panel being closed and opened again. The lede is written
     // here rather than by each module, so a panel nobody has built yet still
     // says what it will be for.
     const bodies = new Map();
-    for (const t of TABS) {
+    for (const name of LEAVES) {
         const host = el('div', { className: 'tab-body' });
         host.hidden = true;
-        if (t.lede) host.append(el('p', { className: 'lede', textContent: t.lede }));
-        bodies.set(t.name, host);
+        const lede = TABS.find((t) => t.name === name)?.lede ?? PART_LEDE[name];
+        if (lede) host.append(el('p', { className: 'lede', textContent: lede }));
+        bodies.set(name, host);
         frame.body.append(host);
     }
 
     const notice = el('div', { id: 'notice', className: 'glass' });
     notice.hidden = true;
     // SPEC §2.1: the chip that says how many things are waiting for you sits
-    // next to who you are. js/attention.js fills it.
+    // beside the mark. js/attention.js fills it.
     const waiting = el('div', { id: 'waiting' });
     const hints = keyHints();
     // SPEC §3.2: a land's name is drawn on the ground, and letters are HTML.
@@ -277,7 +233,7 @@ function buildFrame(doc, show) {
         labels,
         el('div', { id: 'brand', className: 'glass' },
             el('span', { className: 'mark', textContent: 'splatworld' }),
-            el('span', { className: 'rule' }), who, waiting),
+            el('span', { className: 'rule' }), waiting),
         top.node, pipe.node, frame.node, bar,
         el('div', { id: 'corner' },
             hints,
@@ -292,12 +248,13 @@ function buildFrame(doc, show) {
         notice);
 
     doc.body.append(el('div', { id: 'vignette' }), hud);
-    return { top, who, stats: pipe.cells, frame, buttons, bodies, notice, map, mapBox,
-        scale, waiting, hints };
+    const alt = mountAltimeter(hud);
+    return { top, you, stats: pipe.cells, frame, buttons, bodies, notice, map,
+        mapBox, scale, waiting, hints, alt };
 }
 
-// A number key opens its panel; Escape closes whatever is open. Neither fires
-// while somebody is typing — a land called "5" has to be nameable.
+// A key opens its surface; Escape closes whatever is open. Neither fires while
+// somebody is typing — a land called "5" has to be nameable.
 function bindKeys(doc, show) {
     doc.addEventListener('keydown', (e) => {
         if (e.ctrlKey || e.metaKey || e.altKey) return;
@@ -310,72 +267,29 @@ function bindKeys(doc, show) {
     });
 }
 
-// Which panel is on screen, and the frame dressed for it.
+// Which panel is on screen, and the frame dressed for it. `name` is a leaf —
+// a surface, or one part of one — and the bar lights the surface it is under.
 function showPanel(name, { buttons, bodies, frame }) {
-    for (const [tab, b] of buttons) b.setAttribute('aria-selected', String(tab === name));
-    for (const [tab, host] of bodies) host.hidden = tab !== name;
-    frame.title.textContent = name;
-    frame.node.dataset.open = name === 'World' ? '' : '1';
+    const at = surfaceOf(name) ?? { tab: 'World', part: null };
+    for (const [tab, b] of buttons) b.setAttribute('aria-selected', String(tab === at.tab));
+    const leaf = at.part ?? at.tab;
+    for (const [tab, host] of bodies) host.hidden = tab !== leaf;
+    for (const [part, b] of frame.partButtons) {
+        b.hidden = b.dataset.of !== at.tab;
+        b.setAttribute('aria-selected', String(part === leaf));
+    }
+    frame.parts.hidden = !TABS.find((t) => t.name === at.tab)?.parts;
+    frame.title.textContent = at.tab;
+    frame.node.dataset.open = at.tab === 'World' ? '' : '1';
     // Each panel is as wide as what it has to show (TABS.width).
-    const want = TABS.find((t) => t.name === name)?.width;
+    const want = TABS.find((t) => t.name === at.tab)?.width;
     frame.node.style.width = want ? `${want}px` : '';
 }
 
-export function mountHud(doc) {
-    let open = 'World';
-    const f = buildFrame(doc, (name) => show(name));
-    const { top, who, stats, buttons, bodies, notice, waiting } = f;
-    // What a panel wants done when it is opened. A queue somebody else is
-    // working out of is out of date the moment it is drawn, and opening the tab
-    // is the player asking what is in it.
-    const onShow = new Map();
-
-    function show(name) {
-        if (name === open && name !== 'World') name = 'World';
-        open = name;
-        showPanel(name, f);
-        onShow.get(name)?.();
-        return bodies.get(name);
-    }
-
-    bindKeys(doc, show);
-    // The world is what the tab opens on: every panel hidden, nothing docked.
-    // Said once here rather than left to the markup, so the frame's state and
-    // `open` cannot start out disagreeing.
-    show(open);
-
+// Where the player is standing and which way they are facing: the top of the
+// screen, written from plain strings. The chrome decides nothing.
+function place(top) {
     return {
-        show,
-        panel: (name) => bodies.get(name),
-        whenShown(name, fn) { onShow.set(name, fn); },
-        opened: () => open,
-        // A tab with something waiting behind it says so without being opened.
-        badge(name, n) {
-            const b = buttons.get(name);
-            if (!b) return;
-            b.querySelector('.count')?.remove();
-            if (n > 0) b.append(el('span', { className: 'count', textContent: String(n) }));
-        },
-        signedIn(label) { who.textContent = label ?? 'not signed in'; },
-        // Where the attention chip is mounted (SPEC §2.1).
-        waitingSlot: () => waiting,
-        // The one line an empty world needs: what is missing, and where to do
-        // something about it. Empty text takes it away.
-        notice(text) {
-            notice.textContent = text ?? '';
-            notice.hidden = !text;
-        },
-        stat(key, value) {
-            if (stats[key]) stats[key].textContent = value;
-        },
-        // Walking or flying, and the keys for it (SPEC §2.3's corner).
-        moving(mode) { drawHints(f.hints, mode); },
-        // The minimap, the scale it is drawn at, and where its search lives.
-        minimap: () => f.map,
-        mapBox: () => f.mapBox,
-        mapScale(text) { f.scale.textContent = text; },
-        // Where the player is standing: the land under them, who owns it, and
-        // whether they may build. Plain strings — the HUD decides nothing.
         standing({ land, owner, right, may }) {
             if (land !== undefined) top.land.textContent = land;
             if (owner !== undefined) {
@@ -393,5 +307,87 @@ export function mountHud(doc) {
                 + ` \u00b7 ${Math.round(h)} m`;
             if (Number.isFinite(heading)) top.face(((heading % 360) + 360) % 360);
         },
+    };
+}
+
+// What the bar and the corners say about you and about the world's progress.
+function state(f) {
+    const { you, stats, buttons, notice } = f;
+    return {
+        // A surface with something waiting behind it says so without being
+        // opened. A count hung on a part shows on the surface that holds it.
+        badge(name, n) {
+            const b = buttons.get(surfaceOf(name)?.tab ?? name);
+            if (!b) return;
+            b.querySelector('.count')?.remove();
+            if (n > 0) b.append(el('span', { className: 'count', textContent: String(n) }));
+        },
+        // Who you are, on the chip that is you: initials on the face, the name
+        // beside it, and a lit pip when somebody is signed in at all.
+        signedIn(label) {
+            const name = label && label !== 'not signed in' ? label : '';
+            // The chip is 9rem wide: an address is shown by the part of it
+            // that is a person, with the whole of it on the button's title.
+            you.name.textContent = name ? name.split('@')[0] : 'Sign in';
+            you.face.textContent = initials(name);
+            you.b.dataset.in = name ? '1' : '';
+            you.b.title = name || 'Profile';
+        },
+        // The one line an empty world needs: what is missing, and where to do
+        // something about it. Empty text takes it away.
+        notice(text) {
+            notice.textContent = text ?? '';
+            notice.hidden = !text;
+        },
+        // Credits are not a stage of the route — they are on the chip that is
+        // you, where a balance is read without opening anything.
+        stat(key, value) {
+            if (key === 'credits') {
+                you.credits.replaceChildren(value ?? '\u2014', el('i', { textContent: 'CR' }));
+            } else if (stats[key]) stats[key].textContent = value;
+        },
+        // How high you are, how far that is above the ground, and where you
+        // are looking (client/js/altimeter.js).
+        height(at) { f.alt.set(at); },
+        // Walking or flying, and the keys for it (SPEC §2.3's corner).
+        moving(mode) { drawHints(f.hints, mode); },
+        // The minimap, the scale it is drawn at, and where its search lives.
+        minimap: () => f.map,
+        mapBox: () => f.mapBox,
+        mapScale(text) { f.scale.textContent = text; },
+        // Where the attention chip is mounted (SPEC §2.1).
+        waitingSlot: () => f.waiting,
+    };
+}
+
+export function mountHud(doc) {
+    let open = 'World';
+    const f = buildFrame(doc, (name) => show(name));
+    // What a panel wants done when it is opened. A queue somebody else is
+    // working out of is out of date the moment it is drawn, and opening the
+    // surface is the player asking what is in it.
+    const onShow = new Map();
+
+    function show(name) {
+        if (name === open && name !== 'World') name = 'World';
+        open = name;
+        showPanel(name, f);
+        onShow.get(name)?.();
+        return f.bodies.get(name);
+    }
+
+    bindKeys(doc, show);
+    // The world is what the page opens on: every panel hidden, nothing docked.
+    // Said once here rather than left to the markup, so the frame's state and
+    // `open` cannot start out disagreeing.
+    show(open);
+
+    return {
+        show,
+        panel: (name) => f.bodies.get(name),
+        whenShown(name, fn) { onShow.set(name, fn); },
+        opened: () => open,
+        ...state(f),
+        ...place(f.top),
     };
 }

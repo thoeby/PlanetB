@@ -46,7 +46,7 @@ test('ground already rendered can be asked for again',
         await test.step('a tile that was already published is in the pool again',
             async () => {
                 await looking(c);
-                await panel(c, 'Render pool');
+                await panel(c, 'Work');
                 const rows = c.page.locator('.po-list li');
                 await expect(rows.first()).toBeVisible({ timeout: UI });
                 await expect(rows.filter({ hasText: 'assembled' }).first())

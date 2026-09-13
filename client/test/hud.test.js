@@ -4,7 +4,8 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 
-import { GROUPS, STAGES, TABS, keyed, whatIsMissing } from '../js/hud.js';
+import { STAGES, whatIsMissing } from '../js/hud.js';
+import { GROUPS, LEAVES, TABS, keyed, surfaceOf } from '../js/tabbar.js';
 
 test('with no ground at all, the world has nowhere to be', () => {
     assert.match(whatIsMissing({}), /Setup/);
@@ -38,31 +39,55 @@ test('land with something on it is a Submit away', () => {
     assert.match(said, /Submit/);
 });
 
-// The chrome the design fixes: four groups, a key for every tab, five stages.
+// The chrome the design fixes (docs/design/chrome5.dc.html): three groups on
+// one plinth, a key for everything, five stages.
 
-test('every tab is in one of the four groups, and has a key of its own', () => {
-    assert.deepEqual(GROUPS, ['Look', 'Build', 'Economy', 'System']);
+test('every surface is in one of the three groups, and has a key of its own', () => {
+    assert.deepEqual(GROUPS, ['you', 'main', 'system']);
     for (const t of TABS) {
+        if (t.name === 'World') continue;
         assert.ok(GROUPS.includes(t.group), `${t.name} is in no group`);
-        assert.match(t.key, /^[0-9`]$/, `${t.name} has no key`);
+        assert.match(t.key, /^[0-9`a-z]$/, `${t.name} has no key`);
     }
-    const keys = TABS.map((t) => t.key);
-    assert.equal(new Set(keys).size, keys.length, 'two tabs share a key');
+    const keys = TABS.map((t) => t.key).filter(Boolean);
+    assert.equal(new Set(keys).size, keys.length, 'two surfaces share a key');
 });
 
 test('the groups hold what the design puts in them', () => {
     const of = (g) => TABS.filter((t) => t.group === g).map((t) => t.name);
-    assert.deepEqual(of('Look'), ['World', 'Share']);
-    assert.deepEqual(of('Build'), ['Your land', 'Place', 'Catalog', 'Submit']);
-    assert.deepEqual(of('Economy'), ['Render pool', 'Permission', 'Wallet']);
-    assert.deepEqual(of('System'), ['Admin', 'Setup']);
+    assert.deepEqual(of('you'), ['Profile', 'Wallet']);
+    assert.deepEqual(of('main'),
+        ['Place', 'Catalog', 'Your land', 'Publish', 'Work']);
+    assert.deepEqual(of('system'), ['Setup', 'Share', 'Admin']);
 });
 
-test('a key names its tab, and a key nobody bound names none', () => {
-    assert.equal(keyed('1'), 'World');
-    assert.equal(keyed('7'), 'Permission');
+test('the five surfaces the game is played through are on keys 1 to 5', () => {
+    assert.deepEqual(TABS.filter((t) => t.group === 'main').map((t) => t.key),
+        ['1', '2', '3', '4', '5']);
+});
+
+test('a key names its surface, and a key nobody bound names none', () => {
+    assert.equal(keyed('1'), 'Place');
+    assert.equal(keyed('4'), 'Publish');
+    assert.equal(keyed('p'), 'Profile');
     assert.equal(keyed('`'), 'Setup');
-    assert.equal(keyed('q'), null);
+    assert.equal(keyed('z'), null);
+});
+
+// Sending what you built and saying yes to what came back are one job, so they
+// are one button with two tabs behind it — and each keeps its own name.
+test('a part is reached through the surface that holds it', () => {
+    assert.deepEqual(surfaceOf('Submit'), { tab: 'Publish', part: 'Submit' });
+    assert.deepEqual(surfaceOf('Permission'), { tab: 'Publish', part: 'Permission' });
+    assert.deepEqual(surfaceOf('Publish'), { tab: 'Publish', part: 'Submit' });
+    assert.deepEqual(surfaceOf('Wallet'), { tab: 'Wallet', part: null });
+    assert.equal(surfaceOf('nothing at all'), null);
+});
+
+test('every panel body there is, is a surface or a part of one', () => {
+    assert.ok(LEAVES.includes('Submit') && LEAVES.includes('Permission'));
+    assert.ok(!LEAVES.includes('Publish'), 'a surface with parts has no body');
+    assert.equal(new Set(LEAVES).size, LEAVES.length, 'two bodies share a name');
 });
 
 test('the five stages are the route through the app, in order', () => {
@@ -70,7 +95,7 @@ test('the five stages are the route through the app, in order', () => {
         ['Placed', 'In pool', 'Rendered', 'Awaiting', 'Published']);
 });
 
-test('every tab but the world itself says how wide its panel is', () => {
+test('every surface but the world itself says how wide its panel is', () => {
     for (const t of TABS) {
         if (t.name === 'World') continue;
         assert.ok(t.width >= 440, `${t.name} has no width`);

@@ -56,25 +56,30 @@ test('the chrome says where you are and what the world is doing', async ({ page 
     const errors = await boot(page);
 
     await expect(page.locator('#brand .mark')).toHaveText('splatworld');
-    await expect(page.locator('#brand .who')).toHaveText('not signed in');
+    // Who you are is on the bar now, on the chip that opens Profile.
+    await expect(page.locator('#tabs .tab.profile .name')).toHaveText('Sign in');
 
-    // Five stages, in the order the design fixes, and credits beside them.
+    // Five stages, in the order the design fixes.
     await expect(page.locator('#pipeline .stage .label')).toHaveText([
         'Placed', 'In pool', 'Rendered', 'Awaiting', 'Published',
     ]);
-    await expect(page.locator('#credits .label')).toHaveText('Credits');
 
     // Where you are: the land, the right, the coordinates, a compass.
     await expect(page.locator('#land')).toHaveText(/\w/);
     await expect(page.locator('#standing .coords')).toHaveText(/[0-9.]+[NS] [0-9.]+[EW]/);
     await expect(page.locator('#compass .needle')).toBeVisible();
 
-    // Eleven ways in, grouped as the design groups them, each with its key.
-    await expect(page.locator('.hotgroup > .name')).toHaveText([
-        'Look', 'Build', 'Economy', 'System',
-    ]);
-    await expect(page.locator('#tabs .tab')).toHaveCount(11);
-    await expect(page.locator('#tabs .tab .key').first()).toHaveText('1');
+    // Ten ways in on one plinth, in the three groups the design divides, with
+    // the five the game is played through on keys 1 to 5.
+    await expect(page.locator('#tabs .hotgroup')).toHaveCount(3);
+    await expect(page.locator('#tabs .tab')).toHaveCount(10);
+    await expect(page.locator('#tabs .hotgroup[data-group="main"] .tab .label'))
+        .toHaveText(['Place', 'Catalog', 'Land', 'Publish', 'Work']);
+    await expect(page.locator('#tabs .hotgroup[data-group="main"] .tab .key'))
+        .toHaveText(['1', '2', '3', '4', '5']);
+
+    // How high you are, and how far that is above the ground.
+    await expect(page.locator('#alt .read .v')).toHaveText(/[\d,—]/);
 
     // The map, and the legend's four states.
     await expect(page.locator('#minimap')).toBeVisible();
@@ -87,8 +92,8 @@ test('a number key opens its panel, and Escape closes it', async ({ page }) => {
     const errors = await boot(page);
     const panel = page.locator('#panel');
 
-    for (const [key, name] of [['2', 'Your land'], ['4', 'Catalog'],
-        ['7', 'Permission'], ['9', 'Share'], ['`', 'Setup']]) {
+    for (const [key, name] of [['3', 'Your land'], ['2', 'Catalog'],
+        ['4', 'Publish'], ['9', 'Share'], ['`', 'Setup']]) {
         await page.keyboard.press(key);
         await expect(panel, `${name} did not open on ${key}`).toBeVisible();
         await expect(panel.locator('header .title')).toHaveText(name);
@@ -101,10 +106,10 @@ test('a number key opens its panel, and Escape closes it', async ({ page }) => {
     }
 
     // Each panel is as wide as the design makes it.
-    await page.keyboard.press('4');
+    await page.keyboard.press('2');
     const wide = await page.locator('#panel').evaluate((n) => n.getBoundingClientRect().width);
     await page.keyboard.press('Escape');
-    await page.keyboard.press('8');
+    await page.keyboard.press('6');
     const narrow = await page.locator('#panel').evaluate((n) => n.getBoundingClientRect().width);
     expect(wide).toBeGreaterThan(narrow);
 
@@ -122,10 +127,10 @@ test('a key typed into a field is text, not a teleport', async ({ page }) => {
     const field = page.locator('#panel input.gs-url');
     await field.waitFor();
     await field.click();
-    await field.fill('4');
+    await field.fill('2');
     // The key did not open a panel, and the character reached the field.
     await expect(page.locator('#panel header .title')).toHaveText('Setup');
-    await expect(field).toHaveValue('4');
+    await expect(field).toHaveValue('2');
     expect(errors, errors.join('\n')).toEqual([]);
 });
 
@@ -134,8 +139,10 @@ test('a key typed into a field is text, not a teleport', async ({ page }) => {
 // else — which looks like a broken page and reads like a missing feature.
 test('every panel has something in it', async ({ page }) => {
     const errors = await boot(page);
-    const tabs = await page.locator('#tabs .tab').evaluateAll(
-        (nodes) => nodes.map((n) => n.dataset.tab));
+    // Every body there is: a surface, or one part of a surface that holds more
+    // than one (Publish holds Submit and Approve).
+    const tabs = await page.evaluate(() => [...document.querySelectorAll(
+        '#tabs .tab')].flatMap((n) => n.dataset.parts?.split(' ') ?? [n.dataset.tab]));
     expect(tabs).toHaveLength(11);
     // A world with no ground opens on Setup by itself, so close whatever is
     // docked before opening them one at a time.

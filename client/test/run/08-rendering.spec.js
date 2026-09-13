@@ -81,7 +81,7 @@ test('story 8 — C renders what B approved, and the world has it',
         const fine = c.page.locator('.rows li').filter({ hasText: 'assembled' });
         await test.step('the pool says what the job is and what it needs',
             async () => {
-                await panel(c, 'Render pool');
+                await panel(c, 'Work');
                 await expect(fine).toHaveCount(1, { timeout: UI });
                 await expect(fine).toContainText('free');
                 await expect(fine).toContainText('no GPU needed');

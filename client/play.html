@@ -6,6 +6,7 @@
 <meta name="splatworld:api" content="http://localhost:3000">
 <meta name="splatworld:files" content="http://localhost:8080">
 <link rel="stylesheet" href="./hud.css">
+<link rel="stylesheet" href="./bar.css">
 <link rel="stylesheet" href="./panel.css">
 <style>
   /* Only what a module's own markup needs and hud.css cannot know about. */
@@ -72,6 +73,7 @@
   import { mountBuild } from './js/buildui.js';
   import { mountAreas } from './js/areasui.js';
   import { mountWallet } from './js/walletui.js';
+  import { mountProfile } from './js/profileui.js';
   import { nearbyInstances } from './js/build.js';
   import { InstancePreview } from './js/preview.js';
   import { XR_LIMITS, teleportTarget, xrRequested, xrSupported } from './js/xr.js';
@@ -120,7 +122,7 @@
   // taking, so background work can stand aside while the tab is being played,
   // and where the player is, so the nearest unfinished tile is claimed first.
   const frame = { ms: 0 };
-  const work = mountWork(panelFor('Render pool', 'work'), {
+  const work = mountWork(panelFor('Work', 'work'), {
     frames: () => frame.ms,
     where: () => {
       const p = camera.getPosition();
@@ -329,11 +331,17 @@
   // WP4.4: the wallet, and the bounty that puts a tile in front of a stranger.
   // Whatever the wallet learns, the corner of the chrome says — so a balance
   // that changed because a bounty was paid does not wait for a sign-in.
+  let held = null;
+  let profile = null;
   const wallet = mountWallet(panelFor('Wallet', 'wallet'), {
-      onBalance: (account) => hud.stat('credits',
-          account ? Number(account.amount).toFixed(2) : '—'),
+      onBalance: (account) => {
+          held = account ? Number(account.amount) : null;
+          hud.stat('credits', held === null ? '—' : held.toFixed(2));
+          profile?.refresh();
+      },
   });
   const showCredits = () => wallet.refresh();
+
   showCredits();
 
   const build = mountBuild(panelFor('Place', 'build'), {
@@ -358,6 +366,17 @@
       onRemove: (item) => api.remove('instance', { id: `eq.${item.id}` })
           .then(() => build.refresh()),
   });
+
+  // Design 5e: who you are in the world, and what that comes to. It reads what
+  // the other panels already know, so it holds no state of its own.
+  profile = mountProfile(hud.panel('Profile'), {
+      claims: () => api.claims(),
+      balance: () => held,
+      lands: () => land.areas() ?? [],
+      things: () => land.things?.() ?? [],
+      open: (name) => hud.show(name),
+  });
+  hud.whenShown('Profile', () => profile.refresh());
 
   // Whether the tile under a thing has been published with it inside. The
   // streamer already holds every tile row; `dirty` is the world's own answer.
@@ -399,7 +418,7 @@
   });
   // The pool is a queue other tabs are taking work out of, so what it showed
   // when the page loaded is not what is in it now: opening the tab asks again.
-  const pool = mountPool(hud.panel('Render pool'), {
+  const pool = mountPool(hud.panel('Work'), {
       loop: () => work.ready(),
       where: () => {
           const p = camera.getPosition();
@@ -412,7 +431,7 @@
   // panel that answers from what it knew at load time tells the player that
   // nothing has changed since they last sent it, which is the one thing they
   // know to be untrue.
-  hud.whenShown('Render pool', () => pool.refresh());
+  hud.whenShown('Work', () => pool.refresh());
   hud.whenShown('Your land', () => land.refresh());
   hud.whenShown('Submit', () => submit.refresh());
 
@@ -750,6 +769,15 @@
     if (ground?.coverage) groundMesh.follow(here.lon, here.lat, splatsCover);
     const heading = player.yaw / Math.PI * 180;
     hud.at(here.lon, here.lat, here.h, heading);
+    // The altimeter: how high you are above the sea, and how far that is above
+    // whatever is under you. The ground comes from the same heightfield walking
+    // stands on, so the two never disagree; null where nothing has loaded.
+    const under = terrain.heightAt({ x: p.x, y: p.y, z: p.z });
+    hud.height({
+        altitude: here.h,
+        above: under === null ? null : p.y - under,
+        pitch: player.pitch / Math.PI * 180,
+    });
     whereAmI(here);
     keepTheAddressBar({ ...here, heading });
     world.textContent = `${live.length} published tiles\n`
