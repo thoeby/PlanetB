@@ -130,28 +130,16 @@ async function putFile(path, bytes, sha) {
 
 const CAPS = { webgpu: true, vram_gb: 8, algo: ['merge-v1', 'sog-v1'] };
 
-// claim_atom picks globally: the next ready atom by bounty then id, and its
-// expire_claims() can hand back work another run abandoned. Anything that is
-// not this job's is parked and handed straight back — this tool cannot compute
-// a stranger's atom, and silently letting the claim rot would cost that atom an
-// attempt. The release is a psql write because no RPC un-claims an atom.
-const parked = [];
-
+// One job's work, and nothing else: claim_for is claim_atom narrowed to the job
+// this tool is compiling (db/0043_pool.sql). It used to take whatever
+// claim_atom offered and hand back what was not its own, which was fine while
+// the only open jobs were its own — and stopped being fine when publishing a
+// child started opening the parent's rebuild (db/0070_therebuildopensitself):
+// the tool parked the very merge atom it was about to need, and then could not
+// claim it.
 async function claimFor(job) {
-    for (;;) {
-        const atom = await api.rpc('claim_atom', { caps: CAPS });
-        if (!atom?.id) return null;
-        if (atom.job_id === job) return atom;
-        parked.push(atom.id);
-    }
-}
-
-function releaseParked() {
-    if (!parked.length) return;
-    psql(`UPDATE atom SET state = 'ready', worker_id = NULL, claimed_at = NULL,
-          heartbeat_at = NULL WHERE id IN (${parked.join(',')})`);
-    console.log(`# handed back ${parked.length} atom(s) belonging to other jobs`);
-    parked.length = 0;
+    const atom = await api.rpc('claim_for', { job_id: job, caps: CAPS });
+    return atom?.id ? atom : null;
 }
 
 async function upload(path, bytes, sha, kind, algo = 'sog-v1') {
@@ -293,14 +281,9 @@ async function compileTile(t) {
         },
     });
     if (!done) { no(`${name} publish_tile returned false`); return; }
-    // What a renderer publishes is a candidate; a person approves it (T7,
-    // db/0044_permission.sql). This tool owns the land it seeded, so it is the
-    // person.
-    if (await api.rpc('approve_tile', { z: t.z, x: t.x, y: t.y })) {
-        ok(`${name} published at version ${want}`);
-    } else {
-        no(`${name} approve_tile returned false`);
-    }
+    // Nobody is asked a second time: the decision came before the render and
+    // what lands is published (SPEC §0.2, db/0069_approvalverbs.sql).
+    ok(`${name} published at version ${want}`);
 }
 
 async function main() {
@@ -311,11 +294,7 @@ async function main() {
 
     // Bottom up: publishing a child dirties its parent and bumps the parent's
     // expected_version, so a parent's job may only be opened afterwards.
-    try {
-        for (const t of TILES) await compileTile(t);
-    } finally {
-        releaseParked();
-    }
+    for (const t of TILES) await compileTile(t);
 
     for (const t of TILES) {
         const [row] = await api.select('tile', {

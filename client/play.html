@@ -356,6 +356,8 @@
           onMyLand = p.tiles;
       },
   });
+  // The pool is a queue other tabs are taking work out of, so what it showed
+  // when the page loaded is not what is in it now: opening the tab asks again.
   const pool = mountPool(hud.panel('Render pool'), {
       loop: () => work.ready(),
       where: () => {
@@ -363,6 +365,8 @@
           return origin.geodeticOf({ x: p.x, y: p.y, z: p.z });
       },
   });
+
+  hud.whenShown('Render pool', () => pool.refresh());
 
   // T7: what has been rendered on your land and is waiting for you to say yes.
   // The switch shows the waiting version in place; approving publishes it for

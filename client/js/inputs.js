@@ -30,7 +30,7 @@ function refsOf(inputs) {
 
 const inList = (xs) => `in.(${xs.join(',')})`;
 
-async function locate(api, refs) {
+async function locate(api, refs, inputs) {
     const at = new Map(), art = new Map();
     if (refs.atoms.length) {
         for (const a of await api.select('atom',
@@ -56,15 +56,22 @@ async function locate(api, refs) {
                 { output_sha256: inList(stale), op: 'eq.sog', select: 'output_sha256,result' })
             : [];
         for (const a of said) if (a.result?.path) byTile.set(a.output_sha256, a.result);
-        for (const r of rows) art.set(r.sha256, path(r, byTile.get(r.sha256)));
+        for (const r of rows) art.set(r.sha256, path(r, byTile.get(r.sha256), inputs));
     }
     return { at, art };
 }
 
 // The store has one place for each kind of artifact (ARCHITECTURE §7). A tile's
 // .sog is found through the tile that publishes it; nothing else needs a lookup.
-function path(artifact, tile) {
+function path(artifact, tile, inputs) {
     const { sha256: sha, kind } = artifact;
+    // The ground is addressed by the tile it was cut for, not by its hash:
+    // that is where the server writes it (server/splatworld/ground.py) and what
+    // client/lib/geo.js asks for. build_dag pins which tile that is beside the
+    // hash it pins (db/0039_ground.sql, geo_inputs).
+    if (kind === 'dem' && inputs?.dem === sha) {
+        return `/geo/dem/${inputs.dem_at}.r16`;
+    }
     if (kind === 'sog') {
         if (!tile) throw new Error(`no published tile or atom holds sog ${sha}`);
         return tile.path ?? `/tiles/${tile.z}/${tile.x}/${tile.y}/${sha}.sog`;
@@ -77,7 +84,7 @@ function path(artifact, tile) {
 // { key: url | url[] | value } — the shape atoms are handed, with every
 // artifact reference replaced by where its bytes are.
 export async function resolveInputs(api, inputs) {
-    const { at, art } = await locate(api, refsOf(inputs));
+    const { at, art } = await locate(api, refsOf(inputs), inputs);
     const one = (v) => {
         if (typeof v === 'number') {
             const u = at.get(v);

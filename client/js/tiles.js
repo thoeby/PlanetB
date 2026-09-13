@@ -30,6 +30,26 @@ export function cameraState(cameraEntity, screenH) {
     };
 }
 
+// Where the traversal starts: every published tile with no published tile above
+// it. A world compiles from the leaves up (SPEC §5.3) — the first thing anybody
+// publishes is a z14, and its z12, z10, z8 and z6 are rebuilt from it
+// afterwards — so a traversal that could only start at z6 showed nothing at all
+// until the whole ladder had been rebuilt. Where the ladder is complete, the z6
+// is still the only root, because every finer tile has it above them.
+function rootsOf(rows) {
+    const live = new Set(rows.filter((r) => r.published_version > 0)
+        .map((r) => key(r.z, r.x, r.y)));
+    const covered = (r) => {
+        for (let z = r.z - 2; z >= tm.MIN_ZOOM; z -= 2) {
+            const f = 2 ** (r.z - z);
+            if (live.has(key(z, Math.floor(r.x / f), Math.floor(r.y / f)))) return true;
+        }
+        return false;
+    };
+    return rows.filter((r) => r.published_version > 0 && !covered(r))
+        .map((r) => ({ z: r.z, x: r.x, y: r.y }));
+}
+
 export class TileStreamer {
     constructor(app, pc, { origin, filesUrl, limits = LIMITS, fetchRows } = {}) {
         this.app = app;
@@ -61,8 +81,7 @@ export class TileStreamer {
     // needs to tell an unpublished child from one that does not exist.
     setTiles(rows) {
         this.tiles = new Map(rows.map((r) => [key(r.z, r.x, r.y), r]));
-        this.roots = rows.filter((r) => r.z === tm.MIN_ZOOM && r.published_version > 0)
-            .map((r) => ({ z: r.z, x: r.x, y: r.y }));
+        this.roots = rootsOf(rows);
         return this.tiles.size;
     }
 

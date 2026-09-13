@@ -280,21 +280,31 @@ function bindKeys(doc, show) {
     });
 }
 
+// Which panel is on screen, and the frame dressed for it.
+function showPanel(name, { buttons, bodies, frame }) {
+    for (const [tab, b] of buttons) b.setAttribute('aria-selected', String(tab === name));
+    for (const [tab, host] of bodies) host.hidden = tab !== name;
+    frame.title.textContent = name;
+    frame.node.dataset.open = name === 'World' ? '' : '1';
+    // Each panel is as wide as what it has to show (TABS.width).
+    const want = TABS.find((t) => t.name === name)?.width;
+    frame.node.style.width = want ? `${want}px` : '';
+}
+
 export function mountHud(doc) {
     let open = 'World';
     const f = buildFrame(doc, (name) => show(name));
-    const { top, who, stats, frame, buttons, bodies, notice, waiting } = f;
+    const { top, who, stats, buttons, bodies, notice, waiting } = f;
+    // What a panel wants done when it is opened. A queue somebody else is
+    // working out of is out of date the moment it is drawn, and opening the tab
+    // is the player asking what is in it.
+    const onShow = new Map();
 
     function show(name) {
         if (name === open && name !== 'World') name = 'World';
         open = name;
-        for (const [tab, b] of buttons) b.setAttribute('aria-selected', String(tab === name));
-        for (const [tab, host] of bodies) host.hidden = tab !== name;
-        frame.title.textContent = name;
-        frame.node.dataset.open = name === 'World' ? '' : '1';
-        // Each panel is as wide as what it has to show (TABS.width).
-        const want = TABS.find((t) => t.name === name)?.width;
-        frame.node.style.width = want ? `${want}px` : '';
+        showPanel(name, f);
+        onShow.get(name)?.();
         return bodies.get(name);
     }
 
@@ -307,6 +317,7 @@ export function mountHud(doc) {
     return {
         show,
         panel: (name) => bodies.get(name),
+        whenShown(name, fn) { onShow.set(name, fn); },
         opened: () => open,
         // A tab with something waiting behind it says so without being opened.
         badge(name, n) {

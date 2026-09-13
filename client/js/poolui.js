@@ -79,9 +79,21 @@ export const what = (e) => [
 
 export const stuck = (e) => e.failed > 0 && !e.ready && !e.claimed;
 
+// What the tab is doing to this tile, in the words SPEC §3.7 uses.
+export const DOING = {
+    assemble: 'assembling', frame: 'framing', train: 'training',
+    sample: 'sampling', merge: 'merging', sog: 'encoding', verify: 'checking',
+};
+
+// What this job needs of the machine, and what this machine has. A tab with no
+// GPU is told next to the job rather than three minutes into it.
+export const needs = (e, caps) => (e.needs_webgpu
+    ? (caps?.webgpu ? 'needs WebGPU \u2713' : 'needs WebGPU \u2014 this tab has none')
+    : 'no GPU needed');
+
 // One open job, as the artboard's row: what and where on the left, what it
 // pays and the button on the right.
-export function poolRow(e, acts) {
+export function poolRow(e, acts, caps) {
     const render = el('button', { type: 'button', className: 'po-render primary',
         textContent: 'Render' });
     render.onclick = () => acts.render(e, render);
@@ -104,8 +116,10 @@ export function poolRow(e, acts) {
             el('div', { className: 'name',
                 textContent: `${e.z}/${e.x}/${e.y}` }),
             el('div', { className: 'sub',
-                textContent: [far(e.metres), what(e),
-                    e.z >= 16 ? 'trained' : 'merged from its children']
+                // What this job makes is the job's own answer: a tile with
+                // nothing under it is assembled whatever its zoom
+                // (db/0045_coarseleaf.sql).
+                textContent: [far(e.metres), what(e), e.made, needs(e, caps)]
                     .filter(Boolean).join(' · ') })),
         end);
 }
