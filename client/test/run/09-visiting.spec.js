@@ -64,8 +64,10 @@ test('story 9 — a link is a place, and a name finds one',
             await panel(b, 'Share');
             const field = b.page.locator('.sh-link');
             await expect(field).toHaveValue(/#at=[-\d.]+,[-\d.]+/, { timeout: UI });
-            // What they will find, before they send it.
-            await expect(b.page.locator('.sh-facts')).toContainText('Ben’s field');
+            // What they will find, before they send it: the place and the way
+            // they will be facing (SPEC §2.10).
+            await expect(b.page.locator('.sh-facts')).toContainText('Position');
+            await expect(b.page.locator('.sh-facts')).toContainText('Looking');
             await b.page.locator('.sh-copy').click();
             await expect(b.page.locator('.sh-status')).toContainText(/copied|select/,
                 { timeout: UI });
