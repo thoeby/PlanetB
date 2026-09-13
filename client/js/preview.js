@@ -59,6 +59,14 @@ export class InstancePreview {
         return parts;
     }
 
+    // SPEC §2.9's Before / After: the same land with what was built shown or
+    // hidden. Nothing is unloaded — the switch is instant, and flipping it back
+    // must not have to fetch a GLB again.
+    setVisible(on) {
+        for (const entity of this.entities.values()) entity.enabled = Boolean(on);
+        return on;
+    }
+
     // rows: instance rows, each with the asset's sha256 attached.
     async sync(rows) {
         const seen = new Set();

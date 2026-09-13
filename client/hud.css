@@ -123,6 +123,13 @@ body {
 .world-label[data-tone="warn"] { color: var(--warn); font-size: 11px;
   letter-spacing: 0.1em; }
 
+/* Why the last submission was refused (SPEC §3.6). */
+.land-refused { border-left: 2px solid var(--bad); padding-left: 10px; }
+.land-refused p { margin: 4px 0; }
+
+/* What this land is waiting for (SPEC §0.2, §3.5). */
+.land-awaiting { margin-top: 8px; font-size: 13px; color: var(--warn); }
+
 /* What changed on this land, and the one thing to do about it (SPEC §3.3). */
 .land-changed { display: flex; align-items: center; justify-content: space-between;
   gap: 10px; margin-top: 10px; font-size: 13px; }

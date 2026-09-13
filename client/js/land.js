@@ -66,9 +66,11 @@ export function labelAreas(ctx, areas, host) {
 // thing, because a model standing in a world of splats looks like any other
 // model and the difference is what the world knows about it.
 export function labelObjects(ctx, objects, host) {
+    // `h` on an instance is metres above sea level, not above the ground: a
+    // label placed at ground + h was six hundred metres over the Rhone.
     const marks = (objects ?? []).filter((o) => o.lon !== undefined)
         .map((o) => ({ key: `i:${o.id}`, words: 'not yet rendered',
-            at: { lon: o.lon, lat: o.lat }, up: (o.h ?? 0) + 2, dim: true }));
+            at: { lon: o.lon, lat: o.lat, h: o.h }, up: 2, dim: true }));
     return labelWorld(ctx, marks, host, 'object');
 }
 
@@ -93,9 +95,13 @@ function labelWorld(ctx, marks, host, group) {
             host.append(label);
         }
         label.textContent = mark.words;
-        const p = origin.localOf({ lon: mark.at.lon, lat: mark.at.lat, h: 0 });
-        const ground = terrain?.heightAt(p);
-        const at = new pc.Vec3(p.x, (ground ?? p.y) + mark.up, p.z);
+        // A mark that knows its own elevation is drawn there; one that does not
+        // sits on the ground under it.
+        const known = Number.isFinite(mark.at.h);
+        const p = origin.localOf({ lon: mark.at.lon, lat: mark.at.lat,
+            h: known ? mark.at.h : 0 });
+        const base = known ? p.y : (terrain?.heightAt(p) ?? p.y);
+        const at = new pc.Vec3(p.x, base + mark.up, p.z);
         const screen = camera.worldToScreen(at);
         // Behind the camera, or off the side: not drawn rather than drawn in
         // the wrong place.
@@ -115,14 +121,16 @@ function labelWorld(ctx, marks, host, group) {
 async function cardOf(area) {
     const empty = {
         contents: [], drawn: [], progress: null, grants: [], proposals: [],
+        refusal: null,
     };
     if (!area) return empty;
-    const [contents, drawn, progress, grants, proposals] = await Promise.all([
+    const [contents, drawn, progress, grants, proposals, refusal] = await Promise.all([
         api.rpc('area_contents', { area_id: area.id }).catch(() => []),
         api.rpc('area_drawn', { area_id: area.id }).catch(() => []),
         api.rpc('area_progress', { area_id: area.id }).catch(() => null),
         api.rpc('area_grants', { area_id: area.id }).catch(() => []),
         api.rpc('my_proposals').catch(() => []),
+        api.rpc('area_refusal', { area_id: area.id }).catch(() => null),
     ]);
     return {
         contents: contents ?? [],
@@ -130,6 +138,7 @@ async function cardOf(area) {
         progress,
         grants: grants ?? [],
         proposals: (proposals ?? []).filter((p) => p.area_id === area.id),
+        refusal: refusal?.note ? refusal : null,
     };
 }
 

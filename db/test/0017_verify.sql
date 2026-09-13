@@ -7,7 +7,7 @@
 -- left of Invariant 8 is the honest half — the deterministic ops still have to
 -- agree with themselves, and nobody is asked to look at that.
 BEGIN;
-SELECT plan(15);
+SELECT plan(11);
 
 SET client_min_messages = warning;
 
@@ -79,33 +79,17 @@ SELECT is(submit_atom((SELECT id FROM cs), repeat('8', 64),
 SELECT ok(publish_tile((SELECT z FROM tt), (SELECT x FROM tt), (SELECT y FROM tt),
     (SELECT v FROM ver),
     repeat('8', 64), '{"origin": {"lon": 9.5, "lat": 48.5, "h": 400}}'::jsonb),
-    'the worker puts it forward');
+    'the worker publishes it');
 
 -- what everybody else sees ------------------------------------------------
-SELECT is((SELECT t.published_version FROM tile t, tt
-           WHERE t.z = tt.z AND t.x = tt.x AND t.y = tt.y), 0::bigint,
-    'until somebody approves it, nobody sees it');
-SELECT is((SELECT t.candidate_version FROM tile t, tt
-           WHERE t.z = tt.z AND t.x = tt.x AND t.y = tt.y), (SELECT v FROM ver),
-    'it waits on the tile as a candidate');
-
--- who may say yes ---------------------------------------------------------
-SELECT set_config('request.jwt.claims',
-    json_build_object('sub', stranger_id, 'role', 'player')::text, true) FROM ids;
-SELECT throws_ok(
-    format($$SELECT approve_tile(%s, %s, %s)$$,
-           (SELECT z FROM tt), (SELECT x FROM tt), (SELECT y FROM tt)),
-    '42501', null, 'a passer-by does not get to approve somebody''s land');
-
-SELECT set_config('request.jwt.claims',
-    json_build_object('sub', owner_id, 'role', 'player')::text, true) FROM ids;
-SELECT ok(approve_tile((SELECT z FROM tt), (SELECT x FROM tt), (SELECT y FROM tt)),
-    'the owner does');
+-- Nobody is asked anything here: the person said yes before the render was
+-- ever opened (SPEC §0.2, db/0068_approvalfirst.sql), so what lands is what
+-- everybody sees.
 SELECT is((SELECT t.published_version FROM tile t, tt
            WHERE t.z = tt.z AND t.x = tt.x AND t.y = tt.y), (SELECT v FROM ver),
-    'and then everybody sees it');
-SELECT is((SELECT t.candidate_sha256 FROM tile t, tt
-           WHERE t.z = tt.z AND t.x = tt.x AND t.y = tt.y), null,
-    'with nothing left waiting');
+    'what lands is what everybody sees');
+SELECT is((SELECT t.sog_sha256 FROM tile t, tt
+           WHERE t.z = tt.z AND t.x = tt.x AND t.y = tt.y), repeat('8', 64),
+    'and it is the bytes the worker made');
 
 ROLLBACK;

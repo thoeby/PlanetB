@@ -80,6 +80,13 @@ LON=$(awk "BEGIN{printf \"%.4f\", 6.0 + $OFF * 0.015}")
 LAT=$(awk "BEGIN{printf \"%.4f\", 46.0 + $OFF * 0.004}")
 $PSQL <<SQL > /dev/null
 SET client_min_messages = warning;
+-- Nothing may be drawn outside the world's ground (db/0062_insideground.sql),
+-- so this world reaches where this run works.
+INSERT INTO ground (only_one, geoserver_url, coverage, extent)
+VALUES (true, 'http://test.invalid/geoserver', 'test:ground',
+        st_makeenvelope($LON - 1, $LAT - 1, $LON + 1, $LAT + 1, world_srid()))
+ON CONFLICT (only_one) DO UPDATE
+SET extent = st_envelope(st_collect(ground.extent, excluded.extent));
 INSERT INTO area (id, geom, owner_id, detail) VALUES (gen_random_uuid(),
     st_makeenvelope($LON - 0.02, $LAT - 0.02, $LON + 0.02, $LAT + 0.02, world_srid()),
     '$UID_', 14);

@@ -1,5 +1,7 @@
-// permissionui.js — what the Permission panel draws (design 3g). No requests:
-// it is handed the candidates and the actions and returns nodes.
+// permissionui.js — what the Approve panel draws (design 3g, SPEC §2.9).
+//
+// No state and no requests: it is handed the submissions waiting for this
+// player and returns nodes. permission.js does the asking and the deciding.
 
 export const el = (tag, props = {}, ...kids) => {
     const node = Object.assign(document.createElement(tag), props);
@@ -7,86 +9,83 @@ export const el = (tag, props = {}, ...kids) => {
     return node;
 };
 
-const far = (m) => (!m ? 'here'
-    : m < 1000 ? `${Math.round(m)} m away` : `${(m / 1000).toFixed(1)} km away`);
-
 const ago = (at) => {
-    if (!at) return '';
-    const mins = Math.round((Date.now() - Date.parse(at)) / 60000);
-    if (!Number.isFinite(mins)) return '';
-    if (mins < 1) return 'just now';
-    if (mins < 60) return `${mins} min ago`;
-    if (mins < 1440) return `${Math.round(mins / 60)} h ago`;
-    return new Date(at).toLocaleDateString(undefined, { day: 'numeric', month: 'short' });
+    const seconds = Math.max(0, (Date.now() - new Date(at).getTime()) / 1000);
+    if (seconds < 90) return 'just now';
+    if (seconds < 5400) return `${Math.round(seconds / 60)} min ago`;
+    return `${Math.round(seconds / 3600)} h ago`;
 };
 
-export const tileId = (e) => `${e.z}/${e.x}/${e.y}`;
-
-// Before / With candidate: the switch that decides which sha a loaded tile
-// asks for, so the same walk shows the waiting version in place.
-export function beforeWith(showing, onToggle) {
-    const box = el('button', { type: 'button', className: 'switch',
-        title: 'Show what is waiting, in place' });
-    box.setAttribute('aria-checked', showing ? 'true' : 'false');
-    box.onclick = () => onToggle(box.getAttribute('aria-checked') !== 'true');
-    return el('div', { className: 'row-switch' },
-        el('span', { textContent: showing
-            ? 'With the candidate, in place' : 'Before — what is published' }),
-        box);
+// "3 tiles · 2 objects · 1 wood" — what the approver is being asked about.
+export function changeWords(entry) {
+    const c = entry.changes ?? {};
+    const bits = [`${entry.tiles} tile${entry.tiles === 1 ? '' : 's'}`];
+    if (c.objects) bits.push(`${c.objects} object${c.objects === 1 ? '' : 's'}`);
+    if (c.moved) bits.push(`${c.moved} moved`);
+    if (c.features) bits.push(`${c.features} drawn`);
+    return bits.join(' · ');
 }
 
-// The list of what is waiting for this person, nearest first.
+// The list: what is waiting for me, and who sent it.
 export function waiting(rows, chosen, onPick) {
-    if (!rows) {
+    if (!rows?.length) {
         return [el('li', { className: 'muted',
-            textContent: 'Sign in to see what is waiting on your land.' })];
+            textContent: 'Nothing is waiting for your decision.' })];
     }
-    if (!rows.length) {
-        return [el('li', { className: 'muted',
-            textContent: 'Nothing waiting: every rendered tile on your land has'
-                + ' been decided.' })];
-    }
-    return rows.map((e) => {
-        const row = el('li', {},
-            el('button', { className: 'bare', type: 'button' },
-                el('div', { className: 'who' },
-                    el('div', { className: 'name', textContent: tileId(e) }),
-                    el('div', { className: 'sub',
-                        textContent: `${far(e.metres)} · ${ago(e.at)}` }))),
+    return rows.map((entry) => {
+        const pick = el('button', { className: 'bare', type: 'button' },
+            el('div', { className: 'who' },
+                el('div', { className: 'name', textContent: entry.land }),
+                el('div', { className: 'sub',
+                    textContent: `by ${entry.by} · ${ago(entry.at)}` })));
+        pick.onclick = () => onPick(entry);
+        const row = el('li', {}, pick,
             el('div', { className: 'end' },
-                el('span', { className: 'chip',
-                    'data-tone': e.was_published ? 'warn' : 'accent',
-                    textContent: e.was_published ? 'replaces what is there'
-                        : 'nothing there yet' })));
-        row.setAttribute('aria-current', tileId(e) === chosen ? 'true' : 'false');
-        row.querySelector('button').onclick = () => onPick(e);
+                el('span', { className: 'muted', textContent: changeWords(entry) }),
+                entry.superseded
+                    ? el('span', { className: 'chip', 'data-tone': 'warn',
+                        textContent: 'changed since' })
+                    : null));
+        row.setAttribute('aria-current', String(entry.id === chosen));
         return row;
     });
 }
 
-// The decision itself: go and look, then yes or no, with the note a refusal
-// carries back to whoever rendered it.
+// Before / After: what is on the land now, and what it looked like without
+// what was built (SPEC §2.9). It hides and shows the models in place.
+export function beforeAfter(after, onSwitch) {
+    const box = el('div', { className: 'row-switch pm-beforeafter' },
+        el('span', { textContent: after ? 'After — what was built' : 'Before' }));
+    const input = el('input', { type: 'checkbox', className: 'pm-after',
+        checked: after });
+    input.onchange = () => onSwitch(input.checked);
+    box.append(input);
+    return box;
+}
+
+// The card: what this submission is, and the three things to do about it.
 export function decide(entry, acts) {
     if (!entry) return [];
-    const note = el('textarea', { rows: 2, className: 'pm-note',
-        placeholder: 'A note back to whoever rendered it — required to refuse' });
-    const go = el('button', { type: 'button', textContent: 'Go and look' });
-    go.onclick = () => acts.go(entry);
-    const yes = el('button', { type: 'button', className: 'pm-yes primary',
-        textContent: 'Approve and publish' });
+    const note = el('input', { type: 'text', className: 'pm-note',
+        placeholder: 'why not? (a sentence)' });
+    const review = el('button', { type: 'button', textContent: 'Review' });
+    const yes = el('button', { type: 'button', className: 'primary',
+        textContent: 'Approve' });
+    const no = el('button', { type: 'button', textContent: 'Refuse' });
+    review.onclick = () => acts.review(entry);
     yes.onclick = () => acts.approve(entry);
-    const no = el('button', { type: 'button', className: 'pm-no',
-        textContent: 'Refuse' });
     no.onclick = () => acts.refuse(entry, note.value);
-    return [
-        el('span', { className: 'label', textContent: `Decide on ${tileId(entry)}` }),
-        el('div', { className: 'note',
-            textContent: entry.was_published
-                ? 'Approving replaces what everybody sees there now.'
-                : 'Nothing is published there yet: approving is the first thing'
-                  + ' anybody will see.' }),
-        el('div', { className: 'row' }, go),
-        note,
-        el('div', { className: 'row' }, yes, no),
-    ];
+    return [el('div', { className: 'section pm-card' },
+        el('span', { className: 'label', textContent: 'This submission' }),
+        el('div', { className: 'name', textContent: entry.land }),
+        el('div', { className: 'muted',
+            textContent: `by ${entry.by} · ${changeWords(entry)}` }),
+        entry.note ? el('p', { className: 'pm-said', textContent: entry.note }) : null,
+        entry.superseded
+            ? el('p', { className: 'status', 'data-bad': '1',
+                textContent: 'This changed since it was submitted — ask for it'
+                    + ' again.' })
+            : null,
+        el('div', { className: 'row' }, review, yes),
+        note, no)];
 }

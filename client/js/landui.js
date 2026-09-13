@@ -61,6 +61,7 @@ export function selected(area, state, ctx) {
     if (!area) return [];
     return [
         head(area, state, ctx),
+        refused(state.refusal),
         counts(state.progress, ctx),
         shapeInQgis(area, ctx),
         approvals(area, ctx),
@@ -155,15 +156,34 @@ function counts(p, ctx) {
     const tile = (v, l, tone) => el('div', { className: 'tile', 'data-tone': tone ?? '' },
         el('div', { className: 'v', textContent: String(v) }),
         el('div', { className: 'l', textContent: l }));
-    const changed = Math.max(0, p.waiting - p.open_jobs);
+    const changed = Math.max(0, Number(p.to_submit ?? 0));
     return el('div', { className: 'section' },
         el('span', { className: 'label', textContent: 'Tiles on this land' }),
         el('div', { className: 'tiles' },
             tile(p.published, 'Published', 'accent'),
             tile(changed, 'Unsubmitted'),
+            tile(p.awaiting ?? 0, 'Awaiting approval', 'warn'),
             tile(p.open_jobs, 'In the pool', 'warn'),
             tile(p.tiles, 'Tiles in all')),
-        changedLine(changed, ctx));
+        changedLine(changed, ctx),
+        awaitingLine(p.awaiting ?? 0));
+}
+
+// SPEC §3.6: "Ben sees the note on the land card and on each refused object."
+// The card half.
+function refused(refusal) {
+    if (!refusal?.note) return null;
+    return el('div', { className: 'section land-refused' },
+        el('span', { className: 'label', textContent: 'Refused' }),
+        el('p', {}, refusal.note),
+        el('div', { className: 'muted', textContent: `\u2014 ${refusal.by}` }));
+}
+
+// SPEC §0.2: a tile somebody has been asked about says so, in words.
+function awaitingLine(awaiting) {
+    if (!awaiting) return null;
+    return el('div', { className: 'land-awaiting' },
+        `${awaiting} tile${awaiting === 1 ? '' : 's'} awaiting approval`);
 }
 
 // SPEC §3.3 step 4 and §3.5: what you changed and the one thing to do about

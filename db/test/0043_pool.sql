@@ -1,5 +1,8 @@
 -- Submitting, and the pool anybody may render from (db/0043_pool.sql).
--- T6's acceptance in SQL: A submits with money, the work is public, B takes it.
+--
+-- A submits, A approves — they own the land — and *that* is what opens the
+-- jobs (SPEC §0.2, db/0068_approvalfirst.sql). The price goes on at approval,
+-- where the jobs are made. The work is then public and B takes it.
 BEGIN;
 SELECT plan(13);
 
@@ -26,9 +29,8 @@ SET LOCAL role = 'player';
 
 -- Land on its own is nothing to compile: claiming ground renders nothing
 -- (SPEC §3.2, db/0064_claimingrendersnothing.sql). What is on it is the work.
-SELECT is((SELECT (submit_area('00000000-0000-0000-0000-0000000c0003', 1)
-                   ->> 'tiles')::int), 0,
-    'empty land is nothing to compile');
+SELECT throws_like($$SELECT submit_area('00000000-0000-0000-0000-0000000c0003')$$,
+    '%nothing to submit%', 'empty land is nothing to compile');
 
 INSERT INTO feature (area_id, kind, geom)
 SELECT '00000000-0000-0000-0000-0000000c0003', 'forest',
@@ -36,15 +38,18 @@ SELECT '00000000-0000-0000-0000-0000000c0003', 'forest',
 FROM area a WHERE a.id = '00000000-0000-0000-0000-0000000c0003';
 
 CREATE TEMP TABLE sent AS
-SELECT submit_area('00000000-0000-0000-0000-0000000c0003', 10) AS out;
+SELECT submit_area('00000000-0000-0000-0000-0000000c0003', 'a wood') AS out;
 
 SELECT cmp_ok((SELECT (out ->> 'tiles')::int FROM sent), '>', 0,
     'and a wood on it is work again');
-SELECT is((SELECT (out ->> 'price_each')::numeric FROM sent), 10::numeric,
-    'at the price you attached');
+SELECT is((SELECT count(*) FROM job), 0::bigint,
+    'nothing is queued until somebody says yes');
+
+CREATE TEMP TABLE decided AS
+SELECT approve_submission((SELECT (out ->> 'id')::uuid FROM sent), 10) AS out;
 
 SELECT cmp_ok((SELECT count(*) FROM job WHERE state = 'open'), '>', 0::bigint,
-    'the jobs are open');
+    'approving opens them, at the price the approver attached');
 SELECT is((SELECT count(DISTINCT bounty) FROM job WHERE state = 'open'), 1::bigint,
     'each carries the same price');
 

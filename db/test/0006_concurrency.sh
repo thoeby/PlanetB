@@ -194,9 +194,10 @@ for p in "${pids[@]}"; do wait "$p" || fail=1; done
 [ "$fail" -eq 0 ] || { echo "not ok - a client exited non-zero"; exit 1; }
 
 # A guaranteed stale publish: move the world past a tile that has already been
-# put forward, then let the very worker that produced it try its old version.
-# Since db/0044_permission.sql what a worker publishes is the tile's candidate —
-# the compare-and-swap it has to win is unchanged (Invariant 3).
+# published, then let the very worker that produced it try its old version.
+# Since db/0069_approvalverbs.sql what lands is published outright — the
+# approval came before the render — and the compare-and-swap it has to win is
+# unchanged (Invariant 3).
 $PSQL <<'SQL'
 DO $$
 DECLARE
@@ -209,10 +210,10 @@ BEGIN
     JOIN worker w ON w.id = a.worker_id
     JOIN tile t ON t.z = j.z AND t.x = j.x AND t.y = j.y
     WHERE a.op = 'sog' AND a.state = 'verified'
-      AND t.candidate_version = j.target_version
+      AND t.published_version = j.target_version
     LIMIT 1;
     IF r.z IS NULL THEN
-        RAISE EXCEPTION 'no tile has been put forward to probe';
+        RAISE EXCEPTION 'no tile has been published to probe';
     END IF;
     UPDATE feature SET props = '{"probe": true}'::jsonb
     WHERE st_intersects(geom, tile_bbox(r.z, r.x, r.y));

@@ -1,24 +1,25 @@
-// permission.js — a rendered tile waits for a person.
+// permission.js — what stands on the land waits for a person.
 //
-// TASKS-usable T7: what a stranger's browser produced lands on the tile as a
-// candidate. Its owner — or whoever they granted `approve` to — looks at it
-// where it is, with the switch below, and then publishes it or refuses it with
-// a note. Nobody else sees it in the meantime.
+// SPEC §0.2: approval comes before rendering, like a permit comes before
+// building. What is approved is what stands on the tile — the saved objects
+// and the land features, seen in place as models — and rendering is then
+// mechanical: it publishes when it lands, and nobody is asked twice.
 //
-// The switch is the whole viewer half: streamer.candidates flips which sha a
-// loaded tile asks for (client/js/traverse.js showing()), so the same walk
-// through the same world shows the waiting version in place.
+// It was the other way round until db/0068_approvalfirst.sql: a stranger
+// rendered first and the owner approved the picture. That spent somebody's tab
+// on work that might be thrown away, and asked the owner about a render when
+// what they care about is what was built.
 
 import * as api from './api.js';
-import { beforeWith, decide, el, tileId, waiting } from './permissionui.js';
+import { beforeAfter, decide, el, waiting } from './permissionui.js';
 
 // Say yes or no, then re-read the list and only then say what happened — a
 // refresh that ran afterwards would wipe the one line that says it.
 async function decided({ say, onDecided, refresh }, rpc, args, said) {
-    let msg = said, bad = false;
+    let msg = said;
+    let bad = false;
     try {
-        const ok = await api.rpc(rpc, args);
-        if (!ok) { msg = 'somebody got there first — it is no longer waiting'; bad = true; }
+        await api.rpc(rpc, args);
     } catch (err) {
         msg = String(err.body?.message ?? err.message ?? err);
         bad = true;
@@ -28,22 +29,27 @@ async function decided({ say, onDecided, refresh }, rpc, args, said) {
     say(msg, bad);
 }
 
-// Go and look, then yes or no. A refusal without a note is refused here: the
-// note is the only thing that reaches whoever rendered it.
-function actionsOf(decideWith, onGo, say) {
+// Go and look, then yes or no. A refusal without a note is refused here as
+// well as in the database: the note is the only thing that reaches whoever
+// built it.
+function actionsOf(decideWith, ctx, say) {
     return {
-        go: (entry) => onGo(entry.centre ?? {}),
-        approve: (entry) => decideWith('approve_tile',
-            { z: entry.z, x: entry.x, y: entry.y },
-            `${tileId(entry)} is published — everybody sees it now`),
+        review: (entry) => {
+            ctx.onGo({ lon: entry.lon, lat: entry.lat });
+            say('Reviewing in place. Before / After shows what was built.');
+        },
+        approve: (entry) => decideWith('approve_submission',
+            { submission_id: entry.id },
+            `${entry.land} is queued — its render jobs are in the pool`),
         refuse: (entry, note) => {
-            if (!String(note ?? '').trim()) {
-                say('a refusal carries a note back: say what is wrong with it', true);
+            if (String(note ?? '').trim().length < 10) {
+                say('say why, in a sentence — a refusal without a reason is not'
+                    + ' something anybody can act on', true);
                 return Promise.resolve();
             }
-            return decideWith('refuse_tile',
-                { z: entry.z, x: entry.x, y: entry.y, note },
-                `${tileId(entry)} refused; it can be rendered again`);
+            return decideWith('refuse_submission',
+                { submission_id: entry.id, note },
+                `${entry.land} was refused; the note went back with it`);
         },
     };
 }
@@ -65,12 +71,12 @@ function partsOf(host) {
     return ui;
 }
 
-export function mountPermission(host, { streamer, onGo = () => {},
-    where = () => ({}), onDecided = () => {}, onCount = () => {} } = {}) {
+export function mountPermission(host, { onGo = () => {}, preview = null,
+    onDecided = () => {}, onCount = () => {} } = {}) {
     const ui = partsOf(host);
     const { scope, toggle, count, list, card, status } = ui;
 
-    const state = { rows: [], chosen: null, showing: false };
+    const state = { rows: [], chosen: null, after: true };
     const say = (msg, bad = false) => {
         status.textContent = msg;
         status.dataset.bad = bad ? '1' : '';
@@ -78,41 +84,39 @@ export function mountPermission(host, { streamer, onGo = () => {},
 
     const decideWith = (rpc, args, said) =>
         decided({ say, onDecided, refresh }, rpc, args, said);
-
-    const acts = actionsOf(decideWith, onGo, say);
+    const acts = actionsOf(decideWith, { onGo }, say);
 
     function draw() {
-        toggle.replaceChildren(beforeWith(state.showing, (on) => {
-            state.showing = on;
-            if (streamer) streamer.candidates = on;
-            say(on ? 'showing what is waiting — it may take a moment to load'
-                : 'showing what is published');
+        toggle.replaceChildren(beforeAfter(state.after, (on) => {
+            state.after = on;
+            // What was built is what is being approved: hiding it is "before".
+            preview?.setVisible?.(on);
+            say(on ? 'showing what was built' : 'showing the land without it');
             draw();
         }));
         count.textContent = state.rows?.length
             ? `${state.rows.length} waiting for you` : 'Waiting for you';
         list.replaceChildren(...waiting(state.rows, state.chosen,
-            (e) => { state.chosen = tileId(e); draw(); }));
-        const one = (state.rows ?? []).find((e) => tileId(e) === state.chosen);
-        card.replaceChildren(...decide(one, acts));
+            (e) => { state.chosen = e.id; draw(); }));
+        card.replaceChildren(...decide(
+            (state.rows ?? []).find((e) => e.id === state.chosen), acts));
     }
 
     async function refresh() {
         if (!api.token()) {
-            state.rows = null;
+            state.rows = [];
             scope.textContent = '';
             draw();
             onCount(0);
             return [];
         }
-        const { lon, lat } = where() ?? {};
-        state.rows = await api.rpc('my_candidates',
-            { lon: lon ?? null, lat: lat ?? null, limit: 40 }).catch(() => []);
-        if (!state.rows.some((e) => tileId(e) === state.chosen)) {
-            state.chosen = state.rows[0] ? tileId(state.rows[0]) : null;
+        state.rows = await api.rpc('submissions_waiting').catch(() => []);
+        if (!state.rows.some((e) => e.id === state.chosen)) {
+            state.chosen = state.rows[0]?.id ?? null;
         }
-        scope.textContent = 'A rendered tile on land you decide for waits here'
-            + ' until you look at it and say yes or no.';
+        scope.textContent = 'What somebody built on land you decide for waits'
+            + ' here until you look at it and say yes or no. Approving opens'
+            + ' its render jobs; what lands is published.';
         draw();
         onCount(state.rows.length);
         return state.rows;
@@ -120,5 +124,5 @@ export function mountPermission(host, { streamer, onGo = () => {},
 
     ui.again.onclick = () => refresh();
     refresh();
-    return { refresh, acts, showing: () => state.showing };
+    return { refresh, acts, after: () => state.after };
 }

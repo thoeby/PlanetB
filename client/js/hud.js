@@ -35,7 +35,7 @@ export const TABS = [
         lede: 'Tiles waiting to be compiled, and what they pay.' },
     { name: 'Permission', group: 'Economy', key: '7',
         glyph: 'polygon(0 55%,40% 100%,100% 10%,88% 0,40% 78%,12% 43%)', width: 500,
-        lede: 'Rendered tiles waiting for a person to approve them.' },
+        lede: 'What somebody built, waiting for a person to say yes.' },
     { name: 'Wallet', group: 'Economy', key: '8',
         glyph: 'polygon(0 20%,100% 20%,100% 100%,0 100%)', width: 500,
         lede: 'What you have, and what moved.' },

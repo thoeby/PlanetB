@@ -19,7 +19,9 @@ stories browser contexts that have only the page.
 | 3 | shaping land in QGIS (§3.3): the project from the Land panel, a real headless QGIS drawing a wood and a tree over a direct connection as the player, the page saying so within half a minute; drawing off your land refused in words | green |
 | 4 | registering a product (§3.9): a GLB dropped in, its size shown, named, registered, and found in the picker by name — the only story so far that needed nothing built | green |
 | 5 | building (§3.4): build mode on your own land, a product picked, placed, moved and saved; a second player sees the models marked "not yet rendered"; undo and save again and they see one; off your land the control says whose it is | green |
-| 6–13 | | not started |
+| 6 | submitting (§3.5): the dialog says what is about to be sent, the note goes with it, and the land says it is awaiting approval | green |
+| 7 | approving (§3.6): what is waiting, who sent it and what it is; Review flies you to what was built; Before/After hides and shows it; approve queues the tiles and opens the render jobs; refuse carries a reason and the land shows it | green |
+| 8–13 | | not started |
 
 What each story forced is in its commit message. Nothing is "done" here
 because a function exists: if the script cannot find the button, the button is
