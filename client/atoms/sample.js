@@ -1,4 +1,4 @@
-// sample.js — `sample-v1`. The baseline tile, without training.
+// sample.js — `sample-v2`. The baseline tile, without training.
 //
 // A z14 tile is the world's floor: every area is compiled to at least that
 // depth, and there are fourteen thousand of them in Switzerland alone. Training
@@ -14,7 +14,13 @@ import { unpackMeshes } from '../lib/mesh.js';
 import { bboxOf, writePly } from '../lib/ply.js';
 import { readTar, writeTar } from '../lib/tar.js';
 
-export const ALGO = 'sample-v1';
+export const ALGO = 'sample-v2';
+
+// v2: the samples carry the sun and are wide enough to close over the surface.
+// v1 wrote flat colour at 0.7 of the mean spacing, and randomly placed points
+// that size leave holes — a z14 tile read as dark speckle next to the lit
+// ground mesh beside it, which is the same elevation drawn the other way.
+const SPREAD = 1.15;
 
 export async function run({ atom, inputs, log }) {
     if (!inputs?.assemble) throw new Error('sample needs the assemble artifact');
@@ -24,7 +30,8 @@ export async function run({ atom, inputs, log }) {
     const { z, x, y } = scene.tile;
     const budget = Number(atom.params?.budget) || scene.budget;
 
-    const splats = sampleSurfaces(meshes, budget, rngOf(atom, z, x, y));
+    const splats = sampleSurfaces(meshes, budget, rngOf(atom, z, x, y),
+        { spread: SPREAD, shaded: true });
     log?.({ event: 'sampled', tile: scene.tile, splats: splats.count });
     const tar = writeTar([
         { name: 'splats.ply', bytes: writePly(splats) },

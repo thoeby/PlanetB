@@ -8,7 +8,7 @@ import assert from 'node:assert/strict';
 import { createHash } from 'node:crypto';
 import { createServer } from 'node:http';
 
-import { run } from '../atoms/assemble.js';
+import { run, sampleSurfaces } from '../atoms/assemble.js';
 import { readTar } from '../lib/tar.js';
 import { readPly } from '../lib/ply.js';
 import { earcut, ringArea, scatter, rng } from '../lib/poly.js';
@@ -163,4 +163,33 @@ test('a ring is triangulated, wound and scattered the same way every time', () =
     assert.ok(!pts.some(([x, z]) => x > 10 && x < 30 && z > 10 && z < 30),
         'and left the hole alone');
     assert.deepEqual(scatter(holed, 4, rng(1)), pts, 'same seed, same trees');
+});
+
+// sample-v2 (client/atoms/sample.js): what the baseline tile is made of. A
+// splat that carries no light is flat colour beside a ground mesh that does,
+// and one that is smaller than the gaps between its neighbours shows the
+// background through — which is what a z14 tile looked like.
+test('the sampler lights the surface and covers it', () => {
+    // One square metre standing on edge, facing east: the sun is mostly
+    // overhead (0.42, 0.83, 0.36), so a face like this is lit but not fully.
+    const mesh = {
+        positions: new Float32Array([0, 0, 0, 0, 1, 0, 0, 1, 1, 0, 0, 1]),
+        normals: new Float32Array([1, 0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 0]),
+        colors: new Float32Array(Array(12).fill(0.8)),
+        indices: [0, 1, 2, 0, 2, 3],
+    };
+    const flat = sampleSurfaces([mesh], 100, rng(1));
+    const lit = sampleSurfaces([{ ...mesh, indices: [...mesh.indices] }], 100,
+        rng(1), { spread: 1.15, shaded: true });
+
+    assert.equal(flat.count, lit.count);
+    assert.ok(lit.r[0] < flat.r[0], 'a face across the sun is dimmer than flat colour');
+    assert.ok(lit.r[0] >= 0.55 * flat.r[0],
+        'and never darker than the floor the ground mesh uses');
+    assert.ok(lit.sx[0] > flat.sx[0] * 1.5,
+        'and a splat is wider than the gap to the next one');
+    // A square metre over a hundred samples is a tenth of a metre apart, and
+    // v1 made each splat 0.7 of that.
+    assert.ok(Math.abs(flat.sx[0] / 0.7 - 0.1) < 0.001, `${flat.sx[0]}`);
+    assert.ok(lit.sy[0] < lit.sx[0] / 4, 'and still flat against the surface');
 });

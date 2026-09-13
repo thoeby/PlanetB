@@ -134,7 +134,29 @@ function allocate(tris, total) {
     return { counts, sum };
 }
 
-export function sampleSurfaces(meshes, total, random) {
+// The same fixed sun the ground mesh bakes and the frame atom shades with
+// (client/lib/groundmesh.js, client/lib/render.js). A surface sampled without
+// it is a surface with no relief in it: flat colour, and darker than the ground
+// beside it, which is the seam a player sees at a compiled tile's edge.
+const SUN = [0.42, 0.83, 0.36];
+const SUN_LEN = Math.hypot(...SUN);
+const litBy = (n) => {
+    const len = Math.hypot(n[0], n[1], n[2]) || 1;
+    const d = Math.max((n[0] * SUN[0] + n[1] * SUN[1] + n[2] * SUN[2])
+        / (len * SUN_LEN), 0);
+    return 0.55 + 0.55 * d;
+};
+
+// `spread` is the in-plane radius of a splat as a share of the mean spacing.
+// Samples land at random, not on a grid, so they clump and leave holes: at 0.7
+// the holes are the background showing through, which reads as dark speckle
+// over the whole tile. Above 1 they overlap enough to be a surface.
+//
+// `shaded` multiplies the surface's own colour by the fixed sun. `assemble`
+// leaves it off: init.ply is what training starts from, and the frames it is
+// trained against carry the light themselves.
+export function sampleSurfaces(meshes, total, random,
+    { spread = 0.7, shaded = false } = {}) {
     const tris = triangles(meshes);
     const { counts, sum } = allocate(tris, total);
     const f = emptySplats(total);
@@ -147,6 +169,7 @@ export function sampleSurfaces(meshes, total, random) {
         const ic = m.indices[i + 2];
         const n = [m.normals[ia * 3], m.normals[ia * 3 + 1], m.normals[ia * 3 + 2]];
         const q = quatToNormal(n);
+        const lit = shaded ? litBy(n) : 1;
         for (let s = 0; s < counts[t]; s++, k++) {
             let u = random();
             let v = random();
@@ -159,13 +182,15 @@ export function sampleSurfaces(meshes, total, random) {
                     p[0] += val[0] * w[c]; p[1] += val[1] * w[c]; p[2] += val[2] * w[c];
                 }
                 if (j === 0) { f.x[k] = p[0]; f.y[k] = p[1]; f.z[k] = p[2]; } else {
-                    f.r[k] = p[0]; f.g[k] = p[1]; f.b[k] = p[2];
+                    f.r[k] = Math.min(p[0] * lit, 1);
+                    f.g[k] = Math.min(p[1] * lit, 1);
+                    f.b[k] = Math.min(p[2] * lit, 1);
                 }
             }
             f.a[k] = 1;
-            f.sx[k] = spacing * 0.7;
+            f.sx[k] = spacing * spread;
             f.sy[k] = spacing * 0.15;
-            f.sz[k] = spacing * 0.7;
+            f.sz[k] = spacing * spread;
             [f.qw[k], f.qx[k], f.qy[k], f.qz[k]] = q;
         }
     }

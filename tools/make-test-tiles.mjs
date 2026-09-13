@@ -172,7 +172,7 @@ const shape = (art) => ({
 // (db/0045_coarseleaf.sql), which is what the test region's area at detail 10
 // gets. Both produce a ply; this tool makes the same one either way, because
 // what it is testing is the ladder and the viewer, not the geometry.
-const PLY_OPS = { merge: 'merge-v1', assemble: 'assemble-v1', sample: 'sample-v1' };
+const PLY_OPS = { merge: 'merge-v1', assemble: 'assemble-v1', sample: 'sample-v2' };
 const PLY_KIND = { merge: 'ply', assemble: 'init_ply', sample: 'ply' };
 
 async function runAtom(atom, t, art) {
