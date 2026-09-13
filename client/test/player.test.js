@@ -165,3 +165,40 @@ test('the ground is forgotten when the streamer lets the tile go', async () => {
     assert.equal(t.colliders.size, 0);
     assert.equal(t.wanted.size, 0, 'a reloaded tile is asked for afresh');
 });
+
+// The ground answers in metres above sea level, because that is what an
+// elevation model is. Everything in the scene is metres from the anchor, and
+// the anchor moves under the camera as you travel. Reading one as the other
+// put a player twice their own height into the air — and only after they had
+// walked far enough to rebase, which is why it took so long to see.
+test('the ground under you is in the scene’s frame, not the sea’s', () => {
+    const o = tm.tileFrame(14, 8574, 5850, 0);
+    const origin = new FloatingOrigin({ ...o, h: 0 });
+    const s = { origin, filesUrl: '', entries: new Map() };
+    const metres = 652;
+    const t = new Terrain(s, { fetchFn: async () => new Response('', { status: 404 }),
+        ground: { heightAt: () => metres } });
+
+    const flat = t.heightAt({ x: 0, y: 0, z: 0 });
+    assert.ok(Math.abs(flat - metres) < 1,
+        `anchored at sea level, the two frames agree: ${flat}`);
+
+    // Now the anchor is up on the hillside, where a rebase leaves it.
+    const moved = new Terrain(
+        { origin: new FloatingOrigin({ ...o, h: metres }), filesUrl: '',
+            entries: new Map() },
+        { fetchFn: async () => new Response('', { status: 404 }),
+            ground: { heightAt: () => metres } });
+    const under = moved.heightAt({ x: 0, y: 0, z: 0 });
+    assert.ok(Math.abs(under) < 1,
+        `standing on the ground the anchor is on is y = 0, not ${under}`);
+});
+
+test('no ground at all is still null, not zero', () => {
+    const o = tm.tileFrame(14, 8574, 5850, 0);
+    const t = new Terrain({ origin: new FloatingOrigin(o), filesUrl: '',
+        entries: new Map() },
+    { fetchFn: async () => new Response('', { status: 404 }),
+        ground: { heightAt: () => null } });
+    assert.equal(t.heightAt({ x: 0, y: 0, z: 0 }), null);
+});

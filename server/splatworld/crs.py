@@ -34,6 +34,40 @@ QGIS_ELLIPSOID = "EPSG:7030"  # WGS 84, the world CRS's ellipsoid
 MERC_R = 20037508.342789244
 
 
+def merc(lon: float, lat: float) -> tuple[float, float]:
+    """One lon/lat point in the tile projection."""
+    from math import log, pi, radians, tan
+
+    lat = max(min(lat, 85.05112878), -85.05112878)
+    return (lon * MERC_R / 180.0,
+            log(tan(pi / 4 + radians(lat) / 2)) * MERC_R / pi)
+
+
+def merc_box(extent: tuple) -> tuple[float, float, float, float]:
+    """A lon/lat (west, south, east, north) in the tile projection."""
+    west, south, east, north = extent
+    x0, y0 = merc(west, south)
+    x1, y1 = merc(east, north)
+    return (x0, y0, x1, y1)
+
+
+def clip(box: tuple, to: tuple) -> tuple | None:
+    """`box` cut down to `to`, or None when they do not meet.
+
+    Both in the tile projection. A tile at a coarse zoom is tens of kilometres
+    across and an operator's coverage is not: asking a WCS for a box that runs
+    off the end of its coverage is a 500 with an exception report in it, not an
+    empty raster (server/splatworld/ground.py).
+    """
+    west = max(box[0], to[0])
+    south = max(box[1], to[1])
+    east = min(box[2], to[2])
+    north = min(box[3], to[3])
+    if east <= west or north <= south:
+        return None
+    return (west, south, east, north)
+
+
 def tile_bounds(z: int, x: int, y: int) -> tuple[float, float, float, float]:
     """(west, south, east, north) of a tile in the tile projection.
 

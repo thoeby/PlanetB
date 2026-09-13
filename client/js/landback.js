@@ -41,7 +41,8 @@ export function whatGoes(w) {
 // about and what the world said would go with it.
 export function givingBack(area, ctx, asked = null) {
     if (!area?.mine) return null;
-    const status = el('p', { className: 'status land-back-status' });
+    const status = ctx.keep('back-status',
+        () => el('p', { className: 'status land-back-status' }));
     const between = asked?.id === area.id ? asked : null;
     const start = el('button', { type: 'button', className: 'land-back',
         textContent: 'Give this land back', hidden: Boolean(between) });

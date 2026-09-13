@@ -50,6 +50,14 @@ export const GROUND_GRID = GROUND_LEVELS[0].grid;
 // that is not there. Short, because the ground is what a player is standing on.
 export const GROUND_RETRY_MS = 5000;
 
+// How many tiles of ground may be in the air at once. Each one the store has
+// not got is a cut: the server asks the operator's elevation service for that
+// rectangle and warps it (server/splatworld/ground.py). Asking for a whole
+// three-level ring at once is twenty-seven of those in one breath, which is
+// half a minute of somebody's GeoServer and a page that does nothing while it
+// waits. Fine tiles ask first, because they are the ground underfoot.
+export const GROUND_INFLIGHT = 3;
+
 const key = (z, x, y) => `${z}/${x}/${y}`;
 
 // The block of tiles at this level around (lon, lat), and the lon/lat rectangle
@@ -84,9 +92,11 @@ export function holeFor(level, rect) {
 }
 
 export class Ground {
+    // `within` is the operator's coverage as {west, south, east, north}: the
+    // edge of the world, past which no ground is drawn.
     constructor({ pc, app, origin, filesUrl, fetchFn = fetch,
-        levels = GROUND_LEVELS } = {}) {
-        Object.assign(this, { pc, app, origin, filesUrl, fetchFn, levels });
+        levels = GROUND_LEVELS, within = null } = {}) {
+        Object.assign(this, { pc, app, origin, filesUrl, fetchFn, levels, within });
         this.localOf = (g) => origin.localOf(g);
         this.tiles = new Map();
         this.entities = new Map();
@@ -162,6 +172,7 @@ export class Ground {
     load(z, x, y, level, hole) {
         const k = key(z, x, y);
         if (this.tiles.has(k) || this.pending.has(k) || this.nothingThere.has(k)) return;
+        if (this.pending.size >= GROUND_INFLIGHT) return;
         if ((this.retryAt.get(k) ?? 0) > Date.now()) return;
         this.retryAt.delete(k);
         this.pending.add(k);
@@ -172,7 +183,7 @@ export class Ground {
                 // failure — it is the edge of the world (SPEC §3.8).
                 if (!dem) { this.nothingThere.add(k); return; }
                 const tile = groundTile(z, x, y, dem, this.localOf, level.grid,
-                    { hole: this.holes.get(z) ?? hole });
+                    { hole: this.holes.get(z) ?? hole, within: this.within });
                 this.tiles.set(k, tile);
                 this.troubled = null;
                 this.draw(tile);
@@ -232,7 +243,8 @@ export class Ground {
         for (const [k, tile] of [...this.tiles]) {
             this.drop(k);
             const rebuilt = groundTile(tile.z, tile.x, tile.y, tile.dem,
-                this.localOf, tile.grid, { hole: tile.hole });
+                this.localOf, tile.grid,
+                { hole: tile.hole, within: tile.within });
             this.tiles.set(k, rebuilt);
             this.draw(rebuilt);
         }

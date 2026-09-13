@@ -5,6 +5,7 @@
 // Who may touch this land, and how many have to say yes, is client/js/landpeople.js.
 
 import { givingBack } from './landback.js';
+import { howFine } from './landfine.js';
 import { approvals, asks, people } from './landpeople.js';
 
 export const el = (tag, props = {}, ...kids) => {
@@ -74,52 +75,6 @@ export function selected(area, state, ctx) {
     ].filter(Boolean);
 }
 
-// How fine this land is compiled (`area.detail`, SPEC §0.1). It decides what
-// the smallest tile on it is, and so how much of a splat a square metre gets:
-// the whole reason a piece of ground can look like a smear from standing
-// height. Finer than 14 is trained rather than sampled, which asks for a GPU
-// in whichever tab takes the job — said here rather than discovered three
-// minutes into a render.
-const FINE = [
-    { detail: 10, words: '10 — 7 km tiles, a region seen from the air' },
-    { detail: 12, words: '12 — 3.4 km tiles' },
-    { detail: 14, words: '14 — 1.7 km tiles, the baseline' },
-    { detail: 16, words: '16 — 430 m tiles, trained (needs a GPU)' },
-    { detail: 18, words: '18 — 107 m tiles, street level, trained (needs a GPU)' },
-];
-
-function howFine(area, ctx) {
-    if (!area.mine) return null;
-    const pick = el('select', { className: 'land-fine' });
-    pick.append(...FINE.map((f) => new Option(f.words, String(f.detail),
-        false, f.detail === area.detail)));
-    const status = el('p', { className: 'status land-fine-status' });
-    pick.onchange = () => finer(area, Number(pick.value), status, ctx);
-    return el('div', { className: 'section' },
-        el('span', { className: 'label', textContent: 'How fine' }),
-        pick,
-        el('div', { className: 'note' },
-            'Deeper compiles the ground again: the tiles it adds are changed,'
-            + ' and go through Submit like anything else.'),
-        status);
-}
-
-async function finer(area, detail, status, ctx) {
-    status.dataset.bad = '';
-    status.textContent = 'asking the world\u2026';
-    try {
-        const n = await ctx.api.rpc('set_area_detail',
-            { area_id: area.id, detail });
-        status.textContent = n
-            ? `${n} tile(s) to compile at detail ${detail} \u2014 submit them when you are ready`
-            : `detail ${detail}. Nothing new to compile: it was already finer.`;
-        await ctx.refresh?.();
-    } catch (err) {
-        status.textContent = String(err.body?.message ?? err.message ?? err);
-        status.dataset.bad = '1';
-    }
-}
-
 // SPEC §3.11 step 1: standing on somebody else's land, this is where you ask
 // to build on it. The card says whose it is, because that is the thing you are
 // asking of — a person, not a form.
@@ -134,7 +89,8 @@ export const askField = () => el('input', { type: 'text', className: 'ask-note',
 export function asking(area, ctx, note) {
     const send = el('button', { type: 'button', className: 'ask-send primary',
         textContent: 'Ask to build here' });
-    const status = el('p', { className: 'status ask-status' });
+    const status = ctx.keep('ask-status',
+        () => el('p', { className: 'status ask-status' }));
     send.onclick = () => askFor(area, note.value, send, status, ctx);
     return el('div', { className: 'section land-under' },
         el('span', { className: 'label', textContent: 'The land you are on' }),
@@ -170,7 +126,8 @@ function shapeInQgis(area, state, ctx) {
     if (!area.may_write) return null;
     const get = el('button', { type: 'button', className: 'primary',
         textContent: 'Shape this land in QGIS' });
-    const status = el('p', { className: 'status qgis-status' });
+    const status = ctx.keep('qgis-status',
+        () => el('p', { className: 'status qgis-status' }));
     get.onclick = () => downloadProject(ctx, status);
     return el('div', { className: 'section qgis' },
         el('span', { className: 'label', textContent: 'Shape it' }),

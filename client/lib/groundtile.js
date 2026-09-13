@@ -96,6 +96,17 @@ export const skirtDepth = (z, grid, lat) =>
 const inHole = (hole, lon, lat) => Boolean(hole)
     && lon > hole.west && lon < hole.east && lat > hole.south && lat < hole.north;
 
+// The edge of the world. Outside the operator's coverage there is no
+// elevation, and a DEM tile that reaches past it comes back as nodata — which
+// is sea level, because a terrain mesh has to be continuous and a NaN travels
+// into every vertex that touches it (server/splatworld/dem.py). Drawing that
+// puts a plateau at zero metres around a world that starts at six hundred. A
+// tile at z10 is twenty-seven kilometres across, so most of one at the edge is
+// this: it is not drawn at all, and the skirt hems what is left.
+const inWorld = (within, lon, lat) => !within
+    || (lon >= within.west && lon <= within.east
+        && lat >= within.south && lat <= within.north);
+
 function samples(z, x, y, dem, localOf, grid) {
     const b = tm.tileBbox(z, x, y);
     const h = new Float64Array(grid * grid);
@@ -153,7 +164,8 @@ function skirt(mesh, a, c, deep) {
 // null. localOf: the floating origin's own (client/js/origin.js), so the
 // vertices land in the same frame as everything else and a rebase is a rebuild
 // from the geodetic samples this keeps.
-export function groundTile(z, x, y, dem, localOf, grid = 65, { hole = null } = {}) {
+export function groundTile(z, x, y, dem, localOf, grid = 65,
+    { hole = null, within = null } = {}) {
     const { b, h, lons, lats, positions } = samples(z, x, y, dem, localOf, grid);
     const mid = (b.south + b.north) / 2;
     const { normals, colors } = shadeAll(h, positions, grid, b,
@@ -163,8 +175,9 @@ export function groundTile(z, x, y, dem, localOf, grid = 65, { hole = null } = {
     const covered = [];
     for (let j = 0; j < grid - 1; j++) {
         for (let i = 0; i < grid - 1; i++) {
-            const out = inHole(hole, (lons[i] + lons[i + 1]) / 2,
-                (lats[j] + lats[j + 1]) / 2);
+            const lon = (lons[i] + lons[i + 1]) / 2;
+            const lat = (lats[j] + lats[j + 1]) / 2;
+            const out = inHole(hole, lon, lat) || !inWorld(within, lon, lat);
             covered.push(out);
             if (out) continue;
             const a = j * grid + i;
@@ -172,7 +185,7 @@ export function groundTile(z, x, y, dem, localOf, grid = 65, { hole = null } = {
         }
     }
     hem(mesh, covered, grid, deep);
-    return { z, x, y, dem, grid, h, hole, bbox: b, ...mesh };
+    return { z, x, y, dem, grid, h, hole, within, bbox: b, ...mesh };
 }
 
 // A skirt down every edge of what was drawn: the tile's own border, and the

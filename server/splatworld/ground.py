@@ -293,11 +293,21 @@ def cut(cfg: Config, z: int, x: int, y: int) -> Path | None:
             if not world or not covers(world["extent"], z, x, y):
                 return None
             auth = _auth_header(cfg.geoserver_user, cfg.geoserver_admin_password)
-            raw, url = _ask(world, crs.tile_bounds(z, x, y), auth, f"{z}/{x}/{y}")
+            box = crs.tile_bounds(z, x, y)
+            # Ask for the part of this tile the coverage actually has. A tile
+            # at z10 is twenty-seven kilometres across and a coverage is often
+            # four, and a WCS asked for ground it has not got answers with an
+            # exception report rather than with nodata. What comes back is
+            # warped onto the whole tile regardless, so the rest of it is
+            # nodata, which is what it is.
+            asked = crs.clip(box, crs.merc_box(world["extent"]))
+            if asked is None:
+                return None
+            raw, url = _ask(world, asked, auth, f"{z}/{x}/{y}")
             if not raw:
                 return None
             try:
-                body = encode_geotiff(raw, crs.tile_bounds(z, x, y))
+                body = encode_geotiff(raw, box)
             except Exception as err:  # noqa: BLE001 - said back to the browser
                 raise CutFailed(f"the coverage came back but could not be read:"
                                 f" {err} — asked: {url}") from err

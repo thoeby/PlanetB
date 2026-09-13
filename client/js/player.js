@@ -150,8 +150,18 @@ export class Terrain {
         if (k) this.request(k);
         // A published tile's own height.r16 first, the world's ground under
         // it — everywhere the coverage reaches, rendered or not (SPEC §0.1).
+        //
+        // The ground answers in metres above sea level, because that is what a
+        // DEM is; everything in the scene is metres from the anchor, and the
+        // anchor moves under the camera as you travel (client/js/origin.js).
+        // Taking one for the other put a player who had walked far enough to
+        // rebase twice their own height in the air, and only when the tile
+        // they were standing on had not published its height.r16 — which is
+        // most of the world.
         const g = this.streamer.origin.geodeticOf(local);
-        return this.ground?.heightAt(g.lon, g.lat) ?? null;
+        const metres = this.ground?.heightAt(g.lon, g.lat);
+        if (metres === null || metres === undefined) return null;
+        return this.streamer.origin.localOf({ lon: g.lon, lat: g.lat, h: metres }).y;
     }
 
     // The point, expressed in the tile's own frame rather than the anchor's.

@@ -247,6 +247,12 @@
   // floor; published splats sit on top of them.
   const groundMesh = new Ground({
     pc, app, origin, filesUrl: api.endpoints().files,
+    // The edge of the world: no ground is drawn past the operator's coverage,
+    // because there is none and what a DEM tile says out there is sea level.
+    within: Number.isFinite(ground?.west)
+        ? { west: ground.west, south: ground.south,
+            east: ground.east, north: ground.north }
+        : null,
   });
   groundMesh.onSaid = (what) => { world.textContent = what; };
   const terrain = new Terrain(streamer, { ground: groundMesh });
@@ -575,10 +581,14 @@
       if (Date.now() - asked.at < (fresh ? 2000 : 5000)) return;
       landStale = false;
       asked = { lon: g.lon, lat: g.lat, at: Date.now() };
-      // Which question this answer belongs to. Two are in the air whenever the
+      // Where this answer is about. Two questions are in the air whenever the
       // player is still arriving somewhere, and the older one landing last put
-      // the wrong land's name under them.
-      const mine = asked;
+      // the wrong land's name under them — so an answer is used only while the
+      // player is still where it was asked about. Not the question's identity:
+      // the periodic re-ask asks about the same spot, and under load the
+      // answers were taking longer than the interval, so every one of them was
+      // thrown away by the next and the line never changed at all.
+      const mine = { lon: g.lon, lat: g.lat };
       // Outside the coverage there is no world at all, which is a different
       // thing from ground nobody has claimed (T1).
       if (ground?.coverage && (g.lon < ground.west || g.lon > ground.east
@@ -592,7 +602,7 @@
       // which is several requests for an answer nothing has changed.
       if (fresh) build.refresh();
       api.rpc('area_at', { lon: g.lon, lat: g.lat }).then((areas) => {
-          if (asked !== mine) return;
+          if (asked.lon !== mine.lon || asked.lat !== mine.lat) return;
           const a = areas?.[0];
           // SPEC §2.4: the land you are standing on has a card whoever's it
           // is, and §3.11 is asked for from that card.

@@ -184,9 +184,38 @@ function redraw(under, list, detail, state, ctx) {
     }
     list.replaceChildren(...landRows(state, ctx.pick));
     const area = state.areas.find((a) => a.id === state.chosen);
+    // Only when it would say something different. The panel refreshes every
+    // ten seconds whether or not the world moved, and a card rebuilt to say
+    // the same thing is a card whose buttons are somewhere else every time
+    // somebody reaches for one.
+    const sign = cardSignature(area, state);
+    if (sign === ctx.drawn()) return;
+    ctx.wasDrawn(sign);
     detail.replaceChildren(...selected(area, state, {
         ...ctx, refresh: () => ctx.load(area),
     }).filter(Boolean));
+}
+
+// Everything the card puts on the screen, and nothing else: the area's own
+// outline is kilobytes of coordinates and is not in it.
+const cardSignature = (area, state) => JSON.stringify([
+    area?.id ?? null, area?.detail, area?.rules?.name, area?.mine,
+    area?.may_write, area?.may_propose, area?.owner,
+    state.progress, state.drawn, state.contents, state.grants, state.asks,
+    state.proposals, state.refusal, state.project, state.giveBack,
+]);
+
+// Nodes the panel makes once and moves into each card it draws. A card is
+// redrawn whenever anything about the land changes and every ten seconds
+// besides, and a node that is rebuilt is a node that loses what it was
+// holding: the sentence somebody was typing, or the answer to the button they
+// pressed two hundred milliseconds ago.
+function keeper() {
+    const kept = new Map();
+    return (name, make) => {
+        if (!kept.has(name)) kept.set(name, make());
+        return kept.get(name);
+    };
 }
 
 function landParts(host) {
@@ -213,17 +242,21 @@ export function mountLand(host, { onGo = () => {}, onRemove = () => {},
     // One place where the panel is redrawn, so every action ends the same way.
     // What is half-typed into the card survives it being redrawn, because the
     // field itself is never redrawn: it is moved into each new card.
-    const askNote = askField();
+    const keep = keeper();
+    const askNote = keep('ask', askField);
     // Which land is between the two presses of "Give this land back", and what
     // the world said would go with it.
     const confirming = (asked) => { state.giveBack = asked; draw(); };
     // Which land the standing-on card is showing, so it is not rebuilt to say
     // the same thing about the same land.
-    let showing = undefined;
+    // What each of the two cards is showing, so neither is rebuilt to say the
+    // same thing again.
+    const seen = { under: undefined, card: undefined };
     const draw = () => redraw(under, list, detail, state,
-        { pick, onGo, onRemove: remove, say, load, api, openPanel, askNote,
+        { pick, onGo, onRemove: remove, say, load, api, openPanel, askNote, keep,
             clearAsk: () => { askNote.value = ''; }, reload: refresh, confirming,
-            shown: () => showing, wasShown: (id) => { showing = id; } });
+            shown: () => seen.under, wasShown: (id) => { seen.under = id; },
+            drawn: () => seen.card, wasDrawn: (sign) => { seen.card = sign; } });
 
     async function pick(area) {
         state.chosen = area?.id ?? null;

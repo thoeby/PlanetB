@@ -106,3 +106,31 @@ test('the far level reaches tens of kilometres, the near one a walk', () => {
     assert.ok(km(near) > 3 && km(near) < 8, `near ring is ${km(near)} km`);
     assert.ok(km(far) > 25, `far ring is ${km(far)} km`);
 });
+
+// The edge of the world. A tile at z10 is twenty-seven kilometres across and
+// an operator's coverage is often four, so most of a coarse tile at the edge
+// is ground nobody has — which comes back as sea level, and drawing it puts a
+// plateau at zero metres around a world that starts at six hundred.
+test('no ground is drawn past the edge of the coverage', () => {
+    const grid = 9;
+    const b = { west: -180 + X / 2 ** Z * 360, east: -180 + (X + 1) / 2 ** Z * 360 };
+    const whole = groundTile(Z, X, Y, slope(), localOf, grid);
+    const half = groundTile(Z, X, Y, slope(), localOf, grid, {
+        within: { west: b.west, east: (b.west + b.east) / 2, south: -90, north: 90 },
+    });
+    assert.ok(half.indices.length < whole.indices.length,
+        'the half outside the coverage is not drawn');
+    assert.ok(half.indices.length > 0, 'and the half inside it is');
+});
+
+test('a tile wholly outside the coverage draws nothing', () => {
+    const tile = groundTile(Z, X, Y, slope(), localOf, 9,
+        { within: { west: -10, east: -9, south: -10, north: -9 } });
+    assert.equal(tile.indices.length, 0);
+});
+
+test('with no coverage given, the whole tile is drawn', () => {
+    const a = groundTile(Z, X, Y, slope(), localOf, 9);
+    const b = groundTile(Z, X, Y, slope(), localOf, 9, { within: null });
+    assert.equal(a.indices.length, b.indices.length);
+});
