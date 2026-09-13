@@ -257,6 +257,11 @@
   groundMesh.onSaid = (what) => { world.textContent = what; };
   const terrain = new Terrain(streamer, { ground: groundMesh });
   const player = new Player(terrain, { mode: WALK });
+  // The corner says which way you are moving and what the keys do about it:
+  // Shift runs on the ground and goes down in the air, and forward follows
+  // where you are looking only in the air.
+  player.onMode = (mode) => hud.moving(mode);
+  hud.moving(player.mode);
   const view = document.getElementById('view');
   player.attach(view);
 
@@ -266,6 +271,12 @@
   // says so, rather than at a place with no ground, no tile and nothing to see
   // — which looks like a broken page rather than a link to nowhere.
   const goTo = ({ lat, lon, h = 0, heading }) => {
+      // Somebody has just said where to be. Stop writing over the address bar
+      // for a moment: pasting a link into a tab that is already open changes
+      // the hash, and the browser delivers that change a tick later — long
+      // enough for this page to have replaced it with where the player still
+      // is, which is how a pasted link went nowhere at all.
+      stampAfter = Date.now() + HANDED_OVER_MS;
       const at = nearestGround({ lon, lat }, ground);
       if (at.moved) arriving('that place is off the edge of the world');
       const q = origin.localOf({ lon: at.lon, lat: at.lat, h });
@@ -273,6 +284,10 @@
       player.position = { x: q.x, y: (under ?? q.y) + 2, z: q.z };
       if (Number.isFinite(heading)) player.yaw = heading * Math.PI / 180;
   };
+
+  // How long the page leaves the address bar alone after being handed one.
+  const HANDED_OVER_MS = 3000;
+  let stampAfter = 0;
 
   // Something about arriving somewhere, which stands for a while and then gives
   // the line back to whatever the world is missing.
@@ -540,13 +555,12 @@
   // The address bar says where you are, so copying it out of the browser is the
   // same as the Share panel's button. Twice a second at most: it is a string,
   // but replaceState on every frame is not free and fills nothing useful.
-  let stamped = 0;
   function keepTheAddressBar(where) {
       // A world with no ground has no places in it; a link to one is a link to
       // nowhere.
       if (!ground?.coverage) return;
-      if (Date.now() - stamped < 2000) return;
-      stamped = Date.now();
+      if (Date.now() < stampAfter) return;
+      stampAfter = Date.now() + 2000;
       history.replaceState(null, '', visitHash(where));
       share.refresh();
   }
@@ -679,6 +693,9 @@
           things: land.things?.() ?? [],
           at: origin.geodeticOf({ x: p.x, y: p.y, z: p.z }),
           heading: player.yaw / Math.PI * 180,
+          // The same floor the player is standing on, so the map and the
+          // window agree about which way the hill goes.
+          ground: groundMesh,
       });
       if (span) hud.mapScale(`Map · ${span} m · M`);
   }

@@ -28,25 +28,82 @@ export function ringsOf(outline) {
     return [];
 }
 
-// Every area, drawn at the height the ground is under each corner so the line
-// follows the hill rather than cutting through it.
+// How far apart two points of a drawn boundary may be before the ground
+// between them is asked about. A boundary drawn in QGIS is four corners, and
+// four corners over a mountainside is a line through the inside of the
+// mountain: the corners are on the ground and everything between them is a
+// straight line in the air. So every edge is walked at this spacing and each
+// step put on the ground under it.
+const DRAPE_M = 12;
+// How many steps one edge may be cut into. A boundary can be kilometres long
+// and this is drawn every frame; past this the line is coarser rather than the
+// frame slower.
+const DRAPE_MAX = 256;
+
+// Every point of a boundary, on the ground: the ring's own corners with as
+// many steps between them as the hill needs.
+export function drape(ring, origin, terrain, up = 1.5) {
+    const out = [];
+    const at = (lon, lat) => {
+        const p = origin.localOf({ lon, lat, h: 0 });
+        const ground = terrain?.heightAt(p);
+        return { x: p.x, y: (ground ?? p.y) + up, z: p.z };
+    };
+    for (let i = 0; i < ring.length; i++) {
+        const [lon, lat] = ring[i];
+        const next = ring[i + 1];
+        out.push(at(lon, lat));
+        if (!next) break;
+        const a = origin.localOf({ lon, lat, h: 0 });
+        const b = origin.localOf({ lon: next[0], lat: next[1], h: 0 });
+        const steps = Math.min(DRAPE_MAX,
+            Math.floor(Math.hypot(b.x - a.x, b.z - a.z) / DRAPE_M));
+        for (let s = 1; s < steps; s++) {
+            const t = s / steps;
+            out.push(at(lon + (next[0] - lon) * t, lat + (next[1] - lat) * t));
+        }
+    }
+    return out;
+}
+
+// Draping a kilometre of boundary is a few hundred questions to the terrain,
+// and this is drawn every frame: asking them every frame is a page that runs
+// at one frame a second. The answers are kept until the ground under them can
+// have changed — a new tile arrived, or the floating anchor moved.
+const draped = new Map();
+const DRAPE_MS = 500;
+
+function ringsFor(area, origin, terrain, now) {
+    const at = origin.anchor;
+    const key_ = `${area.id}:${at.lon.toFixed(5)},${at.lat.toFixed(5)}`;
+    const had = draped.get(area.id);
+    if (had && had.key === key_ && now - had.at < DRAPE_MS) return had.rings;
+    const rings = ringsOf(area.outline)
+        .map((ring) => drape(ring, origin, terrain).map((p) => [p.x, p.y, p.z]));
+    draped.set(area.id, { key: key_, at: now, rings });
+    return rings;
+}
+
+// Every area, drawn on the ground under it rather than between its corners.
 export function drawAreas(ctx, areas) {
     const { pc, app, origin, terrain } = ctx;
+    const now = Date.now();
+    const live = new Set();
     for (const area of areas ?? []) {
+        live.add(area.id);
         const colour = area.mine ? new pc.Color(0.35, 0.85, 0.95)
             : area.may_propose ? new pc.Color(0.95, 0.78, 0.35)
                 : new pc.Color(0.55, 0.6, 0.65);
-        for (const ring of ringsOf(area.outline)) {
+        for (const ring of ringsFor(area, origin, terrain, now)) {
             let last = null;
-            for (const [lon, lat] of ring) {
-                const p = origin.localOf({ lon, lat, h: 0 });
-                const ground = terrain?.heightAt(p);
-                const at = new pc.Vec3(p.x, (ground ?? p.y) + 1.5, p.z);
-                if (last) app.drawLine(last, at, colour);
-                last = at;
+            for (const [x, y, z] of ring) {
+                const to = new pc.Vec3(x, y, z);
+                if (last) app.drawLine(last, to, colour);
+                last = to;
             }
         }
     }
+    for (const id of [...draped.keys()]) if (!live.has(id)) draped.delete(id);
 }
 
 export const areaName = (a) => a?.rules?.name || 'unnamed land';

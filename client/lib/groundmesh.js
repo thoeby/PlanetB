@@ -146,6 +146,13 @@ export class Ground {
     follow(lon, lat, covered = () => false) {
         const want = new Set();
         let inner = null;
+        // The floor first, and the distance behind it. A page opening asks for
+        // three rings at once otherwise, and every tile the store has not got
+        // is a cut — the server asking the operator's elevation service for
+        // that rectangle and warping it. Twenty-seven of those in one breath is
+        // a page that stands still while the ground it is standing on waits
+        // behind the ground forty kilometres away.
+        let ready = true;
         for (const level of this.levels) {
             const { tiles, rect } = blockAt(level, lon, lat);
             const hole = holeFor(level, inner);
@@ -157,8 +164,9 @@ export class Ground {
             }
             for (const [z, x, y] of tiles) {
                 want.add(key(z, x, y));
-                this.load(z, x, y, level, hole);
+                if (ready) this.load(z, x, y, level, hole);
             }
+            ready = ready && tiles.every(([z, x, y]) => this.settled(key(z, x, y)));
             inner = rect;
         }
         for (const k of [...this.tiles.keys()]) if (!want.has(k)) this.drop(k);
@@ -167,6 +175,13 @@ export class Ground {
             if (t) entity.enabled = t.z !== this.zoom || !covered(t.z, t.x, t.y);
         }
         return this.tiles.size;
+    }
+
+    // Nothing more is going to happen about this tile: it is drawn, there is
+    // no ground there, or it failed and is waiting to be asked again.
+    settled(k) {
+        return this.tiles.has(k) || this.nothingThere.has(k)
+            || (this.retryAt.get(k) ?? 0) > Date.now();
     }
 
     load(z, x, y, level, hole) {

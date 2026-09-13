@@ -202,3 +202,59 @@ test('no ground at all is still null, not zero', () => {
         ground: { heightAt: () => null } });
     assert.equal(t.heightAt({ x: 0, y: 0, z: 0 }), null);
 });
+
+// Flying goes where you are looking. Flying over a world at a fixed height
+// while pointing down at it is how you never arrive anywhere — and walking
+// must not do the same, because on the ground your height is the ground's.
+test('forward follows the pitch in the air and not on the ground', () => {
+    const p = new Player(null, { mode: FLY, flySpeed: 100 });
+    p.held.add('fwd');
+    p.pitch = -Math.PI / 4;                                   // looking down
+    const down = p.intent(1);
+    assert.ok(down.y < -50, `looking down goes down: ${down.y}`);
+    p.pitch = Math.PI / 4;                                    // looking up
+    assert.ok(p.intent(1).y > 50, 'looking up goes up');
+    p.pitch = 0;
+    assert.ok(Math.abs(p.intent(1).y) < 1e-9, 'level is level');
+
+    const walker = new Player(null, { mode: WALK });
+    walker.held.add('fwd');
+    walker.pitch = -Math.PI / 4;
+    assert.equal(walker.intent(1).y, 0, 'walking is on the ground whatever you look at');
+});
+
+test('the length of a step is the same whichever way you are pointing', () => {
+    const p = new Player(null, { mode: FLY, flySpeed: 100 });
+    p.held.add('fwd');
+    for (const pitch of [-1.2, -0.4, 0, 0.4, 1.2]) {
+        p.pitch = pitch;
+        const d = p.intent(1);
+        assert.ok(Math.abs(Math.hypot(d.x, d.y, d.z) - 100) < 1e-6,
+            `${pitch}: ${Math.hypot(d.x, d.y, d.z)}`);
+    }
+});
+
+test('Shift runs on the ground and goes down in the air', () => {
+    const walker = new Player(null, { mode: WALK, walkSpeed: 6 });
+    walker.held.add('fwd');
+    const strolled = Math.hypot(walker.intent(1).x, walker.intent(1).z);
+    walker.held.add('shift');
+    const ran = Math.hypot(walker.intent(1).x, walker.intent(1).z);
+    assert.ok(ran > strolled * 2, `${ran} should be well over ${strolled}`);
+    assert.equal(walker.intent(1).y, 0, 'running is not flying');
+
+    const flier = new Player(null, { mode: FLY, flySpeed: 100 });
+    flier.held.add('shift');
+    assert.ok(flier.intent(1).y < -50, 'in the air it is down');
+    flier.held.add('up');
+    assert.ok(Math.abs(flier.intent(1).y) < 1e-9, 'and both at once is neither');
+});
+
+test('switching modes says so, once, to whoever asked', () => {
+    const p = new Player(null, { mode: WALK });
+    const said = [];
+    p.onMode = (m) => said.push(m);
+    p.toggleMode();
+    p.toggleMode();
+    assert.deepEqual(said, [FLY, WALK]);
+});

@@ -28,6 +28,14 @@ stories browser contexts that have only the page.
 | 12 | properties (§3.10): A adds leaf_type to forest with two choices and makes it required; B is told their QGIS project is out of date; the next download has the dropdown with those two values; a wood with no leaf type, and one with a third value, are both refused in words; the wood B does draw compiles and publishes | green |
 | 13 | failure and recovery (§3.12): a render C walked away from is back in the pool with the sentence that says so; the elevation service is stopped and somebody arriving is told in place, while the rest of the page goes on working; started again, the ground comes back by itself | green |
 
+The two below are not SPEC §3 stories. They are what the operator asked for
+after standing in the world, proven the same way.
+
+| what | what it proves | state |
+|---|---|---|
+| 14 | ground already rendered can be asked for again: 'Compile it all again' marks the land changed, and it goes through Submit and an approval like anything else, and the tile is back in the pool | green |
+| 15 | walking and flying: the corner says which one you are in and what the keys do about it, Space climbs, Shift goes down in the air and runs on the ground | green |
+
 What each story forced is in its commit message. Nothing is "done" here
 because a function exists: if the script cannot find the button, the button is
 missing.

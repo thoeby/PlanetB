@@ -337,6 +337,20 @@ body {
 }
 #hints b { color: var(--ink); font-weight: 600; }
 
+/* Walking or flying, at the head of the keys that go with it: the two are
+   different controls and the corner has to say which one you are in. */
+#hints .mode {
+  display: flex; align-items: center; gap: 6px; padding-right: 12px;
+  border-right: 1px solid var(--edge);
+}
+#hints .mode .pip {
+  width: 7px; height: 7px; border-radius: 50%; background: var(--ink-3);
+}
+#hints[data-mode="fly"] .mode .pip {
+  background: var(--accent); box-shadow: 0 0 8px var(--accent);
+}
+#hints[data-mode="fly"] .mode-name { color: var(--accent); }
+
 /* The map: your land in the accent, everybody else's in outline, you in the
    middle with the cone of what you are looking at (js/hudmap.js). */
 #map { position: relative; width: 240px; height: 240px; overflow: hidden;

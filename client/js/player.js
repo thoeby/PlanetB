@@ -16,6 +16,10 @@ const EYE_M = 1.7;
 const RADIUS_M = 0.35;
 const WALK_MPS = 6;
 const FLY_MPS = 400;
+// Shift, in the two things it means. Walking it is running, as the hint on
+// screen has always said and nothing has ever done; flying it is down, which
+// is the other half of Space.
+const RUN = 2.5;
 const PITCH_LIMIT = Math.PI / 2 - 0.01;
 
 // A tile's height.r16: `size` by `size` uint16 samples, row-major, north-west
@@ -228,7 +232,7 @@ function typing(target) {
 const KEYS = {
     KeyW: 'fwd', KeyS: 'back', KeyA: 'left', KeyD: 'right',
     ArrowUp: 'fwd', ArrowDown: 'back', ArrowLeft: 'left', ArrowRight: 'right',
-    Space: 'up', ShiftLeft: 'down',
+    Space: 'up', ShiftLeft: 'shift', ShiftRight: 'shift',
 };
 
 export class Player {
@@ -248,6 +252,9 @@ export class Player {
 
     toggleMode() {
         this.mode = this.mode === WALK ? FLY : WALK;
+        // Told rather than watched for: the page has to say which way you are
+        // moving, and the two modes are two sets of controls.
+        this.onMode?.(this.mode);
         return this.mode;
     }
 
@@ -258,18 +265,29 @@ export class Player {
     }
 
     // Movement wanted this frame, in metres, before the world has its say.
+    //
+    // Walking is on the plane: you are on the ground and the ground decides
+    // your height. Flying goes where you are looking — pitch and all — because
+    // flying over a world at a fixed height while pointing down at it is how
+    // you never arrive anywhere. Space and Shift are still straight up and
+    // straight down, for when what you want is height rather than a direction.
     intent(dt) {
-        const speed = (this.mode === FLY ? this.flySpeed : this.walkSpeed) * dt;
+        const flying = this.mode === FLY;
+        const fast = !flying && this.held.has('shift') ? RUN : 1;
+        const speed = (flying ? this.flySpeed : this.walkSpeed) * fast * dt;
         const f = (this.held.has('fwd') ? 1 : 0) - (this.held.has('back') ? 1 : 0);
         const r = (this.held.has('right') ? 1 : 0) - (this.held.has('left') ? 1 : 0);
-        const u = (this.held.has('up') ? 1 : 0) - (this.held.has('down') ? 1 : 0);
+        const u = (this.held.has('up') ? 1 : 0)
+            - (flying && this.held.has('shift') ? 1 : 0);
         const len = Math.hypot(f, r) || 1;
         const cy = Math.cos(this.yaw), sy = Math.sin(this.yaw);
+        const cp = flying ? Math.cos(this.pitch) : 1;
+        const sp = flying ? Math.sin(this.pitch) : 0;
         // Z south, so forward at yaw 0 is -Z (north).
         return {
-            x: (f / len * -sy + r / len * cy) * speed,
-            y: this.mode === FLY ? u * speed : 0,
-            z: (f / len * -cy - r / len * sy) * speed,
+            x: (f / len * -sy * cp + r / len * cy) * speed,
+            y: (flying ? f / len * sp + u : 0) * speed,
+            z: (f / len * -cy * cp - r / len * sy) * speed,
         };
     }
 

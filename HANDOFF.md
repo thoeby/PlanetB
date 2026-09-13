@@ -187,6 +187,39 @@ of published tiles.
 
 Things that cost time once. Do not rediscover them.
 
+**A panel that redraws is a panel that loses things**
+- Every panel in this client rebuilds its nodes on a timer. Three separate
+  bugs came out of that and each one looked like something else:
+  a field somebody was typing into was replaced, so the text went nowhere and
+  the button read an empty note; a status line was replaced between a press and
+  its answer, so the answer was never seen; and a button moved under a hand
+  reaching for it, which Playwright reports as "element is not stable".
+- Two rules, both already applied: a node that holds something (a field, a
+  status line) is made once by the panel and moved into each card it draws
+  (`client/js/land.js` `keeper()`, `client/js/permissionui.js` `noteField`),
+  and a card is rebuilt only when it would say something different
+  (`cardSignature` in land.js, `shown` in permission.js). Do the same for any
+  new panel.
+- The same shape in the world: an answer that arrives after the next question
+  was asked must not be discarded by *identity*, only by the question having
+  moved on. `whereAmI` in `client/play.html` discards by position, because under
+  load every answer arrived after the next question and the line never changed.
+
+**Frames: metres above sea level are not metres in the scene**
+- A DEM answers in metres above sea level. Everything in the scene is metres
+  from the floating anchor, and the anchor moves under the camera as you
+  travel. `Terrain.heightAt` converts; anything else that reads the ground has
+  to as well, or a player is twice their own height in the air after they have
+  walked far enough to rebase.
+
+**Coarse ground tiles run off the end of a coverage**
+- A tile at z10 is twenty-seven kilometres across and an operator's coverage is
+  often four. A WCS asked for ground it has not got answers with an exception
+  report, not with nodata, so `ground.cut` clips the request to the coverage and
+  warps what comes back onto the whole tile. Nodata is sea level
+  (`server/splatworld/dem.py`), so the viewer draws no ground past the edge of
+  the coverage at all (`within` in `client/lib/groundtile.js`).
+
 **pgTAP**
 - `SELECT plan(n)` must match the assertion count exactly. Write the test, run
   it, then set `n` from what it reports.

@@ -3,7 +3,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 
-import { SPANS, spanFor } from '../js/hudmap.js';
+import { drawMinimap, SPANS, spanFor } from '../js/hudmap.js';
 
 const at = { lon: 9.69, lat: 46.4 };
 
@@ -35,4 +35,47 @@ test('land on the other side of the world does not widen it past the last span',
 
 test('an area with no geometry at all is ignored, not crashed on', () => {
     assert.equal(spanFor([{}, { ring: [] }], at), 500);
+});
+
+// The map had a grid and a triangle in the middle and nothing about where you
+// are, which is the one thing a map is for. This is the hillshade it draws
+// instead, from the same ground the player is standing on.
+
+// Enough of a 2D context to see what was painted.
+function fakeCanvas(size = 240) {
+    const painted = [];
+    return {
+        width: size,
+        height: size,
+        painted,
+        getContext: () => ({
+            fillStyle: '', strokeStyle: '', lineWidth: 1,
+            clearRect() {}, beginPath() {}, moveTo() {}, lineTo() {},
+            stroke() {}, closePath() {}, arc() {}, save() {}, restore() {},
+            translate() {}, rotate() {},
+            fillRect(x, y, w, h) { painted.push({ x, y, w, h, fill: this.fillStyle }); },
+            fill() {},
+        }),
+    };
+}
+
+test('with ground to ask, the map is the land rather than a grid', () => {
+    const canvas = fakeCanvas();
+    const hill = { heightAt: (lon, lat) => 600 + (lat - 46.4) * 200000 };
+    drawMinimap(canvas, { at, ground: hill });
+    assert.ok(canvas.painted.length > 100, 'the map is shaded cell by cell');
+    const fills = new Set(canvas.painted.map((p) => p.fill));
+    assert.ok(fills.size > 3, 'a slope is more than one colour');
+});
+
+test('where there is no ground, the map says nothing rather than black', () => {
+    const canvas = fakeCanvas();
+    drawMinimap(canvas, { at, ground: { heightAt: () => null } });
+    assert.equal(canvas.painted.length, 0, 'nothing is shaded');
+});
+
+test('and with no ground at all it is the grid it always was', () => {
+    const canvas = fakeCanvas();
+    assert.ok(drawMinimap(canvas, { at }) > 0);
+    assert.equal(canvas.painted.length, 0);
 });

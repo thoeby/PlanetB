@@ -31,7 +31,12 @@ function bbox(a) {
     return [Math.min(...xs), Math.min(...ys), Math.max(...xs), Math.max(...ys)];
 }
 
-export function drawMinimap(canvas, { areas = [], things = [], at, heading = 0 }) {
+// `ground` answers the height at a lon/lat in metres, or null where it has
+// none: client/lib/groundmesh.js, the same floor the player walks on. Without
+// it the map was a grid with a triangle in the middle — nothing about where
+// you are, which is the one thing a map is for.
+export function drawMinimap(canvas,
+    { areas = [], things = [], at, heading = 0, ground = null }) {
     const ctx = canvas?.getContext?.('2d');
     if (!ctx || !at) return null;
     const { width: w, height: h } = canvas;
@@ -44,11 +49,64 @@ export function drawMinimap(canvas, { areas = [], things = [], at, heading = 0 }
     ];
 
     ctx.clearRect(0, 0, w, h);
-    grid(ctx, w, h);
+    if (!terrain(ctx, w, h, at, span, cos, ground)) grid(ctx, w, h);
     for (const a of areas) boundary(ctx, a, xy);
     for (const t of things) thing(ctx, xy(Number(t.lon), Number(t.lat)));
     you(ctx, w / 2, h / 2, heading);
     return span;
+}
+
+// How coarse the shading is, in pixels of the 240 px map. Fine enough to read
+// a valley, coarse enough to be a few hundred height lookups rather than
+// sixty thousand — this is drawn on a one-second tick, not per frame.
+const CELL = 6;
+
+// The land itself, as a hillshade: the same fixed sun everything else in this
+// world is lit by, applied to the slope between one cell and the next. It is
+// the ground the player is standing on, so what the map says and what they see
+// out of the window are the same hill.
+function terrain(ctx, w, h, at, span, cos, ground) {
+    if (!ground?.heightAt) return false;
+    const cells = Math.ceil(w / CELL) + 1;
+    const step = span / (w / CELL);
+    const lonOf = (i) => at.lon + (i * CELL - w / 2) / w * span / (M_PER_DEG * cos);
+    const latOf = (j) => at.lat - (j * CELL - h / 2) / h * span / M_PER_DEG;
+    const grid_ = [];
+    let seen = false;
+    for (let j = 0; j <= cells; j++) {
+        const row = [];
+        for (let i = 0; i <= cells; i++) {
+            const v = ground.heightAt(lonOf(i), latOf(j));
+            if (v !== null && v !== undefined) seen = true;
+            row.push(v);
+        }
+        grid_.push(row);
+    }
+    if (!seen) return false;
+    shade(ctx, grid_, cells, step);
+    return true;
+}
+
+// Sun from the north-west, as every other picture of this world has it.
+function shade(ctx, grid_, cells, step) {
+    for (let j = 0; j < cells; j++) {
+        for (let i = 0; i < cells; i++) {
+            const here = grid_[j][i];
+            if (here === null || here === undefined) continue;
+            const east = grid_[j][i + 1] ?? here;
+            const south = grid_[j + 1]?.[i] ?? here;
+            const lit = Math.max(0, Math.min(1,
+                0.5 + ((here - east) + (here - south)) / (step * 0.5)));
+            // Dark enough to be a panel and light enough to be a map: the
+            // land reads from the valley floor up, and the slope between one
+            // cell and the next is what makes it a picture of a hill.
+            const high = Math.max(0, Math.min(1, (here - 300) / 2600));
+            const base = 58 + high * 120;
+            const v = Math.round(Math.min(235, base * (0.62 + 0.62 * lit)));
+            ctx.fillStyle = `rgb(${Math.round(v * 0.9)},${v},${Math.round(v * 0.76)})`;
+            ctx.fillRect(i * CELL, j * CELL, CELL + 1, CELL + 1);
+        }
+    }
 }
 
 function grid(ctx, w, h) {

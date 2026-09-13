@@ -144,6 +144,37 @@ function topCentre() {
         face: c.face, land, owner, right, coords };
 }
 
+// Which way you are moving, and the keys that go with it. Walking and flying
+// are different controls — Shift runs on the ground and goes down in the air,
+// and forward follows where you are looking only in the air — so the corner
+// says which of the two you are in rather than listing both and leaving it to
+// be discovered. A key hint is not decoration: it is the only way to learn
+// that the keys work at all.
+const MOVE = {
+    walk: { name: 'Walking', keys: [['Move', 'W A S D'], ['Look', 'drag'],
+        ['Run', 'Shift'], ['Fly', 'F']] },
+    fly: { name: 'Flying', keys: [['Fly where you look', 'W A S D'],
+        ['Look', 'drag'], ['Up', 'Space'], ['Down', 'Shift'], ['Walk', 'F']] },
+};
+
+function keyHints() {
+    const node = el('div', { id: 'hints', className: 'glass' });
+    drawHints(node, 'walk');
+    return node;
+}
+
+function drawHints(node, mode) {
+    const how = MOVE[mode] ?? MOVE.walk;
+    node.dataset.mode = mode;
+    node.replaceChildren(
+        el('span', { className: 'mode' },
+            el('i', { className: 'pip' }),
+            el('b', { className: 'mode-name', textContent: how.name })),
+        ...how.keys.map(([what, key]) =>
+            el('span', {}, el('b', { textContent: what }), ` ${key}`)),
+        el('span', {}, el('b', { textContent: 'Close panel' }), ' Esc'));
+}
+
 // The hotbar: four named groups, each tab with the key that opens it. A key
 // hint is not decoration — it is the only way to learn that the keys work.
 function tabBar(onPick) {
@@ -239,6 +270,7 @@ function buildFrame(doc, show) {
     // SPEC §2.1: the chip that says how many things are waiting for you sits
     // next to who you are. js/attention.js fills it.
     const waiting = el('div', { id: 'waiting' });
+    const hints = keyHints();
     // SPEC §3.2: a land's name is drawn on the ground, and letters are HTML.
     const labels = el('div', { id: 'world-labels' });
     const hud = el('div', { id: 'hud' },
@@ -248,12 +280,7 @@ function buildFrame(doc, show) {
             el('span', { className: 'rule' }), who, waiting),
         top.node, pipe.node, frame.node, bar,
         el('div', { id: 'corner' },
-            el('div', { id: 'hints', className: 'glass' },
-                el('span', {}, el('b', { textContent: 'Walk' }), ' W A S D'),
-                el('span', {}, el('b', { textContent: 'Look' }), ' drag'),
-                el('span', {}, el('b', { textContent: 'Fly' }), ' F'),
-                el('span', {}, el('b', { textContent: 'Run' }), ' Shift'),
-                el('span', {}, el('b', { textContent: 'Close panel' }), ' Esc')),
+            hints,
             el('div', { id: 'map', className: 'glass' }, map, scale, mapBox)),
         el('div', { id: 'legend', className: 'glass' },
             el('span', { className: 'published' }, el('i'), 'Published'),
@@ -266,7 +293,7 @@ function buildFrame(doc, show) {
 
     doc.body.append(el('div', { id: 'vignette' }), hud);
     return { top, who, stats: pipe.cells, frame, buttons, bodies, notice, map, mapBox,
-        scale, waiting };
+        scale, waiting, hints };
 }
 
 // A number key opens its panel; Escape closes whatever is open. Neither fires
@@ -341,6 +368,8 @@ export function mountHud(doc) {
         stat(key, value) {
             if (stats[key]) stats[key].textContent = value;
         },
+        // Walking or flying, and the keys for it (SPEC §2.3's corner).
+        moving(mode) { drawHints(f.hints, mode); },
         // The minimap, the scale it is drawn at, and where its search lives.
         minimap: () => f.map,
         mapBox: () => f.mapBox,
