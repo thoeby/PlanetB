@@ -119,6 +119,9 @@ body {
   letter-spacing: 0.12em; text-transform: uppercase; color: var(--ink);
   text-shadow: 0 1px 3px rgba(0, 0, 0, 0.9);
 }
+/* What is on the world but not in it yet (SPEC §0.3). */
+.world-label[data-tone="warn"] { color: var(--warn); font-size: 11px;
+  letter-spacing: 0.1em; }
 
 /* What changed on this land, and the one thing to do about it (SPEC §3.3). */
 .land-changed { display: flex; align-items: center; justify-content: space-between;

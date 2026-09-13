@@ -56,25 +56,46 @@ export const areaName = (a) => a?.rules?.name || 'unnamed land';
 // held over the spot the land's centre projects to — it moves with the camera
 // and disappears when the land is behind you.
 export function labelAreas(ctx, areas, host) {
+    const named = (areas ?? []).filter((a) => a.centre?.lon !== undefined)
+        .map((a) => ({ key: a.id, words: areaName(a), at: a.centre, up: 3 }));
+    return labelWorld(ctx, named, host, 'area');
+}
+
+// SPEC §0.3: a saved object is one everybody sees, "marked not yet rendered",
+// until its tile is published with it inside. The mark is a word over the
+// thing, because a model standing in a world of splats looks like any other
+// model and the difference is what the world knows about it.
+export function labelObjects(ctx, objects, host) {
+    const marks = (objects ?? []).filter((o) => o.lon !== undefined)
+        .map((o) => ({ key: `i:${o.id}`, words: 'not yet rendered',
+            at: { lon: o.lon, lat: o.lat }, up: (o.h ?? 0) + 2, dim: true }));
+    return labelWorld(ctx, marks, host, 'object');
+}
+
+// The words, held over the spot they belong to. A line in the world cannot
+// carry letters, so the letters are HTML over the canvas: it moves with the
+// camera and disappears when the spot is behind you.
+function labelWorld(ctx, marks, host, group) {
     const { pc, app, origin, terrain } = ctx;
     if (!host) return;
-    const seen = new Set();
     const camera = app.root.children.find((c) => c.camera)?.camera;
-    for (const area of areas ?? []) {
-        const centre = area.centre;
-        if (!camera || centre?.lon === undefined) continue;
-        seen.add(area.id);
-        let label = host.querySelector(`[data-area="${area.id}"]`);
+    if (!camera) return;
+    const seen = new Set();
+    for (const mark of marks) {
+        seen.add(mark.key);
+        let label = host.querySelector(`[data-key="${mark.key}"]`);
         if (!label) {
             label = document.createElement('div');
             label.className = 'world-label';
-            label.dataset.area = area.id;
+            label.dataset.key = mark.key;
+            label.dataset.group = group;
+            if (mark.dim) label.dataset.tone = 'warn';
             host.append(label);
         }
-        label.textContent = areaName(area);
-        const p = origin.localOf({ lon: centre.lon, lat: centre.lat, h: 0 });
+        label.textContent = mark.words;
+        const p = origin.localOf({ lon: mark.at.lon, lat: mark.at.lat, h: 0 });
         const ground = terrain?.heightAt(p);
-        const at = new pc.Vec3(p.x, (ground ?? p.y) + 3, p.z);
+        const at = new pc.Vec3(p.x, (ground ?? p.y) + mark.up, p.z);
         const screen = camera.worldToScreen(at);
         // Behind the camera, or off the side: not drawn rather than drawn in
         // the wrong place.
@@ -85,8 +106,8 @@ export function labelAreas(ctx, areas, host) {
         label.style.left = `${Math.round(screen.x)}px`;
         label.style.top = `${Math.round(screen.y)}px`;
     }
-    for (const node of host.querySelectorAll('.world-label')) {
-        if (!seen.has(node.dataset.area)) node.remove();
+    for (const node of host.querySelectorAll(`.world-label[data-group="${group}"]`)) {
+        if (!seen.has(node.dataset.key)) node.remove();
     }
 }
 

@@ -42,12 +42,14 @@ export const HTML = `
   <div class="build-acts row">
     <button type="button" class="build-del">Delete</button>
     <button type="button" class="build-undo">Undo</button>
+    <button type="button" class="build-save primary">Save</button>
   </div>
+  <p class="build-saved status"></p>
 </div>
 
 <div class="section">
   <span class="label">Placed, not yet submitted</span>
-  <div class="note">Only you see these until the land is submitted and
-    rendered.</div>
+  <div class="note">Saved objects are on the land for everyone, marked "not yet
+    rendered", until the land is submitted and somebody compiles it.</div>
   <ul class="build-tiles rows"></ul>
 </div>`;

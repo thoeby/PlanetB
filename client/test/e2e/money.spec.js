@@ -124,7 +124,9 @@ test('a stranger renders my bounty and is paid for it', async ({ page, browser }
     await signIn(page, OWNER, PW);
     await page.evaluate(async ([areaId, san, at]) => {
         const { build } = window.splatworld;
-        await build.edits.place(areaId, san, at, { yaw: 0, scale: 1 });
+        // Placing is local until Save (SPEC §0.3 `placing`).
+        build.edits.place(areaId, san, at, { yaw: 0, scale: 1 });
+        await build.edits.save();
     }, [area, asset.san, { ...centre, h: 400 }]);
 
     const job = Number(psql(`SELECT ensure_job(${TILE.z}, ${TILE.x}, ${TILE.y})

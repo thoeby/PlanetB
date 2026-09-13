@@ -62,6 +62,7 @@
 
 <script type="module">
   import * as api from './js/api.js';
+  import * as tm from './lib/tilemath.js';
   import { mountAuth } from './js/auth.js';
   import { FloatingOrigin } from './js/origin.js';
   import { TileStreamer, cameraState } from './js/tiles.js';
@@ -81,7 +82,7 @@
   import { mountAdmin } from './js/adminui.js';
   import { mountRules } from './js/rulesui.js';
   import { mountCatalogPanel } from './js/catalogpanel.js';
-  import { drawAreas, labelAreas, mountLand, ringsOf } from './js/land.js';
+  import { drawAreas, labelAreas, labelObjects, mountLand, ringsOf } from './js/land.js';
   import { mountGetLand } from './js/getland.js';
   import { mountAssignLand } from './js/assignland.js';
   import { mountAttention } from './js/attention.js';
@@ -255,6 +256,13 @@
   };
   const arrivedAt = parseVisit(location.href);
   if (arrivedAt) goTo(arrivedAt);
+  // T8: a link is a place, and pasting one into the tab you already have open
+  // is the same link. Without this it only worked on a fresh load, because
+  // changing the hash does not reload anything.
+  window.addEventListener('hashchange', () => {
+      const to = parseVisit(location.href);
+      if (to) goTo(to);
+  });
 
   // WP4.2: build mode. The preview draws what has been placed but not yet
   // compiled — a published tile is splats, and a bench put down a second ago is
@@ -308,6 +316,18 @@
       onRemove: (item) => api.remove('instance', { id: `eq.${item.id}` })
           .then(() => build.refresh()),
   });
+
+  // Whether the tile under a thing has been published with it inside. The
+  // streamer already holds every tile row; `dirty` is the world's own answer.
+  const unrendered = (row) => {
+    if (row.placing) return false;
+    for (let i = tm.ZOOMS.length - 1; i >= 0; i--) {
+      const z = tm.ZOOMS[i];
+      const t = streamer.tiles.get(`${z}/${tm.tileX(row.lon, z)}/${tm.tileY(row.lat, z)}`);
+      if (t) return Boolean(t.dirty) || !(t.published_version > 0);
+    }
+    return true;
+  };
 
   // What Submit and Permission last counted, which is what the next-step card
   // needs and neither panel has to be open for.
@@ -483,6 +503,9 @@
               right: `outside ${ground.coverage}`, may: false });
           return;
       }
+      // The Place panel answers "may I build here"; the answer changes when
+      // you walk somewhere else.
+      build.refresh();
       api.rpc('area_at', { lon: g.lon, lat: g.lat }).then((areas) => {
           const a = areas?.[0];
           if (!a) {
@@ -491,8 +514,8 @@
               return;
           }
           hud.standing({
-              land: a.rules?.name || 'unnamed land',
-              owner: a.mine ? 'you' : (a.owner_id ?? '').slice(0, 8),
+              land: a.name || 'unnamed land',
+              owner: a.mine ? 'you' : (a.owner ?? ''),
               right: a.may_write ? 'you may build here'
                   : a.may_propose ? 'you may propose here' : 'read only',
               may: Boolean(a.may_write),
@@ -554,6 +577,19 @@
   setInterval(drawTheMap, 1000);
   drawTheMap();
 
+  // SPEC §0.3: a saved object is everybody's to see, whether or not they are
+  // building. Build mode syncs the preview itself (it has the unsaved ones
+  // too); this is for everybody else, standing there watching somebody else's
+  // land change.
+  async function showWhatIsAround() {
+    if (build.state.on) return;
+    const p = camera.getPosition();
+    const g = origin.geodeticOf({ x: p.x, y: p.y, z: p.z });
+    await preview.sync(await nearby(g.lon, g.lat)).catch(() => {});
+  }
+  setInterval(showWhatIsAround, 8000);
+  showWhatIsAround();
+
   app.on('update', (dt) => {
     // A smoothed frame time, so one slow frame does not stall background work
     // and one fast one does not let it back in too early.
@@ -574,8 +610,13 @@
     }
     build.drawGizmo();
     drawAreas({ pc, app, origin, terrain }, land.areas());
-    labelAreas({ pc, app, origin, terrain }, land.areas(),
-        document.getElementById('world-labels'));
+    const labels = document.getElementById('world-labels');
+    labelAreas({ pc, app, origin, terrain }, land.areas(), labels);
+    // SPEC §0.3: a saved object is everybody's to see, marked "not yet
+    // rendered" until its tile is published with it inside. A dirty tile is
+    // exactly "something here changed since the last publish".
+    labelObjects({ pc, app, origin, terrain },
+        [...preview.rows.values()].filter(unrendered), labels);
     streamer.update(cameraState(camera, app.graphicsDevice.height));
     // Where you are, in the chrome: the compass follows the camera, the
     // coordinates are the real ones, and the land under you is asked for only

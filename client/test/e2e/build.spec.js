@@ -132,9 +132,11 @@ test('a placed asset dirties its tile, renders into it, and stands on the ground
         expect(found.map((a) => a.san)).toContain(asset.san);
 
         // ------------------------------------------------------- place
+        // Placing is local until Save (SPEC §0.3 `placing`), so this saves.
         const placed = await page.evaluate(async ([areaId, san, at]) => {
             const { build } = window.splatworld;
-            const row = await build.edits.place(areaId, san, at, { yaw: 0, scale: 1 });
+            build.edits.place(areaId, san, at, { yaw: 0, scale: 1 });
+            const [row] = (await build.edits.save()).rows;
             await build.sync();
             return row;
         }, [area, asset.san, { ...centre, h: 400 }]);
@@ -218,8 +220,10 @@ test('a click places on the ground under the cursor, and undo takes it back',
             build.setBrush(rows.find((a) => a.san === san));
             if (!build.state.area) return { noArea: true };
             const box = document.getElementById('view').getBoundingClientRect();
-            const row = await build.place({ x: box.width / 2, y: box.height / 2 });
+            await build.place({ x: box.width / 2, y: box.height / 2 });
+            const [row] = (await build.edits.save()).rows;
             if (!row) return null;
+            build.state.selected = row;
             const now = here();
             const local = origin.localOf({ lon: row.lon, lat: row.lat, h: row.h });
             return { row, dy: local.y - (now.y + ground),

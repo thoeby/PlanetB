@@ -12,7 +12,8 @@
 import * as api from './api.js';
 import { HTML } from './buildhtml.js';
 import { placementDiff, propose } from './areas.js';
-import { Edits, SNAP, areasAt, raycastGround, snapTo, tilesAt } from './build.js';
+import { Edits, SNAP, areasAt, raycastGround, snapTo, stepWords, tilesAt }
+    from './build.js';
 import { searchAssets } from './catalog.js';
 
 const AXES = ['x', 'y', 'z'];
@@ -97,8 +98,9 @@ class Session {
             this.onChange();
             return this.state.proposal;
         }
-        const row = await this.edits.place(this.state.area.id, this.state.brush.san, at, pose);
-        this.state.selected = { ...row, sha256: this.state.brush.sha256 };
+        const row = this.edits.place(this.state.area.id, this.state.brush.san, at,
+            { ...pose, sha256: this.state.brush.sha256 });
+        this.state.selected = row;
         return this.sync();
     }
 
@@ -135,15 +137,24 @@ class Session {
     }
 
     // Everything within sight of the camera, so a placement shows up at once
-    // and a delete disappears.
+    // and a delete disappears. What is still being placed is drawn from this
+    // tab's own list: nobody else has it yet (SPEC §0.3).
     async sync() {
         const g = this.here();
         const rows = await this.ctx.nearby(g.lon, g.lat);
-        await this.ctx.preview.sync(rows);
+        await this.ctx.preview.sync([...rows, ...this.edits.pending]);
         const id = this.state.selected?.id;
         if (id) this.state.selected = rows.find((r) => r.id === id) ?? this.state.selected;
         this.onChange();
         return this.state.selected;
+    }
+
+    // SPEC §3.4 step 4: Save, and the panel says what was saved and what it
+    // changed. Until this, nothing has left the tab.
+    async save() {
+        const done = await this.edits.save();
+        await this.sync();
+        return done;
     }
 }
 
@@ -223,12 +234,19 @@ function describe(state, depth) {
         + ` · scale ${Number(state.selected.scale ?? 1).toFixed(2)} · ${depth} undoable`;
 }
 
+// SPEC §3.4: "you may not build here (owner Anna)" — the sentence names the
+// land and the person, because "5842edf5" is not an answer to "why not".
 const whereText = (state, areas) => {
     if (!state.area) {
-        return areas.length ? 'this land is not yours to build on' : 'no area here';
+        const theirs = areas[0];
+        return theirs
+            ? `you may not build here — ${theirs.name} belongs to ${theirs.owner}.`
+              + ' Ask them for a build grant'
+            : 'you may not build here — nobody owns this ground. Ask an admin'
+              + ' for land';
     }
-    const how = state.area.may_write ? 'building in' : 'proposing to';
-    return `${how} ${state.area.id.slice(0, 8)} · detail ${state.area.detail}`;
+    const how = state.area.may_write ? 'building on' : 'proposing to';
+    return `${how} ${state.area.name} · detail ${state.area.detail}`;
 };
 
 // Build mode takes the keyboard and the pointer off the player: the camera
@@ -272,6 +290,7 @@ function wire(host, state, { toggle, catalog, acts, say }) {
     q('.build-snap-on').onchange = (e) => { state.snap = e.target.checked; };
     q('.build-del').onclick = () => acts.remove();
     q('.build-undo').onclick = () => acts.undo();
+    q('.build-save').onclick = () => acts.save();
     for (const b of host.querySelectorAll('[data-mode]')) {
         b.onclick = () => { state.mode = b.dataset.mode; say(); };
     }
@@ -280,16 +299,6 @@ function wire(host, state, { toggle, catalog, acts, say }) {
     }
     q('.build-less').onclick = () => acts.step(-1);
     q('.build-more').onclick = () => acts.step(1);
-}
-
-// What a step is, in the unit the chosen mode moves in — the number the two
-// buttons beside it add and take away. Fine steps are a fifth of it
-// (the `snap` branch in nudge()).
-function stepWords(state) {
-    const size = state.snap ? STEP[state.mode] : STEP[state.mode] / 5;
-    if (state.mode === 'turn') return `step ${size}°`;
-    if (state.mode === 'size') return `step ${size}×`;
-    return `step ${size.toFixed(2)} m`;
 }
 
 // The buttons say what is chosen, so nothing on this panel is only in
@@ -303,6 +312,19 @@ function showChosen(host, state) {
     }
     const step = host.querySelector('.build-step');
     if (step) step.textContent = stepWords(state);
+}
+
+// SPEC §3.4 step 4: "2 objects saved · 1 tile changed". The numbers are the
+// world's own — what was written, and what the tiles say afterwards.
+async function saveAndSay(session, refresh, line) {
+    const done = await session.save();
+    const tiles = await refresh();
+    const changed = (tiles ?? []).filter((t) => t.dirty).length;
+    line.textContent = done.objects
+        ? `${done.objects} object${done.objects === 1 ? '' : 's'} saved`
+          + ` \u00b7 ${changed} tile${changed === 1 ? '' : 's'} changed`
+        : 'nothing to save — place something first';
+    return done;
 }
 
 export function mountBuild(host, ctx) {
@@ -326,9 +348,10 @@ export function mountBuild(host, ctx) {
         ctx.wallet?.target?.(tile, job);
     }
 
+    // Where you are and what you may do here is worth saying whether or not
+    // build mode is on: a player opens this panel to find out.
     async function refresh() {
         say();
-        if (!state.on) return null;
         const { areas, tiles } = await session.look();
         q('.build-where').textContent = whereText(state, areas);
         q('.build-tiles').replaceChildren(...tiles.map((t) => tileRow(t, render)));
@@ -348,6 +371,7 @@ export function mountBuild(host, ctx) {
         step: after((sign) => session.step(sign)),
         remove: after(() => session.remove()),
         undo: after(() => session.undo()),
+        save: () => saveAndSay(session, refresh, q('.build-saved')),
     };
 
     const onKey = keyHandler(state, acts, say);

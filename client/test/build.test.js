@@ -83,11 +83,11 @@ function fakeApi() {
     let next = 1;
     return {
         rows,
-        insert: (_t, [row]) => {
+        insert: (_t, made) => made.map((row) => {
             const id = `i${next++}`;
             rows.set(id, { id, ...row });
-            return [rows.get(id)];
-        },
+            return rows.get(id);
+        }),
         update: (_t, params, patch) => {
             const id = params.id.slice(3);
             rows.set(id, { ...rows.get(id), ...patch });
@@ -97,31 +97,59 @@ function fakeApi() {
     };
 }
 
+// SPEC §0.3: an object being positioned is `placing` — not saved, and only
+// this tab sees it. Nothing reaches the world until Save.
+test('nothing is written until it is saved', async () => {
+    await (async (fake) => {
+        const edits = new Edits({ writes: fake });
+        edits.place('area', 'SBENCH0000000', { lon: 1, lat: 2, h: 3 });
+        edits.place('area', 'SBENCH0000000', { lon: 1.1, lat: 2, h: 3 });
+        assert.equal(fake.rows.size, 0, 'two placed, none written');
+        assert.equal(edits.unsaved, 2);
+
+        const done = await edits.save();
+        assert.equal(done.objects, 2);
+        assert.equal(fake.rows.size, 2, 'and now they are the world\'s');
+        assert.equal(edits.unsaved, 0);
+    })(fakeApi());
+});
+
 test('undo puts back what the last edit changed, and not more', async () => {
     await (async (fake) => {
         const edits = new Edits({ writes: fake });
-        const placed = await edits.place('area', 'SBENCH0000000', { lon: 1, lat: 2, h: 3 });
-        assert.equal(fake.rows.size, 1);
+        const placed = edits.place('area', 'SBENCH0000000', { lon: 1, lat: 2, h: 3 });
         const turned = await edits.transform(placed, { yaw: 0.5 });
         assert.equal(turned.yaw, 0.5);
         assert.equal(edits.depth, 2);
 
         const back = await edits.undo();
         assert.equal(back.yaw, 0, 'the turn was undone');
-        assert.equal(fake.rows.size, 1, 'and nothing else was');
+        assert.equal(edits.unsaved, 1, 'and the object is still being placed');
         assert.equal(edits.depth, 1);
 
         assert.equal(await edits.undo(), null, 'undoing a placement removes it');
-        assert.equal(fake.rows.size, 0);
+        assert.equal(edits.unsaved, 0);
         assert.equal(edits.depth, 0);
         assert.equal(await edits.undo(), null, 'an empty stack undoes nothing');
+    })(fakeApi());
+});
+
+test('undoing after a save takes the row away', async () => {
+    await (async (fake) => {
+        const edits = new Edits({ writes: fake });
+        edits.place('area', 'SBENCH0000000', { lon: 1, lat: 2, h: 3 });
+        await edits.save();
+        assert.equal(fake.rows.size, 1);
+        await edits.undo();
+        assert.equal(fake.rows.size, 0, 'what was saved is taken back out');
     })(fakeApi());
 });
 
 test('undoing a delete puts the instance back', async () => {
     await (async (fake) => {
         const edits = new Edits({ writes: fake });
-        const placed = await edits.place('area', 'SBENCH0000000', { lon: 1, lat: 2, h: 3 });
+        edits.place('area', 'SBENCH0000000', { lon: 1, lat: 2, h: 3 });
+        const [placed] = (await edits.save()).rows;
         await edits.remove(placed);
         assert.equal(fake.rows.size, 0);
         const back = await edits.undo();
