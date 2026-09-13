@@ -9,7 +9,7 @@ import { empty } from './empty.js';
 
 export function mountPool(host, { loop, where = () => ({}) } = {}) {
     const ui = poolParts(host);
-    const state = { rows: [], sort: 'Nearest', caps: null };
+    const state = { rows: [], held: [], sort: 'Nearest', caps: null };
     const say = (msg, bad = false) => {
         ui.status.textContent = msg;
         ui.status.dataset.bad = bad ? '1' : '';
@@ -44,6 +44,11 @@ export function mountPool(host, { loop, where = () => ({}) } = {}) {
         const { lon, lat } = where() ?? {};
         state.rows = await api.rpc('render_pool',
             { lon: lon ?? null, lat: lat ?? null, limit: 60 }).catch(() => []);
+        // Why the list is short, when it is. A job the pool hides on purpose
+        // is a job somebody who has just approved something is looking for
+        // (db/0082_whythepoolisempty.sql).
+        state.held = state.rows.length
+            ? [] : await api.rpc('pool_held_back', { limit_: 12 }).catch(() => []);
         // What this machine is, asked once and only when the panel is open:
         // probing the adapter is the slowest part of mounting anything.
         state.caps ??= (await loop?.().catch(() => null))?.caps ?? null;
@@ -107,6 +112,25 @@ function poolParts(host) {
     return ui;
 }
 
+// An empty pool with jobs behind it is the thing that reads as "my approval
+// did nothing". Each one says which of the three reasons it is.
+function nothingWaiting(held) {
+    if (!held?.length) {
+        return [empty('The pool is clear',
+            'Every tile anybody submitted is compiled. Jobs appear here the'
+            + ' moment somebody submits land.', { as: 'li' })];
+    }
+    return [
+        empty('Nothing can be taken yet',
+            `${held.length} tile(s) are open and waiting on something else:`,
+            { as: 'li' }),
+        ...held.map((h) => el('li', { className: 'po-held' },
+            el('div', { className: 'who' },
+                el('div', { className: 'name', textContent: `${h.z}/${h.x}/${h.y}` }),
+                el('div', { className: 'sub', textContent: h.why })))),
+    ];
+}
+
 function drawPool(ui, state, acts, draw) {
     ui.head.replaceChildren(
         el('span', { className: 'label',
@@ -123,9 +147,5 @@ function drawPool(ui, state, acts, draw) {
         ? [...state.rows].sort((a, b) => Number(b.bounty) - Number(a.bounty))
         : [...state.rows].sort((a, b) => (a.metres ?? 0) - (b.metres ?? 0));
     ui.list.replaceChildren(...rows.map((r) => poolRow(r, acts, state.caps)));
-    if (!rows.length) {
-        ui.list.append(empty('The pool is clear',
-            'Every tile anybody submitted is compiled. Jobs appear here the'
-            + ' moment somebody submits land.', { as: 'li' }));
-    }
+    if (!rows.length) ui.list.append(...nothingWaiting(state.held));
 }
