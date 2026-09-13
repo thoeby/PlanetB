@@ -23,7 +23,8 @@ stories browser contexts that have only the page.
 | 7 | approving (§3.6): what is waiting, who sent it and what it is; Review flies you to what was built; Before/After hides and shows it; approve queues the tiles and opens the render jobs; refuse carries a reason and the land shows it | green |
 | 8 | rendering (§3.7): the pool says what each job is and what it needs of the machine; C takes B's tile at price 0 and their own tab compiles and publishes it; a third player standing there is in a world that has a tile in it; the coarse rebuild opens by itself and C takes that too | green |
 | 9 | visiting and sharing (§3.8): the link the Share panel hands you puts another player where you stood, facing the same way, and the page says whose land it is; a name typed into the map finds the land and goes there; a link outside the coverage arrives at the nearest ground and says so | green |
-| 10–13 | | not started |
+| 10 | build grants (§3.11): C stands on B's land, is told they may not build and what to do about it, asks with a note; B is told, sees the ask on the land's card and gives it; C is told, may build, and does; B submits and approves it. Who placed it is not recorded — see Blocked | green |
+| 11–13 | | not started |
 
 What each story forced is in its commit message. Nothing is "done" here
 because a function exists: if the script cannot find the button, the button is
