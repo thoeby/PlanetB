@@ -264,7 +264,7 @@ function proposals(state) {
 function drawn(state, ctx) {
     const kinds = state.drawn ?? [];
     if (!kinds.length) return null;
-    return el('div', { className: 'section' },
+    return el('div', { className: 'section land-drawn' },
         el('span', { className: 'label', textContent: 'Drawn in QGIS' }),
         el('ul', { className: 'rows' }, ...kinds.map((k) => {
             const go = el('button', { className: 'bare', type: 'button' },

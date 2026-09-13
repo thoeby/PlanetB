@@ -13,7 +13,7 @@ import { mkdtempSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
-import { test, expect, open, shows, panel, signIn, UI } from './players.js';
+import { test, expect, open, panel, signIn, UI } from './players.js';
 import { drawInQgis, qgisPython } from './qgis.js';
 
 const readCoords = (text) => {
@@ -79,8 +79,12 @@ test('story 3 — B shapes their land in QGIS, and the page says so',
             });
 
         await test.step('and what was drawn is listed on the land', async () => {
-            await shows(b, 'forest');
-            await shows(b, 'tree');
+            // On the land card, where the sentence says it is — not anywhere on
+            // the page: "tree" is inside "street level", which is a word the
+            // How fine control uses (client/js/landui.js).
+            const list = b.page.locator('.land-drawn');
+            await expect(list).toContainText('forest', { timeout: UI });
+            await expect(list).toContainText('tree');
         });
 
         await test.step('drawing off B’s land is refused, in words', async () => {
