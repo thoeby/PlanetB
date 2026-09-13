@@ -64,8 +64,8 @@ SELECT is((SELECT set_area_detail((SELECT id FROM mine), 12)), 0,
 SET LOCAL request.jwt.claims = '{"sub":"00000000-0000-0000-0000-0000000a8002","role":"player"}';
 SELECT throws_ok($$SELECT set_area_detail((SELECT id FROM mine), 18)$$,
     '42501', NULL, 'a stranger may not change my area''s detail');
-SELECT throws_ok($$SELECT delete_area((SELECT id FROM mine))$$,
-    '42501', NULL, 'nor delete it');
+SELECT throws_ok($$SELECT remove_area((SELECT id FROM mine))$$,
+    '42501', NULL, 'nor give it back');
 
 SET LOCAL request.jwt.claims = '{"sub":"00000000-0000-0000-0000-0000000a8001","role":"player"}';
 
@@ -75,8 +75,8 @@ INSERT INTO feature (area_id, kind, geom)
 SELECT mine.id, 'forest',
     st_force3d(st_makeenvelope(20.01, 20.01, 20.02, 20.02, 4326)) FROM mine;
 
-SELECT throws_ok($$SELECT delete_area((SELECT id FROM mine))$$,
-    NULL, NULL, 'an area that still holds features is not deleted out from under them');
+SELECT ok((SELECT (land_removal((SELECT id FROM mine)) ->> 'features')::int) > 0,
+    'the confirmation says what would go with the land');
 
 CREATE TEMP TABLE jid AS
 SELECT ensure_job(t.z, t.x, t.y) AS id

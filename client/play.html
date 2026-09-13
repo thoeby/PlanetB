@@ -326,7 +326,7 @@
           const p = origin.localOf({ lon: item.lon, lat: item.lat, h: item.h ?? 0 });
           player.position = { x: p.x, y: p.y + 2, z: p.z + 8 };
       },
-      onAreas: (areas) => getland.refresh(areas),
+      onAreas: (areas) => { landChanged(areas); getland.refresh(areas); },
       openPanel: (name) => hud.show(name),
       onRemove: (item) => api.remove('instance', { id: `eq.${item.id}` })
           .then(() => build.refresh()),
@@ -442,6 +442,18 @@
   // Where the last area_at was asked, so it is asked again only when the player
   // has walked somewhere else — or when who they are changes, below.
   let asked = { lon: 0, lat: 0, at: 0 };
+
+  // …or when the land itself changes under them. Giving a piece of land back
+  // (story 11) leaves you standing exactly where you were, so nothing about
+  // the camera says the answer is stale — but the line under you was naming
+  // land that no longer exists.
+  let lands = '';
+  function landChanged(areas) {
+      const now = (areas ?? []).map((a) => a.id).sort().join(',');
+      if (now === lands) return;
+      lands = now;
+      asked = { lon: 0, lat: 0, at: 0 };
+  }
 
   mountAuth(setup.account, {
     onChange: () => {

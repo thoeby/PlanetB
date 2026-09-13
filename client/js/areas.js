@@ -19,7 +19,10 @@ export const createArea = (geojson, detail = 0, name = '') =>
     api.rpc('create_area', { geojson, detail, name });
 export const setAreaDetail = (areaId, detail) =>
     api.rpc('set_area_detail', { area_id: areaId, detail });
-export const deleteArea = (areaId) => api.rpc('delete_area', { area_id: areaId });
+// Giving land back takes what stands on it with it (db/0077_givingitback.sql);
+// `land_removal` is the same count, read first, for the sentence that asks.
+export const landRemoval = (areaId) => api.rpc('land_removal', { area_id: areaId });
+export const removeArea = (areaId) => api.rpc('remove_area', { area_id: areaId });
 export const areaGrants = (areaId) => api.rpc('area_grants', { area_id: areaId });
 export const myProposals = (state = 'open') => api.rpc('my_proposals', { state });
 

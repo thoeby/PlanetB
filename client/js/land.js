@@ -188,14 +188,19 @@ export function mountLand(host, { onGo = () => {}, onRemove = () => {},
     const state = {
         areas: [], chosen: null, contents: [], drawn: [], progress: null,
         grants: [], proposals: [], asks: [], under: null, askNote: '',
+        giveBack: null,
     };
     const say = sayInto(status);
 
     // One place where the panel is redrawn, so every action ends the same way.
     // What is half-typed into the card survives it being redrawn.
     const typing = (text) => { state.askNote = text; };
+    // Which land is between the two presses of "Give this land back", and what
+    // the world said would go with it.
+    const confirming = (asked) => { state.giveBack = asked; draw(); };
     const draw = () => redraw(list, detail, state,
-        { pick, onGo, onRemove: remove, say, load, api, openPanel, typing });
+        { pick, onGo, onRemove: remove, say, load, api, openPanel, typing,
+            reload: refresh, confirming });
 
     async function pick(area) {
         state.chosen = area?.id ?? null;

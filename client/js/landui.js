@@ -4,6 +4,7 @@
 //
 // Who may touch this land, and how many have to say yes, is client/js/landpeople.js.
 
+import { givingBack } from './landback.js';
 import { approvals, asks, people } from './landpeople.js';
 
 export const el = (tag, props = {}, ...kids) => {
@@ -69,6 +70,7 @@ export function selected(area, state, ctx) {
         proposals(state),
         drawn(state, ctx),
         contents(state, ctx),
+        givingBack(area, ctx, state.giveBack),
     ].filter(Boolean);
 }
 

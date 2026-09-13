@@ -130,7 +130,7 @@ Each is done inside its story, and the story is the proof.
 | 3 | `splatworld import` no longer fetches elevation (`importer.py:310`); ground comes from story 1's path. | `REFACTOR-direct-pg.md` S6. |
 | 8 | A merge job is neither listed nor claimable before its children are published; failed jobs go back to the pool by themselves; the pool labels a z14 tile "assembled", not "merged from its children". Today `submit_area` opens the whole ladder at once and three guards (0035, 0044, 0050) still let a merge through. | `REFACTOR-direct-pg.md` S7; `poolui.js` label. |
 | 8 | A tab without a hardware GPU says so next to the job instead of failing on it (commit c2c92c2 detects it; the pool doesn't show it). | `poolui.js`: "what this needs / what this tab has". |
-| 11 | Delete land from the page. `delete_area` exists (0038:99) and nothing calls it. | Land panel: Delete with a confirmation naming what goes. |
+| 11 | ~~Delete land from the page.~~ Done: `delete_area` refused while anything stood on the land and nothing ever called it; `db/0077_givingitback.sql` replaces it with `land_removal` (what goes) and `remove_area` (the deed). | Land panel: Give it back, with the sentence the database counted. |
 | all | Every atom or API error reaches the screen as a sentence on the thing that failed. No state is only in the console or a log. | `hud.say` / tile label / land card. |
 
 ## Blocked
