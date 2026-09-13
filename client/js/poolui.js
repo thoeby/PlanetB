@@ -20,7 +20,7 @@ const tile = (v, l, tone) => el('div', { className: 'tile', 'data-tone': tone ??
 
 // The four numbers area_progress reports, as the artboard groups them.
 export function progressTiles(p) {
-    if (!p) return [el('div', { className: 'muted', textContent: 'Pick some land.' })];
+    if (!p) return [el('div', { className: 'muted', textContent: 'Pick a land above.' })];
     const waiting = Math.max(0, Number(p.waiting) - Number(p.open_jobs));
     return [
         tile(waiting, 'to submit'),

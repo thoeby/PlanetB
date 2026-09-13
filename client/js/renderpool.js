@@ -5,6 +5,7 @@
 
 import * as api from './api.js';
 import { DOING, el, poolRow, what } from './poolui.js';
+import { empty } from './empty.js';
 
 export function mountPool(host, { loop, where = () => ({}) } = {}) {
     const ui = poolParts(host);
@@ -123,7 +124,8 @@ function drawPool(ui, state, acts, draw) {
         : [...state.rows].sort((a, b) => (a.metres ?? 0) - (b.metres ?? 0));
     ui.list.replaceChildren(...rows.map((r) => poolRow(r, acts, state.caps)));
     if (!rows.length) {
-        ui.list.append(el('li', { className: 'muted',
-            textContent: 'Nothing waiting: every tile anybody submitted is compiled.' }));
+        ui.list.append(empty('The pool is clear',
+            'Every tile anybody submitted is compiled. Jobs appear here the'
+            + ' moment somebody submits land.', { as: 'li' }));
     }
 }

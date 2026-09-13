@@ -32,7 +32,7 @@ export function mountAttention(host, { onGo = () => {}, openPanel = () => {},
         chip.dataset.waiting = rows.length ? '1' : '';
         if (!rows.length) {
             list.replaceChildren(el('p', { className: 'muted',
-                textContent: 'Nothing is waiting for you.' }));
+                textContent: 'Nothing is waiting for you right now.' }));
             return;
         }
         list.replaceChildren(...rows.map((n) => {

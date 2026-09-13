@@ -7,6 +7,7 @@
 import { givingBack } from './landback.js';
 import { howFine } from './landfine.js';
 import { approvals, asks, people } from './landpeople.js';
+import { empty } from './empty.js';
 
 export const el = (tag, props = {}, ...kids) => {
     const node = Object.assign(document.createElement(tag), props);
@@ -30,8 +31,9 @@ const short = (id) => String(id ?? '').slice(0, 8).toUpperCase();
 // The list at the top: every area, the one chosen marked.
 export function landRows(state, onPick) {
     if (!state.areas.length) {
-        return [el('li', { className: 'muted',
-            textContent: 'No land yet — ask for some below.' })];
+        return [empty('No land yet',
+            'Ask for land above and an admin draws it for you. It is the'
+            + ' ground everything else you build stands on.', { as: 'li' })];
     }
     return state.areas.map((a) => {
         const r = role(a);

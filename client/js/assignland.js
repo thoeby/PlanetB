@@ -11,6 +11,7 @@
 // database still refuses anything outside the ground (db/0062).
 
 import * as api from './api.js';
+import { empty } from './empty.js';
 
 const el = (tag, props = {}, ...kids) => {
     const node = Object.assign(document.createElement(tag), props);
@@ -91,8 +92,8 @@ function paint(canvas, ground, areas, corners) {
 // Who is waiting, and which of them this boundary is being drawn for.
 function listRequests(host, state, redraw) {
     if (!state.open.length) {
-        host.replaceChildren(el('p', { className: 'muted',
-            textContent: 'Nobody is waiting for land.' }));
+        host.replaceChildren(empty('Nobody is waiting',
+            'Requests for land appear here, with the words the asker wrote.'));
         return;
     }
     host.replaceChildren(...state.open.map((r) => {

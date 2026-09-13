@@ -48,7 +48,7 @@ export function mountSubmit(host, { onSubmitted = () => {}, onCount = () => {} }
             .filter((a) => a.may_write);
         ui.area.replaceChildren(...state.areas.map(
             (a) => new Option(a.rules?.name || 'unnamed land', a.id)));
-        say(state.areas.length ? '' : 'no land of yours to submit');
+        say(state.areas.length ? '' : 'No land of yours to submit — Land · 3.');
         await progress();
         return state.areas;
     }
@@ -153,7 +153,7 @@ function layoutSubmit(host, ui) {
         el('div', { className: 'row' }, ui.send, ui.mine),
         el('div', { className: 'note',
             textContent: 'Approving is what opens the render jobs. A price can'
-                + ' go on them afterwards, from Render; none is normal.' }),
+                + ' go on them afterwards, from Work; none is normal.' }),
         ui.status);
 }
 

@@ -7,20 +7,26 @@
 import * as api from './api.js';
 import { WorkLoop, probeCaps } from './work.js';
 
-// Design 3f, the top of the Render pool: what this machine can do, and the two
-// switches that decide what it does with it. The queue below it is
-// client/js/renderpool.js — this is the only place the machine is described.
+// Design 5d, the top of Work: your machine in one strip — what it can do, what
+// it is doing right now, and the two switches that decide what it does with
+// itself. The queue below it is client/js/renderpool.js; this is the only place
+// the machine is described.
+//
+// What it is doing is said first and loudest, because "is my tab rendering?"
+// is the only question this block is ever opened to answer.
 const HTML = `
-<div class="section">
+<div class="section machine">
   <div class="spread">
     <span class="label">This machine</span>
-    <span class="work-gpu muted mono">probing…</span>
+    <span class="work-gpu mono">probing…</span>
+  </div>
+  <div class="work-now">
+    <i class="pip"></i><span class="work-state">idle</span>
   </div>
   <label class="row-switch"><span>Work in the background</span>
     <input type="checkbox" class="work-toggle"></label>
   <label class="row-switch"><span>Help render the world</span>
     <input type="checkbox" class="work-world"></label>
-  <div class="work-state muted"></div>
   <div class="work-progress note mono"></div>
   <pre class="work-log note mono"></pre>
 </div>`;
@@ -60,6 +66,7 @@ async function progressLine() {
 async function makeLoop({ gpu, log, pace, where, world }) {
     const caps = await probeCaps();
     gpu.textContent = describe(caps);
+    gpu.title = describe(caps);      // the whole of it; the strip shows an end
     return new WorkLoop({
         api, apiUrl: api.endpoints().api, filesUrl: api.endpoints().files, caps, log,
         pace, where: () => (world.checked ? where?.() ?? null : null),
@@ -70,6 +77,9 @@ const describeState = (work) => (work?.atom
     ? `running ${work.atom.op} #${work.atom.id}`
     : `${work?.running ? 'waiting for work' : 'idle'} — `
       + `${work?.done ?? 0} done, ${work?.failed ?? 0} failed`);
+
+// Three states, and the strip is lit for the two that mean the tab is busy.
+const toneOf = (work) => (work?.atom ? 'run' : work?.running ? 'wait' : '');
 
 // Background rendering narrows what may be claimed; chasing a bounty does not.
 // Either way claim_atom decides, and it still prefers paid work.
@@ -99,7 +109,11 @@ export function mountWork(host, { loop, autostart = false, frames, where } = {})
         logEl.textContent = lines.slice(-LOG_LINES).join('\n');
         render();
     };
-    const render = () => { state.textContent = describeState(work); };
+    const now = host.querySelector('.work-now');
+    const render = () => {
+        state.textContent = describeState(work);
+        now.dataset.doing = toneOf(work);
+    };
 
     let work = loop ?? null;
     const world = host.querySelector('.work-world');

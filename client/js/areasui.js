@@ -8,7 +8,7 @@ import { RIGHTS, approve, areaGrants, describeDiff, grant, merge, myAreas,
     myProposals, revoke, setRequiredApprovals } from './areas.js';
 
 const HTML = `
-<div class="area-head">areas</div>
+<div class="label area-head">Land you own</div>
 <ul class="area-list"></ul>
 <div class="area-grants" hidden>
   <div class="area-rules">
@@ -22,7 +22,7 @@ const HTML = `
     <button type="button" class="area-give">grant</button>
   </div>
 </div>
-<div class="area-head">proposals</div>
+<div class="label area-head">Proposals on it</div>
 <ul class="area-proposals"></ul>
 <p class="area-status muted"></p>`;
 

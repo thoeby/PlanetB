@@ -8,6 +8,13 @@ import * as api from './api.js';
 import { buyAsset, myRights, offerOf } from './wallet.js';
 import { CATEGORIES, LICENSES, duplicatesOf, getAsset, glbUrl, prepare, publishAsset,
     searchAssets, thumbUrl } from './catalog.js';
+import { empty } from './empty.js';
+
+// A catalog with nothing in it is where every world starts, and the way out of
+// it is the register form further down the same panel.
+const nothingFound = () => empty('Nothing in the catalog',
+    'A product is a model anybody may build with. Register one below and it is'
+    + ' here for everybody to build with.', { as: 'li' });
 
 const fmtBytes = (n) => (n >= 1e6 ? `${(n / 1e6).toFixed(1)} MB`
     : n >= 1e3 ? `${(n / 1e3).toFixed(0)} kB` : `${n} B`);
@@ -219,9 +226,9 @@ export function mountCatalog(doc, { mountAuth, choices } = {}) {
                 category: doc.getElementById('category').value,
                 license: doc.getElementById('license').value,
             });
-            results.innerHTML = '';
-            for (const asset of rows) results.append(card(asset, open));
-            status.textContent = rows.length ? `${rows.length} assets` : 'nothing here yet';
+            results.replaceChildren(...rows.length
+                ? rows.map((asset) => card(asset, open)) : [nothingFound()]);
+            status.textContent = rows.length ? `${rows.length} assets` : '';
         } catch (err) {
             status.textContent = String(err.message ?? err);
             status.className = 'muted bad';

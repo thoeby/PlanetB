@@ -9,6 +9,7 @@
 
 import * as api from './api.js';
 import { myAccount, myLedger, setBounty } from './wallet.js';
+import { empty } from './empty.js';
 
 const el = (tag, props = {}, ...kids) => {
     const node = Object.assign(document.createElement(tag), props);
@@ -171,10 +172,12 @@ function bountyCard(state, say, refresh) {
         el('span', { className: 'label',
             textContent: 'What to pay for the tile you are looking at' }),
         el('div', { className: 'row' }, amount, set),
-        el('div', { className: 'note',
-            textContent: state.tile
-                ? `${state.tile.z}/${state.tile.x}/${state.tile.y}`
-                  + `${state.job ? ` · job ${state.job}` : ' · no job for it yet'}`
-                : 'Look at a tile in the world and it appears here.' }),
+        state.tile
+            ? el('div', { className: 'note',
+                textContent: `${state.tile.z}/${state.tile.x}/${state.tile.y}`
+                  + `${state.job ? ` · job ${state.job}` : ' · no job for it yet'}` })
+            : empty('No tile in front of you',
+                'Look at a tile in the world and it appears here, with what it'
+                + ' would cost to have somebody else compile it.'),
     ];
 }

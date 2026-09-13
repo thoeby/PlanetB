@@ -3,6 +3,8 @@
 // No state and no requests: it is handed the submissions waiting for this
 // player and returns nodes. permission.js does the asking and the deciding.
 
+import { empty } from './empty.js';
+
 export const el = (tag, props = {}, ...kids) => {
     const node = Object.assign(document.createElement(tag), props);
     node.append(...kids.filter((k) => k !== null && k !== undefined));
@@ -29,8 +31,9 @@ export function changeWords(entry) {
 // The list: what is waiting for me, and who sent it.
 export function waiting(rows, chosen, onPick) {
     if (!rows?.length) {
-        return [el('li', { className: 'muted',
-            textContent: 'Nothing is waiting for your decision.' })];
+        return [empty('Nothing to decide',
+            'A tile somebody rendered waits here until you look at it and say'
+            + ' yes. Nothing is waiting on you right now.', { as: 'li' })];
     }
     return rows.map((entry) => {
         const pick = el('button', { className: 'bare', type: 'button' },
