@@ -170,7 +170,14 @@ export class Ground {
 
     // Load what is around here and drop what is not. Safe to call every frame:
     // everything it does is either already done or already in flight.
-    follow(lon, lat) {
+    //
+    // `covered(z, x, y)` says that splats are drawn over that ground already.
+    // Where they are, this mesh is not drawn: it is the same DEM at a quarter
+    // of the samples, so the two surfaces cut through each other and the seam
+    // along a compiled tile's edge is the shape of this mesh, not of the
+    // world. The heights stay — the player still walks on them where a splat
+    // tile has no height of its own — so this only ever hides a picture.
+    follow(lon, lat, covered = () => false) {
         const z = this.zoom;
         const cx = tm.tileX(lon, z);
         const cy = tm.tileY(lat, z);
@@ -182,6 +189,10 @@ export class Ground {
             }
         }
         for (const k of [...this.tiles.keys()]) if (!want.has(k)) this.drop(k);
+        for (const [k, entity] of this.entities) {
+            const t = this.tiles.get(k);
+            if (t) entity.enabled = !covered(t.z, t.x, t.y);
+        }
         return this.tiles.size;
     }
 

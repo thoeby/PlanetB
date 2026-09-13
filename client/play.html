@@ -86,9 +86,10 @@
   import { mountGetLand } from './js/getland.js';
   import { mountAssignLand } from './js/assignland.js';
   import { mountAttention } from './js/attention.js';
+  import { mountPlaces } from './js/places.js';
   import { mountPool, mountSubmit } from './js/pool.js';
   import { mountPermission } from './js/permission.js';
-  import { mountShare, parseVisit, visitHash } from './js/visit.js';
+  import { mountShare, nearestGround, parseVisit, visitHash } from './js/visit.js';
   import { Ground } from './lib/groundmesh.js';
 
   api.configure();
@@ -249,11 +250,24 @@
 
   // T8: a link is a place. Somebody sent this address because of what is at
   // that spot, so the page opens there rather than wherever the anchor is.
+  // SPEC §3.8: a link outside the coverage arrives at the nearest ground and
+  // says so, rather than at a place with no ground, no tile and nothing to see
+  // — which looks like a broken page rather than a link to nowhere.
   const goTo = ({ lat, lon, h = 0, heading }) => {
-      const q = origin.localOf({ lon, lat, h });
-      const ground = terrain.heightAt(q);
-      player.position = { x: q.x, y: (ground ?? q.y) + 2, z: q.z };
+      const at = nearestGround({ lon, lat }, ground);
+      if (at.moved) arriving('that place is off the edge of the world');
+      const q = origin.localOf({ lon: at.lon, lat: at.lat, h });
+      const under = terrain.heightAt(q);
+      player.position = { x: q.x, y: (under ?? q.y) + 2, z: q.z };
       if (Number.isFinite(heading)) player.yaw = heading * Math.PI / 180;
+  };
+
+  // Something about arriving somewhere, which stands for a while and then gives
+  // the line back to whatever the world is missing.
+  let arrival = { text: '', until: 0 };
+  const arriving = (text) => {
+      arrival = { text, until: Date.now() + 20000 };
+      hud.notice(text);
   };
   const arrivedAt = parseVisit(location.href);
   if (arrivedAt) goTo(arrivedAt);
@@ -394,6 +408,10 @@
       },
   });
 
+  // SPEC §2.3: the map's search box. A name is how you find a place somebody
+  // told you about without a link to it.
+  mountPlaces(hud.mapBox(), { onGo: (place) => goTo(place) });
+
   // T8: the link, to hand to somebody.
   const share = mountShare(hud.panel('Share'), {
       where: () => {
@@ -499,6 +517,22 @@
       share.refresh();
   }
 
+  // Whether splats are already drawn over a z14 tile's ground: the tile itself
+  // loaded, or any published ancestor of it, which covers the same ground at a
+  // coarser grain. Where they are, the DEM mesh under them is not drawn — two
+  // surfaces from the same elevation at different grids cut through each other
+  // and the seam looks like a hole in the world.
+  const splatsCover = (z, x, y) => {
+      for (const entry of streamer.entries.values()) {
+          if (!entry.entity) continue;
+          const r = entry.row;
+          if (r.z > z) continue;
+          const f = 2 ** (z - r.z);
+          if (Math.floor(x / f) === r.x && Math.floor(y / f) === r.y) return true;
+      }
+      return false;
+  };
+
   // The land under the player, and whether they may build on it. area_at is a
   // spatial question no filter can ask, so it is asked when the ground changes
   // rather than every frame.
@@ -557,7 +591,8 @@
       });
       // Both would be shouting the same thing at once.
       const onTheRoute = areas.some((a) => a.mine) && ground?.coverage;
-      hud.notice(onTheRoute ? '' : missing);
+      if (Date.now() < arrival.until) hud.notice(arrival.text);
+      else hud.notice(onTheRoute ? '' : missing);
       const mine = areas.find((a) => a.mine) ?? areas[0];
       nextStep.show({
           things: (land.things?.() ?? []).length,
@@ -633,7 +668,7 @@
     // coordinates are the real ones, and the land under you is asked for only
     // when you have actually walked somewhere else.
     const here = origin.geodeticOf({ x: p.x, y: p.y, z: p.z });
-    if (ground?.coverage) groundMesh.follow(here.lon, here.lat);
+    if (ground?.coverage) groundMesh.follow(here.lon, here.lat, splatsCover);
     const heading = player.yaw / Math.PI * 180;
     hud.at(here.lon, here.lat, here.h, heading);
     whereAmI(here);
