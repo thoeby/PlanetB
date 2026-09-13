@@ -28,8 +28,12 @@ async function cAsks(c, here) {
     await looking(c);
     await expect(c.page.locator('#land')).toHaveText('Ben’s field', { timeout: UI });
     await panel(c, 'Place');
+    // The sentence names the land and the person, and says what to do about
+    // it (SPEC §3.4, client/js/buildui.js).
     await expect(c.page.locator('.build-where'))
-        .toContainText(/may not build|not your land|Ben/i, { timeout: UI });
+        .toContainText('you may not build here', { timeout: UI });
+    await expect(c.page.locator('.build-where'))
+        .toContainText('Ask them for a build grant');
     await panel(c, 'Your land');
     const card = c.page.locator('.land-under');
     await expect(card).toContainText('Ben’s field', { timeout: UI });
@@ -70,8 +74,9 @@ test('story 10 — C asks to build on B’s land, and B says yes',
             await expect(c.page.locator('#attention')).toHaveText(/[1-9]/,
                 { timeout: UI });
             await panel(c, 'Place');
+            // "building on Ben's field" is the panel saying they may.
             await expect(c.page.locator('.build-where'))
-                .toContainText(/you may build/i, { timeout: UI });
+                .toContainText('building on Ben’s field', { timeout: UI });
         });
 
         await test.step('C builds on it', async () => {
