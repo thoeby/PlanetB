@@ -159,15 +159,21 @@ async function removing(item, onRemove, say, reload) {
 // (SPEC §3.3 step 4): nobody is going to press reload after every save.
 const WATCH_MS = 10000;
 
+// The land you are standing on, when it is not already one of yours: SPEC §2.4
+// gives it the same card, and §3.11 is asked for from it.
+const sayInto = (status) => (msg, bad = false) => {
+    status.textContent = msg;
+    status.dataset.bad = bad ? '1' : '';
+};
+
+const underYou = (state, ctx) => (state.under
+    && !state.areas.some((a) => a.id === state.under.id)
+    ? asking(state.under, ctx, state.askNote) : null);
+
 function redraw(list, detail, state, ctx) {
     list.replaceChildren(...landRows(state, ctx.pick));
     const area = state.areas.find((a) => a.id === state.chosen);
-    // The ground under you, when it is not already one of yours: SPEC §2.4
-    // gives it the same card, and §3.11 is asked for from it.
-    const under = state.under
-        && !state.areas.some((a) => a.id === state.under.id)
-        ? asking(state.under, ctx) : null;
-    detail.replaceChildren(...[under, ...selected(area, state, {
+    detail.replaceChildren(...[underYou(state, ctx), ...selected(area, state, {
         ...ctx, refresh: () => ctx.load(area),
     })].filter(Boolean));
 }
@@ -181,17 +187,15 @@ export function mountLand(host, { onGo = () => {}, onRemove = () => {},
 
     const state = {
         areas: [], chosen: null, contents: [], drawn: [], progress: null,
-        grants: [], proposals: [], asks: [], under: null,
+        grants: [], proposals: [], asks: [], under: null, askNote: '',
     };
-
-    const say = (msg, bad = false) => {
-        status.textContent = msg;
-        status.dataset.bad = bad ? '1' : '';
-    };
+    const say = sayInto(status);
 
     // One place where the panel is redrawn, so every action ends the same way.
+    // What is half-typed into the card survives it being redrawn.
+    const typing = (text) => { state.askNote = text; };
     const draw = () => redraw(list, detail, state,
-        { pick, onGo, onRemove: remove, say, load, api, openPanel });
+        { pick, onGo, onRemove: remove, say, load, api, openPanel, typing });
 
     async function pick(area) {
         state.chosen = area?.id ?? null;

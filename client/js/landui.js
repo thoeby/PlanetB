@@ -121,9 +121,13 @@ async function finer(area, detail, status, ctx) {
 // SPEC §3.11 step 1: standing on somebody else's land, this is where you ask
 // to build on it. The card says whose it is, because that is the thing you are
 // asking of — a person, not a form.
-export function asking(area, ctx) {
+export function asking(area, ctx, said = '') {
     const note = el('input', { type: 'text', className: 'ask-note',
-        placeholder: 'what you would like to build there' });
+        placeholder: 'what you would like to build there', value: said });
+    // The card is redrawn whenever the land under you changes and every ten
+    // seconds besides, and a field rebuilt empty takes the sentence somebody
+    // was writing with it.
+    note.oninput = () => ctx.typing?.(note.value);
     const send = el('button', { type: 'button', className: 'ask-send primary',
         textContent: 'Ask to build here' });
     const status = el('p', { className: 'status ask-status' });
@@ -142,6 +146,7 @@ async function askFor(area, note, send, status, ctx) {
     try {
         await ctx.api.rpc('request_grant',
             { area_id: area.id, right_: 'direct_edit', note });
+        ctx.typing?.('');
         status.textContent = 'asked — they will see it on their land';
     } catch (err) {
         status.textContent = String(err.body?.message ?? err.message ?? err);
