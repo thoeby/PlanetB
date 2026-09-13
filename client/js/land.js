@@ -121,10 +121,10 @@ function labelWorld(ctx, marks, host, group) {
 async function cardOf(area) {
     const empty = {
         contents: [], drawn: [], progress: null, grants: [], proposals: [],
-        refusal: null, asks: [],
+        refusal: null, asks: [], project: null,
     };
     if (!area) return empty;
-    const [contents, drawn, progress, grants, proposals, refusal, asks]
+    const [contents, drawn, progress, grants, proposals, refusal, asks, project]
         = await Promise.all([
             api.rpc('area_contents', { area_id: area.id }).catch(() => []),
             api.rpc('area_drawn', { area_id: area.id }).catch(() => []),
@@ -133,6 +133,7 @@ async function cardOf(area) {
             api.rpc('my_proposals').catch(() => []),
             api.rpc('area_refusal', { area_id: area.id }).catch(() => null),
             api.rpc('grant_requests', { area_id: area.id }).catch(() => []),
+            api.rpc('project_state').catch(() => null),
         ]);
     return {
         contents: contents ?? [],
@@ -142,6 +143,7 @@ async function cardOf(area) {
         proposals: (proposals ?? []).filter((p) => p.area_id === area.id),
         refusal: refusal?.note ? refusal : null,
         asks: asks ?? [],
+        project,
     };
 }
 
@@ -188,7 +190,7 @@ export function mountLand(host, { onGo = () => {}, onRemove = () => {},
     const state = {
         areas: [], chosen: null, contents: [], drawn: [], progress: null,
         grants: [], proposals: [], asks: [], under: null, askNote: '',
-        giveBack: null,
+        giveBack: null, project: null,
     };
     const say = sayInto(status);
 

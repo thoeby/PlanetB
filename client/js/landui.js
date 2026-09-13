@@ -63,7 +63,7 @@ export function selected(area, state, ctx) {
         refused(state.refusal),
         counts(state.progress, ctx),
         howFine(area, ctx),
-        shapeInQgis(area, ctx),
+        shapeInQgis(area, state, ctx),
         approvals(area, ctx),
         asks(area, state, ctx),
         people(area, state, ctx),
@@ -164,7 +164,7 @@ async function askFor(area, note, send, status, ctx) {
 // The project carries the player's own database login, so it cannot be a plain
 // link: it is fetched with the token the tab already holds and handed to the
 // browser as a file.
-function shapeInQgis(area, ctx) {
+function shapeInQgis(area, state, ctx) {
     if (!area.may_write) return null;
     const get = el('button', { type: 'button', className: 'primary',
         textContent: 'Shape this land in QGIS' });
@@ -172,12 +172,23 @@ function shapeInQgis(area, ctx) {
     get.onclick = () => downloadProject(ctx, status);
     return el('div', { className: 'section qgis' },
         el('span', { className: 'label', textContent: 'Shape it' }),
+        outOfDate(state.project),
         get,
         el('ol', { className: 'rows qgis-steps' },
             el('li', {}, 'Open the downloaded project in QGIS.'),
             el('li', {}, 'Draw on a layer — a wood, a road, a tree.'),
             el('li', {}, 'Save. This page has it within half a minute.')),
         status);
+}
+
+// SPEC §3.10 step 2. The project is written from the world's vocabulary
+// (server/splatworld/qgis.py), so a property an admin added after you
+// downloaded yours is a dropdown your copy has not got.
+function outOfDate(project) {
+    if (!project?.stale) return null;
+    return el('div', { className: 'qgis-stale', 'data-tone': 'warn' },
+        'QGIS project out of date \u2014 the world\u2019s vocabulary changed'
+        + ' since you downloaded yours. Download it again to get it.');
 }
 
 async function downloadProject(ctx, status) {
@@ -191,7 +202,11 @@ async function downloadProject(ctx, status) {
         link.click();
         link.remove();
         setTimeout(() => URL.revokeObjectURL(url), 10000);
+        // What vocabulary this copy holds, so the page can say when it is
+        // old. The file server records nothing about the world (Invariant 9).
+        await ctx.api.rpc('took_project').catch(() => {});
         status.textContent = 'Downloaded. Open it in QGIS.';
+        await ctx.refresh?.();
     } catch (err) {
         status.textContent = String(err.body?.error ?? err.message ?? err);
         status.dataset.bad = '1';

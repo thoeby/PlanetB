@@ -25,7 +25,8 @@ stories browser contexts that have only the page.
 | 9 | visiting and sharing (§3.8): the link the Share panel hands you puts another player where you stood, facing the same way, and the page says whose land it is; a name typed into the map finds the land and goes there; a link outside the coverage arrives at the nearest ground and says so | green |
 | 10 | build grants (§3.11): C stands on B's land, is told they may not build and what to do about it, asks with a note; B is told, sees the ask on the land's card and gives it; C is told, may build, and does; B submits and approves it. Who placed it is not recorded — see Blocked | green |
 | 11 | deleting and redoing land: B gives their land back from the Land panel, the page says what goes before it goes, the ground under B stops being anybody's, and B asks for land again — story 2 from the top | green |
-| 12–13 | | not started |
+| 12 | properties (§3.10): A adds leaf_type to forest with two choices and makes it required; B is told their QGIS project is out of date; the next download has the dropdown with those two values; a wood with no leaf type, and one with a third value, are both refused in words; the wood B does draw compiles and publishes | green |
+| 13 | | not started |
 
 What each story forced is in its commit message. Nothing is "done" here
 because a function exists: if the script cannot find the button, the button is

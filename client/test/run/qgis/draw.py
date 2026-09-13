@@ -28,6 +28,29 @@ def layer_named(project: QgsProject, name: str) -> QgsVectorLayer | None:
     return None
 
 
+def widget(project: QgsProject, ask: dict) -> dict:
+    """What the form shows for one field — the dropdown, and what is in it.
+
+    SPEC §3.10 step 2: after an admin defines a property, "the next download
+    has the dropdown". This is that dropdown, read the way the attribute form
+    reads it: the field's editor widget and the values it offers.
+    """
+    layer = layer_named(project, ask["layer"])
+    if layer is None:
+        return {"ok": False, "error": f"no layer called {ask['layer']}",
+                "layers": [layer.name() for layer in project.mapLayers().values()]}
+    index = layer.fields().indexOf(ask["field"])
+    if index < 0:
+        return {"ok": False, "error": f"{ask['layer']} has no field {ask['field']}",
+                "fields": [f.name() for f in layer.fields()]}
+    setup = layer.editorWidgetSetup(index)
+    values = []
+    for entry in setup.config().get("map") or []:
+        values.extend(entry.keys() if hasattr(entry, "keys") else [entry])
+    return {"ok": True, "layer": ask["layer"], "field": ask["field"],
+            "widget": setup.type(), "values": values}
+
+
 def draw(project: QgsProject, edit: dict) -> dict:
     layer = layer_named(project, edit["layer"])
     if layer is None:
@@ -77,7 +100,8 @@ def main(argv: list[str]) -> int:
             return 1
         worst = 0
         for edit in edits:
-            result = draw(project, edit)
+            result = (widget(project, edit) if edit.get("ask") == "widget"
+                      else draw(project, edit))
             print(json.dumps(result))
             worst = worst or (0 if result["ok"] else 1)
         return worst
