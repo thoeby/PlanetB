@@ -27,6 +27,22 @@ export function parseVisit(href) {
 export const visitHash = ({ lat, lon, h = 0, heading = 0 }) =>
     `#at=${lat.toFixed(5)},${lon.toFixed(5)},${Math.round(h)},${Math.round(heading)}`;
 
+// A place inside the world, for a link that points outside it.
+//
+// SPEC §3.8: "link outside the coverage -> arrive at the nearest ground edge
+// with 'that place is off the edge of the world'". Arriving where the link says
+// would be arriving where there is no ground, no tile and nothing to see, and
+// the page would look broken rather than the link.
+export function nearestGround(at, ground) {
+    if (!ground || !Number.isFinite(ground.west)) return { ...at, moved: false };
+    const inset = (span) => Math.min(span / 1000, 0.0005);
+    const lon = Math.min(Math.max(at.lon, ground.west + inset(ground.east - ground.west)),
+        ground.east - inset(ground.east - ground.west));
+    const lat = Math.min(Math.max(at.lat, ground.south + inset(ground.north - ground.south)),
+        ground.north - inset(ground.north - ground.south));
+    return { ...at, lon, lat, moved: lon !== at.lon || lat !== at.lat };
+}
+
 // The whole link, with whatever the page was opened from as its base.
 export const visitLink = (href, where) =>
     String(href).split('#')[0] + visitHash(where);

@@ -54,6 +54,10 @@ export function resetJob(job) {
             AND a.kind NOT IN ('dem', 'ortho')`);
 }
 
+// Jobs this fixture has taken over in this process: the first time it uses one
+// it empties it, and after that it adds to its own.
+const mine = new Set();
+
 // A tile nobody else is compiling, an open job for it, and one ready atom.
 export function readyAtom({ z, x, y, op, algo, params, inputs = {} }) {
     psql(`INSERT INTO tile (z, x, y, dirty, expected_version) VALUES (${z}, ${x}, ${y}, true, 1)
@@ -69,6 +73,15 @@ export function readyAtom({ z, x, y, op, algo, params, inputs = {} }) {
                       VALUES (${z}, ${x}, ${y}, ${want}, 'open')
                       ON CONFLICT (z, x, y, target_version) DO UPDATE SET state = 'open'
                       RETURNING id`);
+    // "A tile nobody else is compiling" has to be made true: since
+    // db/0070_therebuildopensitself.sql a published child opens its parent's
+    // rebuild, so there is often a real job here already, with a real DAG. Its
+    // sog would publish, the job would close, and a second fixture atom in it
+    // could never be claimed. The job is emptied the first time it is used.
+    if (!mine.has(job)) {
+        mine.add(job);
+        resetJob(job);
+    }
     return psql(`INSERT INTO atom (job_id, atom_hash, op, algo_version, inputs, params, state)
                  VALUES (${job}, encode(public.digest(random()::text, 'sha256'), 'hex'),
                          '${op}', '${algo}', '${JSON.stringify(inputs)}'::jsonb,

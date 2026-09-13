@@ -216,6 +216,9 @@ function buildFrame(doc, show) {
     const frame = panelFrame(() => show('World'));
     const { bar, buttons } = tabBar(show);
     const map = el('canvas', { id: 'minimap', width: 240, height: 240 });
+    // Where the map's search box goes (client/js/places.js): the map is the
+    // corner one, so what it finds is a short list under it.
+    const mapBox = el('div', { id: 'map-search' });
     const scale = el('span', { className: 'scale', textContent: 'Map · M' });
 
     // Each tab gets its body once and keeps it, so a module mounted into it
@@ -251,7 +254,7 @@ function buildFrame(doc, show) {
                 el('span', {}, el('b', { textContent: 'Fly' }), ' F'),
                 el('span', {}, el('b', { textContent: 'Run' }), ' Shift'),
                 el('span', {}, el('b', { textContent: 'Close panel' }), ' Esc')),
-            el('div', { id: 'map', className: 'glass' }, map, scale)),
+            el('div', { id: 'map', className: 'glass' }, map, scale, mapBox)),
         el('div', { id: 'legend', className: 'glass' },
             el('span', { className: 'published' }, el('i'), 'Published'),
             el('span', { className: 'candidate' }, el('i'),
@@ -262,7 +265,7 @@ function buildFrame(doc, show) {
         notice);
 
     doc.body.append(el('div', { id: 'vignette' }), hud);
-    return { top, who, stats: pipe.cells, frame, buttons, bodies, notice, map,
+    return { top, who, stats: pipe.cells, frame, buttons, bodies, notice, map, mapBox,
         scale, waiting };
 }
 
@@ -338,8 +341,9 @@ export function mountHud(doc) {
         stat(key, value) {
             if (stats[key]) stats[key].textContent = value;
         },
-        // The minimap, and the scale it is drawn at.
+        // The minimap, the scale it is drawn at, and where its search lives.
         minimap: () => f.map,
+        mapBox: () => f.mapBox,
         mapScale(text) { f.scale.textContent = text; },
         // Where the player is standing: the land under them, who owns it, and
         // whether they may build. Plain strings — the HUD decides nothing.

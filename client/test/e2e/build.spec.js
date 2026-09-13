@@ -109,6 +109,21 @@ test.afterAll(() => {
 const tileRow = (col) => psql(`SELECT coalesce(${col}::text, '0') FROM tile
                                WHERE z = ${TILE.z} AND x = ${TILE.x} AND y = ${TILE.y}`);
 
+// The work loop, pointed at one job: `focus` is what the Render pool panel uses
+// when a player takes a tile out of it (client/js/work.js).
+async function focusOnThisTile(page, tile) {
+    const job = Number(psql(`SELECT j.id FROM job j JOIN tile t
+        ON t.z = j.z AND t.x = j.x AND t.y = j.y
+        WHERE j.z = ${tile.z} AND j.x = ${tile.x} AND j.y = ${tile.y}
+          AND j.state = 'open' AND j.target_version = t.expected_version`));
+    expect(job, 'a job for this tile').toBeGreaterThan(0);
+    await page.evaluate(async (id) => {
+        const work = await window.splatworld.work.ready();
+        work.focus(id);
+    }, job);
+    return job;
+}
+
 test('a placed asset dirties its tile, renders into it, and stands on the ground',
     async ({ page }) => {
         const errors = [];
@@ -154,6 +169,12 @@ test('a placed asset dirties its tile, renders into it, and stands on the ground
         // ------------------------------------------------- render now
         await badge.getByRole('button').click();
         await expect(badge.getByRole('button')).toContainText(/job \d+/);
+        // This tile and nothing else. The pool has other work in it — since
+        // db/0070_therebuildopensitself.sql a published child opens its
+        // parent's rebuild — and a loop that takes whatever pays best is not
+        // what this test is about (client/js/renderpool.js does the same for a
+        // job somebody picked out of the pool).
+        await focusOnThisTile(page, TILE);
         await page.locator('.work-toggle').check();
         // What lands is published: the decision comes before the render now
         // (SPEC §0.2, db/0069_approvalverbs.sql), and opening the job is what

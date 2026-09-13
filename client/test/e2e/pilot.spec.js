@@ -81,6 +81,14 @@ test('one tab compiles the pilot from z14 up to z6, and the viewer streams it',
             const job = await page.evaluate(
                 (tile) => window.splatworld.api.rpc('ensure_job', tile), t);
             expect(job, `a job for ${t.z}/${t.x}/${t.y}`).toBeTruthy();
+            // This rung, and nothing else. Publishing one opens the next one's
+            // rebuild by itself (db/0070_therebuildopensitself.sql), and a loop
+            // taking whatever pays best would climb the ladder in whatever
+            // order it liked while this waits for a rung it has left behind.
+            await page.evaluate(async (id) => {
+                const work = await window.splatworld.work.ready();
+                work.focus(id);
+            }, job);
             await expect.poll(() => publishedAt(t), { timeout: 300000 }).not.toBe('0');
         }
         await page.locator('.work-toggle').uncheck();

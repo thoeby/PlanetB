@@ -348,6 +348,18 @@ body {
   text-transform: uppercase; color: var(--ink-3);
 }
 
+/* The map's search (js/places.js): a field along the bottom of the map, and
+   what it found above it. Hidden until there is something to show, so the map
+   is a map until somebody asks it a question. */
+#map-search { position: absolute; left: 0; right: 0; bottom: 0; padding: 8px; }
+#map-search .map-find { width: 100%; box-sizing: border-box; font-size: 12px; }
+#map-search .map-found { list-style: none; margin: 0 0 6px; padding: 0;
+  max-height: 120px; overflow-y: auto; font-size: 12px; }
+#map-search .map-found li { display: flex; align-items: center;
+  justify-content: space-between; gap: 6px; padding: 3px 0; }
+#map-search .map-place { overflow: hidden; text-overflow: ellipsis;
+  white-space: nowrap; }
+
 #legend {
   position: absolute; left: 24px; bottom: 20px; display: flex;
   flex-direction: column; gap: 6px; padding: 10px 14px; --cut: 8px; font-size: 12px;

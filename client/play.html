@@ -380,7 +380,14 @@
       },
   });
 
+  // Opening a tab is asking what is there now. The world changes outside this
+  // page — somebody draws in QGIS, somebody else's tab renders a tile — and a
+  // panel that answers from what it knew at load time tells the player that
+  // nothing has changed since they last sent it, which is the one thing they
+  // know to be untrue.
   hud.whenShown('Render pool', () => pool.refresh());
+  hud.whenShown('Your land', () => land.refresh());
+  hud.whenShown('Submit', () => submit.refresh());
 
   // T7: what has been rendered on your land and is waiting for you to say yes.
   // The switch shows the waiting version in place; approving publishes it for
@@ -407,6 +414,8 @@
           hud.stat('awaiting', String(n));
       },
   });
+
+  hud.whenShown('Permission', () => permission.refresh());
 
   // SPEC §2.3: the map's search box. A name is how you find a place somebody
   // told you about without a link to it.

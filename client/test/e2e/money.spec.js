@@ -148,6 +148,14 @@ test('a stranger renders my bounty and is paid for it', async ({ page, browser }
     const other = await browser.newPage();
     await openPage(other, svc.pageUrl);
     await signIn(other, WORKER, PW);
+    // The job they took, and nothing else: the pool has other work in it since
+    // a published child opens its parent's rebuild
+    // (db/0070_therebuildopensitself.sql), and taking one tile out of the pool
+    // is what the Render pool panel does with the same call.
+    await other.evaluate(async (id) => {
+        const work = await window.splatworld.work.ready();
+        work.focus(id);
+    }, job);
     await other.locator('.work-toggle').check();
     const target = String(psql(`SELECT expected_version::text FROM tile
               WHERE z = ${TILE.z} AND x = ${TILE.x} AND y = ${TILE.y}`));

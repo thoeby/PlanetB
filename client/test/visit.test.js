@@ -4,7 +4,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 
-import { parseVisit, visitHash, visitLink } from '../js/visit.js';
+import { nearestGround, parseVisit, visitHash, visitLink } from '../js/visit.js';
 
 test('a link carries where you are standing and which way you face', () => {
     const here = { lat: 47.38012, lon: 8.55004, h: 412.4, heading: 135.2 };
@@ -37,4 +37,35 @@ test('the height and the heading are optional', () => {
 test('the hash is what a viewer would type', () => {
     assert.equal(visitHash({ lat: -0.5, lon: 179.99999, h: 0, heading: 359.6 }),
         '#at=-0.50000,179.99999,0,360');
+});
+
+// SPEC §3.8: a link outside the coverage arrives at the nearest ground edge,
+// not at a place where there is nothing to stand on.
+const GROUND = { west: 7.85, south: 46.27, east: 7.91, north: 46.31 };
+
+test('a place inside the world is left where it is', () => {
+    const at = nearestGround({ lon: 7.88, lat: 46.29 }, GROUND);
+    assert.equal(at.moved, false);
+    assert.equal(at.lon, 7.88);
+    assert.equal(at.lat, 46.29);
+});
+
+test('a place outside it comes back on the nearest edge', () => {
+    const at = nearestGround({ lon: 9.5, lat: 46.29 }, GROUND);
+    assert.equal(at.moved, true);
+    assert.ok(at.lon < GROUND.east && at.lon > GROUND.east - 0.001,
+        `${at.lon} is just inside the eastern edge`);
+    assert.equal(at.lat, 46.29, 'and only the axis that was outside moved');
+});
+
+test('a corner is pulled back on both axes at once', () => {
+    const at = nearestGround({ lon: -3, lat: 12 }, GROUND);
+    assert.equal(at.moved, true);
+    assert.ok(at.lon > GROUND.west && at.lat > GROUND.south);
+});
+
+test('a world with no coverage moves nobody', () => {
+    const at = nearestGround({ lon: 9.5, lat: 46.29 }, null);
+    assert.equal(at.moved, false);
+    assert.equal(at.lon, 9.5);
 });
