@@ -42,6 +42,16 @@ export default defineConfig({
                 '--use-gl=angle', '--use-angle=swiftshader',
                 '--enable-unsafe-swiftshader', '--disable-gpu-sandbox',
                 '--enable-unsafe-webgpu',
+                // Every player's window is on screen. A story has two or three
+                // people in it, and the browser stops giving animation frames
+                // to a page nobody is looking at — so the 3D loop of whoever
+                // is not in front stops, and with it the position line, what
+                // is under you, and every label in the world. They are each at
+                // their own machine; here they are tabs, and these three flags
+                // are the difference.
+                '--disable-backgrounding-occluded-windows',
+                '--disable-renderer-backgrounding',
+                '--disable-background-timer-throttling',
             ],
         },
     },
