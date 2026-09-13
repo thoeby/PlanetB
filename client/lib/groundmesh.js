@@ -10,17 +10,35 @@
 // So: the same /geo/dem/{z}/{x}/{y}.r16 tiles the compile reads, streamed
 // around the player, drawn as a mesh and sampled for height. Published splats
 // sit on top of this; it is never what a compile reads back.
+//
+// Three levels of it, not one. A ring of z14 tiles is five kilometres of floor,
+// which is a walk — and standing on a mountain looking at five kilometres of
+// world with nothing behind it is the horizon falling away. So the fine ring
+// you walk on is drawn inside a ring of z12 and one of z10, each of them a hole
+// with the finer one in it (client/lib/groundtile.js), and the far one reaches
+// forty kilometres. Only the fine level is walked on: the coarse ones are a
+// picture of where you are, not ground anybody stands on.
 
-import { loadDem, sampleHeight } from './geo.js';
+import { loadDem } from './geo.js';
 import * as tm from './tilemath.js';
-import { terrainColour } from './terrain.js';
+import { cellMetres, groundTile, heightIn } from './groundtile.js';
 
-// One z14 tile is about 1.7 km on the ground at Alpine latitudes, so a radius
-// of one is a five-kilometre floor: further than a walk and fewer than ten
-// requests. The grid is coarser than a compiled tile's (129) because this is
-// the floor under everything, not the thing being looked at.
-export const GROUND_Z = 14;
-export const GROUND_GRID = 65;
+export { cellMetres, groundTile, heightIn } from './groundtile.js';
+
+// Fine first. `radius` is how many tiles either side of the one you are on, so
+// 1 is a three-by-three block: 5 km at z14, 10 km at z12, 40 km at z10.
+//
+// The grid coarsens with the level because the far ones are a silhouette. z14
+// keeps 65 — it is the floor, and the compile's own terrain is 129.
+export const GROUND_LEVELS = [
+    { zoom: 14, grid: 65, radius: 1 },
+    { zoom: 12, grid: 65, radius: 1 },
+    { zoom: 10, grid: 65, radius: 1 },
+];
+
+// The level a player stands on: heightAt reads this one and no other.
+export const GROUND_Z = GROUND_LEVELS[0].zoom;
+export const GROUND_GRID = GROUND_LEVELS[0].grid;
 
 // How long a tile whose cut failed is left alone before it is asked for again.
 // SPEC §3.12: the elevation service stopping is a thing that stops happening —
@@ -30,130 +48,41 @@ export const GROUND_RETRY_MS = 5000;
 
 const key = (z, x, y) => `${z}/${x}/${y}`;
 
-// The same fixed sun lib/render.js bakes into every compiled frame, and the
-// same floor under it. The ground a player walks on and the ground a compile
-// renders are then the same picture, which is what makes an unrendered tile
-// and a published one read as one world.
-const SUN = [0.42, 0.83, 0.36];
-const SUN_LEN = Math.hypot(...SUN);
-const shade = (n) => {
-    const d = Math.max((n[0] * SUN[0] + n[1] * SUN[1] + n[2] * SUN[2]) / SUN_LEN, 0);
-    return 0.55 + 0.55 * d;
-};
-
-// The surface normal at one grid point, from its neighbours' own positions:
-// the grid is not flat in the local frame, so the heights alone do not say it.
-function normalAt(p, grid, i, j) {
-    const at = (ii, jj) => {
-        const k = (Math.min(Math.max(jj, 0), grid - 1) * grid
-            + Math.min(Math.max(ii, 0), grid - 1)) * 3;
-        return [p[k], p[k + 1], p[k + 2]];
-    };
-    const a = at(i + 1, j);
-    const b = at(i - 1, j);
-    const c = at(i, j + 1);
-    const d = at(i, j - 1);
-    const du = [a[0] - b[0], a[1] - b[1], a[2] - b[2]];
-    const dv = [c[0] - d[0], c[1] - d[1], c[2] - d[2]];
-    const n = [dv[1] * du[2] - dv[2] * du[1], dv[2] * du[0] - dv[0] * du[2],
-        dv[0] * du[1] - dv[1] * du[0]];
-    const len = Math.hypot(n[0], n[1], n[2]) || 1;
-    return [n[0] / len, n[1] / len, n[2] / len];
+// The block of tiles at this level around (lon, lat), and the lon/lat rectangle
+// it covers. The rectangle is what the level below it leaves a hole for.
+export function blockAt(level, lon, lat) {
+    const { zoom, radius } = level;
+    const cx = tm.tileX(lon, zoom);
+    const cy = tm.tileY(lat, zoom);
+    const tiles = [];
+    for (let dy = -radius; dy <= radius; dy++) {
+        for (let dx = -radius; dx <= radius; dx++) tiles.push([zoom, cx + dx, cy + dy]);
+    }
+    const nw = tm.tileBbox(zoom, cx - radius, cy - radius);
+    const se = tm.tileBbox(zoom, cx + radius, cy + radius);
+    return { tiles,
+        rect: { west: nw.west, north: nw.north, east: se.east, south: se.south } };
 }
 
-// Where (lon, lat) falls inside its tile, 0..1 from the north-west corner.
-// Web-Mercator rows are not linear in latitude, so v comes from the same
-// arithmetic tileY() rounds down.
-function inTile(z, x, y, lon, lat) {
-    const n = 2 ** z;
-    const phi = Math.max(-tm.MAX_LAT, Math.min(tm.MAX_LAT, lat)) * tm.RAD_PER_DEG;
+// The hole a level leaves for the finer one above it, pulled in by a cell of
+// its own grid: better a gap the finer level's skirt hangs over than two
+// surfaces drawn through each other (client/lib/groundtile.js).
+export function holeFor(level, rect) {
+    if (!rect) return null;
+    const mid = (rect.north + rect.south) / 2;
+    const cell = cellMetres(level.zoom, level.grid, mid);
+    const dlat = cell / 111320;
+    const dlon = cell / (111320 * Math.max(Math.cos(mid * tm.RAD_PER_DEG), 0.01));
     return {
-        u: (lon + 180) / 360 * n - x,
-        v: (1 - Math.asinh(Math.tan(phi)) / Math.PI) / 2 * n - y,
+        west: rect.west + dlon, east: rect.east - dlon,
+        south: rect.south + dlat, north: rect.north - dlat,
     };
-}
-
-// The inverse, for laying the grid out: row v of tile y, as a latitude.
-const latOf = (z, y, v) =>
-    Math.atan(Math.sinh(Math.PI * (1 - 2 * (y + v) / 2 ** z))) / tm.RAD_PER_DEG;
-
-// One tile's worth of ground: the samples, and the mesh they make in the
-// anchor's frame. `localOf` is the floating origin's own (js/origin.js), so
-// the vertices land in the same frame as everything else in the scene and a
-// rebase is a rebuild from the geodetic originals.
-//
-// Kept apart from the drawing so it can be tested without a graphics device.
-export function groundTile(z, x, y, dem, localOf, grid = GROUND_GRID) {
-    const b = tm.tileBbox(z, x, y);
-    const h = new Float64Array(grid * grid);
-    const positions = [];
-    const colors = [];
-    const indices = [];
-    for (let j = 0; j < grid; j++) {
-        const lat = latOf(z, y, j / (grid - 1));
-        for (let i = 0; i < grid; i++) {
-            const lon = b.west + (b.east - b.west) * (i / (grid - 1));
-            const metres = sampleHeight(dem, i / (grid - 1), j / (grid - 1));
-            h[j * grid + i] = metres;
-            const p = localOf({ lon, lat, h: metres });
-            positions.push(p.x, p.y, p.z);
-        }
-    }
-    const normals = [];
-    for (let j = 0; j < grid; j++) {
-        for (let i = 0; i < grid; i++) {
-            const n = normalAt(positions, grid, i, j);
-            const lit = shade(n);
-            normals.push(...n);
-            for (const c of terrainColour(slopeAt(h, grid, i, j, b), h[j * grid + i])) {
-                colors.push(Math.min(c * lit, 1));
-            }
-        }
-    }
-    for (let j = 0; j < grid - 1; j++) {
-        for (let i = 0; i < grid - 1; i++) {
-            const a = j * grid + i;
-            indices.push(a, a + grid, a + 1, a + 1, a + grid, a + grid + 1);
-        }
-    }
-    return { z, x, y, dem, grid, h, positions, normals, colors, indices, bbox: b };
-}
-
-// Rise over run, in metres per metre, for the colour: steep ground is rock.
-// One grid step, east to west, at this tile's latitude.
-function slopeAt(h, grid, i, j, b) {
-    const mid = (b.south + b.north) / 2;
-    const metres = Math.max((b.east - b.west) * tm.RAD_PER_DEG * 6378137
-        * Math.cos(mid * tm.RAD_PER_DEG) / (grid - 1), 1);
-    const l = h[j * grid + Math.max(i - 1, 0)];
-    const r = h[j * grid + Math.min(i + 1, grid - 1)];
-    const u = h[Math.max(j - 1, 0) * grid + i];
-    const d = h[Math.min(j + 1, grid - 1) * grid + i];
-    return Math.hypot((r - l) / (2 * metres), (d - u) / (2 * metres));
-}
-
-// Bilinear height inside one loaded tile, in metres.
-export function heightIn(tile, lon, lat) {
-    const { u, v } = inTile(tile.z, tile.x, tile.y, lon, lat);
-    if (u < 0 || v < 0 || u > 1 || v > 1) return null;
-    const g = tile.grid;
-    const fu = Math.min(u * (g - 1), g - 1.0001);
-    const fv = Math.min(v * (g - 1), g - 1.0001);
-    const i = Math.floor(fu);
-    const j = Math.floor(fv);
-    const su = fu - i;
-    const sv = fv - j;
-    const a = tile.h[j * g + i];
-    const bb = tile.h[j * g + i + 1];
-    const c = tile.h[(j + 1) * g + i];
-    const d = tile.h[(j + 1) * g + i + 1];
-    return (a * (1 - su) + bb * su) * (1 - sv) + (c * (1 - su) + d * su) * sv;
 }
 
 export class Ground {
     constructor({ pc, app, origin, filesUrl, fetchFn = fetch,
-        zoom = GROUND_Z, grid = GROUND_GRID, radius = 1 } = {}) {
-        Object.assign(this, { pc, app, origin, filesUrl, fetchFn, zoom, grid, radius });
+        levels = GROUND_LEVELS } = {}) {
+        Object.assign(this, { pc, app, origin, filesUrl, fetchFn, levels });
         this.localOf = (g) => origin.localOf(g);
         this.tiles = new Map();
         this.entities = new Map();
@@ -169,6 +98,11 @@ export class Ground {
         // still in trouble. Null once ground arrives again.
         this.troubled = null;
         this.onSaid = null;
+        // The hole each level is drawing with, so a tile arriving late is
+        // built with the same one its neighbours were.
+        this.holes = new Map();
+        this.zoom = this.levels[0].zoom;
+        this.grid = this.levels[0].grid;
     }
 
     get count() { return this.tiles.size; }
@@ -178,7 +112,8 @@ export class Ground {
     trouble() { return this.troubled; }
 
     // The ground under a point, or null when the tile it is in has not
-    // arrived. Callers fall back to a published tile's own height.r16.
+    // arrived. Only the fine level: the coarse ones are a picture of the
+    // distance, tens of metres away from the hillside anybody is standing on.
     heightAt(lon, lat) {
         const k = key(this.zoom, tm.tileX(lon, this.zoom), tm.tileY(lat, this.zoom));
         const tile = this.tiles.get(k);
@@ -195,25 +130,32 @@ export class Ground {
     // world. The heights stay — the player still walks on them where a splat
     // tile has no height of its own — so this only ever hides a picture.
     follow(lon, lat, covered = () => false) {
-        const z = this.zoom;
-        const cx = tm.tileX(lon, z);
-        const cy = tm.tileY(lat, z);
         const want = new Set();
-        for (let dy = -this.radius; dy <= this.radius; dy++) {
-            for (let dx = -this.radius; dx <= this.radius; dx++) {
-                want.add(key(z, cx + dx, cy + dy));
-                this.load(z, cx + dx, cy + dy);
+        let inner = null;
+        for (const level of this.levels) {
+            const { tiles, rect } = blockAt(level, lon, lat);
+            const hole = holeFor(level, inner);
+            const was = this.holes.get(level.zoom);
+            // The hole moved, so every tile of this level is the wrong shape.
+            if (JSON.stringify(was ?? null) !== JSON.stringify(hole)) {
+                this.holes.set(level.zoom, hole);
+                for (const [k, t] of [...this.tiles]) if (t.z === level.zoom) this.drop(k);
             }
+            for (const [z, x, y] of tiles) {
+                want.add(key(z, x, y));
+                this.load(z, x, y, level, hole);
+            }
+            inner = rect;
         }
         for (const k of [...this.tiles.keys()]) if (!want.has(k)) this.drop(k);
         for (const [k, entity] of this.entities) {
             const t = this.tiles.get(k);
-            if (t) entity.enabled = !covered(t.z, t.x, t.y);
+            if (t) entity.enabled = t.z !== this.zoom || !covered(t.z, t.x, t.y);
         }
         return this.tiles.size;
     }
 
-    load(z, x, y) {
+    load(z, x, y, level, hole) {
         const k = key(z, x, y);
         if (this.tiles.has(k) || this.pending.has(k) || this.nothingThere.has(k)) return;
         if ((this.retryAt.get(k) ?? 0) > Date.now()) return;
@@ -225,7 +167,8 @@ export class Ground {
                 // Outside the coverage there is no ground, which is not a
                 // failure — it is the edge of the world (SPEC §3.8).
                 if (!dem) { this.nothingThere.add(k); return; }
-                const tile = groundTile(z, x, y, dem, this.localOf, this.grid);
+                const tile = groundTile(z, x, y, dem, this.localOf, level.grid,
+                    { hole: this.holes.get(z) ?? hole });
                 this.tiles.set(k, tile);
                 this.troubled = null;
                 this.draw(tile);
@@ -285,7 +228,7 @@ export class Ground {
         for (const [k, tile] of [...this.tiles]) {
             this.drop(k);
             const rebuilt = groundTile(tile.z, tile.x, tile.y, tile.dem,
-                this.localOf, this.grid);
+                this.localOf, tile.grid, { hole: tile.hole });
             this.tiles.set(k, rebuilt);
             this.draw(rebuilt);
         }

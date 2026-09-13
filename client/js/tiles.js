@@ -96,9 +96,10 @@ export class TileStreamer {
 
     update(camera) {
         const sel = selectTiles(this.world(), camera, this.limits);
+        const now = Date.now();
         for (const k of sel.want) {
             const e = this.entries.get(k);
-            if (e) e.usedAt = ++this.clock;
+            if (e) { e.usedAt = ++this.clock; e.seenAt = now; }
         }
         for (const k of sel.unload) this.unload(k);
         for (const c of sel.load) this.begin(c);
@@ -115,7 +116,8 @@ export class TileStreamer {
         const asset = new this.pc.Asset(c.key, 'gsplat', {
             url: this.url(c), filename: `${c.row.sog_sha256}.sog`,
         });
-        const entry = { usedAt: ++this.clock, row: c.row, asset, entity: null };
+        const entry = { usedAt: ++this.clock, seenAt: Date.now(), row: c.row,
+            asset, entity: null };
         this.entries.set(c.key, entry);
         this.pending++;
         // The in-flight count must fall exactly once per load, whichever way it

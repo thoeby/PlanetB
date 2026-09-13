@@ -18,6 +18,14 @@ const CENTRE = { lon: 7.8815, lat: 46.2939 };
 // A rectangle of the 3D view with no chrome over it: the panels, the hints and
 // the notice all live outside it, so what changes here is the world changing.
 const VIEW = { x: 690, y: 120, width: 370, height: 240 };
+// How much of that strip has to change over a fifty-metre walk. One per cent
+// of it is nine hundred pixels, and this renderer is deterministic — a picture
+// that did not move scores exactly zero, as the ground below the horizon does:
+// a bare hillside a hundred metres off looks the same from either end of a
+// walk. What moves is the horizon, and the horizon is a smaller part of the
+// strip now that the world is drawn out to forty kilometres rather than five
+// (client/lib/groundmesh.js).
+const WALK_CHANGE = 0.01;
 
 // "46.2939N 7.8815E · 651 m" — where the player is, as the page says it.
 function readCoords(text) {
@@ -110,7 +118,7 @@ async function walkFiftyMetres(a) {
         expect(after.height, 'the ground is still under A after the walk')
             .toBeGreaterThan(600);
         expect(differs(picture, await page.screenshot({ clip: VIEW })),
-            'the view changed as A walked').toBeGreaterThan(0.02);
+            'the view changed as A walked').toBeGreaterThan(WALK_CHANGE);
     });
 }
 

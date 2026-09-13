@@ -1,0 +1,216 @@
+// groundtile.js — one tile of ground, as samples and as a mesh.
+//
+// Split out of client/lib/groundmesh.js when the floor stopped being one ring
+// of z14 tiles: the streaming is there, the geometry is here, and the geometry
+// is a pure function of a DEM so client/test/groundtile.test.js can check it
+// under node with no graphics device.
+//
+// Three things this has to get right, all of them about the far distance:
+//
+//  * A tile at z10 is twenty-seven kilometres across and has the same number of
+//    samples as one at z14, so the same hillside is a different surface at each
+//    level. Where two levels meet, that difference is a crack.
+//  * A coarse tile under a finer one would cut through it. So a coarse tile is
+//    given the rectangle the finer level covers and leaves a hole in itself.
+//  * Along every edge of what it did draw — its own border and the hole's — it
+//    hangs a skirt: a wall of the same colour dropping below the surface, which
+//    is what fills the crack between two levels that do not agree.
+
+import { sampleHeight } from './geo.js';
+import * as tm from './tilemath.js';
+import { terrainColour } from './terrain.js';
+
+// The same fixed sun lib/render.js bakes into every compiled frame, and the
+// same floor under it. The ground a player walks on and the ground a compile
+// renders are then the same picture, which is what makes an unrendered tile
+// and a published one read as one world.
+const SUN = [0.42, 0.83, 0.36];
+const SUN_LEN = Math.hypot(...SUN);
+const shade = (n) => {
+    const d = Math.max((n[0] * SUN[0] + n[1] * SUN[1] + n[2] * SUN[2]) / SUN_LEN, 0);
+    return 0.55 + 0.55 * d;
+};
+
+// The surface normal at one grid point, from its neighbours' own positions:
+// the grid is not flat in the local frame, so the heights alone do not say it.
+function normalAt(p, grid, i, j) {
+    const at = (ii, jj) => {
+        const k = (Math.min(Math.max(jj, 0), grid - 1) * grid
+            + Math.min(Math.max(ii, 0), grid - 1)) * 3;
+        return [p[k], p[k + 1], p[k + 2]];
+    };
+    const a = at(i + 1, j);
+    const b = at(i - 1, j);
+    const c = at(i, j + 1);
+    const d = at(i, j - 1);
+    const du = [a[0] - b[0], a[1] - b[1], a[2] - b[2]];
+    const dv = [c[0] - d[0], c[1] - d[1], c[2] - d[2]];
+    const n = [dv[1] * du[2] - dv[2] * du[1], dv[2] * du[0] - dv[0] * du[2],
+        dv[0] * du[1] - dv[1] * du[0]];
+    const len = Math.hypot(n[0], n[1], n[2]) || 1;
+    return [n[0] / len, n[1] / len, n[2] / len];
+}
+
+// Where (lon, lat) falls inside its tile, 0..1 from the north-west corner.
+// Web-Mercator rows are not linear in latitude, so v comes from the same
+// arithmetic tileY() rounds down.
+function inTile(z, x, y, lon, lat) {
+    const n = 2 ** z;
+    const phi = Math.max(-tm.MAX_LAT, Math.min(tm.MAX_LAT, lat)) * tm.RAD_PER_DEG;
+    return {
+        u: (lon + 180) / 360 * n - x,
+        v: (1 - Math.asinh(Math.tan(phi)) / Math.PI) / 2 * n - y,
+    };
+}
+
+// The inverse, for laying the grid out: row v of tile y, as a latitude.
+const latOf = (z, y, v) =>
+    Math.atan(Math.sinh(Math.PI * (1 - 2 * (y + v) / 2 ** z))) / tm.RAD_PER_DEG;
+
+// Rise over run, in metres per metre, for the colour: steep ground is rock.
+// One grid step, east to west, at this tile's latitude.
+function slopeAt(h, grid, i, j, b) {
+    const mid = (b.south + b.north) / 2;
+    const metres = Math.max((b.east - b.west) * tm.RAD_PER_DEG * 6378137
+        * Math.cos(mid * tm.RAD_PER_DEG) / (grid - 1), 1);
+    const l = h[j * grid + Math.max(i - 1, 0)];
+    const r = h[j * grid + Math.min(i + 1, grid - 1)];
+    const u = h[Math.max(j - 1, 0) * grid + i];
+    const d = h[Math.min(j + 1, grid - 1) * grid + i];
+    return Math.hypot((r - l) / (2 * metres), (d - u) / (2 * metres));
+}
+
+// One grid step across, in metres, at this latitude. What a skirt is as deep
+// as, and what says how far two levels can disagree where they meet.
+export function cellMetres(z, grid, lat = 0) {
+    const deg = 360 / 2 ** z / Math.max(grid - 1, 1);
+    return Math.max(deg * tm.RAD_PER_DEG * 6378137
+        * Math.cos(Math.min(Math.abs(lat), 85) * tm.RAD_PER_DEG), 1);
+}
+
+// A skirt is as deep as the ground can differ across one cell of it, and no
+// deeper: at the edge of the world there is nothing behind it to hide a wall.
+export const SKIRT_MAX_M = 400;
+export const skirtDepth = (z, grid, lat) =>
+    Math.min(cellMetres(z, grid, lat) * 1.5, SKIRT_MAX_M);
+
+// Is this quad inside the rectangle a finer level is drawing? The hole is
+// snapped outwards to whole cells by the caller's choice of rectangle: it is
+// better to leave a gap the finer level's skirt hangs over than to draw two
+// surfaces on top of each other.
+const inHole = (hole, lon, lat) => Boolean(hole)
+    && lon > hole.west && lon < hole.east && lat > hole.south && lat < hole.north;
+
+function samples(z, x, y, dem, localOf, grid) {
+    const b = tm.tileBbox(z, x, y);
+    const h = new Float64Array(grid * grid);
+    const lons = new Float64Array(grid);
+    const lats = new Float64Array(grid);
+    const positions = [];
+    for (let j = 0; j < grid; j++) {
+        lats[j] = latOf(z, y, j / (grid - 1));
+        for (let i = 0; i < grid; i++) {
+            if (j === 0) lons[i] = b.west + (b.east - b.west) * (i / (grid - 1));
+            const metres = sampleHeight(dem, i / (grid - 1), j / (grid - 1));
+            h[j * grid + i] = metres;
+            const p = localOf({ lon: lons[i], lat: lats[j], h: metres });
+            positions.push(p.x, p.y, p.z);
+        }
+    }
+    return { b, h, lons, lats, positions };
+}
+
+function shadeAll(h, positions, grid, b) {
+    const normals = [];
+    const colors = [];
+    for (let j = 0; j < grid; j++) {
+        for (let i = 0; i < grid; i++) {
+            const n = normalAt(positions, grid, i, j);
+            const lit = shade(n);
+            normals.push(...n);
+            for (const c of terrainColour(slopeAt(h, grid, i, j, b), h[j * grid + i])) {
+                colors.push(Math.min(c * lit, 1));
+            }
+        }
+    }
+    return { normals, colors };
+}
+
+// The wall under one edge of the surface: the two vertices copied straight
+// down, sharing their colour so it reads as ground rather than as a band.
+// Deep enough to cover how far a coarser level can be from a finer one.
+function skirt(mesh, a, c, deep) {
+    const copy = (k) => {
+        const at = mesh.positions.length / 3;
+        mesh.positions.push(mesh.positions[k * 3], mesh.positions[k * 3 + 1] - deep,
+            mesh.positions[k * 3 + 2]);
+        mesh.normals.push(mesh.normals[k * 3], mesh.normals[k * 3 + 1],
+            mesh.normals[k * 3 + 2]);
+        mesh.colors.push(mesh.colors[k * 3], mesh.colors[k * 3 + 1],
+            mesh.colors[k * 3 + 2]);
+        return at;
+    };
+    const da = copy(a);
+    const dc = copy(c);
+    mesh.indices.push(a, da, c, c, da, dc);
+}
+
+// z, x, y: the tile. hole: the lon/lat rectangle a finer level is drawing, or
+// null. localOf: the floating origin's own (client/js/origin.js), so the
+// vertices land in the same frame as everything else and a rebase is a rebuild
+// from the geodetic samples this keeps.
+export function groundTile(z, x, y, dem, localOf, grid = 65, { hole = null } = {}) {
+    const { b, h, lons, lats, positions } = samples(z, x, y, dem, localOf, grid);
+    const { normals, colors } = shadeAll(h, positions, grid, b);
+    const mesh = { positions, normals, colors, indices: [] };
+    const deep = skirtDepth(z, grid, (b.south + b.north) / 2);
+    const covered = [];
+    for (let j = 0; j < grid - 1; j++) {
+        for (let i = 0; i < grid - 1; i++) {
+            const mid = { lon: (lons[i] + lons[i + 1]) / 2,
+                lat: (lats[j] + lats[j + 1]) / 2 };
+            const out = inHole(hole, mid.lon, mid.lat);
+            covered.push(out);
+            if (out) continue;
+            const a = j * grid + i;
+            mesh.indices.push(a, a + grid, a + 1, a + 1, a + grid, a + grid + 1);
+        }
+    }
+    hem(mesh, covered, grid, deep);
+    return { z, x, y, dem, grid, h, hole, bbox: b, ...mesh };
+}
+
+// A skirt down every edge of what was drawn: the tile's own border, and the
+// border of the hole in the middle of it.
+function hem(mesh, covered, grid, deep) {
+    const drawn = (i, j) => i >= 0 && j >= 0 && i < grid - 1 && j < grid - 1
+        && !covered[j * (grid - 1) + i];
+    for (let j = 0; j < grid - 1; j++) {
+        for (let i = 0; i < grid - 1; i++) {
+            if (!drawn(i, j)) continue;
+            const a = j * grid + i;
+            if (!drawn(i, j - 1)) skirt(mesh, a + 1, a, deep);
+            if (!drawn(i, j + 1)) skirt(mesh, a + grid, a + grid + 1, deep);
+            if (!drawn(i - 1, j)) skirt(mesh, a, a + grid, deep);
+            if (!drawn(i + 1, j)) skirt(mesh, a + grid + 1, a + 1, deep);
+        }
+    }
+}
+
+// Bilinear height inside one loaded tile, in metres.
+export function heightIn(tile, lon, lat) {
+    const { u, v } = inTile(tile.z, tile.x, tile.y, lon, lat);
+    if (u < 0 || v < 0 || u > 1 || v > 1) return null;
+    const g = tile.grid;
+    const fu = Math.min(u * (g - 1), g - 1.0001);
+    const fv = Math.min(v * (g - 1), g - 1.0001);
+    const i = Math.floor(fu);
+    const j = Math.floor(fv);
+    const su = fu - i;
+    const sv = fv - j;
+    const a = tile.h[j * g + i];
+    const bb = tile.h[j * g + i + 1];
+    const c = tile.h[(j + 1) * g + i];
+    const d = tile.h[(j + 1) * g + i + 1];
+    return (a * (1 - su) + bb * su) * (1 - sv) + (c * (1 - su) + d * su) * sv;
+}

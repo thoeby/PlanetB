@@ -14,7 +14,13 @@ export const REFINE_PX = 2;
 // Coarsening uses a lower threshold than refining, so a camera hovering at the
 // boundary does not load and unload the same level every frame.
 export const HYSTERESIS = 1.4;
-export const LIMITS = { tiles: 40, splats: 25e6, inflight: 4 };
+export const LIMITS = { tiles: 64, splats: 25e6, inflight: 4 };
+
+// How long a tile that has left the view is kept before it is thrown away.
+// Panning is turning your head and turning it back, and a tile dropped the
+// moment it leaves the frustum is a tile fetched again a second later — the
+// world breaking up around somebody who is only looking round.
+export const KEEP_MS = 20000;
 // How often a loaded tile is re-checked for a newer published version.
 export const POLL_MS = 30000;
 // How long a tile that failed to load is left alone before it is tried again.
@@ -141,12 +147,18 @@ function prioritise(world, camera, wanted) {
     })).sort((a, b) => (a.d - b.d) || (b.used - a.used)).map((e) => e.c);
 }
 
+// Nearest first, and a tile that does not fit is passed over rather than
+// ending the list: the one that would not fit is a near tile with a lot of
+// splats in it, and everything after it is further away and smaller. Stopping
+// there is why a world seen from a mountain had five kilometres of tiles in it
+// and nothing behind them.
 function applyCaps(ordered, limits) {
     const keep = [];
     let splats = 0;
     for (const c of ordered) {
+        if (keep.length >= limits.tiles) break;
         const n = c.row.manifest?.splats ?? 0;
-        if (keep.length >= limits.tiles || splats + n > limits.splats) break;
+        if (splats + n > limits.splats) continue;
         keep.push(c);
         splats += n;
     }
@@ -181,8 +193,13 @@ export function selectTiles(world, camera, limits = LIMITS) {
     for (const c of keep) {
         if (!world.loaded.has(c.key) && load.length < room) load.push(c);
     }
+    // Kept for a while after it leaves the view — unless there are more tiles
+    // loaded than the cap allows, in which case the least recently used go now.
+    const crowded = world.loaded.size > limits.tiles;
+    const cold = (k) => crowded
+        || (world.now ?? 0) - (world.loaded.get(k).seenAt ?? 0) >= KEEP_MS;
     const unload = [...world.loaded.keys()]
-        .filter((k) => !want.has(k) && replaced(world, keep, k))
+        .filter((k) => !want.has(k) && cold(k) && replaced(world, keep, k))
         .sort((a, b) => (world.loaded.get(a).usedAt - world.loaded.get(b).usedAt));
     return { want, load, unload, splats };
 }
