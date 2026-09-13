@@ -12,8 +12,13 @@ export const SETS = {
     'z16-v1': { rings: [20, 45], az: 24, streets: 0, perStreet: 0, top: 8 },
 };
 
+// How many poses a set has, or 0 for a set this build does not know — a name
+// that arrives in an atom's params, so it is data and not a promise. The caller
+// falls back to the frames it was handed; throwing here took the whole atom
+// down with "can't access property rings".
 export const viewCount = (set) => {
     const s = SETS[set];
+    if (!s) return 0;
     return s.rings.length * s.az + s.streets * s.perStreet + s.top;
 };
 

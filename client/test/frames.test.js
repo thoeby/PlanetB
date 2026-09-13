@@ -74,3 +74,13 @@ test('only the poses asked for are decoded, and each keeps its camera', async ()
     assert.equal(views[0].cam.width, 32, 'the intrinsics come down with the frame');
     assert.ok(Math.abs(views[0].cam.fx - views[0].cam.fy) < 1e-6);
 });
+
+// A camera set that this build does not know is data, not a promise: the name
+// arrives in an atom's params. viewCount threw on it, and every train atom the
+// DAG built carried no name at all — "can't access property rings, s is
+// undefined", minutes into a render (db/0075_trainknowsitscameras.sql).
+test('an unknown camera set counts no views rather than throwing', () => {
+    assert.equal(viewCount('z16-v1'), 56);
+    assert.equal(viewCount(undefined), 0);
+    assert.equal(viewCount('z99-v1'), 0);
+});
