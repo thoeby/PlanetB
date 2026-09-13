@@ -22,6 +22,12 @@ import { terrainColour } from './terrain.js';
 export const GROUND_Z = 14;
 export const GROUND_GRID = 65;
 
+// How long a tile whose cut failed is left alone before it is asked for again.
+// SPEC §3.12: the elevation service stopping is a thing that stops happening —
+// the operator starts it again — so a tile that could not be cut is not a tile
+// that is not there. Short, because the ground is what a player is standing on.
+export const GROUND_RETRY_MS = 5000;
+
 const key = (z, x, y) => `${z}/${x}/${y}`;
 
 // The same fixed sun lib/render.js bakes into every compiled frame, and the
@@ -155,10 +161,21 @@ export class Ground {
         // A tile the coverage does not reach is a 404, and asking again every
         // frame is a request a second for ever.
         this.nothingThere = new Set();
+        // A tile whose cut failed is a different thing: the elevation service
+        // said something other than "there is nothing here", and it may say
+        // something else in five seconds. Key -> when to ask again.
+        this.retryAt = new Map();
+        // What went wrong, in the words the server used, while anything is
+        // still in trouble. Null once ground arrives again.
+        this.troubled = null;
         this.onSaid = null;
     }
 
     get count() { return this.tiles.size; }
+
+    // SPEC §3.12: the sentence the page puts where the player is, for as long
+    // as the ground under them cannot be cut.
+    trouble() { return this.troubled; }
 
     // The ground under a point, or null when the tile it is in has not
     // arrived. Callers fall back to a published tile's own height.r16.
@@ -199,6 +216,8 @@ export class Ground {
     load(z, x, y) {
         const k = key(z, x, y);
         if (this.tiles.has(k) || this.pending.has(k) || this.nothingThere.has(k)) return;
+        if ((this.retryAt.get(k) ?? 0) > Date.now()) return;
+        this.retryAt.delete(k);
         this.pending.add(k);
         loadDem(z, x, y, { filesUrl: this.filesUrl, fetchFn: this.fetchFn })
             .then((dem) => {
@@ -208,14 +227,18 @@ export class Ground {
                 if (!dem) { this.nothingThere.add(k); return; }
                 const tile = groundTile(z, x, y, dem, this.localOf, this.grid);
                 this.tiles.set(k, tile);
+                this.troubled = null;
                 this.draw(tile);
             })
             .catch((err) => {
                 this.pending.delete(k);
-                this.nothingThere.add(k);
+                // Not `nothingThere`: the cut failed, which is a thing that
+                // stops. Ask again in a moment, and say so meanwhile.
+                this.retryAt.set(k, Date.now() + GROUND_RETRY_MS);
+                this.troubled = String(err.message ?? err);
                 // SPEC §3.12: a tile that could not be cut says so, in words,
                 // where the player is — never only in the console.
-                this.onSaid?.(`no ground at ${k}: ${err.message ?? err}`);
+                this.onSaid?.(`no ground at ${k}: ${this.troubled}`);
             });
     }
 

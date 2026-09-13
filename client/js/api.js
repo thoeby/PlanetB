@@ -115,7 +115,8 @@ async function refresh() {
 
 // ------------------------------------------------------------------- requests
 
-async function send(path, { method = 'GET', body, headers = {}, auth = true } = {}) {
+async function send(path, { method = 'GET', body, headers = {}, auth = true,
+    keepalive = false } = {}) {
     const url = path.startsWith('http') ? path : state.api + path;
     if (auth && state.token && expiresIn() < SKEW_S) {
         logout();
@@ -126,6 +127,10 @@ async function send(path, { method = 'GET', body, headers = {}, auth = true } = 
     if (body !== undefined) h['Content-Type'] = 'application/json';
     return fetch(url, {
         method, headers: h, body: body === undefined ? undefined : JSON.stringify(body),
+        // `keepalive` is what lets a call outlive the page that made it: a tab
+        // closing has one thing to say (client/js/work.js hands its work back)
+        // and no time to wait for the answer.
+        ...(keepalive ? { keepalive: true } : {}),
     });
 }
 
@@ -190,6 +195,12 @@ export const update = (table, params, patch) =>
 export const remove = (table, params) => request(`/${table}${qs(params)}`, { method: 'DELETE' });
 
 export const rpc = (name, args = {}) => request(`/rpc/${name}`, { method: 'POST', body: args });
+
+// The same call, made by a page that is going away. It is sent and not waited
+// for: nothing is left to read the answer.
+export const rpcOnTheWayOut = (name, args = {}) =>
+    request(`/rpc/${name}`, { method: 'POST', body: args, keepalive: true })
+        .catch(() => null);
 
 // A file from the local server (not the API): the QGIS project, which carries
 // the player's own database login and so cannot be a plain link. The token

@@ -26,7 +26,7 @@ stories browser contexts that have only the page.
 | 10 | build grants (§3.11): C stands on B's land, is told they may not build and what to do about it, asks with a note; B is told, sees the ask on the land's card and gives it; C is told, may build, and does; B submits and approves it. Who placed it is not recorded — see Blocked | green |
 | 11 | deleting and redoing land: B gives their land back from the Land panel, the page says what goes before it goes, the ground under B stops being anybody's, and B asks for land again — story 2 from the top | green |
 | 12 | properties (§3.10): A adds leaf_type to forest with two choices and makes it required; B is told their QGIS project is out of date; the next download has the dropdown with those two values; a wood with no leaf type, and one with a third value, are both refused in words; the wood B does draw compiles and publishes | green |
-| 13 | | not started |
+| 13 | failure and recovery (§3.12): a render C walked away from is back in the pool with the sentence that says so; the elevation service is stopped and somebody arriving is told in place, while the rest of the page goes on working; started again, the ground comes back by itself | green |
 
 What each story forced is in its commit message. Nothing is "done" here
 because a function exists: if the script cannot find the button, the button is

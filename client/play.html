@@ -129,6 +129,12 @@
     },
   });
 
+  // SPEC §3.12: a render this tab is holding goes back into the pool when the
+  // tab goes away, rather than sitting in nobody's hands until the five-minute
+  // expiry notices (db/0079_worktakenandgivenback.sql). pagehide, not unload:
+  // unload never fires on a tab restored from the back-forward cache.
+  addEventListener('pagehide', () => { work.loop()?.handBack(); });
+
   // Where the world is. Until somebody picks a coverage there is nowhere to
   // stand, and the Setup panel is what the tab opens on (T0).
   const ground = await api.rpc('ground').catch(() => ({}));
@@ -448,11 +454,12 @@
   // the camera says the answer is stale — but the line under you was naming
   // land that no longer exists.
   let lands = '';
+  let landStale = false;
   function landChanged(areas) {
       const now = (areas ?? []).map((a) => a.id).sort().join(',');
       if (now === lands) return;
       lands = now;
-      asked = { lon: 0, lat: 0, at: 0 };
+      landStale = true;
   }
 
   mountAuth(setup.account, {
@@ -558,9 +565,20 @@
   // spatial question no filter can ask, so it is asked when the ground changes
   // rather than every frame.
   function whereAmI(g) {
+      // Asked again when the player has walked somewhere else or the land
+      // itself changed — and, either way, at least every few seconds. An
+      // answer can be thrown away (a newer question was already in the air) or
+      // never arrive, and a line that is only re-asked when the camera moves
+      // then keeps the wrong name under somebody who is standing still.
       const moved = Math.hypot(g.lon - asked.lon, g.lat - asked.lat) > 0.0005;
-      if (!moved || Date.now() - asked.at < 2000) return;
+      const fresh = moved || landStale;
+      if (Date.now() - asked.at < (fresh ? 2000 : 5000)) return;
+      landStale = false;
       asked = { lon: g.lon, lat: g.lat, at: Date.now() };
+      // Which question this answer belongs to. Two are in the air whenever the
+      // player is still arriving somewhere, and the older one landing last put
+      // the wrong land's name under them.
+      const mine = asked;
       // Outside the coverage there is no world at all, which is a different
       // thing from ground nobody has claimed (T1).
       if (ground?.coverage && (g.lon < ground.west || g.lon > ground.east
@@ -570,9 +588,11 @@
           return;
       }
       // The Place panel answers "may I build here"; the answer changes when
-      // you walk somewhere else.
-      build.refresh();
+      // you walk somewhere else — not when this is only the periodic re-ask,
+      // which is several requests for an answer nothing has changed.
+      if (fresh) build.refresh();
       api.rpc('area_at', { lon: g.lon, lat: g.lat }).then((areas) => {
+          if (asked !== mine) return;
           const a = areas?.[0];
           // SPEC §2.4: the land you are standing on has a card whoever's it
           // is, and §3.11 is asked for from that card.
@@ -589,7 +609,7 @@
                   : a.may_propose ? 'you may propose here' : 'read only',
               may: Boolean(a.may_write),
           });
-      }).catch(() => {});
+      }).catch(() => { landStale = true; });
   }
 
   let onMyLand = null;
@@ -615,7 +635,15 @@
       });
       // Both would be shouting the same thing at once.
       const onTheRoute = areas.some((a) => a.mine) && ground?.coverage;
-      if (Date.now() < arrival.until) hud.notice(arrival.text);
+      // SPEC §3.12: the elevation service stopping is said where the player
+      // is, over everything else — it is the ground under them — and the page
+      // goes on drawing what it already has. It clears itself: the ground asks
+      // again every few seconds, and says nothing once a tile arrives.
+      const noGround = groundMesh.trouble();
+      if (noGround) {
+          hud.notice('No ground here \u2014 the elevation service is not'
+              + ` answering (${noGround}). Trying again.`);
+      } else if (Date.now() < arrival.until) hud.notice(arrival.text);
       else hud.notice(onTheRoute ? '' : missing);
       const mine = areas.find((a) => a.mine) ?? areas[0];
       nextStep.show({

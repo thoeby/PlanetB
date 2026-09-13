@@ -99,7 +99,7 @@ async function landed(tile, entry) {
 function poolParts(host) {
     const ui = {
         head: el('div', { className: 'spread' }),
-        list: el('ul', { className: 'rows' }),
+        list: el('ul', { className: 'rows po-list' }),
         status: el('p', { className: 'po-status status' }),
     };
     host.append(ui.head, ui.list, ui.status);

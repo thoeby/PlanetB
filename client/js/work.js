@@ -331,4 +331,17 @@ export class WorkLoop {
     }
 
     stop() { this.running = false; }
+
+    // SPEC §3.12: a render somebody walked away from goes back into the pool.
+    // The five-minute expiry (db/0005_state.sql) is the backstop for a tab
+    // that crashed; a tab that is closing knows, and says so, so nobody waits
+    // five minutes for work that is in nobody's hands.
+    handBack() {
+        const atom = this.atom;
+        if (!atom) return false;
+        this.running = false;
+        this.atom = null;
+        this.api.rpcOnTheWayOut?.('hand_back_atom', { atom_id: atom.id });
+        return true;
+    }
 }

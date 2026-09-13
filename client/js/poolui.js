@@ -75,6 +75,12 @@ export const what = (e) => [
     e.ready ? `${e.ready} piece(s) to do` : '',
     e.claimed ? `${e.claimed} in hand` : '',
     e.failed ? `${e.failed} gave up` : '',
+    // SPEC §3.12: a render somebody walked away from is back here, and says so
+    // — otherwise the same row reads as work nobody has started.
+    e.handed_back
+        ? `handed back ${e.handed_back === 1 ? 'once' : `${e.handed_back} times`}`
+            + ' by a tab that went away'
+        : '',
 ].filter(Boolean).join(' · ');
 
 export const stuck = (e) => e.failed > 0 && !e.ready && !e.claimed;

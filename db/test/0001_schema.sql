@@ -52,7 +52,9 @@ SELECT columns_are('public', 'job', ARRAY[
 SELECT columns_are('public', 'atom', ARRAY[
     'id', 'job_id', 'atom_hash', 'op', 'algo_version', 'deps', 'inputs',
     'params', 'seed', 'state', 'worker_id', 'claimed_at', 'heartbeat_at',
-    'result', 'output_sha256', 'attempts']);
+    'result', 'output_sha256', 'attempts',
+    -- db/0079_worktakenandgivenback.sql
+    'handed_back']);
 SELECT columns_are('public', 'worker', ARRAY[
     'id', 'user_id', 'caps', 'trust', 'last_seen']);
 SELECT columns_are('public', 'worker_op_stats', ARRAY['worker_id', 'op', 'ok', 'bad']);

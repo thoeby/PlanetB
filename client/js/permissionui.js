@@ -63,17 +63,19 @@ export function beforeAfter(after, onSwitch) {
     return box;
 }
 
+// The one note field, made once and never made again. The card around it is
+// rebuilt whenever anything about the panel changes — the list refreshes,
+// Before/After is flipped — and a field that is rebuilt is a field somebody is
+// typing into that goes away under them: not only the text (that could be kept
+// in the panel's state) but the node itself, so a keystroke already on its way
+// to it is delivered to nothing.
+export const noteField = () => el('input', { type: 'text', className: 'pm-note',
+    placeholder: 'why not? (a sentence)' });
+
 // The card: what this submission is, and the three things to do about it.
-//
-// `said` is what has already been typed into the note. The card is rebuilt
-// whenever anything about the panel changes — the list refreshes, Before/After
-// is flipped — and a field that is rebuilt empty takes the sentence somebody
-// was in the middle of writing with it.
-export function decide(entry, acts, said = '') {
+// `note` is the field above, moved into this card rather than replaced.
+export function decide(entry, acts, note) {
     if (!entry) return [];
-    const note = el('input', { type: 'text', className: 'pm-note',
-        placeholder: 'why not? (a sentence)', value: said });
-    note.oninput = () => acts.typing?.(note.value);
     const review = el('button', { type: 'button', textContent: 'Review' });
     const yes = el('button', { type: 'button', className: 'primary',
         textContent: 'Approve' });

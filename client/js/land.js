@@ -12,7 +12,7 @@
 // may propose to, grey is everyone else's: the legend's three colours.
 
 import * as api from './api.js';
-import { asking, landRows, selected } from './landui.js';
+import { askField, asking, landRows, selected } from './landui.js';
 
 const el = (tag, props = {}, ...kids) => {
     const node = Object.assign(document.createElement(tag), props);
@@ -170,39 +170,60 @@ const sayInto = (status) => (msg, bad = false) => {
 
 const underYou = (state, ctx) => (state.under
     && !state.areas.some((a) => a.id === state.under.id)
-    ? asking(state.under, ctx, state.askNote) : null);
+    ? asking(state.under, ctx, ctx.askNote) : null);
 
-function redraw(list, detail, state, ctx) {
+// The card for the land you are standing on is its own box, redrawn only when
+// that land changes. See client/js/permission.js: replacing it takes the note
+// field out of the document and back in, which blurs it, and a redraw in the
+// middle of somebody typing sends the rest of their sentence to nowhere.
+function redraw(under, list, detail, state, ctx) {
+    const id = state.under?.id ?? null;
+    if (id !== ctx.shown()) {
+        ctx.wasShown(id);
+        under.replaceChildren(...[underYou(state, ctx)].filter(Boolean));
+    }
     list.replaceChildren(...landRows(state, ctx.pick));
     const area = state.areas.find((a) => a.id === state.chosen);
-    detail.replaceChildren(...[underYou(state, ctx), ...selected(area, state, {
+    detail.replaceChildren(...selected(area, state, {
         ...ctx, refresh: () => ctx.load(area),
-    })].filter(Boolean));
+    }).filter(Boolean));
+}
+
+function landParts(host) {
+    const parts = {
+        under: el('div', { className: 'land-under-box' }),
+        list: el('ul', { className: 'rows land-areas' }),
+        detail: el('div', { className: 'land-detail' }),
+        status: el('p', { className: 'land-status status' }),
+    };
+    host.append(parts.under, parts.list, parts.detail, parts.status);
+    return parts;
 }
 
 export function mountLand(host, { onGo = () => {}, onRemove = () => {},
     onAreas = () => {}, openPanel = () => {} } = {}) {
-    const list = el('ul', { className: 'rows land-areas' });
-    const detail = el('div', { className: 'land-detail' });
-    const status = el('p', { className: 'land-status status' });
-    host.append(list, detail, status);
-
+    const { under, list, detail, status } = landParts(host);
     const state = {
         areas: [], chosen: null, contents: [], drawn: [], progress: null,
-        grants: [], proposals: [], asks: [], under: null, askNote: '',
+        grants: [], proposals: [], asks: [], under: null,
         giveBack: null, project: null,
     };
     const say = sayInto(status);
 
     // One place where the panel is redrawn, so every action ends the same way.
-    // What is half-typed into the card survives it being redrawn.
-    const typing = (text) => { state.askNote = text; };
+    // What is half-typed into the card survives it being redrawn, because the
+    // field itself is never redrawn: it is moved into each new card.
+    const askNote = askField();
     // Which land is between the two presses of "Give this land back", and what
     // the world said would go with it.
     const confirming = (asked) => { state.giveBack = asked; draw(); };
-    const draw = () => redraw(list, detail, state,
-        { pick, onGo, onRemove: remove, say, load, api, openPanel, typing,
-            reload: refresh, confirming });
+    // Which land the standing-on card is showing, so it is not rebuilt to say
+    // the same thing about the same land.
+    let showing = undefined;
+    const draw = () => redraw(under, list, detail, state,
+        { pick, onGo, onRemove: remove, say, load, api, openPanel, askNote,
+            clearAsk: () => { askNote.value = ''; }, reload: refresh, confirming,
+            shown: () => showing, wasShown: (id) => { showing = id; } });
 
     async function pick(area) {
         state.chosen = area?.id ?? null;

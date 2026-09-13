@@ -140,13 +140,37 @@ function whatTheServerSaid() {
     }
 }
 
+// SPEC §3.12 and PLAYER-RUN story 13: the elevation service is stopped
+// mid-run and started again. A story that wants it gone asks here rather than
+// reaching for a process itself.
+function switchable(started) {
+    let live = started;
+    return {
+        get url() { return live.url; },
+        get kind() { return live.kind; },
+        stop() { live.stop(); },
+        async start() { live = await startGeoServer(); return live.url; },
+    };
+}
+
+// The cut ground the server has on disk, forgotten. It is the same thing
+// `emptyStore` does at the start of a run: it says what the world has been
+// given, not what a player did. A story that wants ground nobody has cut yet
+// needs this, because four kilometres of DEM is a handful of tiles and the
+// stories before it have walked over all of them.
+function forgetGround() {
+    rmSync(join(FILES_ROOT, 'geo'), { recursive: true, force: true });
+    mkdirSync(join(FILES_ROOT, 'geo'), { recursive: true });
+    try { chmodSync(join(FILES_ROOT, 'geo'), 0o1777); } catch { /* let a write fail */ }
+}
+
 export async function startWorld() {
     seedDem();
     emptyDatabase();
     emptyStore();
     const stops = [];
-    const geoserver = await startGeoServer();
-    stops.push(geoserver.stop);
+    const geoserver = switchable(await startGeoServer());
+    stops.push(() => geoserver.stop());
     stops.push(startServer());
     const apiUrl = `http://localhost:${API_PORT}`;
     try {
@@ -170,6 +194,8 @@ export async function startWorld() {
         pageUrl: `http://localhost:${PORT}/app/play.html`,
         geoserverUrl: geoserver.url,
         geoserverKind: geoserver.kind,
+        geoserver,
+        forgetGround,
         stop: () => stops.forEach((s) => s()),
     };
 }

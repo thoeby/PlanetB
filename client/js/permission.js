@@ -11,7 +11,8 @@
 // what they care about is what was built.
 
 import * as api from './api.js';
-import { beforeAfter, decide, el, waiting } from './permissionui.js';
+import { beforeAfter, changeWords, decide, el, noteField, waiting }
+    from './permissionui.js';
 
 // Say yes or no, then re-read the list and only then say what happened — a
 // refresh that ran afterwards would wipe the one line that says it.
@@ -64,6 +65,8 @@ function partsOf(host) {
         again: el('button', { type: 'button', className: 'pm-refresh',
             textContent: 'Refresh' }),
         list: el('ul', { className: 'rows' }),
+        // Made once: see permissionui.js noteField.
+        note: noteField(),
         card: el('div', { className: 'section' }),
         status: el('p', { className: 'pm-status status' }),
     };
@@ -75,20 +78,20 @@ function partsOf(host) {
 export function mountPermission(host, { onGo = () => {}, preview = null,
     onDecided = () => {}, onCount = () => {} } = {}) {
     const ui = partsOf(host);
-    const { scope, toggle, count, list, card, status } = ui;
+    const { scope, toggle, count, list, card, status, note } = ui;
 
-    const state = { rows: [], chosen: null, after: true, note: '' };
+    const state = { rows: [], chosen: null, after: true };
+    // What the card is showing, so it is not rebuilt to say the same thing.
+    let shown = null;
     const say = (msg, bad = false) => {
         status.textContent = msg;
         status.dataset.bad = bad ? '1' : '';
     };
 
     const decideWith = (rpc, args, said) =>
-        decided({ say, onDecided, refresh, clear: () => { state.note = ''; } },
+        decided({ say, onDecided, refresh, clear: () => { note.value = ''; } },
             rpc, args, said);
     const acts = actionsOf(decideWith, { onGo }, say);
-    // What is half-typed survives a redraw; a decision clears it.
-    acts.typing = (text) => { state.note = text; };
 
     function draw() {
         toggle.replaceChildren(beforeAfter(state.after, (on) => {
@@ -101,9 +104,19 @@ export function mountPermission(host, { onGo = () => {}, preview = null,
         count.textContent = state.rows?.length
             ? `${state.rows.length} waiting for you` : 'Waiting for you';
         list.replaceChildren(...waiting(state.rows, state.chosen,
-            (e) => { state.chosen = e.id; state.note = ''; draw(); }));
-        card.replaceChildren(...decide(
-            (state.rows ?? []).find((e) => e.id === state.chosen), acts, state.note));
+            (e) => { state.chosen = e.id; note.value = ''; draw(); }));
+        // Only when it would say something different. Replacing the card
+        // takes the note field out of the document and back in, and a field
+        // that leaves the document is a field that loses the focus — so a
+        // redraw in the middle of somebody typing sends the rest of their
+        // sentence to nowhere. Nothing here changes between refreshes except
+        // what this signature covers.
+        const entry = (state.rows ?? []).find((e) => e.id === state.chosen);
+        const sign = JSON.stringify([entry?.id ?? null, entry?.land, entry?.by,
+            entry?.note, entry?.superseded, changeWords(entry ?? {})]);
+        if (sign === shown) return;
+        shown = sign;
+        card.replaceChildren(...decide(entry, acts, note));
     }
 
     async function refresh() {

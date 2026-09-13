@@ -147,3 +147,7 @@ Each is done inside its story, and the story is the proof.
 `make player-run` from an empty database, stories 1–13 green, on the
 operator's machine and in CI. Then, and only then, the operator opens the
 page.
+
+All thirteen are green here, against `tools/geoserver-fixture.py` rather than
+the GeoServer container this sandbox cannot pull. The operator's machine runs
+the container, and that run is the one that counts.
