@@ -9,7 +9,7 @@
 // account, no ground row, and not one DEM tile cut: everything below happens
 // through controls on the page.
 
-import { test, expect, open, shows, panel, UI } from './players.js';
+import { test, expect, open, shows, signUp, UI } from './players.js';
 import { differs, variety } from './pixels.js';
 
 // The coverage tools/make-seed-dem.sh cuts: 4 x 4 km around Visp, in Valais.
@@ -39,21 +39,6 @@ async function where(page) {
     return readCoords(text);
 }
 
-async function signUp(a, email, name) {
-    const { page } = a;
-    await test.step('A makes an account and is told who they are', async () => {
-        await panel(a, 'Setup');
-        await page.getByLabel('email').fill(email);
-        await page.getByLabel('password').fill('a-long-enough-password');
-        await page.getByRole('button', { name: 'create account' }).click();
-        await expect(page.getByText(email).first()).toBeVisible({ timeout: UI });
-    });
-    await test.step('A says what to call them', async () => {
-        await page.getByLabel('your name').fill(name);
-        await page.getByRole('button', { name: 'save name' }).click();
-        await shows(a, name);
-    });
-}
 
 async function chooseTheGround(a, geoserverUrl) {
     const { page } = a;

@@ -7,7 +7,8 @@
 // And land in the wrong place cannot be made: A turns the boundary's
 // coordinates the wrong way round and reads what the world says about it.
 
-import { test, expect, open, shows, panel, UI } from './players.js';
+import { test, expect, open, shows, panel, signIn, signUp, UI }
+    from './players.js';
 
 const swap = (text) => text.trim().split('\n')
     .map((line) => line.split(',').map((n) => n.trim()).reverse().join(', '))
@@ -21,27 +22,7 @@ const readCoords = (text) => {
     return m ? { lat: Number(m[1]), lon: Number(m[3]) } : null;
 };
 
-async function signUp(player, email, name) {
-    const { page } = player;
-    await panel(player, 'Setup');
-    await page.getByLabel('email').fill(email);
-    await page.getByLabel('password').fill('a-long-enough-password');
-    await page.getByRole('button', { name: 'create account' }).click();
-    await expect(page.getByText(email).first()).toBeVisible({ timeout: UI });
-    await page.getByLabel('your name').fill(name);
-    await page.getByRole('button', { name: 'save name' }).click();
-    await shows(player, name);
-    await panel(player, 'World');
-}
 
-async function signIn(player, email, name) {
-    await panel(player, 'Setup');
-    await player.page.getByLabel('email').fill(email);
-    await player.page.getByLabel('password').fill('a-long-enough-password');
-    await player.page.getByRole('button', { name: 'sign in' }).click();
-    await shows(player, name);
-    await panel(player, 'World');
-}
 
 async function asksForLand(b) {
     await test.step('B has no land, and is told who hands it out', async () => {

@@ -13,7 +13,7 @@ import { mkdtempSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
-import { test, expect, open, shows, panel, UI } from './players.js';
+import { test, expect, open, shows, panel, signIn, UI } from './players.js';
 import { drawInQgis, qgisPython } from './qgis.js';
 
 const readCoords = (text) => {
@@ -27,14 +27,6 @@ const squareAt = ({ lon, lat }, size = 0.0006) =>
     + ` ${lon + size} ${lat + size}, ${lon - size} ${lat + size},`
     + ` ${lon - size} ${lat - size}))`;
 
-async function signIn(player, email, name) {
-    await panel(player, 'Setup');
-    await player.page.getByLabel('email').fill(email);
-    await player.page.getByLabel('password').fill('a-long-enough-password');
-    await player.page.getByRole('button', { name: 'sign in' }).click();
-    await shows(player, name);
-    await panel(player, 'World');
-}
 
 // B stands on their own land and reads where they are: the script never types
 // the land's position, it goes there and looks.

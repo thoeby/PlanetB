@@ -13,6 +13,10 @@ import { startWorld } from './world.js';
 export const UI = 30_000;
 export const RENDER = 600_000;
 
+// Every player in the run uses the same one: what is being proven is never
+// the password.
+export const PASSWORD = 'a-long-enough-password';
+
 // Every page a test opened, so the report can carry what their consoles said.
 const opened = new Map();
 
@@ -71,6 +75,32 @@ export const says = (page, text) => page.getByText(text, { exact: false }).first
 export async function shows(player, text, timeout = UI) {
     await expect(says(player.page, text), `${player.name} should be told "${text}"`)
         .toBeVisible({ timeout });
+}
+
+// Making an account and coming back to it. Every story after the first needs
+// both, so they live here rather than in four copies.
+//
+// The assertion is the account panel's own status line, not "the name appears
+// somewhere on the page": a product called "Valais bench" contains "Ben".
+export async function signUp(player, email, name) {
+    const { page } = player;
+    await panel(player, 'Setup');
+    await page.getByLabel('email').fill(email);
+    await page.getByLabel('password').fill(PASSWORD);
+    await page.getByRole('button', { name: 'create account' }).click();
+    await expect(page.getByText(email).first()).toBeVisible({ timeout: UI });
+    await page.getByLabel('your name').fill(name);
+    await page.getByRole('button', { name: 'save name' }).click();
+    await expect(page.locator('.auth-status')).toContainText(name, { timeout: UI });
+}
+
+export async function signIn(player, email, name) {
+    const { page } = player;
+    await panel(player, 'Setup');
+    await page.getByLabel('email').fill(email);
+    await page.getByLabel('password').fill(PASSWORD);
+    await page.getByRole('button', { name: 'sign in' }).click();
+    await expect(page.locator('.auth-status')).toContainText(name, { timeout: UI });
 }
 
 // The panel tabs along the bottom of the page (design 3k). Pressing the tab
