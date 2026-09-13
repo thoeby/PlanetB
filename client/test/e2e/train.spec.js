@@ -1,12 +1,12 @@
 // One tab trains a real z16 tile of the pilot region, at a size a software GPU
-// can finish, and the person who owns the ground publishes what came back.
+// can finish, and what it lands is published (the owner said yes before it).
 //
 // The DAG here is built by hand rather than by ensure_job, with the budgets,
 // the iteration count and the frame size turned down — 600 000 splats over
 // 5 000 iterations is what a real GPU is for (client/atoms/train.js). What is
-// being tested is the machinery: that the trained ply becomes a .sog, that the
-// .sog lands on the tile as a candidate, and that approving it is what moves
-// the tile's pointer (T7, db/0044_permission.sql).
+// being tested is the machinery: that the trained ply becomes a .sog, and that
+// landing it is what moves the tile's pointer — nobody is asked a second time
+// (SPEC §0.2, db/0069_approvalverbs.sql).
 
 import { test, expect } from '@playwright/test';
 import { existsSync } from 'node:fs';
@@ -156,17 +156,8 @@ async function workAs(page, who, done, timeout) {
 }
 
 const tileRow = () => JSON.parse(psql(`SELECT row_to_json(t)::text FROM
-    (SELECT published_version, sog_sha256, manifest, candidate_version,
-            candidate_sha256 FROM tile
+    (SELECT published_version, sog_sha256, manifest FROM tile
      WHERE z = ${TILE.z} AND x = ${TILE.x} AND y = ${TILE.y}) t`));
-
-// Somebody who did not make it says yes to it (T7).
-const approve = () => psql(`DO $$ BEGIN
-        PERFORM set_config('request.jwt.claims', json_build_object(
-            'sub', (SELECT id FROM auth.user WHERE email = '${APPROVER}'),
-            'role', 'admin')::text, true);
-        PERFORM approve_tile(${TILE.z}, ${TILE.x}, ${TILE.y});
-    END $$;`);
 
 // A software rasteriser, by what the adapter says it is. SwiftShader answers
 // WebGPU calls like any other adapter, so `backend: 'webgpu'` does not tell
@@ -178,7 +169,7 @@ const onSoftware = (page) => page.evaluate(async () => {
         `${info.description ?? ''} ${info.vendor ?? ''} ${info.architecture ?? ''}`);
 });
 
-test('one tab trains a z16 tile and a person publishes what came back',
+test('one tab trains a z16 tile and what it lands is published',
     async ({ page }) => {
         const errors = [];
         page.on('pageerror', (e) => errors.push(String(e)));
@@ -205,18 +196,12 @@ test('one tab trains a z16 tile and a person publishes what came back',
         }
         expect(trained.psnr).toBeGreaterThan(MIN_PSNR);
 
-        // The bytes are in the store and on the tile, and nobody else can see
-        // them yet: what a renderer produces is a candidate.
-        const waiting = tileRow();
-        expect(Number(waiting.candidate_version)).toBe(1);
-        expect(Number(waiting.published_version)).toBe(0);
-        expect(existsSync(join(FILES_ROOT,
-            `tiles/${TILE.z}/${TILE.x}/${TILE.y}/${waiting.candidate_sha256}.sog`))).toBe(true);
-
-        approve();
+        // The bytes are in the store and on the tile: what lands is published,
+        // because the person said yes before it was rendered (SPEC §0.2).
         const tile = tileRow();
         expect(Number(tile.published_version)).toBe(1);
-        expect(tile.sog_sha256).toBe(waiting.candidate_sha256);
+        expect(existsSync(join(FILES_ROOT,
+            `tiles/${TILE.z}/${TILE.x}/${TILE.y}/${tile.sog_sha256}.sog`))).toBe(true);
         expect(tile.manifest.splats).toBe(trained.splat_count);
         expect(errors, errors.join('\n')).toEqual([]);
     });

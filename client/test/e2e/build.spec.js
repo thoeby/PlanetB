@@ -155,17 +155,12 @@ test('a placed asset dirties its tile, renders into it, and stands on the ground
         await badge.getByRole('button').click();
         await expect(badge.getByRole('button')).toContainText(/job \d+/);
         await page.locator('.work-toggle').check();
-        await expect.poll(() => tileRow('candidate_version'), { timeout: 600000 })
+        // What lands is published: the decision comes before the render now
+        // (SPEC §0.2, db/0069_approvalverbs.sql), and opening the job is what
+        // this tab already did with the button above.
+        await expect.poll(() => tileRow('published_version'), { timeout: 600000 })
             .toBe(String(version));
         await page.locator('.work-toggle').uncheck();
-
-        // What was rendered waits for the owner of the ground (T7): they look
-        // at it in the Permission panel and publish it.
-        await page.evaluate(() => window.splatworld.hud.show('Permission'));
-        await page.locator('.pm-refresh').click();
-        await page.locator('.pm-yes').first().click();
-        await expect.poll(() => tileRow('published_version'), { timeout: 30000 })
-            .toBe(String(version));
 
         // The bench is in the tile, not merely in a table: `assemble` loaded
         // its canonical GLB and baked it in.

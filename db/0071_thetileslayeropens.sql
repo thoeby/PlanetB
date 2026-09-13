@@ -20,6 +20,9 @@ SELECT
         WHEN t.dirty THEN 'stale'
         ELSE 'current'
     END AS status,
-    tile_bbox(t.z, t.x, t.y) AS geom,
+    -- Typed, as db/0056_crs.sql typed it: out of a function it carries no
+    -- type modifier, geometry_columns lists it with SRID 0, and replacing a
+    -- view may not change a column's type in any case.
+    tile_bbox(t.z, t.x, t.y)::geometry(Polygon, 4326) AS geom,
     (t.z::bigint << 40) | (t.x::bigint << 20) | t.y::bigint AS id
-FROM tile t;
+FROM tile AS t;

@@ -32,17 +32,14 @@ function newBytes(z, x, y) {
 // back this job's work. Claimed atoms count: expire_claims() runs inside
 // claim_atom and frees whatever a dead worker left behind, which is exactly what
 // an abandoned api-test run leaves lying around. They go back at the end.
-// The last two steps: a renderer puts the bytes forward, and a person publishes
-// them (T7, db/0044_permission.sql). Here both are the admin whose claims the
-// block above set.
+// The last step: what a renderer lands is published, because the person said
+// yes before it was rendered (SPEC §0.2, db/0069_approvalverbs.sql). Until then
+// this asked approve_tile for a second decision that nobody is asked for now.
 const putForward = (z, x, y, sha) => `
             IF NOT publish_tile(${z}, ${x}, ${y}, ev, '${sha}',
                 (SELECT manifest FROM tile
                  WHERE tile.z = ${z} AND tile.x = ${x} AND tile.y = ${y})) THEN
                 RAISE EXCEPTION 'publish_tile refused version %', ev;
-            END IF;
-            IF NOT approve_tile(${z}, ${x}, ${y}) THEN
-                RAISE EXCEPTION 'approve_tile refused version %', ev;
             END IF;
             RAISE NOTICE 'published % at %', '${sha}', ev;`;
 
