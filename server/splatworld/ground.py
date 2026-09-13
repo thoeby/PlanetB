@@ -19,7 +19,7 @@ import psycopg
 
 from .config import Config
 from . import crs
-from .importer import DEM_SIZE, _auth_header, fetch
+from .importer import DEM_SIZE, Unreachable, _auth_header, fetch
 
 # Two tabs walking onto the same tile at the same moment must not both cut it.
 _cutting: dict[tuple[int, int, int], threading.Lock] = {}
@@ -181,6 +181,10 @@ def _ask(world: dict, bounds: tuple, auth: dict, at: str) -> tuple[bytes, str]:
     from . import geoserver
 
     said: list[str] = []
+    # Did anything answer at all? A service that refuses this tile is a
+    # different thing from one that is not running, and only the second is
+    # worth telling a player their world is broken over.
+    answered = False
     for version, name in _attempts(world, geoserver.spellings(world["coverage"])):
         box, axes = bounds, None
         scalings: list[tuple | None] = [None]
@@ -188,11 +192,25 @@ def _ask(world: dict, bounds: tuple, auth: dict, at: str) -> tuple[bytes, str]:
             # What this coverage calls its axes, and the box in its own CRS.
             try:
                 about = geoserver.describe_coverage(world["url"], name, auth)
+                answered = True
+            except Unreachable as err:
+                said.append(f"WCS {version} as {name!r}: {_said(str(err))}")
+                continue
             except SystemExit as err:
+                answered = True
                 said.append(f"WCS {version} as {name!r}: {_said(str(err))}")
                 continue
             axes = tuple(about["axes"])
             box = native_bounds(about["crs"], bounds)
+            # Where the data actually is, as the coverage itself describes it.
+            # The extent recorded when the ground was chosen can be wider — a
+            # declared bounding box often is — and a tile outside the data
+            # comes back as a 500 with an exception report in it rather than as
+            # an empty raster. There is no ground there; that is not a failure,
+            # it is the edge of the world (SPEC §3.8), and `cut` answers 404.
+            if about.get("envelope") and not crs.clip(box, about["envelope"]):
+                return b"", "outside the coverage"
+            box = crs.clip(box, about["envelope"]) or box
             world.setdefault("native", {})[version] = box
             scalings = _remembered_scalings(world, about.get("grid_axes"))
         for scale_axes in scalings:
@@ -202,7 +220,12 @@ def _ask(world: dict, bounds: tuple, auth: dict, at: str) -> tuple[bytes, str]:
             how = f" scaled on {'/'.join(scale_axes)}" if scale_axes else ""
             try:
                 raw = fetch(url, auth, what=f"elevation for {at}")
+                answered = True
+            except Unreachable as err:
+                said.append(f"WCS {version} as {name!r}{how}: {_said(str(err))}")
+                continue
             except SystemExit as err:
+                answered = True
                 said.append(f"WCS {version} as {name!r}{how}: {_said(str(err))}")
                 continue
             if not raw:
@@ -212,9 +235,10 @@ def _ask(world: dict, bounds: tuple, auth: dict, at: str) -> tuple[bytes, str]:
                 _worked[_world_key(world)] = (version, name, scale_axes)
                 return raw, url
             said.append(f"WCS {version}{how}: {problem}")
+    head = ("that GeoServer would not give this tile as a GeoTIFF"
+            if answered else "nothing answered at that GeoServer")
     raise CutFailed(
-        "no version of WCS on that GeoServer returned this tile as a GeoTIFF.\n  "
-        + "\n  ".join(said)
+        f"{head}.\n  " + "\n  ".join(said)
         + f"\n  the coverage is {world['coverage']!r} at {world['url']}")
 
 

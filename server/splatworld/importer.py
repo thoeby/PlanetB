@@ -49,6 +49,15 @@ class ImportError_(SystemExit):
     """A problem with the config or the sources, phrased for a person."""
 
 
+class Unreachable(ImportError_):
+    """Nothing answered at all, as opposed to answering with a refusal.
+
+    The difference is the whole difference between "your elevation service is
+    not running" and "there is nothing there", and the page says very different
+    things about the two.
+    """
+
+
 def die(message: str) -> None:
     raise ImportError_(f"import: {message}")
 
@@ -82,10 +91,15 @@ def fetch(url: str, headers: dict[str, str], *, what: str) -> bytes:
         with urllib.request.urlopen(req, timeout=300) as res:
             return res.read()
     except urllib.error.HTTPError as err:
-        body = err.read()[:400].decode("utf8", "replace")
+        # The whole body, not the first four hundred bytes of it: an OGC
+        # exception report begins with a screenful of namespace declarations,
+        # and cut off there it is no longer XML — so the one sentence in it
+        # that says what went wrong could not be read out, and every caller
+        # printed the namespaces instead.
+        body = err.read()[:20000].decode("utf8", "replace")
         die(f"{what}: {err.code} {err.reason} from {url}\n  {body}")
     except OSError as err:
-        die(f"{what}: could not reach {url} — {err}")
+        raise Unreachable(f"import: {what}: could not reach {url} — {err}") from err
     except ValueError as err:
         die(f"{what}: {url} is not an address I can open — {err}")
     return b""

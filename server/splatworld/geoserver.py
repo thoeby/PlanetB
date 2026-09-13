@@ -216,6 +216,13 @@ def describe_coverage(base: str, coverage_id: str, auth: dict) -> dict:
     which are i and j, and asking it to scale E gave ScaleAxisUndefined with E
     as the locator. So both are read: gml:Envelope's attribute for the one, the
     domain set's gml:axisLabels for the other.
+
+    And its corners, which is where the data actually is. The extent recorded
+    when the ground was chosen can be wider than that — a declared bounding box
+    often is — and a tile outside the data is a 500 with an exception report in
+    it, not an empty raster. Asking for one is the difference between "there is
+    no ground here" and "your elevation service is broken", and the page says
+    very different things about the two.
     """
     query = urllib.parse.urlencode({
         "service": "WCS", "version": "2.0.1", "request": "DescribeCoverage",
@@ -236,10 +243,33 @@ def describe_coverage(base: str, coverage_id: str, auth: dict) -> dict:
         srs = node.get("srsName") or ""
         if len(labels) >= 2:
             return {"axes": labels[:2], "crs": srs.rsplit("/", 1)[-1] or None,
-                    "grid_axes": grid, "url": url}
+                    "grid_axes": grid, "envelope": corners(node), "url": url}
     raise SystemExit(
         f"that coverage did not describe its axes.\n  asked: {url}"
         + (f"\n  it said: {said}" if said else ""))
+
+
+def corners(envelope) -> tuple | None:
+    """(x0, y0, x1, y1) of a gml:Envelope, in its own CRS, or None.
+
+    The corners are written in the envelope's axis order — E then N on a Swiss
+    coverage, and the same order `subset` asks in — so they are read as they
+    come and never swapped.
+    """
+    got = {}
+    for child in envelope:
+        name = local(child.tag)
+        if name not in ("lowerCorner", "upperCorner"):
+            continue
+        try:
+            got[name] = [float(v) for v in (child.text or "").split()[:2]]
+        except ValueError:
+            return None
+    low, high = got.get("lowerCorner"), got.get("upperCorner")
+    if not low or not high or len(low) < 2 or len(high) < 2:
+        return None
+    return (min(low[0], high[0]), min(low[1], high[1]),
+            max(low[0], high[0]), max(low[1], high[1]))
 
 
 def grid_axes(root) -> list[str] | None:

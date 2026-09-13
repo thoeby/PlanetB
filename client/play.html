@@ -663,10 +663,13 @@
       // is, over everything else — it is the ground under them — and the page
       // goes on drawing what it already has. It clears itself: the ground asks
       // again every few seconds, and says nothing once a tile arrives.
+      // One line, not the whole of what the server said. What it said in full
+      // is on the Setup panel's world line (groundMesh.onSaid, below), where
+      // there is room for it and where somebody looking for it will look.
       const noGround = groundMesh.trouble();
       if (noGround) {
           hud.notice('No ground here \u2014 the elevation service is not'
-              + ` answering (${noGround}). Trying again.`);
+              + ' answering. Trying again; Setup says what it said.');
       } else if (Date.now() < arrival.until) hud.notice(arrival.text);
       else hud.notice(onTheRoute ? '' : missing);
       const mine = areas.find((a) => a.mine) ?? areas[0];

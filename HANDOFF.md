@@ -219,6 +219,25 @@ Things that cost time once. Do not rediscover them.
   warps what comes back onto the whole tile. Nodata is sea level
   (`server/splatworld/dem.py`), so the viewer draws no ground past the edge of
   the coverage at all (`within` in `client/lib/groundtile.js`).
+- The extent recorded in `ground` when the coverage was chosen can be wider than
+  where the data actually is — a declared bounding box often is — so clipping to
+  it is not enough. `describe_coverage` now returns the coverage's own
+  `envelope` and `_ask` clips to that, in the native CRS, and answers "nothing
+  here" (404) rather than raising when a tile is past it.
+- "The service is not answering" and "the service will not give me that tile"
+  are different sentences and only the first is a broken world:
+  `importer.Unreachable` marks the first, and `_ask` counts whether anything
+  answered at all.
+- `fetch` used to read the first 400 bytes of an HTTP error body. An OGC
+  exception report begins with a screenful of namespace declarations, so cut off
+  there it is no longer XML and the one useful sentence in it could not be
+  parsed out — every caller printed the namespaces instead.
+
+**A browser that walks away is not an error**
+- A tab that navigates, closes, or gives up on a slow tile aborts the
+  connection, and the stdlib server printed a full traceback per abandoned
+  request (WinError 10053 on Windows). `serve.GONE` and `Server.handle_error`
+  make that one line.
 
 **pgTAP**
 - `SELECT plan(n)` must match the assertion count exactly. Write the test, run

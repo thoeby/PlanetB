@@ -192,14 +192,22 @@ class Handler(BaseHTTPRequestHandler):
 
     def _send(self, status: int, body: bytes = b"", ctype: str = "text/plain; charset=utf-8",
               extra: dict[str, str] | None = None) -> None:
-        self.send_response(status)
-        self.send_header("Content-Type", ctype)
-        self.send_header("Content-Length", str(len(body)))
-        for key, value in (extra or {}).items():
-            self.send_header(key, value)
-        self.end_headers()
-        if self.command != "HEAD" and body:
-            self.wfile.write(body)
+        try:
+            self.send_response(status)
+            self.send_header("Content-Type", ctype)
+            self.send_header("Content-Length", str(len(body)))
+            for key, value in (extra or {}).items():
+                self.send_header(key, value)
+            self.end_headers()
+            if self.command != "HEAD" and body:
+                self.wfile.write(body)
+        except GONE:
+            # The browser stopped listening: it navigated away, or the tab
+            # closed, or the page gave up on a tile that was taking too long.
+            # That is an ordinary thing for a viewer to do and there is nobody
+            # left to tell, so it is not worth a page of traceback (which is
+            # what Windows produced, once per abandoned request).
+            self.close_connection = True
 
     def _text(self, status: int, message: str) -> None:
         self._send(status, f"{message}\n".encode("utf8"), extra=CORS)
@@ -682,9 +690,25 @@ class Handler(BaseHTTPRequestHandler):
         self._text(201, "created")
 
 
+# A client that walked away, in the three shapes the platforms raise it:
+# WinError 10053 is Windows' "your host software aborted the connection".
+GONE = (ConnectionAbortedError, ConnectionResetError, BrokenPipeError)
+
+
 class Server(ThreadingHTTPServer):
     daemon_threads = True
     allow_reuse_address = True
+
+    def handle_error(self, request, client_address):
+        """One line for a browser that went away; the traceback for anything else."""
+        import sys
+        import traceback
+
+        if isinstance(sys.exc_info()[1], GONE):
+            if self.verbose:
+                print(f"  the browser at {client_address[0]} stopped listening")
+            return
+        traceback.print_exc()
 
     def __init__(self, cfg: Config, *, verbose: bool = False):
         self.verbose = verbose
