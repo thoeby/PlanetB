@@ -85,7 +85,12 @@ test('story 10 — C asks to build on B’s land, and B says yes',
             await search.fill('Valais bench');
             await search.dispatchEvent('change');
             await c.page.getByRole('button', { name: /Valais bench/ }).first().click();
-            await c.page.mouse.click(640, 520);
+            // Lower on the screen than the horizon: the ray that finds the
+            // ground reaches four hundred metres (client/js/build.js), and
+            // downhill at eye level that is not far enough to touch anything.
+            await c.page.mouse.click(700, 620);
+            await expect(c.page.locator('.build-sel'))
+                .toContainText(/placing|selected|Move/i, { timeout: UI });
             await c.page.getByRole('button', { name: 'Save', exact: true }).click();
             await expect(c.page.locator('.build-saved'))
                 .toContainText('saved', { timeout: UI });
