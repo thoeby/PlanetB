@@ -562,6 +562,9 @@
       build.refresh();
       api.rpc('area_at', { lon: g.lon, lat: g.lat }).then((areas) => {
           const a = areas?.[0];
+          // SPEC §2.4: the land you are standing on has a card whoever's it
+          // is, and §3.11 is asked for from that card.
+          land.standingOn(a ?? null);
           if (!a) {
               hud.standing({ land: 'unclaimed ground', owner: '',
                   right: 'nobody owns this', may: false });

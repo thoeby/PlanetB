@@ -12,7 +12,7 @@
 // may propose to, grey is everyone else's: the legend's three colours.
 
 import * as api from './api.js';
-import { landRows, selected } from './landui.js';
+import { asking, landRows, selected } from './landui.js';
 
 const el = (tag, props = {}, ...kids) => {
     const node = Object.assign(document.createElement(tag), props);
@@ -121,17 +121,19 @@ function labelWorld(ctx, marks, host, group) {
 async function cardOf(area) {
     const empty = {
         contents: [], drawn: [], progress: null, grants: [], proposals: [],
-        refusal: null,
+        refusal: null, asks: [],
     };
     if (!area) return empty;
-    const [contents, drawn, progress, grants, proposals, refusal] = await Promise.all([
-        api.rpc('area_contents', { area_id: area.id }).catch(() => []),
-        api.rpc('area_drawn', { area_id: area.id }).catch(() => []),
-        api.rpc('area_progress', { area_id: area.id }).catch(() => null),
-        api.rpc('area_grants', { area_id: area.id }).catch(() => []),
-        api.rpc('my_proposals').catch(() => []),
-        api.rpc('area_refusal', { area_id: area.id }).catch(() => null),
-    ]);
+    const [contents, drawn, progress, grants, proposals, refusal, asks]
+        = await Promise.all([
+            api.rpc('area_contents', { area_id: area.id }).catch(() => []),
+            api.rpc('area_drawn', { area_id: area.id }).catch(() => []),
+            api.rpc('area_progress', { area_id: area.id }).catch(() => null),
+            api.rpc('area_grants', { area_id: area.id }).catch(() => []),
+            api.rpc('my_proposals').catch(() => []),
+            api.rpc('area_refusal', { area_id: area.id }).catch(() => null),
+            api.rpc('grant_requests', { area_id: area.id }).catch(() => []),
+        ]);
     return {
         contents: contents ?? [],
         drawn: drawn ?? [],
@@ -139,6 +141,7 @@ async function cardOf(area) {
         grants: grants ?? [],
         proposals: (proposals ?? []).filter((p) => p.area_id === area.id),
         refusal: refusal?.note ? refusal : null,
+        asks: asks ?? [],
     };
 }
 
@@ -159,9 +162,14 @@ const WATCH_MS = 10000;
 function redraw(list, detail, state, ctx) {
     list.replaceChildren(...landRows(state, ctx.pick));
     const area = state.areas.find((a) => a.id === state.chosen);
-    detail.replaceChildren(...selected(area, state, {
+    // The ground under you, when it is not already one of yours: SPEC §2.4
+    // gives it the same card, and §3.11 is asked for from it.
+    const under = state.under
+        && !state.areas.some((a) => a.id === state.under.id)
+        ? asking(state.under, ctx) : null;
+    detail.replaceChildren(...[under, ...selected(area, state, {
         ...ctx, refresh: () => ctx.load(area),
-    }));
+    })].filter(Boolean));
 }
 
 export function mountLand(host, { onGo = () => {}, onRemove = () => {},
@@ -173,7 +181,7 @@ export function mountLand(host, { onGo = () => {}, onRemove = () => {},
 
     const state = {
         areas: [], chosen: null, contents: [], drawn: [], progress: null,
-        grants: [], proposals: [],
+        grants: [], proposals: [], asks: [], under: null,
     };
 
     const say = (msg, bad = false) => {
@@ -213,6 +221,14 @@ export function mountLand(host, { onGo = () => {}, onRemove = () => {},
     setInterval(() => { if (api.userId()) refresh(); }, WATCH_MS);
     return {
         refresh,
+        // SPEC §2.4: the land you are standing on gets a card too, whoever's
+        // it is — that is where you ask to build on somebody else's.
+        standingOn(area) {
+            const id = area?.id ?? null;
+            if (id === (state.under?.id ?? null)) return;
+            state.under = area ?? null;
+            draw();
+        },
         areas: () => state.areas,
         chosen: () => state.chosen,
         inside: pick,

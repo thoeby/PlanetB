@@ -4,7 +4,7 @@
 //
 // Who may touch this land, and how many have to say yes, is client/js/landpeople.js.
 
-import { approvals, people } from './landpeople.js';
+import { approvals, asks, people } from './landpeople.js';
 
 export const el = (tag, props = {}, ...kids) => {
     const node = Object.assign(document.createElement(tag), props);
@@ -64,6 +64,7 @@ export function selected(area, state, ctx) {
         howFine(area, ctx),
         shapeInQgis(area, ctx),
         approvals(area, ctx),
+        asks(area, state, ctx),
         people(area, state, ctx),
         proposals(state),
         drawn(state, ctx),
@@ -115,6 +116,38 @@ async function finer(area, detail, status, ctx) {
         status.textContent = String(err.body?.message ?? err.message ?? err);
         status.dataset.bad = '1';
     }
+}
+
+// SPEC §3.11 step 1: standing on somebody else's land, this is where you ask
+// to build on it. The card says whose it is, because that is the thing you are
+// asking of — a person, not a form.
+export function asking(area, ctx) {
+    const note = el('input', { type: 'text', className: 'ask-note',
+        placeholder: 'what you would like to build there' });
+    const send = el('button', { type: 'button', className: 'ask-send primary',
+        textContent: 'Ask to build here' });
+    const status = el('p', { className: 'status ask-status' });
+    send.onclick = () => askFor(area, note.value, send, status, ctx);
+    return el('div', { className: 'section land-under' },
+        el('span', { className: 'label', textContent: 'The land you are on' }),
+        el('div', { className: 'name', textContent: name(area) }),
+        el('div', { className: 'muted',
+            textContent: `${area.owner ?? 'somebody else'} owns it` }),
+        note, send, status);
+}
+
+async function askFor(area, note, send, status, ctx) {
+    send.disabled = true;
+    status.dataset.bad = '';
+    try {
+        await ctx.api.rpc('request_grant',
+            { area_id: area.id, right_: 'direct_edit', note });
+        status.textContent = 'asked — they will see it on their land';
+    } catch (err) {
+        status.textContent = String(err.body?.message ?? err.message ?? err);
+        status.dataset.bad = '1';
+    }
+    send.disabled = false;
 }
 
 // SPEC §2.11: a button that downloads a QGIS project already connected to this

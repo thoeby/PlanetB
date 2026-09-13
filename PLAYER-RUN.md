@@ -135,7 +135,12 @@ Each is done inside its story, and the story is the proof.
 
 ## Blocked
 
-(Agent writes here, one sentence per item, and stops.)
+- Story 10's last step, "C's object is attributed to C" (SPEC §3.11 step 3,
+  "Anna sees Ben's objects as placed by Ben"), is not done and is not going to
+  be: the operator's decision is that the world does not record who put an
+  object down — either somebody may build there or they may not — so neither
+  `instance` nor `feature` carries an author, and the rest of story 10 is done
+  without it.
 
 ## Done means
 
