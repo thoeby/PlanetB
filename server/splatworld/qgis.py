@@ -27,14 +27,16 @@ import psycopg
 
 from . import crs as world
 from .config import Config
+from .geoserver import wcs10_name
 
 # QGIS writes the version it saved with; it opens anything from 3.x.
 QGIS_VERSION = "3.34.0-Prizren"
 
 GEOMETRY_NAMES = {"polygon": "Polygon", "line": "Line", "point": "Point"}
 
-# What the provider is told the column holds. The views are MultiPolygon and
-# MultiLineString (db/0057), and a point is a point.
+# What the provider is told the column holds. The views people draw through are
+# MultiPolygon and MultiLineString (db/0057), and a point is a point; a layer
+# that is only there to look at can say something else with `pg_type`.
 PG_GEOMETRY = {"polygon": "MultiPolygon", "line": "MultiLineString",
                "point": "Point"}
 
@@ -73,7 +75,8 @@ def pg_source(conn: dict, layer: dict) -> str:
     what the committed gis/splatworld.qgs holds: a project in a repository must
     not carry anybody's credentials.
     """
-    shape = PG_GEOMETRY.get(layer.get("geometry", "polygon"), "MultiPolygon")
+    shape = layer.get("pg_type") or PG_GEOMETRY.get(
+        layer.get("geometry", "polygon"), "MultiPolygon")
     where = (f"service='{conn['service']}'" if not conn.get("password")
              else (f"dbname='{conn['dbname']}' host={conn['host']} "
                    f"port={conn['port']} user='{conn['user']}' "
@@ -148,13 +151,22 @@ def map_layer(parent, layer: dict, conn: dict, app_url: str = "") -> str:
 
 
 def raster_layer(parent, wms_url: str, coverage: str) -> str:
-    """The ground, as a picture to draw on: the same coverage, over WMS."""
+    """The ground, as a picture to draw on: the same coverage, over WMS.
+
+    Spelled the way WMS spells it. What the world stores is what its WCS
+    capabilities called the coverage, and a WCS 2.0 CoverageId may not hold a
+    colon, so GeoServer writes the workspace separator there as a double
+    underscore: `splatworld__visp` over WCS is `splatworld:visp` over WMS, and
+    asked for the first, WMS does not know the layer — which is a project that
+    opens with the ground missing and no error anybody sees.
+    """
+    name = wcs10_name(coverage)
     ident = "ground_hillshade"
     node = _sub(parent, "maplayer", type="raster", hasScaleBasedVisibilityFlag="0")
     _sub(node, "id", ident)
     _sub(node, "datasource",
-         f"crs={world.WORLD}&format=image/png&layers={coverage}&styles=&url={wms_url}")
-    _sub(node, "layername", f"Ground ({coverage})")
+         f"crs={world.WORLD}&format=image/png&layers={name}&styles=&url={wms_url}")
+    _sub(node, "layername", f"Ground ({name})")
     crs(node)
     _sub(node, "provider", "wms")
     return ident
@@ -177,18 +189,20 @@ def project_xml(layers: list[dict], conn: dict, wms_url: str,
         entries.append((ident, layer["label"], pg_source(conn, layer)))
     # Land is assigned, not drawn (SPEC §3.2), and the tiles are the world's
     # own bookkeeping: both are there to see, neither to edit.
-    for name, layer_name, shape, editable in (
-            ("Your land", "area", "polygon", False),
-            ("Placed", "instance", "point", True),
-            ("Tiles", "tile", "polygon", False)):
+    for name, layer_name, shape, pg_type, editable in (
+            ("Your land", "area", "polygon", None, False),
+            ("Placed", "instance", "point", None, True),
+            # One rectangle per compile unit, and one ring each: gis.tile is
+            # tile_bbox(), which is a Polygon (db/0008_admin.sql).
+            ("Tiles", "tile", "polygon", "Polygon", False)):
         spec = {"layer": layer_name, "label": name, "geometry": shape,
-                "fields": [], "read_only": not editable}
+                "pg_type": pg_type, "fields": [], "read_only": not editable}
         ident = map_layer(project_layers, spec, conn,
                           app_url if layer_name == "area" else "")
         entries.append((ident, name, pg_source(conn, spec)))
     if coverage:
         ident = raster_layer(project_layers, wms_url, coverage)
-        entries.append((ident, f"Ground ({coverage})", ""))
+        entries.append((ident, f"Ground ({wcs10_name(coverage)})", ""))
 
     # Drawing order is the order they are listed: the ground underneath.
     for ident, name, source in entries:

@@ -47,6 +47,24 @@ def test_the_ground_is_in_it():
     assert raster and "ch:alti" in raster[0].find("datasource").text
 
 
+def test_the_ground_is_named_the_way_wms_names_it():
+    """A WCS 2.0 CoverageId has no colon in it; a WMS layer name does."""
+    raw = qgis.project_xml(LAYERS, CONN, "http://gs.example/wms", "ch__alti")
+    root = ET.fromstring(raw)
+    raster = [m for m in root.findall(".//maplayer") if m.get("type") == "raster"][0]
+    assert "layers=ch:alti&" in raster.find("datasource").text
+    assert raster.find("layername").text == "Ground (ch:alti)"
+    assert "ch__alti" not in ET.tostring(root, encoding="unicode")
+
+
+def test_the_tiles_layer_is_what_the_view_holds():
+    """One rectangle per compile unit, keyed on the id gis.tile carries."""
+    tiles = [m for m in project().findall(".//maplayer")
+             if m.find("layername").text == "Tiles"][0]
+    assert "type=Polygon " in tiles.find("datasource").text
+    assert "key='id'" in tiles.find("datasource").text
+
+
 def test_the_layers_are_postgres_layers_keyed_on_id():
     root = project()
     vectors = [m for m in root.findall(".//maplayer") if m.get("type") == "vector"]
