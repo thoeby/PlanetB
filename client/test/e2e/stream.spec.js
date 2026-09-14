@@ -32,10 +32,13 @@ async function boot(page) {
     await page.waitForFunction(() => window.splatworld?.app?.graphicsDevice, null,
         { timeout: 60000 });
     // These tests script the camera, so the player lets go of it — including
-    // where it points, which the player would otherwise own.
+    // where it points, which the player would otherwise own. They also assert
+    // the exact set on screen at each checkpoint, so the twenty seconds a tile
+    // is kept after leaving the view (traverse.js KEEP_MS) is turned off.
     await page.evaluate(() => {
         window.splatworld.setDriving(false);
         window.splatworld.camera.setEulerAngles(-90, 0, 0);
+        window.splatworld.streamer.limits = { ...window.splatworld.streamer.limits, keepMs: 0 };
     });
     expect(errors, errors.join('\n')).toEqual([]);
     return errors;

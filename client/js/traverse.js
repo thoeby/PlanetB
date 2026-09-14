@@ -17,6 +17,11 @@ export const HYSTERESIS = 1.4;
 // 12 M splats is what a mid-range card sorts and draws at 60 fps; 25 M was
 // what the engine would accept, not what it could show.
 export const LIMITS = { tiles: 64, splats: 12e6, inflight: 4 };
+// Without WebGPU the engine sorts every loaded splat on the CPU each time the
+// camera turns and ships the order back as a texture; past a few million that
+// is the stutter, not the draw. Under WebGL2 the world is kept a third the
+// size and tiles are taken two at a time (client/play.html).
+export const WEBGL_LIMITS = { tiles: 48, splats: 4e6, inflight: 2 };
 
 // How long a tile that has left the view is kept before it is thrown away.
 // Panning is turning your head and turning it back, and a tile dropped the
@@ -77,16 +82,37 @@ export const showing = (row, candidates) => (candidates && row?.candidate_sha256
 
 const published = (row, world) => Boolean(showing(row, world?.candidates));
 
+// The traversal visits hundreds of tiles a pass; a tile's radius never changes
+// and its centre only when the anchor or what it shows does, so both are kept
+// by key. The anchor object is replaced on every rebase (origin.js), which is
+// what tells a cached centre it is stale.
+const geometry = new Map();
+
+function geometryOf(k, z, x, y, shown, origin) {
+    let g = geometry.get(k);
+    if (!g) {
+        g = { radius: tileRadius(z, x, y), anchor: null, sha: null, centre: null };
+        geometry.set(k, g);
+    }
+    if (g.anchor !== origin.anchor || g.sha !== shown.sha) {
+        g.anchor = origin.anchor;
+        g.sha = shown.sha;
+        g.centre = origin.localOf(shown.manifest.origin);
+    }
+    return g;
+}
+
 class Candidate {
     constructor(z, x, y, row, origin, candidates) {
         this.z = z; this.x = x; this.y = y;
         this.key = key(z, x, y);
         this.row = row;
-        this.radius = tileRadius(z, x, y);
         // Where the tile is comes from the manifest of whatever is being shown:
         // a candidate carries its own (T7).
         this.shown = showing(row, candidates);
-        this.centre = origin.localOf(this.shown.manifest.origin);
+        const g = geometryOf(this.key, z, x, y, this.shown, origin);
+        this.radius = g.radius;
+        this.centre = g.centre;
     }
 }
 
@@ -198,8 +224,9 @@ export function selectTiles(world, camera, limits = LIMITS) {
     // Kept for a while after it leaves the view — unless there are more tiles
     // loaded than the cap allows, in which case the least recently used go now.
     const crowded = world.loaded.size > limits.tiles;
+    const keepMs = limits.keepMs ?? KEEP_MS;
     const cold = (k) => crowded
-        || (world.now ?? 0) - (world.loaded.get(k).seenAt ?? 0) >= KEEP_MS;
+        || (world.now ?? 0) - (world.loaded.get(k).seenAt ?? 0) >= keepMs;
     const unload = [...world.loaded.keys()]
         .filter((k) => !want.has(k) && cold(k) && replaced(world, keep, k))
         .sort((a, b) => (world.loaded.get(a).usedAt - world.loaded.get(b).usedAt));

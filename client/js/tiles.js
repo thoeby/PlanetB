@@ -8,7 +8,7 @@ import * as tm from '../lib/tilemath.js';
 import { LIMITS, POLL_MS, RETRY_MS, key, parseKey, selectTiles, showing }
     from './traverse.js';
 
-export { LIMITS, POLL_MS, RETRY_MS, key, parseKey, selectTiles, showing,
+export { LIMITS, WEBGL_LIMITS, POLL_MS, RETRY_MS, key, parseKey, selectTiles, showing,
     REFINE_PX, HYSTERESIS, tileRadius, screenSpaceError, sphereVisible }
     from './traverse.js';
 
@@ -18,10 +18,23 @@ export { LIMITS, POLL_MS, RETRY_MS, key, parseKey, selectTiles, showing,
 // play.html, and handing it over keeps this module loadable under node, where
 // the traversal above is tested.
 
-export function cameraState(cameraEntity, screenH) {
+// The frustum is built here from the camera node's current transform rather
+// than read off the component: the engine's frustum, and its view matrix, are
+// the ones it last rendered with, a frame behind, and a selection made with
+// them culls against where the camera was. `pc` is the engine; without it the
+// rendered frustum is used.
+let scratch = null;
+
+export function cameraState(cameraEntity, screenH, pc = null) {
     const cc = cameraEntity.camera;
     const p = cameraEntity.getPosition();
-    const d = cc.frustum.planeData;
+    let d = cc.frustum.planeData;
+    if (pc) {
+        scratch ??= { frustum: new pc.Frustum(), view: new pc.Mat4(), mat: new pc.Mat4() };
+        scratch.view.copy(cameraEntity.getWorldTransform()).invert();
+        scratch.frustum.setFromMat4(scratch.mat.mul2(cc.projectionMatrix, scratch.view));
+        d = scratch.frustum.planeData;
+    }
     const planes = [];
     for (let i = 0; i < 6; i++) planes.push([d[i * 4], d[i * 4 + 1], d[i * 4 + 2], d[i * 4 + 3]]);
     return {
@@ -75,6 +88,8 @@ export class TileStreamer {
         this.failed = new Map();
         this.pending = 0;
         this.clock = 0;
+        // Tiles whose bytes have arrived, waiting for their frame in the scene.
+        this.arrived = [];
     }
 
     // rows: every row of GET /api/tile, published or not — refinableInto()
@@ -95,6 +110,7 @@ export class TileStreamer {
     }
 
     update(camera) {
+        this.placeNext();
         const sel = selectTiles(this.world(), camera, this.limits);
         const now = Date.now();
         for (const k of sel.want) {
@@ -121,25 +137,23 @@ export class TileStreamer {
         this.entries.set(c.key, entry);
         this.pending++;
         // The in-flight count must fall exactly once per load, whichever way it
-        // ends — ready, error, or unloaded while still in the air.
-        const settle = () => {
+        // ends — placed, error, or unloaded while still in the air.
+        entry.settle = () => {
             if (entry.settled) return false;
             entry.settled = true;
             this.pending--;
             return true;
         };
+        // Not placed here: every splat set added to the scene has the engine
+        // re-sort the world, so arrivals are spaced one per frame by placeNext()
+        // rather than landing together and stalling one frame for all of them.
         asset.ready(() => {
             // Unloaded while in the air: the bytes arrived for nobody.
-            if (!settle() || this.entries.get(c.key) !== entry) return this.release(null, asset);
-            this.failed.delete(c.key);
-            const entity = new this.pc.Entity(c.key);
-            entity.addComponent('gsplat', { asset });
-            this.place(entity, c.row);
-            this.app.root.addChild(entity);
-            entry.entity = entity;
+            if (this.entries.get(c.key) !== entry) return this.release(null, asset);
+            this.arrived.push(entry);
         });
         asset.once('error', (err) => {
-            if (!settle()) return;
+            if (!entry.settle()) return;
             this.entries.delete(c.key);
             this.failed.set(c.key, Date.now() + RETRY_MS);
             this.app.assets.remove(asset);
@@ -147,6 +161,24 @@ export class TileStreamer {
         });
         this.app.assets.add(asset);
         this.app.assets.load(asset);
+    }
+
+    // Puts one arrived tile into the scene. Called once per frame.
+    placeNext() {
+        while (this.arrived.length) {
+            const entry = this.arrived.shift();
+            const k = entry.asset.name;
+            if (this.entries.get(k) !== entry) continue;   // unloaded since it arrived
+            if (!entry.settle()) continue;
+            this.failed.delete(k);
+            const entity = new this.pc.Entity(k);
+            entity.addComponent('gsplat', { asset: entry.asset });
+            this.place(entity, entry.row);
+            this.app.root.addChild(entity);
+            entry.entity = entity;
+            return entry;
+        }
+        return null;
     }
 
     // The tile's splats are in its own ENU frame; the scene is in the anchor's.

@@ -153,6 +153,35 @@ test('a load that finishes after its tile was unloaded is unloaded again', async
     assert.equal(s.entries.size, 0);
 });
 
+test('arrivals are placed one per update, and count as in flight until then', () => {
+    const rows = COORDS.map((c) => row(...c));
+    const s = streamerWith(rows, null);
+    const cam = camera(1e6);
+    s.update(cam);                              // claims four; the fake loads at once
+    const placed = () => [...s.entries.values()].filter((e) => e.entity).length;
+    assert.equal(s.pending, 4, 'arrived but not yet placed is still in flight');
+    assert.equal(placed(), 0);
+    s.update(cam);
+    assert.equal(placed(), 1);
+    assert.equal(s.pending, 3);
+    for (let i = 0; i < 3; i++) s.update(cam);
+    assert.equal(s.pending, 0);
+    assert.equal(placed(), 4);
+    assert.equal(s.placeNext(), null, 'nothing left to place');
+});
+
+test('an arrival unloaded before its frame is never placed', async () => {
+    const rows = COORDS.map((c) => row(...c));
+    const s = streamerWith(rows, null);
+    s.update(camera(2e7));                      // the root arrives, unplaced
+    assert.equal(s.arrived.length, 1);
+    s.unload('6/33/22');
+    assert.equal(s.pending, 0);
+    assert.equal(s.placeNext(), null);
+    await tick();
+    assert.equal(s.entries.size, 0);
+});
+
 test('of two swaps in flight, only the newest is adopted', async () => {
     const rows = COORDS.map((c) => row(...c));
     const s = streamerWith(rows, null, { manual: true });

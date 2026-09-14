@@ -32,7 +32,7 @@ SELECT set_config('request.jwt.claims',
     json_build_object('sub', holder_id, 'role', 'player')::text, true) FROM ids;
 SELECT is(fail_atom(930001, 'no ground at 14/9301/9301'), 'ready',
     'the first failure puts it back in the pool');
-SELECT is((SELECT attempts FROM atom WHERE id = 930001), 1, 'and counts an attempt');
+SELECT is((SELECT attempts FROM atom WHERE id = 930001), 1::smallint, 'and counts an attempt');
 SELECT is((SELECT worker_id FROM atom WHERE id = 930001), null, 'in nobody''s hands');
 SELECT is((SELECT result ->> 'error' FROM atom WHERE id = 930001),
     'no ground at 14/9301/9301', 'with the reason recorded');
@@ -43,7 +43,7 @@ UPDATE atom SET state = 'claimed', worker_id = '00000000-0000-0000-0000-00000000
                 claimed_at = now(), attempts = 2 WHERE id = 930001;
 SELECT is(fail_atom(930001, 'still no ground'), 'failed',
     'three failures and the piece has given up');
-SELECT is((SELECT attempts FROM atom WHERE id = 930001), 3, 'all three counted');
+SELECT is((SELECT attempts FROM atom WHERE id = 930001), 3::smallint, 'all three counted');
 SELECT is(fail_atom(930002, 'x'), 'missing', 'an atom that does not exist is missing');
 
 SELECT * FROM finish();

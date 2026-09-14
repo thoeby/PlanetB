@@ -1296,3 +1296,50 @@ record now, and the page wears them. What changed:
 `client/test/hud.test.js` follows the regrouping, `client/test/e2e/hud.spec.js`
 the strip, and two new browser tests cover the apps drawer and the bell. The
 story helper `panel()` looks in both bars (`client/test/run/players.js`).
+
+## Viewer polish: arrivals, stalls, holes
+
+A pass over the viewer for the stall felt when a tile lands and for the frame
+rate around it. No schema, RPC or atom changed; `LIMITS` is as it was.
+
+- **WebGPU first, WebGL2 as the fallback** (`pc.createGraphicsDevice` in
+  `play.html`). This is where the stall came from: with WebGL2, PlayCanvas
+  2.22's unified gsplat path sorts every loaded splat on the CPU and, for each
+  new tile, renders its centres to a texture and reads them back with a
+  synchronous `readPixels` (`GSplatSogData.generateCenters`, `texture.read`
+  with `immediate: true`) — a full GPU stall on every arrival, then a re-sort
+  of the whole world. With WebGPU both stay on the device. `?xr=1` stays on
+  WebGL2, the path the engine's XR is built on. The status line names the
+  device in use.
+- **A budget for the CPU-sort path**: `WEBGL_LIMITS` (4 M splats, 48 tiles,
+  two downloads at a time) in `traverse.js`; WebGPU keeps `LIMITS`.
+- **Arrivals are placed one per frame** (`TileStreamer.placeNext`, `arrived`),
+  not in the frame they land: each placement has the engine rebuild and re-sort,
+  and four landing together stalled one frame for all of them. A tile counts as
+  in flight until it is placed, so `pending` still tells the tests when the
+  streamer is quiet.
+- **The traversal runs when the view or the in-flight set changes** and every
+  tenth frame otherwise; on the other frames the streamer only places arrivals.
+  A tile's radius and centre are cached by key, anchor and sha
+  (`geometryOf`) instead of being recomputed with trig for every visit.
+- **The culling frustum comes from the camera node's current transform**
+  (`cameraState(camera, h, pc)`). The engine's frustum and its view matrix are
+  the ones it last rendered with, a frame behind; a selection made with them
+  culls against where the camera was, which the throttled traversal made
+  visible.
+- `nearClip` 1 → 0.3 for eye-level walking. The status line is written only
+  when its text changes: a DOM write per frame is a layout per frame.
+- Tests: `tilestream.test.js` covers the staggered placement and an arrival
+  unloaded before its frame. `stream.spec` turns `KEEP_MS` off through
+  `limits.keepMs` — it asserts exact sets per checkpoint, and the twenty-second
+  keep-alive made its first checkpoint fail on the untouched head. `xr.spec`
+  compared the plain page's budget with a number `LIMITS` no longer is; it now
+  asks the page which limits its device picked.
+
+Known, not done: `sample-v1` places gaussians with σ = 0.7 × the sample
+spacing over randomly sampled surfaces, which leaves speckle between samples
+(σ ≈ spacing covers). That is an atom change — new `algo_version`, recompile —
+not viewer polish. The WebGPU path is untested here: the default chromium has
+no `navigator.gpu`, so every browser test still runs the WebGL2 path.
+`assemble`, `frame` and `pilot` specs fail in this container on the untouched
+head as well (the worker never finishes under SwiftShader).

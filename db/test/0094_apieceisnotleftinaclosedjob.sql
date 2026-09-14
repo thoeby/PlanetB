@@ -44,7 +44,14 @@ SELECT is((SELECT count(*) FROM atom
     'everything else in the job waits on it');
 
 -- A verified dependency counts from the start: mark it done, ask again, and
--- the frames are ready without anybody touching the assemble.
+-- the frames are ready without anybody touching the assemble. The state
+-- machine (db/0005) has no ready -> verified, so a worker claims it on the way.
+INSERT INTO worker (id, user_id, caps, trust)
+SELECT '00000000-0000-0000-0000-000000000941'::uuid, owner_id, '{}', 0.8 FROM ids;
+INSERT INTO artifact (sha256, kind, bytes, algo_version)
+VALUES (repeat('a', 64), 'init_ply', 4096, 'assemble-v2');
+UPDATE atom SET state = 'claimed', worker_id = '00000000-0000-0000-0000-000000000941',
+    claimed_at = now(), heartbeat_at = now() WHERE id = (SELECT id FROM asm);
 UPDATE atom SET state = 'verified', output_sha256 = repeat('a', 64),
     worker_id = NULL WHERE id = (SELECT id FROM asm);
 SELECT ok(recompile_land('00000000-0000-0000-0000-000000000094') > 0, 'asked again');

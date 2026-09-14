@@ -37,6 +37,11 @@ async function boot(page, query = '') {
 }
 
 const budget = (page) => page.evaluate(() => window.splatworld.streamer.limits.splats);
+// What the plain page picks: the device's own budget (client/js/traverse.js).
+const own = (page) => page.evaluate(async () => {
+    const t = await import('./js/traverse.js');
+    return window.splatworld.app.graphicsDevice.isWebGPU ? t.LIMITS.splats : t.WEBGL_LIMITS.splats;
+});
 
 test('?xr=1 takes the headset budget, and the plain page keeps its own',
     async ({ page }) => {
@@ -46,7 +51,7 @@ test('?xr=1 takes the headset budget, and the plain page keeps its own',
         expect(errors, errors.join('\n')).toEqual([]);
 
         await boot(page, '');
-        expect(await budget(page)).toBe(25e6);
+        expect(await budget(page)).toBe(await own(page));
         await expect(page.locator('#xr')).toBeHidden();
     });
 

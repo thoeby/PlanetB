@@ -69,7 +69,7 @@
   import * as tm from './lib/tilemath.js';
   import { mountAuth } from './js/auth.js';
   import { FloatingOrigin } from './js/origin.js';
-  import { TileStreamer, cameraState } from './js/tiles.js';
+  import { LIMITS, TileStreamer, WEBGL_LIMITS, cameraState } from './js/tiles.js';
   import { Player, Terrain, WALK } from './js/player.js';
   import { mountWork } from './js/workui.js';
   import { SpotChecker } from './js/spot.js';
@@ -211,15 +211,24 @@
     ?? (ground?.centre ? { ...ground.centre, h: 0 } : { lon: 0, lat: 0, h: 0 });
   const origin = new FloatingOrigin(anchor);
 
-  const app = new pc.Application(document.getElementById('view'), {
-    graphicsDeviceOptions: { antialias: false },
+  // WebGPU where the browser has it, WebGL2 otherwise. The difference is not
+  // cosmetic: with WebGL2 the engine sorts every splat on the CPU and reads
+  // each new tile's centres back from the GPU synchronously, which is the
+  // stall felt whenever a tile lands. With WebGPU both happen on the device.
+  // A headset session stays on WebGL2, the path the engine's XR is built on.
+  const wantsXr = xrRequested(location.search);
+  const canvas = document.getElementById('view');
+  const device = await pc.createGraphicsDevice(canvas, {
+    deviceTypes: wantsXr ? [pc.DEVICETYPE_WEBGL2] : [pc.DEVICETYPE_WEBGPU, pc.DEVICETYPE_WEBGL2],
+    antialias: false, powerPreference: 'high-performance', xrCompatible: Boolean(navigator.xr),
   });
+  const app = new pc.Application(canvas, { graphicsDevice: device });
   app.setCanvasFillMode(pc.FILLMODE_FILL_WINDOW);
   app.setCanvasResolution(pc.RESOLUTION_AUTO);
 
   const camera = new pc.Entity('camera');
   camera.addComponent('camera', {
-    fov: 45, nearClip: 1, farClip: 5e7,
+    fov: 45, nearClip: 0.3, farClip: 5e7,
     clearColor: new pc.Color(0.05, 0.06, 0.07),
   });
   camera.setPosition(0, 2000, 0);
@@ -238,11 +247,11 @@
   // WP5.4: a headset draws the world twice at ninety frames a second, so
   // ?xr=1 halves the tile count and takes a third of the splats (js/xr.js).
   // The budget is lowered by the flag rather than by the session, because the
-  // tiles have to be loaded before there is anything to enter.
-  const wantsXr = xrRequested(location.search);
+  // tiles have to be loaded before there is anything to enter. Without a
+  // headset the budget follows the device (traverse.js WEBGL_LIMITS).
+  const limits = wantsXr ? XR_LIMITS : device.isWebGPU ? LIMITS : WEBGL_LIMITS;
   const streamer = new TileStreamer(app, pc, {
-    origin, filesUrl: api.endpoints().files, fetchRows,
-    ...(wantsXr ? { limits: XR_LIMITS } : {}),
+    origin, filesUrl: api.endpoints().files, fetchRows, limits,
   });
   streamer.setTiles(rows);
   streamer.startPolling();
@@ -753,6 +762,10 @@
   setInterval(showWhatIsAround, 8000);
   showWhatIsAround();
 
+  // The traversal is re-run when the view changes or a load settles, and every
+  // tenth frame regardless; on the other frames the streamer only places what
+  // has arrived. Camera pose is compared as a string: cheap, and exact.
+  let lastPose = '', lastPending = -1, lastHud = '', tick = 0;
   app.on('update', (dt) => {
     // A smoothed frame time, so one slow frame does not stall background work
     // and one fast one does not let it back in too early.
@@ -780,7 +793,17 @@
     // exactly "something here changed since the last publish".
     labelObjects({ pc, app, origin, terrain },
         [...preview.rows.values()].filter(unrendered), labels);
-    streamer.update(cameraState(camera, app.graphicsDevice.height));
+    const r = camera.getRotation();
+    const pose = `${p.x.toFixed(1)} ${p.y.toFixed(1)} ${p.z.toFixed(1)} `
+      + `${r.x.toFixed(3)} ${r.y.toFixed(3)} ${r.z.toFixed(3)} ${r.w.toFixed(3)}`;
+    tick++;
+    if (pose !== lastPose || streamer.pending !== lastPending || tick % 10 === 0) {
+      lastPose = pose;
+      streamer.update(cameraState(camera, app.graphicsDevice.height, pc));
+      lastPending = streamer.pending;
+    } else {
+      streamer.placeNext();
+    }
     // Where you are, in the chrome: the compass follows the camera, the
     // coordinates are the real ones, and the land under you is asked for only
     // when you have actually walked somewhere else.
@@ -799,10 +822,11 @@
     });
     whereAmI(here);
     keepTheAddressBar({ ...here, heading });
-    world.textContent = `${live.length} published tiles\n`
+    const status = `${live.length} published tiles — ${device.deviceType}\n`
       + `${streamer.entries.size} loaded, ${streamer.pending} loading\n`
       + `${origin.rebases} rebases, ${streamer.swaps} swaps — ${player.mode}`
       + `${player.grounded ? '' : ' (no ground yet)'}`;
+    if (status !== lastHud) world.textContent = lastHud = status;
   });
   app.start();
 
