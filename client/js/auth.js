@@ -43,15 +43,36 @@ function renderIdentity(host, form, who) {
 }
 
 // What this account is called, as the world knows it — not as this tab last
-// typed it. A tab that signs in somewhere else shows that name.
+// typed it. A tab that signs in somewhere else shows that name. Resolves to
+// `gone` when the world says there is no such account.
 async function showName(host, say) {
-    const me = await api.rpc('me').catch(() => null);
+    let me = null;
+    try {
+        me = await api.rpc('me');
+    } catch (err) {
+        // 401/403: the token itself is refused. Anything else — the API not
+        // answering — says nothing about the session.
+        return err.status === 401 || err.status === 403 ? 'gone' : null;
+    }
+    if (!me?.id) return 'gone';
     const field = host.querySelector('.auth-name');
-    if (me?.name) {
+    if (me.name) {
         field.value = me.name;
         say(`signed in as ${me.name}`);
     }
     return me;
+}
+
+// A token restored from the tab's storage names an account; after the
+// database was reset that account is nobody, every request answers as nobody,
+// and the form stayed hidden behind a session that did not exist. Ask the
+// world, and drop the session if it does not know it.
+async function verifySession(host, say, render) {
+    if (!api.claims()) return;
+    if (await showName(host, say) !== 'gone') return;
+    api.logout();
+    render();
+    say('that session is no longer known to the world — sign in again', true);
 }
 
 async function signIn(act, email, pw) {
@@ -135,5 +156,6 @@ export function mountAuth(host, { onChange } = {}) {
     });
 
     render();
+    verifySession(host, say, render);
     return { render, say };
 }
