@@ -92,10 +92,20 @@ export const DOING = {
 };
 
 // What this job needs of the machine, and what this machine has. A tab with no
-// GPU is told next to the job rather than three minutes into it.
-export const needs = (e, caps) => (e.needs_webgpu
-    ? (caps?.webgpu ? 'needs WebGPU \u2713' : 'needs WebGPU \u2014 this tab has none')
-    : 'no GPU needed');
+// GPU is told next to the job rather than three minutes into it — and so is a
+// tab whose GPU will not hand out a buffer the size the trainer needs, which
+// used to read as a tick beside a job the tab could never take
+// (db/0083_thetrainerasksforwhatitcanbeasked.sql).
+export const needs = (e, caps) => {
+    if (!e.needs_webgpu) return 'no GPU needed';
+    if (!caps?.webgpu) return 'needs WebGPU \u2014 this tab has none';
+    const mb = Number(e.needs_mb) || 0;
+    const has = Number(caps.max_buffer_mb) || 0;
+    if (mb && has && has < mb) {
+        return `needs ${mb} MB buffers \u2014 this tab allows ${has} MB`;
+    }
+    return 'needs WebGPU \u2713';
+};
 
 // One open job, as the artboard's row: what and where on the left, what it
 // pays and the button on the right.

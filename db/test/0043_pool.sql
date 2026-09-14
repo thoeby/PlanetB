@@ -85,7 +85,7 @@ SELECT is(
 CREATE TEMP TABLE taken AS
 SELECT claim_for((SELECT (j ->> 'job')::bigint FROM
     jsonb_array_elements(render_pool(70.02, 10.02)) j LIMIT 1),
-    '{"webgpu": false, "vram_gb": 0}'::jsonb) AS a;
+    '{"webgpu": false, "max_buffer_mb": 0}'::jsonb) AS a;
 SELECT is((SELECT (a).state FROM taken), 'claimed', 'and claims it');
 SELECT is((SELECT (a).op FROM taken), 'assemble',
     'starting where a tile starts');

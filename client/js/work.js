@@ -43,11 +43,14 @@ function webglRenderer() {
     return ext ? gl.getParameter(ext.UNMASKED_RENDERER_WEBGL) : null;
 }
 
-// What claim_atom filters on: `webgpu` and `vram_gb` (db/0005_state.sql). VRAM
-// is not something WebGPU reports, so the largest buffer the adapter will hand
-// out stands in for it — an estimate, and named one.
+// What claim_atom filters on: `webgpu` and `max_buffer_mb`
+// (db/0083_thetrainerasksforwhatitcanbeasked.sql). This used to report a
+// `vram_gb` guessed from the same limit, and the guess was always 1 or 2 —
+// maxBufferSize is a cap the browser sets, not the card's memory — so an atom
+// asking for 4 GB was unclaimable everywhere. The limit is reported as itself
+// now, and the atom asks for the buffer it will actually allocate.
 export async function probeCaps(over = {}) {
-    const caps = { webgpu: false, vram_gb: 0, algo: ALGO };
+    const caps = { webgpu: false, max_buffer_mb: 0, algo: ALGO };
     const adapter = await globalThis.navigator?.gpu?.requestAdapter?.().catch(() => null);
     if (adapter) {
         const info = adapter.info ?? await adapter.requestAdapterInfo?.() ?? {};
@@ -56,8 +59,9 @@ export async function probeCaps(over = {}) {
             vendor: info.vendor ?? null, architecture: info.architecture ?? null,
             device: info.device ?? null, description: info.description ?? null,
         };
-        caps.vram_gb = Math.max(1, Math.round(adapter.limits.maxBufferSize / 2 ** 30));
-        caps.vram_estimated = true;
+        caps.max_buffer_mb = Math.floor(
+            Math.min(adapter.limits.maxBufferSize,
+                adapter.limits.maxStorageBufferBindingSize) / 2 ** 20);
     } else {
         caps.renderer = webglRenderer();
     }

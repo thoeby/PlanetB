@@ -8,7 +8,7 @@ import assert from 'node:assert/strict';
 
 import { WorkLoop } from '../js/work.js';
 
-const CAPS = { webgpu: false, vram_gb: 0 };
+const CAPS = { webgpu: false, max_buffer_mb: 0 };
 
 function fakeLoop({ pace, where, claim = null } = {}) {
     const calls = [];

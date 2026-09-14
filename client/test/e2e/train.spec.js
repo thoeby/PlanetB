@@ -85,7 +85,7 @@ function buildDag() {
             { camera_set: 'z16-v1', from, to, size: FRAME_SIZE }, [asm]));
     const trn = insert(job, 'train', 'train-v1', { assemble: asm, frames },
         { budget: BUDGET, iters: 80, camera_set: 'z16-v1', size: TRAIN_SIZE,
-            needs_webgpu: true, min_vram_gb: 1 }, frames);
+            needs_webgpu: true, min_buffer_mb: 1 }, frames);
     const sog = insert(job, 'sog', 'sog-v1', { ply: trn }, { budget: BUDGET }, [trn]);
     return { job, asm, frames, trn, sog };
 }

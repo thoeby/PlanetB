@@ -43,7 +43,7 @@ const FRAME_MS = 33;
 const BACKOFF_MS = 2000;
 
 const describe = (caps) => (caps.webgpu
-    ? `WebGPU · ${caps.adapter?.vendor ?? 'gpu'} · ~${caps.vram_gb} GB (estimated)`
+    ? `WebGPU · ${caps.adapter?.vendor ?? 'gpu'} · buffers to ${caps.max_buffer_mb} MB`
     : `WebGL2 only · ${caps.renderer ?? 'unknown renderer'}`);
 
 

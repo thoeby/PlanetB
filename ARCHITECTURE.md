@@ -123,7 +123,7 @@ Atoms become `ready` when all `deps` are `verified`. Inputs to each atom are art
 | `sog` | `.ply` | `.sog` | `sog-v1` = splat-transform core |
 | `verify` | `.sog`, the frame tars, 2 of the four held-out poses | `{psnr, passed}`, no artifact | `verify-v1` |
 
-Capability filter at claim: `train` needs `webgpu && vram ≥ 4 GB` (z18) / `2 GB` (z16); everything else runs on WebGL2.
+Capability filter at claim: `train` needs `webgpu` and a `maxBufferSize` at least as big as its widest per-splat array — 24 f32 a splat, so 183 MB at z18's budget and 55 MB at z16's (`min_buffer_mb`, db/0083). It used to ask for `vram ≥ 4 GB`; WebGPU reports no VRAM, so that was a number no tab could answer and no tab could pass. Everything else runs on WebGL2.
 
 ## 7. Files (nginx)
 
