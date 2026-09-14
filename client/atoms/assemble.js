@@ -16,6 +16,7 @@
 
 import { fetchJson } from '../js/api.js';
 import { DEM_OFFSET, DEM_SCALE, loadDem } from '../lib/geo.js';
+import { loadAssets } from '../lib/assets.js';
 import { boundsOf, placeMeshes } from '../lib/glbmesh.js';
 import { packMeshes } from '../lib/mesh.js';
 import { bboxOf, writePly } from '../lib/ply.js';
@@ -118,20 +119,8 @@ function clip(meshes, sw, ne) {
 
 // ------------------------------------------------------------- placed assets
 
-// An instance is a catalog asset standing on the ground (WP4.2). Its canonical
-// GLB is fetched once per digest — two hundred of the same bench are one file —
-// and skipped, not fatal, when the store has lost it: one missing asset must
-// not make a whole tile uncompilable. Same rule `merge` uses for a missing
-// child (WP2 deviation 43).
-async function loadAssets(instances, { filesUrl = '', fetchFn = fetch }) {
-    const out = new Map();
-    for (const i of instances ?? []) {
-        if (!i.sha256 || out.has(i.sha256)) continue;
-        const res = await fetchFn(`${filesUrl}/assets/${i.sha256}.glb`).catch(() => null);
-        if (res?.ok) out.set(i.sha256, new Uint8Array(await res.arrayBuffer()));
-    }
-    return out;
-}
+// An instance is a catalog asset standing on the ground (WP4.2); its GLB
+// comes from client/lib/assets.js, once per digest.
 
 // canon-v1 re-centred every asset on the bottom centre of its bounding box, so
 // an instance's position is where it stands, and its box is that box moved.

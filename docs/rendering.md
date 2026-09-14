@@ -1,5 +1,12 @@
 # Rendering: quality, time, and where ray tracing goes
 
+**Status.** Since this was written: `train-v2` does T1–T5 (full-budget
+seed, no growth, frozen positions, maintenance every 500, 2 000/1 500
+iterations, z18 at 1024 px, overflow reported as `dropped`); `frame-v2`
+path-traces with three.js + three-gpu-pathtracer (Q1, Q2 and the top-down
+camera bug); the viewer cap is 12 M. Open: D-SSIM in the loss (Q4), band-1
+colour (Q6), a lit `sample-v4` (Q7), and measuring any of it on a GPU.
+
 What limits the picture and the compile time as the code stands on this
 branch, and the plan to get (a) a better tile and (b) a compiled z18 tile in
 about a minute on a decent GPU. Numbers are read off the code

@@ -2,6 +2,10 @@
 // tabs given the same range agree. On one machine "agree" is byte equality,
 // which is the strongest form of the PSNR bar the deliverable sets; a
 // cross-GPU comparison needs two machines and is what that bar is really for.
+//
+// frame-v2 path-traces with a fixed noise seed, so one machine still renders
+// the same bytes twice. The frames here are small and lightly sampled: this is
+// software rendering.
 
 import { test, expect } from '@playwright/test';
 import { existsSync } from 'node:fs';
@@ -18,6 +22,8 @@ const PW = 'frame-e2e-password';
 const TILE = { z: 16, x: tileX(8.0402, 16), y: tileY(47.3902, 16) };
 const FROM = 8;
 const TO = 14;
+const SIZE = 48;
+const SAMPLES = 1;
 
 let svc = null;
 let parked = [];
@@ -46,6 +52,20 @@ test.afterAll(() => {
     svc?.stop();
 });
 
+// Decodes one frame of a tar in the page and counts the tones it holds.
+const inspect = (page, url, name) => page.evaluate(async ([u, n]) => {
+    const { readTar: unpack } = await import('/lib/tar.js');
+    const bytes = await fetch(u).then((r) => r.arrayBuffer());
+    const webp = unpack(bytes).get(n);
+    const bitmap = await createImageBitmap(new Blob([webp], { type: 'image/webp' }));
+    const c = new OffscreenCanvas(bitmap.width, bitmap.height);
+    c.getContext('2d').drawImage(bitmap, 0, 0);
+    const { data } = c.getContext('2d').getImageData(0, 0, bitmap.width, bitmap.height);
+    const seen = new Set();
+    for (let i = 0; i < data.length; i += 4 * 97) seen.add(data[i] >> 3);
+    return { w: bitmap.width, h: bitmap.height, tones: seen.size };
+}, [url, name]);
+
 const stateOf = (id) => psql(`SELECT state FROM atom WHERE id = ${id}`);
 const resultOf = (id) => JSON.parse(psql(`SELECT result::text FROM atom WHERE id = ${id}`));
 
@@ -65,9 +85,10 @@ test('two tabs render the same range of a camera set to the same frames',
 
         // Two atoms, the same range, rendered one after the other by this tab.
         const frames = [1, 2].map((seed) => readyAtom({
-            ...TILE, op: 'frame', algo: 'frame-v1',
+            ...TILE, op: 'frame', algo: 'frame-v2',
             inputs: { assemble: Number(assemble), snapshot },
-            params: { camera_set: 'z16-v1', from: FROM, to: TO, run: seed },
+            params: { camera_set: 'z16-v1', from: FROM, to: TO, run: seed,
+                size: SIZE, samples: SAMPLES },
         }));
         await expect.poll(() => frames.map(stateOf).join('/'), { timeout: 240000 })
             .toBe('verified/verified');
@@ -91,24 +112,13 @@ test('two tabs render the same range of a camera set to the same frames',
         ]);
         const t = JSON.parse(new TextDecoder().decode(tar.get('transforms.json')));
         expect(t.camera_model).toBe('OPENCV');
-        expect(t.w).toBe(1024);
+        expect(t.w).toBe(SIZE);
         expect(t.frames.map((f) => f.pose_id)).toEqual([8, 9, 10, 11, 12, 13]);
         expect(t.frames[0].transform_matrix[3]).toEqual([0, 0, 0, 1]);
 
-        // The frames are real 1024^2 WebP images, and they are not blank sky.
-        const shot = await page.evaluate(async ([url, name]) => {
-            const { readTar: unpack } = await import('/lib/tar.js');
-            const bytes = await fetch(url).then((r) => r.arrayBuffer());
-            const webp = unpack(bytes).get(name);
-            const bitmap = await createImageBitmap(new Blob([webp], { type: 'image/webp' }));
-            const c = new OffscreenCanvas(bitmap.width, bitmap.height);
-            c.getContext('2d').drawImage(bitmap, 0, 0);
-            const { data } = c.getContext('2d').getImageData(0, 0, bitmap.width, bitmap.height);
-            const seen = new Set();
-            for (let i = 0; i < data.length; i += 4 * 997) seen.add(data[i] >> 3);
-            return { w: bitmap.width, h: bitmap.height, tones: seen.size };
-        }, [svc.filesUrl + stats.path, 'frame_0008.webp']);
-        expect([shot.w, shot.h]).toEqual([1024, 1024]);
+        // The frames are real WebP images of the size asked for, and not blank sky.
+        const shot = await inspect(page, svc.filesUrl + stats.path, 'frame_0008.webp');
+        expect([shot.w, shot.h]).toEqual([SIZE, SIZE]);
         expect(shot.tones).toBeGreaterThan(3);
         expect(errors).toEqual([]);
     });

@@ -689,6 +689,25 @@ toy: it is what `verify` renders with, and what the node tests train with.
   `getCompilationInfo()` and throws on the first error, which is the only reason
   the next one of these will take a minute instead of an afternoon.
 
+### Rendering, revisited (docs/rendering.md)
+
+- `train-v2` starts from the answer: the assembled surfaces sampled at the
+  whole budget, no growth, positions frozen for the first 40 %, 2 000 (z18) /
+  1 500 (z16) iterations, z18 at 1024 px so two million splats fit the
+  per-screen-tile capacity; splats a tile could not list are reported as
+  `result.dropped` (`db/0091`).
+- `frame-v2` path-traces the frames with three.js and three-gpu-pathtracer
+  (`client/lib/pathtrace.js`, `db/0092`): shadows, sky occlusion, bounce, and
+  placed assets with their textures from the canonical GLB. `tools/vendor.sh`
+  vendors the three modules; they are what runs, not a CDN mirror.
+- The eight top-down poses of every camera set had a zero rotation: straight
+  down with straight up as "up". They look north now (`client/lib/cameras.js`).
+- The browser tests that frame a tile now trace, which SwiftShader does at
+  about a second per thousand pixels: `frame.spec` is 48 px and one sample;
+  `train.spec` and `spot.spec` need a GPU to finish in their timeouts.
+- Not run here: any GPU measurement, and the pgTAP files for 0091/0092 (no
+  PostGIS in this container).
+
 ### Open items from WP3
 
 - [ ] **WP3.1's acceptance on a GPU**: a pilot z16 tile in under 8 minutes at

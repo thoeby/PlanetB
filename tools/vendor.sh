@@ -14,6 +14,9 @@ DEST=client/vendor/playcanvas
 RAJDHANI_VERSION=${RAJDHANI_VERSION:-5.2.6}
 SORA_VERSION=${SORA_VERSION:-5.2.6}
 JETBRAINS_VERSION=${JETBRAINS_VERSION:-5.2.6}
+THREE_VERSION=${THREE_VERSION:-0.186.0}
+BVH_VERSION=${BVH_VERSION:-0.9.15}
+PATHTRACER_VERSION=${PATHTRACER_VERSION:-0.0.24}
 
 # Google's Draco codec (Apache-2.0), for the GLBs canon-v1 is handed compressed.
 # npm only: there is no CDN copy this repo pins. Without it a Draco GLB is
@@ -99,9 +102,46 @@ vendor_fonts () {
         jetbrains-mono-latin-400-normal.woff2 jetbrains-mono.woff2
 }
 
+# three.js, three-mesh-bvh and three-gpu-pathtracer (all MIT): the frame
+# atom's renderer (client/lib/pathtrace.js). The ES-module builds import each
+# other by bare specifier and a Web Worker has no import map, so the specifiers
+# are rewritten to the flat layout under client/vendor/three/. `frame` imports
+# these paths directly — this is not a CDN mirror, it is the copy that runs.
+vendor_three () {
+    local dest=client/vendor/three tmp
+    [ -f "$dest/three-gpu-pathtracer.js" ] && [ "${FORCE:-}" != "1" ] && {
+        echo "vendor: $dest is already here (FORCE=1 to refetch)"; return 0; }
+    tmp=$(mktemp -d)
+    ( cd "$tmp" && npm pack "three@${THREE_VERSION}" "three-mesh-bvh@${BVH_VERSION}" \
+        "three-gpu-pathtracer@${PATHTRACER_VERSION}" --silent > /dev/null ) || {
+        echo "vendor: three/three-mesh-bvh/three-gpu-pathtracer unreachable, skipping"
+        rm -rf "$tmp"; return 0; }
+    mkdir -p "$dest" "$tmp/three" "$tmp/bvh" "$tmp/pt"
+    tar xzf "$tmp"/three-"${THREE_VERSION}".tgz -C "$tmp/three"
+    tar xzf "$tmp"/three-mesh-bvh-*.tgz -C "$tmp/bvh"
+    tar xzf "$tmp"/three-gpu-pathtracer-*.tgz -C "$tmp/pt"
+    local t="$tmp/three/package" j="$tmp/three/package/examples/jsm"
+    cp "$t/build/three.module.js" "$t/build/three.core.js" "$t/LICENSE" "$dest/"
+    cp "$j/loaders/GLTFLoader.js" "$j/utils/BufferGeometryUtils.js" \
+       "$j/utils/SkeletonUtils.js" "$j/postprocessing/Pass.js" "$dest/"
+    cp "$tmp/bvh/package/build/index.module.js" "$dest/three-mesh-bvh.js"
+    cp "$tmp/pt/package/build/index.module.js" "$dest/three-gpu-pathtracer.js"
+    sed -i -e "s#from 'three'#from './three.module.js'#" \
+           -e "s#from 'three-mesh-bvh'#from './three-mesh-bvh.js'#" \
+           -e "s#from 'three/examples/jsm/postprocessing/Pass.js'#from './Pass.js'#" \
+           -e "s#from '../utils/BufferGeometryUtils.js'#from './BufferGeometryUtils.js'#" \
+           -e "s#from '../utils/SkeletonUtils.js'#from './SkeletonUtils.js'#" \
+           "$dest"/*.js
+    printf 'three %s, three-mesh-bvh %s, three-gpu-pathtracer %s — all MIT\n' \
+        "$THREE_VERSION" "$BVH_VERSION" "$PATHTRACER_VERSION" > "$dest/NOTICE"
+    rm -rf "$tmp"
+    echo "vendor: three $THREE_VERSION + bvh $BVH_VERSION + pathtracer $PATHTRACER_VERSION from npm"
+}
+
 vendor_draco
 vendor_ol
 vendor_fonts
+vendor_three
 
 mkdir -p "$DEST"
 if [ -f "$DEST/playcanvas.js" ] && [ "${FORCE:-}" != "1" ]; then
