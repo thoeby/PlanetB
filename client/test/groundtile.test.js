@@ -9,7 +9,7 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 
 import { cellMetres, groundTile, heightIn } from '../lib/groundtile.js';
-import { blockAt, GROUND_LEVELS, holeFor } from '../lib/groundmesh.js';
+import { blockAt, Ground, GROUND_LEVELS, holeFor } from '../lib/groundmesh.js';
 import { DEM_OFFSET, DEM_SCALE } from '../lib/geo.js';
 
 // A DEM that rises to the east, so a hole in the mesh is not a hole in a plane.
@@ -103,8 +103,20 @@ test('the far level reaches tens of kilometres, the near one a walk', () => {
     const near = blockAt(GROUND_LEVELS[0], 7.88, 46.29).rect;
     const far = blockAt(GROUND_LEVELS.at(-1), 7.88, 46.29).rect;
     const km = (r) => (r.east - r.west) * 111.32 * Math.cos(46.29 * Math.PI / 180);
-    assert.ok(km(near) > 3 && km(near) < 8, `near ring is ${km(near)} km`);
+    assert.ok(km(near) > 0.8 && km(near) < 2, `near ring is ${km(near)} km`);
     assert.ok(km(far) > 25, `far ring is ${km(far)} km`);
+});
+
+// The line between ground somebody stands on and a picture of the distance.
+// Both fine levels are tens of centimetres to tens of metres a cell; the
+// coarse ones are hundreds, and walking on one would put a player in the air
+// or under the hill.
+test('the levels a player may stand on are the fine ones and no others', () => {
+    const zooms = new Ground({ origin: { localOf: () => ({}) } })
+        .standable().map((l) => l.zoom);
+    assert.deepEqual(zooms, [16, 14]);
+    assert.ok(cellMetres(16, 129, 46) < 4, `${cellMetres(16, 129, 46)} m at z16`);
+    assert.ok(cellMetres(12, 65, 46) > 100, `${cellMetres(12, 65, 46)} m at z12`);
 });
 
 // The edge of the world. A tile at z10 is twenty-seven kilometres across and
@@ -133,4 +145,39 @@ test('with no coverage given, the whole tile is drawn', () => {
     const a = groundTile(Z, X, Y, slope(), localOf, 9);
     const b = groundTile(Z, X, Y, slope(), localOf, 9, { within: null });
     assert.equal(a.indices.length, b.indices.length);
+});
+
+// Walking. The finest ring is 420 m across, so a few hundred metres of it puts
+// you in the next z16 tile, which moves the hole every level behind it has to
+// leave — and every one of those was thrown away and asked for again. The
+// samples are on the tile, so the new shape is arithmetic.
+test('crossing into the next fine tile reshapes the coarse ones, not refetches them', async () => {
+    let fetched = 0;
+    const dem = slope();
+    const ground = new Ground({
+        origin: { localOf },
+        fetchFn: async () => { fetched += 1; return new Response(dem.data.buffer); },
+        // One fine level and one behind it is the whole shape of the problem.
+        levels: [{ zoom: 16, grid: 9, radius: 1 }, { zoom: 14, grid: 9, radius: 1 }],
+    });
+    const settle = async () => {
+        for (let i = 0; i < 40; i++) {
+            ground.follow(7.8800, 46.2900);
+            await new Promise((r) => setTimeout(r, 0));
+        }
+    };
+    await settle();
+    const first = fetched;
+    const coarse = [...ground.tiles.values()].filter((t) => t.z === 14);
+    assert.ok(coarse.length > 0, 'the level behind is drawn');
+
+    // Half a kilometre east: the same z14 tiles, the next z16 one.
+    for (let i = 0; i < 40; i++) {
+        ground.follow(7.8865, 46.2900);
+        await new Promise((r) => setTimeout(r, 0));
+    }
+    const still = [...ground.tiles.values()].filter((t) => t.z === 14);
+    assert.ok(still.length > 0, 'the level behind is still drawn');
+    assert.ok(fetched - first < coarse.length,
+        `the coarse tiles were reshaped, not refetched: ${fetched - first} new fetches`);
 });

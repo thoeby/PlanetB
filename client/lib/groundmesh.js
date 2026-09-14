@@ -11,13 +11,15 @@
 // around the player, drawn as a mesh and sampled for height. Published splats
 // sit on top of this; it is never what a compile reads back.
 //
-// Three levels of it, not one. A ring of z14 tiles is five kilometres of floor,
+// Four levels of it, not one. A ring of z14 tiles is five kilometres of floor,
 // which is a walk — and standing on a mountain looking at five kilometres of
-// world with nothing behind it is the horizon falling away. So the fine ring
-// you walk on is drawn inside a ring of z12 and one of z10, each of them a hole
+// world with nothing behind it is the horizon falling away. So the ring you
+// walk on is drawn inside a ring of z12 and one of z10, each of them a hole
 // with the finer one in it (client/lib/groundtile.js), and the far one reaches
-// forty kilometres. Only the fine level is walked on: the coarse ones are a
-// picture of where you are, not ground anybody stands on.
+// forty kilometres. In front of all of them is a z16 ring: 3 m cells over the
+// ground within sight of your feet, which is the difference between a hillside
+// and the idea of one. Only the two fine levels are walked on; the coarse ones
+// are a picture of where you are, not ground anybody stands on.
 
 import { loadDem } from './geo.js';
 import * as tm from './tilemath.js';
@@ -26,23 +28,36 @@ import { cellMetres, groundTile, heightIn } from './groundtile.js';
 export { cellMetres, groundTile, heightIn } from './groundtile.js';
 
 // Fine first. `radius` is how many tiles either side of the one you are on, so
-// 1 is a three-by-three block: 5 km at z14, 10 km at z12, 40 km at z10.
+// 1 is a three-by-three block: 1.3 km at z16, 5 km at z14, 10 km at z12, 40 km
+// at z10.
 //
-// The grid coarsens with the level because the far ones are a silhouette. z14
-// keeps 65 — it is the floor, and the compile's own terrain is 129.
+// The grid coarsens with the level because the far ones are a silhouette. z16
+// and z14 keep 129 — they are the floor, and the compile's own terrain is 129.
 // The grid is what says how much of the DEM is used. A cut tile is 256 samples
 // across (server/splatworld/importer.py), so 65 threw away three quarters of
 // the ground a player is standing on; 129 is what the compile's own terrain
 // uses and is the same hillside with its shape in it.
+//
+// z16 is 3.3 m a cell at Alpine latitudes against z14's 13.2, and inside a
+// single z14 tile — 1.7 km of it — nothing used to sharpen as you walked up to
+// it, because there was no level in front of it. It costs nine more cuts of
+// the operator's elevation service, each one 256² of the same rectangle the
+// compile asks for.
 export const GROUND_LEVELS = [
+    { zoom: 16, grid: 129, radius: 1 },
     { zoom: 14, grid: 129, radius: 1 },
     { zoom: 12, grid: 65, radius: 1 },
     { zoom: 10, grid: 65, radius: 1 },
 ];
 
-// The level a player stands on: heightAt reads this one and no other.
+// The finest level, and the coarsest cell a player may stand on. A level below
+// this is a picture of the distance: a 106 m cell is tens of metres away from
+// the hillside anybody is really standing on, and walking on it would put them
+// in the air or under the ground. heightAt reads the levels above the line and
+// stops there; heightNear, which draws pictures, reads them all.
 export const GROUND_Z = GROUND_LEVELS[0].zoom;
 export const GROUND_GRID = GROUND_LEVELS[0].grid;
+export const STANDABLE_CELL_M = 20;
 
 // How long a tile whose cut failed is left alone before it is asked for again.
 // SPEC §3.12: the elevation service stopping is a thing that stops happening —
@@ -125,14 +140,30 @@ export class Ground {
     // as the ground under them cannot be cut.
     trouble() { return this.troubled; }
 
-    // The ground under a point, or null when the tile it is in has not
-    // arrived. Only the fine level: the coarse ones are a picture of the
-    // distance, tens of metres away from the hillside anybody is standing on,
-    // and this is what a player stands on.
+    // The ground under a point, or null when no level fine enough to stand on
+    // has it. The fine levels, finest first: a z16 tile is 3.3 m a cell and a
+    // z14 one 13.2, and either is the hillside; a z12 tile is 106 m a cell,
+    // which is a picture of the distance, so walking on it is not offered.
+    // Asking the finest level and no other left a player standing in the air
+    // everywhere the z16 cut had not arrived yet.
     heightAt(lon, lat) {
-        const k = key(this.zoom, tm.tileX(lon, this.zoom), tm.tileY(lat, this.zoom));
-        const tile = this.tiles.get(k);
-        return tile ? heightIn(tile, lon, lat) : null;
+        for (const level of this.standable()) {
+            const { zoom } = level;
+            const tile = this.tiles.get(
+                key(zoom, tm.tileX(lon, zoom), tm.tileY(lat, zoom)));
+            if (!tile) continue;
+            const h = heightIn(tile, lon, lat);
+            if (h !== null && h !== undefined) return h;
+        }
+        return null;
+    }
+
+    // The levels whose cells are small enough to be somebody's floor. Measured
+    // at the equator, where a cell is widest: a level that passes there passes
+    // everywhere, so the floor is the same rule at every latitude.
+    standable() {
+        return this.levels.filter(
+            (l) => cellMetres(l.zoom, l.grid, 0) <= STANDABLE_CELL_M);
     }
 
     // The same question for something that is drawing a picture rather than
@@ -178,9 +209,14 @@ export class Ground {
             const hole = holeFor(level, inner);
             const was = this.holes.get(level.zoom);
             // The hole moved, so every tile of this level is the wrong shape.
+            // Rebuilt from the samples it already holds, never refetched: the
+            // finest ring is 420 m across, so crossing into the next one
+            // reshapes the three levels behind it, and throwing the bytes away
+            // each time would ask the operator's elevation service for the
+            // same rectangle every few hundred metres of walking.
             if (JSON.stringify(was ?? null) !== JSON.stringify(hole)) {
                 this.holes.set(level.zoom, hole);
-                for (const [k, t] of [...this.tiles]) if (t.z === level.zoom) this.drop(k);
+                this.reshape(level, hole);
             }
             for (const [z, x, y] of tiles) {
                 want.add(key(z, x, y));
@@ -195,6 +231,20 @@ export class Ground {
             if (t) entity.enabled = t.z !== this.zoom || !covered(t.z, t.x, t.y);
         }
         return this.tiles.size;
+    }
+
+    // Every tile of one level, built again around the hole it now has to leave
+    // for the finer level in front of it. The DEM it was cut from is on the
+    // tile, so this is arithmetic and a mesh, not a request.
+    reshape(level, hole) {
+        for (const [k, tile] of [...this.tiles]) {
+            if (tile.z !== level.zoom) continue;
+            this.drop(k);
+            const rebuilt = groundTile(tile.z, tile.x, tile.y, tile.dem,
+                this.localOf, level.grid, { hole, within: this.within });
+            this.tiles.set(k, rebuilt);
+            this.draw(rebuilt);
+        }
     }
 
     // Nothing more is going to happen about this tile: it is drawn, there is
