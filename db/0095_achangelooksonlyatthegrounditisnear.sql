@@ -1,4 +1,4 @@
--- 0091_achangelooksonlyatthegrounditisnear.sql — drawing one building reads
+-- 0095_achangelooksonlyatthegrounditisnear.sql — drawing one building reads
 -- the tiles under that building, not every tile of the land.
 --
 -- db/0089 gave mark_tiles_dirty() the land's whole ladder to ask for, through
