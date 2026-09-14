@@ -32,9 +32,9 @@ function bbox(a) {
 }
 
 // `ground` answers the height at a lon/lat in metres, or null where it has
-// none: client/lib/groundmesh.js, the same floor the player walks on. Without
-// it the map was a grid with a triangle in the middle — nothing about where
-// you are, which is the one thing a map is for.
+// none: client/lib/groundmesh.js, the same land the player is standing on.
+// Without it the map was a grid with a triangle in the middle — nothing about
+// where you are, which is the one thing a map is for.
 export function drawMinimap(canvas,
     { areas = [], things = [], at, heading = 0, ground = null }) {
     const ctx = canvas?.getContext?.('2d');
@@ -66,7 +66,15 @@ const CELL = 6;
 // the ground the player is standing on, so what the map says and what they see
 // out of the window are the same hill.
 function terrain(ctx, w, h, at, span, cos, ground) {
-    if (!ground?.heightAt) return false;
+    // Whatever level has the point, finest first (groundmesh.js heightNear).
+    // The map is up to twenty kilometres across and the fine ground reaches
+    // two and a half, so asking only the level a player stands on drew land in
+    // the middle of the canvas and a grid around it. The far corners are a
+    // 400 m cell and that is what they should be — a map of where the valley
+    // goes, not of the hillside.
+    const height = ground?.heightNear ?? ground?.heightAt;
+    if (!height) return false;
+    const under = (lon, lat) => height.call(ground, lon, lat);
     const cells = Math.ceil(w / CELL) + 1;
     const step = span / (w / CELL);
     const lonOf = (i) => at.lon + (i * CELL - w / 2) / w * span / (M_PER_DEG * cos);
@@ -76,13 +84,17 @@ function terrain(ctx, w, h, at, span, cos, ground) {
     for (let j = 0; j <= cells; j++) {
         const row = [];
         for (let i = 0; i <= cells; i++) {
-            const v = ground.heightAt(lonOf(i), latOf(j));
+            const v = under(lonOf(i), latOf(j));
             if (v !== null && v !== undefined) seen = true;
             row.push(v);
         }
         grid_.push(row);
     }
     if (!seen) return false;
+    // Where the land runs out, the grid still shows: a map that says nothing
+    // about the corner it has no ground for is better than one that invents a
+    // hill there (shade() leaves a null cell unpainted).
+    grid(ctx, w, h);
     shade(ctx, grid_, cells, step);
     return true;
 }

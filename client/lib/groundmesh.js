@@ -127,11 +127,31 @@ export class Ground {
 
     // The ground under a point, or null when the tile it is in has not
     // arrived. Only the fine level: the coarse ones are a picture of the
-    // distance, tens of metres away from the hillside anybody is standing on.
+    // distance, tens of metres away from the hillside anybody is standing on,
+    // and this is what a player stands on.
     heightAt(lon, lat) {
         const k = key(this.zoom, tm.tileX(lon, this.zoom), tm.tileY(lat, this.zoom));
         const tile = this.tiles.get(k);
         return tile ? heightIn(tile, lon, lat) : null;
+    }
+
+    // The same question for something that is drawing a picture rather than
+    // deciding where a body is: the finest level that has this point, down to
+    // the coarsest. The fine block is three tiles across and the map is
+    // twenty kilometres, so heightAt answers for the middle of the map and
+    // nothing else — which is a map with land in the middle of it and a grid
+    // all round. Nobody standing on a hill should be told where they are by a
+    // 400 m cell; nobody looking at a map minds.
+    heightNear(lon, lat) {
+        for (const level of this.levels) {
+            const { zoom } = level;
+            const tile = this.tiles.get(
+                key(zoom, tm.tileX(lon, zoom), tm.tileY(lat, zoom)));
+            if (!tile) continue;
+            const h = heightIn(tile, lon, lat);
+            if (h !== null && h !== undefined) return h;
+        }
+        return null;
     }
 
     // Load what is around here and drop what is not. Safe to call every frame:

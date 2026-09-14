@@ -54,6 +54,7 @@ function fakeCanvas(size = 240) {
             stroke() {}, closePath() {}, arc() {}, save() {}, restore() {},
             translate() {}, rotate() {},
             fillRect(x, y, w, h) { painted.push({ x, y, w, h, fill: this.fillStyle }); },
+            strokeRect() {},
             fill() {},
         }),
     };
@@ -78,4 +79,33 @@ test('and with no ground at all it is the grid it always was', () => {
     const canvas = fakeCanvas();
     assert.ok(drawMinimap(canvas, { at }) > 0);
     assert.equal(canvas.painted.length, 0);
+});
+
+// The fine ground reaches two and a half kilometres and the map reaches
+// twenty, so asking only the level a player stands on drew a patch of land in
+// the middle of the canvas with a grid around it. heightNear answers from the
+// finest level that has the point, so the far corners are the coarse picture
+// rather than nothing at all.
+test('the map fills its canvas from whatever level has the ground', () => {
+    const canvas = fakeCanvas();
+    const near = 0.011;   // about 1.2 km at this latitude
+    const ground = {
+        // The fine level, and only around the middle of a 20 km map.
+        heightAt: (lon, lat) => (Math.abs(lat - at.lat) < near
+            && Math.abs(lon - at.lon) < near ? 700 : null),
+        heightNear(lon, lat) {
+            return this.heightAt(lon, lat) ?? 400 + (lat - 46.4) * 90000;
+        },
+    };
+    const wide = [{ ring: [[at.lon - 0.08, at.lat - 0.05], [at.lon + 0.08, at.lat + 0.05]] }];
+
+    const fine = fakeCanvas();
+    drawMinimap(fine, { at, areas: wide, ground: { heightAt: ground.heightAt } });
+    drawMinimap(canvas, { at, areas: wide, ground });
+
+    assert.ok(canvas.painted.length > fine.painted.length * 4,
+        `every level covers more than the fine one: ${canvas.painted.length}`
+        + ` vs ${fine.painted.length}`);
+    const corners = canvas.painted.filter((p) => p.x < 12 && p.y < 12);
+    assert.ok(corners.length > 0, 'including the corner of the canvas');
 });
