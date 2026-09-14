@@ -53,7 +53,11 @@ test('story 7 — B reviews what is waiting and decides',
             });
 
         await test.step('B approves, and the tiles are queued', async () => {
-            await b.page.getByRole('button', { name: 'Approve' }).click();
+            // Inside the panel's body: the tab that opens this surface is
+            // called Approve too (Publish holds Submit and Approve), and a
+            // page-wide role query cannot tell the two apart.
+            await b.page.locator('#panel .body')
+                .getByRole('button', { name: 'Approve' }).click();
             await expect(b.page.locator('.pm-status'))
                 .toContainText('queued', { timeout: UI });
         });

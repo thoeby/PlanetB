@@ -92,7 +92,10 @@ async function compiles(b, c) {
     await expect(b.page.locator('.su-status'))
         .toContainText('awaiting approval', { timeout: UI });
     await panel(b, 'Permission');
-    await b.page.getByRole('button', { name: 'Approve' }).first().click();
+    // In the body, not the tab of the same name: `.first()` took whichever the
+    // DOM held first, and the tab is above the body.
+    await b.page.locator('#panel .body')
+        .getByRole('button', { name: 'Approve' }).click();
     await expect(b.page.locator('.pm-status')).toContainText('queued', { timeout: UI });
 
     await looking(c);
