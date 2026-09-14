@@ -708,6 +708,13 @@ toy: it is what `verify` renders with, and what the node tests train with.
 - Not run here: any GPU measurement, and the pgTAP files for 0091/0092 (no
   PostGIS in this container).
 
+- A piece a tab could not do — no ground, a lost asset, a shader that would
+  not compile — stayed `claimed` for five minutes (thirty for a train) and the
+  pool said it was in somebody else's hands: the person's own. The tab now
+  calls `fail_atom` on the way out of the error (`db/0093`): an attempt
+  counted, the third one final, the piece back in the pool at once with the
+  reason on the atom.
+
 ### Open items from WP3
 
 - [ ] **WP3.1's acceptance on a GPU**: a pilot z16 tile in under 8 minutes at
