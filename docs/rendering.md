@@ -1,118 +1,166 @@
-# Rendering: where quality and time go, and how to get both back
+# Rendering: quality, time, and where ray tracing goes
 
-State as of WP2: z14 baseline tiles are `assemble → sample → sog` (about 20 s a
-tile). Trained tiles (z16/z18) exist only as a DAG; `atoms/train.js` is WP3.1.
-This is the analysis behind the decisions for WP3: what limits the picture
-today, what will limit training, and the plan for ray tracing and for a
-compiled tile in about a minute on a decent GPU.
+What limits the picture and the compile time as the code stands on this
+branch, and the plan to get (a) a better tile and (b) a compiled z18 tile in
+about a minute on a decent GPU. Numbers are read off the code
+(`client/lib/*`, `db/0017_verifydag.sql`); training speeds are estimates, since
+no box that has run this had a hardware GPU (PROGRESS.md deviation 57).
 
-Numbers below are from the code (`client/lib/*`, `db/0005_jobs.sql`) and the
-pilot (`docs/pilot.png`). Training times are estimates: no GPU here.
+## 1. The pipeline as built
 
-## 1. What limits quality today
-
-| # | cause | where | effect in `pilot.png` |
-|---|---|---|---|
-| Q1 | Splat colour is interpolated from **terrain vertex colour**, and the terrain grid is 129 posts a tile: 13 m at z14, 3.4 m at z16. The ortho is sampled only at the posts. | `terrain.js terrainMesh`, `assemble.js sampleSurfaces` | the blur. Even the 10 m Sentinel ortho is undersampled at z14; 2 m/10 cm swissimage would be thrown away entirely. |
-| Q2 | Uniform-random placement inside triangles, discs at 0.7 × spacing (1σ), α = 1. Random points leave Poisson gaps the gaussian falloff does not cover. | `sampleSurfaces` | the black speckle: the clear colour shows through. |
-| Q3 | Input data: GLO-30 (30 m) DEM and Sentinel-2 (10 m) ortho in the sandbox. swissALTI3D (0.5–2 m) and swissimage (0.1–2 m) are the intended inputs and are reachable from a networked box (`tools/seed-*.sh`). | data | the 30 m hill, the 10 m colour. Biggest single lever; no code. |
-| Q4 | Lighting is `0.55 + 0.55·max(n·sun,0)`: no shadows, no sky, no occlusion. A splat is baked lighting, so what the frames show is what the tile will ever show. | `render.js FRAG` | flat; buildings and trees do not sit on the ground. |
-| Q5 | Geometry is boxes on oriented bounding boxes, cones for trees, flat material colours, no textures. Training cannot add information the frames do not contain. | `props.js` | cartoon at street level, whatever the trainer does. |
-| Q6 | Colour is SH band 0 only (`ply.js`, `sogenc.js`): no view dependence. Fine for sampled tiles; a trained z18 wants band 1. | format | glossy surfaces, water, windows look painted. |
-
-Order of value: Q3 > Q1 > Q4 > Q2 > Q5 > Q6. Q1, Q2 and Q4 are cheap.
-
-## 2. What will limit time
-
-Budgets and iterations as wired (`tile_budget`, `build_dag`):
-
-| z | edge | splats | views | iters | note |
+| z | edge | splats | path | frames | iters |
 |---|---|---|---|---|---|
-| 18 | 110 m | 2 M | 120 × 1024² | 7 000 | 165 splats/m², 8 cm spacing: 25× denser than a 2 m ortho, ~1 per pixel of a 10 cm one |
-| 16 | 440 m | 600 k | 56 × 1024² | 5 000 | |
-| 14 | 1.7 km | 800 k | – | – | sampled, ~20 s today |
+| 18 | 110 m | 2 M | assemble → frame → train → sog → verify×3 | 120 @ 1024², trained @ 512² | 7 000 |
+| 16 | 440 m | 600 k | same | 56 @ 1024², trained @ 512² | 5 000 |
+| 14 | 1.7 km | 800 k | assemble → sample → sog | – | – |
+| ≤12 | | 0.9–1.5 M | merge → sog | – | – |
 
-3DGS cost is ≈ iters × pixels × (visible gaussians). At 2 M gaussians and 1024²
-a WebGPU kernel is in the 30–80 ms/iter range on a 4070-class card, so 7 000
-iters is 4–9 minutes: TASKS.md's "< 8 min" and far from one minute. Where the
-time is recoverable:
+The look is authored, not photographed (SPEC §7 removed ortho draping):
+terrain is a height-band palette with slope rock and a DEM-only openness term
+(`terrain.js`), objects are canonical GLBs, everything is lit by the one fixed
+sky in `light.js`. So **quality is lighting × geometry × what the trainer
+recovers**, and there is no imagery to hide behind.
 
-- **T1 Start from the answer, not from 30 % of it.** We own the geometry; SfM
-  projects do not. Seed at the full budget on the surface (what `sample-v1`
-  already produces), turn MCMC growth off, freeze positions for the first half
-  of training and give them a small learning rate after. Trains colour, opacity
-  and scale, which converge in the low thousands of iterations. Estimate: 1 500
-  iters instead of 7 000.
-- **T2 Analytic colour first.** Before any gradient step, project every frame
-  onto the seeded splats and average (a visibility-weighted splat colour). That
-  is seconds, and the trainer then only polishes. With T1 this is the single
-  biggest cut.
-- **T3 Coarse to fine.** 512² for the first two thirds of the iterations, 1024²
-  for the rest. Roughly halves pixel work.
-- **T4 Budget follows data resolution.** At 2 m imagery a z18 tile needs far
-  fewer than 2 M; at 10 cm it needs them. Make `tile_budget` a function of the
-  seeded ortho resolution instead of a constant.
-- **T5 Do not train z16.** From 100 m up, a lit sample (§3, `sample-v2`) is not
-  distinguishable from a trained tile of a box-and-cone scene, and it is
-  hash-verified instead of three-way perceptual. Halves the fleet's training
-  load; train only where the player stands (z18).
-- **T6 Frames are already parallel** (20 views an atom). Ray-traced frames stay
-  parallel; nothing to do.
+## 2. What limits quality
 
-Target for one z18 tile, one tab, decent GPU: assemble 3 s, frames 10–20 s
-(path traced, §3), train 30–45 s (T1–T3), sog 5 s, upload. About a minute.
-z14 stays at ~20 s.
+Ordered by how much of the picture each one costs.
 
-## 3. Ray tracing: where it pays and where it does not
+**Q1 No shadows, no occlusion between objects.** `render.js` shades by
+normal only (`lightAt(n, 1.0)`, openness fixed at 1). A house does not shade
+the ground, a tree does not shade a house, a valley wall does not shade the
+valley. In an authored world this is most of the difference between "model
+viewer" and "place". Baked into every trained tile via the frames, and into
+every sampled tile via `shade()`.
 
-Ray tracing the *splats* in the viewer (3DGRT-style) needs RT hardware, has no
-browser implementation, and gains nothing the player can see at these budgets.
-Not that.
+**Q2 GLB textures are dropped.** `glbmesh.js` bakes the material's base
+colour into vertices; the frame renderer has no samplers. An uploaded model
+with 4096² textures (the SPEC's limit) renders as flat colour, so the trainer
+can only ever learn flat colour. Also the reason detail budgets are wasted:
+a splat cannot carry detail the frame never showed.
 
-Ray tracing belongs in the **bake**, because a splat is baked light (Q4). Two
-atoms, one BVH:
+**Q3 The trainer silently drops splats in dense tiles.** `CAPACITY = 1024`
+per 16×16 screen tile (`gsgpu.js`); over that, `scatter()` loses the atomic
+race and the splat is neither rendered nor given a gradient. At 512² there
+are 1 024 screen tiles: 600 k splats average 600 per tile (already over in
+the middle of ring views), **2 M splats average 2 000 — a z18 tile is over
+capacity almost everywhere.** Listed as an open item for z16; for z18 it is
+the ceiling on PSNR before anything else is.
+
+**Q4 Loss is L1 + 0.2 L2, no D-SSIM** (`gswgslgrad.js LOSS`). 3DGS's
+structural term is what keeps edges sharp; without it the optimiser is happy
+with a blurred fit. Cheap to add (an 11×11 separable window, one more pass).
+
+**Q5 Trained at 512 px.** At z18 a ring view spans ~115 m, so 22 cm/px; a
+street view of a façade is coarser than the 8 cm splat spacing the budget
+pays for. Fine for z16. For z18 the last third of iterations should be at
+1024 (frames are stored at 1024 already).
+
+**Q6 Band-0 colour only** (`gsmodel.js`, `sogenc.js`). No view dependence,
+so a splat is one colour from every side; the engine reads `shN` already.
+Worth it only after Q1/Q2, and only at z18.
+
+**Q7 Sampled tiles get occlusion from the DEM only.** `openAt()` looks at
+DEM neighbours within three posts; buildings and trees cast nothing and
+receive nothing.
+
+## 3. What limits time
+
+Per iteration on the GPU path (`gsgpu.js step`): preprocess, per-tile
+bitonic sort, render, loss, backward (per-pixel walk with workgroup float
+atomics), project, Adam — one submit, no readback. Reasonable design. What
+is expensive around it:
+
+**T1 Maintenance every 100 iterations round-trips the whole model.**
+`train()` calls `backend.save()` (readback of 5 param + 2 moment buffers, 42
+floats a splat), runs `maintain()` and `jitter()` on the CPU, then `load()`
+re-allocates every buffer and rebuilds all bind groups. For 2 M splats that
+is ~340 MB down and up plus a JS pass, 70 times a run: on the order of a
+minute of a z18 run, doing no training. Either do it every 500 iterations
+and only while `grow > 0` (the first 60 %), or move `alive`/`halve`/`jitter`
+into WGSL and keep the model resident.
+
+**T2 Iteration counts are SfM-era.** 7 000 / 5 000 iterations exist because
+3DGS starts from a sparse point cloud and has to grow the scene. Here the
+initialisation is the answer's geometry (`sampleSurfaces` on the mesh that
+also produced the frames). Seed at the full budget, not `INIT_SHARE = 0.3`,
+drop MCMC growth (keep pruning), and freeze `pos` for the first half. What
+is left to learn is colour, opacity and scale, and that converges in the
+low thousands: 1 500–2 000 iterations.
+
+**T3 Analytic colour before any gradient step.** Project each training frame
+onto the seeded splats (a forward pass already produces `last`/`rest` per
+pixel; a scatter of the target colour weighted by `alpha·T` gives a
+per-splat mean) and start from that. Seconds, and it removes the part of
+training that is only "find the colour".
+
+**T4 Capacity (Q3) is also time**: the per-tile sort is `O(cap log² cap)` in
+workgroup memory. A two-level fix — radix sort in global memory over
+(tile, depth) keys as reference 3DGS does — lifts the cap and is faster for
+full tiles.
+
+**T5 Budgets are larger than the picture.** 2 M at z18 is 8 cm spacing for
+a scene whose finest authored content is a 2048² texture on a 60 m object.
+Until Q2 lands, 1 M at z18 halves everything with no visible loss. Make
+`tile_budget(z)` a ceiling, and let `assemble` ask for what the scene's
+triangle count and texture area justify.
+
+**T6 z16 need not be trained.** From 100 m up over a 440 m tile, a lit
+sample (`sample-v2`, §4) of an authored scene is indistinguishable from a
+trained one, and is hash-verified rather than three-way perceptual. That
+halves the fleet's GPU load; train where the player stands (z18).
+
+Estimated z18, one tab, 4070-class card, today: ~40–60 ms/iteration at 2 M
+and 512² is 5–7 min, plus T1's minute. With T1–T5: 1 M splats, 1 800
+iterations at ~25 ms plus 600 at 1024², about 60–75 s of training; assemble
+3 s, frames 10–20 s (split across tabs already), sog 5 s. That is the
+"about a minute" target, with T6 taking z16 out of the GPU queue entirely.
+
+## 4. Ray tracing: where it pays
+
+Not in the viewer. Ray-traced gaussians (3DGRT) need RT hardware, have no
+browser implementation, and add nothing a player can see at these budgets.
+A splat is baked light, so ray tracing belongs in the **bake**, and it
+answers Q1, Q2 and Q7 in one place:
 
 **`frame-v2`: WebGPU compute path tracer** replacing the WebGL2 raster in
-`lib/render.js`. Scenes are tiny (terrain 32 k tris, a few thousand for
-buildings and trees), so a JS-built BVH with a WGSL traversal kernel is enough:
-sun with next-event estimation, a sky dome, two bounces, 16–32 spp, fixed
-per-pixel seed. 120 views × 1 M px × 32 spp × ~3 segments ≈ 12 G ray segments;
-compute traversal on a mid-range card does ~1 G/s, so 10–20 s a tile, split
-across tabs as now. Frames then carry shadows, sky occlusion and colour bleed,
-and the trained tile inherits them. Workers that train already need WebGPU
-(`caps`), so `frame` requiring it costs no fleet. Cross-worker check stays PSNR
-(WP2.4) and tolerates the residual noise of a shared seed.
+`render.js`. Same cameras, same `light.js` sun and sky, plus shadows,
+sky occlusion and bounce, and base-colour textures sampled at the hit. Two
+levels of BVH: one per asset, built once per SAN and cached (the GLB is
+content-addressed, so the BVH is too), and a tile-level BVH over instances
+plus the terrain mesh. Per-tile geometry is then ~32 k terrain triangles
+plus instances; the SPEC's ceiling of 200 objects × 200 k triangles only
+costs BVH build time if every asset is unique, which is what the cache is
+for. 120 views × 1 M px × 32 spp × ~3 segments ≈ 12 G ray segments; a
+compute traversal on a mid-range card does ~1 G/s, so 10–20 s a tile, spread
+over the six frame atoms as now. A fixed per-pixel seed keeps two workers'
+frames within PSNR of each other; the trainer never needed them bit-equal.
+Workers that train already need WebGPU (`caps`), so `frame` requiring it
+costs no fleet.
 
-**`sample-v2`: lit baseline.** Per splat, not per pixel: one sun ray and 16
-hemisphere rays against the same BVH, on the CPU in doubles, fixed order, so
-the result is still bit-exact and hash-verified (Invariant 7). 800 k × 17 rays
-is ~14 M rays, 2–3 s in JS. This is what gives z14 (and z16 under T5) shadows
-and ambient occlusion without training anything.
+**`sample-v2`: lit baseline** for z14 (and z16 under T6). Per splat, not
+per pixel: one sun ray and 16 hemisphere rays against the same tile BVH, on
+the CPU in doubles in fixed order, so the ply stays bit-exact and
+hash-verified (Invariant 7). 800 k × 17 rays ≈ 14 M rays, a few seconds in
+JS. Buildings and trees then shade the ground and each other in every
+baseline tile without training anything.
 
-What ray tracing cannot fix is Q5: shadows of boxes are still boxes. Pair it
-with WP4.1's real GLBs and textured materials, or the bake is faithful to a
-cartoon.
+Order: BVH + `sample-v2` first (small, deterministic, immediately visible
+everywhere z14 is published); `frame-v2` second.
 
-## 4. Cheap fixes in the current atoms (do first)
+## 5. Cheap fixes in the trainer (do first, all in `client/lib/gs*`)
 
-1. **Per-splat ortho lookup** (Q1): in `sampleSurfaces`, a terrain splat samples
-   `terrainColour(ortho, u, v)` at its own position; vertex colour stays for the
-   other materials. New `assemble-v2`/`sample-v2` algo versions, same DAG.
-2. **Stratified placement and scale** (Q2): jittered grid per triangle (or a
-   Poisson set from `poly.js scatter`) and 1σ ≈ 1.0–1.2 × spacing; keep α = 1.
-   Removes the speckle at no cost.
-3. **Grid follows the DEM** (Q1/Q3): `GRID[z]` such that a post is no coarser
-   than the DEM pixel, capped at 257 for memory.
-4. **SH band 1 in the format** (Q6): `ply.js`, `sogenc.js` (`shN` plane, which
-   the engine already reads) for trained tiles only.
-5. **Viewer cap** (`tiles.js LIMITS.splats = 25e6`): the engine sorts on the
-   CPU; 8–12 M is what keeps 60 fps on mid-range hardware. Not a bake issue
-   but it is what the player sees.
+1. **Capacity** (Q3/T4): global-memory radix sort keyed on (tile, depth), or
+   at minimum raise `CAPACITY` with a chunked in-workgroup sort and count
+   the overflow into `result` so an over-capacity run is visible.
+2. **Maintenance cadence** (T1): every 500, and only while growing.
+3. **Full-budget seed, no growth, frozen positions early; 1 500–2 000
+   iterations** (T2): `INIT_SHARE`, `GROW`, `iters` in `0017_verifydag.sql`.
+4. **D-SSIM in the loss** (Q4).
+5. **Coarse-to-fine** (Q5): 512² then 1024² for the last third, z18 only.
+6. **Viewer cap**: `traverse.js LIMITS.splats = 25e6`; the engine sorts on the
+   CPU, and 8–12 M is what holds 60 fps on mid-range hardware. Not a bake
+   issue, but it is what the player sees.
 
-## 5. Sequence
-
-WP3.1 as planned, with T1–T3 from the start (they are training-loop settings,
-not extra work); §4.1–4.3 as `assemble-v2`/`sample-v2` in the same package;
-`frame-v2` path tracer next, `sample-v2` lighting on the same BVH; T4/T5 are
-one-line changes to `tile_budget`/`build_dag` once the numbers from a real GPU
-are in. Reseed with swisstopo data on a networked box before judging any of it.
+Each of 1–5 is a training-loop setting or one kernel; none changes the DAG
+or the format. Run WP3.1's acceptance on a GPU before and after so the
+numbers above become measurements.
