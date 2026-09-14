@@ -116,7 +116,7 @@ Atoms become `ready` when all `deps` are `verified`. Inputs to each atom are art
 | op | inputs | output | algo |
 |---|---|---|---|
 | `assemble` | features+instances snapshot (GeoJSON), DEM/ortho tiles, GLBs | `init.ply`, `height.r16`, `colliders.json` (one tar artifact) | `assemble-v1`: terrain grid, terrainmods, road cuts, extruded footprints, seeded scatter, GLB placement |
-| `frame` | assemble artifact, camera set id, index range | WebP frames + `transforms.json` | `frame-v1` |
+| `frame` | assemble artifact, camera set id, index range, samples | WebP frames + `transforms.json` | `frame-v2`: path traced (three.js + three-gpu-pathtracer, WebGL2) under the one sky of `lib/light.js`; placed GLBs with their textures |
 | `train` | frames, init.ply, budget, iters | `.ply` + the tile's height and colliders, in one tar | `train-v1`: Adam over a differentiable gaussian rasteriser (WebGPU, `client/lib/gsgpu.js`), poses injected from `transforms.json`, MCMC relocation and growth capped by the budget |
 | `sample` | assemble artifact, budget | `.ply` + the tile's height and colliders, in one tar | `sample-v1`: the same area-weighted surface sampling that seeds a trained tile, at the tile's whole budget |
 | `merge` | 16 child `.ply`/`.sog`, voxel, budget, seed | `.ply` | `merge-v1`, bit-exact deterministic (integer voxel keys, fixed iteration order, no atomics) |

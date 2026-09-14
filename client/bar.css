@@ -1,10 +1,10 @@
 /* bar.css — the plinth along the bottom edge, and the altimeter up the right.
  *
  * The bar is one solid thing standing on the bottom of the window rather than a
- * strip floating over it: it is where every surface is opened from, so it reads
- * as the frame of the window and not as another panel. Three groups, divided:
- * you (who you are, what you have), the five main surfaces, and the small
- * system ones. Taken from docs/design/chrome5.dc.html.
+ * strip floating over it. Since v6 it holds one group and nothing else: the
+ * five surfaces the game is played through, on keys 1–5. Who you are, what you
+ * have and what is set once are the top strip's (client/top.css).
+ * Taken from docs/design/chrome6.dc.html.
  *
  * Split out of hud.css so both stay under the 400 lines CLAUDE.md allows.
  */
@@ -68,72 +68,16 @@
 
 /* The five surfaces the game is played through: big enough to aim at without
    looking, with the key that opens them printed on the corner. */
-#tabs .hotgroup[data-group="main"] .tab {
+#tabs .hotgroup[data-group="bar"] .tab {
   width: 88px; height: 72px; gap: 7px;
 }
-#tabs .hotgroup[data-group="main"] .tab::before {
+#tabs .hotgroup[data-group="bar"] .tab::before {
   content: ""; position: absolute; left: 0; top: 0; width: 100%; height: 3px;
   background: transparent;
 }
-#tabs .hotgroup[data-group="main"] .tab[aria-selected="true"]::before {
+#tabs .hotgroup[data-group="bar"] .tab[aria-selected="true"]::before {
   background: var(--accent);
 }
-
-/* You: the face, the name and what is in the wallet, because a tycoon game is
-   played out of a balance and it should never need opening to be read. */
-#tabs .tab.profile {
-  flex-direction: row; align-items: center; gap: 10px; height: 56px;
-  padding: 0 12px 0 6px;
-}
-#tabs .tab.profile .face {
-  position: relative; width: 44px; height: 44px; flex: 0 0 auto;
-  display: flex; align-items: center; justify-content: center;
-  background: repeating-linear-gradient(135deg, #2a2e35 0 5px, #1f232a 5px 10px);
-  border: 1px solid rgba(255, 255, 255, 0.18);
-  font-family: var(--head); font-weight: 700; font-size: 16px;
-  letter-spacing: 0.06em; color: rgba(242, 239, 232, 0.8);
-}
-/* Green, and only here: signed in is a fact about you, not a state of the world. */
-#tabs .tab.profile .face::after {
-  content: ""; position: absolute; right: -3px; bottom: -3px; width: 8px; height: 8px;
-  background: rgba(242, 239, 232, 0.35); border: 2px solid #0b0d10;
-}
-#tabs .tab.profile[data-in="1"] .face::after { background: oklch(0.8 0.15 145); }
-#tabs .tab.profile .who { display: flex; flex-direction: column; gap: 3px;
-  align-items: flex-start; }
-#tabs .tab.profile .name {
-  font-family: var(--head); font-weight: 700; font-size: 15px;
-  letter-spacing: 0.06em; text-transform: uppercase; line-height: 1;
-  max-width: 9rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
-}
-#tabs .tab.profile .credits {
-  font-family: var(--head); font-weight: 700; font-size: 16px; line-height: 1;
-  color: var(--accent);
-}
-#tabs .tab.profile .credits i {
-  font-style: normal; font-size: 10px; letter-spacing: 0.1em; margin-left: 3px;
-  color: var(--ink-3);
-}
-#tabs .hotgroup[data-group="you"] .tab.small { width: 52px; height: 56px; gap: 4px; }
-#tabs .hotgroup[data-group="you"] .tab.small svg { width: 18px; height: 18px; }
-#tabs .hotgroup[data-group="you"] .tab.small .label { font-size: 10px;
-  letter-spacing: 0.08em; }
-
-/* The system surfaces: small, named under the row, out of the way of the game. */
-#tabs .hotgroup[data-group="system"] { flex-direction: column; align-items: center;
-  gap: 5px; }
-#tabs .hotgroup[data-group="system"] .tabs { display: flex; gap: 5px; }
-#tabs .hotgroup[data-group="system"] .names {
-  display: flex; gap: 5px; font-family: var(--head); font-weight: 600;
-  font-size: 9px; letter-spacing: 0.08em; text-transform: uppercase;
-  color: rgba(242, 239, 232, 0.4);
-}
-#tabs .hotgroup[data-group="system"] .names span { width: 34px; text-align: center; }
-#tabs .hotgroup[data-group="system"] .tab { width: 34px; height: 34px;
-  color: var(--ink-3); }
-#tabs .hotgroup[data-group="system"] .tab svg { width: 15px; height: 15px; }
-#tabs .hotgroup[data-group="system"] .tab .key,
-#tabs .hotgroup[data-group="system"] .tab .label { display: none; }
 
 /* ---------------------------------------------------------- the altimeter
  *

@@ -5,18 +5,21 @@
 // open, and hands each one a body element for whichever module fills it. A
 // module mounted here neither knows nor cares that it is in a tab.
 //
-// The bar along the bottom is client/js/tabbar.js, the altimeter up the right
-// is client/js/altimeter.js and the compass, place line, key hints and
-// pipeline are client/js/chrome.js; this puts them on the screen.
+// The strip along the top is client/js/topbar.js and the plinth along the
+// bottom client/js/tabbar.js; the altimeter up the right is
+// client/js/altimeter.js and the compass, place line and key hints are
+// client/js/chrome.js. This puts them on the screen.
 
-import { GROUPS, LEAVES, PART_LEDE, TABS, keyed, surfaceOf, tabBar }
+import { GROUPS, LEAVES, PART_LEDE, TABS, keyed, surfaceOf, tabBar, wideAt }
     from './tabbar.js';
 import { mountAltimeter } from './altimeter.js';
-import { drawHints, el, keyHints, pipeline, place, topCentre } from './chrome.js';
-import { STAGES } from './stages.js';
+import { drawHints, el, keyHints, place, topCentre } from './chrome.js';
+import { APPS, appKeyed, appNamed, appsDrawer } from './apps.js';
+import { mountNotify } from './notify.js';
+import { topBar } from './topbar.js';
 
 export { GROUPS, TABS, keyed };
-export { STAGES };
+export { APPS };
 
 // An empty world is black, and black says nothing. What is missing is always
 // one of four things, and each of them is somebody's next move.
@@ -98,11 +101,14 @@ function panelFrame(onClose, onPart) {
 
 // Everything that is on screen, built once. `show` is passed in because the
 // bar's buttons need it before mountHud has defined it.
-function buildFrame(doc, show) {
+function buildFrame(doc, show, on) {
     const top = topCentre();
-    const pipe = pipeline();
     const frame = panelFrame(() => show('World'), show);
-    const { bar, buttons, you } = tabBar(show);
+    const { bar, buttons } = tabBar(show);
+    const strip = topBar(show, on);
+    const notify = mountNotify();
+    const drawer = appsDrawer(on.pick);
+    for (const [name, b] of strip.buttons) buttons.set(name, b);
     // The stories and the tests reach a part by name; the button that opens it
     // is the surface's, so the surface says which parts are behind it. Comma
     // delimited and comma terminated, because a part's name is words — "Render
@@ -135,18 +141,12 @@ function buildFrame(doc, show) {
 
     const notice = el('div', { id: 'notice', className: 'glass' });
     notice.hidden = true;
-    // SPEC §2.1: the chip that says how many things are waiting for you sits
-    // beside the mark. js/attention.js fills it.
-    const waiting = el('div', { id: 'waiting' });
     const hints = keyHints();
     // SPEC §3.2: a land's name is drawn on the ground, and letters are HTML.
     const labels = el('div', { id: 'world-labels' });
     const hud = el('div', { id: 'hud' },
-        labels,
-        el('div', { id: 'brand', className: 'glass' },
-            el('span', { className: 'mark', textContent: 'splatworld' }),
-            el('span', { className: 'rule' }), waiting),
-        top.node, pipe.node, frame.node, bar,
+        labels, strip.node, drawer.node, notify.tray, notify.toasts,
+        top.node, frame.node, bar,
         el('div', { id: 'corner' },
             hints,
             el('div', { id: 'map', className: 'glass' }, map, scale, mapBox)),
@@ -161,22 +161,44 @@ function buildFrame(doc, show) {
 
     doc.body.append(el('div', { id: 'vignette' }), hud);
     const alt = mountAltimeter(hud);
-    return { top, you, stats: pipe.cells, frame, buttons, bodies, notice, map,
-        mapBox, scale, waiting, hints, alt };
+    return { hud, top, strip, drawer, notify, you: strip.you, stats: strip.stats,
+        frame, buttons, bodies, notice, map, mapBox, scale,
+        waiting: strip.waiting, hints, alt };
 }
 
-// A key opens its surface; Escape closes whatever is open. Neither fires while
-// somebody is typing — a land called "5" has to be nameable.
-function bindKeys(doc, show) {
+// A key opens its surface, Tab the apps drawer, F1–F6 an app; Escape closes
+// whatever is open, nearest first. None of it fires while somebody is typing —
+// a land called "5" has to be nameable.
+function bindKeys(doc, { show, apps, drawer, tray, close }) {
     doc.addEventListener('keydown', (e) => {
         if (e.ctrlKey || e.metaKey || e.altKey) return;
         if (e.target?.closest?.('input, select, textarea, [contenteditable]')) return;
-        if (e.key === 'Escape') { show('World'); return; }
+        if (e.code === 'Tab') { e.preventDefault(); drawer(); return; }
+        if (e.key === 'Escape') {
+            if (!close()) show('World');
+            return;
+        }
+        const app = appKeyed(e.code);
+        if (app) { e.preventDefault(); apps(app); return; }
+        if (e.code === 'KeyN') { e.preventDefault(); tray(); return; }
         const name = keyed(e.key);
         if (!name) return;
         e.preventDefault();
         show(name);
     });
+}
+
+// Switching app switches the chrome, not where you stand: the hue everything
+// accented takes, and Build's own instruments and surfaces, which the other
+// five apps have nothing to put in yet.
+function dressFor(f, name) {
+    const app = appNamed(name);
+    f.hud.dataset.app = app.name;
+    f.hud.style.setProperty('--accent', app.hue);
+    f.hud.style.setProperty('--accent-dim', `color-mix(in oklab, ${app.hue} 14%, transparent)`);
+    for (const [n, b] of f.strip.apps) b.setAttribute('aria-selected', String(n === app.name));
+    for (const [n, b] of f.drawer.buttons) b.setAttribute('aria-selected', String(n === app.name));
+    return app.name;
 }
 
 // Which panel is on screen, and the frame dressed for it. `name` is a leaf —
@@ -196,17 +218,20 @@ function showPanel(name, { buttons, bodies, frame }) {
     frame.head.hidden = !frame.heads.get(at.tab)?.childElementCount;
     frame.title.textContent = at.tab;
     frame.node.dataset.open = at.tab === 'World' ? '' : '1';
-    // Each panel is as wide as what it has to show (TABS.width), and a surface
+    // Each panel is as wide as what it has to show (TABS.width), and a leaf
     // marked `wide` takes the window: a tool that is a map beside a form has
-    // nothing to gain from being a column.
-    frame.node.dataset.wide = tab?.wide ? '1' : '';
-    frame.node.style.width = !tab?.wide && tab?.width ? `${tab.width}px` : '';
+    // nothing to gain from being a column. Settings holds both kinds, so the
+    // part decides where it has an opinion (tabbar.js wideAt).
+    const wide = wideAt(leaf);
+    frame.node.dataset.wide = wide ? '1' : '';
+    frame.node.style.width = !wide && tab?.width ? `${tab.width}px` : '';
 }
 
 
 // What the bar and the corners say about you and about the world's progress.
 function state(f) {
     const { you, stats, buttons, notice } = f;
+    const credits = f.strip.money.credits;
     return {
         // A surface with something waiting behind it says so without being
         // opened. A count hung on a part shows on the surface that holds it.
@@ -233,11 +258,13 @@ function state(f) {
             notice.textContent = text ?? '';
             notice.hidden = !text;
         },
-        // Credits are not a stage of the route — they are on the chip that is
-        // you, where a balance is read without opening anything.
+        // v6 keeps two of the five stages on the bar — what is rendered and
+        // what is waiting for a person — and the balance beside them. The rest
+        // are read in the panel that is about them; a number nobody acts on is
+        // not worth a strip along the top.
         stat(key, value) {
             if (key === 'credits') {
-                you.credits.replaceChildren(value ?? '\u2014', el('i', { textContent: 'CR' }));
+                credits.replaceChildren(value ?? '\u2014', el('i', { textContent: 'CR' }));
             } else if (stats[key]) stats[key].textContent = value;
         },
         // How high you are, how far that is above the ground, and where you
@@ -254,9 +281,55 @@ function state(f) {
     };
 }
 
+// The drawer and the tray are the two things that hang off the top strip, and
+// only one of them is ever down.
+function drawersOf(at) {
+    const d = {
+        apps(yes) {
+            at().drawer.node.hidden = !yes;
+            at().strip.appsBtn.setAttribute('aria-selected', String(yes));
+            if (yes) d.tray(false);
+        },
+        tray(yes) {
+            at().notify.open(yes);
+            at().strip.bell.setAttribute('aria-selected', String(yes));
+            if (yes) {
+                at().drawer.node.hidden = true;
+                at().strip.appsBtn.setAttribute('aria-selected', 'false');
+            }
+        },
+        toggleTray() { d.tray(!at().notify.isOpen()); },
+        close() {
+            const was = !at().drawer.node.hidden || at().notify.isOpen();
+            d.apps(false);
+            d.tray(false);
+            return was;
+        },
+    };
+    return d;
+}
+
 export function mountHud(doc) {
     let open = 'World';
-    const f = buildFrame(doc, (name) => show(name));
+    let app = 'Build';
+    const drawers = drawersOf(() => f);
+    const pickApp = (name) => {
+        if (name === null) { drawers.apps(f.drawer.node.hidden); return app; }
+        app = dressFor(f, name);
+        drawers.apps(false);
+        if (app !== 'Build') show('World');
+        return app;
+    };
+    const f = buildFrame(doc, (name) => show(name), {
+        onApps: pickApp, onTray: () => drawers.tray(!f.notify.isOpen()),
+        pick: pickApp,
+    });
+    f.notify.onCount((n) => {
+        const count = f.strip.bell.querySelector('.count');
+        count.hidden = n === 0;
+        count.textContent = String(n);
+    });
+    dressFor(f, app);
     // What a panel wants done when it is opened. A queue somebody else is
     // working out of is out of date the moment it is drawn, and opening the
     // surface is the player asking what is in it.
@@ -278,7 +351,8 @@ export function mountHud(doc) {
         return f.bodies.get(leaf ?? name);
     }
 
-    bindKeys(doc, show);
+    bindKeys(doc, { show, apps: pickApp, drawer: () => pickApp(null),
+        tray: () => drawers.tray(!f.notify.isOpen()), close: drawers.close });
     // The world is what the page opens on: every panel hidden, nothing docked.
     // Said once here rather than left to the markup, so the frame's state and
     // `open` cannot start out disagreeing.
@@ -286,6 +360,11 @@ export function mountHud(doc) {
 
     return {
         show,
+        // What happened while you were looking somewhere else: under the bell
+        // for eight seconds, and in the tray after that (client/js/notify.js).
+        notify: (n) => f.notify.push(n),
+        // Which workspace the chrome is dressed for, and switching it.
+        app: (name) => (name === undefined ? app : pickApp(name)),
         panel: (name) => f.bodies.get(name),
         // What a surface says above its parts, rather than inside one of them.
         panelHead: (name) => f.frame.heads.get(name),

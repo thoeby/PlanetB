@@ -167,9 +167,14 @@ export class WorkLoop {
             // Whole, with its lines run together: a message that says what
             // each of three attempts complained about is useless cut at the
             // first newline, which is where its summary line ends.
-            this.log({ event: 'error', atom: atom.id, op: atom.op,
-                err: String(err?.message ?? err).replace(/\s*\n\s*/g, ' · ').slice(0, 600),
+            const reason = String(err?.message ?? err).replace(/\s*\n\s*/g, ' · ').slice(0, 600);
+            this.log({ event: 'error', atom: atom.id, op: atom.op, err: reason,
                 ...(err?.where ? { where: err.where } : {}) });
+            // The piece goes back into the pool now, with the reason on it,
+            // not in five minutes when the heartbeat is missed
+            // (db/0093_afailedpiecegoesbackatonce.sql).
+            await this.api.rpc('fail_atom', { atom_id: atom.id, reason }).catch(
+                (e) => this.log({ event: 'fail-failed', atom: atom.id, err: String(e) }));
             throw err;
         } finally {
             this.timers.clearInterval(timer);

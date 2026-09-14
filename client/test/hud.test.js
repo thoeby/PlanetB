@@ -4,8 +4,8 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 
-import { STAGES, whatIsMissing } from '../js/hud.js';
-import { GROUPS, LEAVES, TABS, keyed, surfaceOf } from '../js/tabbar.js';
+import { whatIsMissing } from '../js/hud.js';
+import { GROUPS, LEAVES, TABS, keyed, surfaceOf, wideAt } from '../js/tabbar.js';
 
 test('with no ground at all, the world has nowhere to be', () => {
     assert.match(whatIsMissing({}), /Setup/);
@@ -39,11 +39,12 @@ test('land with something on it is a Submit away', () => {
     assert.match(said, /Submit/);
 });
 
-// The chrome the design fixes (docs/design/chrome5.dc.html): three groups on
-// one plinth, a key for everything, five stages.
+// The chrome the design fixes (docs/design/chrome6.dc.html): two places a
+// surface is opened from — the plinth along the bottom and the strip along the
+// top — and a key for everything.
 
-test('every surface is in one of the three groups, and has a key of its own', () => {
-    assert.deepEqual(GROUPS, ['you', 'main', 'system']);
+test('every surface is in one of the two groups, and has a key of its own', () => {
+    assert.deepEqual(GROUPS, ['bar', 'top']);
     for (const t of TABS) {
         if (t.name === 'World') continue;
         assert.ok(GROUPS.includes(t.group), `${t.name} is in no group`);
@@ -55,22 +56,43 @@ test('every surface is in one of the three groups, and has a key of its own', ()
 
 test('the groups hold what the design puts in them', () => {
     const of = (g) => TABS.filter((t) => t.group === g).map((t) => t.name);
-    assert.deepEqual(of('you'), ['Profile', 'Wallet']);
-    assert.deepEqual(of('main'),
+    assert.deepEqual(of('bar'),
         ['Place', 'Catalog', 'Your land', 'Publish', 'Work']);
-    assert.deepEqual(of('system'), ['Setup', 'Share', 'Admin']);
+    assert.deepEqual(of('top'), ['Profile', 'Wallet', 'Settings']);
 });
 
 test('the five surfaces the game is played through are on keys 1 to 5', () => {
-    assert.deepEqual(TABS.filter((t) => t.group === 'main').map((t) => t.key),
+    assert.deepEqual(TABS.filter((t) => t.group === 'bar').map((t) => t.key),
         ['1', '2', '3', '4', '5']);
+});
+
+// v6 folds the small buttons into the three the strip has room for: sharing
+// where you stand is something you hand out, and Setup and the admin tools are
+// all "set once and left alone".
+test('what used to be a button of its own is a tab of one of the three', () => {
+    assert.deepEqual(surfaceOf('Share'), { tab: 'Profile', part: 'Share' });
+    assert.deepEqual(surfaceOf('Setup'), { tab: 'Settings', part: 'Setup' });
+    assert.deepEqual(surfaceOf('Land'), { tab: 'Settings', part: 'Land' });
+    assert.deepEqual(surfaceOf('Vocabulary'), { tab: 'Settings', part: 'Vocabulary' });
+    assert.deepEqual(surfaceOf('Settings'), { tab: 'Settings', part: 'Setup' });
+});
+
+// A panel is as wide as what it has to show, and Settings holds both kinds:
+// a form in a column, and two tools that want the window.
+test('a part says whether it takes the window, where its surface cannot', () => {
+    assert.equal(wideAt('Setup'), false);
+    assert.equal(wideAt('Land'), true);
+    assert.equal(wideAt('Vocabulary'), true);
+    assert.equal(wideAt('Place'), false);
 });
 
 test('a key names its surface, and a key nobody bound names none', () => {
     assert.equal(keyed('1'), 'Place');
     assert.equal(keyed('4'), 'Publish');
     assert.equal(keyed('p'), 'Profile');
-    assert.equal(keyed('`'), 'Setup');
+    assert.equal(keyed('`'), 'Settings');
+    assert.equal(keyed('9'), 'Share');
+    assert.equal(keyed('0'), 'Land');
     assert.equal(keyed('z'), null);
 });
 
@@ -90,17 +112,13 @@ test('every panel body there is, is a surface or a part of one', () => {
     assert.equal(new Set(LEAVES).size, LEAVES.length, 'two bodies share a name');
 });
 
-test('the five stages are the route through the app, in order', () => {
-    assert.deepEqual(STAGES.map((s) => s.label),
-        ['Placed', 'In pool', 'Rendered', 'Awaiting', 'Published']);
-});
-
 test('every surface but the world itself says how wide its panel is', () => {
     for (const t of TABS) {
         if (t.name === 'World') continue;
         // Or that it takes the window, which is the other answer to the same
         // question: a map beside a form has nothing to gain from a column.
-        assert.ok(t.wide || t.width >= 440, `${t.name} has no width`);
+        assert.ok(t.wide || t.parts?.some((p) => p.wide) || t.width >= 440,
+            `${t.name} has no width`);
     }
 });
 

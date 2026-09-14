@@ -14,7 +14,9 @@ export const REFINE_PX = 2;
 // Coarsening uses a lower threshold than refining, so a camera hovering at the
 // boundary does not load and unload the same level every frame.
 export const HYSTERESIS = 1.4;
-export const LIMITS = { tiles: 64, splats: 25e6, inflight: 4 };
+// 12 M splats is what a mid-range card sorts and draws at 60 fps; 25 M was
+// what the engine would accept, not what it could show.
+export const LIMITS = { tiles: 64, splats: 12e6, inflight: 4 };
 
 // How long a tile that has left the view is kept before it is thrown away.
 // Panning is turning your head and turning it back, and a tile dropped the

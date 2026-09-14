@@ -689,6 +689,39 @@ toy: it is what `verify` renders with, and what the node tests train with.
   `getCompilationInfo()` and throws on the first error, which is the only reason
   the next one of these will take a minute instead of an afternoon.
 
+### Rendering, revisited (docs/rendering.md)
+
+- `train-v2` starts from the answer: the assembled surfaces sampled at the
+  whole budget, no growth, positions frozen for the first 40 %, 2 000 (z18) /
+  1 500 (z16) iterations, z18 at 1024 px so two million splats fit the
+  per-screen-tile capacity; splats a tile could not list are reported as
+  `result.dropped` (`db/0091`).
+- `frame-v2` path-traces the frames with three.js and three-gpu-pathtracer
+  (`client/lib/pathtrace.js`, `db/0092`): shadows, sky occlusion, bounce, and
+  placed assets with their textures from the canonical GLB. `tools/vendor.sh`
+  vendors the three modules; they are what runs, not a CDN mirror.
+- The eight top-down poses of every camera set had a zero rotation: straight
+  down with straight up as "up". They look north now (`client/lib/cameras.js`).
+- The browser tests that frame a tile now trace, which SwiftShader does at
+  about a second per thousand pixels: `frame.spec` is 48 px and one sample;
+  `train.spec` and `spot.spec` need a GPU to finish in their timeouts.
+- Not run here: any GPU measurement, and the pgTAP files for 0091/0092 (no
+  PostGIS in this container).
+
+- A piece a tab could not do — no ground, a lost asset, a shader that would
+  not compile — stayed `claimed` for five minutes (thirty for a train) and the
+  pool said it was in somebody else's hands: the person's own. The tab now
+  calls `fail_atom` on the way out of the error (`db/0093`): an attempt
+  counted, the third one final, the piece back in the pool at once with the
+  reason on the atom.
+
+- "Compile it all again" on ground nobody had changed left the new job waiting
+  for ever ("8 waiting on the rest · no GPU needed"): `new_atom` handed it the
+  cancelled job's assemble atom, unchanged hash, in a job claim_atom never
+  looks at. `db/0094`: an unfinished atom in a closed job moves to the job
+  that asks for it; a verified atom advances every job waiting on it; a job
+  just built is advanced over dependencies verified before it existed.
+
 ### Open items from WP3
 
 - [ ] **WP3.1's acceptance on a GPU**: a pilot z16 tile in under 8 minutes at
@@ -1226,3 +1259,40 @@ typed geometry column, so GeoServer no longer sees an unknown native SRS on it.
 `infra/geoserver/provision.sh` is gone: it published the layers in the tile
 projection with `REPROJECT_TO_DECLARED`, which `gsprovision.py` had already
 found to store Mercator numbers raw; the Python provisioner is the one path.
+
+## The chrome, turn 6
+
+`docs/design/splatworld-v6.dc.html` and `chrome6.dc.html` are the design of
+record now, and the page wears them. What changed:
+
+- **One 44 px strip along the top** (`client/js/topbar.js`, `client/top.css`):
+  the apps button on `Tab`, the wordmark, every app as a glyph with only the
+  current one named in its hue, then the two numbers Build is played by
+  (rendered, to decide), the clock, your balance, the bell and you.
+- **The plinth is the five surfaces and nothing else.** What used to be a small
+  button of its own is a tab of one of the three the strip carries: Share is a
+  part of Profile, Setup and the two admin tools are parts of Settings. Every
+  key still opens what it opened (`9` Share, `` ` `` Settings, `0` Land), and a
+  panel body is still addressed by its own leaf name, so no module moved.
+- **Apps** (`client/js/apps.js`): six workspaces over the same world, `F1`–`F6`
+  or the drawer. Only Build is wired; the other five dress the chrome — the
+  accent, and Build's own plinth, legend and numbers go away — and say on their
+  own card that they are not wired yet. Where you stand does not change.
+- **Notifications** (`client/js/notify.js`): `hud.notify({title, meta, tone})`
+  lands under the bell for eight seconds, stacking, and the tray keeps the last
+  twenty. Nothing pushes one yet except the page itself.
+- **The controls are a panel above the map**, with the movement mode at the head
+  of it and the keys as caps (`drawHints`, `client/frame.css`).
+- **The five-stage pipeline is gone** with `client/js/stages.js`. `hud.stat()`
+  keeps its signature: `rendered` and `awaiting` reach the strip, `credits` the
+  wallet cell, and the three nobody acts on from a bar — placed, in pool,
+  published — are dropped rather than drawn.
+- **The compass and the altimeter are ours, not the mockup's**, as asked: the
+  ruled ribbon stays under the strip instead of moving into it, and the ladder,
+  the ground line and the pitch gutter are untouched.
+- Two `hidden` attributes that a `display` rule had been overriding now work:
+  the list under the attention chip, and the bell's count.
+
+`client/test/hud.test.js` follows the regrouping, `client/test/e2e/hud.spec.js`
+the strip, and two new browser tests cover the apps drawer and the bell. The
+story helper `panel()` looks in both bars (`client/test/run/players.js`).

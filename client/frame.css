@@ -77,25 +77,45 @@
   position: absolute; right: 12px; bottom: 12px; display: flex;
   flex-direction: column; gap: 8px; align-items: flex-end;
 }
+/* The controls, in a panel of their own above the map (v6): which of the two
+   you are in at the head of it, with the key for the other, and the keys as
+   caps under that. */
 #hints {
-  display: flex; gap: 14px; height: 32px; align-items: center; padding: 0 14px;
-  --cut: 8px; font-size: 12px; color: var(--ink-2);
+  width: 240px; display: flex; flex-direction: column; --cut: 8px;
+  font-size: 12px; color: var(--ink-2);
 }
 #hints b { color: var(--ink); font-weight: 600; }
-
-/* Walking or flying, at the head of the keys that go with it: the two are
-   different controls and the corner has to say which one you are in. */
 #hints .mode {
-  display: flex; align-items: center; gap: 6px; padding-right: 12px;
-  border-right: 1px solid var(--edge);
+  display: flex; align-items: center; justify-content: space-between;
+  height: 30px; padding: 0 10px; border-bottom: 1px solid var(--edge);
 }
+#hints .mode .now { display: flex; align-items: center; gap: 7px; }
+#hints .mode-name {
+  font-family: var(--head); font-weight: 700; font-size: 13px;
+  letter-spacing: 0.1em; text-transform: uppercase;
+}
+#hints .mode .other { display: flex; align-items: center; gap: 5px;
+  font-size: 10px; color: var(--ink-3); }
 #hints .mode .pip {
-  width: 7px; height: 7px; border-radius: 50%; background: var(--ink-3);
+  width: 7px; height: 7px; border-radius: 50%; background: oklch(0.8 0.15 145);
+  box-shadow: 0 0 8px oklch(0.8 0.15 145);
 }
 #hints[data-mode="fly"] .mode .pip {
   background: var(--accent); box-shadow: 0 0 8px var(--accent);
 }
 #hints[data-mode="fly"] .mode-name { color: var(--accent); }
+#hints[data-mode="walk"] .mode-name { color: oklch(0.8 0.15 145); }
+#hints .keys {
+  display: grid; grid-template-columns: auto 1fr; column-gap: 10px; row-gap: 5px;
+  align-items: center; padding: 8px 10px; font-size: 11px;
+}
+#hints .caps-row { display: flex; gap: 2px; justify-content: flex-end; }
+kbd {
+  min-width: 18px; height: 18px; padding: 0 5px; display: inline-flex;
+  align-items: center; justify-content: center; border: 1px solid rgba(255, 255, 255, 0.25);
+  background: rgba(255, 255, 255, 0.05); font-family: var(--mono); font-size: 10px;
+  color: rgba(242, 239, 232, 0.85);
+}
 
 /* The map: your land in the accent, everybody else's in outline, you in the
    middle with the cone of what you are looking at (js/hudmap.js). */
@@ -147,17 +167,14 @@
   /* The plinth is 94px tall and centred, and at this width it reaches under
      the corner. The map steps back above it (see #corner). */
   #corner { right: 24px; bottom: 104px; }
-  /* The key hints stack into the corner rather than disappearing: hud.js
-     builds them because they are the only way to learn that the keys work,
-     and a 1280px laptop is not a reason to stop telling people how to walk. */
-  #hints { flex-direction: column; height: auto; align-items: flex-start;
-    gap: 2px; padding: 8px 12px; }
+  /* The controls panel stays: hud.js builds it because it is the only way to
+     learn that the keys work, and a 1280px laptop is not a reason to stop
+     telling people how to walk. */
+  #hints { width: 180px; }
   #map { width: 180px; height: 180px; }
-  .stage { min-width: 84px; padding: 0 10px 0 12px; }
 }
 
 @media (max-width: 1200px) {
-  #stats { display: none; }
   #where { max-width: 90vw; }
 }
 

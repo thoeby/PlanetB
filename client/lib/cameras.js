@@ -22,8 +22,18 @@ export const viewCount = (set) => {
     return s.rings.length * s.az + s.streets * s.perStreet + s.top;
 };
 
-const look = (position, target, id, kind) =>
-    ({ id, kind, position, target, up: [0, 1, 0], fov: 60 });
+// A pose looking straight down has no "up" in the sky: its basis would be
+// built from up × back with both vertical, and every top-down frame came out
+// of a zero rotation. Those poses take north as up instead.
+const vertical = (p, t) => {
+    const d = [t[0] - p[0], t[1] - p[1], t[2] - p[2]];
+    return Math.abs(d[1]) > 0.999 * Math.hypot(d[0], d[1], d[2]);
+};
+
+const look = (position, target, id, kind) => ({
+    id, kind, position, target, fov: 60,
+    up: vertical(position, target) ? [0, 0, -1] : [0, 1, 0],
+});
 
 // bounds: { centre: [x, y, z], extent } in the tile's own frame, metres.
 export function cameraSet(name, bounds) {

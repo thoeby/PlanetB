@@ -3,6 +3,9 @@ node_modules/
 infra/files/
 client/vendor/*/
 !client/vendor/README.md
+# three.js and the path tracer are what the frame atom runs, not a CDN mirror:
+# checked in, so a checkout works without `make vendor` (client/vendor/README.md).
+!client/vendor/three/
 docs/*.local.*
 *.log
 test-results/

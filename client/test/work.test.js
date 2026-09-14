@@ -190,6 +190,23 @@ test('the claim is kept alive by a heartbeat, and only while it is held', async 
     assert.equal(cleared, true, 'and stopped once the atom is submitted');
 });
 
+test('a piece the tab cannot do is failed back into the pool at once', async () => {
+    const { loop, api } = loopOver(ATOM, { rpcs: { fail_atom: 'ready' } });
+    loop.spawn = () => ({
+        run: async () => { throw new Error('no ground at 14/1/1'); },
+        terminate: () => {},
+    });
+    const logs = [];
+    loop.log = (rec) => logs.push(rec);
+    await assert.rejects(loop.step(), /no ground/);
+    const fail = api.calls.find((c) => c[1] === 'fail_atom');
+    assert.ok(fail, 'fail_atom is called');
+    assert.equal(fail[2].atom_id, 42);
+    assert.match(fail[2].reason, /no ground/);
+    assert.equal(loop.failed, 1);
+    assert.equal(loop.atom, null, 'and the tab holds nothing');
+});
+
 test('a claim that fails is idle, logged once per streak, and not a crash', async () => {
     const logs = [];
     let fails = 0;
