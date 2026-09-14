@@ -127,19 +127,22 @@ export const looking = (player) => player.page.bringToFront();
 // is already open closes it, as it should — so a player who is already looking
 // at a panel does not press it again, and neither does this.
 //
-// Two surfaces hold more than one thing (Publish holds Submit and Approve), so
-// a name is either a button on the bar or a tab inside the surface that names
-// it in data-parts. Both are reached the same way from a story.
+// Several surfaces hold more than one thing (Publish holds Submit and Approve,
+// Settings holds Setup and the admin tools), so a name is either a button on
+// one of the two bars — the plinth along the bottom or the strip along the top
+// — or a tab inside the surface that names it in data-parts. All of them are
+// reached the same way from a story.
 export async function panel(player, name) {
     await looking(player);
     const page = player.page;
-    const tab = page.locator(`#tabs button[data-tab="${name}"]`);
+    const bars = '#tabs, #top';
+    const tab = page.locator(`:is(${bars}) button[data-tab="${name}"]`);
     if (await tab.count()) {
         if (await tab.getAttribute('aria-selected') === 'true') return;
         await tab.click();
         return;
     }
-    const holder = page.locator(`#tabs button[data-parts*=",${name},"]`);
+    const holder = page.locator(`:is(${bars}) button[data-parts*=",${name},"]`);
     if (await holder.getAttribute('aria-selected') !== 'true') await holder.click();
     const part = page.locator(`#panel .parts button[data-tab="${name}"]`);
     if (await part.getAttribute('aria-selected') !== 'true') await part.click();

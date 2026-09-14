@@ -1,13 +1,14 @@
 // chrome.js — the instruments around the edge of the world: the compass and
-// the place line at the top, the key hints in the corner, and the five-stage
-// pipeline. Nodes and arithmetic only; client/js/hud.js puts them on the
-// screen and decides nothing here either.
+// the place line under the top strip, and the controls panel in the corner.
+// Nodes and arithmetic only; client/js/hud.js puts them on the screen and
+// decides nothing here either.
+//
+// The five-stage pipeline that used to live here is gone with v6: the two
+// numbers that are acted on are in the top strip (client/js/topbar.js).
 //
 // Split out of hud.js when that file outgrew the four hundred lines CLAUDE.md
 // allows. The altimeter up the right-hand edge is client/js/altimeter.js and
 // the map in the corner is client/js/hudmap.js; these are the rest of it.
-
-import { STAGES } from './stages.js';
 
 export const POINTS = ['N', 'NE', 'E', 'SE', 'S', 'SW', 'W', 'NW'];
 
@@ -74,10 +75,11 @@ export function topCentre() {
 // be discovered. A key hint is not decoration: it is the only way to learn
 // that the keys work at all.
 const MOVE = {
-    walk: { name: 'Walking', keys: [['Move', 'W A S D'], ['Look', 'drag'],
-        ['Run', 'Shift'], ['Fly', 'F']] },
-    fly: { name: 'Flying', keys: [['Fly where you look', 'W A S D'],
-        ['Look', 'drag'], ['Up', 'Space'], ['Down', 'Shift'], ['Walk', 'F']] },
+    walk: { name: 'Walking', other: 'Fly', keys: [[['W', 'A', 'S', 'D'], 'Move'],
+        [['drag'], 'Look'], [['Shift'], 'Run'], [['Esc'], 'Close panel']] },
+    fly: { name: 'Flying', other: 'Walk', keys: [[['W', 'A', 'S', 'D'],
+        'Fly where you look'], [['drag'], 'Look'], [['Space'], 'Up'],
+    [['Shift'], 'Down'], [['Esc'], 'Close panel']] },
 };
 
 export function keyHints() {
@@ -86,36 +88,24 @@ export function keyHints() {
     return node;
 }
 
+// v6 puts the controls in a panel of their own above the map: which of the two
+// you are in at the head of it, with the key for the other one, and the keys
+// themselves as caps under it. A key hint is not decoration — it is the only
+// way to learn that the keys work at all.
 export function drawHints(node, mode) {
     const how = MOVE[mode] ?? MOVE.walk;
     node.dataset.mode = mode;
+    const caps = (keys) => el('span', { className: 'caps-row' },
+        ...keys.map((k) => el('kbd', { textContent: k })));
     node.replaceChildren(
-        el('span', { className: 'mode' },
-            el('i', { className: 'pip' }),
-            el('b', { className: 'mode-name', textContent: how.name })),
-        ...how.keys.map(([what, key]) =>
-            el('span', {}, el('b', { textContent: what }), ` ${key}`)),
-        el('span', {}, el('b', { textContent: 'Close panel' }), ' Esc'));
-}
-
-// The route through the app, always visible: how many things you have placed,
-// how many tiles are in the pool, how many of those a renderer holds, how many
-// are waiting for a person, how many are published. Credits are not a stage —
-// they are on the bar, in the chip that is you.
-export function pipeline() {
-    const strip = el('div', { id: 'pipeline', className: 'glass' });
-    const cells = {};
-    for (const st of STAGES) {
-        const value = el('span', { className: 'value', textContent: '0' });
-        const cell = el('div', { className: 'stage' },
-            el('span', { className: 'label', textContent: st.label }), value,
-            el('i', {}));
-        if (st.tone) cell.dataset.tone = st.tone;
-        cell.dataset.stat = st.key;
-        cells[st.key] = value;
-        strip.append(cell);
-    }
-    return { node: el('div', { id: 'stats' }, strip), cells };
+        el('div', { className: 'mode' },
+            el('span', { className: 'now' }, el('i', { className: 'pip' }),
+                el('b', { className: 'mode-name', textContent: how.name })),
+            el('span', { className: 'other' }, how.other, ' ',
+                el('kbd', { textContent: 'F' }))),
+        el('div', { className: 'keys' },
+            ...how.keys.flatMap(([keys, does]) =>
+                [caps(keys), el('span', { textContent: does })])));
 }
 
 // Where the player is standing and which way they are facing: the top of the

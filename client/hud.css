@@ -81,20 +81,14 @@ body {
   text-transform: uppercase;
 }
 
-/* ------------------------------------------------------------- top left */
-
-#brand {
-  position: absolute; top: 20px; left: 24px; display: flex; align-items: center;
-  gap: 14px; height: 40px; padding: 0 16px;
-}
-#brand .mark { font-family: var(--head); font-weight: 700; font-size: 20px;
-  letter-spacing: 0.14em; text-transform: uppercase; }
-#brand .rule { width: 1px; height: 18px; background: rgba(255, 255, 255, 0.15); }
-#brand .who { font-size: 12px; color: var(--ink-2); }
+/* --------------------------------------------------------------- top left
+ *
+ * The wordmark, the apps and you are the top strip's (client/top.css). What is
+ * left here is the attention chip it carries, and the labels on the ground.
+ */
 
 /* The attention chip (SPEC §2.1): how many things are waiting for you, and
    the list of them under it. Dim at zero, accented when something waits. */
-#waiting { position: relative; display: flex; align-items: center; }
 #attention {
   display: flex; align-items: center; gap: 8px; height: 26px; padding: 0 10px;
   --cut: 6px; font-family: var(--head); font-weight: 600; font-size: 11px;
@@ -156,14 +150,12 @@ body {
 /* ----------------------------------------------------------- top centre */
 
 #where {
-  position: absolute; top: 20px; left: 50%; transform: translateX(-50%);
+  position: absolute; top: 56px; left: 50%; transform: translateX(-50%);
   display: flex; flex-direction: column; align-items: center; gap: 8px;
   pointer-events: none;
-  /* Never wider than the gap between the brand and the stats, whichever of
-     them is the wider — the compass used to slide under the stat cards on a
-     laptop screen. Below the breakpoint the stats are gone and it has the
-     width to itself. */
-  max-width: min(44vw, calc(100vw - 940px));
+  /* The strip above it is the full width of the window, so the compass and
+     the place line have the middle to themselves. */
+  max-width: min(92vw, 640px);
 }
 #compass {
   /* A fixed strip, not one that shrinks to the land name above it: `width:100%`
@@ -209,40 +201,7 @@ body {
 #standing .right[data-may="1"] { background: var(--accent); }
 #standing .coords { font-family: var(--mono); font-size: 11px; color: var(--ink-2); }
 
-/* ---------------------------------------------------------- top right
- *
- * The route through the app, always visible: five stages joined in one strip,
- * each pointing at the next, with credits in a chip of their own beside them.
+/* The route's five numbers are gone with v6: the two that are acted on —
+ * what is rendered and what is waiting for a person — are cells of the top
+ * strip (client/top.css), and the rest are read in the panel they belong to.
  */
-
-#stats { position: absolute; top: 20px; right: 24px; display: flex; gap: 8px;
-  align-items: stretch; }
-#pipeline { display: flex; align-items: stretch; padding: 0 6px; }
-.stage {
-  position: relative; display: flex; flex-direction: column;
-  justify-content: center; height: 48px; padding: 0 14px 0 18px;
-  min-width: 104px; border-right: 1px solid var(--edge-2);
-}
-.stage:last-child { border-right: 0; }
-/* The chevron that makes the strip read as a route and not as five numbers. */
-.stage i {
-  position: absolute; right: -5px; top: 19px; width: 10px; height: 10px;
-  border-top: 1px solid rgba(255, 255, 255, 0.25);
-  border-right: 1px solid rgba(255, 255, 255, 0.25);
-  transform: rotate(45deg); font-style: normal;
-}
-.stage:last-child i { display: none; }
-#credits { display: flex; flex-direction: column; justify-content: center;
-  height: 48px; padding: 0 16px; min-width: 120px; }
-#credits .value { color: var(--accent); }
-
-.stage .label, #credits .label {
-  font-family: var(--head); font-weight: 600; font-size: 11px;
-  letter-spacing: 0.14em; text-transform: uppercase; color: var(--ink-3);
-}
-.stage .value, #credits .value {
-  font-family: var(--head); font-weight: 700; font-size: 22px; line-height: 1;
-  margin-top: 4px;
-}
-.stage[data-tone="accent"] .value { color: var(--accent); }
-.stage[data-tone="warn"] .value { color: var(--warn); }

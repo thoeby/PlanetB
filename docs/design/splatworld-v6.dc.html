@@ -1,0 +1,328 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <meta name="design_doc_mode" content="canvas">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@600;700&family=Sora:wght@400;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <style>
+    body{margin:0;background:#0b0d10;font-family:'Sora',sans-serif;color:#f2efe8}
+    a{color:#f2efe8}a:hover{color:oklch(0.78 0.14 200)}
+    *{box-sizing:border-box}
+  </style>
+</helmet>
+
+<section style="display:flex;flex-wrap:wrap;gap:56px;padding:56px;width:max-content;max-width:3960px;font-family:'Sora',sans-serif;color:#f2efe8">
+
+  <div style="width:100%;display:flex;flex-direction:column;gap:10px;max-width:1400px">
+    <div style="font-family:'Rajdhani',sans-serif;font-weight:700;font-size:28px;text-transform:uppercase;letter-spacing:0.1em">Turn 6 · top bar, apps drawer, two more apps</div>
+    <div style="color:rgba(242,239,232,0.7);font-size:15px;line-height:1.5">The top is now one 44 px strip. Left: the Apps button (Tab), the wordmark, then every app as an icon; only the one you are in shows its name, in its colour. Tab still opens the full drawer. Centre: compass. Right: the two Build numbers that matter (rendered, to decide), clock, wallet, bell, you, settings (Setup and Admin are tabs of one panel; Share lives in Profile). Notifications land under the bell for 8 s and stack. The bottom bar is just the five panels. The controls panel above the map shows the movement mode and keycaps. Apps are Blender-style workspaces over the same world: the bar, panels and instruments change, your position does not. Each app has a hue; Build stays cyan. Bottom bar and panels of Build are unchanged from <a href="splatworld-v5.dc.html">v5</a>.</div>
+  </div>
+
+  <!-- 6a -->
+  <div id="6a" style="display:flex;flex-direction:column;gap:12px">
+    <div style="display:flex;gap:12px;align-items:baseline;font-size:15px"><a href="#6a" style="font-family:'JetBrains Mono',monospace;font-size:12px;padding:3px 8px;background:oklch(0.78 0.14 200);color:#0b0d10;text-decoration:none">6a</a><span style="font-family:'Rajdhani',sans-serif;font-weight:700;font-size:20px;text-transform:uppercase;letter-spacing:0.08em">Build · new top bar</span><span style="color:rgba(242,239,232,0.6)">two notifications stacked under the bell; pipeline in the bottom bar; controls panel with keycaps</span></div>
+    <div style="position:relative;width:1920px;height:1080px;overflow:hidden;background:#0b0d10;font-size:14px">
+      <img src="assets/world.webp" alt="" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover">
+      <dc-import name="Chrome6" app="Build" active="World" toast2="C-2291 needs your decision · M. Ruch" toast2-age="19 s" hint-size="100%,100%" style="position:absolute;inset:0"></dc-import>
+    </div>
+  </div>
+
+  <!-- 6b -->
+  <div id="6b" style="display:flex;flex-direction:column;gap:12px">
+    <div style="display:flex;gap:12px;align-items:baseline;font-size:15px"><a href="#6b" style="font-family:'JetBrains Mono',monospace;font-size:12px;padding:3px 8px;background:oklch(0.78 0.14 200);color:#0b0d10;text-decoration:none">6b</a><span style="font-family:'Rajdhani',sans-serif;font-weight:700;font-size:20px;text-transform:uppercase;letter-spacing:0.08em">Apps drawer</span><span style="color:rgba(242,239,232,0.6)">Tab or the grid button · six apps, one from a third party not yet installed · plugins row</span></div>
+    <div style="position:relative;width:1920px;height:1080px;overflow:hidden;background:#0b0d10;font-size:14px">
+      <img src="assets/world.webp" alt="" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover">
+      <dc-import name="Chrome6" app="Build" active="World" drawer="{{ true }}" toast="C-2291 needs your decision · M. Ruch" toast-action="Decide" toast-kind="warn" toast-progress="80%" toast-age="2 s" hint-size="100%,100%" style="position:absolute;inset:0"></dc-import>
+    </div>
+  </div>
+
+  <!-- 6c -->
+  <div id="6c" style="display:flex;flex-direction:column;gap:12px">
+    <div style="display:flex;gap:12px;align-items:baseline;font-size:15px"><a href="#6c" style="font-family:'JetBrains Mono',monospace;font-size:12px;padding:3px 8px;background:oklch(0.78 0.14 200);color:#0b0d10;text-decoration:none">6c</a><span style="font-family:'Rajdhani',sans-serif;font-weight:700;font-size:20px;text-transform:uppercase;letter-spacing:0.08em">Notifications</span><span style="color:rgba(242,239,232,0.6)">the bell opens the tray; toasts hide while it is open</span></div>
+    <div style="position:relative;width:1920px;height:1080px;overflow:hidden;background:#0b0d10;font-size:14px">
+      <img src="assets/world.webp" alt="" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover">
+      <dc-import name="Chrome6" app="Build" active="World" tray="{{ true }}" toast="Nothing new" toast-action="" toast-age="" toast-progress="0%" hint-size="100%,100%" style="position:absolute;inset:0"></dc-import>
+    </div>
+  </div>
+
+  <!-- 6d Drive -->
+  <div id="6d" style="display:flex;flex-direction:column;gap:12px">
+    <div style="display:flex;gap:12px;align-items:baseline;font-size:15px"><a href="#6d" style="font-family:'JetBrains Mono',monospace;font-size:12px;padding:3px 8px;background:oklch(0.8 0.16 50);color:#0b0d10;text-decoration:none">6d</a><span style="font-family:'Rajdhani',sans-serif;font-weight:700;font-size:20px;text-transform:uppercase;letter-spacing:0.08em">Drive app</span><span style="color:rgba(242,239,232,0.6)">same world and chrome, an instrument HUD: speed, gear, next turn, segment time, route map</span></div>
+    <div style="position:relative;width:1920px;height:1080px;overflow:hidden;background:#0b0d10;font-size:14px">
+      <img src="assets/world.webp" alt="" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;transform:scale(1.15) translateY(-3%)">
+      <dc-import name="Chrome6" app="Drive" toast="Segment 7 · you are 5.5 s ahead of your best" toast-action="" toast-age="1 s" toast-kind="warn" toast-progress="90%" hint-size="100%,100%" style="position:absolute;inset:0"></dc-import>
+
+      <div style="position:absolute;top:58px;left:50%;transform:translateX(-50%);display:flex;flex-direction:column;align-items:center;gap:4px;text-shadow:0 2px 12px rgba(0,0,0,0.6)">
+        <div style="font-family:'Rajdhani',sans-serif;font-weight:700;font-size:26px;text-transform:uppercase;letter-spacing:0.12em">Malojapass</div>
+        <div style="font-size:12px;color:rgba(242,239,232,0.75)">Public road · 1815 m · 12.4 km to Sils Maria</div>
+      </div>
+
+      <div style="position:absolute;top:56px;left:24px;display:flex;align-items:stretch;background:rgba(14,16,20,0.84);backdrop-filter:blur(14px);border:1px solid rgba(255,255,255,0.12);clip-path:polygon(0 0,100% 0,100% calc(100% - 10px),calc(100% - 10px) 100%,0 100%);padding:0 6px">
+        <div style="display:flex;flex-direction:column;justify-content:center;height:44px;padding:0 14px;border-right:1px solid rgba(255,255,255,0.08)"><span style="font-family:'Rajdhani',sans-serif;font-weight:600;font-size:10px;letter-spacing:0.14em;text-transform:uppercase;color:rgba(242,239,232,0.55)">Segment 7 of 13</span><span style="font-family:'JetBrains Mono',monospace;font-size:20px;line-height:1">02:14.6</span></div>
+        <div style="display:flex;flex-direction:column;justify-content:center;height:44px;padding:0 14px;border-right:1px solid rgba(255,255,255,0.08)"><span style="font-family:'Rajdhani',sans-serif;font-weight:600;font-size:10px;letter-spacing:0.14em;text-transform:uppercase;color:rgba(242,239,232,0.55)">Best</span><span style="font-family:'JetBrains Mono',monospace;font-size:20px;line-height:1;color:rgba(242,239,232,0.7)">02:09.1</span></div>
+        <div style="display:flex;flex-direction:column;justify-content:center;height:44px;padding:0 14px"><span style="font-family:'Rajdhani',sans-serif;font-weight:600;font-size:10px;letter-spacing:0.14em;text-transform:uppercase;color:rgba(242,239,232,0.55)">Delta</span><span style="font-family:'JetBrains Mono',monospace;font-size:20px;line-height:1;color:oklch(0.8 0.15 145)">−5.5</span></div>
+      </div>
+
+      <div style="position:absolute;right:24px;bottom:252px;display:flex;align-items:center;gap:16px;height:40px;padding:0 14px;background:rgba(14,16,20,0.84);backdrop-filter:blur(14px);border:1px solid rgba(255,255,255,0.12);clip-path:polygon(8px 0,100% 0,100% 100%,0 100%,0 8px);font-size:12px">
+        <span style="font-family:'Rajdhani',sans-serif;font-weight:700;font-size:15px;letter-spacing:0.06em;text-transform:uppercase">Pinzgauer 710</span>
+        <div style="display:flex;align-items:center;gap:8px;color:rgba(242,239,232,0.6)"><span style="font-family:'Rajdhani',sans-serif;font-weight:600;font-size:10px;letter-spacing:0.14em;text-transform:uppercase">Fuel</span><div style="width:80px;height:6px;background:rgba(255,255,255,0.1)"><div style="width:62%;height:100%;background:oklch(0.8 0.16 50)"></div></div><span style="font-family:'JetBrains Mono',monospace;font-size:11px">62%</span></div>
+        <div style="display:flex;align-items:center;gap:8px;color:rgba(242,239,232,0.6)"><span style="font-family:'Rajdhani',sans-serif;font-weight:600;font-size:10px;letter-spacing:0.14em;text-transform:uppercase">Damage</span><span style="color:oklch(0.8 0.15 145)">none</span></div>
+        <div style="display:flex;align-items:center;gap:8px;color:rgba(242,239,232,0.6)"><span style="font-family:'Rajdhani',sans-serif;font-weight:600;font-size:10px;letter-spacing:0.14em;text-transform:uppercase">Surface</span><span>asphalt · dry</span></div>
+      </div>
+
+      <div style="position:absolute;left:50%;bottom:132px;transform:translateX(-50%);width:360px;height:200px">
+        <div style="position:absolute;left:30px;top:0;width:300px;height:160px;overflow:hidden">
+          <div style="position:absolute;left:0;top:0;width:300px;height:300px;border-radius:50%;background:conic-gradient(from 270deg,oklch(0.8 0.16 50) 0deg 118deg,rgba(255,255,255,0.14) 118deg 150deg,oklch(0.8 0.18 25 / 0.5) 150deg 180deg,transparent 180deg 360deg);-webkit-mask:radial-gradient(circle,transparent 66%,#000 67%,#000 100%);mask:radial-gradient(circle,transparent 66%,#000 67%,#000 100%)"></div>
+          <div style="position:absolute;left:0;top:0;width:300px;height:300px;border-radius:50%;background:repeating-conic-gradient(from 270deg,rgba(242,239,232,0.6) 0deg 0.8deg,transparent 0.8deg 18deg);-webkit-mask:radial-gradient(circle,transparent 60%,#000 61%,#000 66%,transparent 67%);mask:radial-gradient(circle,transparent 60%,#000 61%,#000 66%,transparent 67%)"></div>
+        </div>
+        <span style="position:absolute;left:36px;top:150px;font-family:'JetBrains Mono',monospace;font-size:10px;color:rgba(242,239,232,0.5)">0</span>
+        <span style="position:absolute;right:36px;top:150px;font-family:'JetBrains Mono',monospace;font-size:10px;color:rgba(242,239,232,0.5)">6k</span>
+        <div style="position:absolute;left:0;right:0;top:56px;display:flex;flex-direction:column;align-items:center;text-shadow:0 2px 14px rgba(0,0,0,0.8)">
+          <span style="font-family:'Rajdhani',sans-serif;font-weight:700;font-size:96px;line-height:0.9;letter-spacing:-0.02em">84</span>
+          <span style="font-family:'Rajdhani',sans-serif;font-weight:600;font-size:12px;letter-spacing:0.16em;text-transform:uppercase;color:rgba(242,239,232,0.6)">km/h</span>
+        </div>
+        <div style="position:absolute;left:50%;bottom:0;transform:translateX(-50%);display:flex;align-items:stretch;background:rgba(14,16,20,0.84);backdrop-filter:blur(14px);border:1px solid rgba(255,255,255,0.12);clip-path:polygon(6px 0,100% 0,100% calc(100% - 6px),calc(100% - 6px) 100%,0 100%,0 6px)">
+          <div style="display:flex;align-items:center;gap:8px;padding:0 14px;height:36px;border-right:1px solid rgba(255,255,255,0.1)"><span style="font-family:'Rajdhani',sans-serif;font-weight:600;font-size:10px;letter-spacing:0.14em;text-transform:uppercase;color:rgba(242,239,232,0.55)">Gear</span><span style="font-family:'Rajdhani',sans-serif;font-weight:700;font-size:22px;line-height:1;color:oklch(0.8 0.16 50)">3</span></div>
+          <div style="display:flex;align-items:center;gap:8px;padding:0 14px;height:36px;border-right:1px solid rgba(255,255,255,0.1)"><span style="font-family:'Rajdhani',sans-serif;font-weight:600;font-size:10px;letter-spacing:0.14em;text-transform:uppercase;color:rgba(242,239,232,0.55)">RPM</span><span style="font-family:'JetBrains Mono',monospace;font-size:14px">3 900</span></div>
+          <div style="display:flex;align-items:center;gap:8px;padding:0 14px;height:36px"><span style="font-family:'Rajdhani',sans-serif;font-weight:600;font-size:10px;letter-spacing:0.14em;text-transform:uppercase;color:rgba(242,239,232,0.55)">Grade</span><span style="font-family:'JetBrains Mono',monospace;font-size:14px">−9%</span></div>
+        </div>
+      </div>
+
+      <div style="position:absolute;left:24px;bottom:20px;display:flex;flex-direction:column;gap:10px">
+        <div style="display:flex;align-items:center;gap:16px;padding:14px 18px;background:rgba(14,16,20,0.86);backdrop-filter:blur(14px);border:1px solid oklch(0.8 0.16 50 / 0.6);clip-path:polygon(10px 0,100% 0,100% calc(100% - 10px),calc(100% - 10px) 100%,0 100%,0 10px)">
+          <svg viewBox="0 0 24 24" style="width:56px;height:56px;fill:none;stroke:oklch(0.8 0.16 50);stroke-width:2;stroke-linecap:round;stroke-linejoin:round"><path d="M12 21v-8a4 4 0 0 1 4-4h3"></path><path d="m16 5 4 4-4 4"></path></svg>
+          <div style="display:flex;flex-direction:column;gap:2px">
+            <span style="font-family:'Rajdhani',sans-serif;font-weight:700;font-size:34px;line-height:1;color:oklch(0.8 0.16 50)">400 <span style="font-size:14px;letter-spacing:0.1em">m</span></span>
+            <span style="font-family:'Rajdhani',sans-serif;font-weight:700;font-size:15px;letter-spacing:0.04em;text-transform:uppercase">Hairpin right · 7 of 13</span>
+            <span style="font-size:12px;color:rgba(242,239,232,0.6)">then 1.2 km straight to the dam</span>
+          </div>
+        </div>
+        <div style="display:flex;gap:14px;height:32px;align-items:center;padding:0 14px;background:rgba(14,16,20,0.84);backdrop-filter:blur(14px);border:1px solid rgba(255,255,255,0.12);clip-path:polygon(8px 0,100% 0,100% calc(100% - 8px),calc(100% - 8px) 100%,0 100%,0 8px);font-size:12px;color:rgba(242,239,232,0.7)">
+          <span><b style="color:#f2efe8;font-weight:600">Steer</b> A D</span><span><b style="color:#f2efe8;font-weight:600">Throttle</b> W</span><span><b style="color:#f2efe8;font-weight:600">Brake</b> S</span><span><b style="color:#f2efe8;font-weight:600">Handbrake</b> Space</span><span><b style="color:#f2efe8;font-weight:600">Get out</b> E</span>
+        </div>
+      </div>
+
+      <div style="position:absolute;right:24px;bottom:20px;display:flex;flex-direction:column;gap:8px;align-items:flex-end">
+        <div style="position:relative;width:300px;height:220px;background:rgba(14,16,20,0.88);border:1px solid rgba(255,255,255,0.12);clip-path:polygon(12px 0,100% 0,100% calc(100% - 12px),calc(100% - 12px) 100%,0 100%,0 12px);overflow:hidden">
+          <div style="position:absolute;inset:0;background:repeating-linear-gradient(0deg,rgba(255,255,255,0.05) 0 1px,transparent 1px 30px),repeating-linear-gradient(90deg,rgba(255,255,255,0.05) 0 1px,transparent 1px 30px)"></div>
+          <div style="position:absolute;left:-20px;top:40px;width:340px;height:200px;border:3px solid rgba(242,239,232,0.35);border-radius:80px 120px 40px 160px;transform:rotate(-8deg)"></div>
+          <div style="position:absolute;left:-20px;top:40px;width:340px;height:200px;border:3px solid transparent;border-top-color:oklch(0.8 0.16 50);border-right-color:oklch(0.8 0.16 50);border-radius:80px 120px 40px 160px;transform:rotate(-8deg)"></div>
+          <div style="position:absolute;left:150px;top:36px;width:10px;height:10px;border-radius:50%;background:#f2efe8;border:2px solid #0b0d10;transform:translate(-50%,-50%)"></div>
+          <div style="position:absolute;left:236px;top:78px;width:10px;height:10px;background:oklch(0.8 0.16 50);border:2px solid #0b0d10;transform:rotate(45deg)"></div>
+          <span style="position:absolute;left:246px;top:66px;font-family:'Rajdhani',sans-serif;font-weight:700;font-size:10px;letter-spacing:0.1em;text-transform:uppercase;color:oklch(0.8 0.16 50)">Turn 7</span>
+          <div style="position:absolute;left:10px;top:8px;font-family:'Rajdhani',sans-serif;font-weight:600;font-size:11px;letter-spacing:0.14em;text-transform:uppercase;color:rgba(242,239,232,0.55)">Route · 2 km · M</div>
+          <div style="position:absolute;right:10px;bottom:8px;font-family:'Rajdhani',sans-serif;font-weight:600;font-size:11px;letter-spacing:0.14em;text-transform:uppercase;color:oklch(0.8 0.16 50)">Sils Maria · 14 min</div>
+        </div>
+      </div>
+
+      <div style="position:absolute;left:50%;bottom:0;transform:translateX(-50%);display:flex;align-items:flex-end;gap:16px;padding:12px 18px 10px;background:linear-gradient(180deg,rgba(20,23,28,0.92),rgba(10,12,15,0.96));backdrop-filter:blur(16px);border:1px solid rgba(255,255,255,0.14);border-bottom:none;clip-path:polygon(18px 0,calc(100% - 18px) 0,100% 18px,100% 100%,0 100%,0 18px);box-shadow:inset 0 1px 0 rgba(255,255,255,0.1),0 -10px 40px rgba(0,0,0,0.45)">
+        <div style="position:relative;display:flex;align-items:center;gap:10px;height:56px;padding:0 12px 0 6px;background:linear-gradient(180deg,rgba(255,255,255,0.07),rgba(255,255,255,0.02));border:1px solid rgba(255,255,255,0.12)">
+          <div style="width:44px;height:44px;background:repeating-linear-gradient(135deg,#2a2e35 0 5px,#1f232a 5px 10px);border:1px solid rgba(255,255,255,0.18);display:flex;align-items:center;justify-content:center;font-family:'JetBrains Mono',monospace;font-size:9px;color:rgba(242,239,232,0.5)">car</div>
+          <div style="display:flex;flex-direction:column;gap:3px"><span style="font-family:'Rajdhani',sans-serif;font-weight:700;font-size:15px;letter-spacing:0.06em;text-transform:uppercase;line-height:1">Pinzgauer 710</span><span style="font-size:11px;color:rgba(242,239,232,0.55)">4×4 · 82 kW · yours</span></div>
+          <span style="position:absolute;right:4px;top:3px;font-family:'JetBrains Mono',monospace;font-size:9px;color:rgba(242,239,232,0.4)">V</span>
+        </div>
+        <div style="width:1px;height:56px;background:linear-gradient(180deg,transparent,rgba(255,255,255,0.25),transparent)"></div>
+        <div style="display:flex;gap:6px;align-items:flex-end">
+          <sc-for list="{{ cams }}" as="c" hint-placeholder-count="4">
+            <div style="position:relative;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;width:82px;height:64px;background:{{ c.bg }};border:1px solid {{ c.border }};box-shadow:{{ c.glow }};color:{{ c.fg }}">
+              <span style="position:absolute;left:0;top:0;width:100%;height:3px;background:{{ c.top }}"></span>
+              <span style="position:absolute;left:5px;top:5px;font-family:'JetBrains Mono',monospace;font-size:10px;color:rgba(242,239,232,0.45)">{{ c.key }}</span>
+              <svg viewBox="0 0 24 24" style="width:22px;height:22px;fill:none;stroke:currentColor;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round"><path d="{{ c.icon }}"></path></svg>
+              <span style="font-family:'Rajdhani',sans-serif;font-weight:700;font-size:12px;letter-spacing:0.1em;text-transform:uppercase;line-height:1">{{ c.name }}</span>
+            </div>
+          </sc-for>
+        </div>
+        <div style="width:1px;height:56px;background:linear-gradient(180deg,transparent,rgba(255,255,255,0.25),transparent)"></div>
+        <div style="display:flex;gap:6px;align-items:flex-end">
+          <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;width:64px;height:64px;background:linear-gradient(180deg,rgba(255,255,255,0.07),rgba(255,255,255,0.02));border:1px solid rgba(255,255,255,0.12);color:rgba(242,239,232,0.85)"><svg viewBox="0 0 24 24" style="width:22px;height:22px;fill:none;stroke:currentColor;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round"><path d="M9 18h6M10 22h4M12 2a7 7 0 0 0-4 12.7V17h8v-2.3A7 7 0 0 0 12 2z"></path></svg><span style="font-family:'Rajdhani',sans-serif;font-weight:700;font-size:11px;letter-spacing:0.1em;text-transform:uppercase;line-height:1">Lights</span></div>
+          <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;width:64px;height:64px;background:linear-gradient(180deg,rgba(255,255,255,0.07),rgba(255,255,255,0.02));border:1px solid rgba(255,255,255,0.12);color:rgba(242,239,232,0.85)"><svg viewBox="0 0 24 24" style="width:22px;height:22px;fill:none;stroke:currentColor;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round"><path d="M3 11v2a1 1 0 0 0 1 1h3l6 4V6L7 10H4a1 1 0 0 0-1 1zM17 9a4 4 0 0 1 0 6M19.5 6.5a8 8 0 0 1 0 11"></path></svg><span style="font-family:'Rajdhani',sans-serif;font-weight:700;font-size:11px;letter-spacing:0.1em;text-transform:uppercase;line-height:1">Horn</span></div>
+          <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;width:64px;height:64px;background:linear-gradient(180deg,rgba(255,255,255,0.07),rgba(255,255,255,0.02));border:1px solid rgba(255,255,255,0.12);color:rgba(242,239,232,0.85)"><svg viewBox="0 0 24 24" style="width:22px;height:22px;fill:none;stroke:currentColor;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round"><path d="M3 12a9 9 0 1 0 3-6.7M3 4v5h5"></path></svg><span style="font-family:'Rajdhani',sans-serif;font-weight:700;font-size:11px;letter-spacing:0.1em;text-transform:uppercase;line-height:1">Reset · R</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 6e Survey -->
+  <div id="6e" style="display:flex;flex-direction:column;gap:12px">
+    <div style="display:flex;gap:12px;align-items:baseline;font-size:15px"><a href="#6e" style="font-family:'JetBrains Mono',monospace;font-size:12px;padding:3px 8px;background:oklch(0.8 0.15 145);color:#0b0d10;text-decoration:none">6e</a><span style="font-family:'Rajdhani',sans-serif;font-weight:700;font-size:20px;text-transform:uppercase;letter-spacing:0.08em">Survey app</span><span style="color:rgba(242,239,232,0.6)">top-down GIS for administration: layers, parcels, rights, a selected parcel's inspector</span></div>
+    <div style="position:relative;width:1920px;height:1080px;overflow:hidden;background:#0b0d10;font-size:14px">
+      <img src="assets/world.webp" alt="" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;filter:grayscale(0.8) brightness(0.45) contrast(1.15);transform:scale(1.6) rotate(-8deg)">
+      <div style="position:absolute;inset:0;background:repeating-linear-gradient(0deg,rgba(242,239,232,0.06) 0 1px,transparent 1px 80px),repeating-linear-gradient(90deg,rgba(242,239,232,0.06) 0 1px,transparent 1px 80px)"></div>
+      <div style="position:absolute;inset:0;background:repeating-radial-gradient(ellipse 900px 500px at 60% 55%,transparent 0 38px,rgba(242,239,232,0.07) 38px 39px)"></div>
+      <!-- parcels -->
+      <div style="position:absolute;left:760px;top:330px;width:420px;height:300px;background:oklch(0.78 0.14 200 / 0.22);border:2px solid oklch(0.78 0.14 200);transform:skew(-8deg,4deg);box-shadow:0 0 0 6px oklch(0.78 0.14 200 / 0.12),0 0 40px oklch(0.78 0.14 200 / 0.35)"></div>
+      <div style="position:absolute;left:1190px;top:290px;width:300px;height:380px;background:rgba(242,239,232,0.05);border:1px solid rgba(242,239,232,0.4);transform:skew(-8deg,4deg)"></div>
+      <div style="position:absolute;left:560px;top:600px;width:340px;height:220px;background:rgba(242,239,232,0.05);border:1px solid rgba(242,239,232,0.4);transform:skew(-8deg,4deg)"></div>
+      <div style="position:absolute;left:1060px;top:660px;width:260px;height:200px;background:oklch(0.8 0.18 25 / 0.08);border:1px solid oklch(0.8 0.18 25);transform:skew(-8deg,4deg)"></div>
+      <div style="position:absolute;left:880px;top:220px;width:200px;height:110px;border:2px dashed oklch(0.82 0.16 80);transform:skew(-8deg,4deg)"></div>
+      <span style="position:absolute;left:900px;top:470px;font-family:'Rajdhani',sans-serif;font-weight:700;font-size:15px;letter-spacing:0.1em;text-transform:uppercase;color:#f2efe8;text-shadow:0 1px 8px rgba(0,0,0,0.8)">Maloja Nord</span>
+      <span style="position:absolute;left:1270px;top:470px;font-family:'Rajdhani',sans-serif;font-weight:700;font-size:13px;letter-spacing:0.1em;text-transform:uppercase;color:rgba(242,239,232,0.7);text-shadow:0 1px 8px rgba(0,0,0,0.8)">Piz Lunghin</span>
+      <span style="position:absolute;left:660px;top:700px;font-family:'Rajdhani',sans-serif;font-weight:700;font-size:13px;letter-spacing:0.1em;text-transform:uppercase;color:rgba(242,239,232,0.7);text-shadow:0 1px 8px rgba(0,0,0,0.8)">Grevasalvas</span>
+      <span style="position:absolute;left:1120px;top:750px;font-family:'Rajdhani',sans-serif;font-weight:700;font-size:13px;letter-spacing:0.1em;text-transform:uppercase;color:oklch(0.8 0.18 25);text-shadow:0 1px 8px rgba(0,0,0,0.8)">Val Fex · closed</span>
+      <div style="position:absolute;left:960px;top:540px;width:12px;height:12px;border-radius:50%;background:#f2efe8;border:2px solid #0b0d10;transform:translate(-50%,-50%);box-shadow:0 0 0 6px rgba(242,239,232,0.2)"></div>
+
+      <dc-import name="Chrome6" app="Survey" toast="Access granted · L. Fasser may direct_edit Maloja Nord" toast-action="Undo" toast-age="6 s" toast-progress="25%" hint-size="100%,100%" style="position:absolute;inset:0"></dc-import>
+
+      <div style="position:absolute;top:58px;left:50%;transform:translateX(-50%);display:flex;flex-direction:column;align-items:center;gap:4px;text-shadow:0 2px 12px rgba(0,0,0,0.6)">
+        <div style="font-family:'Rajdhani',sans-serif;font-weight:700;font-size:26px;text-transform:uppercase;letter-spacing:0.12em">Maloja · 4 parcels in view</div>
+        <div style="font-size:12px;color:rgba(242,239,232,0.75)">Orthographic · north up · 1 : 2 500</div>
+      </div>
+
+      <div style="position:absolute;top:56px;left:24px;display:flex;gap:6px">
+        <sc-for list="{{ tools }}" as="t" hint-placeholder-count="6">
+          <div style="position:relative;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;width:72px;height:56px;background:{{ t.bg }};border:1px solid {{ t.border }};backdrop-filter:blur(14px);color:{{ t.fg }}">
+            <span style="position:absolute;left:5px;top:4px;font-family:'JetBrains Mono',monospace;font-size:9px;color:rgba(242,239,232,0.45)">{{ t.key }}</span>
+            <svg viewBox="0 0 24 24" style="width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round"><path d="{{ t.icon }}"></path></svg>
+            <span style="font-family:'Rajdhani',sans-serif;font-weight:700;font-size:11px;letter-spacing:0.08em;text-transform:uppercase;line-height:1">{{ t.name }}</span>
+          </div>
+        </sc-for>
+      </div>
+
+      <div style="position:absolute;left:24px;top:128px;width:300px;display:flex;flex-direction:column;background:rgba(14,16,20,0.88);backdrop-filter:blur(14px);border:1px solid rgba(255,255,255,0.12);clip-path:polygon(0 0,100% 0,100% calc(100% - 12px),calc(100% - 12px) 100%,0 100%)">
+        <div style="padding:14px 16px 8px;display:flex;justify-content:space-between;align-items:baseline"><span style="font-family:'Rajdhani',sans-serif;font-weight:700;font-size:18px;text-transform:uppercase;letter-spacing:0.08em;line-height:1">Layers</span><span style="font-size:11px;color:rgba(242,239,232,0.5)">5 of 8 on</span></div>
+        <sc-for list="{{ layers }}" as="l" hint-placeholder-count="8">
+          <div style="display:flex;align-items:center;gap:10px;padding:8px 16px;border-top:1px solid rgba(255,255,255,0.06);font-size:13px;color:{{ l.fg }}">
+            <span style="width:14px;height:14px;flex:none;border:1px solid {{ l.boxBorder }};background:{{ l.boxBg }}"></span>
+            <span style="flex:1">{{ l.name }}</span>
+            <span style="width:10px;height:10px;flex:none;background:{{ l.swatch }};border:1px solid {{ l.swatchBorder }}"></span>
+            <span style="font-family:'JetBrains Mono',monospace;font-size:10px;color:rgba(242,239,232,0.4)">{{ l.key }}</span>
+          </div>
+        </sc-for>
+        <div style="padding:10px 16px 12px;border-top:1px solid rgba(255,255,255,0.1);display:flex;flex-direction:column;gap:6px;font-size:12px">
+          <span style="font-family:'Rajdhani',sans-serif;font-weight:600;font-size:11px;letter-spacing:0.14em;text-transform:uppercase;color:rgba(242,239,232,0.55)">Ownership</span>
+          <span style="display:flex;align-items:center;gap:8px"><span style="width:10px;height:10px;background:oklch(0.78 0.14 200)"></span>Yours</span>
+          <span style="display:flex;align-items:center;gap:8px"><span style="width:10px;height:10px;border:1px solid rgba(242,239,232,0.6)"></span>Somebody else's · you may propose</span>
+          <span style="display:flex;align-items:center;gap:8px"><span style="width:10px;height:10px;border:1px solid oklch(0.8 0.18 25)"></span>Closed to you</span>
+          <span style="display:flex;align-items:center;gap:8px"><span style="width:10px;height:10px;border:2px dashed oklch(0.82 0.16 80)"></span>Candidate footprint</span>
+        </div>
+      </div>
+
+      <div style="position:absolute;right:24px;top:108px;bottom:130px;width:400px;display:flex;flex-direction:column;background:rgba(14,16,20,0.88);backdrop-filter:blur(14px);border:1px solid rgba(255,255,255,0.12);clip-path:polygon(0 0,100% 0,100% calc(100% - 12px),calc(100% - 12px) 100%,0 100%);overflow:hidden">
+        <div style="padding:16px 18px 12px;display:flex;flex-direction:column;gap:6px;border-bottom:1px solid rgba(255,255,255,0.1)">
+          <div style="display:flex;justify-content:space-between;align-items:center"><span style="font-family:'Rajdhani',sans-serif;font-weight:600;font-size:11px;letter-spacing:0.14em;text-transform:uppercase;color:oklch(0.8 0.15 145)">Selected parcel</span><span style="font-size:16px;color:rgba(242,239,232,0.5)">✕</span></div>
+          <span style="font-family:'Rajdhani',sans-serif;font-weight:700;font-size:26px;text-transform:uppercase;letter-spacing:0.08em;line-height:1">Maloja Nord</span>
+          <span style="font-family:'JetBrains Mono',monospace;font-size:11px;color:rgba(242,239,232,0.6)">77F6E0BE · detail 16 · 22 tiles · 4.2 ha</span>
+        </div>
+        <div style="padding:14px 18px;display:flex;flex-direction:column;gap:14px;font-size:13px;overflow:auto">
+          <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px">
+            <div style="padding:8px 10px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.08)"><div style="font-family:'Rajdhani',sans-serif;font-weight:700;font-size:22px;line-height:1;color:oklch(0.78 0.14 200)">38</div><div style="font-size:11px;color:rgba(242,239,232,0.6)">Published</div></div>
+            <div style="padding:8px 10px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.08)"><div style="font-family:'Rajdhani',sans-serif;font-weight:700;font-size:22px;line-height:1;color:oklch(0.82 0.16 80)">2</div><div style="font-size:11px;color:rgba(242,239,232,0.6)">Candidates</div></div>
+            <div style="padding:8px 10px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.08)"><div style="font-family:'Rajdhani',sans-serif;font-weight:700;font-size:22px;line-height:1">18 / 22</div><div style="font-size:11px;color:rgba(242,239,232,0.6)">Tiles rendered</div></div>
+          </div>
+          <div style="display:flex;flex-direction:column;gap:6px">
+            <div style="display:flex;justify-content:space-between;align-items:center"><span style="font-family:'Rajdhani',sans-serif;font-weight:600;font-size:11px;letter-spacing:0.14em;text-transform:uppercase;color:rgba(242,239,232,0.55)">Owner</span><span style="font-family:'Rajdhani',sans-serif;font-weight:700;font-size:12px;letter-spacing:0.1em;text-transform:uppercase;color:oklch(0.78 0.14 200)">Transfer</span></div>
+            <div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid rgba(255,255,255,0.06)"><span>Tobias · you</span><span style="color:rgba(242,239,232,0.6)">since Mar 2026</span></div>
+          </div>
+          <div style="display:flex;flex-direction:column;gap:6px">
+            <div style="display:flex;justify-content:space-between;align-items:center"><span style="font-family:'Rajdhani',sans-serif;font-weight:600;font-size:11px;letter-spacing:0.14em;text-transform:uppercase;color:rgba(242,239,232,0.55)">Rights · needs 1 approval</span><span style="font-family:'Rajdhani',sans-serif;font-weight:700;font-size:12px;letter-spacing:0.1em;text-transform:uppercase;color:oklch(0.78 0.14 200)">Grant · G</span></div>
+            <sc-for list="{{ rights }}" as="r" hint-placeholder-count="3">
+              <div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid rgba(255,255,255,0.06)">
+                <div style="display:flex;flex-direction:column;gap:2px"><span style="font-weight:600">{{ r.who }}</span><span style="font-size:11px;color:rgba(242,239,232,0.55)">{{ r.since }}</span></div>
+                <span style="font-family:'JetBrains Mono',monospace;font-size:11px;padding:2px 6px;border:1px solid {{ r.color }};color:{{ r.color }}">{{ r.role }}</span>
+              </div>
+            </sc-for>
+          </div>
+          <div style="display:flex;flex-direction:column;gap:6px">
+            <span style="font-family:'Rajdhani',sans-serif;font-weight:600;font-size:11px;letter-spacing:0.14em;text-transform:uppercase;color:rgba(242,239,232,0.55)">Geometry</span>
+            <div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid rgba(255,255,255,0.06)"><span style="color:rgba(242,239,232,0.6)">Centre</span><span style="font-family:'JetBrains Mono',monospace;font-size:12px">46.4021N 9.6912E</span></div>
+            <div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid rgba(255,255,255,0.06)"><span style="color:rgba(242,239,232,0.6)">LV95</span><span style="font-family:'JetBrains Mono',monospace;font-size:12px">2 775 120 / 1 141 880</span></div>
+            <div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid rgba(255,255,255,0.06)"><span style="color:rgba(242,239,232,0.6)">Elevation</span><span style="font-family:'JetBrains Mono',monospace;font-size:12px">1 796 – 1 842 m</span></div>
+          </div>
+        </div>
+        <div style="margin-top:auto;border-top:1px solid rgba(255,255,255,0.1);padding:12px 18px;display:flex;gap:8px">
+          <span style="height:36px;padding:0 14px;background:oklch(0.8 0.15 145);color:#0b0d10;font-family:'Rajdhani',sans-serif;font-weight:700;font-size:13px;letter-spacing:0.08em;text-transform:uppercase;display:inline-flex;align-items:center;clip-path:polygon(6px 0,100% 0,100% calc(100% - 6px),calc(100% - 6px) 100%,0 100%,0 6px)">Go there in Build</span>
+          <span style="height:36px;padding:0 14px;border:1px solid rgba(255,255,255,0.25);font-family:'Rajdhani',sans-serif;font-weight:700;font-size:13px;letter-spacing:0.08em;text-transform:uppercase;display:inline-flex;align-items:center">Split · S</span>
+          <span style="height:36px;padding:0 14px;border:1px solid rgba(255,255,255,0.25);font-family:'Rajdhani',sans-serif;font-weight:700;font-size:13px;letter-spacing:0.08em;text-transform:uppercase;display:inline-flex;align-items:center">Report</span>
+        </div>
+      </div>
+
+      <div style="position:absolute;left:24px;bottom:20px;display:flex;align-items:center;gap:16px;height:36px;padding:0 14px;background:rgba(14,16,20,0.84);backdrop-filter:blur(14px);border:1px solid rgba(255,255,255,0.12);clip-path:polygon(8px 0,100% 0,100% calc(100% - 8px),calc(100% - 8px) 100%,0 100%,0 8px);font-size:12px">
+        <div style="display:flex;flex-direction:column;gap:3px"><div style="width:120px;height:4px;background:linear-gradient(90deg,#f2efe8 0 50%,rgba(242,239,232,0.3) 50%)"></div><div style="display:flex;justify-content:space-between;font-family:'JetBrains Mono',monospace;font-size:9px;color:rgba(242,239,232,0.6)"><span>0</span><span>50</span><span>100 m</span></div></div>
+        <span style="font-family:'JetBrains Mono',monospace;font-size:11px;color:rgba(242,239,232,0.75)">46.4019N 9.6908E · 1 812 m</span>
+        <span style="font-family:'Rajdhani',sans-serif;font-weight:600;font-size:10px;letter-spacing:0.14em;text-transform:uppercase;color:rgba(242,239,232,0.5)">WGS 84 · LV95 on hover</span>
+      </div>
+
+      <div style="position:absolute;left:50%;bottom:0;transform:translateX(-50%);display:flex;align-items:flex-end;gap:16px;padding:12px 18px 10px;background:linear-gradient(180deg,rgba(20,23,28,0.92),rgba(10,12,15,0.96));backdrop-filter:blur(16px);border:1px solid rgba(255,255,255,0.14);border-bottom:none;clip-path:polygon(18px 0,calc(100% - 18px) 0,100% 18px,100% 100%,0 100%,0 18px);box-shadow:inset 0 1px 0 rgba(255,255,255,0.1),0 -10px 40px rgba(0,0,0,0.45)">
+        <div style="position:relative;display:flex;align-items:center;gap:10px;height:56px;padding:0 12px 0 6px;background:linear-gradient(180deg,rgba(255,255,255,0.07),rgba(255,255,255,0.02));border:1px solid rgba(255,255,255,0.12)">
+          <div style="position:relative;width:44px;height:44px;background:repeating-linear-gradient(135deg,#2a2e35 0 5px,#1f232a 5px 10px);border:1px solid rgba(255,255,255,0.18);display:flex;align-items:center;justify-content:center;font-family:'Rajdhani',sans-serif;font-weight:700;font-size:16px;letter-spacing:0.06em;color:rgba(242,239,232,0.8)">TW</div>
+          <div style="display:flex;flex-direction:column;gap:3px"><span style="font-family:'Rajdhani',sans-serif;font-weight:700;font-size:15px;letter-spacing:0.06em;text-transform:uppercase;line-height:1">Tobias</span><span style="font-size:11px;color:rgba(242,239,232,0.55)">admin · 2 lands</span></div>
+        </div>
+        <div style="width:1px;height:56px;background:linear-gradient(180deg,transparent,rgba(255,255,255,0.25),transparent)"></div>
+        <div style="display:flex;gap:6px;align-items:flex-end">
+          <sc-for list="{{ views }}" as="v" hint-placeholder-count="5">
+            <div style="position:relative;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;width:96px;height:64px;background:{{ v.bg }};border:1px solid {{ v.border }};box-shadow:{{ v.glow }};color:{{ v.fg }}">
+              <span style="position:absolute;left:0;top:0;width:100%;height:3px;background:{{ v.top }}"></span>
+              <span style="position:absolute;left:5px;top:5px;font-family:'JetBrains Mono',monospace;font-size:10px;color:rgba(242,239,232,0.45)">{{ v.key }}</span>
+              <span style="font-family:'Rajdhani',sans-serif;font-weight:700;font-size:20px;line-height:1">{{ v.count }}</span>
+              <span style="font-family:'Rajdhani',sans-serif;font-weight:700;font-size:12px;letter-spacing:0.1em;text-transform:uppercase;line-height:1">{{ v.name }}</span>
+            </div>
+          </sc-for>
+        </div>
+        <div style="width:1px;height:56px;background:linear-gradient(180deg,transparent,rgba(255,255,255,0.25),transparent)"></div>
+        <div style="display:flex;flex-direction:column;gap:5px;align-items:center">
+          <div style="display:flex;gap:5px">
+            <div style="display:flex;align-items:center;justify-content:center;width:34px;height:34px;background:linear-gradient(180deg,rgba(255,255,255,0.07),rgba(255,255,255,0.02));border:1px solid rgba(255,255,255,0.12);color:rgba(242,239,232,0.55)"><svg viewBox="0 0 24 24" style="width:15px;height:15px;fill:none;stroke:currentColor;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round"><path d="M12 3v12M8 11l4 4 4-4M4 17v3h16v-3"></path></svg></div>
+            <div style="display:flex;align-items:center;justify-content:center;width:34px;height:34px;background:linear-gradient(180deg,rgba(255,255,255,0.07),rgba(255,255,255,0.02));border:1px solid rgba(255,255,255,0.12);color:rgba(242,239,232,0.55)"><svg viewBox="0 0 24 24" style="width:15px;height:15px;fill:none;stroke:currentColor;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round"><path d="M4 4h16v16H4zM4 10h16M10 4v16"></path></svg></div>
+          </div>
+          <div style="display:flex;gap:5px;font-family:'Rajdhani',sans-serif;font-weight:600;font-size:9px;letter-spacing:0.08em;text-transform:uppercase;color:rgba(242,239,232,0.4)"><span style="width:34px;text-align:center">Export</span><span style="width:34px;text-align:center">Table</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</section>
+</x-dc>
+<script type="text/x-dc" data-dc-script>
+class Component extends DCLogic {
+  renderVals() {
+    const C = 'oklch(0.78 0.14 200)', A = 'oklch(0.82 0.16 80)', G = 'oklch(0.8 0.15 145)', O = 'oklch(0.8 0.16 50)', R = 'oklch(0.8 0.18 25)', M = 'rgba(242,239,232,0.6)';
+    const btn = (on, col) => ({ bg: on ? `linear-gradient(180deg,${col.replace(')', ' / 0.22)')},${col.replace(')', ' / 0.08)')})` : 'linear-gradient(180deg,rgba(255,255,255,0.07),rgba(255,255,255,0.02))', border: on ? col : 'rgba(255,255,255,0.12)', glow: on ? `inset 0 0 0 1px ${col}, 0 0 22px ${col.replace(')', ' / 0.4)')}` : 'inset 0 1px 0 rgba(255,255,255,0.06)', top: on ? col : 'transparent', fg: on ? col : 'rgba(242,239,232,0.85)' });
+    const cams = [
+      { name: 'Cockpit', key: '1', icon: 'M3 12a9 9 0 0 1 18 0v6H3zM8 18v-3M16 18v-3' },
+      { name: 'Chase', key: '2', icon: 'M5 17h14l-2-8H7zM7 17v3M17 17v3M3 9h18', on: true },
+      { name: 'Hood', key: '3', icon: 'M3 13l3-6h12l3 6v6H3zM7 13h10' },
+      { name: 'Free', key: '4', icon: 'M15 12a3 3 0 1 1-6 0 3 3 0 0 1 6 0zM3 7l4-3M21 7l-4-3M12 22v-4' },
+    ].map(c => ({ ...c, ...btn(!!c.on, O) }));
+    const tools = [
+      { name: 'Select', key: 'V', icon: 'M4 4l7 17 2.5-6.5L20 12z', on: true },
+      { name: 'Measure', key: 'M', icon: 'M3 17l14-14 4 4L7 21zM9 11l2 2M12 8l2 2M15 5l2 2' },
+      { name: 'Draw', key: 'D', icon: 'M4 6l8-3 8 3v12l-8 3-8-3zM4 6h.01M20 6h.01M4 18h.01M20 18h.01' },
+      { name: 'Split', key: 'S', icon: 'M4 4h16v16H4zM12 4v16' },
+      { name: 'Grant', key: 'G', icon: 'M8 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8zM2 21v-1a6 6 0 0 1 12 0v1M17 8h5M19.5 5.5v5' },
+      { name: 'Transfer', key: 'T', icon: 'M4 8h14l-3-3M20 16H6l3 3' },
+    ].map(t => ({ ...t, bg: t.on ? 'oklch(0.8 0.15 145 / 0.18)' : 'rgba(14,16,20,0.84)', border: t.on ? G : 'rgba(255,255,255,0.12)', fg: t.on ? G : 'rgba(242,239,232,0.85)' }));
+    const layers = [
+      { name: 'Parcels', key: '1', on: true, swatch: 'transparent', swatchBorder: 'rgba(242,239,232,0.6)' },
+      { name: 'Ownership', key: '2', on: true, swatch: C, swatchBorder: C },
+      { name: 'Candidates', key: '3', on: true, swatch: 'transparent', swatchBorder: A },
+      { name: 'Render coverage', key: '4', on: false, swatch: 'oklch(0.78 0.14 200 / 0.4)', swatchBorder: 'transparent' },
+      { name: 'Contours · 20 m', key: '5', on: true, swatch: 'rgba(242,239,232,0.3)', swatchBorder: 'transparent' },
+      { name: 'Roads & paths', key: '6', on: true, swatch: 'rgba(242,239,232,0.7)', swatchBorder: 'transparent' },
+      { name: 'Splat density', key: '7', on: false, swatch: 'oklch(0.8 0.16 50 / 0.5)', swatchBorder: 'transparent' },
+      { name: 'Players now', key: '8', on: false, swatch: '#f2efe8', swatchBorder: 'transparent' },
+    ].map(l => ({ ...l, fg: l.on ? '#f2efe8' : M, boxBorder: l.on ? G : 'rgba(255,255,255,0.3)', boxBg: l.on ? G : 'transparent' }));
+    const rights = [
+      { who: 'L. Fasser', since: 'granted today · by you', role: 'direct_edit', color: C },
+      { who: 'M. Ruch', since: 'since Jul · 1 candidate open', role: 'propose', color: A },
+      { who: 'Everyone else', since: 'default for this parcel', role: 'view', color: M },
+    ];
+    const views = [
+      { name: 'Parcels', key: '1', count: '4', on: true },
+      { name: 'Ownership', key: '2', count: '3' },
+      { name: 'Approvals', key: '3', count: '2' },
+      { name: 'Coverage', key: '4', count: '82%' },
+      { name: 'Reports', key: '5', count: '·' },
+    ].map(v => ({ ...v, ...btn(!!v.on, G) }));
+    return { cams, tools, layers, rights, views };
+  }
+}
+</script>
+</body>
+</html>

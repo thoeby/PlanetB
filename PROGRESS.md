@@ -1226,3 +1226,40 @@ typed geometry column, so GeoServer no longer sees an unknown native SRS on it.
 `infra/geoserver/provision.sh` is gone: it published the layers in the tile
 projection with `REPROJECT_TO_DECLARED`, which `gsprovision.py` had already
 found to store Mercator numbers raw; the Python provisioner is the one path.
+
+## The chrome, turn 6
+
+`docs/design/splatworld-v6.dc.html` and `chrome6.dc.html` are the design of
+record now, and the page wears them. What changed:
+
+- **One 44 px strip along the top** (`client/js/topbar.js`, `client/top.css`):
+  the apps button on `Tab`, the wordmark, every app as a glyph with only the
+  current one named in its hue, then the two numbers Build is played by
+  (rendered, to decide), the clock, your balance, the bell and you.
+- **The plinth is the five surfaces and nothing else.** What used to be a small
+  button of its own is a tab of one of the three the strip carries: Share is a
+  part of Profile, Setup and the two admin tools are parts of Settings. Every
+  key still opens what it opened (`9` Share, `` ` `` Settings, `0` Land), and a
+  panel body is still addressed by its own leaf name, so no module moved.
+- **Apps** (`client/js/apps.js`): six workspaces over the same world, `F1`–`F6`
+  or the drawer. Only Build is wired; the other five dress the chrome — the
+  accent, and Build's own plinth, legend and numbers go away — and say on their
+  own card that they are not wired yet. Where you stand does not change.
+- **Notifications** (`client/js/notify.js`): `hud.notify({title, meta, tone})`
+  lands under the bell for eight seconds, stacking, and the tray keeps the last
+  twenty. Nothing pushes one yet except the page itself.
+- **The controls are a panel above the map**, with the movement mode at the head
+  of it and the keys as caps (`drawHints`, `client/frame.css`).
+- **The five-stage pipeline is gone** with `client/js/stages.js`. `hud.stat()`
+  keeps its signature: `rendered` and `awaiting` reach the strip, `credits` the
+  wallet cell, and the three nobody acts on from a bar — placed, in pool,
+  published — are dropped rather than drawn.
+- **The compass and the altimeter are ours, not the mockup's**, as asked: the
+  ruled ribbon stays under the strip instead of moving into it, and the ladder,
+  the ground line and the pitch gutter are untouched.
+- Two `hidden` attributes that a `display` rule had been overriding now work:
+  the list under the attention chip, and the bell's count.
+
+`client/test/hud.test.js` follows the regrouping, `client/test/e2e/hud.spec.js`
+the strip, and two new browser tests cover the apps drawer and the bell. The
+story helper `panel()` looks in both bars (`client/test/run/players.js`).

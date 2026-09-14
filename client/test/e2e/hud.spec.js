@@ -1,6 +1,6 @@
-// The chrome the design fixes, in a real browser: the five-stage pipeline, the
-// position line, the hotbar in four groups with a key each, one panel at a
-// time, and the map in the corner.
+// The chrome the design fixes, in a real browser: the strip along the top with
+// the apps on it, the position line, the plinth of five surfaces with a key
+// each, one panel at a time, the notifications, and the map in the corner.
 //
 // The page is served the same way the other viewer tests serve it, so nothing
 // here needs an API: the chrome has to stand up against a world that answers
@@ -41,28 +41,33 @@ test('the stylesheet is actually applied', async ({ page }) => {
     // A browser refuses a stylesheet served with the wrong media type and the
     // page then renders, complete and unstyled, with every text assertion
     // below still passing. This is the one that notices.
-    const brand = await page.evaluate(() => {
-        const b = document.querySelector('#brand');
+    const bar = await page.evaluate(() => {
+        const b = document.querySelector('#top');
         const s = window.getComputedStyle(b);
-        return { position: s.position, family: s.fontFamily, sheets: document.styleSheets.length };
+        return { position: s.position, height: s.height, family: s.fontFamily,
+            sheets: document.styleSheets.length };
     });
-    expect(brand.position).toBe('absolute');
-    expect(brand.family).toMatch(/Rajdhani|Sora|Oswald|sans-serif/);
-    expect(brand.sheets).toBeGreaterThan(0);
+    expect(bar.position).toBe('absolute');
+    expect(bar.height).toBe('44px');
+    expect(bar.family).toMatch(/Rajdhani|Sora|Oswald|sans-serif/);
+    expect(bar.sheets).toBeGreaterThan(0);
     expect(errors, errors.join('\n')).toEqual([]);
 });
 
 test('the chrome says where you are and what the world is doing', async ({ page }) => {
     const errors = await boot(page);
 
-    await expect(page.locator('#brand .mark')).toHaveText('splatworld');
-    // Who you are is on the bar now, on the chip that opens Profile.
-    await expect(page.locator('#tabs .tab.profile .name')).toHaveText('Sign in');
+    await expect(page.locator('#top .mark')).toHaveText('splatworld');
+    // Who you are is in the strip, on the chip that opens Profile.
+    await expect(page.locator('#top .who .name')).toHaveText('Sign in');
 
-    // Five stages, in the order the design fixes.
-    await expect(page.locator('#pipeline .stage .label')).toHaveText([
-        'Placed', 'In pool', 'Rendered', 'Awaiting', 'Published',
-    ]);
+    // The two numbers Build is played by, and nothing else about the route.
+    await expect(page.locator('#top .num .caps')).toHaveText(['rendered', 'to decide']);
+
+    // Six apps, and only the one you are in is named.
+    await expect(page.locator('#top .app-tab')).toHaveCount(6);
+    await expect(page.locator('#top .app-tab[aria-selected="true"] .name'))
+        .toHaveText('Build');
 
     // Where you are: the land, the right, the coordinates, a compass.
     await expect(page.locator('#land')).toHaveText(/\w/);
@@ -72,21 +77,21 @@ test('the chrome says where you are and what the world is doing', async ({ page 
     // is named. Eight letters is a label, not an instrument.
     await expect(page.locator('#compass .tick')).toHaveCount(24);
 
-    // Ten ways in on one plinth, in the three groups the design divides, with
-    // the five the game is played through on keys 1 to 5.
-    await expect(page.locator('#tabs .hotgroup')).toHaveCount(3);
-    await expect(page.locator('#tabs .tab')).toHaveCount(10);
-    await expect(page.locator('#tabs .hotgroup[data-group="main"] .tab .label'))
+    // The plinth is the five surfaces the game is played through, on keys 1
+    // to 5, and nothing else: you, your wallet and settings are in the strip.
+    await expect(page.locator('#tabs .hotgroup')).toHaveCount(1);
+    await expect(page.locator('#tabs .tab')).toHaveCount(5);
+    await expect(page.locator('#tabs .tab .label'))
         .toHaveText(['Place', 'Catalog', 'Land', 'Publish', 'Work']);
-    await expect(page.locator('#tabs .hotgroup[data-group="main"] .tab .key'))
-        .toHaveText(['1', '2', '3', '4', '5']);
+    await expect(page.locator('#tabs .tab .key')).toHaveText(['1', '2', '3', '4', '5']);
+    await expect(page.locator('#top button[data-tab]')).toHaveCount(3);
 
     // How high you are, and how far that is above the ground.
     await expect(page.locator('#alt .read .v')).toHaveText(/[\d,—]/);
 
     // Work is a surface with queues behind it: the machine strip above them,
     // and Render jobs the only queue so far.
-    await page.locator('#tabs button[data-tab="Work"]').click();
+    await page.locator('#tabs .tab[data-tab="Work"]').click();
     await expect(page.locator('#panel .head #work .work-state')).toBeVisible();
     await expect(page.locator('#panel .parts .part:not([hidden])'))
         .toHaveText(['Render jobs']);
@@ -103,12 +108,14 @@ test('a number key opens its panel, and Escape closes it', async ({ page }) => {
     const errors = await boot(page);
     const panel = page.locator('#panel');
 
-    for (const [key, name] of [['3', 'Your land'], ['2', 'Catalog'],
-        ['4', 'Publish'], ['9', 'Share'], ['`', 'Setup']]) {
+    // A key opens the surface it names, or the surface that holds the part it
+    // names — Share is a tab of Profile now, and Setup one of Settings.
+    for (const [key, name, holder] of [['3', 'Your land'], ['2', 'Catalog'],
+        ['4', 'Publish'], ['9', 'Profile', 'Profile'], ['`', 'Settings', 'Settings']]) {
         await page.keyboard.press(key);
         await expect(panel, `${name} did not open on ${key}`).toBeVisible();
         await expect(panel.locator('header .title')).toHaveText(name);
-        await expect(page.locator(`#tabs .tab[data-tab="${name}"]`))
+        await expect(page.locator(`:is(#tabs, #top) [data-tab="${holder ?? name}"]`))
             .toHaveAttribute('aria-selected', 'true');
         // One panel at a time: only the chosen tab's body is shown.
         await expect(panel.locator('.tab-body:visible')).toHaveCount(1);
@@ -140,7 +147,8 @@ test('a key typed into a field is text, not a teleport', async ({ page }) => {
     await field.click();
     await field.fill('2');
     // The key did not open a panel, and the character reached the field.
-    await expect(page.locator('#panel header .title')).toHaveText('Setup');
+    // Setup is a tab of Settings since v6, so the panel is titled for it.
+    await expect(page.locator('#panel header .title')).toHaveText('Settings');
     await expect(field).toHaveValue('2');
     expect(errors, errors.join('\n')).toEqual([]);
 });
@@ -151,12 +159,15 @@ test('a key typed into a field is text, not a teleport', async ({ page }) => {
 test('every panel has something in it', async ({ page }) => {
     const errors = await boot(page);
     // Every body there is: a surface, or each part of one that has parts —
-    // Publish holds Submit and Approve, Work its queues, Admin its two jobs.
-    const tabs = await page.evaluate(() => [...document.querySelectorAll('#tabs .tab')]
-        .flatMap((n) => n.dataset.parts?.split(',').filter(Boolean) ?? [n.dataset.tab]));
-    expect(tabs).toEqual(['Profile', 'Wallet', 'Place', 'Catalog', 'Your land',
-        'Submit', 'Permission', 'Render jobs', 'Setup', 'Share',
-        'Land', 'Vocabulary']);
+    // Publish holds Submit and Approve, Work its queues, Settings the account
+    // and the two admin tools, Profile you and the link you hand out.
+    const tabs = await page.evaluate(() =>
+        [...document.querySelectorAll('#tabs .tab, #top button[data-tab]')]
+            .flatMap((n) => n.dataset.parts?.split(',').filter(Boolean) ?? [n.dataset.tab]));
+    // The strip comes first in the page, then the plinth.
+    expect(tabs).toEqual(['Wallet', 'Profile', 'Share', 'Setup', 'Land',
+        'Vocabulary', 'Place', 'Catalog', 'Your land',
+        'Submit', 'Permission', 'Render jobs']);
     // A world with no ground opens on Setup by itself, so close whatever is
     // docked before opening them one at a time.
     await page.evaluate(() => window.splatworld.hud.show('World'));
@@ -170,5 +181,50 @@ test('every panel has something in it', async ({ page }) => {
             (n) => n.querySelectorAll(':scope > *:not(.lede)').length);
         expect(parts, `${name} has only its lede`).toBeGreaterThan(0);
     }
+    expect(errors, errors.join('\n')).toEqual([]);
+});
+
+// v6's two new things on the strip: the apps, which dress the chrome for a
+// workspace without moving you, and the bell, where what happened while you
+// were looking somewhere else waits.
+test('Tab opens the apps, F-keys switch them, and Build is the one with panels',
+    async ({ page }) => {
+        const errors = await boot(page);
+        const drawer = page.locator('#apps');
+        await expect(drawer).toBeHidden();
+        await page.keyboard.press('Tab');
+        await expect(drawer).toBeVisible();
+        await expect(drawer.locator('.app-card')).toHaveCount(6);
+        await page.keyboard.press('Escape');
+        await expect(drawer).toBeHidden();
+
+        await page.keyboard.press('F3');
+        await expect(page.locator('#top .app-tab[aria-selected="true"] .name'))
+            .toHaveText('Survey');
+        // An app is a workspace over the same world: the plinth and Build's own
+        // numbers are gone, the world and the instruments are not.
+        await expect(page.locator('#tabs')).toBeHidden();
+        await expect(page.locator('#compass .needle')).toBeVisible();
+        await expect(page.locator('#alt .ladder')).toBeVisible();
+        await page.keyboard.press('F1');
+        await expect(page.locator('#tabs')).toBeVisible();
+        expect(errors, errors.join('\n')).toEqual([]);
+    });
+
+test('a notification lands under the bell and stays in the tray', async ({ page }) => {
+    const errors = await boot(page);
+    await expect(page.locator('#tray')).toBeHidden();
+    await page.evaluate(() => window.splatworld.hud.notify(
+        { title: 'Render #4812 finished', meta: '2 tiles on Maloja Nord' }));
+    await expect(page.locator('#toasts .toast .title')).toHaveText('Render #4812 finished');
+    await expect(page.locator('#bell .count')).toHaveText('1');
+
+    await page.locator('#bell').click();
+    await expect(page.locator('#tray li .title')).toHaveText('Render #4812 finished');
+    await page.locator('#tray .clear').click();
+    await expect(page.locator('#tray li')).toHaveCount(0);
+    await expect(page.locator('#bell .count')).toBeHidden();
+    await page.keyboard.press('Escape');
+    await expect(page.locator('#tray')).toBeHidden();
     expect(errors, errors.join('\n')).toEqual([]);
 });

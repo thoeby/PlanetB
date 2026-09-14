@@ -1,0 +1,251 @@
+/* top.css — the strip along the top, and the two things that hang off it.
+ *
+ * v6 (docs/design/chrome6.dc.html): one 44 px band, flush with the top edge,
+ * with the apps on the left and you on the right. It is the frame of the
+ * window rather than a panel floating over it, so it is square — the chamfer
+ * belongs to things that float.
+ *
+ * The hue of the app you are in is --accent, set on #hud by client/js/hud.js.
+ */
+
+#top {
+  position: absolute; top: 0; left: 0; right: 0; height: 44px; z-index: 4;
+  display: flex; align-items: stretch; justify-content: space-between;
+  background: linear-gradient(180deg, rgba(10, 12, 15, 0.97), rgba(20, 23, 28, 0.9));
+  backdrop-filter: blur(16px);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.14);
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.4);
+}
+#top .top-left, #top .top-right { display: flex; align-items: stretch; min-width: 0; }
+#top .top-right { justify-content: flex-end; }
+
+/* Every button in the strip is a cell of the band: no fill of its own, a lit
+   underline when it is the thing you are looking at. */
+#top button {
+  position: relative; display: flex; align-items: center; gap: 8px;
+  padding: 0 14px; border: 0; background: none; color: var(--ink-2);
+  font: inherit; cursor: pointer; flex: 0 0 auto;
+}
+#top button::after {
+  content: ""; position: absolute; left: 0; bottom: -1px; width: 100%; height: 2px;
+  background: transparent;
+}
+#top button:hover { background: rgba(255, 255, 255, 0.06); color: var(--ink); }
+#top button[aria-selected="true"] { color: var(--accent); background: var(--accent-dim); }
+#top button[aria-selected="true"]::after { background: var(--accent); }
+#top svg { width: 17px; height: 17px; fill: none; stroke: currentColor;
+  stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; }
+
+#apps-btn { width: 52px; justify-content: center; padding: 0;
+  border-right: 1px solid var(--edge-2); }
+#apps-btn .grid { display: grid; grid-template-columns: repeat(3, 4px); gap: 3px; }
+#apps-btn .grid i { width: 4px; height: 4px; background: currentColor;
+  font-style: normal; }
+#apps-btn .hint { position: absolute; right: 4px; bottom: 3px; font-size: 8px;
+  color: rgba(242, 239, 232, 0.4); }
+
+#top .mark {
+  display: flex; align-items: center; padding: 0 16px; color: var(--ink);
+  border-right: 1px solid var(--edge-2); font-family: var(--head);
+  font-weight: 700; font-size: 18px; letter-spacing: 0.14em; text-transform: uppercase;
+}
+
+/* The apps: a glyph each, and the name only on the one you are in — six apps
+   for the width of one plus five icons. Each carries its own hue. */
+#top .top-apps { display: flex; align-items: stretch; }
+#top .app-tab { padding: 0 13px; border-right: 1px solid var(--edge-2); }
+#top .app-tab .name, #top .app-tab .key { display: none; }
+#top .app-tab[aria-selected="true"] {
+  color: var(--hue); background: color-mix(in oklab, var(--hue) 14%, transparent);
+  padding: 0 16px 0 14px;
+}
+#top .app-tab[aria-selected="true"]::after { background: var(--hue); }
+#top .app-tab[aria-selected="true"] .name {
+  display: inline; font-family: var(--head); font-weight: 700; font-size: 15px;
+  letter-spacing: 0.12em; text-transform: uppercase; line-height: 1;
+}
+#top .app-tab[aria-selected="true"] .key { display: inline; font-size: 10px;
+  color: rgba(242, 239, 232, 0.45); }
+
+/* The two numbers Build is played by. Everything else about the route is read
+   in the panel it belongs to. */
+#top .top-stats { display: flex; align-items: stretch; }
+#top .num { display: flex; align-items: center; gap: 7px; padding: 0 14px;
+  border-left: 1px solid var(--edge-2); }
+#top .num b { font-family: var(--head); font-weight: 700; font-size: 17px;
+  line-height: 1; }
+#top .num .caps { font-weight: 600; font-size: 10px; letter-spacing: 0.12em;
+  color: var(--ink-3); }
+#top .num[data-tone="accent"] b { color: var(--accent); }
+#top .num[data-tone="warn"] b { color: var(--warn); }
+#top .num[data-tone="warn"] { background: oklch(0.82 0.16 80 / 0.08); }
+
+#top .clock { display: flex; align-items: center; gap: 6px; padding: 0 14px;
+  border-left: 1px solid var(--edge-2); }
+#top .clock b { font-size: 15px; font-weight: 500; color: var(--ink); }
+#top .clock .caps { font-weight: 600; font-size: 10px; letter-spacing: 0.12em;
+  color: var(--ink-3); }
+
+#top .money, #top .who, #top button.top-tab { border-left: 1px solid var(--edge-2); }
+#top .money .credits { font-family: var(--head); font-weight: 700; font-size: 17px;
+  line-height: 1; color: var(--accent); }
+#top .money .credits i { font-style: normal; font-size: 10px; letter-spacing: 0.1em;
+  margin-left: 3px; color: var(--ink-3); }
+#top .who { padding-left: 8px; }
+#top .who .face {
+  position: relative; width: 28px; height: 28px; flex: 0 0 auto;
+  display: flex; align-items: center; justify-content: center;
+  background: repeating-linear-gradient(135deg, #2a2e35 0 4px, #1f232a 4px 8px);
+  border: 1px solid rgba(255, 255, 255, 0.18); font-family: var(--head);
+  font-weight: 700; font-size: 11px; color: rgba(242, 239, 232, 0.8);
+}
+/* Green, and only here: signed in is a fact about you, not a state of the world. */
+#top .who .face::after {
+  content: ""; position: absolute; right: -3px; bottom: -3px; width: 7px; height: 7px;
+  background: rgba(242, 239, 232, 0.35); border: 2px solid var(--ground);
+}
+#top .who[data-in="1"] .face::after { background: oklch(0.8 0.15 145); }
+#top .who .name { font-family: var(--head); font-weight: 700; font-size: 14px;
+  letter-spacing: 0.08em; text-transform: uppercase; line-height: 1;
+  max-width: 8rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+#bell { width: 52px; justify-content: center; padding: 0; }
+#bell .count {
+  position: absolute; right: 8px; top: 7px; min-width: 16px; height: 16px;
+  padding: 0 4px; background: var(--warn); color: var(--ground);
+  font-family: var(--head); font-weight: 700; font-size: 11px;
+  display: inline-flex; align-items: center; justify-content: center;
+  clip-path: polygon(3px 0, 100% 0, 100% calc(100% - 3px),
+                     calc(100% - 3px) 100%, 0 100%, 0 3px);
+}
+/* `display` on a badge beats the hidden attribute, so a bell with nothing
+   behind it would keep its count. */
+#bell .count[hidden] { display: none; }
+
+/* The attention chip (SPEC §2.1) keeps its place beside the bell: how many
+   things are waiting for you, with the list of them under it. */
+#top #waiting { position: relative; display: flex; align-items: center;
+  padding: 0 10px; }
+#top #attention-list { top: 40px; }
+/* `display: flex` on the list beats the hidden attribute, so the list of what
+   is waiting stood open under the chip from the moment the page loaded. */
+#attention-list[hidden] { display: none; }
+
+/* ------------------------------------------------------------ apps drawer */
+
+#apps {
+  position: absolute; top: 44px; left: 0; z-index: 4; width: min(1100px, 96vw);
+  display: flex; flex-direction: column; gap: 14px; padding: 16px 20px;
+  background: var(--panel-solid); border-top: 0;
+  clip-path: polygon(0 0, 100% 0, 100% calc(100% - 16px),
+                     calc(100% - 16px) 100%, 0 100%);
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.55);
+}
+#apps[hidden] { display: none; }
+#apps .head { display: flex; justify-content: space-between; align-items: flex-end;
+  gap: 20px; }
+#apps h2 { margin: 0; font-size: 22px; letter-spacing: 0.08em; line-height: 1; }
+#apps p { margin: 4px 0 0; font-size: 12px; color: var(--ink-2); max-width: 60ch; }
+#apps .how { font-size: 11px; color: var(--ink-3); white-space: nowrap; }
+#apps .cards { display: flex; gap: 8px; flex-wrap: wrap; }
+.app-card {
+  position: relative; width: 168px; height: 176px; padding: 16px 12px 12px;
+  display: flex; flex-direction: column; gap: 8px; text-align: left; cursor: pointer;
+  font: inherit; color: var(--ink);
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.07), rgba(255, 255, 255, 0.02));
+  border: 1px solid var(--edge);
+}
+.app-card::before { content: ""; position: absolute; left: 0; top: 0; width: 100%;
+  height: 3px; background: var(--hue); }
+.app-card:hover { background: linear-gradient(180deg, rgba(255, 255, 255, 0.13),
+    rgba(255, 255, 255, 0.05)); }
+.app-card[aria-selected="true"] {
+  border-color: var(--hue);
+  background: linear-gradient(180deg, color-mix(in oklab, var(--hue) 22%, transparent),
+    color-mix(in oklab, var(--hue) 8%, transparent));
+  box-shadow: inset 0 0 0 1px var(--hue),
+    0 0 22px color-mix(in oklab, var(--hue) 35%, transparent);
+}
+.app-card .row { display: flex; justify-content: space-between; align-items: center; }
+.app-card svg { width: 26px; height: 26px; fill: none; stroke: var(--hue);
+  stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; }
+.app-card .key { font-family: var(--mono); font-size: 10px; color: var(--ink-3); }
+.app-card .name { font-family: var(--head); font-weight: 700; font-size: 17px;
+  letter-spacing: 0.08em; text-transform: uppercase; line-height: 1; }
+.app-card[aria-selected="true"] .name { color: var(--hue); }
+.app-card .desc { font-size: 11px; line-height: 1.45; color: var(--ink-2); flex: 1; }
+.app-card .status { font-family: var(--head); font-weight: 700; font-size: 11px;
+  letter-spacing: 0.1em; text-transform: uppercase; color: var(--ink-3); }
+.app-card[aria-selected="true"] .status { color: var(--hue); }
+
+/* ---------------------------------------------------- notifications */
+
+#tray {
+  position: absolute; top: 44px; right: 0; z-index: 4; width: min(440px, 96vw);
+  display: flex; flex-direction: column; background: var(--panel-solid);
+  border-top: 0;
+  clip-path: polygon(0 0, 100% 0, 100% 100%, 16px 100%, 0 calc(100% - 16px));
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.55);
+}
+#tray[hidden] { display: none; }
+#tray .head { display: flex; justify-content: space-between; align-items: center;
+  padding: 14px 18px 10px; }
+#tray .head .caps { font-size: 20px; letter-spacing: 0.08em; }
+#tray .clear { background: none; border: 0; color: var(--ink-2); cursor: pointer;
+  font-family: var(--head); font-weight: 700; font-size: 12px;
+  letter-spacing: 0.1em; text-transform: uppercase; }
+#tray .clear:hover { color: var(--ink); }
+#tray ul { list-style: none; margin: 0; padding: 0; max-height: 60vh; overflow-y: auto; }
+#tray li { display: flex; gap: 12px; padding: 10px 18px; font-size: 13px;
+  border-top: 1px solid var(--edge-2); }
+#tray .empty { margin: 0; padding: 10px 18px 14px; border-top: 1px solid var(--edge-2);
+  font-size: 12px; color: var(--ink-3); }
+#tray .empty[hidden] { display: none; }
+#tray .what { display: flex; flex-direction: column; gap: 2px; flex: 1; min-width: 0; }
+#tray .what .title { font-weight: 600; }
+#tray .what .meta { font-size: 12px; color: var(--ink-2); }
+#tray .when { font-size: 10px; color: var(--ink-3); }
+
+/* A notification lands under the bell for eight seconds, the newest on top,
+   with the time it has left drawn along its bottom edge. */
+#toasts {
+  position: absolute; top: 52px; right: 24px; z-index: 3; display: flex;
+  flex-direction: column; gap: 6px; align-items: flex-end; pointer-events: none;
+}
+.toast {
+  position: relative; display: flex; align-items: center; gap: 12px; height: 40px;
+  padding: 0 14px 0 12px; max-width: 520px; overflow: hidden;
+  clip-path: polygon(0 0, 100% 0, 100% calc(100% - 8px), calc(100% - 8px) 100%, 0 100%);
+}
+.toast .title { font-size: 12px; white-space: nowrap; }
+.toast .meta { font-size: 12px; color: var(--ink-2); overflow: hidden;
+  text-overflow: ellipsis; white-space: nowrap; }
+.toast u, #tray li i { text-decoration: none; }
+.toast i, #tray li i { width: 8px; height: 8px; flex: 0 0 auto; font-style: normal;
+  background: var(--accent); transform: rotate(45deg); }
+#tray li i { margin-top: 5px; }
+.toast u { position: absolute; left: 0; bottom: 0; height: 2px; width: 100%;
+  background: var(--accent); animation: toast-drain 8s linear forwards; }
+.toast[data-tone="warn"] i, .toast[data-tone="warn"] u,
+#tray li[data-tone="warn"] i { background: var(--warn); }
+.toast[data-tone="bad"] i, .toast[data-tone="bad"] u,
+#tray li[data-tone="bad"] i { background: var(--bad); }
+.toast[data-tone="warn"] { border-color: var(--warn); }
+.toast[data-tone="bad"] { border-color: var(--bad); }
+@keyframes toast-drain { from { width: 100%; } to { width: 0; } }
+@media (prefers-reduced-motion: reduce) { .toast u { animation: none; } }
+
+/* An app that is not Build has no panels, no plinth and no legend of its own
+   yet; what it does have is the world, and the strip that says where you are. */
+#hud[data-app]:not([data-app="Build"]) #tabs,
+#hud[data-app]:not([data-app="Build"]) #legend,
+#hud[data-app]:not([data-app="Build"]) #notice,
+#hud[data-app]:not([data-app="Build"]) #next,
+#hud[data-app]:not([data-app="Build"]) .top-stats { display: none; }
+
+@media (max-width: 1100px) {
+  #top .top-stats, #top .clock { display: none; }
+}
+@media (max-width: 900px) {
+  #top .mark, #top .who .name { display: none; }
+}
