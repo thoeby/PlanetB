@@ -49,8 +49,11 @@ test('story 5 — B builds on their land, and C sees it', async ({ browser, worl
     const here = await test.step('B goes to their land', () => goToMyLand(b));
 
     await test.step('the page says which key builds', async () => {
+        // Key 1. The bar was renumbered when it became a plinth of three
+        // groups — Place · Catalog · Land · Publish · Work on 1 to 5
+        // (docs/design/chrome5.dc.html) — and this still asked for the old one.
         await expect(b.page.locator('#tabs button[data-tab="Place"]'))
-            .toContainText('3');
+            .toContainText('1');
     });
 
     await test.step('B picks C’s product and puts two down', () => buildTwo(b));
