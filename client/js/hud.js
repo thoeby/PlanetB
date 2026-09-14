@@ -70,13 +70,20 @@ const el = (tag, props = {}, ...kids) => {
 
 // A strip of headings that slides under a fixed needle: the point under the
 // needle is the way the camera is facing.
+//
+// Ruled like the altimeter's ladder, and for the same reason: a row of eight
+// letters is a label, and what an instrument has to show is how far it is to
+// the next one. A tick every 15°, tall and lit where a point is named, short
+// between — so a quarter turn is eight ticks whether or not a letter is under
+// the needle.
 function compass() {
     const node = el('div', { id: 'compass', className: 'glass' });
     const marks = [];
     for (let i = 0; i < 24; i++) {
         const deg = i * 15;
         const name = deg % 45 === 0 ? POINTS[(deg / 45) % 8] : '';
-        const span = el('span', { textContent: name });
+        const span = el('span', {}, el('i', { className: 'tick' }),
+            el('b', { textContent: name }));
         if (name) span.dataset.cardinal = '1';
         span.dataset.deg = String(deg);
         marks.push(span);

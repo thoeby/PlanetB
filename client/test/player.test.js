@@ -276,3 +276,32 @@ test('switching modes says so, once, to whoever asked', () => {
     p.toggleMode();
     assert.deepEqual(said, [FLY, WALK]);
 });
+
+// The compass and the map's cone are fed one number, and it was the wrong one:
+// yaw turns about +Y in a frame where north is -Z, so a heading is its
+// negation. Reported as itself, both instruments were mirrored about north —
+// walking west while the compass said east.
+test('the heading reported is the way the player actually moves', () => {
+    const p = new Player(null, { mode: FLY, flySpeed: 1 });
+    p.held.add('fwd');
+    for (const deg of [0, 30, 90, 150, 180, 270, 359]) {
+        p.heading = deg;
+        const d = p.intent(1);
+        // The frame is ENU with z south (client/lib/tilemath.js).
+        const east = d.x;
+        const north = -d.z;
+        assert.ok(Math.abs(east - Math.sin((deg * Math.PI) / 180)) < 1e-9,
+            `at heading ${deg} the east component is ${east}`);
+        assert.ok(Math.abs(north - Math.cos((deg * Math.PI) / 180)) < 1e-9,
+            `at heading ${deg} the north component is ${north}`);
+        assert.ok(Math.abs(p.heading - deg) < 1e-9, `and it reads back as ${p.heading}`);
+    }
+});
+
+test('turning the mouse to the right turns the heading clockwise', () => {
+    const p = new Player(null, { mode: WALK });
+    p.heading = 0;
+    p.look(100, 0);
+    assert.ok(p.heading > 0 && p.heading < 180,
+        `right is clockwise from north, not ${p.heading}`);
+});

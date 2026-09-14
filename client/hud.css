@@ -173,9 +173,16 @@ body {
   font-family: var(--head); font-weight: 700; font-size: 13px;
   letter-spacing: 0.1em; --cut: 8px;
 }
-#compass span { position: absolute; top: 4px; color: rgba(242, 239, 232, 0.5);
+/* A tick and its letter, one above the other, the way a rung and its number
+   sit on the altimeter's ladder (client/js/altimeter.js). */
+#compass span { position: absolute; top: 0; display: flex; flex-direction: column;
+  align-items: center; gap: 1px; color: rgba(242, 239, 232, 0.5);
   transform: translateX(-50%); }
 #compass span[data-cardinal] { color: var(--ink); }
+#compass .tick { width: 1px; height: 5px; background: currentColor; opacity: 0.55;
+  font-style: normal; }
+#compass span[data-cardinal] .tick { height: 9px; opacity: 1; }
+#compass b { font-weight: inherit; line-height: 1; }
 #compass .needle { position: absolute; left: 50%; top: 0; width: 2px; height: 100%;
   background: var(--accent); transform: translateX(-50%); }
 #land {

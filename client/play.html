@@ -284,7 +284,7 @@
       const q = origin.localOf({ lon: at.lon, lat: at.lat, h });
       const under = terrain.heightAt(q);
       player.position = { x: q.x, y: (under ?? q.y) + 2, z: q.z };
-      if (Number.isFinite(heading)) player.yaw = heading * Math.PI / 180;
+      if (Number.isFinite(heading)) player.heading = heading;
   };
 
   // How long the page leaves the address bar alone after being handed one.
@@ -472,7 +472,7 @@
       where: () => {
           const p = camera.getPosition();
           return { ...origin.geodeticOf({ x: p.x, y: p.y, z: p.z }),
-              heading: player.yaw / Math.PI * 180 };
+              heading: player.heading };
       },
   });
 
@@ -714,7 +714,7 @@
           })),
           things: land.things?.() ?? [],
           at: origin.geodeticOf({ x: p.x, y: p.y, z: p.z }),
-          heading: player.yaw / Math.PI * 180,
+          heading: player.heading,
           // The same floor the player is standing on, so the map and the
           // window agree about which way the hill goes.
           ground: groundMesh,
@@ -770,7 +770,7 @@
     // when you have actually walked somewhere else.
     const here = origin.geodeticOf({ x: p.x, y: p.y, z: p.z });
     if (ground?.coverage) groundMesh.follow(here.lon, here.lat, splatsCover);
-    const heading = player.yaw / Math.PI * 180;
+    const heading = player.heading;
     hud.at(here.lon, here.lat, here.h, heading);
     // The altimeter: how high you are above the sea, and how far that is above
     // whatever is under you. The ground comes from the same heightfield walking

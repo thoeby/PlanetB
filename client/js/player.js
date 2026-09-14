@@ -259,6 +259,23 @@ export class Player {
         this.grounded = false;
     }
 
+    // The way you are facing, clockwise from north, in degrees: what a compass
+    // and a map put a needle at. Not the same number as `yaw`, and not its
+    // negation by accident — yaw turns about +Y in a frame where north is -Z
+    // (client/lib/tilemath.js localFromLonLat is ENU with z south), so forward
+    // at yaw θ is east −sin θ, north cos θ, and that is a heading of −θ.
+    //
+    // Reporting yaw as a heading mirrored both instruments about north: at yaw
+    // 90° the player walks west and the compass said east, and turning right
+    // on screen turned the map's cone left.
+    get heading() {
+        return (((-this.yaw * 180) / Math.PI) % 360 + 360) % 360;
+    }
+
+    set heading(deg) {
+        this.yaw = (-deg * Math.PI) / 180;
+    }
+
     toggleMode() {
         this.mode = this.mode === WALK ? FLY : WALK;
         // Told rather than watched for: the page has to say which way you are
