@@ -145,12 +145,32 @@
 #panel[data-wide="1"] .tab-body > .rows { margin-left: 0; margin-right: 0; }
 #panel[data-wide="1"] .tab-body > * > .rows > .empty { margin-left: 0; margin-right: 0; }
 
-/* The admin's list of every piece of land, and the button that takes one
-   back. Armed on the first press and meant on the second (js/assignland.js),
-   because what it deletes goes with it. */
-#panel .admin-land .land-drop { flex: 0 0 auto; align-self: center; }
-#panel .admin-land .land-drop[data-arm="1"] {
+/* The strip over the admin's map: which of its two jobs it is doing, how far
+   in it is looking, and how wide that is (js/landmap.js). */
+#panel .lm-bar { align-items: center; margin: 8px 0 0; gap: 8px; flex-wrap: wrap; }
+#panel .lm-bar .row { gap: 4px; }
+#panel .lm-zoom button { min-width: 30px; padding: 5px 8px; }
+#panel .lm-mode button[data-on="1"] {
+  color: var(--accent); border-color: var(--accent);
+}
+#panel .lm-scale { font-size: 11px; }
+/* Dragging moves it, so it says so before anybody tries. */
+#panel #assign-map { cursor: grab; touch-action: none; }
+#panel #assign-map:active { cursor: grabbing; }
+
+/* The land the map has picked, and the button that takes it back. Armed on the
+   first press and meant on the second (js/assignland.js), because what it
+   deletes goes with it. */
+#panel .picked-box { min-width: 0; }
+#panel .picked-land {
+  display: flex; flex-direction: column; align-items: flex-start; gap: 6px;
+  padding: 10px 12px; border: 1px solid var(--edge);
+  background: rgba(255, 255, 255, 0.04);
+}
+#panel .picked-land .name {
+  font-family: var(--head); font-weight: 700; font-size: 15px;
+}
+#panel .picked-land .sub { font-family: var(--mono); font-size: 11px; color: var(--ink-3); }
+#panel .picked-land .land-drop[data-arm="1"] {
   color: var(--bad); border-color: var(--bad);
 }
-#panel .admin-land:hover { background: rgba(255, 255, 255, 0.04); }
-#panel .admin-land-list { min-width: 0; }

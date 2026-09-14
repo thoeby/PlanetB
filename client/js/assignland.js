@@ -1,18 +1,26 @@
-// assignland.js — the admin's half of SPEC §3.2: who asked for land, and
-// drawing them some.
+// assignland.js — the admin's half of SPEC §3.2: who asked for land, drawing
+// them some, and taking a piece of it back.
 //
-// The map is the world's own ground extent with the land already in it, drawn
-// on a canvas. There is no basemap service to put under it (Invariant 10) and
-// the ortho pyramid is not seeded in a fresh world, so what it shows is what
-// the world knows: where the coverage reaches, and whose ground is where.
+// The map is the world's own ground with the land already in it, drawn on a
+// canvas (client/js/landmap.js). There is no basemap service to put under it
+// (Invariant 10) and the ortho pyramid is not seeded in a fresh world, so what
+// it shows is what the world knows: the elevation it was given, where the
+// coverage reaches, and whose ground is where.
 //
 // What is drawn goes into the boundary field as numbers, and the boundary
 // field is what is sent — so an admin can correct a corner by typing, and the
 // database still refuses anything outside the ground (db/0062).
+//
+// The map has two jobs and says which it is doing. Draw puts corners down;
+// Pick selects the land under the cursor, which is how a piece of it is
+// deleted — a list of every land in the world is not how anybody finds the one
+// they are looking at.
 
 import * as api from './api.js';
 import { empty } from './empty.js';
-import { groundOver, shadeRect } from '../lib/demshade.js';
+import { groundOver, tileOver } from '../lib/demshade.js';
+import { MAP, ZOOM_STEP, areaAt, fitView, panned, paintMap, projection, zoomed }
+    from './landmap.js';
 
 const el = (tag, props = {}, ...kids) => {
     const node = Object.assign(document.createElement(tag), props);
@@ -20,7 +28,10 @@ const el = (tag, props = {}, ...kids) => {
     return node;
 };
 
-const MAP = { w: 420, h: 300, pad: 12 };
+const saying = (node) => (msg, bad = false) => {
+    node.textContent = msg;
+    node.dataset.bad = bad ? '1' : '';
+};
 
 export const ringText = (points) =>
     points.map(([lon, lat]) => `${lon.toFixed(6)}, ${lat.toFixed(6)}`).join('\n');
@@ -36,71 +47,6 @@ export function ringOf(text) {
     const last = points[points.length - 1];
     if (first[0] !== last[0] || first[1] !== last[1]) points.push([...first]);
     return points;
-}
-
-function projection(ground) {
-    const west = ground?.west ?? -180;
-    const east = ground?.east ?? 180;
-    const south = ground?.south ?? -85;
-    const north = ground?.north ?? 85;
-    const sx = (MAP.w - 2 * MAP.pad) / ((east - west) || 1);
-    const sy = (MAP.h - 2 * MAP.pad) / ((north - south) || 1);
-    return {
-        toPx: (lon, lat) => [MAP.pad + (lon - west) * sx,
-            MAP.pad + (north - lat) * sy],
-        toLonLat: (x, y) => [west + (x - MAP.pad) / sx,
-            north - (y - MAP.pad) / sy],
-    };
-}
-
-function paint(canvas, ground, areas, corners, shade = null) {
-    const ctx = canvas.getContext('2d');
-    const p = projection(ground);
-    ctx.clearRect(0, 0, MAP.w, MAP.h);
-    ctx.fillStyle = '#11151a';
-    ctx.fillRect(0, 0, MAP.w, MAP.h);
-    // The land itself, behind everything else. Without it this was outlines
-    // floating in a dark box: nothing said which way the valley ran, so a
-    // boundary could only be drawn against other boundaries.
-    if (ground) {
-        shadeRect(ctx, shade, {
-            west: ground.west, south: ground.south,
-            east: ground.east, north: ground.north,
-            x0: MAP.pad, y0: MAP.pad,
-            w: MAP.w - 2 * MAP.pad, h: MAP.h - 2 * MAP.pad,
-        });
-    }
-    // The edge of the world, because land outside it cannot be made.
-    ctx.strokeStyle = '#3b444d';
-    ctx.setLineDash([5, 4]);
-    ctx.strokeRect(MAP.pad, MAP.pad, MAP.w - 2 * MAP.pad, MAP.h - 2 * MAP.pad);
-    ctx.setLineDash([]);
-    for (const area of areas ?? []) {
-        const rings = area.outline?.type === 'MultiPolygon'
-            ? area.outline.coordinates.flat() : (area.outline?.coordinates ?? []);
-        ctx.strokeStyle = area.picked ? '#e8b45f' : '#cdd5dd';
-        ctx.lineWidth = area.picked ? 2 : 1;
-        for (const ring of rings) {
-            ctx.beginPath();
-            ring.forEach(([lon, lat], i) => {
-                const [x, y] = p.toPx(lon, lat);
-                if (i) ctx.lineTo(x, y); else ctx.moveTo(x, y);
-            });
-            ctx.closePath();
-            ctx.stroke();
-        }
-    }
-    ctx.lineWidth = 1;
-    ctx.strokeStyle = '#5fd8e8';
-    ctx.fillStyle = '#5fd8e8';
-    ctx.beginPath();
-    corners.forEach(([lon, lat], i) => {
-        const [x, y] = p.toPx(lon, lat);
-        if (i) ctx.lineTo(x, y); else ctx.moveTo(x, y);
-        ctx.fillRect(x - 2, y - 2, 4, 4);
-    });
-    if (corners.length > 2) ctx.closePath();
-    ctx.stroke();
 }
 
 // Who is waiting, and which of them this boundary is being drawn for.
@@ -120,57 +66,54 @@ function listRequests(host, state, redraw) {
     }));
 }
 
-// Every piece of land there is, and the button that takes one back. Land could
-// only ever be made until db/0085: a boundary drawn in the wrong place, or
-// given to the wrong person, was a row nothing could reach.
-function listLand(host, state, acts) {
-    if (!state.all.length) {
-        host.replaceChildren(empty('No land yet',
-            'Land drawn in QGIS, or assigned above, is listed here.'));
+// The land the map has picked, and what happens to it. Nothing until somebody
+// clicks a piece of ground, because there is nothing to say about no land.
+function showPicked(host, state, acts) {
+    const a = state.all.find((x) => x.id === state.picked);
+    if (!a) {
+        host.replaceChildren(empty('No land picked',
+            state.mode === 'pick'
+                ? 'Click a piece of land on the map.'
+                : 'Switch the map to Pick and click a piece of land.'));
         return;
     }
-    host.replaceChildren(...state.all.map((a) => {
-        const name = a.rules?.name || 'unnamed';
-        // Only an admin may delete land (db/0085), and only all_areas() says
-        // whose it is and what is on it — a player's own list has neither, so
-        // this is their land as it always was, with nothing to press.
-        const drop = state.admin && el('button', { type: 'button',
-            className: 'land-drop', textContent: 'Delete' });
-        if (drop) {
-            drop.onclick = (event) => { event.stopPropagation(); acts.remove(a, drop); };
-        }
-        const row = el('li', { className: 'admin-land' },
-            el('div', { className: 'who' },
-                el('div', { className: 'name', textContent: name }),
-                el('div', { className: 'sub',
-                    textContent: [a.owner, `detail ${a.detail}`,
-                        a.drawn === undefined ? null : `${a.drawn} drawn`,
-                        a.things === undefined ? null : `${a.things} placed`]
-                        .filter(Boolean).join(' \u00b7 ') })),
-            drop || null);
-        row.onmouseenter = () => acts.highlight(a.id);
-        row.onmouseleave = () => acts.highlight(null);
-        return row;
-    }));
+    const kids = [
+        el('div', { className: 'name', textContent: a.rules?.name || 'unnamed' }),
+        el('div', { className: 'sub',
+            textContent: [a.owner, `detail ${a.detail}`,
+                a.drawn === undefined ? null : `${a.drawn} drawn`,
+                a.things === undefined ? null : `${a.things} placed`]
+                .filter(Boolean).join(' · ') }),
+    ];
+    // Only an admin may delete land (db/0085), and only all_areas() says whose
+    // it is — a player's own list has neither, so for them this is a card and
+    // nothing to press.
+    if (state.admin) {
+        const drop = el('button', { type: 'button', className: 'land-drop',
+            textContent: state.confirming === a.id ? 'Really delete' : 'Delete' });
+        if (state.confirming === a.id) drop.dataset.arm = '1';
+        drop.onclick = () => acts.remove(a);
+        kids.push(drop);
+    }
+    host.replaceChildren(el('div', { className: 'picked-land' }, ...kids));
 }
 
 // Deleting land takes what stood on it with it and marks the ground changed
 // (db/0085_landanadmincantakeback.sql), so it is asked for twice: the second
 // press is the one that means it.
-async function removeLand(area, button, state, say, refresh) {
+async function removeLand(area, state, say, refresh, draw) {
     const name = area.rules?.name || 'this land';
     if (state.confirming !== area.id) {
         state.confirming = area.id;
-        button.textContent = 'Really delete';
-        button.dataset.arm = '1';
         say(`${name} — and everything drawn or placed on it. Press again.`, true);
+        draw();
         return;
     }
     state.confirming = null;
-    button.disabled = true;
     try {
         const done = await api.rpc('delete_area', { area_id: area.id });
-        say(`${done.name} is gone \u2014 ${done.tiles} tile(s) to build again`
+        state.picked = null;
+        say(`${done.name} is gone — ${done.tiles} tile(s) to build again`
             + `${done.jobs ? `, ${done.jobs} job(s) cancelled` : ''}.`);
     } catch (err) {
         say(String(err.body?.message ?? err.message ?? err), true);
@@ -178,10 +121,37 @@ async function removeLand(area, button, state, say, refresh) {
     await refresh();
 }
 
+// The strip over the map: which of its two jobs it is doing, and how far in it
+// is looking. A coverage is tens of kilometres and the land on it is a few
+// hundred metres, so there has to be a way in.
+function mapControls() {
+    const mode = el('div', { className: 'row lm-mode' });
+    const buttons = new Map();
+    for (const [key, label] of [['draw', 'Draw'], ['pick', 'Pick']]) {
+        const b = el('button', { type: 'button', textContent: label });
+        b.dataset.mode = key;
+        buttons.set(key, b);
+        mode.append(b);
+    }
+    const zoom = el('div', { className: 'row lm-zoom' });
+    const zooms = new Map();
+    for (const [key, label, title] of [['out', '−', 'zoom out'],
+        ['in', '+', 'zoom in'], ['fit', 'Fit', 'the whole world']]) {
+        const b = el('button', { type: 'button', textContent: label, title });
+        b.dataset.zoom = key;
+        zooms.set(key, b);
+        zoom.append(b);
+    }
+    const scale = el('span', { className: 'lm-scale muted mono' });
+    return { node: el('div', { className: 'spread lm-bar' }, mode, zoom, scale),
+        buttons, zooms, scale };
+}
+
 // The panel, as the design lays it out: who is waiting, the map, what was
 // drawn as numbers, and the name it will be called.
 function build(host) {
     const canvas = el('canvas', { id: 'assign-map', width: MAP.w, height: MAP.h });
+    const controls = mapControls();
     const requests = el('div', { className: 'rows assign-requests' });
     const boundary = el('textarea', { id: 'assign-boundary', rows: 5,
         placeholder: 'one "longitude, latitude" per line' });
@@ -193,126 +163,203 @@ function build(host) {
     const assign = el('button', { type: 'button', className: 'primary',
         textContent: 'Assign this land' });
     const status = el('p', { className: 'status assign-status' });
-    const all = el('ul', { className: 'rows admin-lands' });
+    const picked = el('div', { className: 'picked' });
     const landStatus = el('p', { className: 'status land-drop-status' });
     host.append(el('div', { className: 'section assign' },
         el('span', { className: 'label', textContent: 'Land requests' }),
         requests,
         el('p', { className: 'muted',
-            textContent: 'Click the map to put corners down, then finish the'
-                + ' boundary and give the land a name.' }),
-        canvas,
+            textContent: 'Drag the map to move it, + and − to go in and'
+                + ' out. Draw puts corners down; Pick selects the land you'
+                + ' click on.' }),
+        controls.node, canvas,
         el('div', { className: 'row' }, finish, clear),
         el('label', { htmlFor: 'assign-boundary', textContent: 'boundary' }),
         boundary,
         el('label', { htmlFor: 'assign-name', textContent: 'name this land' }),
         nameField, assign, status));
-    // Beside it on a wide panel, under it on a narrow one: every piece of land
-    // there is, which is also what the map above is drawing.
-    host.append(el('div', { className: 'section admin-land-list' },
-        el('span', { className: 'label', textContent: 'Every piece of land' }),
-        el('div', { className: 'note' },
-            'Deleting land marks the ground it covered changed and takes what'
-            + ' was drawn or placed on it with it. The tiles already compiled'
-            + ' from it are kept — they are immutable — but the next compile'
-            + ' of that ground will not have it.'),
-        all, landStatus));
+    host.append(el('div', { className: 'section picked-box' },
+        el('span', { className: 'label', textContent: 'The land you picked' }),
+        picked, landStatus));
 
-    return { canvas, requests, boundary, nameField, finish, clear, assign, status,
-        all, landStatus };
+    return { canvas, controls, requests, boundary, nameField, finish, clear,
+        assign, status, picked, landStatus };
 }
 
-export function mountAssignLand(host, { filesUrl = '' } = {}) {
-    const { canvas, requests, boundary, nameField, finish, clear, assign, status,
-        all, landStatus } = build(host);
-    const state = { ground: null, all: [], corners: [], open: [],
-        chosen: null, confirming: null, shade: null, shadeFor: null,
-        admin: false };
+// Where a pointer event lands on the map, in lon/lat.
+function lonLatOf(canvas, state, event) {
+    const box = canvas.getBoundingClientRect();
+    return projection(state.view).toLonLat(
+        (event.clientX - box.left) * (MAP.w / box.width),
+        (event.clientY - box.top) * (MAP.h / box.height));
+}
 
-    const say = saying(status);
-    const sayLand = saying(landStatus);
-
-    const drawRequests = () => listRequests(requests, state, drawRequests);
-    const redraw = () => paint(canvas, state.ground, state.all, state.corners,
-        state.shade);
-
-    const acts = {
-        remove: (area, button) => removeLand(area, button, state, sayLand, refresh),
-        highlight(id) {
-            for (const a of state.all) a.picked = a.id === id;
-            redraw();
-        },
+// Dragging moves the map; a press that goes nowhere is a click, and a click
+// means whichever of the map's two jobs it is doing. Four pixels of slop,
+// because a mouse moves a little while a button is going down.
+function pointing(canvas, state, { redraw, pickAt, addCorner }) {
+    let from = null;
+    let moved = false;
+    // Capture so a drag that leaves the canvas still moves the map — and
+    // never at the cost of the press: a browser that refuses the capture is
+    // not a reason for the map to stop working.
+    const capture = (on, id) => {
+        try { canvas[on ? 'setPointerCapture' : 'releasePointerCapture']?.(id); }
+        catch { /* not captured, or not capturable */ }
     };
-    const drawLand = () => listLand(all, state, acts);
-
-    drawing({ canvas, finish, clear, state, boundary, say, redraw });
-    assign.onclick = () => handOver(state, boundary, nameField, say, refresh);
-
-    // The ground behind the map, fetched once per coverage: one cut tile over
-    // the whole extent, and arithmetic after that (client/lib/demshade.js).
-    async function loadShade() {
-        const g = state.ground;
-        const key = g && `${g.west},${g.south},${g.east},${g.north}`;
-        if (!key || key === state.shadeFor) return;
-        state.shadeFor = key;
-        state.shade = await groundOver(g, { filesUrl }).catch(() => null);
+    canvas.onpointerdown = (event) => {
+        from = { x: event.clientX, y: event.clientY, view: state.view };
+        moved = false;
+        capture(true, event.pointerId);
+    };
+    canvas.onpointermove = (event) => {
+        if (!from) return;
+        const dx = event.clientX - from.x;
+        const dy = event.clientY - from.y;
+        if (!moved && Math.hypot(dx, dy) < 4) return;
+        moved = true;
+        const box = canvas.getBoundingClientRect();
+        const v = from.view;
+        state.view = panned(v,
+            -(dx / box.width) * (v.east - v.west),
+            (dy / box.height) * (v.north - v.south), state.fit);
         redraw();
+    };
+    canvas.onpointerup = (event) => {
+        const was = from;
+        from = null;
+        capture(false, event.pointerId);
+        if (!was || moved) return;
+        const at = lonLatOf(canvas, state, event);
+        if (state.mode === 'pick') pickAt(at); else addCorner(at);
+    };
+    canvas.onpointercancel = () => { from = null; };
+}
+
+// How wide the map is, in the units a person thinks in.
+const across = (view) => {
+    const m = (view.east - view.west) * 111320
+        * Math.cos((((view.north + view.south) / 2) * Math.PI) / 180);
+    return m < 2000 ? `${Math.round(m)} m across`
+        : `${(m / 1000).toFixed(1)} km across`;
+};
+
+export function mountAssignLand(host, { filesUrl = '' } = {}) {
+    const ui = build(host);
+    const state = { ground: null, all: [], corners: [], open: [], chosen: null,
+        confirming: null, shade: null, shadeFor: null, admin: false,
+        mode: 'draw', picked: null, view: fitView(null), fit: fitView(null) };
+
+    const say = saying(ui.status);
+    const sayLand = saying(ui.landStatus);
+    const drawRequests = () => listRequests(ui.requests, state, drawRequests);
+    const acts = { remove: (area) => removeLand(area, state, sayLand, refresh, drawPicked) };
+    const drawPicked = () => showPicked(ui.picked, state, acts);
+    const paint = () => paintMap(ui.canvas,
+        { ...state, areas: state.all, picked: state.picked });
+
+    function redraw() {
+        paint();
+        for (const [key, b] of ui.controls.buttons) {
+            b.dataset.on = state.mode === key ? '1' : '';
+        }
+        ui.controls.scale.textContent = across(state.view);
+        loadShade();
+    }
+    const both = () => { redraw(); drawPicked(); };
+    const look = (next) => { state.view = next; redraw(); };
+
+    wire(ui, state, { redraw, both, look, say, sayLand, refresh });
+
+    // The ground behind the map: one cut tile over whatever it is looking at
+    // (client/lib/demshade.js). Keyed on that tile and not on the view, because
+    // a drag moves the view on every pointer event and would otherwise ask the
+    // store for the same rectangle sixty times a second. Going in far enough to
+    // cross into a finer tile is what fetches finer ground.
+    async function loadShade() {
+        if (!state.ground) return;
+        const t = tileOver(state.view);
+        const key = `${t.z}/${t.x}/${t.y}`;
+        if (key === state.shadeFor) return;
+        state.shadeFor = key;
+        const got = await groundOver(state.view, { filesUrl }).catch(() => null);
+        if (state.shadeFor !== key) return;      // the view moved on meanwhile
+        state.shade = got;
+        paint();
     }
 
     async function refresh() {
-        state.ground = await api.rpc('ground').catch(() => null);
-        // Every piece of land, not the admin's own: a boundary is drawn against
-        // whose ground is already where (db/0085). A player gets an empty list
-        // from the same call, and then this is the map it always was.
-        state.admin = api.role() === 'admin';
-        const rows = state.admin
-            ? await api.rpc('all_areas').catch(() => [])
-            : await api.rpc('my_areas').catch(() => []);
-        state.all = Array.isArray(rows) ? rows : [];
-        const asked = await api.rpc('land_requests', { which: 'open' })
-            .catch(() => []);
-        state.open = Array.isArray(asked) ? asked : [];
-        state.chosen = state.open.find((r) => r.id === state.chosen)?.id
-            ?? state.open[0]?.id ?? null;
+        await reread(state);
         drawRequests();
-        drawLand();
-        redraw();
-        loadShade();
+        both();
         return state.open;
     }
 
     refresh();
-    return { refresh, requests: () => state.open, land: () => state.all };
+    return { refresh, requests: () => state.open, land: () => state.all,
+        view: () => state.view, pick: (id) => { state.picked = id; both(); } };
 }
 
-const saying = (node) => (msg, bad = false) => {
-    node.textContent = msg;
-    node.dataset.bad = bad ? '1' : '';
-};
+// What the world says, into the state the panel draws from.
+async function reread(state) {
+    const ground = await api.rpc('ground').catch(() => null);
+    if (JSON.stringify(ground) !== JSON.stringify(state.ground)) {
+        state.ground = ground;
+        state.fit = fitView(ground);
+        state.view = state.fit;
+    }
+    state.admin = api.role() === 'admin';
+    // Every piece of land, not the admin's own: a boundary is drawn against
+    // whose ground is already where (db/0085). A player gets their own from
+    // the other call, and then this is the map it always was.
+    const rows = state.admin
+        ? await api.rpc('all_areas').catch(() => [])
+        : await api.rpc('my_areas').catch(() => []);
+    state.all = Array.isArray(rows) ? rows : [];
+    if (!state.all.some((a) => a.id === state.picked)) state.picked = null;
+    const asked = await api.rpc('land_requests', { which: 'open' }).catch(() => []);
+    state.open = Array.isArray(asked) ? asked : [];
+    state.chosen = state.open.find((r) => r.id === state.chosen)?.id
+        ?? state.open[0]?.id ?? null;
+}
 
-// Putting corners on the map, and the two buttons that end a boundary.
-function drawing({ canvas, finish, clear, state, boundary, say, redraw }) {
-    canvas.onclick = (event) => {
-        const box = canvas.getBoundingClientRect();
-        const p = projection(state.ground);
-        state.corners.push(p.toLonLat(
-            (event.clientX - box.left) * (MAP.w / box.width),
-            (event.clientY - box.top) * (MAP.h / box.height)));
-        redraw();
-    };
-    finish.onclick = () => {
+// Every control on the panel: the map's two modes, the three zooms, the
+// pointer, and the three buttons that end a boundary.
+function wire(ui, state, { redraw, both, look, say, sayLand, refresh }) {
+    ui.controls.buttons.get('draw').onclick = () => { state.mode = 'draw'; both(); };
+    ui.controls.buttons.get('pick').onclick = () => { state.mode = 'pick'; both(); };
+    ui.controls.zooms.get('in').onclick
+        = () => look(zoomed(state.view, ZOOM_STEP, state.fit));
+    ui.controls.zooms.get('out').onclick
+        = () => look(zoomed(state.view, 1 / ZOOM_STEP, state.fit));
+    ui.controls.zooms.get('fit').onclick = () => look(state.fit);
+
+    pointing(ui.canvas, state, {
+        redraw,
+        pickAt: ([lon, lat]) => {
+            const hit = areaAt(state.all, lon, lat);
+            state.picked = hit?.id ?? null;
+            state.confirming = null;
+            sayLand(hit ? '' : 'No land there.', !hit);
+            both();
+        },
+        addCorner: (at) => { state.corners.push(at); redraw(); },
+    });
+
+    ui.finish.onclick = () => {
         if (state.corners.length < 3) {
             say('Land needs at least three corners.', true);
             return;
         }
-        boundary.value = ringText(state.corners);
+        ui.boundary.value = ringText(state.corners);
         say(`${state.corners.length} corners.`);
     };
-    clear.onclick = () => {
+    ui.clear.onclick = () => {
         state.corners = [];
-        boundary.value = '';
+        ui.boundary.value = '';
         redraw();
     };
+    ui.assign.onclick = () => handOver(state, ui.boundary, ui.nameField, say, refresh);
 }
 
 // Invariant 6: what may be assigned, to whom, and whether it is even in this

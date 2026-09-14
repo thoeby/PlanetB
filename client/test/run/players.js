@@ -71,7 +71,15 @@ export async function open(browser, world, name, testInfo) {
 
 // What the page says, anywhere on it. Stories assert sentences, so the failure
 // report is the sentence that was missing.
-export const says = (page, text) => page.getByText(text, { exact: false }).first();
+//
+// Whichever one of them a person could actually read, not whichever the DOM
+// holds first. A land's name is written twice — on the ground as a world label
+// and in the panel that lists it — and the label is hidden whenever the player
+// is not looking that way. `.first()` took that hidden one as soon as it
+// existed, so whether a story passed came down to which of the two the page
+// had got round to drawing.
+export const says = (page, text) =>
+    page.getByText(text, { exact: false }).locator('visible=true').first();
 
 export async function shows(player, text, timeout = UI) {
     await expect(says(player.page, text), `${player.name} should be told "${text}"`)
