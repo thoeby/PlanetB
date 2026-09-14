@@ -290,21 +290,16 @@ body {
 
 /* ------------------------------------------------------------- bottom */
 
-/* In the corner, standing on the two edges the way the plinth stands on the
-   bottom one. The bar is centred and reaches past the middle of a 1400px
-   window, so below that the map goes back above it rather than over it: the
-   map's canvas covering the buttons meant for Setup is a button on the screen
-   that cannot be pressed, which is a button that is not there. */
+/* In the corner, off the two edges by the same small gap, so it reads as
+   sitting in the corner rather than as having been cut off by it. The bar is
+   centred and reaches past the middle of a 1400px window, so below that the
+   map goes back above it rather than over it: the map's canvas covering the
+   buttons meant for Setup is a button on the screen that cannot be pressed,
+   which is a button that is not there. */
 #corner {
-  position: absolute; right: 0; bottom: 0; display: flex;
+  position: absolute; right: 12px; bottom: 12px; display: flex;
   flex-direction: column; gap: 8px; align-items: flex-end;
 }
-/* Chamfered on the inside corners only — it is in the corner of the window,
-   not floating over it. */
-#corner #map {
-  clip-path: polygon(18px 0, 100% 0, 100% 100%, 0 100%, 0 18px);
-}
-#corner #hints { margin-right: 16px; }
 #hints {
   display: flex; gap: 14px; height: 32px; align-items: center; padding: 0 14px;
   --cut: 8px; font-size: 12px; color: var(--ink-2);
@@ -375,8 +370,6 @@ body {
   /* The plinth is 94px tall and centred, and at this width it reaches under
      the corner. The map steps back above it (see #corner). */
   #corner { right: 24px; bottom: 104px; }
-  #corner #map { clip-path: none; }
-  #corner #hints { margin-right: 0; }
   /* The key hints stack into the corner rather than disappearing: hud.js
      builds them because they are the only way to learn that the keys work,
      and a 1280px laptop is not a reason to stop telling people how to walk. */
