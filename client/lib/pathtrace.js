@@ -123,7 +123,10 @@ export class Tracer {
         this.tracer = new WebGLPathTracer(this.renderer);
         const t = this.tracer;
         t.bounces = bounces;
-        t.tiles.set(1, 1);
+        // A sample is traced a quarter of the frame at a time, and the worker
+        // yields between quarters: the page shares this GPU, and sixty-four
+        // whole frames back to back froze it (and every other tab).
+        t.tiles.set(2, 2);
         t.minSamples = 1;
         // The library waits renderDelay ms after a reset before it traces —
         // an interactive courtesy; a frame atom has nothing to be courteous to.
@@ -156,10 +159,11 @@ export class Tracer {
         // frame drawn after this is the same bytes on the same machine.
         this.tracer.reset();
         this.tracer.renderSample();
+        this.tracer.reset();
     }
 
     // RGBA bytes, top-down, of one pose.
-    draw(cam) {
+    async draw(cam) {
         const c = this.camera;
         c.position.set(...cam.position);
         c.up.set(...cam.up);
@@ -167,7 +171,10 @@ export class Tracer {
         c.updateMatrixWorld(true);
         this.tracer.updateCamera();
         this.tracer.reset();
-        for (let s = 0; s < this.samples; s++) this.tracer.renderSample();
+        while (this.tracer.samples < this.samples) {
+            this.tracer.renderSample();
+            await new Promise((r) => setTimeout(r, 0));
+        }
         const n = this.size;
         const float = new Float32Array(n * n * 4);
         this.renderer.readRenderTargetPixels(this.tracer.target, 0, 0, n, n, float);
