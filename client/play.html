@@ -418,12 +418,17 @@
           lastCount = p;
           hud.stat('placed', String(land.things?.().length ?? 0));
           hud.stat('pool', `${p.open_jobs ?? 0} tiles`);
-          hud.stat('rendered', `${p.published ?? 0} / ${p.tiles ?? 0}`);
-          hud.stat('published', String(p.published ?? 0));
+          // The tiles this land is compiled into, not every tile whose box
+          // overlaps it: the z6 one over a Valais hillside is six hundred
+          // kilometres across and belongs to everybody, and counting it among
+          // a half-hectare's twenty-two read as "you own twenty-two tiles"
+          // (db/0087).
+          hud.stat('rendered', `${p.leaves_published ?? 0} / ${p.leaves ?? 0}`);
+          hud.stat('published', String(p.leaves_published ?? 0));
           // A tile exists where something stands, so this is how many things
           // are on the land that is chosen in the panel — nothing, and there is
           // nothing to submit however much land you own.
-          onMyLand = p.tiles;
+          onMyLand = p.leaves;
       },
   });
   // The pool is a queue other tabs are taking work out of, so what it showed

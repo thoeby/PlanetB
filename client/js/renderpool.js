@@ -4,12 +4,13 @@
 // (db/0043_pool.sql); this panel decides nothing.
 
 import * as api from './api.js';
-import { DOING, el, poolRow, what } from './poolui.js';
+import { setBounty } from './wallet.js';
+import { DOING, cr, el, poolRow, what } from './poolui.js';
 import { empty } from './empty.js';
 
 export function mountPool(host, { loop, where = () => ({}) } = {}) {
     const ui = poolParts(host);
-    const state = { rows: [], held: [], sort: 'Nearest', caps: null };
+    const state = { rows: [], held: [], sort: 'Nearest', caps: null, picked: null };
     const say = (msg, bad = false) => {
         ui.status.textContent = msg;
         ui.status.dataset.bad = bad ? '1' : '';
@@ -18,9 +19,13 @@ export function mountPool(host, { loop, where = () => ({}) } = {}) {
     const acts = {
         render: (entry, button) => render(entry, button),
         retry: (entry, button) => retry(entry, button),
+        pick: (entry) => { state.picked = entry.job; draw(); },
     };
 
-    const draw = () => drawPool(ui, state, acts, draw);
+    const draw = () => {
+        drawPool(ui, state, acts, draw);
+        ui.price.replaceChildren(...priceCard(state, say, refresh));
+    };
 
     const render = (entry, button) => runJob(entry, button,
         { loop, say, refresh });
@@ -106,10 +111,51 @@ function poolParts(host) {
     const ui = {
         head: el('div', { className: 'spread' }),
         list: el('ul', { className: 'rows po-list' }),
+        price: el('div', { className: 'section po-price' }),
         status: el('p', { className: 'po-status status' }),
     };
-    host.append(ui.head, ui.list, ui.status);
+    host.append(ui.head, ui.list, ui.price, ui.status);
     return ui;
+}
+
+// What to pay for one tile in the queue, on the tile you picked out of it.
+//
+// This was on the wallet panel, where nothing ever told it which tile was
+// meant: `target()` was never called from anywhere, so it showed "no tile in
+// front of you" for the life of the page and there was no way to make it show
+// anything else. A price is a thing you put on a job in the queue, so it lives
+// beside the queue.
+function priceCard(state, say, refresh) {
+    const row = state.rows.find((r) => r.job === state.picked);
+    if (!row) {
+        return [empty('No tile picked',
+            'Pick one out of the queue above and you can offer to have it'
+            + ' compiled sooner. The money is held until the tile publishes.')];
+    }
+    const amount = el('input', { type: 'number', min: '0', step: '1', value: '10',
+        className: 'po-amount' });
+    const set = el('button', { type: 'button', className: 'po-set primary',
+        textContent: 'Raise the price' });
+    set.onclick = async () => {
+        set.disabled = true;
+        try {
+            await setBounty(row.job, Number(amount.value));
+            say('held until the tile publishes');
+        } catch (err) {
+            say(String(err.body?.message ?? err.message ?? err), true);
+        }
+        set.disabled = false;
+        await refresh();
+    };
+    return [
+        el('span', { className: 'label',
+            textContent: `What to pay for ${row.z}/${row.x}/${row.y}` }),
+        el('div', { className: 'row' }, amount, set),
+        el('div', { className: 'note',
+            textContent: `It pays ${cr(row.bounty)} cr now. What you add is held`
+                + ' from your credits until the tile publishes, and is then'
+                + ' shared out by the time each tab reported.' }),
+    ];
 }
 
 // An empty pool with jobs behind it is the thing that reads as "my approval
@@ -146,6 +192,7 @@ function drawPool(ui, state, acts, draw) {
     const rows = state.sort === 'Best pay'
         ? [...state.rows].sort((a, b) => Number(b.bounty) - Number(a.bounty))
         : [...state.rows].sort((a, b) => (a.metres ?? 0) - (b.metres ?? 0));
-    ui.list.replaceChildren(...rows.map((r) => poolRow(r, acts, state.caps)));
+    ui.list.replaceChildren(
+        ...rows.map((r) => poolRow(r, acts, state.caps, state.picked)));
     if (!rows.length) ui.list.append(...nothingWaiting(state.held));
 }

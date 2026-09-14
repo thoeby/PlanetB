@@ -24,7 +24,8 @@ export function progressTiles(p) {
     const waiting = Math.max(0, Number(p.waiting) - Number(p.open_jobs));
     return [
         tile(waiting, 'to submit'),
-        tile(p.published, 'compiled', 'accent'),
+        // What this land is compiled into, not the ladder above it (db/0087).
+        tile(p.leaves_published ?? p.published, 'compiled', 'accent'),
         tile(p.open_jobs, 'waiting in the pool', 'warn'),
         tile(cr(p.in_escrow), 'cr held for renderers', 'warn'),
     ];
@@ -71,8 +72,14 @@ export const totalLine = (n, price, balance) => [
 // What a tile is waiting on, in words. A piece that failed three times is not
 // handed out again (db/0005_state.sql), so a tile of nothing but those is
 // stuck until somebody says try again.
+//
+// Ready and blocked are two numbers and not one (db/0087): a ready piece is
+// work a tab can be handed, a blocked one is waiting on something else in the
+// same tile — usually the piece that gave up. Counted together they read as
+// "2 piece(s) to do" beside a Render button that could claim neither.
 export const what = (e) => [
     e.ready ? `${e.ready} piece(s) to do` : '',
+    e.blocked ? `${e.blocked} waiting on the rest` : '',
     e.claimed ? `${e.claimed} in hand` : '',
     e.failed ? `${e.failed} gave up` : '',
     // SPEC §3.12: a render somebody walked away from is back here, and says so
@@ -83,7 +90,20 @@ export const what = (e) => [
         : '',
 ].filter(Boolean).join(' · ');
 
-export const stuck = (e) => e.failed > 0 && !e.ready && !e.claimed;
+// Nothing anybody's tab can be given: whatever is left is blocked behind a
+// piece that gave up, or is in somebody else's hands. Not "failed and nothing
+// else", which missed the ordinary shape of it — one atom failed and the two
+// after it waiting on it for ever.
+export const stuck = (e) => !e.ready && !e.claimed && (e.failed > 0 || e.blocked > 0);
+
+// What this tab in particular cannot take, even though somebody could: the
+// work that is ready needs a GPU this tab has not got, or buffers it cannot
+// hold. Pressing Render would claim nothing and say so a minute later.
+export const beyond = (e, caps) => Boolean(e.ready)
+    && Boolean(e.needs_webgpu)
+    && (!caps?.webgpu
+        || (Number(e.needs_mb) > 0 && Number(caps.max_buffer_mb) > 0
+            && Number(caps.max_buffer_mb) < Number(e.needs_mb)));
 
 // What the tab is doing to this tile, in the words SPEC §3.7 uses.
 export const DOING = {
@@ -109,13 +129,16 @@ export const needs = (e, caps) => {
 
 // One open job, as the artboard's row: what and where on the left, what it
 // pays and the button on the right.
-export function poolRow(e, acts, caps) {
+export function poolRow(e, acts, caps, picked = null) {
     const render = el('button', { type: 'button', className: 'po-render primary',
         textContent: 'Render' });
     render.onclick = () => acts.render(e, render);
     const end = el('div', { className: 'end' },
         el('span', { style: `color: var(--${Number(e.bounty) > 0 ? 'warn' : 'ink-3'})`,
             textContent: Number(e.bounty) > 0 ? `${cr(e.bounty)} cr` : 'free' }));
+    // What this row offers: the piece that gave up put back, where that is
+    // yours to do; nothing at all where it is somebody else's; and Render only
+    // where there is something a tab could actually be handed.
     if (e.failed > 0 && e.may_retry) {
         const again = el('button', { type: 'button', className: 'po-retry',
             textContent: 'Try again' });
@@ -123,11 +146,15 @@ export function poolRow(e, acts, caps) {
         end.append(again);
     } else if (stuck(e)) {
         end.append(el('span', { className: 'chip', 'data-tone': 'bad',
-            textContent: 'stopped' }));
+            textContent: e.failed > 0 ? 'stopped \u00b7 its owner can try again'
+                : 'waiting on itself' }));
+    } else if (beyond(e, caps)) {
+        end.append(el('span', { className: 'chip', 'data-tone': 'warn',
+            textContent: 'not this machine' }));
     } else {
         end.append(render);
     }
-    return el('li', {},
+    const li = el('li', {},
         el('div', { className: 'who' },
             el('div', { className: 'name',
                 textContent: `${e.z}/${e.x}/${e.y}` }),
@@ -138,4 +165,15 @@ export function poolRow(e, acts, caps) {
                 textContent: [far(e.metres), what(e), e.made, needs(e, caps)]
                     .filter(Boolean).join(' · ') })),
         end);
+    // Picking a row is how a price goes on that tile (client/js/renderpool.js).
+    // The money belongs beside the queue it moves you up, not in the wallet,
+    // which had no way of knowing which tile you meant.
+    if (acts.pick) {
+        li.setAttribute('aria-current', String(e.job === picked));
+        li.onclick = (event) => {
+            if (event.target.closest('button')) return;
+            acts.pick(e);
+        };
+    }
+    return li;
 }

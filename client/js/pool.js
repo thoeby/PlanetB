@@ -58,9 +58,27 @@ export function mountSubmit(host, { onSubmitted = () => {}, onCount = () => {} }
 
     ui.send.onclick = () => send();
     ui.mine.onclick = () => send({ andApprove: true });
+    ui.bare.onclick = () => compileAsItIs(chosenArea(), ui, { say, refresh });
     ui.area.onchange = progress;
     refresh();
     return { refresh, send, progress };
+}
+
+// "Build it from what is there now", for land that has nothing on it and so
+// has nothing marked changed. It marks the ground and stops: from there it is
+// Submit and an approval like anything else (db/0081_compileitagain.sql).
+async function compileAsItIs(chosen, ui, { say, refresh }) {
+    if (!chosen) { say('pick some land first', true); return; }
+    ui.bare.disabled = true;
+    try {
+        const n = await api.rpc('recompile_land', { area_id: chosen.id });
+        await refresh();
+        say(`${n} tile(s) to build — send them when you are ready`);
+    } catch (err) {
+        await refresh();
+        say(String(err.body?.message ?? err.message ?? err), true);
+    }
+    ui.bare.disabled = false;
 }
 
 // SPEC §3.5: submitting sends it for a decision. Nothing is queued and nothing
@@ -108,6 +126,14 @@ function submitParts() {
         }),
         mine: el('button', { type: 'button', className: 'su-mine',
             textContent: 'Submit and approve' }),
+        // Land nobody has drawn on has nothing changed about it, so there is
+        // nothing to submit and no way to ask for it to be compiled at all —
+        // a new owner met "Nothing to submit" and had to go and draw something
+        // in QGIS before the world would render their ground. This is the ask
+        // (db/0081_compileitagain.sql): build it from what is there now, which
+        // for empty land is the ground and nothing else.
+        bare: el('button', { type: 'button', className: 'su-bare',
+            textContent: 'Compile it as it is' }),
         status: el('p', { className: 'su-status status' }),
     };
 }
@@ -132,13 +158,22 @@ function changeWords(n, changes) {
 function drawSubmit(ui, state) {
     ui.tiles.replaceChildren(...progressTiles(state.progress));
     const n = toSubmit(state.progress);
+    const drawn = Number(state.changes?.features ?? 0)
+        + Number(state.changes?.objects ?? 0);
     ui.changes.textContent = n
         ? `${changeWords(n, state.changes)} — this is what the approver sees.`
-        : 'Nothing on this land has changed since it was last sent.';
+        : drawn
+            ? 'Nothing on this land has changed since it was last sent.'
+            : 'Nothing has been drawn or placed on this land. Compiling it as'
+                + ' it is renders the ground itself, which is what anybody'
+                + ' standing on it would see.';
     ui.send.textContent = n ? `Submit ${n} tile(s)` : 'Nothing to submit';
     ui.send.disabled = !n;
     ui.mine.disabled = !n || !state.mine;
     ui.mine.hidden = !state.mine;
+    // Only where there is nothing to send: with changes waiting, sending them
+    // is the thing to do and this would be a second button doing the same job.
+    ui.bare.hidden = Boolean(n) || !state.mine;
 }
 
 function layoutSubmit(host, ui) {
@@ -150,7 +185,7 @@ function layoutSubmit(host, ui) {
         el('div', { className: 'section' },
             el('span', { className: 'label', textContent: 'What is being sent' }),
             ui.changes, ui.note),
-        el('div', { className: 'row' }, ui.send, ui.mine),
+        el('div', { className: 'row' }, ui.send, ui.mine, ui.bare),
         el('div', { className: 'note',
             textContent: 'Approving is what opens the render jobs. A price can'
                 + ' go on them afterwards, from Work; none is normal.' }),

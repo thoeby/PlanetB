@@ -1,6 +1,12 @@
 // walletui.js — the wallet panel (design 3h): what you have, what is held
 // against work you asked for, what you paid, what you earned, and every
-// movement that touched your account.
+// movement that touched your account. It reports and does nothing else.
+//
+// Putting a price on a tile used to be here too, on a card that asked which
+// tile you were looking at. Nothing ever answered — no caller anywhere told it
+// — so it said "no tile in front of you" for the life of the page. A price
+// goes on a job in the queue, and it is on the queue now
+// (client/js/renderpool.js).
 //
 // A bounty is escrowed the moment it is set (db/0006_publish.sql) and paid out
 // pro rata by reported GPU time when the tile publishes. That is why "held"
@@ -8,8 +14,7 @@
 // not yet anybody else's.
 
 import * as api from './api.js';
-import { myAccount, myLedger, setBounty } from './wallet.js';
-import { empty } from './empty.js';
+import { myAccount, myLedger } from './wallet.js';
 
 const el = (tag, props = {}, ...kids) => {
     const node = Object.assign(document.createElement(tag), props);
@@ -66,11 +71,10 @@ export function mountWallet(host, { onBalance = () => {} } = {}) {
     const totals = el('div', { className: 'tiles' });
     const head = el('div', { className: 'spread' });
     const rows = el('ul', { className: 'rows' });
-    const bounty = el('div', { className: 'section' });
     const status = el('p', { className: 'wallet-status status' });
-    host.append(totals, bounty, head, rows, status);
+    host.append(totals, head, rows, status);
 
-    const state = { account: null, job: null, tile: null, rows: [], open: [], filter: 'All' };
+    const state = { account: null, rows: [], open: [], filter: 'All' };
     const say = (msg, bad = false) => {
         status.textContent = msg;
         status.dataset.bad = bad ? '1' : '';
@@ -80,7 +84,6 @@ export function mountWallet(host, { onBalance = () => {} } = {}) {
         drawTotals(totals, state);
         drawHead(head, state, draw);
         drawRows(rows, state);
-        bounty.replaceChildren(...bountyCard(state, say, refresh));
     };
 
     async function refresh() {
@@ -92,17 +95,8 @@ export function mountWallet(host, { onBalance = () => {} } = {}) {
         return state.account;
     }
 
-    // Build mode hands the panel the tile the player is looking at, so a
-    // bounty is set on the job that would draw it.
-    function target(t, job) {
-        state.tile = t;
-        state.job = job;
-        draw();
-        return state;
-    }
-
     refresh();
-    return { refresh, target, state, say };
+    return { refresh, state, say };
 }
 
 function drawTotals(host, state) {
@@ -151,33 +145,3 @@ function drawRows(host, state) {
     }
 }
 
-// The one thing the wallet does rather than reports: put a price on the tile
-// you are looking at, so a stranger's browser has a reason to draw it.
-function bountyCard(state, say, refresh) {
-    const amount = el('input', { type: 'number', min: '0', step: '1', value: '10',
-        className: 'wallet-amount' });
-    const set = el('button', { type: 'button', className: 'wallet-set primary',
-        textContent: 'Set the price', disabled: !state.job });
-    set.onclick = async () => {
-        if (!state.job) return;
-        try {
-            await setBounty(state.job, Number(amount.value));
-            say('held until the tile publishes');
-            await refresh();
-        } catch (err) {
-            say(String(err.body?.message ?? err.message ?? err), true);
-        }
-    };
-    return [
-        el('span', { className: 'label',
-            textContent: 'What to pay for the tile you are looking at' }),
-        el('div', { className: 'row' }, amount, set),
-        state.tile
-            ? el('div', { className: 'note',
-                textContent: `${state.tile.z}/${state.tile.x}/${state.tile.y}`
-                  + `${state.job ? ` · job ${state.job}` : ' · no job for it yet'}` })
-            : empty('No tile in front of you',
-                'Look at a tile in the world and it appears here, with what it'
-                + ' would cost to have somebody else compile it.'),
-    ];
-}

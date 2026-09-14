@@ -2,7 +2,7 @@
 -- train atom no tab could claim because it asked for 4 GB of VRAM and no
 -- browser reports VRAM at all.
 BEGIN;
-SELECT plan(8);
+SELECT plan(9);
 
 SET client_min_messages = warning;
 
@@ -71,8 +71,12 @@ SELECT is((SELECT count(*)::int FROM atom
     'two pieces left: the training and the encoding of it');
 CREATE TEMP TABLE row83 AS
 SELECT j FROM jsonb_array_elements(render_pool(7.805, 46.295, 5)) j;
-SELECT is((SELECT (j ->> 'ready')::int FROM row83), 2,
-    'which is what the pool says');
+-- One to do and one waiting on it, which the pool counted as two to do until
+-- db/0087 told them apart.
+SELECT is((SELECT (j ->> 'ready')::int FROM row83), 1,
+    'which is the training, and the pool says so');
+SELECT is((SELECT (j ->> 'blocked')::int FROM row83), 1,
+    'with the encoding waiting on it rather than counted beside it');
 SELECT is((SELECT (j ->> 'needs_mb')::numeric FROM row83),
     ceil(96::numeric * tile_budget(18) / 1048576),
     'and it says how big a buffer the tab has to be able to hold');
