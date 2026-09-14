@@ -94,6 +94,23 @@ export const what = (e) => [
 // piece that gave up, or is in somebody else's hands. Not "failed and nothing
 // else", which missed the ordinary shape of it — one atom failed and the two
 // after it waiting on it for ever.
+// What a tile is worth to look at once it lands. client/js/traverse.js refines
+// a tile into its children only when every child the world knows about is
+// published — an unpublished one that exists is a hole, and refining into it
+// would tear the ground open — so one z16 of the sixteen under a z14 draws
+// nothing at all. Minutes of training and no change in the world is not
+// somebody doing it wrong, and the row says so rather than leaving them to
+// work it out (db/0088).
+export const drawnWhen = (e) => {
+    const all = Number(e.siblings) || 0;
+    const done = Number(e.siblings_published) || 0;
+    if (all <= 1) return '';
+    const left = Math.max(0, all - done - 1);
+    return left
+        ? `drawn once the ${left} beside it are too`
+        : 'the last of its block — this one puts it on screen';
+};
+
 export const stuck = (e) => !e.ready && !e.claimed && (e.failed > 0 || e.blocked > 0);
 
 // What this tab in particular cannot take, even though somebody could: the
@@ -162,8 +179,8 @@ export function poolRow(e, acts, caps, picked = null) {
                 // What this job makes is the job's own answer: a tile with
                 // nothing under it is assembled whatever its zoom
                 // (db/0045_coarseleaf.sql).
-                textContent: [far(e.metres), what(e), e.made, needs(e, caps)]
-                    .filter(Boolean).join(' · ') })),
+                textContent: [far(e.metres), what(e), e.made, needs(e, caps),
+                    drawnWhen(e)].filter(Boolean).join(' · ') })),
         end);
     // Picking a row is how a price goes on that tile (client/js/renderpool.js).
     // The money belongs beside the queue it moves you up, not in the wallet,

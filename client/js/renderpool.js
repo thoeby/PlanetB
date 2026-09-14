@@ -5,7 +5,7 @@
 
 import * as api from './api.js';
 import { setBounty } from './wallet.js';
-import { DOING, cr, el, poolRow, what } from './poolui.js';
+import { DOING, beyond, cr, drawnWhen, el, poolRow, what } from './poolui.js';
 import { empty } from './empty.js';
 
 export function mountPool(host, { loop, where = () => ({}) } = {}) {
@@ -75,6 +75,7 @@ async function runJob(entry, button, { loop, say, refresh }) {
     const tile = `${entry.z}/${entry.x}/${entry.y}`;
     say(`rendering ${tile}… ${what(entry)}`);
     work.focus(entry.job);
+    let refreshed = false;
     // SPEC §3.7: assembling… framing… training… published. The atom the loop
     // is on is what this tab is doing, and a compile is minutes long: a panel
     // that says nothing until the end says nothing at all.
@@ -85,26 +86,50 @@ async function runJob(entry, button, { loop, say, refresh }) {
     try {
         let step = await work.step();
         while (step) step = await work.step();
-        say(await landed(tile, entry));
+        const rows = await refresh();
+        say(await landed(tile, entry, rows, work.caps));
+        refreshed = true;
     } catch (err) {
         say(String(err.message ?? err), true);
     } finally {
         clearInterval(watch);
         work.focus(null);
         button.disabled = false;
-        await refresh();
+        if (!refreshed) await refresh();
     }
 }
 
 // What the world says about the tile afterwards, not what this tab hoped:
 // publish_tile is a compare-and-swap, and losing it is a thing to be told.
-async function landed(tile, entry) {
+//
+// And when it did not publish, why — "done as far as this tab can take it" is
+// true of every one of these and tells nobody which one it is, so the same
+// tile sat in the queue saying the same unhelpful sentence.
+async function landed(tile, entry, rows, caps) {
     const [row] = await api.select('tile',
         { z: `eq.${entry.z}`, x: `eq.${entry.x}`, y: `eq.${entry.y}`,
             select: 'published_version' }).catch(() => []);
-    return Number(row?.published_version ?? 0) >= Number(entry.version)
-        ? `${tile} is published`
-        : `${tile} is done as far as this tab can take it`;
+    if (Number(row?.published_version ?? 0) >= Number(entry.version)) {
+        const more = drawnWhen(entry);
+        return `${tile} is published${more ? ` \u2014 ${more}` : ''}`;
+    }
+    const now = (rows ?? []).find((r) => r.job === entry.job);
+    if (!now) {
+        return `${tile}: every piece is done and the publish did not land —`
+            + ' the world moved on while this tab was working. Submit it again.';
+    }
+    if (Number(now.claimed) > 0 && !Number(now.ready)) {
+        return `${tile}: ${now.claimed} piece(s) are in somebody else's hands.`;
+    }
+    if (!Number(now.ready)) {
+        return `${tile}: nothing left that anybody can take — ${now.failed || 0}`
+            + ' gave up, and the rest are waiting on it. Try again puts it back.';
+    }
+    if (beyond(now, caps)) {
+        return `${tile}: ${now.ready} piece(s) left, and they want more of a GPU`
+            + ' than this tab has. Another machine can take them.';
+    }
+    return `${tile}: ${now.ready} piece(s) left — press Render again.`;
 }
 
 function poolParts(host) {
