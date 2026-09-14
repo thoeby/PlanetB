@@ -91,6 +91,7 @@ export class GpuBackend {
         // Empty until prepare(), but load() builds every bind group and a bind
         // group with a missing buffer is a "Required member is undefined".
         this.alloc('targets', 4);
+        this.alloc('stats', 16);
         this.buf.cam = this.device.createBuffer({ size: 96, usage: 0x40 | 0x8 });
         this.buf.opt = this.device.createBuffer({ size: 48, usage: 0x40 | 0x8 });
     }
@@ -153,6 +154,7 @@ export class GpuBackend {
     forward(enc, cam, base) {
         this.camUniform(cam, base);
         enc.clearBuffer(this.buf.tileCount);
+        enc.clearBuffer(this.buf.stats);
         const p = enc.beginComputePass();
         run(p, this.pipes.preprocess, this.groups.preprocess, ceil(this.count, 64));
         run(p, this.pipes.sort, this.groups.sort, this.size.tx * this.size.ty);
@@ -185,6 +187,11 @@ export class GpuBackend {
             sum += 0.8 * Math.abs(e) + 0.2 * e * e;
         }
         return sum / px.length;
+    }
+
+    // How many splats the last forward pass could not list (gswgsl.js SORT).
+    async dropped() {
+        return new Uint32Array(await this.read('stats', 16))[0];
     }
 
     async render(cam) {
@@ -263,7 +270,7 @@ function unflatten(flat, state) {
 const LAYOUT = {
     preprocess: ['pos', 'logScale', 'quat', 'sh', 'logit', 'pre', 'tileCount', 'tileItems',
         'cam'],
-    sort: ['pre', 'tileCount', 'tileItems', 'cam'],
+    sort: ['pre', 'tileCount', 'tileItems', 'cam', 'stats'],
     render: ['pre', 'tileCount', 'tileItems', 'image', 'rest', 'last', 'cam'],
     loss: ['image', 'targets', 'dL', 'cam'],
     backward: ['pre', 'tileCount', 'tileItems', 'rest', 'last', 'dL', 'gscreen', 'cam'],

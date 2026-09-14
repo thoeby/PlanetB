@@ -42,7 +42,8 @@ test('XR holds a third of the desktop budget, and hands it back on the way out',
 
 test('the streamer keeps what the XR budget allows and no more', () => {
     // Twelve z6 roots of two million splats each, all of them in view: enough
-    // that the budget is what decides, not the traversal.
+    // that the budget is what decides, not the traversal. The desktop budget
+    // holds six of them, XR's four.
     const rows = [];
     for (let i = 0; i < 12; i++) {
         const z = tm.MIN_ZOOM;
@@ -63,7 +64,7 @@ test('the streamer keeps what the XR budget allows and no more', () => {
         fovY: 45 * tm.RAD_PER_DEG };
     const desktop = selectTiles(world, camera, LIMITS);
     const xr = selectTiles(world, camera, XR_LIMITS);
-    assert.equal(desktop.want.size, 12, 'the desktop budget holds all of them');
+    assert.equal(desktop.want.size, 6, '12 M splats is six of these tiles');
     assert.equal(xr.want.size, 4, '8 M splats is four of these tiles');
     assert.ok(xr.load.length <= XR_LIMITS.inflight, 'and it loads them two at a time');
 });

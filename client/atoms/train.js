@@ -1,12 +1,18 @@
-// train.js — `train-v1`. The tile, learned from its own frames.
+// train.js — `train-v2`. The tile, learned from its own frames.
 //
-// `assemble` seeds a tile at 30 % of its budget by sampling the surfaces it
-// built; `frame` renders that scene from a fixed camera set. This takes both
-// and does what the initialisation cannot: moves, reshapes, recolours and grows
-// the gaussians until they reproduce the frames. It is ordinary 3D-gaussian
-// splatting — Adam over a differentiable rasteriser, with the MCMC variant's
-// population control (client/lib/gsopt.js) — run in a Web Worker, on WebGPU
-// where there is one.
+// `assemble` built the surfaces and `frame` rendered them from a fixed camera
+// set. Unlike a photographed scene there is nothing to discover here: the
+// geometry the frames show is in the tar, so the tile is seeded by sampling
+// those surfaces at its whole budget (client/lib/sampling.js) and training only
+// has to find colour, opacity and size. Positions are held still for the first
+// part of the run and then freed to settle; nothing grows, and the population
+// is only pruned. It is ordinary 3D-gaussian splatting otherwise — Adam over a
+// differentiable rasteriser (client/lib/gsopt.js) — run in a Web Worker, on
+// WebGPU where there is one.
+//
+// train-v1 started from 30 % of the budget and grew towards it with MCMC
+// relocation, which is the paper's recipe for a sparse structure-from-motion
+// start. It cost 7 000 iterations to arrive where this starts.
 //
 // Four poses are held back (client/lib/frames.js): the PSNR reported here is
 // measured on views the optimiser never saw, and `verify` re-renders two of the
@@ -19,27 +25,42 @@ import { holdout, loadFrames, TRAIN_SIZE } from '../lib/frames.js';
 import { gpuBackend, gpuDevice } from '../lib/gsgpu.js';
 import { Model } from '../lib/gsmodel.js';
 import { CpuBackend, boundsOf, ratesFor, scoreOf, train } from '../lib/gstrain.js';
-import { bboxOf, readPly, writePly } from '../lib/ply.js';
+import { unpackMeshes } from '../lib/mesh.js';
+import { bboxOf, writePly } from '../lib/ply.js';
+import { rngOf, sampleSurfaces } from '../lib/sampling.js';
 import { readTar, writeTar } from '../lib/tar.js';
-import { rngOf } from './assemble.js';
 
-export const ALGO = 'train-v1';
+export const ALGO = 'train-v2';
 
-// How often the population is maintained, and how much it may grow each time.
-// Both are capped by the tile's budget, never by the loss (Invariant 8's
-// structural rule on splat_count is what would reject a runaway).
-export const MAINTAIN_EVERY = 100;
-export const GROW = 0.12;
-export const NOISE = 0.02;
+// The population is only pruned, every MAINTAIN_EVERY iterations: nothing
+// grows, so nothing can pass the budget it was seeded at (Invariant 8's
+// structural rule on splat_count is what would reject it if it did). A
+// maintenance round is a full round trip of the model through the CPU, which
+// is why it is rare.
+export const MAINTAIN_EVERY = 500;
+export const GROW = 0;
+export const NOISE = 0;
+// The share of the run positions are held still for. The seed is already on
+// the surface; letting it drift before the colours have settled only smears.
+export const FREEZE = 0.4;
+// In-plane radius of a seed splat as a share of its spacing: overlapping, so
+// the first render is a surface and not a sieve (client/atoms/sample.js).
+export const SPREAD = 1.15;
 
 const decoder = new TextDecoder();
 
-function assembled(bytes) {
+// The seed: the assembled surfaces, sampled at the tile's whole budget with
+// the atom's own seed, so two trainers of one atom start from the same splats.
+function assembled(bytes, atom) {
     const files = readTar(bytes);
     const scene = JSON.parse(decoder.decode(files.get('scene.json')));
-    const init = files.get('init.ply');
-    if (!init) throw new Error('the assemble artifact carries no init.ply');
-    return { files, scene, model: Model.fromSplats(readPly(init)) };
+    const bin = files.get('mesh.bin');
+    if (!bin || !scene.meshes) throw new Error('the assemble artifact carries no mesh');
+    const meshes = unpackMeshes(bin, scene.meshes);
+    const budget = Number(atom.params?.budget) || scene.budget;
+    const { z, x, y } = scene.tile;
+    const splats = sampleSurfaces(meshes, budget, rngOf(atom, z, x, y), { spread: SPREAD });
+    return { files, scene, model: Model.fromSplats(splats) };
 }
 
 // A trained tile is still a tile: it carries the ground the player walks on and
@@ -76,7 +97,7 @@ export async function run({ atom, inputs, canvas, log }) {
     if (!inputs?.assemble) throw new Error('train needs the assemble artifact');
     const tars = [].concat(inputs.frames ?? []).filter(Boolean);
     if (!tars.length) throw new Error('train needs at least one frame artifact');
-    const { files, scene, model } = assembled(inputs.assemble);
+    const { files, scene, model } = assembled(inputs.assemble, atom);
     const size = Number(atom.params?.size) || TRAIN_SIZE;
     const all = await loadFrames(tars, { decode: (b) => decodeImage(b, canvas), size });
     // The held-out poses are a property of the camera set, not of the frames
@@ -101,7 +122,7 @@ export async function run({ atom, inputs, canvas, log }) {
             iters: Number(atom.params?.iters) || 5000, views, bounds,
             budget: Number(atom.params?.budget) || model.count,
             random: rngOf(atom, scene.tile.z, scene.tile.x, scene.tile.y),
-            grow: GROW, noise: NOISE, maintainEvery: MAINTAIN_EVERY, log,
+            grow: GROW, noise: NOISE, maintainEvery: MAINTAIN_EVERY, freeze: FREEZE, log,
             logEvery: Math.max(5, Math.round((Number(atom.params?.iters) || 5000) / 25)),
         });
         scores = await scoreOf(backend, held);
@@ -122,6 +143,10 @@ export async function run({ atom, inputs, canvas, log }) {
             psnr: mean(scores), psnr_before: mean(before),
             psnr_views: scores.map((v, i) => ({ pose: held[i].id, psnr: v })),
             iters: out.iters, loss: out.loss, backend: kind, frame_size: size,
+            // Splats a screen tile could not hold (client/lib/gsgpu.js
+            // CAPACITY): rendered nowhere and taught nothing, so a number here
+            // means the tile was denser than the trainer could see.
+            dropped: out.dropped ?? 0,
         },
     };
 }

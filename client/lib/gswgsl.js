@@ -144,6 +144,7 @@ export const SORT = `
 @group(0) @binding(1) var<storage, read_write> tileCount: array<atomic<u32>>;
 @group(0) @binding(2) var<storage, read_write> tileItems: array<u32>;
 @group(0) @binding(3) var<uniform> cam: Cam;
+@group(0) @binding(4) var<storage, read_write> stats: array<atomic<u32>>;
 
 const CAP: u32 = ${'${CAP}'}u;
 var<workgroup> keyDepth: array<f32, CAP>;
@@ -156,7 +157,13 @@ fn main(@builtin(workgroup_id) wg: vec3u, @builtin(local_invocation_index) li: u
   let cap = u32(cam.misc.y);
   if (li == 0u) {
     var held = atomicLoad(&tileCount[tile]);
-    if (held > cap) { held = cap; atomicStore(&tileCount[tile], cap); }
+    // Over capacity, the rest were never listed: count them, so the trainer
+    // can say how much of the tile it did not see (stats[0]).
+    if (held > cap) {
+      atomicAdd(&stats[0], held - cap);
+      held = cap;
+      atomicStore(&tileCount[tile], cap);
+    }
     var wide = 0u;
     if (held >= 2u) {
       wide = 2u;

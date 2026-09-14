@@ -111,6 +111,8 @@ export async function train(backend, model, opts) {
     let order = shuffle(views.length, random);
     let count = model.count;
     let loss = 0;
+    let dropped = 0;
+    const still = Math.round(iters * (opts.freeze ?? 0));
     for (let it = 0; it < iters; it++) {
         if (it && it % opts.maintainEvery === 0) {
             state = round(await backend.save(), opts, it);
@@ -119,10 +121,15 @@ export async function train(backend, model, opts) {
         }
         if (it % views.length === 0) order = shuffle(views.length, random);
         const want = it % opts.logEvery === 0 || it === iters - 1;
-        loss = await backend.step(views[order[it % views.length]],
-            POS_DECAY ** (it / Math.max(iters - 1, 1)), want) || loss;
-        if (want) log?.({ event: 'train', iter: it, loss, splats: count });
+        // Positions stay put until `freeze` of the run is done, then move at a
+        // rate that decays to POS_DECAY of itself by the end.
+        const lrScale = it < still ? 0 : POS_DECAY ** (it / Math.max(iters - 1, 1));
+        loss = await backend.step(views[order[it % views.length]], lrScale, want) || loss;
+        if (want) {
+            dropped = Math.max(dropped, await (backend.dropped?.() ?? 0));
+            log?.({ event: 'train', iter: it, loss, splats: count, dropped });
+        }
     }
     state = await backend.save();
-    return { model: state.model, loss, iters };
+    return { model: state.model, loss, iters, dropped };
 }
