@@ -22,8 +22,9 @@
 // are a picture of where you are, not ground anybody stands on.
 
 import { loadDem } from './geo.js';
+import { makeBuilder } from './groundbuild.js';
 import * as tm from './tilemath.js';
-import { cellMetres, groundTile, heightIn } from './groundtile.js';
+import { cellMetres, heightIn } from './groundtile.js';
 
 export { cellMetres, groundTile, heightIn } from './groundtile.js';
 
@@ -132,6 +133,29 @@ export class Ground {
         this.holes = new Map();
         this.zoom = this.levels[0].zoom;
         this.grid = this.levels[0].grid;
+        // Geometry is built off this thread where there is one to build it
+        // on (client/lib/groundbuild.js). A tile asked for twice keeps only
+        // the later answer: the serial says which request is current.
+        this.builder = makeBuilder({ origin, localOf: () => this.localOf });
+        this.serial = new Map();
+    }
+
+    // Build this tile's geometry and, unless a newer request for it has been
+    // made since, draw it in place of whatever is there. The old mesh stays
+    // on screen until the new one is ready: nothing flickers, and the ground
+    // under the player never goes away.
+    rebuild(z, x, y, dem, grid, opts) {
+        const k = key(z, x, y);
+        const n = (this.serial.get(k) ?? 0) + 1;
+        this.serial.set(k, n);
+        return this.builder.build(z, x, y, dem, grid, opts).then((tile) => {
+            if (this.serial.get(k) !== n) return null;
+            const old = this.entities.get(k);
+            if (old) { old.destroy(); this.entities.delete(k); }
+            this.tiles.set(k, tile);
+            this.draw(tile);
+            return tile;
+        });
     }
 
     get count() { return this.tiles.size; }
@@ -246,13 +270,10 @@ export class Ground {
     // for the finer level in front of it. The DEM it was cut from is on the
     // tile, so this is arithmetic and a mesh, not a request.
     reshape(level, hole) {
-        for (const [k, tile] of [...this.tiles]) {
+        for (const tile of [...this.tiles.values()]) {
             if (tile.z !== level.zoom) continue;
-            this.drop(k);
-            const rebuilt = groundTile(tile.z, tile.x, tile.y, tile.dem,
-                this.localOf, level.grid, { hole, within: this.within });
-            this.tiles.set(k, rebuilt);
-            this.draw(rebuilt);
+            this.rebuild(tile.z, tile.x, tile.y, tile.dem, level.grid,
+                { hole, within: this.within });
         }
     }
 
@@ -289,11 +310,9 @@ export class Ground {
                 // Outside the coverage there is no ground, which is not a
                 // failure — it is the edge of the world (SPEC §3.8).
                 if (!dem) { this.nothingThere.add(k); return; }
-                const tile = groundTile(z, x, y, dem, this.localOf, level.grid,
-                    { hole: this.holes.get(z) ?? hole, within: this.within });
-                this.tiles.set(k, tile);
                 this.troubled = null;
-                this.draw(tile);
+                return this.rebuild(z, x, y, dem, level.grid,
+                    { hole: this.holes.get(z) ?? hole, within: this.within });
             })
             .catch((err) => {
                 this.pending.delete(k);
@@ -348,12 +367,12 @@ export class Ground {
         this.origin = origin;
         this.localOf = (g) => origin.localOf(g);
         for (const [k, tile] of [...this.tiles]) {
-            this.drop(k);
-            const rebuilt = groundTile(tile.z, tile.x, tile.y, tile.dem,
-                this.localOf, tile.grid,
+            // The old mesh is in the old frame, so it goes now; the heights
+            // stay, and the player keeps a floor while the mesh is rebuilt.
+            const entity = this.entities.get(k);
+            if (entity) { entity.destroy(); this.entities.delete(k); }
+            this.rebuild(tile.z, tile.x, tile.y, tile.dem, tile.grid,
                 { hole: tile.hole, within: tile.within });
-            this.tiles.set(k, rebuilt);
-            this.draw(rebuilt);
         }
     }
 
