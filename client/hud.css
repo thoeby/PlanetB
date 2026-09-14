@@ -260,6 +260,10 @@ body {
   display: none; flex-direction: column; --cut: 12px;
 }
 #panel[data-open="1"] { display: flex; }
+/* A surface that is a map beside a form has nothing to gain from being a
+   column: it takes the window, inside the same gutters everything else keeps.
+   Height is already the whole window between the chrome and the plinth. */
+#panel[data-wide="1"] { left: 24px; right: 24px; width: auto; }
 #panel > header {
   display: flex; align-items: baseline; justify-content: space-between;
   padding: 18px 20px 14px; flex: 0 0 auto;
@@ -274,6 +278,12 @@ body {
   font-size: 18px; line-height: 1; padding: 0 2px;
 }
 #panel > header .close:hover { color: var(--ink); }
+
+/* What a surface says above its parts: true of every one of them, so it is
+   said once rather than repeated inside each (hud.js panelHead). */
+#panel > .head { flex: 0 0 auto; padding: 14px 20px 0; }
+#panel > .head[hidden] { display: none; }
+#panel > .head .section { margin-top: 0; }
 
 /* The parts of one surface — two things that are one job, behind one button.
    A strip of words under the title, the open one underlined in the accent. */

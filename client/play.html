@@ -108,6 +108,14 @@
       hud.panel(tab).append(host);
       return host;
   };
+  // The same, into what a surface says above its parts rather than into one
+  // of them: Work's machine strip is true of every queue behind it.
+  const headFor = (tab, id) => {
+      const host = document.createElement('div');
+      host.id = id;
+      hud.panelHead(tab).append(host);
+      return host;
+  };
   try {
       await window.__pcReady;
   } catch {
@@ -122,7 +130,7 @@
   // taking, so background work can stand aside while the tab is being played,
   // and where the player is, so the nearest unfinished tile is claimed first.
   const frame = { ms: 0 };
-  const work = mountWork(panelFor('Work', 'work'), {
+  const work = mountWork(headFor('Work', 'work'), {
     frames: () => frame.ms,
     where: () => {
       const p = camera.getPosition();
@@ -418,7 +426,7 @@
   });
   // The pool is a queue other tabs are taking work out of, so what it showed
   // when the page loaded is not what is in it now: opening the tab asks again.
-  const pool = mountPool(hud.panel('Work'), {
+  const pool = mountPool(hud.panel('Render jobs'), {
       loop: () => work.ready(),
       where: () => {
           const p = camera.getPosition();
@@ -431,7 +439,7 @@
   // panel that answers from what it knew at load time tells the player that
   // nothing has changed since they last sent it, which is the one thing they
   // know to be untrue.
-  hud.whenShown('Work', () => pool.refresh());
+  hud.whenShown('Render jobs', () => pool.refresh());
   hud.whenShown('Your land', () => land.refresh());
   hud.whenShown('Submit', () => submit.refresh());
 

@@ -128,7 +128,7 @@ export async function panel(player, name) {
         await tab.click();
         return;
     }
-    const holder = page.locator(`#tabs button[data-parts~="${name}"]`);
+    const holder = page.locator(`#tabs button[data-parts*=",${name},"]`);
     if (await holder.getAttribute('aria-selected') !== 'true') await holder.click();
     const part = page.locator(`#panel .parts button[data-tab="${name}"]`);
     if (await part.getAttribute('aria-selected') !== 'true') await part.click();

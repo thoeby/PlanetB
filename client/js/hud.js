@@ -5,26 +5,18 @@
 // open, and hands each one a body element for whichever module fills it. A
 // module mounted here neither knows nor cares that it is in a tab.
 //
-// The bar along the bottom is client/js/tabbar.js and the altimeter up the
-// right is client/js/altimeter.js; this puts them on the screen.
+// The bar along the bottom is client/js/tabbar.js, the altimeter up the right
+// is client/js/altimeter.js and the compass, place line, key hints and
+// pipeline are client/js/chrome.js; this puts them on the screen.
 
 import { GROUPS, LEAVES, PART_LEDE, TABS, keyed, surfaceOf, tabBar }
     from './tabbar.js';
 import { mountAltimeter } from './altimeter.js';
+import { drawHints, el, keyHints, pipeline, place, topCentre } from './chrome.js';
+import { STAGES } from './stages.js';
 
 export { GROUPS, TABS, keyed };
-
-// The five stages of the route through the app, in order, as the chrome shows
-// them. Credits are not a stage: they sit in their own chip beside these.
-export const STAGES = [
-    { key: 'placed', label: 'Placed' },
-    { key: 'pool', label: 'In pool' },
-    { key: 'rendered', label: 'Rendered', tone: 'accent' },
-    { key: 'awaiting', label: 'Awaiting', tone: 'warn' },
-    { key: 'published', label: 'Published', tone: 'accent' },
-];
-
-const POINTS = ['N', 'NE', 'E', 'SE', 'S', 'SW', 'W', 'NW'];
+export { STAGES };
 
 // An empty world is black, and black says nothing. What is missing is always
 // one of four things, and each of them is somebody's next move.
@@ -62,120 +54,28 @@ const initials = (label) => {
     return (two || '\u2014').toUpperCase();
 };
 
-const el = (tag, props = {}, ...kids) => {
-    const node = Object.assign(document.createElement(tag), props);
-    node.append(...kids.filter((k) => k !== null && k !== undefined));
-    return node;
-};
 
-// A strip of headings that slides under a fixed needle: the point under the
-// needle is the way the camera is facing.
-//
-// Ruled like the altimeter's ladder, and for the same reason: a row of eight
-// letters is a label, and what an instrument has to show is how far it is to
-// the next one. A tick every 15°, tall and lit where a point is named, short
-// between — so a quarter turn is eight ticks whether or not a letter is under
-// the needle.
-function compass() {
-    const node = el('div', { id: 'compass', className: 'glass' });
-    const marks = [];
-    for (let i = 0; i < 24; i++) {
-        const deg = i * 15;
-        const name = deg % 45 === 0 ? POINTS[(deg / 45) % 8] : '';
-        const span = el('span', {}, el('i', { className: 'tick' }),
-            el('b', { textContent: name }));
-        if (name) span.dataset.cardinal = '1';
-        span.dataset.deg = String(deg);
-        marks.push(span);
-        node.append(span);
-    }
-    node.append(el('span', { className: 'needle' }));
-    // Which heading sits where, relative to the needle: ±90° across the strip.
-    const face = (heading) => {
-        for (const m of marks) {
-            let d = Number(m.dataset.deg) - heading;
-            d = ((d + 540) % 360) - 180;
-            // A mark at the very edge is cut in half by the strip's own clip,
-            // which reads as a typo rather than as a compass.
-            m.style.display = Math.abs(d) > 80 ? 'none' : '';
-            m.style.left = `${50 + (d / 92) * 50}%`;
-        }
-    };
-    face(0);
-    return { node, face };
-}
 
-function topCentre() {
-    const c = compass();
-    const land = el('div', { id: 'land', textContent: 'nowhere yet' });
-    const owner = el('span', { className: 'owner' });
-    const right = el('span', { className: 'right', textContent: 'read only' });
-    const coords = el('span', { className: 'coords', textContent: '—' });
-    const standing = el('div', { id: 'standing' },
-        owner, el('span', { className: 'dot' }), right,
-        el('span', { className: 'dot' }), coords);
-    return { node: el('div', { id: 'where' }, c.node, land, standing),
-        face: c.face, land, owner, right, coords };
-}
-
-// Which way you are moving, and the keys that go with it. Walking and flying
-// are different controls — Shift runs on the ground and goes down in the air,
-// and forward follows where you are looking only in the air — so the corner
-// says which of the two you are in rather than listing both and leaving it to
-// be discovered. A key hint is not decoration: it is the only way to learn
-// that the keys work at all.
-const MOVE = {
-    walk: { name: 'Walking', keys: [['Move', 'W A S D'], ['Look', 'drag'],
-        ['Run', 'Shift'], ['Fly', 'F']] },
-    fly: { name: 'Flying', keys: [['Fly where you look', 'W A S D'],
-        ['Look', 'drag'], ['Up', 'Space'], ['Down', 'Shift'], ['Walk', 'F']] },
-};
-
-function keyHints() {
-    const node = el('div', { id: 'hints', className: 'glass' });
-    drawHints(node, 'walk');
-    return node;
-}
-
-function drawHints(node, mode) {
-    const how = MOVE[mode] ?? MOVE.walk;
-    node.dataset.mode = mode;
-    node.replaceChildren(
-        el('span', { className: 'mode' },
-            el('i', { className: 'pip' }),
-            el('b', { className: 'mode-name', textContent: how.name })),
-        ...how.keys.map(([what, key]) =>
-            el('span', {}, el('b', { textContent: what }), ` ${key}`)),
-        el('span', {}, el('b', { textContent: 'Close panel' }), ' Esc'));
-}
-
-// The route through the app, always visible: how many things you have placed,
-// how many tiles are in the pool, how many of those a renderer holds, how many
-// are waiting for a person, how many are published. Credits are not a stage —
-// they are on the bar, in the chip that is you.
-function pipeline() {
-    const strip = el('div', { id: 'pipeline', className: 'glass' });
-    const cells = {};
-    for (const st of STAGES) {
-        const value = el('span', { className: 'value', textContent: '0' });
-        const cell = el('div', { className: 'stage' },
-            el('span', { className: 'label', textContent: st.label }), value,
-            el('i', {}));
-        if (st.tone) cell.dataset.tone = st.tone;
-        cell.dataset.stat = st.key;
-        cells[st.key] = value;
-        strip.append(cell);
-    }
-    return { node: el('div', { id: 'stats' }, strip), cells };
-}
-
-// The panel frame: a title, the parts of this surface where it has more than
-// one, and the × that closes it.
+// The panel frame: a title, whatever this surface says about itself above its
+// parts, the parts where it has more than one, and the × that closes it.
 function panelFrame(onClose, onPart) {
     const title = el('span', { className: 'title' });
     const close = el('button', { type: 'button', className: 'close',
         textContent: '×', title: 'close' });
     close.onclick = onClose;
+    // One host per surface, between the title and the parts: what is true of
+    // every part of a surface belongs above the tabs rather than repeated
+    // inside each of them. Work's machine strip is the case — what this tab
+    // can do and what it is doing is the same answer whichever queue you are
+    // looking at.
+    const heads = new Map();
+    const head = el('div', { className: 'head' });
+    for (const t of TABS) {
+        const host = el('div', { className: 'tab-head' });
+        host.hidden = true;
+        heads.set(t.name, host);
+        head.append(host);
+    }
     const parts = el('nav', { className: 'parts' });
     const partButtons = new Map();
     for (const t of TABS) {
@@ -192,8 +92,8 @@ function panelFrame(onClose, onPart) {
     }
     const body = el('div', { className: 'body' });
     const node = el('aside', { id: 'panel', className: 'glass' },
-        el('header', {}, title, close), parts, body);
-    return { node, title, body, parts, partButtons };
+        el('header', {}, title, close), head, parts, body);
+    return { node, title, body, head, heads, parts, partButtons };
 }
 
 // Everything that is on screen, built once. `show` is passed in because the
@@ -204,9 +104,14 @@ function buildFrame(doc, show) {
     const frame = panelFrame(() => show('World'), show);
     const { bar, buttons, you } = tabBar(show);
     // The stories and the tests reach a part by name; the button that opens it
-    // is the surface's, so the surface says which parts are behind it.
+    // is the surface's, so the surface says which parts are behind it. Comma
+    // delimited and comma terminated, because a part's name is words — "Render
+    // jobs" — and a space-separated list cannot hold one: a selector matches
+    // ",Render jobs," and gets exactly the surface that holds it.
     for (const t of TABS) {
-        if (t.parts) buttons.get(t.name).dataset.parts = t.parts.map((x) => x.name).join(' ');
+        if (t.parts) {
+            buttons.get(t.name).dataset.parts = `,${t.parts.map((x) => x.name).join(',')},`;
+        }
     }
     const map = el('canvas', { id: 'minimap', width: 240, height: 240 });
     // Where the map's search box goes (client/js/places.js): the map is the
@@ -285,37 +190,19 @@ function showPanel(name, { buttons, bodies, frame }) {
         b.hidden = b.dataset.of !== at.tab;
         b.setAttribute('aria-selected', String(part === leaf));
     }
-    frame.parts.hidden = !TABS.find((t) => t.name === at.tab)?.parts;
+    const tab = TABS.find((t) => t.name === at.tab);
+    frame.parts.hidden = !tab?.parts;
+    for (const [name, host] of frame.heads) host.hidden = name !== at.tab;
+    frame.head.hidden = !frame.heads.get(at.tab)?.childElementCount;
     frame.title.textContent = at.tab;
     frame.node.dataset.open = at.tab === 'World' ? '' : '1';
-    // Each panel is as wide as what it has to show (TABS.width).
-    const want = TABS.find((t) => t.name === at.tab)?.width;
-    frame.node.style.width = want ? `${want}px` : '';
+    // Each panel is as wide as what it has to show (TABS.width), and a surface
+    // marked `wide` takes the window: a tool that is a map beside a form has
+    // nothing to gain from being a column.
+    frame.node.dataset.wide = tab?.wide ? '1' : '';
+    frame.node.style.width = !tab?.wide && tab?.width ? `${tab.width}px` : '';
 }
 
-// Where the player is standing and which way they are facing: the top of the
-// screen, written from plain strings. The chrome decides nothing.
-function place(top) {
-    return {
-        standing({ land, owner, right, may }) {
-            if (land !== undefined) top.land.textContent = land;
-            if (owner !== undefined) {
-                top.owner.replaceChildren('Owner ', el('b', { textContent: owner }));
-                top.owner.style.visibility = owner ? '' : 'hidden';
-            }
-            if (right !== undefined) top.right.textContent = right;
-            if (may !== undefined) top.right.dataset.may = may ? '1' : '';
-        },
-        at(lon, lat, h, heading) {
-            const ns = lat >= 0 ? 'N' : 'S';
-            const ew = lon >= 0 ? 'E' : 'W';
-            top.coords.textContent =
-                `${Math.abs(lat).toFixed(4)}${ns} ${Math.abs(lon).toFixed(4)}${ew}`
-                + ` \u00b7 ${Math.round(h)} m`;
-            if (Number.isFinite(heading)) top.face(((heading % 360) + 360) % 360);
-        },
-    };
-}
 
 // What the bar and the corners say about you and about the world's progress.
 function state(f) {
@@ -379,8 +266,16 @@ export function mountHud(doc) {
         if (name === open && name !== 'World') name = 'World';
         open = name;
         showPanel(name, f);
+        // The hook belongs to the body that is now on screen, not to the word
+        // that was clicked. Opening a surface from the bar opens its first
+        // part, and it was that part's queue that went stale while it was
+        // closed — Submit's refresh never ran when Publish was opened from
+        // the bar, only when its own tab was pressed.
+        const at = surfaceOf(name);
         onShow.get(name)?.();
-        return f.bodies.get(name);
+        const leaf = at?.part;
+        if (leaf && leaf !== name) onShow.get(leaf)?.();
+        return f.bodies.get(leaf ?? name);
     }
 
     bindKeys(doc, show);
@@ -392,6 +287,8 @@ export function mountHud(doc) {
     return {
         show,
         panel: (name) => f.bodies.get(name),
+        // What a surface says above its parts, rather than inside one of them.
+        panelHead: (name) => f.frame.heads.get(name),
         whenShown(name, fn) { onShow.set(name, fn); },
         opened: () => open,
         ...state(f),

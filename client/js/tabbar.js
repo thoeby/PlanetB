@@ -50,8 +50,12 @@ export const TABS = [
     { name: 'Publish', group: 'main', key: '4', width: 500,
         parts: [{ name: 'Submit', label: 'Submit' },
             { name: 'Permission', label: 'Approve' }] },
-    { name: 'Work', group: 'main', key: '5', width: 540,
-        lede: 'Tiles waiting to be compiled, and what they pay.' },
+    // Work is a surface with queues behind it, not one list. The machine
+    // strip is the surface's own head (hud.js panelHead) because what this tab
+    // can do is the same answer whichever queue is open; the queues are parts.
+    // Render jobs is the only one so far.
+    { name: 'Work', group: 'main', key: '5', width: 760,
+        parts: [{ name: 'Render jobs', label: 'Render jobs' }] },
     { name: 'Setup', group: 'system', key: '`', width: 470,
         lede: 'Your account, your GeoServer, and the ground the world sits on.' },
     { name: 'Share', group: 'system', key: '9', width: 470,
@@ -66,6 +70,7 @@ export const TABS = [
 export const PART_LEDE = {
     Submit: 'Send what you placed to be rendered.',
     Permission: 'What somebody built, waiting for a person to say yes.',
+    'Render jobs': 'Tiles waiting to be compiled, and what they pay.',
 };
 
 // Every panel body there is: a surface without parts is its own leaf.

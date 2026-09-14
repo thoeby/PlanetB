@@ -68,6 +68,9 @@ test('the chrome says where you are and what the world is doing', async ({ page 
     await expect(page.locator('#land')).toHaveText(/\w/);
     await expect(page.locator('#standing .coords')).toHaveText(/[0-9.]+[NS] [0-9.]+[EW]/);
     await expect(page.locator('#compass .needle')).toBeVisible();
+    // Ruled like the altimeter's ladder: a tick every 15°, tall where a point
+    // is named. Eight letters is a label, not an instrument.
+    await expect(page.locator('#compass .tick')).toHaveCount(24);
 
     // Ten ways in on one plinth, in the three groups the design divides, with
     // the five the game is played through on keys 1 to 5.
@@ -80,6 +83,14 @@ test('the chrome says where you are and what the world is doing', async ({ page 
 
     // How high you are, and how far that is above the ground.
     await expect(page.locator('#alt .read .v')).toHaveText(/[\d,—]/);
+
+    // Work is a surface with queues behind it: the machine strip above them,
+    // and Render jobs the only queue so far.
+    await page.locator('#tabs button[data-tab="Work"]').click();
+    await expect(page.locator('#panel .head #work .work-state')).toBeVisible();
+    await expect(page.locator('#panel .parts .part:not([hidden])'))
+        .toHaveText(['Render jobs']);
+    await page.locator('#panel .close').click();
 
     // The map, and the legend's four states.
     await expect(page.locator('#minimap')).toBeVisible();
@@ -141,8 +152,8 @@ test('every panel has something in it', async ({ page }) => {
     const errors = await boot(page);
     // Every body there is: a surface, or one part of a surface that holds more
     // than one (Publish holds Submit and Approve).
-    const tabs = await page.evaluate(() => [...document.querySelectorAll(
-        '#tabs .tab')].flatMap((n) => n.dataset.parts?.split(' ') ?? [n.dataset.tab]));
+    const tabs = await page.evaluate(() => [...document.querySelectorAll('#tabs .tab')]
+        .flatMap((n) => n.dataset.parts?.split(',').filter(Boolean) ?? [n.dataset.tab]));
     expect(tabs).toHaveLength(11);
     // A world with no ground opens on Setup by itself, so close whatever is
     // docked before opening them one at a time.
