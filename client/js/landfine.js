@@ -38,7 +38,9 @@ export function howFine(area, ctx) {
         pick,
         el('div', { className: 'note' },
             'Deeper compiles the ground again: the tiles it adds are changed,'
-            + ' and go through Submit like anything else.'),
+            + ' and go through Submit like anything else. Anything already in'
+            + ' the pool for this land is cancelled \u2014 it was building the'
+            + ' version you have just replaced \u2014 and its escrow comes back.'),
         status, again(area, ctx));
 }
 
@@ -57,7 +59,8 @@ function again(area, ctx) {
         el('div', { className: 'note' },
             'Builds every tile of this land from what is on it now, even the'
             + ' ones already rendered. Use it when the world looks different'
-            + ' from how it was compiled.'),
+            + ' from how it was compiled. Jobs open on the old version are'
+            + ' cancelled first, and their escrow comes back.'),
         status);
 }
 
