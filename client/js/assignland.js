@@ -131,17 +131,23 @@ function listLand(host, state, acts) {
     }
     host.replaceChildren(...state.all.map((a) => {
         const name = a.rules?.name || 'unnamed';
-        const drop = el('button', { type: 'button', className: 'land-drop',
-            textContent: 'Delete' });
-        drop.onclick = (event) => { event.stopPropagation(); acts.remove(a, drop); };
+        // Only an admin may delete land (db/0085), and only all_areas() says
+        // whose it is and what is on it — a player's own list has neither, so
+        // this is their land as it always was, with nothing to press.
+        const drop = state.admin && el('button', { type: 'button',
+            className: 'land-drop', textContent: 'Delete' });
+        if (drop) {
+            drop.onclick = (event) => { event.stopPropagation(); acts.remove(a, drop); };
+        }
         const row = el('li', { className: 'admin-land' },
             el('div', { className: 'who' },
                 el('div', { className: 'name', textContent: name }),
                 el('div', { className: 'sub',
                     textContent: [a.owner, `detail ${a.detail}`,
-                        `${a.drawn} drawn`, `${a.things} placed`]
+                        a.drawn === undefined ? null : `${a.drawn} drawn`,
+                        a.things === undefined ? null : `${a.things} placed`]
                         .filter(Boolean).join(' \u00b7 ') })),
-            drop);
+            drop || null);
         row.onmouseenter = () => acts.highlight(a.id);
         row.onmouseleave = () => acts.highlight(null);
         return row;
@@ -219,8 +225,9 @@ function build(host) {
 export function mountAssignLand(host, { filesUrl = '' } = {}) {
     const { canvas, requests, boundary, nameField, finish, clear, assign, status,
         all, landStatus } = build(host);
-    const state = { ground: null, areas: [], all: [], corners: [], open: [],
-        chosen: null, confirming: null, shade: null, shadeFor: null };
+    const state = { ground: null, all: [], corners: [], open: [],
+        chosen: null, confirming: null, shade: null, shadeFor: null,
+        admin: false };
 
     const say = saying(status);
     const sayLand = saying(landStatus);
@@ -257,13 +264,14 @@ export function mountAssignLand(host, { filesUrl = '' } = {}) {
         // Every piece of land, not the admin's own: a boundary is drawn against
         // whose ground is already where (db/0085). A player gets an empty list
         // from the same call, and then this is the map it always was.
-        const mine = await api.rpc('my_areas').catch(() => []);
-        const every = await api.rpc('all_areas').catch(() => []);
-        state.all = (Array.isArray(every) && every.length ? every : mine) ?? [];
-        state.areas = state.all;
-        const rows = await api.rpc('land_requests', { which: 'open' })
+        state.admin = api.role() === 'admin';
+        const rows = state.admin
+            ? await api.rpc('all_areas').catch(() => [])
+            : await api.rpc('my_areas').catch(() => []);
+        state.all = Array.isArray(rows) ? rows : [];
+        const asked = await api.rpc('land_requests', { which: 'open' })
             .catch(() => []);
-        state.open = Array.isArray(rows) ? rows : [];
+        state.open = Array.isArray(asked) ? asked : [];
         state.chosen = state.open.find((r) => r.id === state.chosen)?.id
             ?? state.open[0]?.id ?? null;
         drawRequests();

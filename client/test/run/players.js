@@ -100,7 +100,10 @@ export async function signIn(player, email, name) {
     await panel(player, 'Setup');
     await page.getByLabel('email').fill(email);
     await page.getByLabel('password').fill(PASSWORD);
-    await page.getByRole('button', { name: 'sign in' }).click();
+    // The form's own button, not the profile chip on the bar — which says
+    // "Sign in" too when nobody is signed in, and an accessible name is
+    // matched as a substring unless it is asked to be the whole of it.
+    await page.getByRole('button', { name: 'sign in', exact: true }).click();
     await expect(page.locator('.auth-status')).toContainText(name, { timeout: UI });
 }
 
