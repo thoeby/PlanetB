@@ -715,6 +715,13 @@ toy: it is what `verify` renders with, and what the node tests train with.
   counted, the third one final, the piece back in the pool at once with the
   reason on the atom.
 
+- "Compile it all again" on ground nobody had changed left the new job waiting
+  for ever ("8 waiting on the rest · no GPU needed"): `new_atom` handed it the
+  cancelled job's assemble atom, unchanged hash, in a job claim_atom never
+  looks at. `db/0094`: an unfinished atom in a closed job moves to the job
+  that asks for it; a verified atom advances every job waiting on it; a job
+  just built is advanced over dependencies verified before it existed.
+
 ### Open items from WP3
 
 - [ ] **WP3.1's acceptance on a GPU**: a pilot z16 tile in under 8 minutes at
