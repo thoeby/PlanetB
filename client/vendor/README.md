@@ -6,7 +6,8 @@ Vendored third-party code, checked in verbatim with its licence:
   frame atom's path tracer (`client/lib/pathtrace.js`). Fetched by
   `tools/vendor.sh` from npm with bare specifiers rewritten, because a Web
   Worker has no import map. Unlike the engine there is no CDN copy: these
-  files are what runs, so `make vendor` is part of deploying `client/`., MIT
+  files are what runs, so they are checked in (the one vendored directory
+  that is), and `tools/vendor.sh` is how a version is bumped., MIT
 
 Fetched by `make vendor` (`tools/vendor.sh`) rather than committed, because
 they are builds rather than sources — the pinned versions are in that script:
