@@ -6,8 +6,10 @@
 <meta name="splatworld:api" content="http://localhost:3000">
 <meta name="splatworld:files" content="http://localhost:8080">
 <link rel="stylesheet" href="./hud.css">
+<link rel="stylesheet" href="./frame.css">
 <link rel="stylesheet" href="./bar.css">
 <link rel="stylesheet" href="./panel.css">
+<link rel="stylesheet" href="./panels.css">
 <style>
   /* Only what a module's own markup needs and hud.css cannot know about. */
   .work-progress { white-space: pre-line; font-size: 12px; margin: 4px 0; }
@@ -162,11 +164,11 @@
   // SPEC §3.2: land is assigned by an admin, who draws it on the map here.
   // First in the panel, because it is the only thing in it that somebody else
   // is waiting for.
-  const assignLand = mountAssignLand(hud.panel('Admin'));
-  const admin = mountAdmin(hud.panel('Admin'));
+  const assignLand = mountAssignLand(hud.panel('Land'), { filesUrl: api.endpoints().files });
+  const admin = mountAdmin(hud.panel('Vocabulary'));
   // The other half of the vocabulary: what the compiler makes of a thing that
   // carries those properties. It was a page of its own until T9.
-  const rules = mountRules(hud.panel('Admin'));
+  const rules = mountRules(hud.panel('Vocabulary'));
   // Who you are, in the corner, from the moment the page knows.
   const showWho = () => hud.signedIn(api.claims()?.email
       ?? (api.userId() ? 'signed in' : null));

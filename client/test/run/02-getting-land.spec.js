@@ -92,7 +92,7 @@ test('story 2 — land is asked for, drawn, and handed over', async ({ browser, 
     await asksForLand(b);
 
     await test.step('A sees the request, with what B wrote', async () => {
-        await panel(a, 'Admin');
+        await panel(a, 'Land');
         await shows(a, 'Ben');
         await shows(a, 'near Visp, ~2 ha');
     });

@@ -49,7 +49,10 @@ function normalAt(p, grid, i, j) {
 // Where (lon, lat) falls inside its tile, 0..1 from the north-west corner.
 // Web-Mercator rows are not linear in latitude, so v comes from the same
 // arithmetic tileY() rounds down.
-function inTile(z, x, y, lon, lat) {
+// Where a lon/lat sits inside a tile, in 0..1 each way. Web-Mercator, so v is
+// not linear in latitude — anything sampling a cut tile has to come through
+// here rather than interpolate degrees.
+export function inTile(z, x, y, lon, lat) {
     const n = 2 ** z;
     const phi = Math.max(-tm.MAX_LAT, Math.min(tm.MAX_LAT, lat)) * tm.RAD_PER_DEG;
     return {

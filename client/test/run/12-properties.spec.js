@@ -27,7 +27,7 @@ const squareAt = ({ lon, lat }, size = 0.0004) =>
     + ` ${lon - size} ${lat - size}))`;
 
 async function definesIt(a) {
-    await panel(a, 'Admin');
+    await panel(a, 'Vocabulary');
     await a.page.locator('.ad-kind').selectOption('forest');
     await a.page.locator('.ad-name').fill('leaf_type');
     await a.page.locator('.ad-type').selectOption('choice');

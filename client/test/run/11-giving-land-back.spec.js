@@ -65,7 +65,7 @@ async function asksAgain(b) {
 
 async function drawsAgain(a) {
     await looking(a);
-    await panel(a, 'Admin');
+    await panel(a, 'Land');
     await shows(a, 'the same spot, please');
     const drawn = await drawsTheBoundary(a);
     await a.page.getByLabel('boundary').fill(drawn);

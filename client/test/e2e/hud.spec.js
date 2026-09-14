@@ -150,11 +150,13 @@ test('a key typed into a field is text, not a teleport', async ({ page }) => {
 // else — which looks like a broken page and reads like a missing feature.
 test('every panel has something in it', async ({ page }) => {
     const errors = await boot(page);
-    // Every body there is: a surface, or one part of a surface that holds more
-    // than one (Publish holds Submit and Approve).
+    // Every body there is: a surface, or each part of one that has parts —
+    // Publish holds Submit and Approve, Work its queues, Admin its two jobs.
     const tabs = await page.evaluate(() => [...document.querySelectorAll('#tabs .tab')]
         .flatMap((n) => n.dataset.parts?.split(',').filter(Boolean) ?? [n.dataset.tab]));
-    expect(tabs).toHaveLength(11);
+    expect(tabs).toEqual(['Profile', 'Wallet', 'Place', 'Catalog', 'Your land',
+        'Submit', 'Permission', 'Render jobs', 'Setup', 'Share',
+        'Land', 'Vocabulary']);
     // A world with no ground opens on Setup by itself, so close whatever is
     // docked before opening them one at a time.
     await page.evaluate(() => window.splatworld.hud.show('World'));

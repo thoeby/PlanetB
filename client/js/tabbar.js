@@ -60,9 +60,12 @@ export const TABS = [
         lede: 'Your account, your GeoServer, and the ground the world sits on.' },
     { name: 'Share', group: 'system', key: '9', width: 470,
         lede: 'A link that puts somebody else where you are standing.' },
-    { name: 'Admin', group: 'system', key: '0', width: 666,
-        lede: 'What things may say about themselves, and what the compiler'
-            + ' makes of them.' },
+    // Two jobs, not one. Land is a map and a form and wants the window; the
+    // vocabulary is two lists side by side. Both were one column doing all of
+    // it (`wide` takes the screen, hud.js showPanel).
+    { name: 'Admin', group: 'system', key: '0', wide: true,
+        parts: [{ name: 'Land', label: 'Land' },
+            { name: 'Vocabulary', label: 'Vocabulary' }] },
 ];
 
 // What a part is for, said where the part is opened rather than on the button
@@ -71,6 +74,10 @@ export const PART_LEDE = {
     Submit: 'Send what you placed to be rendered.',
     Permission: 'What somebody built, waiting for a person to say yes.',
     'Render jobs': 'Tiles waiting to be compiled, and what they pay.',
+    Land: 'Who is waiting for land, the ground it would be drawn on, and every'
+        + ' piece of it there is.',
+    Vocabulary: 'What things may say about themselves, and what the compiler'
+        + ' makes of them.',
 };
 
 // Every panel body there is: a surface without parts is its own leaf.

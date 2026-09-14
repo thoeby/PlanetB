@@ -1,0 +1,227 @@
+/* frame.css — the panel that docks over the world, and the two bottom corners
+ * around it: the map and the key hints on the right, the legend on the left,
+ * the crosshair in the middle, and how all of it gives way on a small window.
+ *
+ * client/hud.css holds the colours, the type and the chrome along the top;
+ * this is what the chrome frames. Split when that file passed the 400 lines
+ * CLAUDE.md allows.
+ */
+
+/* -------------------------------------------------------------- panel
+ *
+ * Docked left, from under the chrome down to the hotbar. The width is set per
+ * tab by js/hud.js (TABS.width): a catalog of pictures needs more room than a
+ * wallet, and the design gives each one a figure.
+ */
+
+#panel {
+  position: absolute; left: 24px; top: 80px; bottom: 130px; width: 470px;
+  max-width: calc(100vw - 48px);
+  display: none; flex-direction: column; --cut: 12px;
+}
+#panel[data-open="1"] { display: flex; }
+/* A surface that is a map beside a form has nothing to gain from being a
+   column: it takes the window, inside the same gutters everything else keeps.
+   Height is already the whole window between the chrome and the plinth. */
+#panel[data-wide="1"] { left: 24px; right: 24px; width: auto; }
+#panel > header {
+  display: flex; align-items: baseline; justify-content: space-between;
+  padding: 18px 20px 14px; flex: 0 0 auto;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+#panel > header .title {
+  font-family: var(--head); font-weight: 700; font-size: 26px;
+  letter-spacing: 0.08em; text-transform: uppercase; line-height: 1;
+}
+#panel > header .close {
+  background: none; border: 0; color: var(--ink-3); cursor: pointer;
+  font-size: 18px; line-height: 1; padding: 0 2px;
+}
+#panel > header .close:hover { color: var(--ink); }
+
+/* What a surface says above its parts: true of every one of them, so it is
+   said once rather than repeated inside each (hud.js panelHead). */
+#panel > .head { flex: 0 0 auto; padding: 14px 20px 0; }
+#panel > .head[hidden] { display: none; }
+#panel > .head .section { margin-top: 0; }
+
+/* The parts of one surface — two things that are one job, behind one button.
+   A strip of words under the title, the open one underlined in the accent. */
+#panel > .parts {
+  display: flex; gap: 0; padding: 0 20px; flex: 0 0 auto;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+#panel > .parts[hidden] { display: none; }
+#panel > .parts .part {
+  background: none; border: 0; border-bottom: 2px solid transparent;
+  padding: 10px 14px; margin-bottom: -1px; cursor: pointer;
+  font-family: var(--head); font-weight: 700; font-size: 13px;
+  letter-spacing: 0.1em; text-transform: uppercase; color: var(--ink-3);
+}
+#panel > .parts .part:hover { color: var(--ink); }
+#panel > .parts .part[aria-selected="true"] {
+  color: var(--accent); border-bottom-color: var(--accent);
+}
+#panel .body { flex: 1 1 auto; overflow-y: auto; padding: 16px 20px; }
+#panel .lede { margin: 0 0 14px; color: var(--ink-2); font-size: 12px; }
+
+/* ------------------------------------------------------------- bottom */
+
+/* In the corner, off the two edges by the same small gap, so it reads as
+   sitting in the corner rather than as having been cut off by it. The bar is
+   centred and reaches past the middle of a 1400px window, so below that the
+   map goes back above it rather than over it: the map's canvas covering the
+   buttons meant for Setup is a button on the screen that cannot be pressed,
+   which is a button that is not there. */
+#corner {
+  position: absolute; right: 12px; bottom: 12px; display: flex;
+  flex-direction: column; gap: 8px; align-items: flex-end;
+}
+#hints {
+  display: flex; gap: 14px; height: 32px; align-items: center; padding: 0 14px;
+  --cut: 8px; font-size: 12px; color: var(--ink-2);
+}
+#hints b { color: var(--ink); font-weight: 600; }
+
+/* Walking or flying, at the head of the keys that go with it: the two are
+   different controls and the corner has to say which one you are in. */
+#hints .mode {
+  display: flex; align-items: center; gap: 6px; padding-right: 12px;
+  border-right: 1px solid var(--edge);
+}
+#hints .mode .pip {
+  width: 7px; height: 7px; border-radius: 50%; background: var(--ink-3);
+}
+#hints[data-mode="fly"] .mode .pip {
+  background: var(--accent); box-shadow: 0 0 8px var(--accent);
+}
+#hints[data-mode="fly"] .mode-name { color: var(--accent); }
+
+/* The map: your land in the accent, everybody else's in outline, you in the
+   middle with the cone of what you are looking at (js/hudmap.js). */
+#map { position: relative; width: 240px; height: 240px; overflow: hidden;
+  --cut: 12px; }
+#minimap { display: block; width: 100%; height: 100%; }
+#map .scale {
+  position: absolute; left: 10px; top: 8px; font-family: var(--head);
+  font-weight: 600; font-size: 11px; letter-spacing: 0.14em;
+  text-transform: uppercase; color: var(--ink-3);
+}
+
+/* The map's search (js/places.js): a field along the bottom of the map, and
+   what it found above it. Hidden until there is something to show, so the map
+   is a map until somebody asks it a question. */
+#map-search { position: absolute; left: 0; right: 0; bottom: 0; padding: 8px; }
+#map-search .map-find { width: 100%; box-sizing: border-box; font-size: 12px; }
+#map-search .map-found { list-style: none; margin: 0 0 6px; padding: 0;
+  max-height: 120px; overflow-y: auto; font-size: 12px; }
+#map-search .map-found li { display: flex; align-items: center;
+  justify-content: space-between; gap: 6px; padding: 3px 0; }
+#map-search .map-place { overflow: hidden; text-overflow: ellipsis;
+  white-space: nowrap; }
+
+#legend {
+  position: absolute; left: 24px; bottom: 20px; display: flex;
+  flex-direction: column; gap: 6px; padding: 10px 14px; --cut: 8px; font-size: 12px;
+}
+#legend span { display: flex; align-items: center; gap: 8px; }
+#legend i { width: 10px; height: 10px; box-sizing: border-box; font-style: normal;
+  flex: 0 0 auto; }
+#legend .published i { background: var(--accent); }
+#legend .candidate i { border: 2px dashed var(--warn); }
+#legend .mine i { border: 2px solid rgba(242, 239, 232, 0.7); }
+#legend .theirs i { border: 1px solid var(--bad); }
+
+#crosshair {
+  position: absolute; left: 50%; top: 50%; width: 22px; height: 22px;
+  transform: translate(-50%, -50%); pointer-events: none;
+}
+#crosshair i { position: absolute; background: var(--ink); font-style: normal; }
+#crosshair i:nth-child(1) { left: 10px; top: 0; width: 2px; height: 6px; }
+#crosshair i:nth-child(2) { left: 10px; bottom: 0; width: 2px; height: 6px; }
+#crosshair i:nth-child(3) { top: 10px; left: 0; height: 2px; width: 6px; }
+#crosshair i:nth-child(4) { top: 10px; right: 0; height: 2px; width: 6px; }
+
+@media (max-width: 1500px) {
+  #legend { display: none; }
+  /* The plinth is 94px tall and centred, and at this width it reaches under
+     the corner. The map steps back above it (see #corner). */
+  #corner { right: 24px; bottom: 104px; }
+  /* The key hints stack into the corner rather than disappearing: hud.js
+     builds them because they are the only way to learn that the keys work,
+     and a 1280px laptop is not a reason to stop telling people how to walk. */
+  #hints { flex-direction: column; height: auto; align-items: flex-start;
+    gap: 2px; padding: 8px 12px; }
+  #map { width: 180px; height: 180px; }
+  .stage { min-width: 84px; padding: 0 10px 0 12px; }
+}
+
+@media (max-width: 1200px) {
+  #stats { display: none; }
+  #where { max-width: 90vw; }
+}
+
+@media (max-width: 1100px) {
+  #alt { display: none; }
+}
+
+@media (max-width: 900px) {
+  #panel { width: auto !important; right: 24px; }
+  #corner { display: none; }
+  #tabs { gap: 8px; padding: 8px 10px 6px; }
+}
+
+/* What an empty world says. The design took this off the crosshair: that state
+ * lives in the pipeline and in the Setup panel, so the middle of the screen
+ * stays the middle of the screen. It sits above the hotbar instead
+ * (client/js/hud.js).
+ */
+#notice {
+  position: absolute; left: 50%; bottom: 108px; transform: translateX(-50%);
+  max-width: 32rem; padding: 12px 18px; text-align: center; line-height: 1.5;
+  color: var(--ink-2); font-size: 13px; --cut: 10px;
+  /* Three lines at most, whatever it was handed. A sentence about the world
+     is a sentence; a server's exception report pasted into it was half the
+     screen, and the world behind it is the thing being looked at. */
+  display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 3;
+  overflow: hidden;
+}
+#notice[hidden] { display: none; }
+
+/* The next-step card (design 3a): where the panel would be, but narrow, and
+   gone the moment there is nothing to do (client/js/nextstep.js). */
+#next {
+  position: absolute; left: 24px; top: 80px; width: 360px; padding: 14px 16px;
+  display: flex; flex-direction: column; gap: 12px; --cut: 10px;
+}
+#next .spread { display: flex; justify-content: space-between; align-items: center; }
+#next .label {
+  font-family: var(--head); font-weight: 600; font-size: 12px;
+  letter-spacing: 0.14em; text-transform: uppercase; color: var(--ink-3);
+}
+#next .close { background: none; border: 0; color: var(--ink-3); cursor: pointer;
+  font-size: 16px; line-height: 1; padding: 0 2px; }
+#next .close:hover { color: var(--ink); }
+#next .steps { display: flex; flex-direction: column; gap: 8px; font-size: 13px; }
+#next .steps > .s { display: flex; gap: 10px; align-items: center; }
+#next .steps > .s > .n {
+  width: 18px; height: 18px; flex: none; border: 1px solid rgba(255, 255, 255, 0.25);
+  display: inline-flex; align-items: center; justify-content: center;
+  font-family: var(--mono); font-size: 10px; color: var(--ink-3);
+}
+#next .steps > .s[data-done="1"] > .n {
+  border-color: var(--accent); background: var(--accent); color: var(--ground);
+}
+#next .steps > .s[data-now="1"] > .n { border-color: var(--warn); color: var(--warn); }
+#next > button.primary {
+  align-self: flex-start; padding: 0 16px; height: 36px;
+  background: var(--warn); color: var(--ground); border: 0;
+  font-family: var(--head); font-weight: 700; font-size: 14px;
+  letter-spacing: 0.08em; text-transform: uppercase; cursor: pointer;
+  clip-path: polygon(6px 0, 100% 0, 100% calc(100% - 6px),
+                     calc(100% - 6px) 100%, 0 100%, 0 6px);
+}
+#next > button.primary:hover { filter: brightness(1.1); }
+
+/* The panel and the card share the same corner: the card steps aside. */
+#panel[data-open="1"] ~ #next, #next:has(~ #panel[data-open="1"]) { display: none; }

@@ -98,7 +98,9 @@ test('the five stages are the route through the app, in order', () => {
 test('every surface but the world itself says how wide its panel is', () => {
     for (const t of TABS) {
         if (t.name === 'World') continue;
-        assert.ok(t.width >= 440, `${t.name} has no width`);
+        // Or that it takes the window, which is the other answer to the same
+        // question: a map beside a form has nothing to gain from a column.
+        assert.ok(t.wide || t.width >= 440, `${t.name} has no width`);
     }
 });
 
