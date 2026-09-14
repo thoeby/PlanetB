@@ -203,7 +203,16 @@ export class Ground {
         // that rectangle and warping it. Twenty-seven of those in one breath is
         // a page that stands still while the ground it is standing on waits
         // behind the ground forty kilometres away.
+        //
+        // "The floor" is every level fine enough to stand on, not only the
+        // finest: what a player walks on is z16 where it has arrived and z14
+        // where it has not, and the ray that finds the ground under a click
+        // reaches four hundred metres (client/js/build.js), which is further
+        // than the z16 ring. Making z14 queue behind z16 shortened the ground
+        // to whatever the fine ring covered until the rest caught up, and a
+        // click past that put nothing down.
         let ready = true;
+        const floor = new Set(this.standable().map((l) => l.zoom));
         for (const level of this.levels) {
             const { tiles, rect } = blockAt(level, lon, lat);
             const hole = holeFor(level, inner);
@@ -220,7 +229,7 @@ export class Ground {
             }
             for (const [z, x, y] of tiles) {
                 want.add(key(z, x, y));
-                if (ready) this.load(z, x, y, level, hole);
+                if (ready || floor.has(level.zoom)) this.load(z, x, y, level, hole);
             }
             ready = ready && tiles.every(([z, x, y]) => this.settled(key(z, x, y)));
             inner = rect;
@@ -247,6 +256,12 @@ export class Ground {
         }
     }
 
+    // Whether a cut of this level is already in the air.
+    inFlight(zoom) {
+        for (const k of this.pending) if (k.startsWith(`${zoom}/`)) return true;
+        return false;
+    }
+
     // Nothing more is going to happen about this tile: it is drawn, there is
     // no ground there, or it failed and is waiting to be asked again.
     settled(k) {
@@ -257,7 +272,14 @@ export class Ground {
     load(z, x, y, level, hole) {
         const k = key(z, x, y);
         if (this.tiles.has(k) || this.pending.has(k) || this.nothingThere.has(k)) return;
-        if (this.pending.size >= GROUND_INFLIGHT) return;
+        // Over the budget, one level may still have one cut in the air: nine
+        // tiles of the fine ring otherwise hold every slot there is for as
+        // long as the operator's elevation service takes to answer them, and
+        // the level behind — which is the rest of the ground a player stands
+        // on — does not start until they are done. The cap is therefore a cap
+        // per level as well as in total, and the total is at most one more
+        // than the number of levels.
+        if (this.pending.size >= GROUND_INFLIGHT && this.inFlight(level.zoom)) return;
         if ((this.retryAt.get(k) ?? 0) > Date.now()) return;
         this.retryAt.delete(k);
         this.pending.add(k);

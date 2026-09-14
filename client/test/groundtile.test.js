@@ -181,3 +181,32 @@ test('crossing into the next fine tile reshapes the coarse ones, not refetches t
     assert.ok(fetched - first < coarse.length,
         `the coarse tiles were reshaped, not refetched: ${fetched - first} new fetches`);
 });
+
+// The ground a player stands on is every level fine enough to be a floor, and
+// all of it has to be on its way at once. The ray that finds the ground under
+// a click reaches four hundred metres — further than the z16 ring — so making
+// z14 queue behind z16 shortened the world to whatever the fine ring covered,
+// and a click past that put nothing down.
+test('every level fine enough to stand on is asked for at once', async () => {
+    const asked = [];
+    const dem = slope();
+    const ground = new Ground({
+        origin: { localOf },
+        fetchFn: (url) => {
+            asked.push(url);
+            // The fine ring never answers at all — not a failure, which counts
+            // as settled (`settled()`), but still in the air.
+            if (url.includes('/16/')) return new Promise(() => {});
+            return Promise.resolve(new Response(dem.data.buffer));
+        },
+    });
+    for (let i = 0; i < 40; i++) {
+        ground.follow(7.88, 46.29);
+        await new Promise((r) => setTimeout(r, 0));
+    }
+    assert.ok(asked.some((u) => u.includes('/16/')), 'the fine ring is asked for');
+    assert.ok([...ground.tiles.values()].some((t) => t.z === 14),
+        'and the level behind it arrives even though the fine one has not');
+    assert.ok(!asked.some((u) => u.includes('/10/')),
+        'while the far ones still wait for the floor');
+});
