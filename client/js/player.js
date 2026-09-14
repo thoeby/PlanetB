@@ -149,7 +149,16 @@ export class Terrain {
         const field = k && this.fields.get(k);
         if (field) {
             const p = this.toTile(field, local);
-            return field.at(p.x, p.z);
+            // A tile is a spherical quad and its height field is laid on the
+            // rectangle its corners span, so the two disagree by metres at the
+            // edges: tilemath puts you on this tile and the field answers that
+            // you are off the end of it. That answer used to be the last word,
+            // and a null one — walking stopped clamping and the player was
+            // left standing in the air wherever they crossed a tile's border.
+            // It is one surface saying it cannot see this point, not the world
+            // saying there is no ground here.
+            const h = field.at(p.x, p.z);
+            if (h !== null && h !== undefined) return h;
         }
         if (k) this.request(k);
         // A published tile's own height.r16 first, the world's ground under

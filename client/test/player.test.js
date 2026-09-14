@@ -194,6 +194,24 @@ test('the ground under you is in the scene’s frame, not the sea’s', () => {
         `standing on the ground the anchor is on is y = 0, not ${under}`);
 });
 
+// A tile is a spherical quad and its height.r16 is laid on the rectangle its
+// corners span, so the two disagree by metres along an edge: tilemath puts you
+// on the tile, and the field answers that you are off the end of it. That
+// answer used to be the last word, so walking across any tile border stopped
+// clamping and left the player standing in the air.
+test('a height field with no answer falls through to the ground', () => {
+    const s = fakeStreamer();
+    const metres = 641;
+    const t = new Terrain(s, { fetchFn: async () => new Response('', { status: 404 }),
+        ground: { heightAt: () => metres } });
+    // A field that covers this tile as far as the streamer is concerned and
+    // has no answer for this point — which is what an edge looks like.
+    t.fields.set('10/535/361',
+        { origin: tm.tileFrame(10, 535, 361, 0), at: () => null });
+    assert.notEqual(t.heightAt({ x: 0, y: 0, z: 0 }), null,
+        'the world answers, because the ground underneath the field does');
+});
+
 test('no ground at all is still null, not zero', () => {
     const o = tm.tileFrame(14, 8574, 5850, 0);
     const t = new Terrain({ origin: new FloatingOrigin(o), filesUrl: '',
