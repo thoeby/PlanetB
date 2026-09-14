@@ -155,7 +155,8 @@ export class WorkLoop {
         try {
             const started = Date.now();
             const out = await this.compute(atom, progress);
-            const state = await this.deliver(atom, out, (Date.now() - started) / 1000);
+            const state = await this.deliver(atom, out, (Date.now() - started) / 1000,
+                progress);
             this[state === 'failed' ? 'failed' : 'done'] += 1;
             this.log({ event: 'submit', atom: atom.id, op: atom.op, state });
             return state;
@@ -197,9 +198,18 @@ export class WorkLoop {
         }
     }
 
+    // `progress` is the atom saying it is still alive, which beats if the last
+    // beat is old enough. Every step that can take minutes without the atom
+    // saying anything calls it: the timer alone is not enough, because a tab
+    // nobody is looking at has its timers throttled and expire_claims takes the
+    // work off it after five minutes (db/0005_state.sql). A z18's frames are a
+    // hundred megabytes to fetch and its ply as much again to hash and upload,
+    // and none of that says a word on its own.
     async compute(atom, progress = () => {}) {
         const resolved = await resolveInputs(this.api, atom.inputs);
+        progress();
         const inputs = await this.cache.load(resolved);
+        progress();
         const worker = this.spawn();
         try {
             const out = await worker.run(
@@ -218,11 +228,14 @@ export class WorkLoop {
 
     // Upload, register, submit — in that order, because register_artifact is
     // what makes an upload citable and submit_atom reads the artifact's size.
-    async deliver(atom, out, seconds) {
+    async deliver(atom, out, seconds, progress = () => {}) {
         const written = [];
         for (const file of out.files ?? []) {
+            progress();
             const sha = await sha256(file.bytes);
+            progress();
             written.push({ sha, ext: file.ext, path: await this.upload(atom, file, sha) });
+            progress();
         }
         const pick = written.find((w) => w.ext === out.output) ?? written[0] ?? null;
         // Where the bytes went travels with the atom: an artifact is written
@@ -231,6 +244,7 @@ export class WorkLoop {
         // they really are (client/js/inputs.js).
         const result = { gpu_seconds: seconds, ...out.result,
             path: pick?.path ?? null, files: written };
+        progress();
         const state = await this.api.rpc('submit_atom',
             { atom_id: atom.id, output_sha256: pick?.sha ?? null, result });
         if (state === 'verified' && pick) await this.publish(atom, result, pick.sha);
