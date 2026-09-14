@@ -7,6 +7,25 @@
 
 import * as api from './api.js';
 
+// How far the player may be from where a question was asked before the answer
+// is about somewhere else. A degree of latitude is 111 km, so this is about
+// fifty-five metres — the same distance that makes the question worth asking
+// again (client/play.html).
+export const SAME_SPOT_DEG = 0.0005;
+
+// Whether an answer that has just arrived is still about where the player is.
+//
+// This was `asked.lon !== mine.lon || asked.lat !== mine.lat` — exact equality
+// on floats that move by fractions of a metre every frame. Whenever the API
+// answered more slowly than the question was re-asked, every answer in flight
+// was thrown away by the next one and the line under the player never changed
+// at all: "nowhere yet", for as long as the page was under load. The question
+// is not "is this the very same point" but "is the player still there".
+export const sameSpot = (a, b, tol = SAME_SPOT_DEG) =>
+    Boolean(a) && Boolean(b)
+    && Math.hypot(Number(a.lon) - Number(b.lon),
+        Number(a.lat) - Number(b.lat)) <= tol;
+
 const el = (tag, props = {}, ...kids) => {
     const node = Object.assign(document.createElement(tag), props);
     node.append(...kids.filter(Boolean));

@@ -90,7 +90,7 @@
   import { mountGetLand } from './js/getland.js';
   import { mountAssignLand } from './js/assignland.js';
   import { mountAttention } from './js/attention.js';
-  import { mountPlaces } from './js/places.js';
+  import { mountPlaces, sameSpot } from './js/places.js';
   import { mountPool, mountSubmit } from './js/pool.js';
   import { mountPermission } from './js/permission.js';
   import { mountShare, nearestGround, parseVisit, visitHash } from './js/visit.js';
@@ -624,7 +624,7 @@
       // answer can be thrown away (a newer question was already in the air) or
       // never arrive, and a line that is only re-asked when the camera moves
       // then keeps the wrong name under somebody who is standing still.
-      const moved = Math.hypot(g.lon - asked.lon, g.lat - asked.lat) > 0.0005;
+      const moved = !sameSpot(g, asked);
       const fresh = moved || landStale;
       if (Date.now() - asked.at < (fresh ? 2000 : 5000)) return;
       landStale = false;
@@ -650,7 +650,7 @@
       // which is several requests for an answer nothing has changed.
       if (fresh) build.refresh();
       api.rpc('area_at', { lon: g.lon, lat: g.lat }).then((areas) => {
-          if (asked.lon !== mine.lon || asked.lat !== mine.lat) return;
+          if (!sameSpot(asked, mine)) return;
           const a = areas?.[0];
           // SPEC §2.4: the land you are standing on has a card whoever's it
           // is, and §3.11 is asked for from that card.
