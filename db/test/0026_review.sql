@@ -38,7 +38,10 @@ SELECT lives_ok($$
 $$, 'one inside is accepted');
 -- Five, and only the five above it: the land's own tiles are there too since
 -- db/0047_landisground.sql, so what this counts is what the instance moved.
-SELECT is((SELECT count(*)::int FROM tile WHERE expected_version > 1), 5,
+-- Counted by what is dirty rather than by what was bumped, because since
+-- db/0089 a fine tile is made when something earns it — the z16 under this
+-- instance was made by it, at version 1, rather than bumped to 2.
+SELECT is((SELECT count(*)::int FROM tile WHERE dirty), 5,
           'and dirties the five tiles above it, nowhere else');
 
 -- ------------------------------------------------------------ system refs

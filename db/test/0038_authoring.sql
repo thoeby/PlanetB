@@ -1,7 +1,7 @@
 -- A player makes their own ground and retries a failed render
 -- (db/0038_authoring.sql). Before this, both needed psql.
 BEGIN;
-SELECT plan(18);
+SELECT plan(19);
 
 SET client_min_messages = warning;
 
@@ -56,6 +56,16 @@ SELECT is((SELECT a.detail FROM area a JOIN blank ON blank.id = a.id), 14::small
 
 SELECT cmp_ok((SELECT set_area_detail((SELECT id FROM mine), 16)), '>', 0,
     'compiling deeper dirties the tiles that have to be built');
+-- db/0089: detail is a ceiling, not a quota. Nothing stands on this land, so
+-- raising it earns nothing finer than the baseline — the whole point of the
+-- rule is that empty ground is not worth a training job a tile.
+SELECT is((SELECT count(*) FROM tile WHERE z = 16), 0::bigint,
+    'and empty land earns no z16, whatever its ceiling');
+
+-- Draw something on it and the tiles under that something appear.
+INSERT INTO feature (area_id, kind, geom)
+SELECT (SELECT id FROM mine), 'footprint',
+       st_force3d(st_centroid(a.geom)) FROM area a WHERE a.id = (SELECT id FROM mine);
 SELECT cmp_ok((SELECT count(*) FROM tile WHERE z = 16), '>', 0::bigint,
     'and the z16 tiles now exist to be compiled');
 SELECT is((SELECT set_area_detail((SELECT id FROM mine), 12)), 0,

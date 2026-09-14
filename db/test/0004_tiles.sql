@@ -8,7 +8,7 @@
 -- is being tested here. Claiming the land is itself the first edit, which is
 -- why the versions below start where they do.
 BEGIN;
-SELECT plan(22);
+SELECT plan(26);
 
 SELECT has_function('public', 'tiles_for_geom',
     ARRAY['geometry', 'integer', 'integer'], 'tiles_for_geom()');
@@ -68,7 +68,10 @@ UPDATE feature SET props = '{"height": 12}'::jsonb
 WHERE id = '00000000-0000-0000-0000-0000000000f1';
 
 SELECT is((SELECT count(*)::int FROM tile), 5, 'still 5 tiles after an update');
-SELECT is((SELECT min(expected_version) FROM tile), 3::bigint,
+-- The z12, which has been there since the land was claimed. A tile that came
+-- into being later has seen fewer edits, and since db/0089 the fine ones are
+-- made when something earns them rather than all at once.
+SELECT is((SELECT expected_version FROM tile WHERE z = 12), 3::bigint,
     'a third edit bumps it again');
 SELECT is((SELECT rev FROM feature
            WHERE id = '00000000-0000-0000-0000-0000000000f1'), 2::bigint,
@@ -85,10 +88,36 @@ FROM ids;
 INSERT INTO feature (area_id, kind, geom)
 SELECT '00000000-0000-0000-0000-0000000000a2', 'water', st_force3d(st_centroid(a.geom))
 FROM area a WHERE a.id = '00000000-0000-0000-0000-0000000000a2';
-SELECT is((SELECT count(*)::int FROM tile WHERE z > 14), 2,
-    'a detail-18 area also dirties z16 and z18');
-SELECT is((SELECT count(*)::int FROM tile), 11,
-    '5 + 7 tiles, minus the z6 tile the two areas share');
+-- db/0089: detail is a ceiling and the depth is earned. Water is a shape on
+-- the ground, so it earns the first trained rung and not the last — the whole
+-- point of the rule, since a lake at detail 18 used to ask for ninety trained
+-- tiles a square kilometre of surface the elevation model already describes.
+SELECT is((SELECT count(*)::int FROM tile WHERE z = 16), 1,
+    'a detail-18 area with water on it earns its z16');
+SELECT is((SELECT count(*)::int FROM tile WHERE z = 18), 0,
+    'and no z18 at all: water has no walls to walk up to');
+SELECT is((SELECT count(*)::int FROM tile), 10,
+    '5 + 6 tiles, minus the z6 tile the two areas share');
+
+-- A footprint does have walls, and earns the rung water does not.
+INSERT INTO feature (area_id, kind, geom)
+SELECT '00000000-0000-0000-0000-0000000000a2', 'footprint', st_force3d(st_centroid(a.geom))
+FROM area a WHERE a.id = '00000000-0000-0000-0000-0000000000a2';
+SELECT cmp_ok((SELECT count(*)::int FROM tile WHERE z = 18), '>', 0,
+    'a building on the same ground earns z18');
+-- And whole: a parent is replaced by its children when it refines, so a parent
+-- with only some of them tears a hole in the ground (client/js/traverse.js).
+SELECT is((SELECT count(*)::int FROM (
+        SELECT DISTINCT x / 4 AS px, y / 4 AS py FROM tile WHERE z = 18) p), 1,
+    'from one z16 parent');
+-- Every child of that parent that lies on this land, which for a land the
+-- size of one z18 tile is one of the sixteen. The set is ragged only at the
+-- land's edge, where outside it there is no compiled ground to hole.
+SELECT is((SELECT count(*)::int FROM tile WHERE z = 18),
+    (SELECT count(*)::int FROM tiles_for_geom(
+        (SELECT geom FROM area WHERE id = '00000000-0000-0000-0000-0000000000a2'),
+        18, 18)),
+    'and every one of them that is on this land, never a partial set');
 
 -- outside any area -----------------------------------------------------
 SELECT throws_ok($$INSERT INTO feature (area_id, kind, geom)

@@ -11,18 +11,22 @@ const el = (tag, props = {}, ...kids) => {
     return node;
 };
 
-// How fine this land is compiled (`area.detail`, SPEC §0.1). It decides what
-// the smallest tile on it is, and so how much of a splat a square metre gets:
-// the whole reason a piece of ground can look like a smear from standing
-// height. Finer than 14 is trained rather than sampled, which asks for a GPU
-// in whichever tab takes the job — said here rather than discovered three
-// minutes into a render.
+// How fine this land may be compiled (`area.detail`, SPEC §0.1). A ceiling, not
+// a quota: the depth is earned by what stands on the ground (db/0089), because
+// a tile finer than the baseline is a training job — 120 rendered views and
+// 7000 iterations — and empty ground does not need one to say what the
+// elevation model already says exactly.
+//
+//     up to 14   every tile of the land, sampled, no GPU anywhere
+//     16         where something drawn or placed stands
+//     18         where something with walls stands: a footprint, or anything
+//                put down from the catalog
 const FINE = [
     { detail: 10, words: '10 — 7 km tiles, a region seen from the air' },
     { detail: 12, words: '12 — 3.4 km tiles' },
     { detail: 14, words: '14 — 1.7 km tiles, the baseline' },
-    { detail: 16, words: '16 — 430 m tiles, trained (needs a GPU)' },
-    { detail: 18, words: '18 — 107 m tiles, street level, trained (needs a GPU)' },
+    { detail: 16, words: '16 — 430 m where something stands (needs a GPU)' },
+    { detail: 18, words: '18 — 107 m where something has walls (needs a GPU)' },
 ];
 
 export function howFine(area, ctx) {
@@ -37,10 +41,12 @@ export function howFine(area, ctx) {
         el('span', { className: 'label', textContent: 'How fine' }),
         pick,
         el('div', { className: 'note' },
-            'Deeper compiles the ground again: the tiles it adds are changed,'
-            + ' and go through Submit like anything else. Anything already in'
-            + ' the pool for this land is cancelled \u2014 it was building the'
-            + ' version you have just replaced \u2014 and its escrow comes back.'),
+            'A ceiling, not a quota: the ground is compiled to 14 everywhere,'
+            + ' and finer only where something stands on it. The tiles it adds'
+            + ' are changed and go through Submit like anything else. Anything'
+            + ' already in the pool for this land is cancelled \u2014 it was'
+            + ' building the version you have just replaced \u2014 and its'
+            + ' escrow comes back.'),
         status, again(area, ctx));
 }
 
@@ -88,7 +94,9 @@ async function finer(area, detail, status, ctx) {
             { area_id: area.id, detail });
         status.textContent = n
             ? `${n} tile(s) to compile at detail ${detail} \u2014 submit them when you are ready`
-            : `detail ${detail}. Nothing new to compile: it was already finer.`;
+            : `detail ${detail}. Nothing new: the ceiling is up, and nothing on`
+                + ' this land earns a finer tile yet. Draw or place something'
+                + ' and the tiles under it appear.';
         await ctx.refresh?.();
     } catch (err) {
         status.textContent = String(err.body?.message ?? err.message ?? err);
