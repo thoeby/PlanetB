@@ -756,6 +756,22 @@ toy: it is what `verify` renders with, and what the node tests train with.
   picture rather than grain. The work panel's picture has a caption and a
   progress bar over it.
 
+- **`frame-v4` rasterises** (`client/lib/raster.js`, `db/0098`): three.js
+  with shadow maps from the sun (both sides into the map, or a hillside casts
+  nothing on its valley), the sky as an environment map, filmic tone mapping
+  and a seeded detail texture on the ground. Milliseconds a frame; the path
+  tracer, its denoiser and their vendored modules are gone. The camera set
+  keeps its counts: rings, a 4x4 grid of obliques from two heights, a 4x4
+  grid of top-downs at z18 — every pose standing on the ground.
+- **"Compile it all again" withdraws the land's open submissions** (`db/0098`,
+  a fourth submission state), so tiles awaiting approval at the old version
+  no longer hold the count at "13 to submit" over a button that offers 9.
+- **A published child is drawn as soon as it is published**: the parent
+  stays under its unpublished siblings (`client/js/traverse.js`) rather than
+  the whole block waiting for its last tile.
+- brush's panic text is kept from the worker's console and put on the error,
+  so "RuntimeError: unreachable" says why.
+
 ### Open items from WP3
 
 - [ ] **WP3.1's acceptance on a GPU**: a pilot z16 tile in under 8 minutes at

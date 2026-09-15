@@ -2,8 +2,7 @@ Vendored third-party code, checked in verbatim with its licence:
 
 - `splatjs/` — training kernel (WP3.1), MIT
 - `splat-transform/` — `.sog` encoder core (WP2.6)
-- `three/` — three.js, three-mesh-bvh and three-gpu-pathtracer (MIT), the
-  frame atom's path tracer (`client/lib/pathtrace.js`). Fetched by
+- `three/` — three.js (MIT), the frame atom's renderer (`client/lib/raster.js`). Fetched by
   `tools/vendor.sh` from npm with bare specifiers rewritten, because a Web
   Worker has no import map. Unlike the engine there is no CDN copy: these
   files are what runs, so they are checked in (the one vendored directory

@@ -128,19 +128,24 @@ function candidate(world, t) {
     return new Candidate(t.z, t.x, t.y, row, world.origin, world.candidates);
 }
 
-// A tile refines only when every child the world says exists is published: a
-// child with no `tile` row at all lies outside any compiled area and is not a
-// hole, while a child that exists and is unpublished is one, and refining into
-// it would tear the ground open. That is why the streamer is given every tile
-// row, not only the published ones.
+// A tile refines into the children that are published. A child with no
+// `tile` row at all lies outside any compiled area and is not a hole; a child
+// that exists and is unpublished is one — and rather than wait for every one
+// of sixteen to be published before any is drawn, the parent stays under the
+// ones that are. `whole` says whether it may go. That is why the streamer is
+// given every tile row, not only the published ones.
 function refinableInto(world, c) {
     const rows = tm.children(c.z, c.x, c.y)
         .map((t) => ({ t, row: world.tiles.get(key(t.z, t.x, t.y)) }))
         .filter((e) => e.row);
-    if (!rows.length || !rows.every((e) => published(e.row, world))) return null;
-    if (!rows.every((e) => loadable(world, key(e.t.z, e.t.x, e.t.y)))) return null;
-    return rows.map((e) => new Candidate(e.t.z, e.t.x, e.t.y, e.row, world.origin,
-        world.candidates));
+    const ready = rows.filter((e) => published(e.row, world)
+        && loadable(world, key(e.t.z, e.t.x, e.t.y)));
+    if (!ready.length) return null;
+    return {
+        whole: ready.length === rows.length,
+        kids: ready.map((e) => new Candidate(e.t.z, e.t.x, e.t.y, e.row, world.origin,
+            world.candidates)),
+    };
 }
 
 // Walks z6 downwards, collecting the tiles that should be on screen.
@@ -151,14 +156,19 @@ function traverse(world, camera) {
         const c = stack.pop();
         if (!sphereVisible(c.centre, c.radius, camera.planes)) continue;
         c.sse = screenSpaceError(c, c.centre, camera);
-        const kids = refinableInto(world, c);
+        const into = refinableInto(world, c);
+        const kids = into?.kids;
         // Already refined: keep it refined until the error is comfortably under
         // the threshold, not merely under it.
         const isRefined = !world.loaded.has(c.key)
             && kids?.some((k) => world.loaded.has(k.key));
         const threshold = isRefined ? REFINE_PX / HYSTERESIS : REFINE_PX;
-        if (kids && c.sse > threshold) stack.push(...kids);
-        else out.push(c);
+        if (kids && c.sse > threshold) {
+            stack.push(...kids);
+            if (!into.whole) out.push(c);
+        } else {
+            out.push(c);
+        }
     }
     return out;
 }

@@ -122,8 +122,8 @@
 #panel .work-view-bar::-webkit-progress-value { background: var(--hue, #7aa2f7); }
 #panel .work-view-bar::-moz-progress-bar { background: var(--hue, #7aa2f7); }
 #panel .work-view-bar[hidden] { display: none; }
-#panel .work-view canvas { display: block; width: 100%; height: auto; aspect-ratio: 1;
-  image-rendering: auto; }
+#panel .work-view canvas { display: block; width: auto; height: 140px; max-width: 100%;
+  margin: 0 auto; image-rendering: auto; }
 
 /* An empty state inside a full-bleed list keeps the panel's own margins: a
    dashed box running into the panel's edge reads as a broken border. */

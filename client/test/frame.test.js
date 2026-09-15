@@ -12,10 +12,9 @@ import { psnr } from '../lib/render.js';
 import { boundsOf } from '../atoms/frame.js';
 
 const BOUNDS = { centre: [0, 0, 0], extent: 100 };
-const near = (a, b, eps = 1e-6) => assert.ok(Math.abs(a - b) < eps, `${a} vs ${b}`);
 
 test('the sets are the ones the DAG counts on', () => {
-    assert.equal(viewCount('z18-v1'), 120, '3 rings x 24 + 4 street loops x 10 + 8 top');
+    assert.equal(viewCount('z18-v1'), 120, '3 rings x 24 + 16 targets x 2 obliques + 16 top');
     assert.equal(viewCount('z16-v1'), 56, '2 rings x 24 + 8 top');
     for (const name of Object.keys(SETS)) {
         const cams = cameraSet(name, BOUNDS);
@@ -30,8 +29,8 @@ test('a set is the same list every time, and every pose looks somewhere', () => 
     const b = cameraSet('z18-v1', BOUNDS);
     assert.deepEqual(a, b);
     assert.equal(a.filter((c) => c.kind === 'ring').length, 72);
-    assert.equal(a.filter((c) => c.kind === 'street').length, 40);
-    assert.equal(a.filter((c) => c.kind === 'top').length, 8);
+    assert.equal(a.filter((c) => c.kind === 'oblique').length, 32);
+    assert.equal(a.filter((c) => c.kind === 'top').length, 16);
     for (const c of a) {
         assert.ok(c.position.every(Number.isFinite));
         assert.notDeepEqual(c.position, c.target);
@@ -39,10 +38,10 @@ test('a set is the same list every time, and every pose looks somewhere', () => 
     }
 });
 
-test('street loops are at eye height and top-downs are above everything', () => {
+test('obliques stand over the ground and top-downs are above everything', () => {
     const cams = cameraSet('z18-v1', BOUNDS);
-    for (const c of cams.filter((v) => v.kind === 'street')) {
-        assert.equal(c.position[1], 1.7);
+    for (const c of cams.filter((v) => v.kind === 'oblique')) {
+        assert.ok(c.position[1] >= 2 && c.position[1] < 60, `oblique at ${c.position[1]}`);
     }
     for (const c of cams.filter((v) => v.kind === 'top')) {
         assert.equal(c.position[1], 160);
@@ -121,8 +120,8 @@ test('with ground given, every pose is above it and the street loop is at eye he
         const under = ground(c.position[0], c.position[2]);
         assert.ok(c.position[1] > under + 1, `${c.kind} ${c.id}: ${c.position[1]} over ${under}`);
     }
-    for (const c of cams.filter((k) => k.kind === 'street')) {
-        near(c.position[1] - ground(c.position[0], c.position[2]), 1.7);
+    for (const c of cams.filter((k) => k.kind === 'oblique')) {
+        assert.ok(c.position[1] - ground(c.position[0], c.position[2]) >= 2 - 1e-9);
     }
     assert.deepEqual(cameraSet('z18-v1', BOUNDS), cameraSet('z18-v1', BOUNDS, null),
         'without ground, the set is what it was');

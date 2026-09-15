@@ -3,7 +3,7 @@
 // which is the strongest form of the PSNR bar the deliverable sets; a
 // cross-GPU comparison needs two machines and is what that bar is really for.
 //
-// frame-v3 path-traces with a fixed noise seed, so one machine still renders
+// frame-v4 path-traces with a fixed noise seed, so one machine still renders
 // the same bytes twice. The frames here are small and lightly sampled: this is
 // software rendering.
 
@@ -85,7 +85,7 @@ test('two tabs render the same range of a camera set to the same frames',
 
         // Two atoms, the same range, rendered one after the other by this tab.
         const frames = [1, 2].map((seed) => readyAtom({
-            ...TILE, op: 'frame', algo: 'frame-v3',
+            ...TILE, op: 'frame', algo: 'frame-v4',
             inputs: { assemble: Number(assemble), snapshot },
             params: { camera_set: 'z16-v1', from: FROM, to: TO, run: seed,
                 size: SIZE, samples: SAMPLES },

@@ -7,9 +7,13 @@
 
 const RAD = Math.PI / 180;
 
+// Rings orbit the middle at a few elevations; obliques aim at a grid of points
+// over the tile from two heights, so every part of the ground is seen close
+// and from several sides — the overlap 3DGS needs, which loops of a camera
+// looking along its own path (the street loops before) did not give it.
 export const SETS = {
-    'z18-v1': { rings: [15, 30, 55], az: 24, streets: 4, perStreet: 10, top: 8 },
-    'z16-v1': { rings: [20, 45], az: 24, streets: 0, perStreet: 0, top: 8 },
+    'z18-v1': { rings: [20, 35, 55], az: 24, grid: 4, perTarget: 2, top: 16 },
+    'z16-v1': { rings: [25, 45], az: 24, grid: 0, perTarget: 0, top: 8 },
 };
 
 // How many poses a set has, or 0 for a set this build does not know — a name
@@ -19,7 +23,7 @@ export const SETS = {
 export const viewCount = (set) => {
     const s = SETS[set];
     if (!s) return 0;
-    return s.rings.length * s.az + s.streets * s.perStreet + s.top;
+    return s.rings.length * s.az + s.grid * s.grid * s.perTarget + s.top;
 };
 
 // A pose looking straight down has no "up" in the sky: its basis would be
@@ -62,30 +66,42 @@ export function cameraSet(name, bounds, ground = null) {
         }
     }
 
-    // Street loops: eye height over the ground, walking a circle and looking
-    // along it, which is the view a player actually gets and the one z18 has
-    // to be sharp for.
-    for (let l = 0; l < s.streets; l++) {
-        const r = e * (0.2 + 0.15 * l);
-        for (let i = 0; i < s.perStreet; i++) {
-            const a = (i / s.perStreet) * Math.PI * 2 + l * 0.31;
-            const ahead = a + 0.6;
-            const px = c[0] + Math.cos(a) * r;
-            const pz = c[2] + Math.sin(a) * r;
-            const tx = c[0] + Math.cos(ahead) * r * 1.4;
-            const tz = c[2] + Math.sin(ahead) * r * 1.4;
-            out.push(look([px, at(px, pz, c[1]) + 1.7, pz],
-                [tx, at(tx, tz, c[1]) + 1.0, tz], out.length, 'street'));
+    // Obliques: a grid of points over the tile, each looked at from a high
+    // and a low angle, from azimuths that walk round the compass. Standing on
+    // the ground they are over, never in it.
+    const GOLDEN = 2.399963;
+    for (let gy = 0; gy < s.grid; gy++) {
+        for (let gx = 0; gx < s.grid; gx++) {
+            const tx = c[0] + ((gx + 0.5) / s.grid * 2 - 1) * e * 0.8;
+            const tz = c[2] + ((gy + 0.5) / s.grid * 2 - 1) * e * 0.8;
+            const t = [tx, at(tx, tz, c[1]), tz];
+            for (let k = 0; k < s.perTarget; k++) {
+                const elev = (k ? 45 : 15) * RAD;
+                const dist = e * (k ? 0.45 : 0.3);
+                const a = (gy * s.grid + gx) * GOLDEN + k * Math.PI;
+                const px = tx + Math.cos(a) * dist * Math.cos(elev);
+                const pz = tz + Math.sin(a) * dist * Math.cos(elev);
+                const py = Math.max(t[1] + Math.sin(elev) * dist, at(px, pz, -Infinity) + 2);
+                out.push(look([px, py, pz], t, out.length, 'oblique'));
+            }
         }
     }
 
-    // Top-down: one over the middle and seven around it, so the roofs and the
-    // ground between the orbits are seen from above.
+    // Top-down: a square grid over the tile when the count is one, else one
+    // over the middle and the rest around it, so the roofs and the ground
+    // between the orbits are seen from above.
+    const side = Math.round(Math.sqrt(s.top));
     for (let i = 0; i < s.top; i++) {
-        const a = (i / Math.max(s.top - 1, 1)) * Math.PI * 2;
-        const r = i === 0 ? 0 : e * 0.45;
-        const px = c[0] + Math.cos(a) * r;
-        const pz = c[2] + Math.sin(a) * r;
+        let px; let pz;
+        if (side * side === s.top) {
+            px = c[0] + (((i % side) + 0.5) / side * 2 - 1) * e * 0.75;
+            pz = c[2] + ((Math.floor(i / side) + 0.5) / side * 2 - 1) * e * 0.75;
+        } else {
+            const a = (i / Math.max(s.top - 1, 1)) * Math.PI * 2;
+            const r = i === 0 ? 0 : e * 0.45;
+            px = c[0] + Math.cos(a) * r;
+            pz = c[2] + Math.sin(a) * r;
+        }
         const p = [px, at(px, pz, c[1]) + e * 1.6, pz];
         out.push(look(p, [p[0], at(px, pz, c[1]), p[2]], out.length, 'top'));
     }

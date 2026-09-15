@@ -14,9 +14,19 @@ import { SH_C0, emptySplats } from './ply.js';
 import { sigmoid } from './gsmath.js';
 
 let mod = null;
+// The last thing brush's panic hook wrote: a Rust panic reaches JS as
+// "RuntimeError: unreachable", and the reason went to console.error in the
+// worker where nobody looks. It is kept and put on the error instead.
+let lastPanic = '';
 
 export async function loadBrush() {
     if (mod) return mod;
+    const orig = console.error.bind(console);
+    console.error = (...args) => {
+        const text = args.map(String).join(' ');
+        if (text.includes('panicked')) lastPanic = text.slice(0, 600);
+        orig(...args);
+    };
     const m = await import('../vendor/brush/brush_js.js').catch(() => {
         throw new Error('brush is not vendored: run tools/build-brush.sh (needs Rust)');
     });
@@ -73,7 +83,10 @@ export async function trainIn(app, dir, config, { steps = 25, onStep, onWarn, on
     let done = false;
     let iter = 0;
     while (!done) {
-        const msgs = await training.trainSteps(steps);
+        const msgs = await training.trainSteps(steps).catch((err) => {
+            throw new Error(`brush stopped at iteration ${iter}: ${err?.message ?? err}`
+                + (lastPanic ? ` — ${lastPanic}` : ''));
+        });
         if (!msgs.length) break;
         for (const m of msgs) {
             if (m.kind === K.TrainStep) { iter = m.iter; onStep?.(m.iter, m.elapsedMs); }

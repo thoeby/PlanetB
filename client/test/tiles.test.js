@@ -106,13 +106,15 @@ test('no entity is placed further than 1e5 m from the floating origin', () => {
     assert.ok(worst < 1e5, `worst entity offset ${worst.toFixed(0)} m`);
 });
 
-test('a tile does not refine into a level with an unpublished hole', () => {
-    // Take one z10 away and its z8 parent must stay whole rather than show a gap.
+test('a level with an unpublished hole keeps its parent under the children it has', () => {
+    // Take one z10 away: its published siblings are drawn, and the z8 parent
+    // stays under them so the hole is not a gap.
     const holed = world();
     holed.tiles.set('10/535/362', row(10, 535, 362, false));
     settle(holed, camera(1e6));
-    assert.deepEqual(sorted(holed.loaded.keys()), ['10/536/361', '10/536/362', '8/133/90'],
-        'the parent of the hole stays coarse, its sibling refines');
+    assert.deepEqual(sorted(holed.loaded.keys()),
+        ['10/535/361', '10/536/361', '10/536/362', '8/133/90'],
+        'the published children show, the parent of the hole stays');
 });
 
 test('children that do not exist are not holes', () => {
@@ -241,8 +243,9 @@ test('a tile that failed to load is left alone until its retry time', () => {
     const w = world();
     w.failed = new Map([['10/535/362', 1_000_000]]);
     settle(w, camera(1e6));
-    assert.deepEqual(sorted(w.loaded.keys()), ['10/536/361', '10/536/362', '8/133/90'],
-        'a failed child keeps its parent whole, like an unpublished one');
+    assert.deepEqual(sorted(w.loaded.keys()),
+        ['10/535/361', '10/536/361', '10/536/362', '8/133/90'],
+        'a failed child keeps its parent under its siblings, like an unpublished one');
     w.failed = new Map();
     settle(w, camera(1e6));
     assert.ok(w.loaded.has('10/535/362'), 'and is tried again once the backoff is over');
