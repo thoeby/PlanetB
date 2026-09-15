@@ -136,6 +136,12 @@ def encode_geotiff(raw: bytes, bounds: tuple | None = None) -> bytes:
     # samples (OVERSAMPLE), and a bilinear read of every second one would keep
     # the grid GeoServer's nearest-neighbour scaling laid over the survey.
     with MemoryFile(raw) as memfile, memfile.open() as src:
+        # Elevation in whole metres, or in 256 steps of the coverage's range,
+        # is a staircase whatever is done with it afterwards. A survey at
+        # half a metre is float32; say so rather than cut steps.
+        if src.dtypes[0] in ("uint8", "int8"):
+            raise CutFailed(f"the coverage came back as {src.dtypes[0]}: publish the"
+                            " elevation as float32 (or int16 at least), not as an 8-bit image")
         if bounds is None or src.crs is None:
             band = src.read(1, out_shape=(DEM_SIZE, DEM_SIZE),
                             resampling=rasterio.enums.Resampling.cubic)
@@ -346,7 +352,10 @@ def cut(cfg: Config, z: int, x: int, y: int, kind: str = "dem") -> Path | None:
     """
     target = tile_path(cfg, z, x, y, kind)
     with _lock((kind, z, x, y)):
-        if target.is_file():
+        # A dem-v1 cut (uint16, 0.2 m steps) left on disk from before dem-v2
+        # is the stepping a player sees on every hillside: it is cut again.
+        if target.is_file() and not (kind == "dem"
+                                     and target.stat().st_size == DEM_SIZE * DEM_SIZE * 2):
             return target
         with psycopg.connect(cfg.dsn(), autocommit=True) as conn:
             auth = _auth_header(cfg.geoserver_user, cfg.geoserver_admin_password)

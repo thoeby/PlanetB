@@ -1504,3 +1504,18 @@ shade as a 512² PNG drawn by the WMS straight in EPSG:3857
 vertex from the albedo where it has one, dimmed by the shade, and falls back
 to the height/slope ramp elsewhere. Changing layers empties `geo_tile`; the
 cut files on disk are the operator's to delete before rendering again.
+
+## 0107: the renderer is a choice; the sky and the air are the viewer's
+
+The path tracer (`client/lib/pathtrace.js`, three-gpu-pathtracer, à-trous
+denoise) is vendored again beside the rasteriser, its output through the same
+ACES curve and sRGB encoding, so the two differ only in the light. Which
+draws the frames is the operator's: `ALTER DATABASE … SET splatworld.renderer
+= 'trace'` (and `splatworld.samples`) puts it in every new frame atom's
+params. Default is the rasteriser. Measured on the synthetic tile in
+SwiftShader: the tracer adds soft contact shadows under the trees and a
+gentle occlusion in the creases; the rasteriser has most of the picture.
+`client/js/sky.js`: a dome around the camera with the one sky on it and exp2
+fog in the horizon colour over everything PlayCanvas draws, splats included.
+Server: a stale dem-v1 cut on disk is recut; an 8-bit coverage is refused
+with a sentence saying to publish it as float32.

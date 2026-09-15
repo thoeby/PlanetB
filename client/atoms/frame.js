@@ -16,6 +16,7 @@
 
 import { cameraSet, transformsJson, viewCount } from '../lib/cameras.js';
 import { unpackMeshes } from '../lib/mesh.js';
+import { DEFAULTS, Tracer } from '../lib/pathtrace.js';
 import { Raster, meshObject } from '../lib/raster.js';
 import { toWebp } from '../lib/render.js';
 import { readTar, writeTar } from '../lib/tar.js';
@@ -76,6 +77,17 @@ export function groundOf(files, scene) {
     };
 }
 
+// Which renderer draws the frames: the rasteriser, or — `renderer: 'trace'`
+// in the atom's params (db/0107) — the path tracer, for global illumination
+// at a few seconds a frame. Both take the same meshes and the same cameras.
+function rendererOf(atom, canvas, size) {
+    if (atom.params?.renderer !== 'trace') return new Raster(canvas, size);
+    return new Tracer(canvas, size, {
+        samples: Number(atom.params?.samples) || DEFAULTS.samples,
+        bounces: Number(atom.params?.bounces) || DEFAULTS.bounces,
+    });
+}
+
 export async function run({ atom, inputs, canvas, log }) {
     const set = atom.params.camera_set;
     const from = atom.params.from ?? 0;
@@ -88,13 +100,13 @@ export async function run({ atom, inputs, canvas, log }) {
     const meshes = unpackMeshes(files.get('mesh.bin'), scene.meshes);
     const cams = cameraSet(set, boundsOf(meshes), groundOf(files, scene)).slice(from, to);
 
-    const raster = new Raster(canvas(size, size), size);
+    const raster = rendererOf(atom, canvas(size, size), size);
     for (const m of meshes) raster.add(meshObject(m, scene.materials));
     await raster.build(cams[0]);
 
     const entries = [];
     for (const cam of cams) {
-        const rgba = raster.draw(cam);
+        const rgba = await raster.draw(cam);
         entries.push({ name: name(cam.id), bytes: await toWebp(rgba, size, canvas, QUALITY) });
         log?.({ event: 'frame', pose: cam.id, done: entries.length, of: cams.length,
             picture: { webp: entries.at(-1).bytes } });
