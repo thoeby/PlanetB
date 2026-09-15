@@ -1415,3 +1415,10 @@ not viewer polish. The WebGPU path is untested here: the default chromium has
 no `navigator.gpu`, so every browser test still runs the WebGL2 path.
 `assemble`, `frame` and `pilot` specs fail in this container on the untouched
 head as well (the worker never finishes under SwiftShader).
+
+## 0102: a job that gave up starts over, or is dropped
+
+`Try again` in the pool now resets every atom of the job, not only the failed
+ones: a sog that fails on an empty ply made by an earlier assemble is not helped
+by running the same sog again. `Drop` (`drop_job`) cancels a job the tool cannot
+finish and refunds its bounty, so nothing sits in the list without a way out.

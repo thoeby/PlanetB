@@ -19,6 +19,7 @@ export function mountPool(host, { loop, where = () => ({}) } = {}) {
     const acts = {
         render: (entry, button) => render(entry, button),
         retry: (entry, button) => retry(entry, button),
+        drop: (entry, button) => drop(entry, button),
         pick: (entry) => { state.picked = entry.job; draw(); },
     };
 
@@ -30,15 +31,19 @@ export function mountPool(host, { loop, where = () => ({}) } = {}) {
     const render = (entry, button) => runJob(entry, button,
         { loop, say, refresh });
 
-    // Hand the pieces that gave up back to whoever will take them. The person
-    // pressing this is the one whose ground it is; nothing is retried on its
-    // own, because three failures in a row usually mean something to fix.
-    async function retry(entry, button) {
+    // Start a job that gave up over from its first atom, or take it out of the
+    // pool. The person pressing either is the one whose ground it is; nothing
+    // is retried on its own, because three failures usually mean something
+    // to fix, and a job the tool cannot finish does not sit there for ever.
+    const retry = (entry, button) => ask(entry, button, 'retry_job',
+        (n) => (n ? `${n} piece(s) start over` : 'nothing to try again'));
+    const drop = (entry, button) => ask(entry, button, 'drop_job',
+        (gone) => (gone ? 'dropped from the pool' : 'nothing to drop'));
+    async function ask(entry, button, fn, said) {
         button.disabled = true;
         try {
-            const n = await api.rpc('retry_job', { job_id: entry.job });
-            say(n ? `${entry.z}/${entry.x}/${entry.y}: ${n} piece(s) to try again`
-                : 'nothing to try again');
+            const r = await api.rpc(fn, { job_id: entry.job });
+            say(`${entry.z}/${entry.x}/${entry.y}: ${said(r)}`);
         } catch (err) {
             say(String(err.body?.message ?? err.message ?? err), true);
         }
@@ -62,7 +67,7 @@ export function mountPool(host, { loop, where = () => ({}) } = {}) {
     }
 
     refresh();
-    return { refresh, render, retry };
+    return { refresh, render, retry, drop };
 }
 
 // One job, taken out of the pool by the player who pressed Render: claim, run,
