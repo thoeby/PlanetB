@@ -29,8 +29,11 @@ const HTML = `
     <input type="checkbox" class="work-world"></label>
   <div class="work-progress note mono"></div>
   <figure class="work-view" hidden>
+    <figcaption>
+      <span class="work-view-what mono"></span>
+      <progress class="work-view-bar" max="1" value="0"></progress>
+    </figcaption>
     <canvas width="256" height="256"></canvas>
-    <figcaption class="note mono"></figcaption>
   </figure>
   <pre class="work-log note mono"></pre>
 </div>`;
@@ -104,7 +107,11 @@ export async function showPicture(view, rec) {
     const ctx = canvas.getContext('2d');
     const { picture: p } = rec;
     view.hidden = false;
-    view.querySelector('figcaption').textContent = captionOf(rec);
+    view.querySelector('.work-view-what').textContent = captionOf(rec);
+    const bar = view.querySelector('.work-view-bar');
+    const share = shareOf(rec);
+    bar.hidden = share === null;
+    if (share !== null) bar.value = share;
     if (p.rgba) {
         canvas.width = p.width; canvas.height = p.height;
         ctx.putImageData(new ImageData(new Uint8ClampedArray(p.rgba), p.width, p.height), 0, 0);
@@ -114,6 +121,15 @@ export async function showPicture(view, rec) {
     canvas.width = bitmap.width; canvas.height = bitmap.height;
     ctx.drawImage(bitmap, 0, 0);
     bitmap.close();
+}
+
+// How far along the atom is, 0..1, or null when the picture is a result
+// rather than a step.
+export function shareOf(rec) {
+    if (rec.event === 'frame' && rec.of) return rec.done / rec.of;
+    if (rec.event === 'train' && rec.of) return rec.iter / rec.of;
+    if (rec.event === 'seeded') return 0;
+    return null;
 }
 
 export function captionOf(rec) {

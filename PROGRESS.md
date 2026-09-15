@@ -748,6 +748,14 @@ toy: it is what `verify` renders with, and what the node tests train with.
 - The pool's "to submit" showed changed-minus-queued; the button submits
   `to_submit`. Same number now.
 
+- `frame-v3` (`db/0097`): every camera stands on the ground `assemble`
+  wrote (`groundOf`, `cameraSet(name, bounds, ground)`); v2's street loops
+  were 1.7 m over the tile's mean height, underground on any slope. The
+  traced frame is denoised along the surfaces with an à-trous filter over a
+  raster normal pass (`client/lib/denoise.js`), so 32 paths a pixel read as a
+  picture rather than grain. The work panel's picture has a caption and a
+  progress bar over it.
+
 ### Open items from WP3
 
 - [ ] **WP3.1's acceptance on a GPU**: a pilot z16 tile in under 8 minutes at

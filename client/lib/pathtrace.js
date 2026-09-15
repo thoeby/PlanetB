@@ -14,9 +14,10 @@ import * as THREE from '../vendor/three/three.module.js';
 import { GLTFLoader } from '../vendor/three/GLTFLoader.js';
 import { GradientEquirectTexture, WebGLPathTracer } from '../vendor/three/three-gpu-pathtracer.js';
 import { BOUNCE_COLOUR, SKY_COLOUR, SUN, SUN_COLOUR, SUN_STRENGTH, tone } from './light.js';
+import { denoise, normalsFrom } from './denoise.js';
 import { localFromLonLat } from './tilemath.js';
 
-export const DEFAULTS = { samples: 64, bounces: 3 };
+export const DEFAULTS = { samples: 32, bounces: 3 };
 
 // One mesh of the assembled scene (client/lib/mesh.js unpacked), as three.js
 // geometry with its vertex colours and its material's roughness.
@@ -96,21 +97,32 @@ export function placeObject(obj, pose) {
 
 // readRenderTargetPixels counts rows from the bottom and gives linear floats;
 // a frame is top-down bytes, toned exactly as a sampled splat is
-// (client/lib/light.js tone).
-export function toBytes(float, n) {
+// (client/lib/light.js tone). `stride` is 4 for the tracer's RGBA and 3 for
+// the denoiser's RGB.
+export function toBytes(float, n, stride = 4) {
     const out = new Uint8ClampedArray(n * n * 4);
     for (let y = 0; y < n; y++) {
-        const src = (n - 1 - y) * n * 4;
+        const src = (n - 1 - y) * n * stride;
         const dst = y * n * 4;
-        for (let x = 0; x < n * 4; x += 4) {
-            out[dst + x] = tone(float[src + x]) * 255;
-            out[dst + x + 1] = tone(float[src + x + 1]) * 255;
-            out[dst + x + 2] = tone(float[src + x + 2]) * 255;
-            out[dst + x + 3] = 255;
+        for (let x = 0; x < n; x++) {
+            out[dst + x * 4] = tone(float[src + x * stride]) * 255;
+            out[dst + x * 4 + 1] = tone(float[src + x * stride + 1]) * 255;
+            out[dst + x * 4 + 2] = tone(float[src + x * stride + 2]) * 255;
+            out[dst + x * 4 + 3] = 255;
         }
     }
     return out;
 }
+
+const rgbOf = (rgba, n) => {
+    const out = new Float32Array(n * n * 3);
+    for (let i = 0; i < n * n; i++) {
+        out[i * 3] = rgba[i * 4];
+        out[i * 3 + 1] = rgba[i * 4 + 1];
+        out[i * 3 + 2] = rgba[i * 4 + 2];
+    }
+    return out;
+};
 
 export class Tracer {
     constructor(canvas, size, { samples = DEFAULTS.samples, bounces = DEFAULTS.bounces } = {}) {
@@ -141,6 +153,30 @@ export class Tracer {
         this.scene = new THREE.Scene();
         skyAndSun(this.scene);
         this.camera = null;
+        // The raster pass the denoiser's edges come from.
+        this.normalTarget = new THREE.WebGLRenderTarget(size, size);
+        this.normalMaterial = new THREE.MeshNormalMaterial();
+    }
+
+    // The scene's normals as the camera sees them, one raster pass: what the
+    // denoiser keeps edges by. Bottom-up bytes, alpha 0 where there is only sky.
+    normals() {
+        const { renderer, scene } = this;
+        const bg = scene.background;
+        const env = scene.environment;
+        scene.background = null; scene.environment = null;
+        scene.overrideMaterial = this.normalMaterial;
+        renderer.setRenderTarget(this.normalTarget);
+        renderer.setClearColor(0x000000, 0);
+        renderer.clear();
+        renderer.render(scene, this.camera);
+        renderer.setRenderTarget(null);
+        scene.overrideMaterial = null;
+        scene.background = bg; scene.environment = env;
+        const n = this.size;
+        const bytes = new Uint8Array(n * n * 4);
+        renderer.readRenderTargetPixels(this.normalTarget, 0, 0, n, n, bytes);
+        return normalsFrom(bytes, n);
     }
 
     add(obj) { this.scene.add(obj); }
@@ -178,11 +214,12 @@ export class Tracer {
         const n = this.size;
         const float = new Float32Array(n * n * 4);
         this.renderer.readRenderTargetPixels(this.tracer.target, 0, 0, n, n, float);
-        return toBytes(float, n);
+        return toBytes(denoise(rgbOf(float, n), this.normals(), n), n, 3);
     }
 
     dispose() {
         this.tracer.dispose?.();
+        this.normalTarget.dispose();
         this.renderer.dispose();
     }
 }

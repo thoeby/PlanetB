@@ -36,35 +36,46 @@ const look = (position, target, id, kind) => ({
 });
 
 // bounds: { centre: [x, y, z], extent } in the tile's own frame, metres.
-export function cameraSet(name, bounds) {
+// ground(x, z): the terrain's height there, or null where it is not known.
+// Without it the poses sit at heights taken from the bounds alone, which in a
+// valley or on a slope put a street camera underground and a ring looking
+// through a hill; with it every eye stands on the ground it is over.
+export function cameraSet(name, bounds, ground = null) {
     const s = SETS[name];
     if (!s) throw new Error(`no camera set ${name}`);
     const { centre: c, extent: e } = bounds;
+    const at = (x, z, fallback) => ground?.(x, z) ?? fallback;
+    const middle = [c[0], at(c[0], c[2], c[1]), c[2]];
     const out = [];
 
-    // Orbits: three or two rings of 24 azimuths, looking at the middle.
+    // Orbits: three or two rings of 24 azimuths, looking at the middle, and
+    // never below the ground they are over plus a little.
     for (const elev of s.rings) {
         for (let i = 0; i < s.az; i++) {
             const a = (i / s.az) * Math.PI * 2;
             const r = e * 0.95 * Math.cos(elev * RAD);
             const h = e * 0.95 * Math.sin(elev * RAD);
-            out.push(look([c[0] + Math.cos(a) * r, c[1] + h, c[2] + Math.sin(a) * r],
-                c, out.length, 'ring'));
+            const px = c[0] + Math.cos(a) * r;
+            const pz = c[2] + Math.sin(a) * r;
+            const py = Math.max(middle[1] + h, at(px, pz, -Infinity) + Math.max(3, e * 0.05));
+            out.push(look([px, py, pz], middle, out.length, 'ring'));
         }
     }
 
-    // Street loops: eye height, walking a circle and looking along it, which is
-    // the view a player actually gets and the one z18 has to be sharp for.
+    // Street loops: eye height over the ground, walking a circle and looking
+    // along it, which is the view a player actually gets and the one z18 has
+    // to be sharp for.
     for (let l = 0; l < s.streets; l++) {
         const r = e * (0.2 + 0.15 * l);
         for (let i = 0; i < s.perStreet; i++) {
             const a = (i / s.perStreet) * Math.PI * 2 + l * 0.31;
             const ahead = a + 0.6;
-            out.push(look(
-                [c[0] + Math.cos(a) * r, c[1] + 1.7, c[2] + Math.sin(a) * r],
-                [c[0] + Math.cos(ahead) * r * 1.4, c[1] + 1.0,
-                    c[2] + Math.sin(ahead) * r * 1.4],
-                out.length, 'street'));
+            const px = c[0] + Math.cos(a) * r;
+            const pz = c[2] + Math.sin(a) * r;
+            const tx = c[0] + Math.cos(ahead) * r * 1.4;
+            const tz = c[2] + Math.sin(ahead) * r * 1.4;
+            out.push(look([px, at(px, pz, c[1]) + 1.7, pz],
+                [tx, at(tx, tz, c[1]) + 1.0, tz], out.length, 'street'));
         }
     }
 
@@ -73,8 +84,10 @@ export function cameraSet(name, bounds) {
     for (let i = 0; i < s.top; i++) {
         const a = (i / Math.max(s.top - 1, 1)) * Math.PI * 2;
         const r = i === 0 ? 0 : e * 0.45;
-        const p = [c[0] + Math.cos(a) * r, c[1] + e * 1.6, c[2] + Math.sin(a) * r];
-        out.push(look(p, [p[0], c[1], p[2]], out.length, 'top'));
+        const px = c[0] + Math.cos(a) * r;
+        const pz = c[2] + Math.sin(a) * r;
+        const p = [px, at(px, pz, c[1]) + e * 1.6, pz];
+        out.push(look(p, [p[0], at(px, pz, c[1]), p[2]], out.length, 'top'));
     }
     return out;
 }

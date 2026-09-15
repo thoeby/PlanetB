@@ -65,7 +65,7 @@ function buildDag() {
     const asm = insert(job, 'assemble', 'assemble-v2', { snapshot },
         { ...TILE, budget: BUDGET }, []);
     const frames = [[0, 20], [20, 40], [40, 56]].map(([from, to]) =>
-        insert(job, 'frame', 'frame-v2', { assemble: asm, snapshot },
+        insert(job, 'frame', 'frame-v3', { assemble: asm, snapshot },
             { camera_set: 'z16-v1', from, to, size: SIZE, samples: 1 }, [asm]));
     const trn = insert(job, 'train', 'train-v3', { assemble: asm, frames },
         { budget: BUDGET, camera_set: 'z16-v1' }, frames);

@@ -1,16 +1,17 @@
-// frame.js — `frame-v2`. The views `train` learns a tile from.
+// frame.js — `frame-v3`. The views `train` learns a tile from.
 //
 // One atom renders a range of a camera set (db/0005_jobs.sql chunks them at 20
 // views), so a z18 job's 120 views spread across six tabs. Out comes a tar of
 // WebP frames and the transforms.json that says where each was taken from, in
 // nerfstudio's format and OpenGL's convention.
 //
-// frame-v1 rasterised the assembled mesh with one sun and no shadows. This
-// path-traces it (client/lib/pathtrace.js): shadows, sky occlusion, bounce,
+// frame-v1 rasterised the assembled mesh with one sun and no shadows. v2
+// path-traced it (client/lib/pathtrace.js): shadows, sky occlusion, bounce,
 // and every placed asset with its own textures, loaded from the canonical GLB
-// rather than from the flat colour `assemble` baked. The camera set is the same
-// as before, from the same bounds, so a v1 and a v2 frame of one pose look at
-// the same thing.
+// rather than from the flat colour `assemble` baked. v3 stands every camera on
+// the ground it is over (client/lib/cameras.js) — v2's street loops were 1.7 m
+// above the tile's mean height, underground on any slope — and denoises the
+// traced frame along the surfaces (client/lib/denoise.js).
 
 import { loadAssets } from '../lib/assets.js';
 import { cameraSet, transformsJson, viewCount } from '../lib/cameras.js';
@@ -18,9 +19,9 @@ import { unpackMeshes } from '../lib/mesh.js';
 import { DEFAULTS, Tracer, loadGlb, meshObject, placeObject, poseOf } from '../lib/pathtrace.js';
 import { toWebp } from '../lib/render.js';
 import { readTar, writeTar } from '../lib/tar.js';
-import { tileFrame } from '../lib/tilemath.js';
+import { localFromLonLat, tileBbox, tileFrame } from '../lib/tilemath.js';
 
-export const ALGO = 'frame-v2';
+export const ALGO = 'frame-v3';
 export const SIZE = 1024;
 const QUALITY = 0.9;
 
@@ -47,6 +48,32 @@ export function boundsOf(meshes) {
     return {
         centre: [(lo[0] + hi[0]) / 2, lo[1] + (hi[1] - lo[1]) * 0.1, (lo[2] + hi[2]) / 2],
         extent: Math.max(hi[0] - lo[0], hi[2] - lo[2]) / 2,
+    };
+}
+
+// The ground `assemble` wrote (height.r16: uint16 rows, north-west first,
+// over the tile's rectangle in its own frame), as a function of (x, z) in
+// that frame, bilinear, clamped to the tile. The cameras stand on it.
+export function groundOf(files, scene) {
+    const raw = files.get('height.r16');
+    const meta = scene.height;
+    if (!raw || !meta?.size) return null;
+    const data = new Uint16Array(raw.buffer, raw.byteOffset, raw.byteLength / 2);
+    const { z, x, y } = scene.tile;
+    const frame = tileFrame(z, x, y, scene.frame.h);
+    const b = tileBbox(z, x, y);
+    const sw = localFromLonLat(frame, b.west, b.south);
+    const ne = localFromLonLat(frame, b.east, b.north);
+    const n = meta.size;
+    const span = meta.max - meta.min || 1;
+    return (px, pz) => {
+        const fu = Math.min(Math.max((px - sw.x) / (ne.x - sw.x) * (n - 1), 0), n - 1.0001);
+        const fv = Math.min(Math.max((pz - ne.z) / (sw.z - ne.z) * (n - 1), 0), n - 1.0001);
+        const i = Math.floor(fu); const j = Math.floor(fv);
+        const su = fu - i; const sv = fv - j;
+        const h = (k) => meta.min + data[k] / 65535 * span;
+        return (h(j * n + i) * (1 - su) + h(j * n + i + 1) * su) * (1 - sv)
+            + (h((j + 1) * n + i) * (1 - su) + h((j + 1) * n + i + 1) * su) * sv;
     };
 }
 
@@ -82,7 +109,7 @@ export async function run({ atom, inputs, canvas, log, filesUrl }) {
     const files = readTar(inputs.assemble);
     const scene = JSON.parse(new TextDecoder().decode(files.get('scene.json')));
     const meshes = unpackMeshes(files.get('mesh.bin'), scene.meshes);
-    const cams = cameraSet(set, boundsOf(meshes)).slice(from, to);
+    const cams = cameraSet(set, boundsOf(meshes), groundOf(files, scene)).slice(from, to);
 
     const tracer = new Tracer(canvas(size, size), size, { samples, bounces });
     const assets = await placeAssets(tracer, scene, filesUrl);

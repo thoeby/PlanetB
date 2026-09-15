@@ -7,7 +7,7 @@ import assert from 'node:assert/strict';
 import { emptySplats } from '../lib/ply.js';
 import { rng } from '../lib/poly.js';
 import { pointsPicture, shuffled, topDown } from '../lib/preview.js';
-import { captionOf } from '../js/workui.js';
+import { captionOf, shareOf } from '../js/workui.js';
 
 const dots = (f, at) => {
     for (let i = 0; i < f.count; i++) {
@@ -48,4 +48,6 @@ test('the caption says what the picture is', () => {
     assert.equal(captionOf({ event: 'frame', done: 3, of: 20, tile: { z: 16, x: 1, y: 2 } }),
         '16/1/2 frame 3 of 20 traced');
     assert.match(captionOf({ event: 'train', iter: 400, of: 1500, splats: 600000 }), /400 of 1500/);
+    assert.equal(shareOf({ event: 'frame', done: 5, of: 20 }), 0.25);
+    assert.equal(shareOf({ event: 'sampled' }), null);
 });

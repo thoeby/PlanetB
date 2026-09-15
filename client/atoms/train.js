@@ -13,7 +13,7 @@
 // quality assurance, not proof.
 
 import { cameraSet, viewCount } from '../lib/cameras.js';
-import { boundsOf as frameBounds } from './frame.js';
+import { boundsOf as frameBounds, groundOf } from './frame.js';
 import { pointsPicture, shuffled } from '../lib/preview.js';
 import { holdout } from '../lib/frames.js';
 import {
@@ -139,7 +139,8 @@ export async function run({ atom, inputs, log }) {
     // Shuffled so any prefix is a fair sample: the preview reads a prefix.
     const seed = shuffled(sampleSurfaces(meshes, budget, random, { spread: SPREAD }), random);
     const set = atom.params?.camera_set;
-    const eye = cameraSet(set, frameBounds(meshes))[holdout(viewCount(set) || 1)[0]];
+    const ground = groundOf(files, scene);
+    const eye = cameraSet(set, frameBounds(meshes), ground)[holdout(viewCount(set) || 1)[0]];
     log?.({ event: 'seeded', tile: scene.tile, splats: seed.count,
         picture: pointsPicture(seed, eye) });
 
