@@ -77,14 +77,18 @@ export function configFor(init, { iters, budget, size, seed = 42 }) {
 
 // Drives a training run to its end. `onStep(iter, elapsedMs)` is how the atom
 // beats its heartbeat; a Warning from brush is logged, not fatal.
+// `steps` a call: trainSteps returns only once that many steps have run, and
+// everything brush says on the way — loading, the seed placed, kernels tuned
+// — comes back with it. The first call asks for one step, so those reach the
+// panel before minutes of the first steps on a slow card, not after.
 export async function trainIn(app, dir, config,
-    { steps = 25, onStep, onWarn, onBatch, onStage } = {}) {
+    { steps = 5, onStep, onWarn, onBatch, onStage } = {}) {
     const { BrushMessageKind: K } = mod;
     const training = app.startTrainingFromDirectory(dir, async (init) => ({ ...init, ...config }));
     let done = false;
     let iter = 0;
     while (!done) {
-        const msgs = await training.trainSteps(steps).catch((err) => {
+        const msgs = await training.trainSteps(iter ? steps : 1).catch((err) => {
             throw new Error(`brush stopped at iteration ${iter}: ${err?.message ?? err}`
                 + (lastPanic ? ` — ${lastPanic}` : ''));
         });
