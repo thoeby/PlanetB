@@ -96,6 +96,7 @@
   import { mountPermission } from './js/permission.js';
   import { mountShare, nearestGround, parseVisit, visitHash } from './js/visit.js';
   import { mountSky } from './js/sky.js';
+  import { DemFloor } from './js/floor.js';
 
   api.configure();
 
@@ -268,9 +269,13 @@
   });
   spot.start(streamer, { busy: () => Boolean(work.loop()?.atom) });
 
-  // The floor is what has been published: every z14 tile of the ground is
-  // compiled (db/0104_thewholeground.sql), so there is nothing else to stand on.
-  const terrain = new Terrain(streamer);
+  // The floor is the finest published tile's height file, and where nothing
+  // is published yet, the elevation itself (client/js/floor.js): read, not
+  // drawn. Every z14 tile of the ground is compiled (db/0104), so the second
+  // is only ever a stopgap.
+  const terrain = new Terrain(streamer, {
+      ground: ground?.coverage ? new DemFloor({ filesUrl: api.endpoints().files }) : null,
+  });
   const player = new Player(terrain, { mode: WALK });
   // The corner says which way you are moving and what the keys do about it:
   // Shift runs on the ground and goes down in the air, and forward follows

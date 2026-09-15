@@ -1519,3 +1519,9 @@ gentle occlusion in the creases; the rasteriser has most of the picture.
 fog in the horizon colour over everything PlayCanvas draws, splats included.
 Server: a stale dem-v1 cut on disk is recut; an 8-bit coverage is refused
 with a sentence saying to publish it as float32.
+
+## The floor is the elevation where nothing is published
+
+`client/js/floor.js`: walking reads the z14 `/geo/dem` tile under the player
+— the same file the compile reads — and stands on it until a published
+tile's height file takes over. Nothing is drawn or made; one fetch per tile.
