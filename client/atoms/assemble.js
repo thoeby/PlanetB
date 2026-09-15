@@ -15,7 +15,7 @@
 // seeded from the atom, and the tar carries no timestamps.
 
 import { fetchJson } from '../js/api.js';
-import { loadDem } from '../lib/geo.js';
+import { loadDem, loadImage, sampleRgb } from '../lib/geo.js';
 import { loadAssets } from '../lib/assets.js';
 import { boundsOf, placeMeshes } from '../lib/glbmesh.js';
 import { packMeshes } from '../lib/mesh.js';
@@ -155,7 +155,21 @@ function colliderOf(meshes, at) {
 }
 
 // The scene itself: ground first, then everything that stands on it.
-function build({ z, sw, ne, dem, frame, world, random, assets }) {
+// What the ground looks like where the operator has said so (db/0106): the
+// albedo's colour, dimmed by the shade where there is one. Null without an
+// albedo, and the ramp by height and slope answers instead.
+async function groundColour(z, x, y, filesUrl) {
+    const albedo = await loadImage('albedo', z, x, y, { filesUrl });
+    const shade = albedo ? await loadImage('shade', z, x, y, { filesUrl }) : null;
+    if (!albedo) return null;
+    return (u, v) => {
+        const base = sampleRgb(albedo, u, v);
+        const dim = base && shade ? sampleRgb(shade, u, v) : null;
+        return dim ? base.map((c, k) => c * dim[k]) : base;
+    };
+}
+
+function build({ z, sw, ne, dem, frame, world, random, assets, colourAt = null }) {
     // What a feature becomes is decided by the world's rules, which travel with
     // it (db/0036_rules.sql): nothing here knows a species or a column name.
     const rules = world.rules ?? [];
@@ -174,7 +188,7 @@ function build({ z, sw, ne, dem, frame, world, random, assets }) {
     const built = buildings(by('footprint'), terrain, rules);
     const wood = trees(by('forest'), terrain, random, Math.max(6, edge / 140), rules);
     const placed = placeInstances(world.instances, assets ?? new Map(), frame);
-    const meshes = clip([terrainMesh(terrain), roadMesh(roads, terrain),
+    const meshes = clip([terrainMesh(terrain, 'terrain', colourAt), roadMesh(roads, terrain),
         built.walls, built.roofs, waterMesh(by('water'), terrain),
         wood.trunks, wood.canopies, ...placed.meshes], sw, ne);
     built.boxes = [...built.boxes, ...placed.boxes].filter((b) => b.center[0] >= sw.x - CLIP_M
@@ -199,9 +213,8 @@ export async function run({ atom, log, apiUrl, filesUrl }) {
     }
 
     const dem = await loadDem(z, x, y, { filesUrl });
-    if (!dem) {
-        throw new Error(`no ground at ${z}/${x}/${y}: it is outside the world's coverage`);
-    }
+    if (!dem) throw new Error(`no ground at ${z}/${x}/${y}: it is outside the world's coverage`);
+    const colourAt = await groundColour(z, x, y, filesUrl);
 
     const b = tileBbox(z, x, y);
     const centre = { lon: (b.west + b.east) / 2, lat: (b.south + b.north) / 2 };
@@ -212,7 +225,7 @@ export async function run({ atom, log, apiUrl, filesUrl }) {
 
     const assets = await loadAssets(world.instances, { filesUrl });
     const { terrain, meshes, built, wood, roads, placed } =
-        build({ z, sw, ne, dem, frame, world, random: rngOf(atom, z, x, y), assets });
+        build({ z, sw, ne, dem, frame, world, random: rngOf(atom, z, x, y), assets, colourAt });
     log?.({ event: 'assembled', z, x, y, meshes: meshes.length, trees: wood.count,
         buildings: built.boxes.length, roads: roads.length,
         instances: placed.meshes.length, missing: placed.missing });

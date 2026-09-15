@@ -297,7 +297,7 @@ class Handler(BaseHTTPRequestHandler):
             tile = ground.parse_request(path)
             if tile:
                 try:
-                    target = ground.cut(self.cfg, *tile) or target
+                    target = ground.cut(self.cfg, *tile) or target  # (z, x, y, kind)
                 except (Exception, SystemExit) as err:  # noqa: BLE001
                     # 404 here would be read as "there is no world at this
                     # tile" (client/lib/geo.js), and the tab would say the

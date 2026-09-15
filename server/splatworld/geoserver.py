@@ -389,3 +389,21 @@ def probe(base: str, user: str | None, password: str | None) -> dict:
         return {"error": result.get("coverages_error") or result.get("layers_error")
                 or "connected, but this GeoServer publishes nothing"}
     return result
+
+
+def map_tile_url(base: str, layer: str, bbox: tuple, size: int) -> str:
+    """One tile of a layer as a picture: WMS 1.1.1 GetMap in the tile projection.
+
+    An albedo or a shade (db/0106) is a picture, not a measurement, so the WMS
+    draws it straight in EPSG:3857 and nothing is warped here. Outside the
+    layer's data the picture is transparent, which client/lib/geo.js reads as
+    "no albedo here".
+    """
+    west, south, east, north = bbox
+    query = urllib.parse.urlencode({
+        "service": "WMS", "version": "1.1.1", "request": "GetMap",
+        "layers": wcs10_name(layer), "styles": "", "srs": TILE,
+        "bbox": f"{west},{south},{east},{north}",
+        "width": size, "height": size, "format": "image/png", "transparent": "true",
+    }, quote_via=urllib.parse.quote)
+    return f"{service_url(base, 'wms')}?{query}"

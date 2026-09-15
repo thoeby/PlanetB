@@ -95,18 +95,20 @@ def test_nodata_becomes_sea_level_not_a_hole():
 
 
 def test_parse_request_takes_only_tiles_that_exist():
-    assert ground.parse_request("/geo/dem/14/8557/5736.r16") == (14, 8557, 5736)
+    assert ground.parse_request("/geo/dem/14/8557/5736.r16") == (14, 8557, 5736, "dem")
+    assert ground.parse_request("/geo/albedo/14/8557/5736.png") == (14, 8557, 5736, "albedo")
     assert ground.parse_request("/geo/dem/13/1/1.r16") is None     # odd zoom
     assert ground.parse_request("/geo/dem/14/99999999/1.r16") is None
     assert ground.parse_request("/geo/ortho/14/1/1.webp") is None
+    assert ground.parse_request("/geo/albedo/14/1/1.r16") is None  # wrong ext
     assert ground.parse_request("/tiles/14/1/1/abc.sog") is None
 
 
 def test_the_cut_is_written_once_and_reused(wcs, tmp_path: Path, monkeypatch):
     """Two tabs walking onto the same tile ask GeoServer once."""
     cfg = Config(files_root=tmp_path)
-    monkeypatch.setattr(ground, "ground_of", lambda conn: {
-        "url": wcs, "coverage": "ch:alti", "extent": SWISS})
+    monkeypatch.setattr(ground, "layers_of", lambda conn, kind: [{
+        "url": wcs, "coverage": "ch:alti", "extent": SWISS}])
     monkeypatch.setattr(ground, "remember", lambda *a, **k: None)
 
     class NoDatabase:
@@ -117,7 +119,7 @@ def test_the_cut_is_written_once_and_reused(wcs, tmp_path: Path, monkeypatch):
 
     first = ground.cut(cfg, 14, 8557, 5736)
     assert first and first.is_file()
-    assert first.stat().st_size == 256 * 256 * 2
+    assert first.stat().st_size == 256 * 256 * 4
     asked = len(Stub.asked)
     again = ground.cut(cfg, 14, 8557, 5736)
     assert again == first
@@ -126,8 +128,8 @@ def test_the_cut_is_written_once_and_reused(wcs, tmp_path: Path, monkeypatch):
 
 def test_outside_the_coverage_nothing_is_cut(wcs, tmp_path: Path, monkeypatch):
     cfg = Config(files_root=tmp_path)
-    monkeypatch.setattr(ground, "ground_of", lambda conn: {
-        "url": wcs, "coverage": "ch:alti", "extent": SWISS})
+    monkeypatch.setattr(ground, "layers_of", lambda conn, kind: [{
+        "url": wcs, "coverage": "ch:alti", "extent": SWISS}])
 
     class NoDatabase:
         def __enter__(self): return self

@@ -32,13 +32,19 @@ _cutting: dict[tuple[int, int, int], threading.Lock] = {}
 _cutting_guard = threading.Lock()
 
 
-def _lock(key: tuple[int, int, int]) -> threading.Lock:
+def _lock(key: tuple) -> threading.Lock:
     with _cutting_guard:
         return _cutting.setdefault(key, threading.Lock())
 
 
-def tile_path(cfg: Config, z: int, x: int, y: int) -> Path:
-    return cfg.files / "geo" / "dem" / str(z) / str(x) / f"{y}.r16"
+# What each kind of ground is served as: elevation as dem-v2 samples, an
+# albedo or a shade as the PNG the WMS drew, which the browser decodes.
+EXT = {"dem": "r16", "albedo": "png", "shade": "png"}
+IMAGE_SIZE = 512
+
+
+def tile_path(cfg: Config, z: int, x: int, y: int, kind: str = "dem") -> Path:
+    return cfg.files / "geo" / kind / str(z) / str(x) / f"{y}.{EXT[kind]}"
 
 
 def ground_of(conn) -> dict | None:
@@ -49,6 +55,26 @@ def ground_of(conn) -> dict | None:
         return None
     return {"url": row[0], "coverage": row[1],
             "extent": (row[2], row[3], row[4], row[5])}
+
+
+def layers_of(conn, kind: str) -> list[dict]:
+    """The ground's sources of one kind, in priority order (db/0106).
+
+    For elevation the `ground` row itself comes first; the layers follow.
+    """
+    out = []
+    if kind == "dem":
+        world = ground_of(conn)
+        if world:
+            out.append(world)
+    rows = conn.execute(
+        "SELECT geoserver_url, layer, st_xmin(extent), st_ymin(extent),"
+        " st_xmax(extent), st_ymax(extent) FROM ground_layer"
+        " WHERE kind = %s ORDER BY priority, id", (kind,)).fetchall()
+    for row in rows:
+        out.append({"url": row[0], "coverage": row[1],
+                    "extent": (row[2], row[3], row[4], row[5])})
+    return out
 
 
 def covers(extent: tuple, z: int, x: int, y: int) -> bool:
@@ -309,50 +335,73 @@ class CutFailed(Exception):
     """
 
 
-def cut(cfg: Config, z: int, x: int, y: int) -> Path | None:
-    """This tile's elevation as a file, cutting it first if nobody has.
+def cut(cfg: Config, z: int, x: int, y: int, kind: str = "dem") -> Path | None:
+    """This tile of one kind of ground as a file, cutting it first if nobody has.
 
-    Returns None when there is no world here: no ground chosen, or the tile is
-    outside the coverage. The viewer says so rather than showing a hole.
+    Returns None when there is no world here: no ground chosen, or no layer of
+    this kind reaches the tile. The viewer says so rather than showing a hole.
+    Elevation comes from the first layer that reaches the tile and answers
+    (db/0106: the ground, then its dem layers by priority); an albedo or a
+    shade from the first WMS layer of that kind that reaches it.
     """
-    from . import geoserver
-
-    target = tile_path(cfg, z, x, y)
-    with _lock((z, x, y)):
+    target = tile_path(cfg, z, x, y, kind)
+    with _lock((kind, z, x, y)):
         if target.is_file():
             return target
         with psycopg.connect(cfg.dsn(), autocommit=True) as conn:
-            world = ground_of(conn)
-            if not world or not covers(world["extent"], z, x, y):
-                return None
             auth = _auth_header(cfg.geoserver_user, cfg.geoserver_admin_password)
-            box = crs.tile_bounds(z, x, y)
-            # Ask for the part of this tile the coverage actually has. A tile
-            # at z10 is twenty-seven kilometres across and a coverage is often
-            # four, and a WCS asked for ground it has not got answers with an
-            # exception report rather than with nodata. What comes back is
-            # warped onto the whole tile regardless, so the rest of it is
-            # nodata, which is what it is.
-            asked = crs.clip(box, crs.merc_box(world["extent"]))
-            if asked is None:
+            body = None
+            for layer in layers_of(conn, kind):
+                if not covers(layer["extent"], z, x, y):
+                    continue
+                body = (_cut_dem(layer, z, x, y, auth) if kind == "dem"
+                        else _cut_image(layer, z, x, y, auth))
+                if body:
+                    break
+            if not body:
                 return None
-            raw, url = _ask(world, asked, auth, f"{z}/{x}/{y}")
-            if not raw:
-                return None
-            try:
-                body = encode_geotiff(raw, box)
-            except Exception as err:  # noqa: BLE001 - said back to the browser
-                raise CutFailed(f"the coverage came back but could not be read:"
-                                f" {err} — asked: {url}") from err
-            sha = hashlib.sha256(body).hexdigest()
             target.parent.mkdir(parents=True, exist_ok=True)
             # Written beside and moved into place, so a second tab never reads
             # half a tile.
             tmp = target.with_suffix(f".{os.getpid()}.part")
             tmp.write_bytes(body)
             os.replace(tmp, target)
-            remember(conn, z, x, y, sha, len(body))
+            if kind == "dem":
+                remember(conn, z, x, y, hashlib.sha256(body).hexdigest(), len(body))
             return target
+
+
+def _cut_dem(world: dict, z: int, x: int, y: int, auth: dict) -> bytes | None:
+    box = crs.tile_bounds(z, x, y)
+    # Ask for the part of this tile the coverage actually has. A tile at z10
+    # is twenty-seven kilometres across and a coverage is often four, and a
+    # WCS asked for ground it has not got answers with an exception report
+    # rather than with nodata. What comes back is warped onto the whole tile
+    # regardless, so the rest of it is nodata, which is what it is.
+    asked = crs.clip(box, crs.merc_box(world["extent"]))
+    if asked is None:
+        return None
+    raw, url = _ask(world, asked, auth, f"{z}/{x}/{y}")
+    if not raw:
+        return None
+    try:
+        return encode_geotiff(raw, box)
+    except Exception as err:  # noqa: BLE001 - said back to the browser
+        raise CutFailed(f"the coverage came back but could not be read:"
+                        f" {err} — asked: {url}") from err
+
+
+def _cut_image(layer: dict, z: int, x: int, y: int, auth: dict) -> bytes | None:
+    """One tile of a WMS layer as a PNG, drawn straight in the tile projection."""
+    from . import geoserver
+
+    url = geoserver.map_tile_url(layer["url"], layer["coverage"], crs.tile_bounds(z, x, y),
+                                 IMAGE_SIZE)
+    raw = fetch(url, auth, what=f"{layer['coverage']} for {z}/{x}/{y}")
+    if not raw.startswith(b"\x89PNG"):
+        raise CutFailed(f"{layer['coverage']} did not come back as a PNG: "
+                        f"{_said(raw[:300].decode('utf8', 'replace'))} — asked: {url}")
+    return raw
 
 
 def remember(conn, z: int, x: int, y: int, sha: str, size: int) -> None:
@@ -374,17 +423,20 @@ def remember(conn, z: int, x: int, y: int, sha: str, size: int) -> None:
         " cut_at = now()", (z, x, y, sha))
 
 
-def parse_request(path: str) -> tuple[int, int, int] | None:
-    """/geo/dem/{z}/{x}/{y}.r16 -> (z, x, y), or None if it is something else."""
+def parse_request(path: str) -> tuple[int, int, int, str] | None:
+    """/geo/{kind}/{z}/{x}/{y}.{ext} -> (z, x, y, kind), or None otherwise."""
     import re
 
-    m = re.fullmatch(r"/geo/dem/(\d+)/(\d+)/(\d+)\.r16", path)
+    m = re.fullmatch(r"/geo/(dem|albedo|shade)/(\d+)/(\d+)/(\d+)\.(r16|png)", path)
     if not m:
         return None
-    z, x, y = (int(v) for v in m.groups())
+    kind, ext = m.group(1), m.group(5)
+    if EXT[kind] != ext:
+        return None
+    z, x, y = (int(v) for v in m.groups()[1:4])
     if z % 2 or z < 6 or z > 18 or x >= 2 ** z or y >= 2 ** z:
         return None
-    return z, x, y
+    return z, x, y, kind
 
 
 def probe(cfg: Config, z: int, x: int, y: int, out=print) -> int:

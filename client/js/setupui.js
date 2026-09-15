@@ -11,6 +11,7 @@
 // PostgREST like every other write and the database decides who may (T0, §6).
 
 import * as api from './api.js';
+import { el } from './chrome.js';
 
 // Design 3k: three numbered steps, in the order they have to happen. Step 1
 // is the account, and client/js/auth.js mounts its form into the slot below —
@@ -54,6 +55,17 @@ const HTML = `
       <button type="button" class="gs-again">Render the whole ground again</button>
     </div>
     <p class="gs-ground status"></p>
+    <div class="note">More of the ground: another elevation over or under
+      this one, an orthophoto for the ground's colour, a shade to lay over it.
+      Delete the store's geo/ folder after changing these, then render again.</div>
+    <div class="row">
+      <select class="gs-lkind"><option value="dem">elevation</option>
+        <option value="albedo">albedo</option><option value="shade">shade</option></select>
+      <select class="gs-llayer"><option value="">connect first</option></select>
+      <input class="gs-lprio" type="number" value="0" title="priority" style="width:4em">
+      <button type="button" class="gs-ladd">Add layer</button>
+    </div>
+    <ul class="gs-layers"></ul>
     <p class="gs-drawer note"></p>
   </div>
 </div>`;
@@ -160,6 +172,32 @@ async function again(q, say) {
     }
 }
 
+// The ground's layers (db/0106): what there is, and a way to take one out.
+function listLayers(q, g, refresh) {
+    const items = (g?.layers ?? []).map((l) => {
+        const gone = el('button', { type: 'button', textContent: 'Remove' });
+        gone.onclick = () => api.rpc('drop_ground_layer', { id: l.id }).then(refresh);
+        return el('li', {}, `${l.kind} \u00b7 ${l.layer} \u00b7 priority ${l.priority} `, gone);
+    });
+    q('.gs-layers').replaceChildren(...items);
+}
+
+async function addLayer(q, say, found, refresh) {
+    const chosen = found.find((c) => c.id === q('.gs-llayer').value);
+    const box = chosen && bbox(chosen);
+    if (!box) { say('.gs-ground', 'connect and pick a layer first', true); return; }
+    const [west, south, east, north] = box;
+    try {
+        await api.rpc('set_ground_layer', {
+            kind: q('.gs-lkind').value, url: q('.gs-url').value.trim(), layer: chosen.id,
+            west, south, east, north, priority: Number(q('.gs-lprio').value) || 0,
+        });
+        await refresh();
+    } catch (err) {
+        say('.gs-ground', String(err.body?.message ?? err.message ?? err), true);
+    }
+}
+
 export function mountSetup(host, { onGround = () => {} } = {}) {
     const box = document.createElement('div');
     box.innerHTML = HTML;
@@ -176,6 +214,7 @@ export function mountSetup(host, { onGround = () => {} } = {}) {
     async function show() {
         const g = await api.rpc('ground').catch(() => null);
         say('.gs-ground', describe(g));
+        listLayers(q, g, show);
         markSteps(q, g);
         if (g?.geoserver_url && !q('.gs-url').value) q('.gs-url').value = g.geoserver_url;
         await sayWhoDraws(say);
@@ -206,8 +245,11 @@ export function mountSetup(host, { onGround = () => {} } = {}) {
         }
     }
 
-    q('.gs-connect').onclick = () => connect(q, say).then((c) => { found = c; }).catch(
-        (err) => say('.gs-status', String(err.message ?? err), true));
+    q('.gs-connect').onclick = () => connect(q, say).then((c) => {
+        found = c;
+        q('.gs-llayer').replaceChildren(...c.map((l) => new Option(l.title, l.id)));
+    }).catch((err) => say('.gs-status', String(err.message ?? err), true));
+    q('.gs-ladd').onclick = () => addLayer(q, say, found, show);
     q('.gs-done').onclick = () => done();
     q('.gs-again').onclick = () => again(q, say);
 

@@ -222,8 +222,10 @@ export function openAt(h, size, i, j, stepX, stepZ, radius = 3) {
 }
 
 // The ground as its own colour; the light is the renderer's
-// (client/lib/raster.js).
-export function terrainMesh(terrain, material = 'terrain') {
+// (client/lib/raster.js). `colourAt(u, v)` — 0..1 across the tile — is what
+// the operator's albedo says the ground is there, or null where it says
+// nothing (db/0106); the ramp by height and slope is the answer without it.
+export function terrainMesh(terrain, material = 'terrain', colourAt = null) {
     const m = new Mesh(material);
     const n = terrain.size;
     for (let j = 0; j < n; j++) {
@@ -232,8 +234,9 @@ export function terrainMesh(terrain, material = 'terrain') {
             const s = terrain.slope(i, j);
             const open = openAt(terrain.h, n, i, j,
                 Math.abs(terrain.stepX), Math.abs(terrain.stepZ));
-            m.vertex([terrain.x(i), h, terrain.z(j)], normalAt(terrain, i, j),
-                terrainColour(s, h + terrain.datum, open));
+            const own = colourAt?.(i / (n - 1), j / (n - 1))
+                ?? terrainColour(s, h + terrain.datum, open);
+            m.vertex([terrain.x(i), h, terrain.z(j)], normalAt(terrain, i, j), own);
         }
     }
     for (let j = 0; j < n - 1; j++) {

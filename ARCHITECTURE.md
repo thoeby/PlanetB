@@ -131,7 +131,7 @@ Capability filter at claim: `train` needs `webgpu` and a `maxBufferSize` at leas
 /assets/{sha}.glb   /assets/{sha}.webp
 /tiles/{z}/{x}/{y}/{sha}.sog      manifest lives in tile.manifest (DB), not a file
 /jobs/{atom_id}/{sha}             intermediate artifacts, GC after job done + 7 d
-/geo/dem/{z}/{x}/{y}.r16   /geo/ortho/{z}/{x}/{y}.webp    pre-cut inputs, immutable per seed version
+/geo/dem/{z}/{x}/{y}.r16   /geo/albedo/{z}/{x}/{y}.png   /geo/shade/{z}/{x}/{y}.png   cut on first request from the ground layers (db/0106)
 ```
 `PUT` allowed only where `can_write` says yes; `Cache-Control: immutable` everywhere.
 

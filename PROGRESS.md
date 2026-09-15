@@ -1493,3 +1493,14 @@ whether or not that tile is loaded as splats, so LOD no longer decides
 whether you can stand. The hand-written trainer (`gsgpu`, `gsgrad`, `gsopt`,
 `gstrain`, `gswgsl*`) is deleted; brush is the trainer, `gsrast/gsmath/
 gsmodel` stay for the verifier.
+
+## 0106: the ground has layers
+
+`ground_layer` (kind dem / albedo / shade, GeoServer layer, extent, priority),
+set and dropped by an admin from Setup. The server cuts elevation from the
+first dem layer reaching a tile (the `ground` row first), and an albedo or a
+shade as a 512² PNG drawn by the WMS straight in EPSG:3857
+(`/geo/albedo/…png`, `/geo/shade/…png`). `assemble` colours every terrain
+vertex from the albedo where it has one, dimmed by the shade, and falls back
+to the height/slope ramp elsewhere. Changing layers empties `geo_tile`; the
+cut files on disk are the operator's to delete before rendering again.

@@ -24,7 +24,7 @@ function subRect(z, x, y, az) {
 export async function loadRaster(kind, z, x, y, { filesUrl = '', fetchFn = fetch, decode }) {
     for (let az = z; az >= MIN_Z; az -= 2) {
         const r = subRect(z, x, y, az);
-        const ext = kind === 'dem' ? 'r16' : 'webp';
+        const ext = kind === 'dem' ? 'r16' : 'png';
         const url = `${filesUrl}/geo/${kind}/${az}/${r.ax}/${r.ay}.${ext}`;
         const res = await fetchFn(url);
         if (res.status === 404) continue;
@@ -84,6 +84,23 @@ export const loadDem = (z, x, y, opts) =>
     loadRaster('dem', z, x, y, { ...opts, decode: opts.decode ?? decodeDem });
 
 export const sampleHeight = (dem, u, v) => bilinear(dem, u, v, 1, (i) => dem.data[i])[0];
+
+// An albedo or a shade (db/0106): the PNG the WMS drew, decoded with the
+// worker's own OffscreenCanvas (decodeImage, below).
+export const loadImage = (kind, z, x, y, opts) =>
+    loadRaster(kind, z, x, y, {
+        ...opts,
+        decode: opts.decode ?? ((b) => decodeImage(b, (w, h) => new OffscreenCanvas(w, h))),
+    });
+
+// The picture's colour at (u, v) as linear RGB 0..1, or null where the
+// picture is transparent — outside the layer's data.
+const toLinear = (c) => (c <= 0.04045 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4);
+export function sampleRgb(img, u, v) {
+    const [r, g, b, a] = bilinear(img, u, v, 4, (i) => img.data[i]);
+    if (a < 128) return null;
+    return [toLinear(r / 255), toLinear(g / 255), toLinear(b / 255)];
+}
 
 // WebP has no decoder in plain JS; the browser's is reachable from a worker
 // through createImageBitmap and an OffscreenCanvas, which is where atoms run.
