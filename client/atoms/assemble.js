@@ -1,4 +1,4 @@
-// assemble.js — `assemble-v2`. The world, as geometry, in one tile's own frame.
+// assemble.js — `assemble-v3`. The world, as geometry, in one tile's own frame.
 //
 // Terrain from the seeded DEM, cut by terrainmods and roads; footprints
 // extruded; forests scattered; water laid flat; the ground coloured by its own
@@ -26,11 +26,15 @@ import { MATERIALS, buildings, roadMesh, trees, waterMesh } from '../lib/props.j
 import { rngOf, sampleSurfaces } from '../lib/sampling.js';
 import { writeTar } from '../lib/tar.js';
 import {
-    GRID, Terrain, applyTerrainmods, cutRoads, heightRaster, terrainMesh,
+    GRID, Terrain, applyTerrainmods, bakeLight, cutRoads, heightRaster, terrainMesh,
 } from '../lib/terrain.js';
 import { localFromLonLat, tileBbox, tileFrame } from '../lib/tilemath.js';
 
-export const ALGO = 'assemble-v2';
+// v3 bakes the light into every vertex (client/lib/light.js shade, with the
+// ground's own shadow from client/lib/terrain.js sunlitAt) and reads the whole
+// of the cut elevation (terrain.js GRID). Frames, sampled splats and the ground
+// mesh all carry that one colour, which is what closes the seams between them.
+export const ALGO = 'assemble-v3';
 
 // What assemble and sample both use to turn surfaces into splats; re-exported
 // because both atoms have always reached for them here.
@@ -170,9 +174,9 @@ function build({ z, sw, ne, dem, frame, world, random, assets }) {
     const built = buildings(by('footprint'), terrain, rules);
     const wood = trees(by('forest'), terrain, random, Math.max(6, edge / 140), rules);
     const placed = placeInstances(world.instances, assets ?? new Map(), frame);
-    const meshes = clip([terrainMesh(terrain), roadMesh(roads, terrain),
+    const meshes = clip(bakeLight([terrainMesh(terrain), roadMesh(roads, terrain),
         built.walls, built.roofs, waterMesh(by('water'), terrain),
-        wood.trunks, wood.canopies, ...placed.meshes], sw, ne);
+        wood.trunks, wood.canopies, ...placed.meshes], terrain), sw, ne);
     built.boxes = [...built.boxes, ...placed.boxes].filter((b) => b.center[0] >= sw.x - CLIP_M
         && b.center[0] <= ne.x + CLIP_M && b.center[2] <= sw.z + CLIP_M
         && b.center[2] >= ne.z - CLIP_M);

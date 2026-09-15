@@ -1,4 +1,4 @@
-// frame.js — `frame-v4`. The views `train` learns a tile from.
+// frame.js — `frame-v5`. The views `train` learns a tile from.
 //
 // One atom renders a range of a camera set (db/0005_jobs.sql chunks them at 20
 // views), so a z18 job's 120 views spread across six tabs. Out comes a tar of
@@ -6,22 +6,21 @@
 // nerfstudio's format and OpenGL's convention.
 //
 // frame-v1 rasterised the assembled mesh with one sun and no shadows. v2 and
-// v3 path-traced it, which was seconds to minutes a frame and grain. v4 is
-// three.js rasterising (client/lib/raster.js): soft shadow maps from the sun,
-// the sky as an environment map, filmic tone mapping, a detail texture on the
-// ground, every placed asset with its own textures from the canonical GLB, and
-// every camera standing on the ground it is over (client/lib/cameras.js).
-// Milliseconds a frame.
+// v3 path-traced it, which was seconds to minutes a frame and grain. v4
+// rasterised with three.js and its own lighting, which was a fourth look next
+// to the sampled tile's and the ground mesh's. v5 draws what assemble-v3
+// baked (client/lib/raster.js): the vertex colours, lit once, as they are —
+// so a frame is what the sampled tile beside it is. Every camera stands on
+// the ground it is over (client/lib/cameras.js). Milliseconds a frame.
 
-import { loadAssets } from '../lib/assets.js';
 import { cameraSet, transformsJson, viewCount } from '../lib/cameras.js';
 import { unpackMeshes } from '../lib/mesh.js';
-import { Raster, loadGlb, meshObject, placeObject, poseOf } from '../lib/raster.js';
+import { Raster, meshObject } from '../lib/raster.js';
 import { toWebp } from '../lib/render.js';
 import { readTar, writeTar } from '../lib/tar.js';
 import { localFromLonLat, tileBbox, tileFrame } from '../lib/tilemath.js';
 
-export const ALGO = 'frame-v4';
+export const ALGO = 'frame-v5';
 export const SIZE = 1024;
 const QUALITY = 0.9;
 
@@ -76,27 +75,7 @@ export function groundOf(files, scene) {
     };
 }
 
-// The placed assets, textured, from their GLBs. If any asset is missing from
-// the store the flat baked copies of all of them stay, so a frame never shows
-// one asset twice or not at all.
-async function placeAssets(raster, scene, filesUrl) {
-    const instances = scene.instances ?? [];
-    if (!instances.length) return { textured: 0, baked: true };
-    const assets = await loadAssets(instances, { filesUrl });
-    if (instances.some((i) => !assets.has(i.sha256))) return { textured: 0, baked: true };
-    const { z, x, y } = scene.tile;
-    const frame = tileFrame(z, x, y, scene.frame.h);
-    const loaded = new Map();
-    for (const inst of instances) {
-        if (!loaded.has(inst.sha256)) {
-            loaded.set(inst.sha256, await loadGlb(assets.get(inst.sha256)));
-        }
-        raster.add(placeObject(loaded.get(inst.sha256).clone(), poseOf(inst, frame)));
-    }
-    return { textured: instances.length, baked: false };
-}
-
-export async function run({ atom, inputs, canvas, log, filesUrl }) {
+export async function run({ atom, inputs, canvas, log }) {
     const set = atom.params.camera_set;
     const from = atom.params.from ?? 0;
     const to = Math.min(atom.params.to ?? viewCount(set), viewCount(set));
@@ -109,12 +88,7 @@ export async function run({ atom, inputs, canvas, log, filesUrl }) {
     const cams = cameraSet(set, boundsOf(meshes), groundOf(files, scene)).slice(from, to);
 
     const raster = new Raster(canvas(size, size), size);
-    const assets = await placeAssets(raster, scene, filesUrl);
-    for (const m of meshes) {
-        if (assets.baked || m.material !== 'asset') {
-            raster.add(meshObject(m, scene.materials, raster.detail));
-        }
-    }
+    for (const m of meshes) raster.add(meshObject(m));
     await raster.build(cams[0]);
 
     const entries = [];
@@ -125,7 +99,7 @@ export async function run({ atom, inputs, canvas, log, filesUrl }) {
             picture: { webp: entries.at(-1).bytes } });
     }
     raster.dispose();
-    log?.({ event: 'framed', set, from, to, size, tile: scene.tile, textured: assets.textured });
+    log?.({ event: 'framed', set, from, to, size, tile: scene.tile });
 
     const transforms = transformsJson(cams, size, entries.map((e) => e.name));
     const tar = writeTar([
@@ -138,7 +112,7 @@ export async function run({ atom, inputs, canvas, log, filesUrl }) {
         output: 'tar',
         result: {
             bytes: tar.length, frames: entries.length, from, to, size,
-            camera_set: set, finite: true, tile: scene.tile, textured: assets.textured,
+            camera_set: set, finite: true, tile: scene.tile,
         },
     };
 }

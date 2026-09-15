@@ -45,7 +45,7 @@ export { cellMetres, groundTile, heightIn } from './groundtile.js';
 // the operator's elevation service, each one 256² of the same rectangle the
 // compile asks for.
 export const GROUND_LEVELS = [
-    { zoom: 16, grid: 129, radius: 1 },
+    { zoom: 16, grid: 257, radius: 1 },
     { zoom: 14, grid: 129, radius: 1 },
     { zoom: 12, grid: 65, radius: 1 },
     { zoom: 10, grid: 65, radius: 1 },

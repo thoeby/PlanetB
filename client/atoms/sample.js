@@ -1,4 +1,4 @@
-// sample.js — `sample-v3`. The baseline tile, without training.
+// sample.js — `sample-v4`. The baseline tile, without training.
 //
 // A z14 tile is the world's floor: every area is compiled to at least that
 // depth, and there are fourteen thousand of them in Switzerland alone. Training
@@ -15,8 +15,9 @@ import { bboxOf, writePly } from '../lib/ply.js';
 import { readTar, writeTar } from '../lib/tar.js';
 import { topDown } from '../lib/preview.js';
 
-export const ALGO = 'sample-v3';
+export const ALGO = 'sample-v4';
 
+// v4: the colours come lit from assemble-v3 and are kept as they are.
 // v3: the splats go where there is something to see and are the size of the
 // triangle they came from (client/lib/sampling.js), and the light they carry is
 // a sky rather than a lamp (client/lib/light.js).
@@ -36,7 +37,7 @@ export async function run({ atom, inputs, log }) {
     const budget = Number(atom.params?.budget) || scene.budget;
 
     const splats = sampleSurfaces(meshes, budget, rngOf(atom, z, x, y),
-        { spread: SPREAD, shaded: true });
+        { spread: SPREAD });
     if (!splats.count) {
         throw new Error(`nothing to sample in ${z}/${x}/${y}: assemble left no surface `
             + `(${meshes.length} meshes) — is the tile inside the ground's coverage?`);

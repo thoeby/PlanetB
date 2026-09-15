@@ -1429,3 +1429,22 @@ The 30 s poll re-checked only the loaded tiles, so a z16 trained after the page
 was opened stayed "unpublished" in the traversal and its z14 parent never
 refined into it until a reload. The poll now also asks for every tile with
 `published_at` after the previous poll (`fetchRows(loaded, since)`).
+
+## 0103: one look
+
+The frames (three.js with its own lights, shadow maps, tone curve and a noise
+texture), the sampled z14 tile (light.js `shade`) and the live ground mesh
+(the same `shade`) were three renderings of one palette, and met at every
+tile edge as a seam. Now `assemble-v3` lights each vertex once — `shade` with
+the ground's cast shadow from `terrain.js sunlitAt`, a ray marched through the
+DEM towards the sun — and everything downstream draws that colour as it is:
+`frame-v5` (`raster.js` is `MeshBasicMaterial`, no tone mapping, linear
+output: a pixel is the vertex colour to the byte), `sample-v4` (no second
+shading), `groundtile.js` (the same march over its own grid). The textured-GLB
+path in frames is gone with it; placed assets are the flat copies assemble
+bakes, as the sampled tile already showed them.
+
+`GRID` is 257 across at z14/z16/z18 — the store cuts elevation at 256², and
+129 threw three quarters of it away. The z16 ground level is 257 too. Training
+iterations come down to 2 000 (z16) / 2 500 (z18): the frames are the mesh,
+there is nothing for more steps to find.

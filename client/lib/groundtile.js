@@ -19,7 +19,7 @@
 import { sampleHeight } from './geo.js';
 import { shade } from './light.js';
 import * as tm from './tilemath.js';
-import { openAt, terrainColour } from './terrain.js';
+import { heightOn, openAt, sunlitAt, terrainColour } from './terrain.js';
 
 // The sky is client/lib/light.js, the same one the frame atom renders under and
 // the same one a tile's splats are sampled with. The ground a player walks on
@@ -129,16 +129,32 @@ function samples(z, x, y, dem, localOf, grid) {
     return { b, h, lons, lats, positions };
 }
 
+// The heights over the tile's own metres, for the shadow's march: the grid is
+// even in longitude and latitude, which over one tile is even in metres too.
+function heightAt(h, positions, grid) {
+    const west = positions[0];
+    const north = positions[2];
+    const last = (grid - 1) * 3;
+    const stepX = (positions[last] - west) / (grid - 1);
+    const stepZ = (positions[(grid - 1) * grid * 3 + 2] - north) / (grid - 1);
+    return (x, z) => heightOn(h, grid, west, north, stepX, stepZ, x, z);
+}
+
+// Lit exactly as assemble-v3 lights a tile's ground (client/lib/terrain.js
+// terrainMesh): the same sky, the same shadow, so the two meet without a seam.
 function shadeAll(h, positions, grid, b, step) {
     const normals = [];
     const colors = [];
+    const hAt = heightAt(h, positions, grid);
     for (let j = 0; j < grid; j++) {
         for (let i = 0; i < grid; i++) {
             const n = normalAt(positions, grid, i, j);
             normals.push(...n);
             const open = openAt(h, grid, i, j, step, step);
-            const own = terrainColour(slopeAt(h, grid, i, j, b), h[j * grid + i], open);
-            colors.push(...shade(own, n, open));
+            const at = j * grid + i;
+            const own = terrainColour(slopeAt(h, grid, i, j, b), h[at], open);
+            const lit = sunlitAt(hAt, positions[at * 3], h[at], positions[at * 3 + 2], step);
+            colors.push(...shade(own, n, open, lit));
         }
     }
     return { normals, colors };

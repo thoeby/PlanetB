@@ -1,6 +1,9 @@
 # Rendering: quality, time, and where ray tracing goes
 
-**Status.** Since this was written: `train-v2` does T1–T5 (full-budget
+**Status (0103).** `assemble-v3` bakes the one sky and the ground's own
+shadow into every vertex and reads the elevation whole (257 across a tile);
+`frame-v5` draws those colours unlit; `sample-v4` keeps them; the ground mesh
+computes the same. One look, no seams. Iterations 2 000 / 2 500. Earlier: `train-v2` does T1–T5 (full-budget
 seed, no growth, frozen positions, maintenance every 500, 2 000/1 500
 iterations, z18 at 1024 px, overflow reported as `dropped`); `frame-v2`
 path-traces with three.js + three-gpu-pathtracer (Q1, Q2 and the top-down

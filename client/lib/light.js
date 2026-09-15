@@ -3,11 +3,11 @@
 // Three places have to agree about it or the world comes apart at the seams:
 // the ground mesh a player walks on (client/lib/groundtile.js), the splats a
 // tile is sampled into (client/atoms/assemble.js), and the pictures the trainer
-// is shown (client/lib/render.js). They agreed before on one number —
-// `0.55 + 0.55 * max(dot(n, sun), 0)` — which is a lamp in a white room: every
-// surface facing away from the sun was the same flat grey, and every surface
-// facing it was the same flat bright, and a hillside came out as a single
-// colour with no shape in it.
+// is shown (client/lib/raster.js, which draws what assemble baked). They
+// agreed before on one number — `0.55 + 0.55 * max(dot(n, sun), 0)` — which
+// is a lamp in a white room: every surface facing away from the sun was the
+// same flat grey, and every surface facing it was the same flat bright, and a
+// hillside came out as a single colour with no shape in it.
 //
 // So: a sun with a colour, a sky that is blue and comes from above, and the
 // ground bouncing a little warmth back up. Plus a curve at the end, because
@@ -35,11 +35,13 @@ export const BOUNCE_COLOUR = [0.30, 0.28, 0.23];
 
 // The light arriving at a surface, as a multiplier on its own colour.
 // `openness` is how much of the sky it can see — 1 in the open, less in a
-// hollow — and is what gives a hillside its creases.
-export function lightAt(n, openness = 1) {
+// hollow — and is what gives a hillside its creases. `sunlit` is whether the
+// sun reaches it at all — 0 behind a ridge (terrain.js sunlitAt) — and is
+// what gives a valley its afternoon.
+export function lightAt(n, openness = 1, sunlit = 1) {
     const len = Math.hypot(n[0], n[1], n[2]) || 1;
     const up = n[1] / len;
-    const d = Math.max((n[0] * SUN[0] + n[1] * SUN[1] + n[2] * SUN[2]) / len, 0);
+    const d = Math.max((n[0] * SUN[0] + n[1] * SUN[1] + n[2] * SUN[2]) / len, 0) * sunlit;
     const sky = (up * 0.5 + 0.5) * openness;
     const out = [];
     for (let i = 0; i < 3; i++) {
@@ -59,10 +61,13 @@ export function lightAt(n, openness = 1) {
 export const TONE = 1.4;
 export const tone = (c) => Math.min((Math.max(c, 0)) ** (1 / TONE), 1);
 
-// A surface's own colour, lit and toned: what a splat carries and what a
-// vertex of the ground mesh is given.
-export function shade(colour, n, openness = 1) {
-    const light = lightAt(n, openness);
+// A surface's own colour, lit and toned: what a splat carries, what a vertex
+// of the ground mesh is given, and — since assemble-v3 bakes it into the
+// scene — what the frame atom draws. One number, computed once, seen the same
+// from every side: that is why a sampled tile, a trained one and the ground
+// between them meet without a seam.
+export function shade(colour, n, openness = 1, sunlit = 1) {
+    const light = lightAt(n, openness, sunlit);
     return [tone(colour[0] * light[0]), tone(colour[1] * light[1]),
         tone(colour[2] * light[2])];
 }
