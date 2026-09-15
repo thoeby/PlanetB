@@ -97,8 +97,8 @@ async function sending(chosen, ui, { say, refresh, onSubmitted },
         if (andApprove) {
             const done = await api.rpc('approve_submission',
                 { submission_id: out.id });
-            said = `${out.tiles} tile(s) approved \u2014 ${done.queued} render`
-                + ' job(s) are in the pool';
+            said = `${out.tiles} tile(s) approved \u2014 ${done.queued} render job(s)`
+                + ` in the pool${done.published ? `, ${done.published} already published` : ''}`;
         }
     } catch (err) {
         said = String(err.body?.message ?? err.message ?? err);

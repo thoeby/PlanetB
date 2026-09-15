@@ -1525,3 +1525,12 @@ with a sentence saying to publish it as float32.
 `client/js/floor.js`: walking reads the z14 `/geo/dem` tile under the player
 — the same file the compile reads — and stands on it until a published
 tile's height file takes over. Nothing is drawn or made; one fetch per tile.
+
+## 0109: a cancelled job is not the job
+
+`ensure_job` took any job at the tile's version, cancelled ones included. A
+job dropped from the pool is cancelled at exactly that version, so every
+request after it — submit, approve, compile_ground — got the cancelled job
+back and counted it as opened; the pool stayed empty and nothing said why.
+Now a cancelled job is never the answer; `job_outcome` says whether a request
+ended open or published and raises otherwise; approve reports both counts.
