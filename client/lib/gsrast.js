@@ -3,11 +3,11 @@
 // This is the reference implementation of the tile renderer: front-to-back
 // alpha compositing over 16x16 tiles, each tile holding the splats that touch
 // it in depth order. `verify` renders two poses with it, and it is what the
-// WebGPU trainer (client/lib/gsgpu.js) is checked against, so the shader and
+// verifier is checked against, so the shader and
 // this file have to say the same thing.
 //
 // A scene is plain typed arrays, not a ply: positions, linear scales, unit
-// quaternions, linear colours and opacities. client/lib/gstrain.js converts.
+// quaternions, linear colours and opacities.
 
 import { SKY, project } from './gsmath.js';
 

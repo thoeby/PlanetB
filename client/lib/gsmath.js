@@ -4,7 +4,7 @@
 // scale and a rotation in the tile's own frame; seen from a camera it is an
 // ellipse on the image, described by the inverse of its 2D covariance (the
 // "conic"). `verify` renders with this and `train` differentiates through it
-// (client/lib/gsgrad.js), so the two agree by construction.
+// so the two agree by construction.
 //
 // The camera convention is the one client/lib/cameras.js writes into
 // transforms.json: +X right, +Y up, looking down -Z, and pixel rows counted

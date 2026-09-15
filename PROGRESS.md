@@ -1481,3 +1481,15 @@ like z16 (`camera_views(14)` = 56). One renderer draws every frame the world is
 trained from: `raster.js` is lit again (sun with variance shadow maps, the sky
 as an environment map, ACES), `assemble-v4` writes albedo only, `frame-v6`.
 Training steps back to 1 500 (2 000 at z18), as before db/0101.
+
+## 0105: dropped means gone; 400 steps; walking off any published floor
+
+`Drop` is on every job of yours in the pool. It cancels the job, refunds the
+bounty, fails its unfinished pieces, sets the tile's expected_version back to
+what is published and takes the tile out of open submissions — nothing left
+to count or to re-open. Training is 400 steps. The player's floor is the
+height file of the finest *published* tile under them, fetched by its sha
+whether or not that tile is loaded as splats, so LOD no longer decides
+whether you can stand. The hand-written trainer (`gsgpu`, `gsgrad`, `gsopt`,
+`gstrain`, `gswgsl*`) is deleted; brush is the trainer, `gsrast/gsmath/
+gsmodel` stay for the verifier.

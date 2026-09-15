@@ -134,14 +134,20 @@ export class Terrain {
         this.wanted.delete(k);
     }
 
+    // The finest published tile with a floor under this point — published,
+    // not loaded: which tiles are on screen is the streamer's business (a
+    // z12 merge from high up has no height in it), and the floor is the
+    // world's. Loaded tiles without a floor of their own are the fallback.
     tileAt(local) {
         const g = this.streamer.origin.geodeticOf(local);
+        let loaded = null;
         for (let i = tm.ZOOMS.length - 1; i >= 0; i--) {
             const z = tm.ZOOMS[i];
             const k = key(z, tm.tileX(g.lon, z), tm.tileY(g.lat, z));
-            if (this.streamer.entries.has(k)) return k;
+            if (this.streamer.tiles?.get(k)?.manifest?.height) return k;
+            if (!loaded && this.streamer.entries.has(k)) loaded = k;
         }
-        return null;
+        return loaded;
     }
 
     heightAt(local) {
@@ -204,11 +210,14 @@ export class Terrain {
     }
 
     request(k) {
+        const row = this.streamer.tiles?.get(k) ?? this.streamer.entries.get(k)?.row;
+        const man = row?.manifest;
+        // A tile published again has a new floor; the old one is dropped.
+        const had = this.fields.get(k);
+        if (had && man?.height && had.sha !== man.height.sha256) this.forget(k);
         if (this.wanted.has(k)) return;
         this.wanted.add(k);
-        const entry = this.streamer.entries.get(k);
-        const man = entry?.row?.manifest;
-        const { z, x, y } = entry ? entry.row : {};
+        const { z, x, y } = row ?? {};
         if (!man?.height || !man?.colliders) return;
         const base = `${this.streamer.filesUrl}/tiles/${z}/${x}/${y}`;
         const keep = () => this.wanted.has(k);
@@ -216,7 +225,9 @@ export class Terrain {
             .then((r) => (r.ok ? r.arrayBuffer() : null))
             .then((buf) => {
                 if (!buf || !keep()) return;
-                this.fields.set(k, new HeightField(new Uint16Array(buf), man.height, z, x, y));
+                const field = new HeightField(new Uint16Array(buf), man.height, z, x, y);
+                field.sha = man.height.sha256;
+                this.fields.set(k, field);
             })
             .catch(() => this.wanted.delete(k));
         this.fetchFn(`${base}/${man.colliders.sha256}.json`)

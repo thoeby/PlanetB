@@ -155,17 +155,21 @@ export function poolRow(e, acts, caps, picked = null) {
     const end = el('div', { className: 'end' },
         el('span', { style: `color: var(--${Number(e.bounty) > 0 ? 'warn' : 'ink-3'})`,
             textContent: Number(e.bounty) > 0 ? `${cr(e.bounty)} cr` : 'free' }));
-    // What this row offers: a job that gave up started over, or taken out of
-    // the pool, where that is yours to do; nothing at all where it is somebody
-    // else's; and Render only where there is something a tab could be handed.
+    // What this row offers: any job that is yours can be dropped — gone from
+    // the pool, its tile no longer asking (db/0105); one that gave up can be
+    // started over; nothing at all where it is somebody else's; and Render
+    // only where there is something a tab could be handed.
+    if (e.may_retry) {
+        const gone = el('button', { type: 'button', className: 'po-retry',
+            textContent: 'Drop' });
+        gone.onclick = () => acts.drop?.(e, gone);
+        end.append(gone);
+    }
     if (e.failed > 0 && e.may_retry) {
         const again = el('button', { type: 'button', className: 'po-retry',
             textContent: 'Try again' });
         again.onclick = () => acts.retry(e, again);
-        const gone = el('button', { type: 'button', className: 'po-retry',
-            textContent: 'Drop' });
-        gone.onclick = () => acts.drop?.(e, gone);
-        end.append(again, gone);
+        end.append(again);
     } else if (stuck(e)) {
         end.append(el('span', { className: 'chip', 'data-tone': 'bad',
             textContent: e.failed > 0 ? 'stopped \u00b7 its owner can try again'
