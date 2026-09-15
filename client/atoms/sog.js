@@ -61,6 +61,10 @@ export async function run({ atom, inputs, canvas, log, apiUrl }) {
     if (!inputs?.ply) throw new Error('sog needs a ply');
     const { splats: f, extra } = unpack(inputs.ply);
     const budget = Number(atom.params?.budget) || Infinity;
+    if (!f.count) {
+        throw new Error('the ply holds no splats: nothing to encode (the atom that made it'
+            + ' sampled or trained an empty tile)');
+    }
     if (f.count > budget) {
         throw new Error(`${f.count} splats is over the tile's budget of ${budget}`);
     }

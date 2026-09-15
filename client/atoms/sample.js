@@ -37,6 +37,10 @@ export async function run({ atom, inputs, log }) {
 
     const splats = sampleSurfaces(meshes, budget, rngOf(atom, z, x, y),
         { spread: SPREAD, shaded: true });
+    if (!splats.count) {
+        throw new Error(`nothing to sample in ${z}/${x}/${y}: assemble left no surface `
+            + `(${meshes.length} meshes) — is the tile inside the ground's coverage?`);
+    }
     log?.({ event: 'sampled', tile: scene.tile, splats: splats.count,
         picture: topDown(splats) });
     const tar = writeTar([

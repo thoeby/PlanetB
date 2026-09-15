@@ -162,6 +162,11 @@ export async function run({ atom, inputs, log }) {
     const splats = await trainWithBrush({ atom, seed, tars, scene, eye, iters, budget, size, log });
     const box = bounds(seed, MARGIN);
     const out = keep(splats, box.lo, box.hi);
+    if (!out.count) {
+        const got = bboxOf(splats).map((v) => v.toFixed(1)).join(' ');
+        throw new Error(`brush returned ${splats.count} splats and none inside the tile: `
+            + `theirs span [${got}], the seed [${bboxOf(seed).map((v) => v.toFixed(1)).join(' ')}]`);
+    }
     if (out.count > budget) throw new Error(`${out.count} splats is over the budget of ${budget}`);
     const tar = pack(out, files);
     log?.({ event: 'trained', tile: scene.tile, splats: out.count, of: splats.count });
