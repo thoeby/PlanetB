@@ -93,18 +93,20 @@ async function trainWithBrush({ atom, seed, tars, scene, eye, iters, budget, siz
     log?.({ event: 'training', tile: scene.tile, on: 'brush', views: ds.views,
         held: ds.held, from: seed.count, iters, size });
     let training = null;
+    let last = { iter: 0, ms: 0 };
     try {
         const app = new brush.BrushApp();
         app.initExisting(adapter, device, device.queue);
         training = await trainIn(app, dir, configFor({}, { iters, budget, size,
             seed: atom.seed ?? 42 }), {
-            // Every tenth step, with the pace: a silent minute on a slow card
-            // reads as a hang, and the first step is the one that took longest.
+            // Every tenth step, with the pace since the last report: a silent
+            // minute on a slow card reads as a hang, and elapsed-over-steps
+            // would carry the loading and tuning time in front of step one.
             onStep: (iter, ms) => {
-                if (iter % 10 === 0 || iter === 1) {
-                    log?.({ event: 'train', iter, of: iters, ms: Math.round(ms),
-                        per: iter ? Math.round(ms / iter) : null });
-                }
+                if (iter % 10 !== 0 && iter !== 1) return;
+                const per = last.iter ? Math.round((ms - last.ms) / (iter - last.iter)) : null;
+                last = { iter, ms };
+                log?.({ event: 'train', iter, of: iters, ms: Math.round(ms), per });
             },
             onWarn: (text) => log?.({ event: 'warning', text }),
             onStage: (text) => log?.({ event: 'stage', text }),
