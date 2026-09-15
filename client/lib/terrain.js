@@ -165,15 +165,17 @@ export function distanceToSegment(p, a, b) {
 // laid over it is a pattern, and reads as one. Steep ground is rock at every
 // height, because it is.
 const BANDS = [
-    { to: 600, colour: [0.34, 0.50, 0.20] },   // the valley floor, lush
-    { to: 1400, colour: [0.40, 0.54, 0.22] },  // pasture
-    { to: 2100, colour: [0.46, 0.54, 0.25] },  // the alp, going dry
-    { to: 2500, colour: [0.56, 0.53, 0.45] },  // scree
-    { to: 2900, colour: [0.60, 0.58, 0.55] },  // rock
-    { to: Infinity, colour: [0.90, 0.92, 0.95] }, // snow
+    { to: 600, colour: [0.18, 0.30, 0.09] },   // the valley floor, lush
+    { to: 1400, colour: [0.22, 0.33, 0.11] },  // pasture
+    { to: 2100, colour: [0.28, 0.32, 0.13] },  // the alp, going dry
+    { to: 2500, colour: [0.36, 0.34, 0.28] },  // scree
+    { to: 2900, colour: [0.40, 0.38, 0.36] },  // rock
+    { to: Infinity, colour: [0.82, 0.85, 0.90] }, // snow
 ];
 
-const ROCK = [0.48, 0.45, 0.41];
+// Linear albedos: the renderer's tone curve (client/lib/raster.js) is what
+// turns them into what a screen shows, so grass is a fifth of white here.
+const ROCK = [0.30, 0.28, 0.25];
 const mix = (a, b, t) => a.map((c, i) => c * (1 - t) + b[i] * t);
 const clamp01 = (v) => Math.min(1, Math.max(0, v));
 

@@ -92,7 +92,7 @@ export class Raster {
         r.shadowMap.enabled = true;
         r.shadowMap.type = THREE.VSMShadowMap;
         r.toneMapping = THREE.ACESFilmicToneMapping;
-        r.toneMappingExposure = 1.1;
+        r.toneMappingExposure = 1.0;
         r.outputColorSpace = THREE.SRGBColorSpace;
         this.renderer = r;
         this.scene = new THREE.Scene();
