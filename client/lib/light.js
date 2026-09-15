@@ -1,7 +1,7 @@
 // light.js — the one sky this world is lit by.
 //
 // Three places have to agree about it or the world comes apart at the seams:
-// the ground mesh a player walks on (client/lib/groundtile.js), the splats a
+// the map in the corner (client/lib/demshade.js), the splats a
 // tile is sampled into (client/atoms/assemble.js), and the pictures the trainer
 // is shown (client/lib/raster.js, which draws what assemble baked). They
 // agreed before on one number — `0.55 + 0.55 * max(dot(n, sun), 0)` — which

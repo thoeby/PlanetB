@@ -27,7 +27,7 @@ import { readTar, writeTar } from '../lib/tar.js';
 
 export const ALGO = 'train-v3';
 // In-plane radius of a seed splat as a share of its spacing: overlapping, so
-// the first render is a surface and not a sieve (client/atoms/sample.js).
+// the first render is a surface and not a sieve.
 export const SPREAD = 1.15;
 // How far past the seed's box a splat may end up and still be this tile's.
 export const MARGIN = 0.15;

@@ -1,4 +1,4 @@
-// frame.js — `frame-v5`. The views `train` learns a tile from.
+// frame.js — `frame-v6`. The views `train` learns a tile from.
 //
 // One atom renders a range of a camera set (db/0005_jobs.sql chunks them at 20
 // views), so a z18 job's 120 views spread across six tabs. Out comes a tar of
@@ -6,12 +6,13 @@
 // nerfstudio's format and OpenGL's convention.
 //
 // frame-v1 rasterised the assembled mesh with one sun and no shadows. v2 and
-// v3 path-traced it, which was seconds to minutes a frame and grain. v4
-// rasterised with three.js and its own lighting, which was a fourth look next
-// to the sampled tile's and the ground mesh's. v5 draws what assemble-v3
-// baked (client/lib/raster.js): the vertex colours, lit once, as they are —
-// so a frame is what the sampled tile beside it is. Every camera stands on
-// the ground it is over (client/lib/cameras.js). Milliseconds a frame.
+// v3 path-traced it, which was seconds to minutes a frame and grain. v4 and
+// v6 rasterise with three.js (client/lib/raster.js): soft shadow maps from
+// the sun, the sky as an environment map, filmic tone mapping. v5 between
+// them drew colours baked at assemble, for a sampled baseline and a ground
+// mesh that no longer exist: every tile is trained from these frames now,
+// so this is the world's one look. Every camera stands on the ground it is
+// over (client/lib/cameras.js). Milliseconds a frame.
 
 import { cameraSet, transformsJson, viewCount } from '../lib/cameras.js';
 import { unpackMeshes } from '../lib/mesh.js';
@@ -20,7 +21,7 @@ import { toWebp } from '../lib/render.js';
 import { readTar, writeTar } from '../lib/tar.js';
 import { localFromLonLat, tileBbox, tileFrame } from '../lib/tilemath.js';
 
-export const ALGO = 'frame-v5';
+export const ALGO = 'frame-v6';
 export const SIZE = 1024;
 const QUALITY = 0.9;
 
@@ -88,7 +89,7 @@ export async function run({ atom, inputs, canvas, log }) {
     const cams = cameraSet(set, boundsOf(meshes), groundOf(files, scene)).slice(from, to);
 
     const raster = new Raster(canvas(size, size), size);
-    for (const m of meshes) raster.add(meshObject(m));
+    for (const m of meshes) raster.add(meshObject(m, scene.materials));
     await raster.build(cams[0]);
 
     const entries = [];

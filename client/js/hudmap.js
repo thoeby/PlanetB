@@ -32,7 +32,7 @@ function bbox(a) {
 }
 
 // `ground` answers the height at a lon/lat in metres, or null where it has
-// none: client/lib/groundmesh.js, the same land the player is standing on.
+// none: the published tiles the player is standing on (client/play.html).
 // Without it the map was a grid with a triangle in the middle — nothing about
 // where you are, which is the one thing a map is for.
 export function drawMinimap(canvas,
@@ -66,7 +66,7 @@ const CELL = 6;
 // the ground the player is standing on, so what the map says and what they see
 // out of the window are the same hill.
 function terrain(ctx, w, h, at, span, cos, ground) {
-    // Whatever level has the point, finest first (groundmesh.js heightNear).
+    // Whatever has the point.
     // The map is up to twenty kilometres across and the fine ground reaches
     // two and a half, so asking only the level a player stands on drew land in
     // the middle of the canvas and a grid around it. The far corners are a

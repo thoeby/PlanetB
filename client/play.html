@@ -95,7 +95,6 @@
   import { mountPool, mountSubmit } from './js/pool.js';
   import { mountPermission } from './js/permission.js';
   import { mountShare, nearestGround, parseVisit, visitHash } from './js/visit.js';
-  import { Ground } from './lib/groundmesh.js';
 
   api.configure();
 
@@ -266,20 +265,9 @@
   });
   spot.start(streamer, { busy: () => Boolean(work.loop()?.atom) });
 
-  // SPEC §0.1: ground is always drawn and always walkable, whether or not
-  // anything has been rendered there. The DEM tiles the compile reads are the
-  // floor; published splats sit on top of them.
-  const groundMesh = new Ground({
-    pc, app, origin, filesUrl: api.endpoints().files,
-    // The edge of the world: no ground is drawn past the operator's coverage,
-    // because there is none and what a DEM tile says out there is sea level.
-    within: Number.isFinite(ground?.west)
-        ? { west: ground.west, south: ground.south,
-            east: ground.east, north: ground.north }
-        : null,
-  });
-  groundMesh.onSaid = (what) => { world.textContent = what; };
-  const terrain = new Terrain(streamer, { ground: groundMesh });
+  // The floor is what has been published: every z14 tile of the ground is
+  // compiled (db/0104_thewholeground.sql), so there is nothing else to stand on.
+  const terrain = new Terrain(streamer);
   const player = new Player(terrain, { mode: WALK });
   // The corner says which way you are moving and what the keys do about it:
   // Shift runs on the ground and goes down in the air, and forward follows
@@ -611,28 +599,6 @@
       share.refresh();
   }
 
-  // Whether splats are already drawn over a z14 tile's ground: the tile itself
-  // loaded, or any published ancestor of it, which covers the same ground at a
-  // coarser grain. Where they are, the DEM mesh under them is not drawn — two
-  // surfaces from the same elevation at different grids cut through each other
-  // and the seam looks like a hole in the world.
-  // 'whole' when a loaded splat tile covers all of this ground tile, 'part'
-  // when a finer one lies inside it, false when none does.
-  const splatsCover = (z, x, y) => {
-      let part = false;
-      for (const entry of streamer.entries.values()) {
-          if (!entry.entity) continue;
-          const r = entry.row;
-          const f = 2 ** Math.abs(z - r.z);
-          if (r.z <= z) {
-              if (Math.floor(x / f) === r.x && Math.floor(y / f) === r.y) return 'whole';
-          } else if (Math.floor(r.x / f) === x && Math.floor(r.y / f) === y) {
-              part = true;
-          }
-      }
-      return part ? 'part' : false;
-  };
-
   // The land under the player, and whether they may build on it. area_at is a
   // spatial question no filter can ask, so it is asked when the ground changes
   // rather than every frame.
@@ -715,14 +681,7 @@
       // is, over everything else — it is the ground under them — and the page
       // goes on drawing what it already has. It clears itself: the ground asks
       // again every few seconds, and says nothing once a tile arrives.
-      // One line, not the whole of what the server said. What it said in full
-      // is on the Setup panel's world line (groundMesh.onSaid, below), where
-      // there is room for it and where somebody looking for it will look.
-      const noGround = groundMesh.trouble();
-      if (noGround) {
-          hud.notice('No ground here \u2014 the elevation service is not'
-              + ' answering. Trying again; Setup says what it said.');
-      } else if (Date.now() < arrival.until) hud.notice(arrival.text);
+      if (Date.now() < arrival.until) hud.notice(arrival.text);
       else hud.notice(onTheRoute ? '' : missing);
       const mine = areas.find((a) => a.mine) ?? areas[0];
       nextStep.show({
@@ -750,7 +709,12 @@
           heading: player.heading,
           // The same floor the player is standing on, so the map and the
           // window agree about which way the hill goes.
-          ground: groundMesh,
+          ground: {
+              heightAt: (lon, lat) => {
+                  const y = terrain.heightAt(origin.localOf({ lon, lat, h: 0 }));
+                  return y === null ? null : origin.geodeticOf({ x: 0, y, z: 0 }).h;
+              },
+          },
       });
       if (span) hud.mapScale(`Map · ${span} m · M`);
   }
@@ -790,7 +754,6 @@
       camera.setPosition(moved.x, moved.y, moved.z);
       if (driving) player.position = { ...moved };
       preview.rebased();
-      groundMesh.rebase(origin);
     }
     build.drawGizmo();
     drawAreas({ pc, app, origin, terrain }, land.areas());
@@ -816,7 +779,6 @@
     // coordinates are the real ones, and the land under you is asked for only
     // when you have actually walked somewhere else.
     const here = origin.geodeticOf({ x: p.x, y: p.y, z: p.z });
-    if (ground?.coverage) groundMesh.follow(here.lon, here.lat, splatsCover);
     const heading = player.heading;
     hud.at(here.lon, here.lat, here.h, heading);
     // The altimeter: how high you are above the sea, and how far that is above

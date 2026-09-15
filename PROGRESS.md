@@ -1469,3 +1469,15 @@ is mild, since `lightAt` already takes openness. A tree is three tiers of
 cone on a trunk, its own height, lean and shade. No noise anywhere: a grain
 laid over a half-metre survey was tried and read as a pattern, so the
 relief in the DEM is the only detail, and it is enough.
+
+## 0104: the whole ground, one renderer
+
+The live DEM mesh under the world is deleted (`groundmesh`, `groundtile`,
+`groundbuild`, `groundworker`), and so is the sampled z14 baseline (`sample`
+atom, `shaded` sampling). Instead `compile_ground()` makes a job for every z14
+tile the ground's extent touches, from `set_ground` and from a Setup button,
+with no land needed under it; z14 goes through assemble → frame → train → sog
+like z16 (`camera_views(14)` = 56). One renderer draws every frame the world is
+trained from: `raster.js` is lit again (sun with variance shadow maps, the sky
+as an environment map, ACES), `assemble-v4` writes albedo only, `frame-v6`.
+Training steps back to 1 500 (2 000 at z18), as before db/0101.

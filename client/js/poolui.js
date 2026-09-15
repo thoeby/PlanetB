@@ -127,7 +127,7 @@ export const beyond = (e, caps) => Boolean(e.ready)
 // What the tab is doing to this tile, in the words SPEC §3.7 uses.
 export const DOING = {
     assemble: 'assembling', frame: 'framing', train: 'training',
-    sample: 'sampling', merge: 'merging', sog: 'encoding', verify: 'checking',
+    merge: 'merging', sog: 'encoding', verify: 'checking',
 };
 
 // What this job needs of the machine, and what this machine has. A tab with no

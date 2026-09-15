@@ -9,7 +9,7 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 
 import { lightAt, shade, SUN, tone } from '../lib/light.js';
-import { Terrain, bakeLight, openAt, sunlitAt, terrainColour } from '../lib/terrain.js';
+import { openAt, terrainColour } from '../lib/terrain.js';
 
 const UP = [0, 1, 0];
 const away = [-SUN[0], SUN[1] * 0.2, -SUN[2]];
@@ -93,38 +93,4 @@ test('a point in a hollow sees less sky than one on a shoulder', () => {
     const rim = openAt(bowl, size, 0, 0, 30, 30);
     assert.ok(middle < rim, `hollow ${middle} should see less than rim ${rim}`);
     assert.ok(middle >= 0 && rim <= 1);
-});
-
-// The ground's own shadow (terrain.js sunlitAt): a wall between a point and
-// the sun puts the point in shade, and nothing else does.
-test('a ridge towards the sun puts the ground behind it in shadow', () => {
-    // A wall 30 m high, one cell wide, across the sun's path 10 m away.
-    const wallAt = (dist) => (x, z) => {
-        const along = (x * SUN[0] + z * SUN[2]) / Math.hypot(SUN[0], SUN[2]);
-        return along > dist - 1 && along < dist + 1 ? 30 : 0;
-    };
-    assert.equal(sunlitAt(wallAt(10), 0, 0, 0, 1), 0, 'behind the wall: none');
-    assert.equal(sunlitAt(() => 0, 0, 0, 0, 1), 1, 'flat ground: all of it');
-    assert.equal(sunlitAt(wallAt(-10), 0, 0, 0, 1), 1, 'a wall away from the sun: all');
-    assert.equal(sunlitAt(() => null, 0, 0, 0, 1), 1, 'past the edge the sun shines');
-    assert.equal(sunlitAt(wallAt(10), 0, 40, 0, 1), 1, 'and over the wall it does too');
-});
-
-test('the shade behind a ridge is darker than the sun beside it, and bluer', () => {
-    const sun = shade([0.4, 0.4, 0.4], UP, 1, 1);
-    const shadow = shade([0.4, 0.4, 0.4], UP, 1, 0);
-    assert.ok(mean(sun) > mean(shadow) * 1.3);
-    assert.ok(shadow[2] / shadow[0] > sun[2] / sun[0], 'the shade is the sky\'s colour');
-});
-
-test('bakeLight lights what stands on the ground and leaves the ground alone', () => {
-    const size = 3;
-    const terrain = new Terrain({ sw: { x: 0, z: 100 }, ne: { x: 100, z: 0 }, size, dem: null });
-    const ground = { material: 'terrain', positions: [0, 0, 0], normals: [0, 1, 0],
-        colors: [0.5, 0.5, 0.5] };
-    const wall = { material: 'wall', positions: [50, 5, 50], normals: [0, 1, 0],
-        colors: [0.5, 0.5, 0.5] };
-    bakeLight([ground, wall], terrain);
-    assert.deepEqual(ground.colors, [0.5, 0.5, 0.5]);
-    assert.deepEqual(wall.colors, shade([0.5, 0.5, 0.5], UP, 1, 1));
 });

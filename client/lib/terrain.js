@@ -7,7 +7,6 @@
 // client/js/player.js reads it back.
 
 import { sampleHeight } from './geo.js';
-import { SUN, shade } from './light.js';
 import { Mesh } from './mesh.js';
 import { styleFor } from './rules.js';
 
@@ -32,37 +31,6 @@ export function heightOn(h, size, west, north, stepX, stepZ, x, z) {
     const c = h[(j + 1) * size + i];
     const d = h[(j + 1) * size + i + 1];
     return (a * (1 - su) + b * su) * (1 - sv) + (c * (1 - su) + d * su) * sv;
-}
-
-// How far above the sun's ray the ground may rise before the ray is stopped
-// entirely: a shadow's edge is a ramp this wide rather than a stair. At least
-// a cell, so the ramp is never narrower than the grid can draw.
-const SHADOW_SOFT_M = 1.5;
-// How far towards the sun the ground is asked. A ridge further off than this
-// throws no shadow here, which at the sun's height is a ridge six hundred
-// metres higher than where you stand.
-export const SHADOW_REACH_M = 400;
-
-// Whether the sun reaches (x, y, z): the ground between here and the sun,
-// out to SHADOW_REACH_M, marched a cell at a time. 1 in the sun, 0 behind a
-// ridge. `hAt(x, z)` answers the ground's height or null past its edge, where
-// the march stops and the sun is taken to shine — the same answer the ground
-// mesh and the tile give at the same edge, so they agree there too.
-export function sunlitAt(hAt, x, y, z, cell) {
-    const run = Math.hypot(SUN[0], SUN[2]);
-    const dx = SUN[0] / run;
-    const dz = SUN[2] / run;
-    const rise = SUN[1] / run;
-    const soft = Math.max(SHADOW_SOFT_M, cell);
-    const step = cell / 2;
-    let blocked = 0;
-    for (let d = step; d <= SHADOW_REACH_M; d += step) {
-        const h = hAt(x + dx * d, z + dz * d);
-        if (h === null) break;
-        blocked = Math.max(blocked, h - (y + rise * d));
-        if (blocked >= soft) break;
-    }
-    return 1 - clamp01(blocked / soft);
 }
 
 export class Terrain {
@@ -96,13 +64,6 @@ export class Terrain {
         return heightOn(this.h, this.size, this.west, this.north,
             this.stepX, this.stepZ, cx, cz);
     }
-
-    // The same, and null past the edge: what a shadow's march asks.
-    within(x, z) {
-        return heightOn(this.h, this.size, this.west, this.north, this.stepX, this.stepZ, x, z);
-    }
-
-    get cell() { return Math.min(Math.abs(this.stepX), Math.abs(this.stepZ)); }
 
     // Every grid point within `radius` of (x, z), as flat indices.
     near(x, z, radius) {
@@ -229,8 +190,8 @@ function band(height) {
 }
 
 // `openness` is how much sky this point can see, 0..1: a crease in the
-// hillside is dirtier than the shoulder above it. The light it loses is
-// lightAt()'s to take (client/lib/light.js), so this is mild.
+// hillside is dirtier than the shoulder above it. The light it loses is the
+// renderer's to take, so this is mild.
 export function terrainColour(slope, height, openness = 1) {
     const rocky = clamp01((slope - 0.35) / 0.7);
     const ground = mix(band(height), ROCK, rocky * 0.85);
@@ -258,25 +219,19 @@ export function openAt(h, size, i, j, stepX, stepZ, radius = 3) {
     return clamp01(1 - (blocked / Math.max(n, 1)) * 1.6);
 }
 
-// The ground, lit: assemble-v3 bakes the light into every vertex it writes
-// (light.js shade), so the frames, the sampled splats and the ground mesh
-// carry one colour and meet without a seam.
+// The ground as its own colour; the light is the renderer's
+// (client/lib/raster.js).
 export function terrainMesh(terrain, material = 'terrain') {
     const m = new Mesh(material);
     const n = terrain.size;
-    const hAt = (x, z) => terrain.within(x, z);
     for (let j = 0; j < n; j++) {
         for (let i = 0; i < n; i++) {
             const h = terrain.h[j * n + i];
             const s = terrain.slope(i, j);
             const open = openAt(terrain.h, n, i, j,
                 Math.abs(terrain.stepX), Math.abs(terrain.stepZ));
-            const normal = normalAt(terrain, i, j);
-            const x = terrain.x(i);
-            const z = terrain.z(j);
-            const own = terrainColour(s, h + terrain.datum, open);
-            m.vertex([x, h, z], normal, shade(own, normal, open,
-                sunlitAt(hAt, x, h, z, terrain.cell)));
+            m.vertex([terrain.x(i), h, terrain.z(j)], normalAt(terrain, i, j),
+                terrainColour(s, h + terrain.datum, open));
         }
     }
     for (let j = 0; j < n - 1; j++) {
@@ -312,21 +267,4 @@ export function heightRaster(terrain) {
         data[i] = Math.round((terrain.h[i] - min) / span * 65535);
     }
     return { bytes: new Uint8Array(data.buffer), meta: { size: terrain.size, min, max } };
-}
-
-// Everything standing on the ground, lit the same way the ground was: its
-// own colour under the sky, and in the ground's shadow where the ground
-// throws one. Colours are replaced in place; the terrain is already lit.
-export function bakeLight(meshes, terrain) {
-    const hAt = (x, z) => terrain.within(x, z);
-    for (const m of meshes) {
-        if (m.material === 'terrain') continue;
-        const { positions: p, normals: nn, colors: c } = m;
-        for (let i = 0; i < p.length; i += 3) {
-            const lit = shade([c[i], c[i + 1], c[i + 2]], [nn[i], nn[i + 1], nn[i + 2]], 1,
-                sunlitAt(hAt, p[i], p[i + 1], p[i + 2], terrain.cell));
-            c[i] = lit[0]; c[i + 1] = lit[1]; c[i + 2] = lit[2];
-        }
-    }
-    return meshes;
 }

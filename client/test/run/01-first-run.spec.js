@@ -24,7 +24,7 @@ const VIEW = { x: 690, y: 120, width: 370, height: 240 };
 // a bare hillside a hundred metres off looks the same from either end of a
 // walk. What moves is the horizon, and the horizon is a smaller part of the
 // strip now that the world is drawn out to forty kilometres rather than five
-// (client/lib/groundmesh.js).
+// (db/0104_thewholeground.sql).
 const WALK_CHANGE = 0.01;
 
 // "46.2939N 7.8815E · 651 m" — where the player is, as the page says it.

@@ -117,8 +117,8 @@ export class Terrain {
     constructor(streamer, { fetchFn = fetch, ground = null } = {}) {
         this.streamer = streamer;
         this.fetchFn = fetchFn;
-        // client/lib/groundmesh.js, or nothing: a viewer with no coverage has
-        // no floor beyond what has been published, which is what it had.
+        // Nothing since db/0104: the floor is what is published, and every
+        // z14 tile of the ground is. Kept as an option for the tests.
         this.ground = ground;
         this.fields = new Map();
         this.colliders = new Map();

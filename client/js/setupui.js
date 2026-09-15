@@ -51,6 +51,7 @@ const HTML = `
     <select class="gs-coverage"><option value="">connect first</option></select>
     <div class="row">
       <button type="button" class="gs-done" disabled>Use this ground</button>
+      <button type="button" class="gs-again">Render the whole ground again</button>
     </div>
     <p class="gs-ground status"></p>
     <p class="gs-drawer note"></p>
@@ -145,6 +146,20 @@ function markSteps(q, g) {
     }
 }
 
+// Every z14 tile of the ground, built again from what is on it now
+// (db/0104_thewholeground.sql): what to press when the recipe changed.
+async function again(q, say) {
+    q('.gs-again').disabled = true;
+    try {
+        const n = await api.rpc('compile_ground');
+        say('.gs-ground', `${n} tile(s) of ground to render \u2014 see Render`);
+    } catch (err) {
+        say('.gs-ground', String(err.body?.message ?? err.message ?? err), true);
+    } finally {
+        q('.gs-again').disabled = false;
+    }
+}
+
 export function mountSetup(host, { onGround = () => {} } = {}) {
     const box = document.createElement('div');
     box.innerHTML = HTML;
@@ -181,7 +196,7 @@ export function mountSetup(host, { onGround = () => {} } = {}) {
             });
             const g = await show();
             say('.gs-status', out?.dirtied
-                ? `ground set — ${out.dirtied} compiled tile(s) will be built again`
+                ? `ground set — ${out.dirtied} tile(s) of it are being rendered`
                 : 'ground set');
             onGround(g);
         } catch (err) {
@@ -194,6 +209,7 @@ export function mountSetup(host, { onGround = () => {} } = {}) {
     q('.gs-connect').onclick = () => connect(q, say).then((c) => { found = c; }).catch(
         (err) => say('.gs-status', String(err.message ?? err), true));
     q('.gs-done').onclick = () => done();
+    q('.gs-again').onclick = () => again(q, say);
 
     show();
     // Where client/play.html mounts the sign-in form, so step 1 is a step

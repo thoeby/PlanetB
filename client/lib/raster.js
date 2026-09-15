@@ -1,28 +1,64 @@
-// raster.js — the frame atom's renderer: three.js, drawing what assemble baked.
+// raster.js — the frame atom's renderer: three.js, rasterised.
 //
-// frame-v2 and v3 path-traced the assembled scene; v4 rasterised it with
-// shadow maps, an environment map, filmic tone mapping and a detail texture.
-// Each was a fourth idea of what the world looks like, next to the sampled
-// splats' and the ground mesh's, and the three met at every tile edge as a
-// seam. Since assemble-v3 the light is baked into the vertices once
-// (client/lib/light.js shade, client/lib/terrain.js sunlitAt) and this draws
-// those colours as they are: no lights, no tone curve, no texture. A frame is
-// the mesh, the sampled tile is the mesh, the ground is the mesh.
+// frame-v2 and v3 path-traced the assembled scene at a few dozen paths a
+// pixel. Seconds a frame on a good card, minutes on a Quadro, and the result
+// still needed a denoiser. A rasteriser with the lighting a modern engine
+// carries — soft shadow maps from the sun, the sky as an environment map,
+// filmic tone mapping — is a few milliseconds a frame and a cleaner picture.
+// This is the world's one renderer: every tile from z14 down is trained from
+// what it draws (db/0104_thewholeground.sql), so there is no second look for
+// it to disagree with. No texture on the ground: the survey is half a metre
+// and its relief is the detail; a pattern laid over it reads as a pattern.
 //
 // It runs on an OffscreenCanvas inside a Web Worker. The vendored modules are
 // what runs (tools/vendor.sh vendor_three); there is no CDN copy of these.
 
 import * as THREE from '../vendor/three/three.module.js';
-import { SKY_COLOUR } from './light.js';
+import { BOUNCE_COLOUR, SKY_COLOUR, SUN, SUN_COLOUR, SUN_STRENGTH } from './light.js';
+
+export const SHADOW_MAP = 4096;
 
 // One mesh of the assembled scene (client/lib/mesh.js unpacked) as three.js
-// geometry, coloured by its vertices and nothing else.
-export function meshObject(m) {
+// geometry: its vertex colours and its material's roughness.
+export function meshObject(m, materials = {}) {
     const g = new THREE.BufferGeometry();
     g.setAttribute('position', new THREE.BufferAttribute(m.positions, 3));
+    g.setAttribute('normal', new THREE.BufferAttribute(m.normals, 3));
     g.setAttribute('color', new THREE.BufferAttribute(m.colors, 3));
     g.setIndex(new THREE.BufferAttribute(m.indices, 1));
-    return new THREE.Mesh(g, new THREE.MeshBasicMaterial({ vertexColors: true }));
+    const mat = new THREE.MeshStandardMaterial({
+        vertexColors: true, metalness: 0,
+        roughness: materials[m.material]?.roughness ?? 1,
+        // The shadow pass draws back faces unless told otherwise, and the
+        // ground has none facing the sun: a hill cast no shadow on its valley.
+        shadowSide: THREE.DoubleSide,
+    });
+    const mesh = new THREE.Mesh(g, mat);
+    mesh.castShadow = true;
+    mesh.receiveShadow = true;
+    return mesh;
+}
+
+// The one sky (client/lib/light.js) as an equirectangular radiance map, blue
+// above and the ground's warmth below: an up-facing surface under a uniform
+// sky of radiance L reflects albedo × L, which is lightAt()'s sky term.
+export function skyTexture() {
+    const w = 64; const h = 32;
+    const data = new Float32Array(w * h * 4);
+    for (let y = 0; y < h; y++) {
+        const t = y / (h - 1);              // 0 at the top row = zenith
+        for (let x = 0; x < w; x++) {
+            const at = (y * w + x) * 4;
+            for (let c = 0; c < 3; c++) {
+                data[at + c] = SKY_COLOUR[c] * (1 - t) + BOUNCE_COLOUR[c] * t;
+            }
+            data[at + 3] = 1;
+        }
+    }
+    const tex = new THREE.DataTexture(data, w, h, THREE.RGBAFormat, THREE.FloatType);
+    tex.mapping = THREE.EquirectangularReflectionMapping;
+    tex.needsUpdate = true;
+    return tex;
 }
 
 // A pose from client/lib/cameras.js as a three.js camera: lookAt builds the
@@ -51,21 +87,50 @@ export class Raster {
             canvas, antialias: true, alpha: false, preserveDrawingBuffer: true,
         });
         r.setSize(size, size, false);
-        // The vertex colours are already what the screen shows (light.js
-        // tone): they go to the frame untouched, as they go into a .sog.
-        r.toneMapping = THREE.NoToneMapping;
-        r.outputColorSpace = THREE.LinearSRGBColorSpace;
+        // Variance shadow maps blur: the sun is a disc, not a point, and a
+        // ridge's shadow on the valley has a soft edge.
+        r.shadowMap.enabled = true;
+        r.shadowMap.type = THREE.VSMShadowMap;
+        r.toneMapping = THREE.ACESFilmicToneMapping;
+        r.toneMappingExposure = 1.1;
+        r.outputColorSpace = THREE.SRGBColorSpace;
         this.renderer = r;
         this.scene = new THREE.Scene();
+        const sky = skyTexture();
+        this.scene.environment = new THREE.PMREMGenerator(r).fromEquirectangular(sky).texture;
         this.scene.background = new THREE.Color(...SKY_COLOUR);
+        // A Lambertian surface under a directional light of intensity I
+        // reflects albedo × I × cos / π, so π × SUN_STRENGTH matches lightAt().
+        this.sun = new THREE.DirectionalLight(new THREE.Color(...SUN_COLOUR),
+            Math.PI * SUN_STRENGTH);
+        this.sun.castShadow = true;
+        this.sun.shadow.mapSize.set(SHADOW_MAP, SHADOW_MAP);
+        this.sun.shadow.bias = -0.0002;
+        this.sun.shadow.radius = 6;
+        this.sun.shadow.blurSamples = 12;
+        this.scene.add(this.sun, this.sun.target);
         this.camera = null;
     }
 
     add(obj) { this.scene.add(obj); }
 
-    // Once, after everything is in the scene: the shaders are compiled.
+    // Once, after everything is in the scene: the sun's shadow box is fitted
+    // to what there is, and the shaders are compiled.
     async build(cam) {
         this.camera = cameraOf(cam);
+        // The meshes' box, not the scene's: the sun sits far outside it.
+        const box = new THREE.Box3();
+        this.scene.traverse((o) => { if (o.isMesh) box.expandByObject(o); });
+        const centre = box.getCenter(new THREE.Vector3());
+        const radius = box.getSize(new THREE.Vector3()).length() / 2 || 100;
+        this.sun.position.set(centre.x + SUN[0] * radius * 2, centre.y + SUN[1] * radius * 2,
+            centre.z + SUN[2] * radius * 2);
+        this.sun.target.position.copy(centre);
+        const sc = this.sun.shadow.camera;
+        sc.left = -radius; sc.right = radius; sc.top = radius; sc.bottom = -radius;
+        sc.near = 0.5; sc.far = radius * 4;
+        sc.updateProjectionMatrix();
+        this.sun.target.updateMatrixWorld(true);
         await this.renderer.compileAsync(this.scene, this.camera);
     }
 

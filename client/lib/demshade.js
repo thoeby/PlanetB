@@ -12,7 +12,6 @@
 // actually has answers it.
 
 import * as tm from './tilemath.js';
-import { inTile } from './groundtile.js';
 import { loadDem, sampleHeight } from './geo.js';
 
 // The deepest tile that holds the whole rectangle. Deeper is finer, and a
@@ -46,6 +45,16 @@ export async function groundOver(rect, { filesUrl = '', fetchFn } = {}) {
             if (u < 0 || v < 0 || u > 1 || v > 1) return null;
             return sampleHeight(dem, u, v);
         },
+    };
+}
+
+// Where (lon, lat) falls inside tile (z, x, y), in 0..1 across and down.
+export function inTile(z, x, y, lon, lat) {
+    const n = 2 ** z;
+    const phi = Math.max(-tm.MAX_LAT, Math.min(tm.MAX_LAT, lat)) * tm.RAD_PER_DEG;
+    return {
+        u: (lon + 180) / 360 * n - x,
+        v: (1 - Math.asinh(Math.tan(phi)) / Math.PI) / 2 * n - y,
     };
 }
 

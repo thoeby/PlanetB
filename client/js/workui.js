@@ -42,7 +42,7 @@ const LOG_LINES = 6;
 
 // What "help render the world" claims: the cheap deterministic ops that fill in
 // the baseline. Training and framing are somebody's job, not background work.
-const BASELINE_OPS = ['assemble', 'sample', 'merge', 'sog'];
+const BASELINE_OPS = ['assemble', 'merge', 'sog'];
 
 // A frame budget, not a frame rate: below this the tab is being played and the
 // next atom waits. 33 ms is 30 fps (TASKS.md WP5.2).
@@ -151,7 +151,6 @@ export function captionOf(rec) {
     if (rec.event === 'train') {
         return `${tile}training ${rec.iter} of ${rec.of} · ${rec.splats} splats`;
     }
-    if (rec.event === 'sampled') return `${tile}sampled: ${rec.splats} splats, from above`;
     return rec.event;
 }
 

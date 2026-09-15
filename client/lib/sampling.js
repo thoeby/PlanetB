@@ -1,15 +1,12 @@
 // sampling.js — turning a scene's surfaces into splats.
 //
 // Split out of client/atoms/assemble.js when that file outgrew four hundred
-// lines. Both atoms that make splats out of geometry use it: `assemble` for the
-// thirty per cent a trainer starts from, and `sample` for the whole of a tile
-// that nobody is going to train (client/atoms/sample.js).
+// lines: `assemble` seeds the splats a trainer starts from with it.
 //
 // Deterministic (Invariant 2): the triangles arrive in mesh order, the
 // allocation is by largest remainder, and the only randomness is the seeded
 // generator the caller hands in.
 
-import { shade } from './light.js';
 import { emptySplats } from './ply.js';
 import { rng } from './poly.js';
 
@@ -91,7 +88,7 @@ function allocate(tris, total) {
 }
 
 // The same fixed sun the ground mesh bakes and the frame atom shades with
-// (client/lib/groundtile.js, client/lib/render.js). A surface sampled without
+// (client/lib/raster.js). A surface sampled without
 // it is a surface with no relief in it: flat colour, and darker than the ground
 // beside it, which is the seam a player sees at a compiled tile's edge.
 
@@ -108,13 +105,10 @@ function allocate(tris, total) {
 // over the other half. It is capped against the tile's mean so a single huge
 // triangle with one splat on it cannot put a hundred-metre blob in the world.
 //
-// `shaded` lights the surface's own colour with client/lib/light.js. `assemble`
-// leaves it off: init.ply is what training starts from, and the frames it is
-// trained against carry the light themselves.
 const SPACING_CAP = 4;
 
 export function sampleSurfaces(meshes, total, random,
-    { spread = 0.7, shaded = false } = {}) {
+    { spread = 0.7 } = {}) {
     const tris = triangles(meshes);
     const { counts, areas, sum } = allocate(tris, total);
     const f = emptySplats(total);
@@ -141,8 +135,7 @@ export function sampleSurfaces(meshes, total, random,
                     p[0] += val[0] * w[c]; p[1] += val[1] * w[c]; p[2] += val[2] * w[c];
                 }
                 if (j === 0) { f.x[k] = p[0]; f.y[k] = p[1]; f.z[k] = p[2]; } else {
-                    const lit = shaded ? shade(p, n) : p;
-                    [f.r[k], f.g[k], f.b[k]] = lit.map((c) => Math.min(c, 1));
+                    [f.r[k], f.g[k], f.b[k]] = p.map((c) => Math.min(c, 1));
                 }
             }
             f.a[k] = 1;
