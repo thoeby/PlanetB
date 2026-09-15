@@ -25,6 +25,31 @@ function transfers(out) {
     return [...set];
 }
 
+// A Rust panic inside a wasm module (client/lib/brush.js) reaches the page as
+// an uncaught "RuntimeError: unreachable" with its reason written to this
+// worker's console a moment earlier, where nobody looks. The reason is kept
+// and sent with the error instead.
+let lastPanic = '';
+const origError = console.error.bind(console);
+console.error = (...args) => {
+    const text = args.map(String).join(' ');
+    if (text.includes('panicked')) lastPanic = text.slice(0, 700);
+    origError(...args);
+};
+self.addEventListener('error', (ev) => {
+    self.postMessage({
+        error: `${ev.message ?? 'worker error'}${lastPanic ? ` — ${lastPanic}` : ''}`,
+        where: `${ev.filename ?? ''}:${ev.lineno ?? ''}`,
+    });
+});
+self.addEventListener('unhandledrejection', (ev) => {
+    self.postMessage({
+        error: `${ev.reason?.message ?? ev.reason ?? 'rejected'}`
+            + (lastPanic ? ` — ${lastPanic}` : ''),
+        where: 'unhandled rejection in the atom worker',
+    });
+});
+
 self.onmessage = async (ev) => {
     const { atom, inputs, apiUrl, filesUrl } = ev.data;
     try {
@@ -41,7 +66,7 @@ self.onmessage = async (ev) => {
         // holds only the frames, so sending the stack alone threw the reason
         // away and every failure in the panel read "run@…/assemble.js:291:15".
         self.postMessage({
-            error: String(err?.message ?? err),
+            error: String(err?.message ?? err) + (lastPanic ? ` — ${lastPanic}` : ''),
             where: String(err?.stack ?? '').split('\n')[0].trim(),
         });
     }

@@ -52,8 +52,8 @@ SELECT is((SELECT min((params ->> 'size')::int) FROM atom
 CREATE TEMP TABLE j16 AS
 SELECT ensure_job(16, tile_x(7.805, 16), tile_y(46.295, 16)) AS jid;
 SELECT is((SELECT min((params ->> 'size')::int) FROM atom
-           WHERE job_id = (SELECT jid FROM j16) AND op = 'frame'), 512,
-    'z16 frames are 512 px, the size they are trained at');
+           WHERE job_id = (SELECT jid FROM j16) AND op = 'frame'), 1024,
+    'z16 frames were 512 px then; db/0099 raises them');
 
 SELECT * FROM finish();
 ROLLBACK;
