@@ -305,14 +305,19 @@ export class Ground {
         this.retryAt.delete(k);
         this.pending.add(k);
         loadDem(z, x, y, { filesUrl: this.filesUrl, fetchFn: this.fetchFn })
-            .then((dem) => {
-                this.pending.delete(k);
+            .then(async (dem) => {
                 // Outside the coverage there is no ground, which is not a
                 // failure — it is the edge of the world (SPEC §3.8).
                 if (!dem) { this.nothingThere.add(k); return; }
                 this.troubled = null;
-                return this.rebuild(z, x, y, dem, level.grid,
+                // In flight until the mesh is built and in `tiles`, not until
+                // the bytes arrive: follow() runs every frame, and a tile that
+                // is neither pending nor there is asked for again — which
+                // superseded the build in progress every frame, for ever, and
+                // the ground under the player never landed.
+                await this.rebuild(z, x, y, dem, level.grid,
                     { hole: this.holes.get(z) ?? hole, within: this.within });
+                this.pending.delete(k);
             })
             .catch((err) => {
                 this.pending.delete(k);

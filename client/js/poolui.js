@@ -21,9 +21,11 @@ const tile = (v, l, tone) => el('div', { className: 'tile', 'data-tone': tone ??
 // The four numbers area_progress reports, as the artboard groups them.
 export function progressTiles(p) {
     if (!p) return [el('div', { className: 'muted', textContent: 'Pick a land above.' })];
-    const waiting = Math.max(0, Number(p.waiting) - Number(p.open_jobs));
+    // The same number the button submits (db/0087 to_submit): what Submit
+    // would send, not "changed minus in the pool", which counted tiles
+    // already awaiting approval and read 13 over a button that said 9.
     return [
-        tile(waiting, 'to submit'),
+        tile(Math.max(0, Number(p.to_submit ?? 0)), 'to submit'),
         // What this land is compiled into, not the ladder above it (db/0087).
         tile(p.leaves_published ?? p.published, 'compiled', 'accent'),
         tile(p.open_jobs, 'waiting in the pool', 'warn'),

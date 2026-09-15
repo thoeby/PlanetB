@@ -737,6 +737,17 @@ toy: it is what `verify` renders with, and what the node tests train with.
   SwiftShader has not got; `brushDevice()` now refuses such an adapter up
   front. **The first training run needs a real GPU.**
 
+- db/0094's adoption set a claimed atom straight to `waiting`, which the
+  state machine forbids, so the approval raised "illegal atom transition
+  claimed -> waiting" and the tile could not be opened. `db/0096` takes the
+  legal steps. The same migration frames z16 at 512 px (what it is trained
+  at) and both zooms at 32 paths a pixel: z16 frames cost a tenth.
+- The ground worker deleted a tile from `pending` when its bytes arrived
+  rather than when its mesh was built, so follow() asked for it again every
+  frame and every build superseded the last: no ground under the player.
+- The pool's "to submit" showed changed-minus-queued; the button submits
+  `to_submit`. Same number now.
+
 ### Open items from WP3
 
 - [ ] **WP3.1's acceptance on a GPU**: a pilot z16 tile in under 8 minutes at
