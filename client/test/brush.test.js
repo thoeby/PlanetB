@@ -43,12 +43,12 @@ test('keep drops what left the box, went transparent or is not a number', () => 
     assert.equal(out.count, 1);
 });
 
-test('the config speaks brush: iterations, budget, no growth, no eval split', () => {
+test('the config speaks brush: iterations, budget, growth to the budget, no eval split', () => {
     const c = configFor({ 'lr-mean': 1, 'refine-every': 200 }, { iters: 1500, budget: 600000,
         size: 512 });
     assert.equal(c['total-train-iters'], 1500);
     assert.equal(c['max-splats'], 600000);
-    assert.equal(c['growth-stop-iter'], 0);
+    assert.equal(c['growth-stop-iter'], 900, 'grows for the first 60 %');
     assert.equal(c['sh-degree'], 0);
     assert.equal(c['eval-split-every'], null);
     assert.equal(c['refine-every'], 200, 'what brush proposed and this does not touch stays');

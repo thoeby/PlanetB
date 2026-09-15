@@ -6,16 +6,16 @@ SELECT plan(6);
 SET client_min_messages = warning;
 
 CREATE TEMP TABLE ids AS
-SELECT register('land95@example.com', 'password12') AS owner_id;
+SELECT register('land101@example.com', 'password12') AS owner_id;
 
 INSERT INTO area (id, geom, owner_id, detail)
-SELECT '00000000-0000-0000-0000-000000000095'::uuid,
+SELECT '00000000-0000-0000-0000-000000000101'::uuid,
        st_geomfromtext('POLYGON((7.8 46.29,7.81 46.29,7.81 46.30,7.8 46.30,7.8 46.29))',
                        4326),
        ids.owner_id, 18
 FROM ids;
 INSERT INTO feature (area_id, kind, geom)
-VALUES ('00000000-0000-0000-0000-000000000095', 'footprint',
+VALUES ('00000000-0000-0000-0000-000000000101', 'footprint',
         st_geomfromtext('POINTZ(7.805 46.295 650)', 4326));
 
 SELECT set_config('request.jwt.claims',
@@ -29,7 +29,7 @@ SELECT is((SELECT algo_version FROM atom
     'a z18 job trains with train-v3');
 SELECT is((SELECT (params ->> 'iters')::int FROM atom
            WHERE job_id = (SELECT j18 FROM jobs) AND op = 'train'), 5000,
-    'z18: 5000 iterations (db/0101)');
+    'z18: 5000 iterations');
 SELECT is((SELECT (params ->> 'size')::int FROM atom
            WHERE job_id = (SELECT j18 FROM jobs) AND op = 'train'), 1024,
     'z18 trains at the frames'' own 1024 px');
@@ -38,7 +38,7 @@ SELECT is((SELECT algo_version FROM atom
     'a z16 job trains with train-v3');
 SELECT is((SELECT (params ->> 'iters')::int FROM atom
            WHERE job_id = (SELECT j16 FROM jobs) AND op = 'train'), 4000,
-    'z16: 4000 iterations (db/0101)');
+    'z16: 4000 iterations');
 SELECT is((SELECT (params ->> 'size')::int FROM atom
            WHERE job_id = (SELECT j16 FROM jobs) AND op = 'train'), 512,
     'z16 trains at 512 px');

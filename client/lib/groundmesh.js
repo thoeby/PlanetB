@@ -261,7 +261,16 @@ export class Ground {
         for (const k of [...this.tiles.keys()]) if (!want.has(k)) this.drop(k);
         for (const [k, entity] of this.entities) {
             const t = this.tiles.get(k);
-            if (t) entity.enabled = t.z !== this.zoom || !covered(t.z, t.x, t.y);
+            if (!t) continue;
+            const over = covered(t.z, t.x, t.y);
+            // The finest level goes where splats are drawn; a coarser level is
+            // a picture of the distance and is kept, but where splats lie on
+            // it — the same hill at a quarter of the samples — it is let down
+            // by half a cell so its crests do not come up through them.
+            entity.enabled = t.z !== this.zoom || !over;
+            const sink = t.z !== this.zoom && over
+                ? cellMetres(t.z, t.grid, (t.bbox.north + t.bbox.south) / 2) / 2 : 0;
+            entity.setLocalPosition(0, -sink, 0);
         }
         return this.tiles.size;
     }

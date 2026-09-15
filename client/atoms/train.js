@@ -31,6 +31,10 @@ export const ALGO = 'train-v3';
 export const SPREAD = 1.15;
 // How far past the seed's box a splat may end up and still be this tile's.
 export const MARGIN = 0.15;
+// The seed is this share of the budget; brush grows the rest where the frames
+// say the picture is wrong (client/lib/brush.js configFor). Seeding the whole
+// budget left it nothing to grow into, and a tile of uniform discs.
+export const SEED_SHARE = 0.5;
 // A picture of the run every so many iterations, from its first held-out
 // pose, over the first PREVIEW_SPLATS of the (shuffled) list.
 export const PREVIEW_EVERY = 200;
@@ -142,12 +146,13 @@ export async function run({ atom, inputs, log }) {
     const scene = JSON.parse(decoder.decode(files.get('scene.json')));
     const meshes = unpackMeshes(files.get('mesh.bin'), scene.meshes);
     const budget = Number(atom.params?.budget) || scene.budget;
-    const iters = Number(atom.params?.iters) || 2000;
+    const iters = Number(atom.params?.iters) || 4000;
     const size = Number(atom.params?.size) || 1024;
     const { z, x, y } = scene.tile;
     const random = rngOf(atom, z, x, y);
     // Shuffled so any prefix is a fair sample: the preview reads a prefix.
-    const seed = shuffled(sampleSurfaces(meshes, budget, random, { spread: SPREAD }), random);
+    const seed = shuffled(sampleSurfaces(meshes, Math.round(budget * SEED_SHARE), random,
+        { spread: SPREAD }), random);
     const set = atom.params?.camera_set;
     const ground = groundOf(files, scene);
     const eye = cameraSet(set, frameBounds(meshes), ground)[holdout(viewCount(set) || 1)[0]];

@@ -56,17 +56,19 @@ export async function brushDevice(gpu = globalThis.navigator?.gpu) {
 }
 
 // brush's TrainStreamConfig, in its kebab-case names, over what it proposed.
-// Growth is off: the seed is the surface at the whole budget
-// (client/atoms/train.js), so there is nothing to grow into, and max-splats
-// is the tile's budget (Invariant 8's structural rule is what would refuse
-// more). No eval split: verify holds its own poses back.
+// The seed is half the budget on the surface (client/atoms/train.js) and
+// brush densifies towards max-splats — the budget — for the first part of the
+// run: splitting where the picture is still wrong is what puts small splats
+// on edges, and a seed of uniform discs has none. No eval split: verify holds
+// its own poses back.
 export function configFor(init, { iters, budget, size, seed = 42 }) {
     return {
         ...init,
         'total-train-iters': iters,
         'max-splats': budget,
         'sh-degree': 0,
-        'growth-stop-iter': 0,
+        'growth-start-iter': 0,
+        'growth-stop-iter': Math.round(iters * 0.6),
         'max-resolution': size,
         'eval-split-every': null,
         'eval-every': iters * 10,

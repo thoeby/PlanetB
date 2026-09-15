@@ -614,15 +614,21 @@
   // coarser grain. Where they are, the DEM mesh under them is not drawn — two
   // surfaces from the same elevation at different grids cut through each other
   // and the seam looks like a hole in the world.
+  // 'whole' when a loaded splat tile covers all of this ground tile, 'part'
+  // when a finer one lies inside it, false when none does.
   const splatsCover = (z, x, y) => {
+      let part = false;
       for (const entry of streamer.entries.values()) {
           if (!entry.entity) continue;
           const r = entry.row;
-          if (r.z > z) continue;
-          const f = 2 ** (z - r.z);
-          if (Math.floor(x / f) === r.x && Math.floor(y / f) === r.y) return true;
+          const f = 2 ** Math.abs(z - r.z);
+          if (r.z <= z) {
+              if (Math.floor(x / f) === r.x && Math.floor(y / f) === r.y) return 'whole';
+          } else if (Math.floor(r.x / f) === x && Math.floor(r.y / f) === y) {
+              part = true;
+          }
       }
-      return false;
+      return part ? 'part' : false;
   };
 
   // The land under the player, and whether they may build on it. area_at is a

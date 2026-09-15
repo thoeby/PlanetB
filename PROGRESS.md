@@ -786,6 +786,14 @@ toy: it is what `verify` renders with, and what the node tests train with.
   whatever its state, and a job built with nothing left to do publishes at
   once from its verified sog.
 
+- **A trained tile was a blur**: the seed was the whole budget and brush's
+  densification was off, so every splat stayed the 0.6 m disc it was born as,
+  and 1 500 iterations is a quarter of a normal run. `train-v3` now seeds half
+  the budget and lets brush grow to the rest for the first 60 % of the run;
+  `db/0101` gives z16 4 000 and z18 5 000 iterations. The coarse ground mesh
+  is let down half a cell where a finer splat tile lies on it, so its crests
+  stop coming up through the splats.
+
 ### Open items from WP3
 
 - [ ] **WP3.1's acceptance on a GPU**: a pilot z16 tile in under 8 minutes at
