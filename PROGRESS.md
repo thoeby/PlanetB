@@ -780,6 +780,12 @@ toy: it is what `verify` renders with, and what the node tests train with.
   `tools/brush-autotune.patch` sets it in brush-js and `tools/build-brush.sh`
   applies it. The vendored wasm is rebuilt with it and clears the point.
 
+- A job approved on unchanged ground had no atoms: every one build_dag asked
+  for already existed verified in the job before, and stayed there. `db/0100`:
+  an atom in a job that is not open moves to the job that asks for it
+  whatever its state, and a job built with nothing left to do publishes at
+  once from its verified sog.
+
 ### Open items from WP3
 
 - [ ] **WP3.1's acceptance on a GPU**: a pilot z16 tile in under 8 minutes at
