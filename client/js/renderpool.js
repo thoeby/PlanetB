@@ -8,6 +8,8 @@ import { setBounty } from './wallet.js';
 import { DOING, beyond, cr, drawnWhen, el, poolRow, what } from './poolui.js';
 import { empty } from './empty.js';
 
+const said = (err) => String(err?.body?.message ?? err?.message ?? err);
+
 export function mountPool(host, { loop, where = () => ({}) } = {}) {
     const ui = poolParts(host);
     const state = { rows: [], held: [], sort: 'Nearest', caps: null, picked: null };
@@ -24,8 +26,13 @@ export function mountPool(host, { loop, where = () => ({}) } = {}) {
     };
 
     const draw = () => {
-        drawPool(ui, state, acts, draw);
-        ui.price.replaceChildren(...priceCard(state, say, refresh));
+        try {
+            drawPool(ui, state, acts, draw);
+            ui.price.replaceChildren(...priceCard(state, say, refresh));
+        } catch (err) {
+            say(`the pool could not be drawn: ${said(err)}`, true);
+            console.error(err);
+        }
     };
 
     const render = (entry, button) => runJob(entry, button,
@@ -50,10 +57,13 @@ export function mountPool(host, { loop, where = () => ({}) } = {}) {
         await refresh();
     }
 
+    // A pool that cannot be read says so in its own line; an empty list is
+    // the answer "nothing is waiting", never the answer "the question failed".
     async function refresh() {
         const { lon, lat } = where() ?? {};
         state.rows = await api.rpc('render_pool',
-            { lon: lon ?? null, lat: lat ?? null, limit: 60 }).catch(() => []);
+            { lon: lon ?? null, lat: lat ?? null, limit: 60 })
+            .catch((err) => { say(`could not read the pool: ${said(err)}`, true); return []; });
         // Why the list is short, when it is. A job the pool hides on purpose
         // is a job somebody who has just approved something is looking for
         // (db/0082_whythepoolisempty.sql).

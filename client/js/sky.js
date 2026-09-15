@@ -53,6 +53,15 @@ void main() {
 // The dome follows the camera; `follow(p)` each frame with its position.
 export function mountSky(app, pc, camera) {
     const device = app.graphicsDevice;
+    camera.camera.clearColor = new pc.Color(...HORIZON);
+    const fog = app.scene.fog;
+    fog.type = pc.FOG_EXP2;
+    fog.color = new pc.Color(...HORIZON);
+    // exp2: transmittance e^-(d·x)²; half the contrast at VISIBILITY_M.
+    fog.density = Math.sqrt(Math.LN2) / VISIBILITY_M;
+    // The dome's shader is GLSL; a WebGPU device wants WGSL, and until it
+    // has it the sky there is the clear colour and the air.
+    if (device.isWebGPU) return { follow() {} };
     const material = new pc.ShaderMaterial({
         uniqueName: 'splatworld-sky',
         attributes: { vertex_position: pc.SEMANTIC_POSITION },
@@ -77,14 +86,6 @@ export function mountSky(app, pc, camera) {
     });
     dome.setLocalScale(1e6, 1e6, 1e6);
     app.root.addChild(dome);
-    camera.camera.clearColor = new pc.Color(...HORIZON);
-
-    const fog = app.scene.fog;
-    fog.type = pc.FOG_EXP2;
-    fog.color = new pc.Color(...HORIZON);
-    // exp2: transmittance e^-(d·x)²; half the contrast at VISIBILITY_M.
-    fog.density = Math.sqrt(Math.LN2) / VISIBILITY_M;
-
     return {
         follow(p) { dome.setPosition(p.x, p.y, p.z); },
     };

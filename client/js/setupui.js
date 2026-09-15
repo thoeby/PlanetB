@@ -162,11 +162,13 @@ function markSteps(q, g) {
 // (db/0104_thewholeground.sql): what to press when the recipe changed.
 async function again(q, say) {
     q('.gs-again').disabled = true;
+    say('.gs-ground', 'asking the world to render its ground\u2026');
     try {
-        const n = await api.rpc('compile_ground');
-        say('.gs-ground', `${n} tile(s) of ground to render \u2014 see Render`);
+        const n = await api.rpc('compile_ground', {});
+        say('.gs-ground', `${n} tile(s) of ground to render \u2014 see Render jobs`);
     } catch (err) {
-        say('.gs-ground', String(err.body?.message ?? err.message ?? err), true);
+        say('.gs-ground', `could not: ${String(err.body?.message ?? err.message ?? err)}`, true);
+        console.error(err);
     } finally {
         q('.gs-again').disabled = false;
     }

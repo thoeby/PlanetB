@@ -235,8 +235,10 @@
   camera.setPosition(0, 2000, 0);
   camera.setEulerAngles(-90, 0, 0);            // straight down until the player takes over
   app.root.addChild(camera);
-  // The sky and the air (client/js/sky.js): the viewer's, not the tiles'.
-  const sky = mountSky(app, pc, camera);
+  // The sky and the air (client/js/sky.js): the viewer's, not the tiles'. A
+  // sky that cannot be drawn is a sky the page goes on without.
+  let sky = { follow() {} };
+  try { sky = mountSky(app, pc, camera); } catch (err) { console.error('sky', err); }
 
   // WP1.5: the loaded tiles are re-checked every 30 s, and so is whatever was
   // published since the last check — a tile trained while this page is open
