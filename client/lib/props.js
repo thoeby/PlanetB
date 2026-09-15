@@ -9,7 +9,6 @@
 
 import { Mesh, normalOf } from './mesh.js';
 import { styleFor } from './rules.js';
-import { fbm } from './noise.js';
 import { earcut, ringArea, scatter } from './poly.js';
 
 const UP = [0, 1, 0];
@@ -188,7 +187,7 @@ function flatRoof(m, ring, top) {
 // What an empty rule table falls back to, so a world with no rules still
 // builds: a plain needleleaved stand. This is a fallback, not a vocabulary —
 // every species, every column name and every size lives in `build_rule`.
-const TREE = { sides: 7, taper: 0.34, height: [12, 24], color: [0.11, 0.24, 0.12], thin: 0.42 };
+const TREE = { sides: 7, taper: 0.34, height: [12, 24], color: [0.11, 0.24, 0.12] };
 
 // Age as a fraction of full height, so a plantation is knee-high and an old
 // stand is not. `mature` is the age at full height and comes from the rule;
@@ -203,12 +202,11 @@ export function maturity(age, mature) {
 const pick = (value, fallback) => (Number.isFinite(Number(value)) ? Number(value) : fallback);
 
 // A tree is three tiers of cone, each narrower than the one under it, on a
-// square trunk, scattered by Poisson disk and thinned by noise so a stand has
-// clearings and clumps rather than a lattice. Every tree is its own height,
+// square trunk, scattered by Poisson disk. Every tree is its own height,
 // leans its own way and is its own shade of the stand's colour, because a
 // forest of one tree repeated is what a forest never looks like. The draws
-// from `random` happen for every scattered spot, thinned or not, so a stand's
-// trees stand in the same places however it is styled (Invariant 2).
+// from `random` happen before the age is applied, so a stand's trees stand
+// in the same places however tall they are (Invariant 2).
 export function trees(forests, terrain, random, radius, rules = []) {
     const trunks = new Mesh('trunk');
     const canopies = new Mesh('canopy');
@@ -226,7 +224,6 @@ export function trees(forests, terrain, random, radius, rules = []) {
             const tall = (low + random() * (high - low)) * grown;
             const lean = [(random() - 0.5) * 0.08, (random() - 0.5) * 0.08];
             const tint = [0.8 + random() * 0.4, 0.85 + random() * 0.3];
-            if (fbm(x, z, 40, 3) < TREE.thin) continue;
             const ground = terrain.at(x, z);
             const own = [colour[0] * tint[0] * tint[1], colour[1] * tint[1],
                 colour[2] * tint[0]];

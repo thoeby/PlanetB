@@ -8,7 +8,6 @@
 
 import { sampleHeight } from './geo.js';
 import { SUN, shade } from './light.js';
-import { fbm } from './noise.js';
 import { Mesh } from './mesh.js';
 import { styleFor } from './rules.js';
 
@@ -195,15 +194,15 @@ export function distanceToSegment(p, a, b) {
     return { d: Math.hypot(p[0] - (a[0] + t * vx), p[1] - (a[1] + t * vz)), t };
 }
 
-// What the ground is made of, by height and slope, and how it varies.
+// What the ground is made of, by height and slope.
 //
 // There is no orthophoto in this world — there is none to drape (SPEC §7) —
 // so the terrain says what it is from where it is and how steep. It is a ramp
-// with a stop for each thing a mountainside actually is, and every stop and
-// every blend is pushed about by noise over the world's own metres
-// (client/lib/noise.js): the treeline wanders, the meadow has dry patches and
-// lush ones, the rock has its bedding, and none of it is a straight line or a
-// flat colour. Steep ground is rock at every height, because it is.
+// with a stop for each thing a mountainside actually is, and the blends
+// between them are the DEM's own height and slope. No noise on top: the
+// survey is half a metre, and the relief it holds is the detail; a pattern
+// laid over it is a pattern, and reads as one. Steep ground is rock at every
+// height, because it is.
 const BANDS = [
     { to: 600, colour: [0.34, 0.50, 0.20] },   // the valley floor, lush
     { to: 1400, colour: [0.40, 0.54, 0.22] },  // pasture
@@ -214,7 +213,6 @@ const BANDS = [
 ];
 
 const ROCK = [0.48, 0.45, 0.41];
-const DRY = [0.58, 0.52, 0.28];
 const mix = (a, b, t) => a.map((c, i) => c * (1 - t) + b[i] * t);
 const clamp01 = (v) => Math.min(1, Math.max(0, v));
 
@@ -230,44 +228,12 @@ function band(height) {
     return BANDS.at(-1).colour;
 }
 
-// Where a point is on the planet, in metres, single-valued: the same number
-// from whichever tile or ground level asks, so the grain has no seams.
-const R = 6378137;
-export const worldMetres = (lon, lat) => ({
-    x: lon * RAD * R * Math.cos(lat * RAD), z: -lat * RAD * R,
-});
-const RAD = Math.PI / 180;
-
 // `openness` is how much sky this point can see, 0..1: a crease in the
-// hillside is darker than the shoulder above it, and that darkening is the
-// only thing in a bare DEM that shows its shape at all. It is the surface's
-// own colour rather than the light, so a splat carries it wherever it is seen
-// from (client/lib/light.js). `w` is worldMetres(), or null for the plain
-// ramp with no grain on it.
-export function terrainColour(slope, height, openness = 1, w = null) {
-    let ground;
-    let rocky = clamp01((slope - 0.35) / 0.7);
-    if (w) {
-        // The bands drift up and down the hill by up to 150 m over a few
-        // hundred metres: no contour line is a straight edge.
-        const drift = (fbm(w.x, w.z, 400, 3) - 0.5) * 300;
-        ground = band(height + drift);
-        // Dry patches in the meadow, and bedding in the rock.
-        const patch = fbm(w.x, w.z, 60, 4);
-        ground = mix(ground, DRY, clamp01((patch - 0.55) * 2.5) * 0.45);
-        // Rock breaks through where the ground is already steepening, not
-        // in the middle of a meadow.
-        rocky = clamp01(rocky + (fbm(w.x + 900, w.z, 25, 3) - 0.5) * clamp01(slope / 0.5));
-        // No finer than the grid draws: grain under a cell's size is a
-        // pattern of the vertices, not of the ground.
-        const grain = 0.86 + 0.28 * fbm(w.x, w.z + 900, 14, 3);
-        ground = ground.map((c) => c * grain);
-    } else {
-        ground = band(height);
-    }
-    ground = mix(ground, ROCK, rocky * 0.85);
-    // A crease is also dirtier than a shoulder; the light it loses is
-    // lightAt()'s to take, not this one's twice over.
+// hillside is dirtier than the shoulder above it. The light it loses is
+// lightAt()'s to take (client/lib/light.js), so this is mild.
+export function terrainColour(slope, height, openness = 1) {
+    const rocky = clamp01((slope - 0.35) / 0.7);
+    const ground = mix(band(height), ROCK, rocky * 0.85);
     const ao = 0.8 + 0.2 * clamp01(openness);
     return ground.map((c) => c * ao);
 }
@@ -295,7 +261,7 @@ export function openAt(h, size, i, j, stepX, stepZ, radius = 3) {
 // The ground, lit: assemble-v3 bakes the light into every vertex it writes
 // (light.js shade), so the frames, the sampled splats and the ground mesh
 // carry one colour and meet without a seam.
-export function terrainMesh(terrain, material = 'terrain', worldAt = null) {
+export function terrainMesh(terrain, material = 'terrain') {
     const m = new Mesh(material);
     const n = terrain.size;
     const hAt = (x, z) => terrain.within(x, z);
@@ -308,7 +274,7 @@ export function terrainMesh(terrain, material = 'terrain', worldAt = null) {
             const normal = normalAt(terrain, i, j);
             const x = terrain.x(i);
             const z = terrain.z(j);
-            const own = terrainColour(s, h + terrain.datum, open, worldAt?.(x, z));
+            const own = terrainColour(s, h + terrain.datum, open);
             m.vertex([x, h, z], normal, shade(own, normal, open,
                 sunlitAt(hAt, x, h, z, terrain.cell)));
         }

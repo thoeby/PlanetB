@@ -1460,15 +1460,12 @@ interpolation where the WCS version takes it, and read back cubic
 (`ground.py OVERSAMPLE`). `client/lib/geo.js` reads both formats by length, so
 tiles already on disk still load; delete the cut cache to get them recut.
 
-## The ground has grain, the trees have shape
+## The trees have shape; the ground is the survey
 
-`terrainColour` takes where a point is on the planet (`worldMetres`, single-
-valued, so no seams) and pushes every band and blend about with value noise
-(`client/lib/noise.js`): the treeline wanders, meadows have dry patches, rock
-breaks through only where the ground is steepening, and the surface has a
-grain no finer than the grid draws. The bands are lit from sea level again
-(`Terrain.datum`): assemble lowers heights into the tile's frame, and the
-colour had been reading those as if every tile were at 0 m. Palette and sky
-brighter; the albedo's own AO is mild, since `lightAt` already takes openness.
-A tree is three tiers of cone on a trunk, its own height, lean and shade, and
-stands are thinned by noise into clumps and clearings.
+The colour bands are lit from sea level again (`Terrain.datum`): assemble
+lowers heights into the tile's frame, and the colour had been reading those
+as if every tile were at 0 m. Palette and sky brighter; the albedo's own AO
+is mild, since `lightAt` already takes openness. A tree is three tiers of
+cone on a trunk, its own height, lean and shade. No noise anywhere: a grain
+laid over a half-metre survey was tried and read as a pattern, so the
+relief in the DEM is the only detail, and it is enough.
