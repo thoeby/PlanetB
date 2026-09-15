@@ -1448,3 +1448,14 @@ bakes, as the sampled tile already showed them.
 129 threw three quarters of it away. The z16 ground level is 257 too. Training
 iterations come down to 2 000 (z16) / 2 500 (z18): the frames are the mesh,
 there is nothing for more steps to find.
+
+## dem-v2: the stripes were the elevation
+
+Two things drew stripes across every tile. dem-v1 held elevation as uint16 at
+0.2 m steps: a hillside of 1.6 m cells at a ten per cent grade is a step every
+cell. And GeoServer scales a coverage with nearest neighbour, so a 0.5 m survey
+asked for at 1.6 m was every third row of it. Now a cut is float32 metres
+(`server/splatworld/dem.py`), asked for at twice the samples with bilinear
+interpolation where the WCS version takes it, and read back cubic
+(`ground.py OVERSAMPLE`). `client/lib/geo.js` reads both formats by length, so
+tiles already on disk still load; delete the cut cache to get them recut.

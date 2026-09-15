@@ -21,6 +21,12 @@ from .config import Config
 from . import crs
 from .importer import DEM_SIZE, Unreachable, _auth_header, fetch
 
+# How many more samples the coverage is asked for than the tile keeps. A
+# GeoServer scales with nearest neighbour whatever it is asked, and a survey
+# decimated that way is stripes; asked for twice as many and read back cubic,
+# every kept sample is an average of the survey around it.
+OVERSAMPLE = 2
+
 # Two tabs walking onto the same tile at the same moment must not both cut it.
 _cutting: dict[tuple[int, int, int], threading.Lock] = {}
 _cutting_guard = threading.Lock()
@@ -100,17 +106,20 @@ def encode_geotiff(raw: bytes, bounds: tuple | None = None) -> bytes:
 
     from . import dem
 
+    # Cubic, not bilinear: what arrives is asked for at twice the tile's
+    # samples (OVERSAMPLE), and a bilinear read of every second one would keep
+    # the grid GeoServer's nearest-neighbour scaling laid over the survey.
     with MemoryFile(raw) as memfile, memfile.open() as src:
         if bounds is None or src.crs is None:
             band = src.read(1, out_shape=(DEM_SIZE, DEM_SIZE),
-                            resampling=rasterio.enums.Resampling.bilinear)
+                            resampling=rasterio.enums.Resampling.cubic)
         else:
             west, south, east, north = bounds
             with WarpedVRT(src, crs=crs.TILE,
                            transform=rasterio.transform.from_bounds(
                                west, south, east, north, DEM_SIZE, DEM_SIZE),
                            width=DEM_SIZE, height=DEM_SIZE,
-                           resampling=rasterio.enums.Resampling.bilinear) as vrt:
+                           resampling=rasterio.enums.Resampling.cubic) as vrt:
                 band = vrt.read(1)
         values = band.astype("float64")
         if src.nodata is not None:
@@ -215,8 +224,8 @@ def _ask(world: dict, bounds: tuple, auth: dict, at: str) -> tuple[bytes, str]:
             scalings = _remembered_scalings(world, about.get("grid_axes"))
         for scale_axes in scalings:
             url = geoserver.coverage_tile_url(
-                world["url"], name, box, DEM_SIZE, version=version, axes=axes,
-                scale_axes=scale_axes)
+                world["url"], name, box, DEM_SIZE * OVERSAMPLE, version=version,
+                axes=axes, scale_axes=scale_axes)
             how = f" scaled on {'/'.join(scale_axes)}" if scale_axes else ""
             try:
                 raw = fetch(url, auth, what=f"elevation for {at}")

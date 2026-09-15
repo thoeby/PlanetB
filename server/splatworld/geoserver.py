@@ -338,6 +338,7 @@ def coverage_tile_url(base: str, coverage_id: str, bbox: tuple, size: int,
             "coverage": wcs10_name(coverage_id), "CRS": crs, "RESPONSE_CRS": crs,
             "BBOX": f"{west},{south},{east},{north}",
             "WIDTH": size, "HEIGHT": size, "FORMAT": "GeoTIFF",
+            "INTERPOLATION": "bilinear",
         }, quote_via=urllib.parse.quote)
     elif version.startswith("1.1"):
         query = urllib.parse.urlencode({
@@ -362,6 +363,7 @@ def coverage_tile_url(base: str, coverage_id: str, bbox: tuple, size: int,
         if scale_axes:
             si, sj = scale_axes
             fields["scalesize"] = f"{si}({size}),{sj}({size})"
+            fields["interpolation"] = "http://www.opengis.net/def/interpolation/OGC/1/linear"
         query = (urllib.parse.urlencode(fields, quote_via=urllib.parse.quote)
                  + f"&subset={first}({west},{east})&subset={second}({south},{north})")
     return f"{service_url(base, 'wcs')}?{query}"

@@ -10,14 +10,13 @@ import test from 'node:test';
 
 import { cellMetres, groundTile, heightIn } from '../lib/groundtile.js';
 import { blockAt, Ground, GROUND_LEVELS, holeFor } from '../lib/groundmesh.js';
-import { DEM_OFFSET, DEM_SCALE } from '../lib/geo.js';
 
 // A DEM that rises to the east, so a hole in the mesh is not a hole in a plane.
 function slope(size = 32) {
-    const data = new Uint16Array(size * size);
+    const data = new Float32Array(size * size);
     for (let j = 0; j < size; j++) {
         for (let i = 0; i < size; i++) {
-            data[j * size + i] = Math.round((1000 + i * 20 - DEM_OFFSET) / DEM_SCALE);
+            data[j * size + i] = 1000 + i * 20;
         }
     }
     return { kind: 'dem', size, data, u0: 0, v0: 0, span: 1 };

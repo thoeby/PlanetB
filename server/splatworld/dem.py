@@ -1,9 +1,10 @@
-"""Cuts elevation into the dem-v1 tiles the compiler reads.
+"""Cuts elevation into the dem-v2 tiles the compiler reads.
 
-One tile is 256x256 uint16 samples, row-major, north-west first, in the tile
-projection (crs.TILE) over exactly the tile's bounds, with `elevation_m = value * 0.2 - 500`. That is
-what tools/seed-dem.sh produces with gdalwarp, and what client/lib/geo.js reads
-back; this does the same with rasterio so nothing has to be installed by hand.
+One tile is 256x256 float32 metres, little-endian, row-major, north-west
+first, in the tile projection (crs.TILE) over exactly the tile's bounds.
+dem-v1 was uint16 at 0.2 m steps: on a hillside of 1.6 m cells and a ten per
+cent grade every cell is a step, and the steps drew as stripes across every
+tile. client/lib/geo.js reads both, by the file's length.
 
 rasterio's wheels carry their own GDAL, which is the whole reason it is here.
 """
@@ -26,15 +27,15 @@ NODATA_ELEVATION_M = 0.0
 
 
 def encode(elevation_m: np.ndarray) -> bytes:
-    """Metres to dem-v1 samples: a linear map of [-500, 12607] onto uint16."""
+    """Metres to dem-v2 samples: float32, clipped to what a planet has."""
     filled = np.where(np.isfinite(elevation_m), elevation_m, NODATA_ELEVATION_M)
-    clipped = np.clip(filled, DEM_MIN, DEM_MAX)
-    scaled = (clipped - DEM_MIN) * (65535.0 / (DEM_MAX - DEM_MIN))
-    return np.rint(scaled).astype("<u2").tobytes()
+    return np.clip(filled, DEM_MIN, DEM_MAX).astype("<f4").tobytes()
 
 
 def decode(raw: bytes) -> np.ndarray:
-    """The inverse, for tests and for reading a tile back."""
+    """The inverse, for tests and for reading a tile back; dem-v1 too."""
+    if len(raw) % 4 == 0 and len(raw) // 4 == DEM_SIZE * DEM_SIZE:
+        return np.frombuffer(raw, dtype="<f4").astype("float64")
     samples = np.frombuffer(raw, dtype="<u2").astype("float64")
     return samples * 0.2 - 500.0
 

@@ -66,17 +66,24 @@ function bilinear(raster, u, v, stride, read) {
     return out;
 }
 
-// dem-v1: uint16 counts, elevation_m = value * 0.2 - 500.
+// dem-v2: float32 metres. dem-v1, which the store may still hold from an
+// earlier cut or tools/seed-dem.sh: uint16 counts, metres = value * 0.2 - 500,
+// told apart by the file's length. Either way `data` is metres.
 export const decodeDem = async (buf) => {
-    const data = new Uint16Array(buf);
-    return { data, size: Math.round(Math.sqrt(data.length)) };
+    const n = Math.round(Math.sqrt(buf.byteLength / 4));
+    if (n * n * 4 === buf.byteLength) {
+        return { data: new Float32Array(buf), size: n };
+    }
+    const raw = new Uint16Array(buf);
+    const data = new Float32Array(raw.length);
+    for (let i = 0; i < raw.length; i++) data[i] = raw[i] * DEM_SCALE + DEM_OFFSET;
+    return { data, size: Math.round(Math.sqrt(raw.length)) };
 };
 
 export const loadDem = (z, x, y, opts) =>
     loadRaster('dem', z, x, y, { ...opts, decode: opts.decode ?? decodeDem });
 
-export const sampleHeight = (dem, u, v) =>
-    bilinear(dem, u, v, 1, (i) => dem.data[i])[0] * DEM_SCALE + DEM_OFFSET;
+export const sampleHeight = (dem, u, v) => bilinear(dem, u, v, 1, (i) => dem.data[i])[0];
 
 // WebP has no decoder in plain JS; the browser's is reachable from a worker
 // through createImageBitmap and an OffscreenCanvas, which is where atoms run.

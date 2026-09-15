@@ -6,15 +6,14 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 
 import { groundOver, shadeRect, tileOver } from '../lib/demshade.js';
-import { DEM_OFFSET, DEM_SCALE } from '../lib/geo.js';
 import * as tm from '../lib/tilemath.js';
 
 // A DEM that rises to the east, so the shading is a slope rather than a wash.
 function slope(size = 32) {
-    const data = new Uint16Array(size * size);
+    const data = new Float32Array(size * size);
     for (let j = 0; j < size; j++) {
         for (let i = 0; i < size; i++) {
-            data[j * size + i] = Math.round((900 + i * 30 - DEM_OFFSET) / DEM_SCALE);
+            data[j * size + i] = 900 + i * 30;
         }
     }
     return data;

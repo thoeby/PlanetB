@@ -15,7 +15,7 @@
 // seeded from the atom, and the tar carries no timestamps.
 
 import { fetchJson } from '../js/api.js';
-import { DEM_OFFSET, DEM_SCALE, loadDem } from '../lib/geo.js';
+import { loadDem } from '../lib/geo.js';
 import { loadAssets } from '../lib/assets.js';
 import { boundsOf, placeMeshes } from '../lib/glbmesh.js';
 import { packMeshes } from '../lib/mesh.js';
@@ -256,5 +256,5 @@ const sampleGround = (dem) => {
     const v = dem.v0 + dem.span / 2;
     const i = Math.min(n - 1, Math.max(0, Math.round(u * n - 0.5)));
     const j = Math.min(n - 1, Math.max(0, Math.round(v * n - 0.5)));
-    return dem.data[j * n + i] * DEM_SCALE + DEM_OFFSET;
+    return dem.data[j * n + i];
 };

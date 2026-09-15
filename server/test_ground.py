@@ -83,9 +83,9 @@ def test_the_request_names_a_tile_not_a_coverage(wcs):
 def test_a_geotiff_becomes_ground_the_compiler_can_read():
     raw = geotiff((0, 0, 1, 1), value=1234.0)
     body = ground.encode_geotiff(raw)
-    assert len(body) == 256 * 256 * 2
+    assert len(body) == 256 * 256 * 4
     metres = dem.decode(body)
-    assert abs(metres.mean() - 1234.0) < 0.2       # dem-v1 quantises to 0.2 m
+    assert abs(metres.mean() - 1234.0) < 0.001     # dem-v2 is float32 metres
 
 
 def test_nodata_becomes_sea_level_not_a_hole():
