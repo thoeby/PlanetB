@@ -27,8 +27,9 @@ import { rngOf, sampleSurfaces } from '../lib/sampling.js';
 import { writeTar } from '../lib/tar.js';
 import {
     GRID, Terrain, applyTerrainmods, bakeLight, cutRoads, heightRaster, terrainMesh,
+    worldMetres,
 } from '../lib/terrain.js';
-import { localFromLonLat, tileBbox, tileFrame } from '../lib/tilemath.js';
+import { localFromLonLat, lonLatFromLocal, tileBbox, tileFrame } from '../lib/tilemath.js';
 
 // v3 bakes the light into every vertex (client/lib/light.js shade, with the
 // ground's own shadow from client/lib/terrain.js sunlitAt) and reads the whole
@@ -166,6 +167,13 @@ function build({ z, sw, ne, dem, frame, world, random, assets }) {
     // The frame's origin is the ground under the tile centre, so heights are
     // measured from there, not from the ellipsoid.
     for (let i = 0; i < terrain.h.length; i++) terrain.h[i] -= frame.h;
+    terrain.datum = frame.h;
+    // The grain of the ground is keyed to the planet, not the tile
+    // (client/lib/noise.js), so it runs across the edge into the next one.
+    const worldAt = (x, z) => {
+        const g = lonLatFromLocal(frame, { x, y: 0, z });
+        return worldMetres(g.lon, g.lat);
+    };
     applyTerrainmods(terrain, by('terrainmod'), rules);
     const roads = roadsOf(by('road'), terrain, rules);
     cutRoads(terrain, roads);
@@ -174,7 +182,8 @@ function build({ z, sw, ne, dem, frame, world, random, assets }) {
     const built = buildings(by('footprint'), terrain, rules);
     const wood = trees(by('forest'), terrain, random, Math.max(6, edge / 140), rules);
     const placed = placeInstances(world.instances, assets ?? new Map(), frame);
-    const meshes = clip(bakeLight([terrainMesh(terrain), roadMesh(roads, terrain),
+    const meshes = clip(bakeLight([terrainMesh(terrain, 'terrain', worldAt),
+        roadMesh(roads, terrain),
         built.walls, built.roofs, waterMesh(by('water'), terrain),
         wood.trunks, wood.canopies, ...placed.meshes], terrain), sw, ne);
     built.boxes = [...built.boxes, ...placed.boxes].filter((b) => b.center[0] >= sw.x - CLIP_M

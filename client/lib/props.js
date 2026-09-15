@@ -9,6 +9,7 @@
 
 import { Mesh, normalOf } from './mesh.js';
 import { styleFor } from './rules.js';
+import { fbm } from './noise.js';
 import { earcut, ringArea, scatter } from './poly.js';
 
 const UP = [0, 1, 0];
@@ -187,7 +188,7 @@ function flatRoof(m, ring, top) {
 // What an empty rule table falls back to, so a world with no rules still
 // builds: a plain needleleaved stand. This is a fallback, not a vocabulary —
 // every species, every column name and every size lives in `build_rule`.
-const TREE = { sides: 6, taper: 0.28, height: [12, 22], color: [0.12, 0.28, 0.16] };
+const TREE = { sides: 7, taper: 0.34, height: [12, 24], color: [0.11, 0.24, 0.12], thin: 0.42 };
 
 // Age as a fraction of full height, so a plantation is knee-high and an old
 // stand is not. `mature` is the age at full height and comes from the rule;
@@ -201,9 +202,13 @@ export function maturity(age, mature) {
 
 const pick = (value, fallback) => (Number.isFinite(Number(value)) ? Number(value) : fallback);
 
-// One canopy cone and one square trunk per tree, scattered by Poisson disk. The
-// radius is set by the caller from the tile's size, so a z14 tile does not try
-// to grow a hundred thousand trees.
+// A tree is three tiers of cone, each narrower than the one under it, on a
+// square trunk, scattered by Poisson disk and thinned by noise so a stand has
+// clearings and clumps rather than a lattice. Every tree is its own height,
+// leans its own way and is its own shade of the stand's colour, because a
+// forest of one tree repeated is what a forest never looks like. The draws
+// from `random` happen for every scattered spot, thinned or not, so a stand's
+// trees stand in the same places however it is styled (Invariant 2).
 export function trees(forests, terrain, random, radius, rules = []) {
     const trunks = new Mesh('trunk');
     const canopies = new Mesh('canopy');
@@ -218,18 +223,31 @@ export function trees(forests, terrain, random, radius, rules = []) {
         const colour = Array.isArray(style.color) ? style.color : TREE.color;
         const grown = maturity((f.props ?? {})[style.age_prop ?? 'age'], style.mature);
         for (const [x, z] of scatter(f.rings, radius, random)) {
-            const ground = terrain.at(x, z);
-            // The draw from `random` happens whatever the age, so a stand's
-            // trees stand in the same places however tall they are.
             const tall = (low + random() * (high - low)) * grown;
-            const wide = tall * taper;
-            cone(canopies, [x, ground + tall * 0.35, z], wide / 2, tall * 0.75, sides,
-                colour.map((c) => c * (0.85 + random() * 0.3)));
-            trunk(trunks, x, z, ground, tall * 0.4, wide * 0.06);
+            const lean = [(random() - 0.5) * 0.08, (random() - 0.5) * 0.08];
+            const tint = [0.8 + random() * 0.4, 0.85 + random() * 0.3];
+            if (fbm(x, z, 40, 3) < TREE.thin) continue;
+            const ground = terrain.at(x, z);
+            const own = [colour[0] * tint[0] * tint[1], colour[1] * tint[1],
+                colour[2] * tint[0]];
+            tree(canopies, [x, ground, z], tall, tall * taper, sides, lean, own);
+            trunk(trunks, x, z, ground, tall * 0.4, tall * taper * 0.06);
             count += 1;
         }
     }
     return { trunks, canopies, count };
+}
+
+// Three tiers: the lowest starts a third of the way up and is the widest,
+// each one above it a little narrower and a little darker underneath.
+function tree(m, [x, ground, z], tall, wide, sides, lean, colour) {
+    const tiers = [[0.30, 0.50, 1.00], [0.52, 0.42, 0.78], [0.72, 0.38, 0.52]];
+    for (const [from, high, width] of tiers) {
+        const y = ground + tall * from;
+        const base = [x + lean[0] * tall * from, y, z + lean[1] * tall * from];
+        cone(m, base, wide / 2 * width, tall * high, sides,
+            colour.map((c) => c * (0.9 + 0.1 * from)));
+    }
 }
 
 function cone(m, base, r, tall, sides, colour) {

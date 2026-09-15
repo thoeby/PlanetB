@@ -27,11 +27,11 @@ export const SUN = norm([0.42, 0.83, 0.36]);
 // one has to be a difference in colour as well as in brightness, or the eye
 // reads it as the same surface at two exposures.
 export const SUN_COLOUR = [1.12, 1.02, 0.86];
-export const SUN_STRENGTH = 0.72;
+export const SUN_STRENGTH = 0.80;
 // What a surface sees of the sky, straight up; and what it sees of the ground,
 // straight down. The second one is why an overhang is not black.
-export const SKY_COLOUR = [0.44, 0.52, 0.68];
-export const BOUNCE_COLOUR = [0.30, 0.28, 0.23];
+export const SKY_COLOUR = [0.50, 0.58, 0.74];
+export const BOUNCE_COLOUR = [0.34, 0.32, 0.26];
 
 // The light arriving at a surface, as a multiplier on its own colour.
 // `openness` is how much of the sky it can see — 1 in the open, less in a

@@ -19,7 +19,7 @@
 import { sampleHeight } from './geo.js';
 import { shade } from './light.js';
 import * as tm from './tilemath.js';
-import { heightOn, openAt, sunlitAt, terrainColour } from './terrain.js';
+import { heightOn, openAt, sunlitAt, terrainColour, worldMetres } from './terrain.js';
 
 // The sky is client/lib/light.js, the same one the frame atom renders under and
 // the same one a tile's splats are sampled with. The ground a player walks on
@@ -142,7 +142,7 @@ function heightAt(h, positions, grid) {
 
 // Lit exactly as assemble-v3 lights a tile's ground (client/lib/terrain.js
 // terrainMesh): the same sky, the same shadow, so the two meet without a seam.
-function shadeAll(h, positions, grid, b, step) {
+function shadeAll(h, positions, grid, b, step, lons, lats) {
     const normals = [];
     const colors = [];
     const hAt = heightAt(h, positions, grid);
@@ -152,7 +152,8 @@ function shadeAll(h, positions, grid, b, step) {
             normals.push(...n);
             const open = openAt(h, grid, i, j, step, step);
             const at = j * grid + i;
-            const own = terrainColour(slopeAt(h, grid, i, j, b), h[at], open);
+            const own = terrainColour(slopeAt(h, grid, i, j, b), h[at], open,
+                worldMetres(lons[i], lats[j]));
             const lit = sunlitAt(hAt, positions[at * 3], h[at], positions[at * 3 + 2], step);
             colors.push(...shade(own, n, open, lit));
         }
@@ -188,7 +189,7 @@ export function groundTile(z, x, y, dem, localOf, grid = 65,
     const { b, h, lons, lats, positions } = samples(z, x, y, dem, localOf, grid);
     const mid = (b.south + b.north) / 2;
     const { normals, colors } = shadeAll(h, positions, grid, b,
-        cellMetres(z, grid, mid));
+        cellMetres(z, grid, mid), lons, lats);
     const mesh = { positions, normals, colors, indices: [] };
     const deep = skirtDepth(z, grid, mid);
     const covered = [];
