@@ -722,6 +722,21 @@ toy: it is what `verify` renders with, and what the node tests train with.
   that asks for it; a verified atom advances every job waiting on it; a job
   just built is advanced over dependencies verified before it existed.
 
+- **`train-v3` is brush** (`client/lib/brush.js`, `client/atoms/train.js`,
+  `db/0095`): the frames, their poses and the full-budget surface seed go to
+  brush as a nerfstudio dataset written into the tab's own file system
+  (`client/lib/opfs.js`), brush trains on a WebGPU device the atom shares
+  with it, and the splats are read back off that device. Growth off, SH
+  degree 0, no eval split. The trainer written here (`client/lib/gs{grad,opt,
+  train,gpu,wgsl,wgslgrad}.js`) is no longer on any path but the node tests
+  and `client/test/e2e/gsgpu.spec.js`; `verify` still renders with
+  `gsrast.js`. Delete the rest once a GPU run has confirmed brush.
+  Verified here, over SwiftShader's WebGPU: the module loads (18 MB after
+  wasm-opt), the dataset is accepted, the device is shared and a run starts.
+  It then fails in brush's sort kernels, which need the `subgroups` feature
+  SwiftShader has not got; `brushDevice()` now refuses such an adapter up
+  front. **The first training run needs a real GPU.**
+
 ### Open items from WP3
 
 - [ ] **WP3.1's acceptance on a GPU**: a pilot z16 tile in under 8 minutes at

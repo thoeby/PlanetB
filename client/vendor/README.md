@@ -18,3 +18,8 @@ they are builds rather than sources — the pinned versions are in that script:
 
 Nothing here is fetched at runtime by the tests; `client/` must stay servable
 as static files.
+- `brush/` — brush (Apache-2.0, github.com/ArthurBrussee/brush), the
+  gaussian-splat trainer, as WebAssembly on WebGPU: `apps/brush-js` built by
+  `tools/build-brush.sh` with `wasm-pack --target web`. Checked in, because a
+  Rust toolchain is not something `make vendor` can assume. `client/lib/brush.js`
+  is the seam.

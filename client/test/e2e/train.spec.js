@@ -83,7 +83,7 @@ function buildDag() {
     const frames = [[0, 20], [20, 40], [40, 56]].map(([from, to]) =>
         insert(job, 'frame', 'frame-v2', { assemble: asm, snapshot },
             { camera_set: 'z16-v1', from, to, size: FRAME_SIZE, samples: 1 }, [asm]));
-    const trn = insert(job, 'train', 'train-v2', { assemble: asm, frames },
+    const trn = insert(job, 'train', 'train-v3', { assemble: asm, frames },
         { budget: BUDGET, iters: 80, camera_set: 'z16-v1', size: TRAIN_SIZE,
             needs_webgpu: true, min_buffer_mb: 1 }, frames);
     const sog = insert(job, 'sog', 'sog-v1', { ply: trn }, { budget: BUDGET }, [trn]);
