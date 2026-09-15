@@ -14,7 +14,7 @@ CREATE TEMP TABLE g AS
 SELECT set_ground('http://gs', 'dem', 7.80, 46.28, 7.83, 46.30) AS out;
 
 SELECT ok((SELECT (out ->> 'dirtied')::int FROM g) >= 4,
-    'every z14 tile of the ground has a job');
+    'every z14 tile of the ground has a job (db/0108: none came out before)');
 SELECT is((SELECT count(*)::int FROM job WHERE z = 14 AND state = 'open'),
     (SELECT (out ->> 'dirtied')::int FROM g), 'and each is open');
 SELECT ok((SELECT count(*) FROM tile WHERE z = 6) >= 1, 'the ladder above them exists');
