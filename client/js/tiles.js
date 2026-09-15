@@ -74,9 +74,11 @@ export class TileStreamer {
         // approver sees what was rendered, in place, before saying yes (T7).
         this.candidates = false;
         // Asked for the current published_version and sog_sha256 of the tiles
-        // that are loaded. Injected rather than imported so this module stays
+        // that are loaded, and for every tile published since the last time it
+        // was asked. Injected rather than imported so this module stays
         // loadable under node, where the traversal is tested.
         this.fetchRows = fetchRows ?? null;
+        this.since = new Date().toISOString();
         // Told the key of every tile whose splats leave the scene, whether it
         // was unloaded or swapped for a newer version (client/js/player.js).
         this.onRelease = null;
@@ -242,9 +244,16 @@ export class TileStreamer {
         this.timer = null;
     }
 
+    // A tile published while this page is open is a tile the traversal has to
+    // learn about: a z16 that was unpublished when the rows were fetched is one
+    // the parent could not refine into, and re-checking only what is loaded
+    // never found it. So the poll asks after the loaded tiles and after every
+    // tile published since it last asked.
     async poll() {
-        if (!this.fetchRows || !this.entries.size) return 0;
-        const rows = await this.fetchRows([...this.entries.keys()].map(parseKey));
+        if (!this.fetchRows || !this.tiles.size) return 0;
+        const since = this.since;
+        this.since = new Date().toISOString();
+        const rows = await this.fetchRows([...this.entries.keys()].map(parseKey), since);
         let swapped = 0;
         for (const row of rows ?? []) {
             const k = key(row.z, row.x, row.y);

@@ -1422,3 +1422,10 @@ head as well (the worker never finishes under SwiftShader).
 ones: a sog that fails on an empty ply made by an earlier assemble is not helped
 by running the same sog again. `Drop` (`drop_job`) cancels a job the tool cannot
 finish and refunds its bounty, so nothing sits in the list without a way out.
+
+## The viewer learns about tiles published while it is open
+
+The 30 s poll re-checked only the loaded tiles, so a z16 trained after the page
+was opened stayed "unpublished" in the traversal and its z14 parent never
+refined into it until a reload. The poll now also asks for every tile with
+`published_at` after the previous poll (`fetchRows(loaded, since)`).

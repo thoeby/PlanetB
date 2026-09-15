@@ -116,11 +116,26 @@ test('a republished tile is swapped and the old entity disposed', async () => {
         'and the traversal sees the new version');
 });
 
-test('polling does nothing without a fetcher or without tiles', async () => {
+test('polling does nothing without a fetcher', async () => {
     const rows = COORDS.map((c) => row(...c));
     assert.equal(await streamerWith(rows, null).poll(), 0);
     const s = streamerWith(rows, async () => rows);
-    assert.equal(await s.poll(), 0, 'nothing loaded, nothing to check');
+    assert.equal(await s.poll(), 0, 'nothing loaded, nothing to swap');
+});
+
+test('a tile published while the page is open reaches the traversal', async () => {
+    const rows = COORDS.map((c) => row(...c));
+    const fresh = { ...row(12, 2140, 1444), published_version: 1, sog_sha256: 'c'.repeat(64) };
+    const asked = [];
+    const s = streamerWith(rows, async (loaded, since) => {
+        asked.push({ loaded, since });
+        return [fresh];
+    });
+    assert.equal(await s.poll(), 0, 'nothing loaded is swapped');
+    assert.equal(asked[0].loaded.length, 0);
+    assert.match(asked[0].since, /^\d{4}-\d{2}-\d{2}T/, 'asked since the page opened');
+    assert.equal(s.tiles.get('12/2140/1444').published_version, 1,
+        'the new tile is what its parent refines into next');
 });
 
 test('a failed load backs off instead of retrying every frame', () => {
