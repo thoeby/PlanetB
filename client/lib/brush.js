@@ -67,19 +67,23 @@ export function configFor(init, { iters, budget, size, seed = 42 }) {
 
 // Drives a training run to its end. `onStep(iter, elapsedMs)` is how the atom
 // beats its heartbeat; a Warning from brush is logged, not fatal.
-export async function trainIn(app, dir, config, { steps = 25, onStep, onWarn } = {}) {
+export async function trainIn(app, dir, config, { steps = 25, onStep, onWarn, onBatch } = {}) {
     const { BrushMessageKind: K } = mod;
     const training = app.startTrainingFromDirectory(dir, async (init) => ({ ...init, ...config }));
     let done = false;
+    let iter = 0;
     while (!done) {
         const msgs = await training.trainSteps(steps);
         if (!msgs.length) break;
         for (const m of msgs) {
-            if (m.kind === K.TrainStep) onStep?.(m.iter, m.elapsedMs);
+            if (m.kind === K.TrainStep) { iter = m.iter; onStep?.(m.iter, m.elapsedMs); }
             else if (m.kind === K.Warning) onWarn?.(m.text);
             else if (m.kind === K.DoneTraining) done = true;
             m.free?.();
         }
+        // Between batches the run is idle, which is when a picture of it can
+        // be taken (client/atoms/train.js).
+        await onBatch?.(iter, training);
     }
     return training;
 }
@@ -101,8 +105,8 @@ async function readBuffer(device, src, bytes) {
 // The splats as brush holds them, off its GPU: transforms [N, 10] as
 // means(3) | rotation xyzw(4) | log scales(3), sh [N, (deg+1)^2, 3], and raw
 // opacities [N]. Bound whole by brush's own demo, so offset 0.
-export async function readSplats(device, splats) {
-    const n = splats.numSplats;
+export async function readSplats(device, splats, limit = Infinity) {
+    const n = Math.min(splats.numSplats, limit);
     const coeffs = (splats.shDegree + 1) ** 2;
     const b = splats.buffers();
     if (!b) throw new Error('brush is not on WebGPU: no buffers to read');

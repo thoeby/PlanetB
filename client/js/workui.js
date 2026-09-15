@@ -28,6 +28,10 @@ const HTML = `
   <label class="row-switch"><span>Help render the world</span>
     <input type="checkbox" class="work-world"></label>
   <div class="work-progress note mono"></div>
+  <figure class="work-view" hidden>
+    <canvas width="256" height="256"></canvas>
+    <figcaption class="note mono"></figcaption>
+  </figure>
   <pre class="work-log note mono"></pre>
 </div>`;
 
@@ -93,6 +97,36 @@ async function onWorld(world, ready, toggle, showProgress) {
 }
 
 
+// What an atom is doing, as a picture: a traced frame (webp bytes) or a
+// projection of the splats it is working on (rgba), with one line under it.
+export async function showPicture(view, rec) {
+    const canvas = view.querySelector('canvas');
+    const ctx = canvas.getContext('2d');
+    const { picture: p } = rec;
+    view.hidden = false;
+    view.querySelector('figcaption').textContent = captionOf(rec);
+    if (p.rgba) {
+        canvas.width = p.width; canvas.height = p.height;
+        ctx.putImageData(new ImageData(new Uint8ClampedArray(p.rgba), p.width, p.height), 0, 0);
+        return;
+    }
+    const bitmap = await createImageBitmap(new Blob([p.webp], { type: 'image/webp' }));
+    canvas.width = bitmap.width; canvas.height = bitmap.height;
+    ctx.drawImage(bitmap, 0, 0);
+    bitmap.close();
+}
+
+export function captionOf(rec) {
+    const tile = rec.tile ? `${rec.tile.z}/${rec.tile.x}/${rec.tile.y} ` : '';
+    if (rec.event === 'frame') return `${tile}frame ${rec.done} of ${rec.of} traced`;
+    if (rec.event === 'seeded') return `${tile}seeded: ${rec.splats} splats before training`;
+    if (rec.event === 'train') {
+        return `${tile}training ${rec.iter} of ${rec.of} · ${rec.splats} splats`;
+    }
+    if (rec.event === 'sampled') return `${tile}sampled: ${rec.splats} splats, from above`;
+    return rec.event;
+}
+
 export function mountWork(host, { loop, autostart = false, frames, where } = {}) {
     host.innerHTML = HTML;
     const gpu = host.querySelector('.work-gpu');
@@ -103,10 +137,14 @@ export function mountWork(host, { loop, autostart = false, frames, where } = {})
 
     // The error is the whole message when there is one: a panel that says
     // "error 1630 assemble" and nothing else is not worth reading.
+    const view = host.querySelector('.work-view');
     const log = (rec) => {
+        // A record with a picture is the work itself, shown rather than said.
+        if (rec.picture) { showPicture(view, rec); return; }
         lines.push(`${rec.event} ${rec.atom ?? ''} ${rec.op ?? rec.state ?? ''}`.trim()
             + (rec.err ? ` — ${rec.err}` : ''));
         logEl.textContent = lines.slice(-LOG_LINES).join('\n');
+        if (rec.event === 'submit' || rec.event === 'error') view.hidden = true;
         render();
     };
     const now = host.querySelector('.work-now');

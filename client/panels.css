@@ -111,6 +111,11 @@
   background: var(--accent); box-shadow: 0 0 10px var(--accent);
 }
 #panel .work-log:empty, #panel .work-progress:empty { display: none; }
+#panel .work-view { margin: 8px 0 0; }
+#panel .work-view canvas { display: block; width: 100%; height: auto;
+  image-rendering: pixelated; border: 1px solid var(--line, #2a3138); border-radius: 4px;
+  background: #0d1013; }
+#panel .work-view figcaption { margin-top: 4px; }
 
 /* An empty state inside a full-bleed list keeps the panel's own margins: a
    dashed box running into the panel's edge reads as a broken border. */

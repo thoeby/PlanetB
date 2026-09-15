@@ -13,6 +13,7 @@ import { rngOf, sampleSurfaces } from './assemble.js';
 import { unpackMeshes } from '../lib/mesh.js';
 import { bboxOf, writePly } from '../lib/ply.js';
 import { readTar, writeTar } from '../lib/tar.js';
+import { topDown } from '../lib/preview.js';
 
 export const ALGO = 'sample-v3';
 
@@ -36,7 +37,8 @@ export async function run({ atom, inputs, log }) {
 
     const splats = sampleSurfaces(meshes, budget, rngOf(atom, z, x, y),
         { spread: SPREAD, shaded: true });
-    log?.({ event: 'sampled', tile: scene.tile, splats: splats.count });
+    log?.({ event: 'sampled', tile: scene.tile, splats: splats.count,
+        picture: topDown(splats) });
     const tar = writeTar([
         { name: 'splats.ply', bytes: writePly(splats) },
         { name: 'height.r16', bytes: files.get('height.r16') },

@@ -12,7 +12,9 @@
 // `verify` renders two of them in another tab. Invariant 8: probabilistic
 // quality assurance, not proof.
 
-import { viewCount } from '../lib/cameras.js';
+import { cameraSet, viewCount } from '../lib/cameras.js';
+import { boundsOf as frameBounds } from './frame.js';
+import { pointsPicture, shuffled } from '../lib/preview.js';
 import { holdout } from '../lib/frames.js';
 import {
     brushDevice, configFor, keep, loadBrush, readSplats, trainIn,
@@ -29,6 +31,10 @@ export const ALGO = 'train-v3';
 export const SPREAD = 1.15;
 // How far past the seed's box a splat may end up and still be this tile's.
 export const MARGIN = 0.15;
+// A picture of the run every so many iterations, from its first held-out
+// pose, over the first PREVIEW_SPLATS of the (shuffled) list.
+export const PREVIEW_EVERY = 200;
+export const PREVIEW_SPLATS = 150000;
 
 const decoder = new TextDecoder();
 const encoder = new TextEncoder();
@@ -74,6 +80,50 @@ function pack(splats, files) {
     ]);
 }
 
+
+// One brush run, start to finish: the dataset written, the device shared,
+// the run pumped with a picture every PREVIEW_EVERY iterations, the splats
+// read back, and everything torn down whatever happened.
+async function trainWithBrush({ atom, seed, tars, scene, eye, iters, budget, size, log }) {
+    const brush = await loadBrush();
+    const { adapter, device } = await brushDevice();
+    const name = `train-${atom.id}`;
+    const ds = dataset(tars, atom.params?.camera_set, seed);
+    const dir = await datasetDir(name, ds.files);
+    log?.({ event: 'training', tile: scene.tile, on: 'brush', views: ds.views,
+        held: ds.held, from: seed.count, iters, size });
+    let training = null;
+    try {
+        const app = new brush.BrushApp();
+        app.initExisting(adapter, device, device.queue);
+        training = await trainIn(app, dir, configFor({}, { iters, budget, size,
+            seed: atom.seed ?? 42 }), {
+            onStep: (iter, ms) => { if (iter % 100 === 0) log?.({ event: 'train', iter, ms }); },
+            onWarn: (text) => log?.({ event: 'warning', text }),
+            onBatch: (iter, t) => preview(device, t, iter, iters, eye, log),
+        });
+        const current = training.currentSplats();
+        if (!current) throw new Error('brush produced no splats');
+        const splats = await readSplats(device, current);
+        current.free?.();
+        return splats;
+    } finally {
+        training?.free?.();
+        await removeDir(name).catch(() => {});
+        device.destroy?.();
+    }
+}
+
+async function preview(device, training, iter, iters, eye, log) {
+    if (iter % PREVIEW_EVERY !== 0 || !iter) return;
+    const cur = training.currentSplats();
+    if (!cur) return;
+    const some = await readSplats(device, cur, PREVIEW_SPLATS);
+    const total = cur.numSplats;
+    cur.free?.();
+    log?.({ event: 'train', iter, of: iters, splats: total, picture: pointsPicture(some, eye) });
+}
+
 export async function run({ atom, inputs, log }) {
     if (!inputs?.assemble) throw new Error('train needs the assemble artifact');
     const tars = [].concat(inputs.frames ?? []).filter(Boolean);
@@ -85,34 +135,15 @@ export async function run({ atom, inputs, log }) {
     const iters = Number(atom.params?.iters) || 2000;
     const size = Number(atom.params?.size) || 1024;
     const { z, x, y } = scene.tile;
-    const seed = sampleSurfaces(meshes, budget, rngOf(atom, z, x, y), { spread: SPREAD });
+    const random = rngOf(atom, z, x, y);
+    // Shuffled so any prefix is a fair sample: the preview reads a prefix.
+    const seed = shuffled(sampleSurfaces(meshes, budget, random, { spread: SPREAD }), random);
+    const set = atom.params?.camera_set;
+    const eye = cameraSet(set, frameBounds(meshes))[holdout(viewCount(set) || 1)[0]];
+    log?.({ event: 'seeded', tile: scene.tile, splats: seed.count,
+        picture: pointsPicture(seed, eye) });
 
-    const brush = await loadBrush();
-    const { adapter, device } = await brushDevice();
-    const name = `train-${atom.id}`;
-    const ds = dataset(tars, atom.params?.camera_set, seed);
-    const dir = await datasetDir(name, ds.files);
-    log?.({ event: 'training', tile: scene.tile, on: 'brush', views: ds.views,
-        held: ds.held, from: seed.count, iters, size });
-    let training = null;
-    let splats;
-    try {
-        const app = new brush.BrushApp();
-        app.initExisting(adapter, device, device.queue);
-        training = await trainIn(app, dir, configFor({}, { iters, budget, size,
-            seed: atom.seed ?? 42 }), {
-            onStep: (iter, ms) => { if (iter % 100 === 0) log?.({ event: 'train', iter, ms }); },
-            onWarn: (text) => log?.({ event: 'warning', text }),
-        });
-        const current = training.currentSplats();
-        if (!current) throw new Error('brush produced no splats');
-        splats = await readSplats(device, current);
-        current.free?.();
-    } finally {
-        training?.free?.();
-        await removeDir(name).catch(() => {});
-        device.destroy?.();
-    }
+    const splats = await trainWithBrush({ atom, seed, tars, scene, eye, iters, budget, size, log });
     const box = bounds(seed, MARGIN);
     const out = keep(splats, box.lo, box.hi);
     if (out.count > budget) throw new Error(`${out.count} splats is over the budget of ${budget}`);

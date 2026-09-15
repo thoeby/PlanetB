@@ -95,7 +95,8 @@ export async function run({ atom, inputs, canvas, log, filesUrl }) {
     for (const cam of cams) {
         const rgba = await tracer.draw(cam);
         entries.push({ name: name(cam.id), bytes: await toWebp(rgba, size, canvas, QUALITY) });
-        log?.({ event: 'frame', pose: cam.id, of: cams.length });
+        log?.({ event: 'frame', pose: cam.id, done: entries.length, of: cams.length,
+            picture: { webp: entries.at(-1).bytes } });
     }
     tracer.dispose();
     log?.({ event: 'framed', set, from, to, size, samples, tile: scene.tile,
