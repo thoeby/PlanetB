@@ -12,6 +12,19 @@ WORK=$(mktemp -d)
 rustup target add wasm32-unknown-unknown
 command -v wasm-pack > /dev/null || cargo install wasm-pack --locked
 git clone --depth 1 --branch "$BRUSH_REV" "$BRUSH_REPO" "$WORK/brush"
+# One change of ours (tools/brush-autotune.patch): autotune at the Full level,
+# because burn's roofline throughput measurement reads synchronously and
+# panics on wasm. Applied by hand rather than `patch`, so the hunk survives
+# line drift; if the anchor is gone, look at what brush does now.
+python3 - "$WORK/brush/apps/brush-js/src/lib.rs" <<'PY'
+import sys, re
+p = sys.argv[1]; s = open(p).read()
+hunk = open('tools/brush-autotune.patch').read().split('@@\n', 1)[1]
+add = ''.join(l[1:] for l in hunk.splitlines(True) if l.startswith('+'))
+anchor = '        console_error_panic_hook::set_once();\n'
+assert anchor in s, 'brush-js lib.rs: anchor for the autotune patch is gone'
+open(p, 'w').write(s.replace(anchor, anchor + add, 1))
+PY
 ( cd "$WORK/brush/apps/brush-js" && wasm-pack build . --release --target web \
     --out-dir "$WORK/pkg" )
 mkdir -p "$DEST"

@@ -772,6 +772,14 @@ toy: it is what `verify` renders with, and what the node tests train with.
 - brush's panic text is kept from the worker's console and put on the error,
   so "RuntimeError: unreachable" says why.
 
+- **brush panicked on wasm before its first step** — "Failed to read tensor
+  data synchronously". A debug build's stack showed why: the first
+  `Tensor::mean` runs burn's reduce autotune, which measures the GPU's peak
+  throughput to bound its search, and that measurement reads synchronously.
+  At CubeCL's Full autotune level no bounds are measured;
+  `tools/brush-autotune.patch` sets it in brush-js and `tools/build-brush.sh`
+  applies it. The vendored wasm is rebuilt with it and clears the point.
+
 ### Open items from WP3
 
 - [ ] **WP3.1's acceptance on a GPU**: a pilot z16 tile in under 8 minutes at

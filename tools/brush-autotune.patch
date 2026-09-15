@@ -1,0 +1,15 @@
+--- a/apps/brush-js/src/lib.rs
++++ b/apps/brush-js/src/lib.rs
+@@
+         console_error_panic_hook::set_once();
++        // splatworld: burn's reduce autotune measures the device's peak throughput
++        // to bound its search ("roofline bounds"), and that measurement reads a
++        // tensor synchronously — which panics on wasm ("Failed to read tensor
++        // data synchronously") the first time the trainer takes a mean. At the
++        // Full level no bounds generator is registered, so nothing is measured.
++        {
++            use burn::cubecl::config::{CubeClRuntimeConfig, RuntimeConfig, autotune::AutotuneLevel};
++            let mut cfg = CubeClRuntimeConfig::default();
++            cfg.autotune.level = AutotuneLevel::Full;
++            let _ = CubeClRuntimeConfig::try_set(cfg);
++        }
