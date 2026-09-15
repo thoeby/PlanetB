@@ -11,5 +11,9 @@
 +            use burn::cubecl::config::{CubeClRuntimeConfig, RuntimeConfig, autotune::AutotuneLevel};
 +            let mut cfg = CubeClRuntimeConfig::default();
 +            cfg.autotune.level = AutotuneLevel::Full;
++            // Full measures every candidate; three samples each keep that to
++            // seconds on a slow card rather than minutes (the default is ten).
++            cfg.autotune.bench.max_samples = 3;
++            cfg.autotune.bench.min_samples = 1;
 +            let _ = CubeClRuntimeConfig::try_set(cfg);
 +        }

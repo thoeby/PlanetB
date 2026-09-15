@@ -77,7 +77,8 @@ export function configFor(init, { iters, budget, size, seed = 42 }) {
 
 // Drives a training run to its end. `onStep(iter, elapsedMs)` is how the atom
 // beats its heartbeat; a Warning from brush is logged, not fatal.
-export async function trainIn(app, dir, config, { steps = 25, onStep, onWarn, onBatch } = {}) {
+export async function trainIn(app, dir, config,
+    { steps = 25, onStep, onWarn, onBatch, onStage } = {}) {
     const { BrushMessageKind: K } = mod;
     const training = app.startTrainingFromDirectory(dir, async (init) => ({ ...init, ...config }));
     let done = false;
@@ -92,6 +93,12 @@ export async function trainIn(app, dir, config, { steps = 25, onStep, onWarn, on
             if (m.kind === K.TrainStep) { iter = m.iter; onStep?.(m.iter, m.elapsedMs); }
             else if (m.kind === K.Warning) onWarn?.(m.text);
             else if (m.kind === K.DoneTraining) done = true;
+            else if (m.kind === K.StartLoading) onStage?.('loading the frames');
+            else if (m.kind === K.DatasetLoaded) {
+                onStage?.(`${m.trainViews} views loaded, placing the seed`);
+            } else if (m.kind === K.SplatsUpdated && !iter) {
+                onStage?.(`${m.numSplats} splats placed, tuning the kernels for this GPU`);
+            }
             m.free?.();
         }
         // Between batches the run is idle, which is when a picture of it can

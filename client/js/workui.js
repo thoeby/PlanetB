@@ -100,6 +100,18 @@ async function onWorld(world, ready, toggle, showProgress) {
 }
 
 
+// One line of the log. A step says where it is and how fast; a stage says
+// what brush is doing before the first step.
+export function lineOf(rec) {
+    if (rec.event === 'train' && rec.iter != null) {
+        return `train ${rec.atom ?? ''} step ${rec.iter} of ${rec.of}`
+            + (rec.per ? ` · ${rec.per} ms a step` : '');
+    }
+    if (rec.event === 'stage') return `train ${rec.atom ?? ''} — ${rec.text}`;
+    return `${rec.event} ${rec.atom ?? ''} ${rec.op ?? rec.state ?? ''}`.trim()
+        + (rec.err ? ` — ${rec.err}` : '');
+}
+
 // What an atom is doing, as a picture: a traced frame (webp bytes) or a
 // projection of the splats it is working on (rgba), with one line under it.
 export async function showPicture(view, rec) {
@@ -157,8 +169,7 @@ export function mountWork(host, { loop, autostart = false, frames, where } = {})
     const log = (rec) => {
         // A record with a picture is the work itself, shown rather than said.
         if (rec.picture) { showPicture(view, rec); return; }
-        lines.push(`${rec.event} ${rec.atom ?? ''} ${rec.op ?? rec.state ?? ''}`.trim()
-            + (rec.err ? ` — ${rec.err}` : ''));
+        lines.push(lineOf(rec));
         logEl.textContent = lines.slice(-LOG_LINES).join('\n');
         if (rec.event === 'submit' || rec.event === 'error') view.hidden = true;
         render();

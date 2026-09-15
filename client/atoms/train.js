@@ -98,8 +98,16 @@ async function trainWithBrush({ atom, seed, tars, scene, eye, iters, budget, siz
         app.initExisting(adapter, device, device.queue);
         training = await trainIn(app, dir, configFor({}, { iters, budget, size,
             seed: atom.seed ?? 42 }), {
-            onStep: (iter, ms) => { if (iter % 100 === 0) log?.({ event: 'train', iter, ms }); },
+            // Every tenth step, with the pace: a silent minute on a slow card
+            // reads as a hang, and the first step is the one that took longest.
+            onStep: (iter, ms) => {
+                if (iter % 10 === 0 || iter === 1) {
+                    log?.({ event: 'train', iter, of: iters, ms: Math.round(ms),
+                        per: iter ? Math.round(ms / iter) : null });
+                }
+            },
             onWarn: (text) => log?.({ event: 'warning', text }),
+            onStage: (text) => log?.({ event: 'stage', text }),
             onBatch: (iter, t) => preview(device, t, iter, iters, eye, log),
         });
         const current = training.currentSplats();
