@@ -131,8 +131,17 @@ async function trainWithBrush({ atom, seed, tars, scene, eye, iters, budget, siz
     checkSeed(seed);
     const ds = dataset(tars, atom.params?.camera_set, seed);
     const dir = await datasetDir(name, ds.files);
+    // Which card this actually got, and how much of one. A run that is slow
+    // because the browser handed the tab another adapter, or because the
+    // frames and the splats do not fit in the card and it is paging, looks
+    // exactly like a run that is slow — and a step time says neither.
+    const info = adapter.info ?? await adapter.requestAdapterInfo?.() ?? {};
     log?.({ event: 'training', tile: scene.tile, on: 'brush', views: ds.views,
-        held: ds.held, from: seed.count, iters, size, budget });
+        held: ds.held, from: seed.count, iters, size, budget,
+        gpu: [info.vendor, info.architecture, info.device, info.description]
+            .filter(Boolean).join(' ') || 'unnamed adapter',
+        vram_mb: Math.round((device.limits.maxBufferSize ?? 0) / 1048576),
+        frames_mb: Math.round(ds.views * size * size * 4 / 1048576) });
     let training = null;
     let last = { iter: 0, ms: 0 };
     try {
