@@ -49,13 +49,13 @@ export const MARGIN = 0.15;
 // stand on: it is paid for on every one of the run's steps, including where
 // the picture was already right. Densification is the thing that puts splats
 // where they are needed, and it is cheap because it only does it there.
-export const SEED_SHARE = 0.25;
+export const SEED_SHARE = 0.5;
 // How much wider every trained splat is made before it is written: the ground
 // is covered by splats overlapping their neighbours, and the trainer settles
 // on extents that leave the background showing between them. A multiple, so it
 // is relative to whatever size a splat ended up at; the atom's `scale` param
 // is what turns it, without touching this file.
-export const SCALE = 2;
+export const SCALE = 1;
 // A picture of the run every so many iterations, from its first held-out
 // pose, over the first PREVIEW_SPLATS of the (shuffled) list.
 export const PREVIEW_EVERY = 200;

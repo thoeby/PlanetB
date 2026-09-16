@@ -31,8 +31,8 @@ SELECT is((SELECT (params ->> 'iters')::int FROM atom
            WHERE job_id = (SELECT j18 FROM jobs) AND op = 'train'), 400,
     'z18: 400 iterations (db/0115)');
 SELECT is((SELECT (params ->> 'size')::int FROM atom
-           WHERE job_id = (SELECT j18 FROM jobs) AND op = 'train'), 384,
-    'z18 trains at 384 px, off 1024 px frames (db/0115)');
+           WHERE job_id = (SELECT j18 FROM jobs) AND op = 'train'), 1024,
+    'z18 trains at the frames'' own 1024 px (db/0116)');
 SELECT is((SELECT algo_version FROM atom
            WHERE job_id = (SELECT j16 FROM jobs) AND op = 'train'), 'train-v5',
     'a z16 job trains with train-v5');
@@ -40,8 +40,8 @@ SELECT is((SELECT (params ->> 'iters')::int FROM atom
            WHERE job_id = (SELECT j16 FROM jobs) AND op = 'train'), 400,
     'z16: 400 iterations (db/0115)');
 SELECT is((SELECT (params ->> 'size')::int FROM atom
-           WHERE job_id = (SELECT j16 FROM jobs) AND op = 'train'), 384,
-    'z16 trains at 384 px, off 1024 px frames (db/0115)');
+           WHERE job_id = (SELECT j16 FROM jobs) AND op = 'train'), 1024,
+    'z16 trains at the frames'' own 1024 px (db/0116)');
 
 SELECT * FROM finish();
 ROLLBACK;
