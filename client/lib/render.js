@@ -143,15 +143,21 @@ export async function toWebp(rgba, size, canvas, quality = 0.9) {
     return new Uint8Array(await blob.arrayBuffer());
 }
 
+// Over the pixels the frame `b` has a tile in: where its alpha is zero the
+// frame is void (client/lib/raster.js), and a render of nothing against a
+// picture of nothing is nobody's score.
 export function psnr(a, b) {
     let sum = 0;
     let n = 0;
-    for (let i = 0; i < a.length; i++) {
-        if (i % 4 === 3) continue;                 // alpha is always opaque here
-        const d = a[i] - b[i];
-        sum += d * d;
-        n += 1;
+    for (let i = 0; i < a.length; i += 4) {
+        if (b[i + 3] === 0) continue;
+        for (let c = 0; c < 3; c++) {
+            const d = a[i + c] - b[i + c];
+            sum += d * d;
+        }
+        n += 3;
     }
+    if (!n) return Infinity;
     const mse = sum / n;
     return mse === 0 ? Infinity : 10 * Math.log10(255 * 255 / mse);
 }

@@ -83,7 +83,7 @@ def test_the_request_names_a_tile_not_a_coverage(wcs):
 def test_a_geotiff_becomes_ground_the_compiler_can_read():
     raw = geotiff((0, 0, 1, 1), value=1234.0)
     body = ground.encode_geotiff(raw)
-    assert len(body) == 256 * 256 * 4
+    assert len(body) == 512 * 512 * 4
     metres = dem.decode(body)
     assert abs(metres.mean() - 1234.0) < 0.001     # dem-v2 is float32 metres
 
@@ -119,7 +119,7 @@ def test_the_cut_is_written_once_and_reused(wcs, tmp_path: Path, monkeypatch):
 
     first = ground.cut(cfg, 14, 8557, 5736)
     assert first and first.is_file()
-    assert first.stat().st_size == 256 * 256 * 4
+    assert first.stat().st_size == 512 * 512 * 4
     asked = len(Stub.asked)
     again = ground.cut(cfg, 14, 8557, 5736)
     assert again == first

@@ -13,6 +13,9 @@ BRUSH_REPO=${BRUSH_REPO:-https://github.com/ArthurBrussee/brush}
 # ("Failed to map buffer: BufferAsyncError", cubecl-wgpu timings.rs): if a run
 # dies there, build with AUTOTUNE_LEVEL=Balanced and see which failure you get,
 # because the two are different bugs and only one of them is ours to dodge.
+# `none` leaves brush's own defaults alone — no patch at all — which is the
+# build brush's web demo runs: trained the same dataset at under 200 ms a step
+# where this build took 800 on three different cards.
 AUTOTUNE_LEVEL=${AUTOTUNE_LEVEL:-Full}
 BRUSH_REV=${BRUSH_REV:-main}
 DEST=client/vendor/brush
@@ -26,7 +29,7 @@ git clone --depth 1 --branch "$BRUSH_REV" "$BRUSH_REPO" "$WORK/brush"
 # panics on wasm. Applied by hand rather than `patch`, so the hunk survives
 # line drift; if the anchor is gone, look at what brush does now.
 echo "brush: autotune level $AUTOTUNE_LEVEL"
-python3 - "$WORK/brush/apps/brush-js/src/lib.rs" "$AUTOTUNE_LEVEL" <<'PY'
+[ "$AUTOTUNE_LEVEL" = none ] || python3 - "$WORK/brush/apps/brush-js/src/lib.rs" "$AUTOTUNE_LEVEL" <<'PY'
 import sys, re
 p = sys.argv[1]; s = open(p).read()
 level = sys.argv[2]

@@ -1,4 +1,4 @@
-// assemble.js — `assemble-v4`. The world, as geometry, in one tile's own frame.
+// assemble.js — `assemble-v5`. The world, as geometry, in one tile's own frame.
 //
 // Terrain from the seeded DEM, cut by terrainmods and roads; footprints
 // extruded; forests scattered; water laid flat; the ground coloured by its own
@@ -33,7 +33,7 @@ import { localFromLonLat, tileBbox, tileFrame } from '../lib/tilemath.js';
 // v4 writes each surface's own colour and leaves the light to the one
 // renderer (client/lib/raster.js); v3 had baked it for a sampled baseline
 // that is gone. The cut elevation is read whole (terrain.js GRID).
-export const ALGO = 'assemble-v4';
+export const ALGO = 'assemble-v5';
 
 // What assemble and sample both use to turn surfaces into splats; re-exported
 // because both atoms have always reached for them here.

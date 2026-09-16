@@ -92,9 +92,18 @@ export class Raster {
     // the ground's (db/0119: `splatworld.shadows = 'off'`).
     constructor(canvas, size, { shadows = true } = {}) {
         this.size = size;
+        // Transparent where nothing is drawn: a tile is an island, and every
+        // oblique view sees past its edge. What is there is not sky — it is
+        // the absence of a tile — and a frame that paints it sky teaches the
+        // trainer a sky-coloured wall at the edge of every tile. The alpha
+        // goes into the WebP, and brush is told to read it as a mask
+        // (client/lib/brush.js configFor, alpha-mode masked): those pixels
+        // are not the trainer's business.
         const r = new THREE.WebGLRenderer({
-            canvas, antialias: true, alpha: false, preserveDrawingBuffer: true,
+            canvas, antialias: true, alpha: true, premultipliedAlpha: false,
+            preserveDrawingBuffer: true,
         });
+        r.setClearColor(0x000000, 0);
         r.setSize(size, size, false);
         // PCF, not VSM. Variance shadow maps store their depth moments as
         // half floats (WebGLShadowMap: RGFormat, HalfFloatType): a 10-bit
@@ -113,7 +122,7 @@ export class Raster {
         this.scene = new THREE.Scene();
         const sky = skyTexture();
         this.scene.environment = new THREE.PMREMGenerator(r).fromEquirectangular(sky).texture;
-        this.scene.background = new THREE.Color(...SKY_COLOUR);
+        this.scene.background = null;
         // A Lambertian surface under a directional light of intensity I
         // reflects albedo × I × cos / π, so π × SUN_STRENGTH matches lightAt().
         this.sun = new THREE.DirectionalLight(new THREE.Color(...SUN_COLOUR),

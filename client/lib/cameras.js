@@ -14,6 +14,16 @@ const RAD = Math.PI / 180;
 export const SETS = {
     'z18-v1': { rings: [20, 35, 55], az: 24, grid: 4, perTarget: 2, top: 16 },
     'z16-v1': { rings: [25, 45], az: 24, grid: 0, perTarget: 0, top: 8 },
+    // Stations over the ground, not rings round a point. v1's two rings all
+    // looked at the middle from 570 m out: the corners of a 1.7 km tile were
+    // at the edge of every frame or past it, the same ground was seen from the
+    // same distance 48 times, and the eight top-downs from 1.4 km saw past the
+    // tile into the void. v2 is a 3 x 3 grid of stations across the tile,
+    // each looked at straight down from high enough that the nadir footprint
+    // overlaps its neighbours' by half, and from four sides at 55° from low
+    // enough that the ground is close — the overlap and the parallax
+    // photogrammetry wants. 9 + 36 = 45.
+    'z16-v2': { rings: [], az: 0, grid: 0, perTarget: 0, top: 0, stations: 3, sides: 4 },
 };
 
 // How many poses a set has, or 0 for a set this build does not know — a name
@@ -23,7 +33,8 @@ export const SETS = {
 export const viewCount = (set) => {
     const s = SETS[set];
     if (!s) return 0;
-    return s.rings.length * s.az + s.grid * s.grid * s.perTarget + s.top;
+    return s.rings.length * s.az + s.grid * s.grid * s.perTarget + s.top
+        + (s.stations ?? 0) ** 2 * (1 + (s.sides ?? 0));
 };
 
 // A pose looking straight down has no "up" in the sky: its basis would be
@@ -82,6 +93,34 @@ export function cameraSet(name, bounds, ground = null) {
                 const px = tx + Math.cos(a) * dist * Math.cos(elev);
                 const pz = tz + Math.sin(a) * dist * Math.cos(elev);
                 const py = Math.max(t[1] + Math.sin(elev) * dist, at(px, pz, -Infinity) + 2);
+                out.push(look([px, py, pz], t, out.length, 'oblique'));
+            }
+        }
+    }
+
+    // Stations (z16-v2): a grid of points over the tile, each seen from
+    // straight above and from `sides` compass directions at 55° down. Spacing
+    // s is the tile over the count; the nadir height makes a 60° footprint two
+    // spacings wide, so neighbours overlap by half; an oblique stands 0.45 s
+    // out from its point, which puts it 0.64 s up. Alternate stations turn the
+    // compass by half a step, so no two neighbours look from the same sides.
+    // Every eye stands above the ground it is over.
+    const st = s.stations ?? 0;
+    for (let gy = 0; gy < st; gy++) {
+        for (let gx = 0; gx < st; gx++) {
+            const spacing = 2 * e / st;
+            const tx = c[0] + ((gx + 0.5) / st * 2 - 1) * e;
+            const tz = c[2] + ((gy + 0.5) / st * 2 - 1) * e;
+            const t = [tx, at(tx, tz, c[1]), tz];
+            const nadir = [tx, Math.max(t[1] + spacing * 1.73, at(tx, tz, -Infinity) + 5), tz];
+            out.push(look(nadir, t, out.length, 'top'));
+            const turn = ((gx + gy) % 2) * Math.PI / s.sides;
+            for (let k = 0; k < s.sides; k++) {
+                const a = turn + (k / s.sides) * Math.PI * 2;
+                const d = spacing * 0.45;
+                const px = tx + Math.cos(a) * d;
+                const pz = tz + Math.sin(a) * d;
+                const py = Math.max(t[1] + d * Math.tan(55 * RAD), at(px, pz, -Infinity) + 5);
                 out.push(look([px, py, pz], t, out.length, 'oblique'));
             }
         }

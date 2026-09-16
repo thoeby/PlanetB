@@ -16,6 +16,7 @@ const BOUNDS = { centre: [0, 0, 0], extent: 100 };
 test('the sets are the ones the DAG counts on', () => {
     assert.equal(viewCount('z18-v1'), 120, '3 rings x 24 + 16 targets x 2 obliques + 16 top');
     assert.equal(viewCount('z16-v1'), 56, '2 rings x 24 + 8 top');
+    assert.equal(viewCount('z16-v2'), 45, '9 stations, each nadir + 4 sides');
     for (const name of Object.keys(SETS)) {
         const cams = cameraSet(name, BOUNDS);
         assert.equal(cams.length, viewCount(name));
@@ -125,4 +126,27 @@ test('with ground given, every pose is above it and the street loop is at eye he
     }
     assert.deepEqual(cameraSet('z18-v1', BOUNDS), cameraSet('z18-v1', BOUNDS, null),
         'without ground, the set is what it was');
+});
+
+// z16-v2: stations across the tile, not rings round its middle. Every part of
+// the ground is under a nadir whose footprint overlaps its neighbours', and
+// is looked at from four sides from close; nothing stands below the ground.
+test('z16-v2 covers the tile from stations, above the ground', () => {
+    const cams = cameraSet('z16-v2', { centre: [0, 0, 0], extent: 850 }, () => 0);
+    assert.equal(cams.length, 45);
+    const nadir = cams.filter((c) => c.kind === 'top');
+    const sides = cams.filter((c) => c.kind === 'oblique');
+    assert.equal(nadir.length, 9); assert.equal(sides.length, 36);
+    const xs = new Set(nadir.map((c) => Math.round(c.position[0])));
+    assert.deepEqual([...xs].sort((a, b) => a - b), [-567, 0, 567], 'three columns across the tile');
+    // A 60° footprint from 980 m is 1130 m wide over a 567 m spacing: half overlap.
+    for (const c of nadir) assert.ok(c.position[1] > 900 && c.position[1] < 1100);
+    for (const c of sides) {
+        assert.ok(c.position[1] > 300 && c.position[1] < 400, 'obliques are close to the ground');
+        const dx = c.position[0] - c.target[0]; const dz = c.position[2] - c.target[2];
+        const pitch = Math.atan2(c.position[1], Math.hypot(dx, dz)) * 180 / Math.PI;
+        assert.ok(Math.abs(pitch - 55) < 1, `55° down, not ${pitch}`);
+    }
+    const hilly = cameraSet('z16-v2', { centre: [0, 0, 0], extent: 850 }, () => 900);
+    for (const c of hilly) assert.ok(c.position[1] >= 905, 'never in the hill');
 });

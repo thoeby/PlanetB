@@ -150,6 +150,10 @@ export function configFor(init, { iters, budget, size, seed = 42 }) {
         'growth-start-iter': 0,
         'growth-stop-iter': Math.round(iters * 0.6),
         'max-resolution': size,
+        // The frames' alpha is where the tile is not (client/lib/raster.js):
+        // masked, those pixels are left out of the loss, rather than
+        // transparent, which would train them towards nothing.
+        'alpha-mode': 'masked',
         'eval-split-every': null,
         'eval-every': iters * 10,
         'export-every': iters * 10,

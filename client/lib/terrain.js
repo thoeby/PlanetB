@@ -10,11 +10,12 @@ import { sampleHeight } from './geo.js';
 import { Mesh } from './mesh.js';
 import { styleFor } from './rules.js';
 
-// Vertices across a tile. The store cuts elevation at 256² a tile
-// (server/splatworld/importer.py DEM_SIZE), so 257 reads all of it: 0.4 m at
-// z18, 1.6 m at z16, 6 m at z14. 129 threw three quarters of a 0.5 m survey
-// away before anything was drawn.
-export const GRID = { 18: 257, 16: 257, 14: 257, 12: 97, 10: 65, 8: 49, 6: 33 };
+// Vertices across a tile. The store cuts elevation at 512² a tile
+// (server/splatworld/importer.py DEM_SIZE), so 513 reads all of it: 0.2 m at
+// z18, 0.8 m at z16, 3.3 m at z14. At 257 over 256 a z14 cell was 6.6 m, and
+// with one colour and one normal a vertex, every cell edge drew as a line: a
+// grid across every frame the trainer was given (assemble-v5).
+export const GRID = { 18: 513, 16: 513, 14: 513, 12: 97, 10: 65, 8: 49, 6: 33 };
 
 // Bilinear height over a row-major grid, in metres, for anything that has to
 // stand on the ground. `null` outside the grid, where nothing is known.

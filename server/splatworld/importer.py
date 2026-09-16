@@ -40,7 +40,7 @@ MIN_ZOOM = 6
 # with gdal_translate -scale -500 12607 0 65535, and the one client/lib/geo.js
 # reads back (DEM_SCALE, DEM_OFFSET).
 DEM_ALGO = "dem-v1"
-DEM_SIZE = 256
+DEM_SIZE = 512
 DEM_SCALE = 0.2
 DEM_OFFSET = -500.0
 DEM_MIN, DEM_MAX = -500.0, 12607.0

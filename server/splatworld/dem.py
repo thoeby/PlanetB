@@ -1,7 +1,11 @@
 """Cuts elevation into the dem-v2 tiles the compiler reads.
 
-One tile is 256x256 float32 metres, little-endian, row-major, north-west
-first, in the tile projection (crs.TILE) over exactly the tile's bounds.
+One tile is DEM_SIZE x DEM_SIZE float32 metres (512 since the grid showed:
+256 over a z14 tile is a 6.6 m cell, and every cell edge drew as a line in
+every frame), little-endian, row-major, north-west first, in the tile
+projection (crs.TILE) over exactly the tile's bounds. A tile cut at an earlier
+size still decodes — any square of float32 is one — and the server cuts it
+again the next time it is asked for (ground.cut).
 dem-v1 was uint16 at 0.2 m steps: on a hillside of 1.6 m cells and a ten per
 cent grade every cell is a step, and the steps drew as stripes across every
 tile. client/lib/geo.js reads both, by the file's length.
@@ -11,6 +15,7 @@ rasterio's wheels carry their own GDAL, which is the whole reason it is here.
 from __future__ import annotations
 
 import hashlib
+import math
 from pathlib import Path
 
 import numpy as np
@@ -34,7 +39,8 @@ def encode(elevation_m: np.ndarray) -> bytes:
 
 def decode(raw: bytes) -> np.ndarray:
     """The inverse, for tests and for reading a tile back; dem-v1 too."""
-    if len(raw) % 4 == 0 and len(raw) // 4 == DEM_SIZE * DEM_SIZE:
+    n = len(raw) // 4
+    if len(raw) % 4 == 0 and math.isqrt(n) ** 2 == n:
         return np.frombuffer(raw, dtype="<f4").astype("float64")
     samples = np.frombuffer(raw, dtype="<u2").astype("float64")
     return samples * 0.2 - 500.0

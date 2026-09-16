@@ -352,10 +352,11 @@ def cut(cfg: Config, z: int, x: int, y: int, kind: str = "dem") -> Path | None:
     """
     target = tile_path(cfg, z, x, y, kind)
     with _lock((kind, z, x, y)):
-        # A dem-v1 cut (uint16, 0.2 m steps) left on disk from before dem-v2
-        # is the stepping a player sees on every hillside: it is cut again.
+        # A tile cut at any earlier size — dem-v1's uint16, or float32 at the
+        # 256 of before — is the stepping or the grid a player sees on every
+        # hillside: it is cut again, the once.
         if target.is_file() and not (kind == "dem"
-                                     and target.stat().st_size == DEM_SIZE * DEM_SIZE * 2):
+                                     and target.stat().st_size != DEM_SIZE * DEM_SIZE * 4):
             return target
         with psycopg.connect(cfg.dsn(), autocommit=True) as conn:
             auth = _auth_header(cfg.geoserver_user, cfg.geoserver_admin_password)

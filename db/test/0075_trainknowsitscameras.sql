@@ -21,7 +21,7 @@ SELECT ensure_job(16, tile_x(7.502, 16), tile_y(46.502, 16), 0) AS id;
 
 SELECT is((SELECT params ->> 'camera_set' FROM atom
            WHERE job_id = (SELECT id FROM j) AND op = 'train'),
-          'z16-v1', 'a z16 trainer knows which set it is learning from');
+          'z16-v2', 'a z16 trainer knows which set it is learning from (db/0125)');
 SELECT is((SELECT count(DISTINCT params ->> 'camera_set') FROM atom
            WHERE job_id = (SELECT id FROM j) AND op IN ('train', 'frame')),
           1::bigint, 'and it is the one the frames beside it were rendered with');
@@ -30,7 +30,7 @@ SELECT ok((SELECT (params ->> 'needs_webgpu')::boolean FROM atom
           'training still says it wants a GPU');
 SELECT is((SELECT count(*) FROM atom
            WHERE job_id = (SELECT id FROM j) AND op = 'frame'),
-          3::bigint, 'and the frames are the chunks of a 56-view set');
+          3::bigint, 'and the frames are the chunks of a 45-view set');
 
 SELECT * FROM finish();
 ROLLBACK;

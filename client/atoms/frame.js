@@ -1,4 +1,4 @@
-// frame.js — `frame-v9`. The views `train` learns a tile from.
+// frame.js — `frame-v10`. The views `train` learns a tile from.
 //
 // One atom renders a range of a camera set (db/0005_jobs.sql chunks them at 20
 // views), so a z18 job's 120 views spread across six tabs. Out comes a tar of
@@ -16,7 +16,9 @@
 // ground in v4-v8 were the variance shadow map's half-float depth: a metre
 // or two a step over a shadow camera kilometres deep. v7 (cast side) and v8
 // (normal bias) did not touch them because they were not acne. v9 is PCF on
-// a 24-bit depth texture (client/lib/raster.js).
+// a 24-bit depth texture (client/lib/raster.js). v10 leaves the void
+// transparent instead of painting it sky, for brush to mask, and is drawn
+// from the z16-v2 stations (client/lib/cameras.js) over a 513-vertex ground.
 
 import { cameraSet, transformsJson, viewCount } from '../lib/cameras.js';
 import { unpackMeshes } from '../lib/mesh.js';
@@ -26,7 +28,7 @@ import { toWebp } from '../lib/render.js';
 import { readTar, writeTar } from '../lib/tar.js';
 import { localFromLonLat, tileBbox, tileFrame } from '../lib/tilemath.js';
 
-export const ALGO = 'frame-v9';
+export const ALGO = 'frame-v10';
 export const SIZE = 1024;
 const QUALITY = 0.9;
 
