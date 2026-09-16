@@ -5,7 +5,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 
-import { configFor, keep, splatsFromBrush } from '../lib/brush.js';
+import { configFor, keep, splatsFromBrush, withSubgroups } from '../lib/brush.js';
 import { SH_C0, emptySplats, readPly } from '../lib/ply.js';
 import { readTar, writeTar } from '../lib/tar.js';
 import { transformsJson, cameraSet } from '../lib/cameras.js';
@@ -67,6 +67,19 @@ test('widening by one, or by nothing, leaves the splats alone', () => {
     f.sx[0] = 0.5; f.sy[0] = 0.1; f.sz[0] = 0.4;
     widen(widen(f, 1), 0);
     near(f.sx[0], 0.5); near(f.sz[0], 0.4);
+});
+
+test('a shader that uses subgroups declares them, once, and nothing else is touched', () => {
+    const uses = 'enable f16;\n@compute @workgroup_size(64) fn k() { let s = subgroupAdd(1.0); }';
+    const fixed = withSubgroups({ label: 'k', code: uses }).code;
+    assert.ok(fixed.startsWith('enable subgroups;\n'), 'the directive goes in front');
+    assert.equal(withSubgroups({ code: fixed }).code, fixed, 'and only once');
+    const builtin = '@compute fn k(@builtin(subgroup_invocation_id) i: u32) {}';
+    assert.ok(withSubgroups({ code: builtin }).code.startsWith('enable subgroups;'));
+    const plain = '@compute @workgroup_size(64) fn k() { let s = 1.0; }';
+    assert.equal(withSubgroups({ code: plain }).code, plain, 'no subgroups, no directive');
+    const already = 'enable subgroups, f16;\nfn k() { subgroupAdd(1.0); }';
+    assert.equal(withSubgroups({ code: already }).code, already, 'declared already');
 });
 
 test('the dataset holds every frame but the held-out ones, and names the seed', () => {

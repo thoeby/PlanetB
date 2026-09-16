@@ -49,6 +49,27 @@ export async function loadBrush() {
     return mod;
 }
 
+// The vendored brush was built against a CubeCL that calls subgroupAdd and
+// its kin without the `enable subgroups;` directive: the binary carries
+// `enable f16;` and no other. Chromium shipped subgroups stable and made the
+// directive mandatory, the browser updated, and every kernel of the sort and
+// the reductions has failed to compile since —
+//   "cannot call built-in function 'subgroupAdd' without extension 'subgroups'"
+// — with the run going on regardless over rubbish. The device has the
+// feature; the source lacks the line. It is put in front of any source that
+// uses a subgroup builtin and does not already declare it, before Tint sees
+// it. Until brush is rebuilt on a CubeCL that writes it (tools/build-brush.sh).
+const SUBGROUP_USE = /\bsubgroup[A-Z]\w*\s*\(|@builtin\(\s*(?:subgroup_|num_subgroups)/;
+const SUBGROUP_ENABLE = /^\s*enable\b[^;]*\bsubgroups\b/m;
+
+export function withSubgroups(desc) {
+    const code = desc?.code;
+    if (typeof code !== 'string' || !SUBGROUP_USE.test(code) || SUBGROUP_ENABLE.test(code)) {
+        return desc;
+    }
+    return { ...desc, code: `enable subgroups;\n${code}` };
+}
+
 // A device brush can train on: every feature and limit the adapter offers
 // (its backward kernels want subgroups and big storage buffers). The one
 // Chrome-experimental feature some adapters list and then refuse is left out.
@@ -96,7 +117,7 @@ export async function brushDevice(gpu = globalThis.navigator?.gpu) {
     // read that info off every module and keep the first refusals.
     const create = device.createShaderModule.bind(device);
     device.createShaderModule = (desc) => {
-        const mod = create(desc);
+        const mod = create(withSubgroups(desc));
         mod.getCompilationInfo?.().then((info) => {
             const bad = (info?.messages ?? []).filter((m) => m.type === 'error').slice(0, 3)
                 .map((m) => `${desc?.label ?? 'shader'}:${m.lineNum}:${m.linePos} ${m.message}`);
