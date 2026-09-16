@@ -21,8 +21,8 @@ SELECT ok((SELECT count(*) FROM tile WHERE z = 6) >= 1, 'the ladder above them e
 SELECT is((SELECT count(*)::int FROM atom a JOIN job j ON j.id = a.job_id
            WHERE j.z = 14 AND a.op = 'sample'), 0, 'nothing is sampled any more');
 SELECT ok((SELECT count(*) FROM atom a JOIN job j ON j.id = a.job_id
-           WHERE j.z = 14 AND a.op = 'train' AND (a.params ->> 'iters')::int = 400) >= 4,
-    'a z14 tile trains, at 400 steps (db/0115)');
+           WHERE j.z = 14 AND a.op = 'train' AND (a.params ->> 'iters')::int = 600) >= 4,
+    'a z14 tile trains, at 600 steps (db/0121)');
 SELECT is((SELECT min(algo_version) FROM atom WHERE op = 'frame'), 'frame-v7',
     'from frame-v7 frames (db/0117)');
 

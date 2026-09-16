@@ -29,10 +29,10 @@ CREATE TEMP TABLE t AS
 SELECT * FROM atom WHERE job_id = (SELECT jid FROM j) AND op = 'train';
 
 SELECT is((SELECT algo_version FROM t), 'train-v5', 'the trainer is train-v5');
-SELECT is((SELECT (params ->> 'iters')::int FROM t), 400, 'over 400 steps (db/0115)');
+SELECT is((SELECT (params ->> 'iters')::int FROM t), 600, 'over 600 steps (db/0121)');
 SELECT is((SELECT jsonb_build_array(params -> 'seed_share', params -> 'scale') FROM t),
-    '[0.125, 2]'::jsonb,
-    'seeded at an eighth (db/0118), every splat written twice as wide (db/0120)');
+    '[0.125, 3]'::jsonb,
+    'seeded at an eighth (db/0118), every splat written three times as wide (db/0121)');
 
 SELECT * FROM finish();
 ROLLBACK;

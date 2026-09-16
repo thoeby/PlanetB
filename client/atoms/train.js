@@ -55,7 +55,7 @@ export const SEED_SHARE = 0.125;
 // on extents that leave the background showing between them. A multiple, so it
 // is relative to whatever size a splat ended up at; the atom's `scale` param
 // is what turns it, without touching this file.
-export const SCALE = 2;
+export const SCALE = 3;
 // A picture of the run every so many iterations, from its first held-out
 // pose, over the first PREVIEW_SPLATS of the (shuffled) list.
 export const PREVIEW_EVERY = 200;
