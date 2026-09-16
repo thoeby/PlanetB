@@ -35,8 +35,8 @@ export function meshObject(m, materials = {}) {
         // a sunlit slope has nothing nearer in front of it and is lit. frame-v6
         // drew both sides into it, so every sunlit point compared its depth
         // against its own and self-shadowed wherever the depth rounded the
-        // wrong way: shadow acne, the map's texel rows laid diagonally across
-        // every frame the trainer was given (frame-v7).
+        // wrong way. It was not the side: a heightfield's back face is the
+        // same surface. frame-v8's normal bias (build) is what ended it.
     });
     const mesh = new THREE.Mesh(g, mat);
     mesh.castShadow = true;
@@ -113,7 +113,10 @@ export class Raster {
             Math.PI * SUN_STRENGTH);
         this.sun.castShadow = shadows;
         this.sun.shadow.mapSize.set(SHADOW_MAP, SHADOW_MAP);
-        this.sun.shadow.bias = -0.0002;
+        // No depth bias: a negative one pushes the comparison into the
+        // surface, which is the acne. The normal bias set in build() is what
+        // keeps a surface from shadowing itself.
+        this.sun.shadow.bias = 0;
         this.sun.shadow.radius = 6;
         this.sun.shadow.blurSamples = 12;
         this.scene.add(this.sun, this.sun.target);
@@ -138,6 +141,13 @@ export class Raster {
         sc.left = -radius; sc.right = radius; sc.top = radius; sc.bottom = -radius;
         sc.near = 0.5; sc.far = radius * 4;
         sc.updateProjectionMatrix();
+        // The ground is one surface: whichever side the shadow pass draws, it
+        // is the same triangles at the same depth, and every point of it
+        // compares against itself. Rounding decides, and rounding is the
+        // map's texel grid laid across every frame as fine diagonal stripes
+        // (frame-v6, v7). The lookup is moved off the surface along its
+        // normal by a texel and a half, so a surface never finds itself.
+        this.sun.shadow.normalBias = (2 * radius / SHADOW_MAP) * 1.5;
         this.sun.target.updateMatrixWorld(true);
         await this.renderer.compileAsync(this.scene, this.camera);
     }
