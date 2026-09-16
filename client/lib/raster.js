@@ -29,9 +29,14 @@ export function meshObject(m, materials = {}) {
     const mat = new THREE.MeshStandardMaterial({
         vertexColors: true, metalness: 0,
         roughness: materials[m.material]?.roughness ?? 1,
-        // The shadow pass draws back faces unless told otherwise, and the
-        // ground has none facing the sun: a hill cast no shadow on its valley.
-        shadowSide: THREE.DoubleSide,
+        // The shadow pass draws back faces (three.js's default), and that is
+        // right for a heightfield: the map holds the far slopes, a valley
+        // behind a hill is deeper than the hill's far slope and is shadowed,
+        // a sunlit slope has nothing nearer in front of it and is lit. frame-v6
+        // drew both sides into it, so every sunlit point compared its depth
+        // against its own and self-shadowed wherever the depth rounded the
+        // wrong way: shadow acne, the map's texel rows laid diagonally across
+        // every frame the trainer was given (frame-v7).
     });
     const mesh = new THREE.Mesh(g, mat);
     mesh.castShadow = true;
