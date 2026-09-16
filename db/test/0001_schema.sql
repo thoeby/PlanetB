@@ -1,7 +1,7 @@
 -- WP0.2 acceptance: every table/column/index from ARCHITECTURE §3 exists, and
 -- the ledger is append-only for role player.
 BEGIN;
-SELECT plan(78);
+SELECT plan(79);
 
 -- tables ---------------------------------------------------------------
 SELECT has_table('public', t, 'table ' || t) FROM unnest(ARRAY[
@@ -86,8 +86,12 @@ SELECT col_is_fk('public', 'verification', 'atom_id', 'verification.atom_id fk')
 -- uniques and indexes --------------------------------------------------
 SELECT col_is_unique('public', 'ledger', 'ref', 'UNIQUE(ledger.ref)');
 SELECT col_is_unique('public', 'atom', 'atom_hash', 'UNIQUE(atom.atom_hash)');
-SELECT col_is_unique('public', 'job', ARRAY['z', 'x', 'y', 'target_version'],
-    'UNIQUE(job.z,x,y,target_version)');
+-- Over the jobs that are still jobs: a cancelled one is history and does not
+-- hold the version against the next job of that tile (db/0110).
+SELECT has_index('public', 'job', 'job_live_version_idx',
+    ARRAY['z', 'x', 'y', 'target_version'], 'job(z,x,y,target_version) indexed');
+SELECT index_is_unique('public', 'job', 'job_live_version_idx',
+    'UNIQUE(job.z,x,y,target_version) where the job is not cancelled');
 SELECT col_is_unique('public', 'asset_right', 'ref', 'UNIQUE(asset_right.ref)');
 
 SELECT has_index('public', 'area', 'area_geom_idx', 'GiST on area.geom');
