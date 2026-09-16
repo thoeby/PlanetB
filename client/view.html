@@ -57,6 +57,7 @@
 
 <script type="module">
   import { FloatingOrigin } from './js/origin.js';
+  import { mountSky } from './js/sky.js';
   import { TileStreamer, cameraState } from './js/tiles.js';
   import { Player, Terrain, WALK } from './js/player.js';
 
@@ -102,6 +103,11 @@
   camera.setPosition(0, 2000, 0);
   camera.setEulerAngles(-90, 0, 0);
   app.root.addChild(camera);
+  // The same sky and air the world is walked under (client/js/sky.js): an
+  // exported world is the world, not a darker one. A sky that cannot be drawn
+  // is a sky the page goes on without.
+  let sky = { follow() {} };
+  try { sky = mountSky(app, pc, camera); } catch (err) { console.error('sky', err); }
 
   // A snapshot never changes under the viewer, so there is no polling and no
   // fetchRows: what was exported is the whole world for as long as it is open.
@@ -124,6 +130,7 @@
       camera.setEulerAngles(player.pitch / Math.PI * 180, player.yaw / Math.PI * 180, 0);
 
       const p = camera.getPosition();
+      sky.follow(p);
       const moved = streamer.rebase({ x: p.x, y: p.y, z: p.z });
       if (moved) {
           camera.setPosition(moved.x, moved.y, moved.z);

@@ -44,10 +44,12 @@ export const SPREAD = 1.15;
 export const MARGIN = 0.15;
 // The seed is this share of the budget unless the atom says otherwise; brush
 // grows the rest where the frames say the picture is wrong (client/lib/brush.js
-// configFor). Seeding the whole budget leaves it nothing to grow into, and a
-// tile of uniform discs; seeding too little leaves the short run to discover a
-// surface it has no time to close, which is holes.
-export const SEED_SHARE = 0.75;
+// configFor). Every step costs what is in the frame — the projection, the sort,
+// the tile intersections, the backward pass — so a seed is not free ground to
+// stand on: it is paid for on every one of the run's steps, including where
+// the picture was already right. Densification is the thing that puts splats
+// where they are needed, and it is cheap because it only does it there.
+export const SEED_SHARE = 0.25;
 // How much wider every trained splat is made before it is written: the ground
 // is covered by splats overlapping their neighbours, and the trainer settles
 // on extents that leave the background showing between them. A multiple, so it
