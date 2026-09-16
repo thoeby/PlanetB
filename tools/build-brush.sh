@@ -5,6 +5,15 @@
 set -euo pipefail
 
 BRUSH_REPO=${BRUSH_REPO:-https://github.com/ArthurBrussee/brush}
+# Which CubeCL autotune level the build bakes in: Minimal, Balanced, Extensive
+# or Full. Full is ours because the levels below it register burn's roofline
+# bounds generator, whose throughput measurement reads a tensor synchronously
+# and panics on wasm. Every level benchmarks its candidates, though, and the
+# benchmarking is itself where this runtime has fallen over on a Pascal card
+# ("Failed to map buffer: BufferAsyncError", cubecl-wgpu timings.rs): if a run
+# dies there, build with AUTOTUNE_LEVEL=Balanced and see which failure you get,
+# because the two are different bugs and only one of them is ours to dodge.
+AUTOTUNE_LEVEL=${AUTOTUNE_LEVEL:-Full}
 BRUSH_REV=${BRUSH_REV:-main}
 DEST=client/vendor/brush
 WORK=$(mktemp -d)
@@ -12,15 +21,19 @@ WORK=$(mktemp -d)
 rustup target add wasm32-unknown-unknown
 command -v wasm-pack > /dev/null || cargo install wasm-pack --locked
 git clone --depth 1 --branch "$BRUSH_REV" "$BRUSH_REPO" "$WORK/brush"
-# One change of ours (tools/brush-autotune.patch): autotune at the Full level,
+# One change of ours (tools/brush-autotune.patch): autotune at $AUTOTUNE_LEVEL,
 # because burn's roofline throughput measurement reads synchronously and
 # panics on wasm. Applied by hand rather than `patch`, so the hunk survives
 # line drift; if the anchor is gone, look at what brush does now.
-python3 - "$WORK/brush/apps/brush-js/src/lib.rs" <<'PY'
+echo "brush: autotune level $AUTOTUNE_LEVEL"
+python3 - "$WORK/brush/apps/brush-js/src/lib.rs" "$AUTOTUNE_LEVEL" <<'PY'
 import sys, re
 p = sys.argv[1]; s = open(p).read()
+level = sys.argv[2]
+assert level in ('Minimal', 'Balanced', 'Extensive', 'Full'), f'no such autotune level: {level}'
 hunk = open('tools/brush-autotune.patch').read().split('@@\n', 1)[1]
 add = ''.join(l[1:] for l in hunk.splitlines(True) if l.startswith('+'))
+add = add.replace('__SPLATWORLD_AUTOTUNE_LEVEL__', level)
 anchor = '        console_error_panic_hook::set_once();\n'
 assert anchor in s, 'brush-js lib.rs: anchor for the autotune patch is gone'
 open(p, 'w').write(s.replace(anchor, anchor + add, 1))

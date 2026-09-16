@@ -10,9 +10,14 @@
 +        {
 +            use burn::cubecl::config::{CubeClRuntimeConfig, RuntimeConfig, autotune::AutotuneLevel};
 +            let mut cfg = CubeClRuntimeConfig::default();
-+            cfg.autotune.level = AutotuneLevel::Full;
++            cfg.autotune.level = AutotuneLevel::__SPLATWORLD_AUTOTUNE_LEVEL__;
 +            // Full measures every candidate; three samples each keep that to
 +            // seconds on a slow card rather than minutes (the default is ten).
++            // Whether measuring is survivable at all on wasm is the open
++            // question: every level benchmarks, and on this runtime the
++            // benchmark's own timing reads have panicked (timings.rs,
++            // "Failed to map buffer"). AUTOTUNE_LEVEL= on tools/build-brush.sh
++            // is how to try another one without editing this.
 +            cfg.autotune.bench.max_samples = 3;
 +            cfg.autotune.bench.min_samples = 1;
 +            let _ = CubeClRuntimeConfig::try_set(cfg);
