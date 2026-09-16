@@ -95,8 +95,11 @@ export function keyHints() {
 export function drawHints(node, mode) {
     const how = MOVE[mode] ?? MOVE.walk;
     node.dataset.mode = mode;
+    // A space between the keys: read aloud, or by a script reading the page
+    // the way a player does, "W A S D" is four keys and "WASD" is a word.
     const caps = (keys) => el('span', { className: 'caps-row' },
-        ...keys.map((k) => el('kbd', { textContent: k })));
+        ...keys.flatMap((k, i) => (i ? [' ', el('kbd', { textContent: k })]
+            : [el('kbd', { textContent: k })])));
     node.replaceChildren(
         el('div', { className: 'mode' },
             el('span', { className: 'now' }, el('i', { className: 'pip' }),

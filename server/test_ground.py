@@ -88,6 +88,30 @@ def test_a_geotiff_becomes_ground_the_compiler_can_read():
     assert abs(metres.mean() - 1234.0) < 0.001     # dem-v2 is float32 metres
 
 
+def test_a_survey_in_whole_metres_is_refused_but_its_fill_is_not_the_survey():
+    # A tile reaching past the data is filled with one whole number outside
+    # it; the survey inside, at its own precision, is what is judged.
+    west, south, east, north = (0, 0, 1, 1)
+    size = 256
+    data = np.zeros((size, size), dtype="float32")
+    rng = np.random.default_rng(1)
+    data[100:140, 100:140] = 600 + rng.random((40, 40)) * 50
+    with MemoryFile() as memfile:
+        with memfile.open(driver="GTiff", width=size, height=size, count=1, dtype="float32",
+                          crs="EPSG:4326",
+                          transform=from_bounds(west, south, east, north, size, size)) as dst:
+            dst.write(data, 1)
+        metres = dem.decode(ground.encode_geotiff(memfile.read()))
+    assert metres.max() > 600
+    with MemoryFile() as memfile:
+        with memfile.open(driver="GTiff", width=size, height=size, count=1, dtype="float32",
+                          crs="EPSG:4326",
+                          transform=from_bounds(west, south, east, north, size, size)) as dst:
+            dst.write(np.round(data), 1)
+        with pytest.raises(ground.CutFailed, match="whole metres"):
+            ground.encode_geotiff(memfile.read())
+
+
 def test_nodata_becomes_sea_level_not_a_hole():
     raw = geotiff((0, 0, 1, 1), value=-9999.0)     # the stub's nodata value
     metres = dem.decode(ground.encode_geotiff(raw))

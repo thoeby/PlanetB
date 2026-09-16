@@ -97,6 +97,7 @@
   import { mountShare, nearestGround, parseVisit, visitHash } from './js/visit.js';
   import { mountSky } from './js/sky.js';
   import { DemFloor } from './js/floor.js';
+  import { DemGround } from './js/ground.js';
 
   api.configure();
 
@@ -219,8 +220,22 @@
   // A headset session stays on WebGL2, the path the engine's XR is built on.
   const wantsXr = xrRequested(location.search);
   const canvas = document.getElementById('view');
+  // A WebGPU adapter that is a software renderer (SwiftShader, which is what
+  // a runner with no GPU has once --enable-unsafe-webgpu is on) takes the
+  // renderer process down with it the moment the engine makes a device on
+  // it: "A valid external Instance reference no longer exists", and the
+  // page is gone before its first frame. Such a tab draws on WebGL2, which
+  // ANGLE over SwiftShader does render. The trainer, which needs WebGPU for
+  // its compute, makes its own device in its own worker and is not affected.
+  const softwareGpu = async () => {
+    const adapter = await navigator.gpu?.requestAdapter?.().catch(() => null);
+    const info = adapter?.info ?? {};
+    return /swiftshader|software|llvmpipe|lavapipe/i.test(
+      `${info.architecture ?? ''} ${info.device ?? ''} ${info.description ?? ''}`);
+  };
+  const noWebgpu = wantsXr || await softwareGpu();
   const device = await pc.createGraphicsDevice(canvas, {
-    deviceTypes: wantsXr ? [pc.DEVICETYPE_WEBGL2] : [pc.DEVICETYPE_WEBGPU, pc.DEVICETYPE_WEBGL2],
+    deviceTypes: noWebgpu ? [pc.DEVICETYPE_WEBGL2] : [pc.DEVICETYPE_WEBGPU, pc.DEVICETYPE_WEBGL2],
     antialias: false, powerPreference: 'high-performance', xrCompatible: Boolean(navigator.xr),
   });
   const app = new pc.Application(canvas, { graphicsDevice: device });
@@ -275,9 +290,11 @@
   // is published yet, the elevation itself (client/js/floor.js): read, not
   // drawn. Every z14 tile of the ground is compiled (db/0104), so the second
   // is only ever a stopgap.
-  const terrain = new Terrain(streamer, {
-      ground: ground?.coverage ? new DemFloor({ filesUrl: api.endpoints().files }) : null,
-  });
+  const floor = ground?.coverage ? new DemFloor({ filesUrl: api.endpoints().files }) : null;
+  const terrain = new Terrain(streamer, { ground: floor });
+  // SPEC §0.1: ground is always drawn. Where no published tile covers it,
+  // the same elevation is drawn as plain terrain (client/js/ground.js).
+  const groundMesh = floor ? new DemGround(app, pc, { origin, floor, tiles: streamer.tiles }) : null;
   const player = new Player(terrain, { mode: WALK });
   // The corner says which way you are moving and what the keys do about it:
   // Shift runs on the ground and goes down in the air, and forward follows
@@ -765,7 +782,9 @@
       camera.setPosition(moved.x, moved.y, moved.z);
       if (driving) player.position = { ...moved };
       preview.rebased();
+      groundMesh?.rebased();
     }
+    groundMesh?.update(camera.getPosition());
     build.drawGizmo();
     drawAreas({ pc, app, origin, terrain }, land.areas());
     const labels = document.getElementById('world-labels');
@@ -813,7 +832,7 @@
 
   // The handle the browser tests fly.
   window.splatworld = {
-    app, pc, api, origin, streamer, camera, rows, terrain, player, setDriving, work,
+    app, pc, api, origin, streamer, camera, rows, terrain, player, setDriving, work, groundMesh,
     hud, setup, admin, rules, catalog, land, submit, pool, permission, ground,
     share, goTo,
     spot, build, preview, nearby, areas, wallet, xr: { wants: wantsXr, rig: () => rig },

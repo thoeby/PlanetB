@@ -12,6 +12,7 @@ import { loadDem, sampleHeight } from '../lib/geo.js';
 import * as tm from '../lib/tilemath.js';
 
 const Z = 14;
+const RETRY_MS = 10_000;
 
 export class DemFloor {
     constructor({ filesUrl = '', fetchFn = fetch } = {}) {
@@ -37,6 +38,8 @@ export class DemFloor {
         this.pending.add(k);
         loadDem(Z, x, y, { filesUrl: this.filesUrl, fetchFn: this.fetchFn })
             .then((dem) => { this.tiles.set(k, dem); })
-            .catch(() => { this.pending.delete(k); });
+            // A tile the store could not cut is asked for again, but not on
+            // the next frame: a ground that answers 502 met a request storm.
+            .catch(() => { setTimeout(() => this.pending.delete(k), RETRY_MS); });
     }
 }

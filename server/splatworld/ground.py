@@ -142,6 +142,17 @@ def encode_geotiff(raw: bytes, bounds: tuple | None = None) -> bytes:
         if src.dtypes[0] in ("uint8", "int8"):
             raise CutFailed(f"the coverage came back as {src.dtypes[0]}: publish the"
                             " elevation as float32 (or int16 at least), not as an 8-bit image")
+        # Whole metres are a staircase too: on a hillside every metre of rise
+        # is a shelf and a riser, and the frames drew them as terraces. An
+        # int16 survey, or a float one someone rounded, arrives with nearly
+        # every sample on a whole number; a survey at half a metre or better
+        # does not. Judged on the samples as they came, before the warp puts
+        # fractions between them, and without the fill outside the data,
+        # which is one whole number over most of a tile that reaches past it.
+        if whole_metres(src.read(1), src.nodata):
+            raise CutFailed("the coverage came back in whole metres (every sample a round"
+                            " number): publish the elevation as float32 at the survey's own"
+                            " precision, not rounded")
         if bounds is None or src.crs is None:
             band = src.read(1, out_shape=(DEM_SIZE, DEM_SIZE),
                             resampling=rasterio.enums.Resampling.cubic)
@@ -156,18 +167,24 @@ def encode_geotiff(raw: bytes, bounds: tuple | None = None) -> bytes:
         values = band.astype("float64")
         if src.nodata is not None:
             values = np.where(values == src.nodata, np.nan, values)
-        # Whole metres are a staircase too: on a hillside every metre of rise
-        # is a shelf and a riser, and the frames drew them as terraces. An
-        # int16 survey, or a float one someone rounded, comes back with
-        # nearly every sample on a whole number; a survey at half a metre or
-        # better does not. Refused, with the same sentence as 8-bit.
-        finite = values[np.isfinite(values)]
-        rounded = np.mean(np.abs(finite - np.round(finite)) < 1e-6) if finite.size else 0.0
-        if np.unique(finite).size > 50 and rounded > 0.99:
-            raise CutFailed("the coverage came back in whole metres (every sample a round"
-                            " number): publish the elevation as float32 at the survey's own"
-                            " precision, not rounded")
         return dem.encode(values)
+
+
+def whole_metres(band, nodata) -> bool:
+    """Whether nearly every sample of a survey sits on a whole number."""
+    import numpy as np
+
+    values = band.astype("float64")
+    finite = values[np.isfinite(values)]
+    if nodata is not None:
+        finite = finite[finite != nodata]
+    if not finite.size:
+        return False
+    distinct, counts = np.unique(finite, return_counts=True)
+    survey = finite[finite != distinct[np.argmax(counts)]]
+    if distinct.size <= 50 or not survey.size:
+        return False
+    return bool(np.mean(np.abs(survey - np.round(survey)) < 1e-6) > 0.99)
 
 
 def native_bounds(native: str | None, bounds: tuple) -> tuple:

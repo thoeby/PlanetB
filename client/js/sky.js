@@ -117,7 +117,13 @@ export function mountSky(app, pc, camera) {
     });
     material.cull = pc.CULLFACE_FRONT;
     material.depthWrite = false;
-    material.depthTest = false;
+    // The vertex shader puts the dome on the far plane, and the depth test is
+    // what keeps it there: the skybox pass runs after the opaque world, so a
+    // dome that skipped the test was painted over every opaque thing in the
+    // scene — the ground where nothing is published, a placed model — and
+    // only the splats, drawn later, showed through it.
+    material.depthTest = true;
+    material.depthFunc = pc.FUNC_LESSEQUAL;
     material.setParameter('uZenith', ZENITH);
     material.setParameter('uHorizon', HORIZON);
     material.setParameter('uSun', SUN);

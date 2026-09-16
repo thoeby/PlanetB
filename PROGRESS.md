@@ -1534,3 +1534,19 @@ request after it — submit, approve, compile_ground — got the cancelled job
 back and counted it as opened; the pool stayed empty and nothing said why.
 Now a cancelled job is never the answer; `job_outcome` says whether a request
 ended open or published and raises otherwise; approve reports both counts.
+
+## Story 1 runs green in a container with no GPU
+
+`make player-run RUN_ARGS="00-world 01-first-run"` passes on SwiftShader.
+What stood in its way, each now fixed: a page that opens on a software WebGPU
+adapter takes the renderer process down when the engine makes a device on it
+(`play.html` draws on WebGL2 there; the trainer's own device is unaffected);
+the sky dome skipped the depth test and was painted over everything opaque,
+so the ground, and any placed model, never showed (`client/js/sky.js`); where
+nothing is published there was nothing to draw at all, though SPEC §0.1 says
+ground is always drawn — `client/js/ground.js` draws the z14 elevation as
+plain terrain around the camera until a published tile covers it; the server
+refused a z8 tile as "whole metres" because the fill outside a 4 km coverage
+is one whole number over most of the tile (`ground.py` judges the survey
+without the fill); and a cut that failed was asked for again every frame
+(`floor.js` waits ten seconds).
