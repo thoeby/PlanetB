@@ -1,4 +1,4 @@
-// train.js — `train-v5`. The tile, learned from its own frames, by brush.
+// train.js — `train-v6`. The tile, learned from its own frames, by brush.
 //
 // `assemble` built the surfaces and `frame` path-traced them from a fixed
 // camera set. The seed is those surfaces sampled at the tile's whole budget
@@ -36,7 +36,7 @@ import { bboxOf, writePly } from '../lib/ply.js';
 import { rngOf, sampleSurfaces } from '../lib/sampling.js';
 import { readTar, writeTar } from '../lib/tar.js';
 
-export const ALGO = 'train-v5';
+export const ALGO = 'train-v6';
 // In-plane radius of a seed splat as a share of its spacing: overlapping, so
 // the first render is a surface and not a sieve.
 export const SPREAD = 1.15;
@@ -216,7 +216,7 @@ export async function run({ atom, inputs, log }) {
     // Shuffled so any prefix is a fair sample: the preview reads a prefix.
     const share = Number(atom.params?.seed_share) || SEED_SHARE;
     const seed = shuffled(sampleSurfaces(meshes, Math.round(budget * share), random,
-        { spread: SPREAD }), random);
+        { spread: SPREAD, even: true }), random);
     const set = atom.params?.camera_set;
     const ground = groundOf(files, scene);
     const eye = cameraSet(set, frameBounds(meshes), ground)[holdout(viewCount(set) || 1)[0]];

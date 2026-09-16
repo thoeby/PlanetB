@@ -113,8 +113,18 @@ const SPACING_CAP = 4;
 // splat by the remainder in `allocate`, and its area is zero.
 const SPACING_FLOOR = 0.01;
 
+// Where in its triangle each sample lands. Uniformly random positions clump
+// and leave voids at every density — a hundred thousand of them over a tile
+// had patches with nothing in them that no amount of training filled, because
+// nothing was there to move. `even` places a triangle's n samples on the R2
+// sequence (Roberts' low-discrepancy sequence: spacing about as regular as a
+// lattice, no rows), from a random phase per triangle so neighbours do not
+// line up. Deterministic from the same seed, so the same seed is the same
+// seed (Invariant 2). Off, it is what assemble-v4's init.ply was made with.
+const R2 = [0.7548776662466927, 0.5698402909980532];
+
 export function sampleSurfaces(meshes, total, random,
-    { spread = 0.7 } = {}) {
+    { spread = 0.7, even = false } = {}) {
     const tris = triangles(meshes);
     const { counts, areas, sum } = allocate(tris, total);
     const f = emptySplats(total);
@@ -130,9 +140,10 @@ export function sampleSurfaces(meshes, total, random,
         const q = quatToNormal(n);
         const spacing = Math.min(Math.max(Math.sqrt(areas[t] / counts[t]),
             mean * SPACING_FLOOR), mean * SPACING_CAP);
+        const phase = even ? [random(), random()] : null;
         for (let s = 0; s < counts[t]; s++, k++) {
-            let u = random();
-            let v = random();
+            let u = even ? (phase[0] + s * R2[0]) % 1 : random();
+            let v = even ? (phase[1] + s * R2[1]) % 1 : random();
             if (u + v > 1) { u = 1 - u; v = 1 - v; }
             const w = [1 - u - v, u, v];
             for (const [j, get] of [[0, vert], [1, col]]) {
