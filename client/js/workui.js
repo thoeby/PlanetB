@@ -33,7 +33,7 @@ const HTML = `
       <span class="work-view-what mono"></span>
       <progress class="work-view-bar" max="1" value="0"></progress>
     </figcaption>
-    <canvas width="256" height="256"></canvas>
+    <canvas width="256" height="256" title="click for the full-size frame"></canvas>
   </figure>
   <pre class="work-log note mono"></pre>
 </div>`;
@@ -127,9 +127,15 @@ export async function showPicture(view, rec) {
     if (p.rgba) {
         canvas.width = p.width; canvas.height = p.height;
         ctx.putImageData(new ImageData(new Uint8ClampedArray(p.rgba), p.width, p.height), 0, 0);
+        view.full = null;
         return;
     }
-    const bitmap = await createImageBitmap(new Blob([p.webp], { type: 'image/webp' }));
+    // A frame is on screen for as long as the next one takes to draw, which is
+    // milliseconds: nobody can judge a picture from that. The bytes are kept
+    // on the figure, and a click opens the one that is showing at full size.
+    const blob = new Blob([p.webp], { type: 'image/webp' });
+    view.full = blob;
+    const bitmap = await createImageBitmap(blob);
     canvas.width = bitmap.width; canvas.height = bitmap.height;
     ctx.drawImage(bitmap, 0, 0);
     bitmap.close();
@@ -165,6 +171,9 @@ export function mountWork(host, { loop, autostart = false, frames, where } = {})
     // The error is the whole message when there is one: a panel that says
     // "error 1630 assemble" and nothing else is not worth reading.
     const view = host.querySelector('.work-view');
+    view.querySelector('canvas').onclick = () => {
+        if (view.full) globalThis.open?.(URL.createObjectURL(view.full), '_blank');
+    };
     const log = (rec) => {
         // A record with a picture is the work itself, shown rather than said.
         if (rec.picture) { showPicture(view, rec); return; }

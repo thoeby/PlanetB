@@ -83,7 +83,9 @@ export function groundOf(files, scene) {
 // in the atom's params (db/0107) — the path tracer, for global illumination
 // at a few seconds a frame. Both take the same meshes and the same cameras.
 function rendererOf(atom, canvas, size) {
-    if (atom.params?.renderer !== 'trace') return new Raster(canvas, size);
+    if (atom.params?.renderer !== 'trace') {
+        return new Raster(canvas, size, { shadows: atom.params?.shadows !== false });
+    }
     return new Tracer(canvas, size, {
         samples: Number(atom.params?.samples) || DEFAULTS.samples,
         bounces: Number(atom.params?.bounces) || DEFAULTS.bounces,

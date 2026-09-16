@@ -86,7 +86,10 @@ export function flip(bytes, n) {
 }
 
 export class Raster {
-    constructor(canvas, size) {
+    // `shadows: false` draws the sun without a shadow map at all: flat-lit
+    // frames, for telling a stripe that is the shadow map's from one that is
+    // the ground's (db/0119: `splatworld.shadows = 'off'`).
+    constructor(canvas, size, { shadows = true } = {}) {
         this.size = size;
         const r = new THREE.WebGLRenderer({
             canvas, antialias: true, alpha: false, preserveDrawingBuffer: true,
@@ -94,7 +97,7 @@ export class Raster {
         r.setSize(size, size, false);
         // Variance shadow maps blur: the sun is a disc, not a point, and a
         // ridge's shadow on the valley has a soft edge.
-        r.shadowMap.enabled = true;
+        r.shadowMap.enabled = shadows;
         r.shadowMap.type = THREE.VSMShadowMap;
         r.toneMapping = THREE.ACESFilmicToneMapping;
         r.toneMappingExposure = 1.0;
@@ -108,7 +111,7 @@ export class Raster {
         // reflects albedo × I × cos / π, so π × SUN_STRENGTH matches lightAt().
         this.sun = new THREE.DirectionalLight(new THREE.Color(...SUN_COLOUR),
             Math.PI * SUN_STRENGTH);
-        this.sun.castShadow = true;
+        this.sun.castShadow = shadows;
         this.sun.shadow.mapSize.set(SHADOW_MAP, SHADOW_MAP);
         this.sun.shadow.bias = -0.0002;
         this.sun.shadow.radius = 6;
