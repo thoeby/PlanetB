@@ -13,9 +13,12 @@ BRUSH_REPO=${BRUSH_REPO:-https://github.com/ArthurBrussee/brush}
 # ("Failed to map buffer: BufferAsyncError", cubecl-wgpu timings.rs): if a run
 # dies there, build with AUTOTUNE_LEVEL=Balanced and see which failure you get,
 # because the two are different bugs and only one of them is ours to dodge.
-# `none` leaves brush's own defaults alone — no patch at all — which is the
-# build brush's web demo runs: trained the same dataset at under 200 ms a step
-# where this build took 800 on three different cards.
+# `none` leaves brush's own defaults alone — no patch at all. Tried against
+# ee797e9: the first mean panics on wasm ("Failed to read tensor data
+# synchronously", cubecl-environment future/reader.rs), the roofline
+# measurement the patch exists for. The web demo that runs without it is an
+# older brush. The 800 ms a step this build was blamed for was the pump in
+# client/lib/brush.js, not the level.
 AUTOTUNE_LEVEL=${AUTOTUNE_LEVEL:-Full}
 BRUSH_REV=${BRUSH_REV:-main}
 DEST=client/vendor/brush
