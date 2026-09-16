@@ -14,8 +14,12 @@
 
 import { SKY_COLOUR, SUN } from '../lib/light.js';
 
-// The air: how far you see before the haze takes half the contrast.
-export const VISIBILITY_M = 18000;
+// The air: how far you see before the haze takes half the contrast. 18 km was
+// a clear alpine day and meant nothing at the distances a player actually
+// looks over — at 500 m an exp2 fog of that density leaves 99.9 % of the
+// contrast, which is no atmosphere at all. 6 km puts visible haze on a ridge a
+// kilometre off and still leaves the ground underfoot untouched.
+export const VISIBILITY_M = 6000;
 // The horizon: the sky's colour desaturated and lightened by the air.
 export const HORIZON = [0.74, 0.80, 0.88];
 export const ZENITH = SKY_COLOUR.map((c) => c * 0.75);
@@ -50,6 +54,50 @@ void main() {
     gl_FragColor = vec4(c, 1.0);
 }`;
 
+// The same dome in WGSL. PlayCanvas runs on WebGPU wherever the browser has
+// it, and a GLSL-only ShaderMaterial there is a sky that never draws: the page
+// was left with the clear colour and nothing else, which is what "no sky"
+// looked like. Conventions are the engine's own (its scripts/esm/grid.mjs):
+// attributes and varyings declared by name, uniforms read off `uniform`.
+const VERT_WGSL = `
+attribute vertex_position: vec3f;
+uniform matrix_model: mat4x4f;
+uniform matrix_viewProjection: mat4x4f;
+varying vDir: vec3f;
+@vertex
+fn vertexMain(input: VertexInput) -> VertexOutput {
+    var output: VertexOutput;
+    let world = uniform.matrix_model * vec4f(input.vertex_position, 1.0);
+    output.vDir = input.vertex_position;
+    var p = uniform.matrix_viewProjection * world;
+    // On the far plane, behind everything.
+    p.z = p.w * 0.999999;
+    output.position = p;
+    return output;
+}`;
+
+const FRAG_WGSL = `
+uniform uZenith: vec3f;
+uniform uHorizon: vec3f;
+uniform uSun: vec3f;
+varying vDir: vec3f;
+@fragment
+fn fragmentMain(input: FragmentInput) -> FragmentOutput {
+    var output: FragmentOutput;
+    let d = normalize(input.vDir);
+    let up = clamp(d.y, 0.0, 1.0);
+    // The sky thickens towards the horizon; the ground below it is the haze.
+    let sky = mix(uniform.uHorizon, uniform.uZenith, pow(up, 0.55));
+    let s = max(dot(d, uniform.uSun), 0.0);
+    let glow = vec3f(1.0, 0.95, 0.85) * (pow(s, 600.0) * 1.2 + pow(s, 8.0) * 0.10);
+    var c = sky + glow;
+    if (d.y < 0.0) {
+        c = mix(uniform.uHorizon, uniform.uHorizon * 0.85, clamp(-d.y * 3.0, 0.0, 1.0));
+    }
+    output.color = vec4f(c, 1.0);
+    return output;
+}`;
+
 // The dome follows the camera; `follow(p)` each frame with its position.
 export function mountSky(app, pc, camera) {
     const device = app.graphicsDevice;
@@ -59,14 +107,13 @@ export function mountSky(app, pc, camera) {
     fog.color = new pc.Color(...HORIZON);
     // exp2: transmittance e^-(d·x)²; half the contrast at VISIBILITY_M.
     fog.density = Math.sqrt(Math.LN2) / VISIBILITY_M;
-    // The dome's shader is GLSL; a WebGPU device wants WGSL, and until it
-    // has it the sky there is the clear colour and the air.
-    if (device.isWebGPU) return { follow() {} };
     const material = new pc.ShaderMaterial({
         uniqueName: 'splatworld-sky',
         attributes: { vertex_position: pc.SEMANTIC_POSITION },
         vertexGLSL: VERT,
         fragmentGLSL: FRAG,
+        vertexWGSL: VERT_WGSL,
+        fragmentWGSL: FRAG_WGSL,
     });
     material.cull = pc.CULLFACE_FRONT;
     material.depthWrite = false;

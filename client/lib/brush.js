@@ -36,8 +36,16 @@ export async function loadBrush() {
 }
 
 // A device brush can train on: every feature and limit the adapter offers
-// (its backward kernels want subgroups and big storage buffers). The one
-// Chrome-experimental feature some adapters list and then refuse is left out.
+// (its backward kernels want subgroups and big storage buffers), less two.
+//
+// `mappable-primary-buffers` some adapters list and then refuse.
+//
+// `timestamp-query` is what CubeCL times its autotune candidates with, and on
+// wasm reading those timings back panics inside the runtime:
+//   cubecl-wgpu/src/compute/timings.rs: Failed to map buffer: BufferAsyncError
+// A device without the feature makes it time with the clock instead, which is
+// the path that works here (tools/brush-autotune.patch is the other half of
+// the same story: measurement on wasm is where this runtime falls over).
 export async function brushDevice(gpu = globalThis.navigator?.gpu) {
     const adapter = await gpu?.requestAdapter?.({ powerPreference: 'high-performance' });
     if (!adapter) throw new Error('no WebGPU adapter: training needs one');
@@ -46,7 +54,8 @@ export async function brushDevice(gpu = globalThis.navigator?.gpu) {
     if (!adapter.features.has('subgroups')) {
         throw new Error('this GPU offers no subgroups, which brush needs to train');
     }
-    const requiredFeatures = [...adapter.features].filter((f) => f !== 'mappable-primary-buffers');
+    const ungiven = new Set(['mappable-primary-buffers', 'timestamp-query']);
+    const requiredFeatures = [...adapter.features].filter((f) => !ungiven.has(f));
     const requiredLimits = {};
     for (const k in adapter.limits) {
         if (typeof adapter.limits[k] === 'number') requiredLimits[k] = adapter.limits[k];
