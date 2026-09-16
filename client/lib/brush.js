@@ -56,12 +56,27 @@ export async function brushDevice(gpu = globalThis.navigator?.gpu) {
 }
 
 // brush's TrainStreamConfig, in its kebab-case names, over what it proposed.
-// The seed is half the budget on the surface (client/atoms/train.js) and
+// The seed is most of the budget on the surface (client/atoms/train.js) and
 // brush densifies towards max-splats — the budget — for the first part of the
 // run: splitting where the picture is still wrong is what puts small splats
 // on edges, and a seed of uniform discs has none. No eval split: verify holds
 // its own poses back.
-export function configFor(init, { iters, budget, size, seed = 42 }) {
+//
+// `grow` and `lrScale` multiply what brush proposed rather than replacing it,
+// so the vendored build's own defaults stay the baseline (its COMMIT is what
+// pins them, and algo_version is what records the change — Invariant 2):
+//
+//   split-at-screen-size  a splat that projects bigger than this is split at
+//                         the next refinement, which is the cap on how large
+//                         a splat may become. The tiles came out with holes
+//                         everywhere between splats that were never allowed
+//                         to cover their own spacing, so `grow` lifts it.
+//   lr-scale              how fast a splat's extent may move. Over a few
+//                         hundred steps the default barely moves it off the
+//                         seed's size, so a splat that needs to be bigger
+//                         never gets there before the run ends.
+export function configFor(init, { iters, budget, size, seed = 42,
+    grow = 1, lrScale = 1 }) {
     return {
         ...init,
         'total-train-iters': iters,
@@ -69,6 +84,8 @@ export function configFor(init, { iters, budget, size, seed = 42 }) {
         'sh-degree': 0,
         'growth-start-iter': 0,
         'growth-stop-iter': Math.round(iters * 0.6),
+        'split-at-screen-size': (init['split-at-screen-size'] ?? 32) * grow,
+        'lr-scale': (init['lr-scale'] ?? 0.005) * lrScale,
         'max-resolution': size,
         'eval-split-every': null,
         'eval-every': iters * 10,
@@ -77,7 +94,9 @@ export function configFor(init, { iters, budget, size, seed = 42 }) {
     };
 }
 
-// Drives a training run to its end. `onStep(iter, elapsedMs)` is how the atom
+// Drives a training run to its end. `config(init)` is handed what brush
+// proposes for this dataset and returns the config to run with (configFor
+// above). `onStep(iter, elapsedMs)` is how the atom
 // beats its heartbeat; a Warning from brush is logged, not fatal.
 // `steps` a call: trainSteps returns only once that many steps have run, and
 // everything brush says on the way — loading, the seed placed, kernels tuned
@@ -86,7 +105,7 @@ export function configFor(init, { iters, budget, size, seed = 42 }) {
 export async function trainIn(app, dir, config,
     { steps = 20, onStep, onWarn, onBatch, onStage } = {}) {
     const { BrushMessageKind: K } = mod;
-    const training = app.startTrainingFromDirectory(dir, async (init) => ({ ...init, ...config }));
+    const training = app.startTrainingFromDirectory(dir, async (init) => config(init));
     let done = false;
     let iter = 0;
     while (!done) {

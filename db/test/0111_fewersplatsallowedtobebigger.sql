@@ -1,0 +1,39 @@
+-- A trained tile is built from half the splats, over three times the steps,
+-- and says how much of the budget to seed and how far a splat may grow.
+BEGIN;
+SELECT plan(6);
+
+SET client_min_messages = warning;
+
+SELECT is(tile_budget(14), 400000::bigint, 'a z14 tile is half the splats it was');
+SELECT is(tile_budget(16), 300000::bigint, 'and a z16 tile too');
+SELECT is(tile_budget(12), 900000::bigint, 'a merged tile is what it was');
+
+CREATE TEMP TABLE ids AS
+SELECT register('land111@example.com', 'password12') AS owner_id;
+INSERT INTO area (id, geom, owner_id, detail)
+SELECT '00000000-0000-0000-0000-000000000112'::uuid,
+       st_geomfromtext('POLYGON((7.88 46.29,7.89 46.29,7.89 46.30,7.88 46.30,7.88 46.29))',
+                       4326),
+       ids.owner_id, 14
+FROM ids;
+INSERT INTO feature (area_id, kind, geom)
+VALUES ('00000000-0000-0000-0000-000000000112', 'footprint',
+        st_geomfromtext('POINTZ(7.885 46.295 650)', 4326));
+SELECT set_config('request.jwt.claims',
+    json_build_object('sub', owner_id, 'role', 'player')::text, true) FROM ids;
+SELECT recompile_land('00000000-0000-0000-0000-000000000112');
+CREATE TEMP TABLE j AS
+SELECT ensure_job(14, tile_x(7.885, 14), tile_y(46.295, 14)) AS jid;
+CREATE TEMP TABLE t AS
+SELECT * FROM atom WHERE job_id = (SELECT jid FROM j) AND op = 'train';
+
+SELECT is((SELECT algo_version FROM t), 'train-v4', 'the trainer is train-v4');
+SELECT is((SELECT (params ->> 'iters')::int FROM t), 1200, 'over 1200 steps');
+SELECT is((SELECT jsonb_build_array(params -> 'seed_share', params -> 'grow',
+                                    params -> 'lr_scale') FROM t),
+    '[0.75, 4, 2]'::jsonb,
+    'seeded at three quarters, growing four times, moving twice as fast');
+
+SELECT * FROM finish();
+ROLLBACK;

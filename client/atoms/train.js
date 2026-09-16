@@ -1,4 +1,4 @@
-// train.js — `train-v3`. The tile, learned from its own frames, by brush.
+// train.js — `train-v4`. The tile, learned from its own frames, by brush.
 //
 // `assemble` built the surfaces and `frame` path-traced them from a fixed
 // camera set. The seed is those surfaces sampled at the tile's whole budget
@@ -7,6 +7,14 @@
 // nerfstudio dataset in the tab's own file system, and moves colour, opacity,
 // size and position until the tile reproduces the frames. Ordinary 3D
 // gaussian splatting, done by the people who do nothing else.
+//
+// v3 seeded half the budget and left brush's own caps where they were: over a
+// few hundred steps a splat was split before it ever covered its own spacing,
+// and its extent barely moved off the seed's, so the tile came out with holes
+// everywhere. v4 seeds three quarters of the budget, lets a splat grow four
+// times larger before it is split and its extent move twice as fast
+// (client/lib/brush.js configFor), over a budget halved and iterations tripled
+// (db/0111): fewer splats, each allowed to be as big as its own spacing.
 //
 // Four poses are held back (client/lib/frames.js): brush never sees them, and
 // `verify` renders two of them in another tab. Invariant 8: probabilistic
@@ -25,16 +33,23 @@ import { bboxOf, writePly } from '../lib/ply.js';
 import { rngOf, sampleSurfaces } from '../lib/sampling.js';
 import { readTar, writeTar } from '../lib/tar.js';
 
-export const ALGO = 'train-v3';
+export const ALGO = 'train-v4';
 // In-plane radius of a seed splat as a share of its spacing: overlapping, so
 // the first render is a surface and not a sieve.
 export const SPREAD = 1.15;
 // How far past the seed's box a splat may end up and still be this tile's.
 export const MARGIN = 0.15;
-// The seed is this share of the budget; brush grows the rest where the frames
-// say the picture is wrong (client/lib/brush.js configFor). Seeding the whole
-// budget left it nothing to grow into, and a tile of uniform discs.
-export const SEED_SHARE = 0.5;
+// The seed is this share of the budget unless the atom says otherwise; brush
+// grows the rest where the frames say the picture is wrong (client/lib/brush.js
+// configFor). Seeding the whole budget leaves it nothing to grow into, and a
+// tile of uniform discs; seeding too little leaves the short run to discover a
+// surface it has no time to close, which is holes.
+export const SEED_SHARE = 0.75;
+// How much larger than brush proposes a splat may grow before it is split,
+// and how fast its extent may move, as multiples of the vendored build's own
+// numbers (client/lib/brush.js configFor).
+export const GROW = 4;
+export const LR_SCALE = 2;
 // A picture of the run every so many iterations, from its first held-out
 // pose, over the first PREVIEW_SPLATS of the (shuffled) list.
 export const PREVIEW_EVERY = 200;
@@ -94,15 +109,17 @@ async function trainWithBrush({ atom, seed, tars, scene, eye, iters, budget, siz
     const name = `train-${atom.id}`;
     const ds = dataset(tars, atom.params?.camera_set, seed);
     const dir = await datasetDir(name, ds.files);
+    const grow = Number(atom.params?.grow) || GROW;
+    const lrScale = Number(atom.params?.lr_scale) || LR_SCALE;
     log?.({ event: 'training', tile: scene.tile, on: 'brush', views: ds.views,
-        held: ds.held, from: seed.count, iters, size });
+        held: ds.held, from: seed.count, iters, size, budget, grow, lr_scale: lrScale });
     let training = null;
     let last = { iter: 0, ms: 0 };
     try {
         const app = new brush.BrushApp();
         app.initExisting(adapter, device, device.queue);
-        training = await trainIn(app, dir, configFor({}, { iters, budget, size,
-            seed: atom.seed ?? 42 }), {
+        training = await trainIn(app, dir, (init) => configFor(init, { iters, budget, size,
+            seed: atom.seed ?? 42, grow, lrScale }), {
             // Every tenth step, with the pace since the last report: a silent
             // minute on a slow card reads as a hang, and elapsed-over-steps
             // would carry the loading and tuning time in front of step one.
@@ -151,7 +168,8 @@ export async function run({ atom, inputs, log }) {
     const { z, x, y } = scene.tile;
     const random = rngOf(atom, z, x, y);
     // Shuffled so any prefix is a fair sample: the preview reads a prefix.
-    const seed = shuffled(sampleSurfaces(meshes, Math.round(budget * SEED_SHARE), random,
+    const share = Number(atom.params?.seed_share) || SEED_SHARE;
+    const seed = shuffled(sampleSurfaces(meshes, Math.round(budget * share), random,
         { spread: SPREAD }), random);
     const set = atom.params?.camera_set;
     const ground = groundOf(files, scene);

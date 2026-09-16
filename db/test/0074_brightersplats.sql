@@ -4,10 +4,11 @@
 BEGIN;
 SELECT plan(5);
 
-SELECT is(tile_budget(14), 800000::bigint,
-          'a z14 tile holds what it held: the fix was the splats, not the count');
-SELECT is(tile_budget(16), 600000::bigint, 'a trained z16 tile is unchanged');
-SELECT is(tile_budget(18), 2000000::bigint, 'and so is a z18 one');
+-- Halved for the trained zooms in db/0111: fewer splats, each allowed to be
+-- as big as its own spacing.
+SELECT is(tile_budget(14), 400000::bigint, 'what a z14 tile holds');
+SELECT is(tile_budget(16), 300000::bigint, 'what a trained z16 tile holds');
+SELECT is(tile_budget(18), 1000000::bigint, 'and a z18 one');
 
 CREATE TEMP TABLE who AS SELECT register('splat74@example.com', 'password12') AS uid;
 SELECT set_config('request.jwt.claims',

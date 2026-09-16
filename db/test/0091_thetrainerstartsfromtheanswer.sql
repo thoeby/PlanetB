@@ -25,23 +25,23 @@ SELECT ensure_job(18, tile_x(7.805, 18), tile_y(46.295, 18)) AS j18,
        ensure_job(16, tile_x(7.805, 16), tile_y(46.295, 16)) AS j16;
 
 SELECT is((SELECT algo_version FROM atom
-           WHERE job_id = (SELECT j18 FROM jobs) AND op = 'train'), 'train-v3',
-    'a z18 job trains with train-v3');
+           WHERE job_id = (SELECT j18 FROM jobs) AND op = 'train'), 'train-v4',
+    'a z18 job trains with train-v4');
 SELECT is((SELECT (params ->> 'iters')::int FROM atom
-           WHERE job_id = (SELECT j18 FROM jobs) AND op = 'train'), 5000,
-    'z18: 5000 iterations (db/0101)');
+           WHERE job_id = (SELECT j18 FROM jobs) AND op = 'train'), 1200,
+    'z18: 1200 iterations (db/0111)');
 SELECT is((SELECT (params ->> 'size')::int FROM atom
            WHERE job_id = (SELECT j18 FROM jobs) AND op = 'train'), 1024,
     'z18 trains at the frames'' own 1024 px');
 SELECT is((SELECT algo_version FROM atom
-           WHERE job_id = (SELECT j16 FROM jobs) AND op = 'train'), 'train-v3',
-    'a z16 job trains with train-v3');
+           WHERE job_id = (SELECT j16 FROM jobs) AND op = 'train'), 'train-v4',
+    'a z16 job trains with train-v4');
 SELECT is((SELECT (params ->> 'iters')::int FROM atom
-           WHERE job_id = (SELECT j16 FROM jobs) AND op = 'train'), 4000,
-    'z16: 4000 iterations (db/0101)');
+           WHERE job_id = (SELECT j16 FROM jobs) AND op = 'train'), 1200,
+    'z16: 1200 iterations (db/0111)');
 SELECT is((SELECT (params ->> 'size')::int FROM atom
-           WHERE job_id = (SELECT j16 FROM jobs) AND op = 'train'), 512,
-    'z16 trains at 512 px');
+           WHERE job_id = (SELECT j16 FROM jobs) AND op = 'train'), 1024,
+    'z16 trains at the frames'' own 1024 px (db/0104)');
 
 SELECT * FROM finish();
 ROLLBACK;
