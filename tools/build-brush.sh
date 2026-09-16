@@ -41,7 +41,12 @@ anchor = '        console_error_panic_hook::set_once();\n'
 assert anchor in s, 'brush-js lib.rs: anchor for the autotune patch is gone'
 open(p, 'w').write(s.replace(anchor, anchor + add, 1))
 PY
-( cd "$WORK/brush/apps/brush-js" && wasm-pack build . --release --target web \
+# wasm-pack fetches binaryen's wasm-opt from GitHub releases at build time;
+# where that download cannot be had (a sandbox behind a proxy), WASM_OPT=0
+# packages without it. The module is larger and the JS glue the same; the
+# GPU does the training either way, so a step costs what it costs.
+OPT=; [ "${WASM_OPT:-1}" = 0 ] && OPT=--no-opt
+( cd "$WORK/brush/apps/brush-js" && wasm-pack build . --release --target web $OPT \
     --out-dir "$WORK/pkg" )
 mkdir -p "$DEST"
 cp "$WORK/pkg/brush_js.js" "$WORK/pkg/brush_js_bg.wasm" "$WORK/pkg/brush_js.d.ts" "$DEST/"
