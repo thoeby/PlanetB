@@ -110,6 +110,14 @@ const OUT = {
     result: { splat_count: 0 },
 };
 
+test('an atom of a version this tab does not build is failed back, not run', async () => {
+    const { loop, api } = loopOver({ ...ATOM, op: 'train', algo_version: 'train-v1' });
+    await assert.rejects(() => loop.step(), /train-v1/);
+    const failed = api.calls.find((c) => c[0] === 'rpc' && c[1] === 'fail_atom');
+    assert.ok(failed, 'it went back to the pool');
+    assert.match(failed[2].reason, /train-v1/);
+});
+
 test('a claimed atom is uploaded to the path its claim reserved, then submitted', async () => {
     const { loop, api, puts } = loopOver(ATOM, { spawnOut: OUT });
     assert.equal(await loop.step(), 'verified');

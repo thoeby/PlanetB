@@ -106,6 +106,12 @@ function allocate(tris, total) {
 // triangle with one splat on it cannot put a hundred-metre blob in the world.
 //
 const SPACING_CAP = 4;
+// And floored against it, because a scale of zero is a log-scale of minus
+// infinity to the trainer (client/lib/brush.js), which poisons the run a
+// hundred steps later as a splat with no finite size at all. A degenerate
+// triangle — the terrain cuts and the road meshes make them — can be handed a
+// splat by the remainder in `allocate`, and its area is zero.
+const SPACING_FLOOR = 0.01;
 
 export function sampleSurfaces(meshes, total, random,
     { spread = 0.7 } = {}) {
@@ -122,7 +128,8 @@ export function sampleSurfaces(meshes, total, random,
         const ic = m.indices[i + 2];
         const n = [m.normals[ia * 3], m.normals[ia * 3 + 1], m.normals[ia * 3 + 2]];
         const q = quatToNormal(n);
-        const spacing = Math.min(Math.sqrt(areas[t] / counts[t]), mean * SPACING_CAP);
+        const spacing = Math.min(Math.max(Math.sqrt(areas[t] / counts[t]),
+            mean * SPACING_FLOOR), mean * SPACING_CAP);
         for (let s = 0; s < counts[t]; s++, k++) {
             let u = random();
             let v = random();

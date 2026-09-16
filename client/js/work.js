@@ -211,6 +211,15 @@ export class WorkLoop {
     // hundred megabytes to fetch and its ply as much again to hash and upload,
     // and none of that says a word on its own.
     async compute(atom, progress = () => {}) {
+        // An atom names the version of the code that may make it (Invariant 2).
+        // This tab has one version of each; running an older atom's inputs
+        // through it would put bytes in the world under a name that did not
+        // make them — and, while a trainer is being changed, would answer a
+        // question about the new one with a run of the old.
+        if (ALGO[atom.op] && atom.algo_version && atom.algo_version !== ALGO[atom.op]) {
+            throw new Error(`this tab builds ${ALGO[atom.op]}, and that atom asks for `
+                + `${atom.algo_version}: compile the tile again to get one it can build`);
+        }
         const resolved = await resolveInputs(this.api, atom.inputs);
         progress();
         const inputs = await this.cache.load(resolved);

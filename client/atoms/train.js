@@ -107,10 +107,28 @@ function pack(splats, files) {
 // One brush run, start to finish: the dataset written, the device shared,
 // the run pumped with a picture every PREVIEW_EVERY iterations, the splats
 // read back, and everything torn down whatever happened.
+// What brush may not be handed: a splat with no finite size or position. Its
+// log-scale is minus infinity, the optimiser spreads that through the run, and
+// what comes back is a panic from brush's own rasteriser a hundred steps later
+// ("num_intersections > max possible"), which says nothing about where it came
+// from. This does.
+function checkSeed(seed) {
+    let bad = 0;
+    for (let i = 0; i < seed.count; i++) {
+        if (!(seed.sx[i] > 0 && seed.sy[i] > 0 && seed.sz[i] > 0)
+            || !Number.isFinite(seed.x[i] + seed.y[i] + seed.z[i])) bad++;
+    }
+    if (bad) {
+        throw new Error(`the seed has ${bad} splat(s) of ${seed.count} with no finite `
+            + 'size or place; brush cannot be handed those');
+    }
+}
+
 async function trainWithBrush({ atom, seed, tars, scene, eye, iters, budget, size, log }) {
     const brush = await loadBrush();
     const { adapter, device } = await brushDevice();
     const name = `train-${atom.id}`;
+    checkSeed(seed);
     const ds = dataset(tars, atom.params?.camera_set, seed);
     const dir = await datasetDir(name, ds.files);
     log?.({ event: 'training', tile: scene.tile, on: 'brush', views: ds.views,
