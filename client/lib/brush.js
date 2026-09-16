@@ -18,6 +18,17 @@ let mod = null;
 // "RuntimeError: unreachable", and the reason went to console.error in the
 // worker where nobody looks. It is kept and put on the error instead.
 let lastPanic = '';
+// What the device said before it died: a WebGPU device that runs out of memory
+// or fails validation does not throw where the mistake was — the next readback
+// comes back as rubbish, or its map is rejected, and the runtime panics
+// somewhere else entirely. Both are kept and put on the error the atom fails
+// with, so the panel says what happened and not only where it landed.
+let lastDeviceError = '';
+
+// Everything the device complained about during this run, for the atom's error.
+export function deviceTrouble() {
+    return [lastPanic, lastDeviceError].filter(Boolean).join(' · ');
+}
 
 export async function loadBrush() {
     if (mod) return mod;
@@ -36,16 +47,15 @@ export async function loadBrush() {
 }
 
 // A device brush can train on: every feature and limit the adapter offers
-// (its backward kernels want subgroups and big storage buffers), less two.
+// (its backward kernels want subgroups and big storage buffers). The one
+// Chrome-experimental feature some adapters list and then refuse is left out.
 //
-// `mappable-primary-buffers` some adapters list and then refuse.
-//
-// `timestamp-query` is what CubeCL times its autotune candidates with, and on
-// wasm reading those timings back panics inside the runtime:
-//   cubecl-wgpu/src/compute/timings.rs: Failed to map buffer: BufferAsyncError
-// A device without the feature makes it time with the clock instead, which is
-// the path that works here (tools/brush-autotune.patch is the other half of
-// the same story: measurement on wasm is where this runtime falls over).
+// `timestamp-query` stays in, though CubeCL's timing of its autotune
+// candidates is where two of this runtime's failures have landed. Withholding
+// it does not stop CubeCL asking: it decides on the adapter's features and
+// then createQuerySet throws outright, which is worse than the readback. If
+// the timing path is the problem, tools/brush-autotune.patch is where to turn
+// it off, not here.
 export async function brushDevice(gpu = globalThis.navigator?.gpu) {
     const adapter = await gpu?.requestAdapter?.({ powerPreference: 'high-performance' });
     if (!adapter) throw new Error('no WebGPU adapter: training needs one');
@@ -54,13 +64,26 @@ export async function brushDevice(gpu = globalThis.navigator?.gpu) {
     if (!adapter.features.has('subgroups')) {
         throw new Error('this GPU offers no subgroups, which brush needs to train');
     }
-    const ungiven = new Set(['mappable-primary-buffers', 'timestamp-query']);
-    const requiredFeatures = [...adapter.features].filter((f) => !ungiven.has(f));
+    const requiredFeatures = [...adapter.features].filter((f) => f !== 'mappable-primary-buffers');
     const requiredLimits = {};
     for (const k in adapter.limits) {
         if (typeof adapter.limits[k] === 'number') requiredLimits[k] = adapter.limits[k];
     }
     const device = await adapter.requestDevice({ requiredFeatures, requiredLimits });
+    lastDeviceError = '';
+    // A device is lost for a reason — out of memory, a driver reset, a
+    // validation failure the runtime did not check for — and the reason is
+    // only ever said here.
+    device.lost?.then?.((info) => {
+        if (info?.reason !== 'destroyed') {
+            lastDeviceError = `the GPU device was lost (${info?.reason ?? 'unknown'})`
+                + `${info?.message ? `: ${info.message}` : ''}`;
+        }
+    }).catch(() => {});
+    device.addEventListener?.('uncapturederror', (ev) => {
+        if (!lastDeviceError) lastDeviceError = String(ev?.error?.message ?? ev?.error ?? '')
+            .slice(0, 300);
+    });
     return { adapter, device };
 }
 
@@ -109,8 +132,9 @@ export async function trainIn(app, dir, config,
     let iter = 0;
     while (!done) {
         const msgs = await training.trainSteps(iter ? steps : 1).catch((err) => {
+            const said = deviceTrouble();
             throw new Error(`brush stopped at iteration ${iter}: ${err?.message ?? err}`
-                + (lastPanic ? ` — ${lastPanic}` : ''));
+                + (said ? ` — ${said}` : ''));
         });
         if (!msgs.length) break;
         for (const m of msgs) {
