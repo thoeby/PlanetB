@@ -67,7 +67,7 @@ function buildDag() {
     const frames = [[0, 20], [20, 40], [40, 56]].map(([from, to]) =>
         insert(job, 'frame', 'frame-v5', { assemble: asm, snapshot },
             { camera_set: 'z16-v1', from, to, size: SIZE, samples: 1 }, [asm]));
-    const trn = insert(job, 'train', 'train-v4', { assemble: asm, frames },
+    const trn = insert(job, 'train', 'train-v5', { assemble: asm, frames },
         { budget: BUDGET, camera_set: 'z16-v1' }, frames);
     const sog = insert(job, 'sog', 'sog-v1', { ply: trn }, { budget: BUDGET }, [trn]);
     [1, 2, 3].forEach((index) => insert(job, 'verify', 'verify-v1', { sog, frames },

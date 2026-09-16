@@ -1,5 +1,5 @@
 -- A trained tile is built from half the splats, over three times the steps,
--- and says how much of the budget to seed and how far a splat may grow.
+-- and says how much of the budget to seed and how wide to write what comes back.
 BEGIN;
 SELECT plan(6);
 
@@ -28,12 +28,11 @@ SELECT ensure_job(14, tile_x(7.885, 14), tile_y(46.295, 14)) AS jid;
 CREATE TEMP TABLE t AS
 SELECT * FROM atom WHERE job_id = (SELECT jid FROM j) AND op = 'train';
 
-SELECT is((SELECT algo_version FROM t), 'train-v4', 'the trainer is train-v4');
+SELECT is((SELECT algo_version FROM t), 'train-v5', 'the trainer is train-v5');
 SELECT is((SELECT (params ->> 'iters')::int FROM t), 1200, 'over 1200 steps');
-SELECT is((SELECT jsonb_build_array(params -> 'seed_share', params -> 'grow',
-                                    params -> 'lr_scale') FROM t),
-    '[0.75, 4, 2]'::jsonb,
-    'seeded at three quarters, growing four times, moving twice as fast');
+SELECT is((SELECT jsonb_build_array(params -> 'seed_share', params -> 'scale') FROM t),
+    '[0.75, 2]'::jsonb,
+    'seeded at three quarters, and every splat written twice as wide (db/0112)');
 
 SELECT * FROM finish();
 ROLLBACK;

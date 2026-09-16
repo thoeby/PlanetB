@@ -1,4 +1,4 @@
-// train.js — `train-v4`. The tile, learned from its own frames, by brush.
+// train.js — `train-v5`. The tile, learned from its own frames, by brush.
 //
 // `assemble` built the surfaces and `frame` path-traced them from a fixed
 // camera set. The seed is those surfaces sampled at the tile's whole budget
@@ -8,13 +8,16 @@
 // size and position until the tile reproduces the frames. Ordinary 3D
 // gaussian splatting, done by the people who do nothing else.
 //
-// v3 seeded half the budget and left brush's own caps where they were: over a
-// few hundred steps a splat was split before it ever covered its own spacing,
-// and its extent barely moved off the seed's, so the tile came out with holes
-// everywhere. v4 seeds three quarters of the budget, lets a splat grow four
-// times larger before it is split and its extent move twice as fast
-// (client/lib/brush.js configFor), over a budget halved and iterations tripled
-// (db/0111): fewer splats, each allowed to be as big as its own spacing.
+// v3 seeded half the budget and wrote back exactly what brush produced: over a
+// few hundred steps a splat never grew past the seed's own extent, and the
+// tile came out with holes everywhere between them. v4 tried to lift brush's
+// `split-at-screen-size` so they could grow during the run, and brush's
+// rasteriser panicked — that cap is what bounds how many splats a screen tile
+// may hold. v5 leaves the trainer's caps where they are and widens every splat
+// after the run instead (`widen`, SCALE): the extent the trainer settled on,
+// times a number, in the two directions a splat is wide — which is the one
+// thing that actually closes the gaps, and cannot be undone by anything
+// downstream. Fewer splats (db/0111 halved the budget), each of them bigger.
 //
 // Four poses are held back (client/lib/frames.js): brush never sees them, and
 // `verify` renders two of them in another tab. Invariant 8: probabilistic
@@ -33,7 +36,7 @@ import { bboxOf, writePly } from '../lib/ply.js';
 import { rngOf, sampleSurfaces } from '../lib/sampling.js';
 import { readTar, writeTar } from '../lib/tar.js';
 
-export const ALGO = 'train-v4';
+export const ALGO = 'train-v5';
 // In-plane radius of a seed splat as a share of its spacing: overlapping, so
 // the first render is a surface and not a sieve.
 export const SPREAD = 1.15;
@@ -45,11 +48,12 @@ export const MARGIN = 0.15;
 // tile of uniform discs; seeding too little leaves the short run to discover a
 // surface it has no time to close, which is holes.
 export const SEED_SHARE = 0.75;
-// How much larger than brush proposes a splat may grow before it is split,
-// and how fast its extent may move, as multiples of the vendored build's own
-// numbers (client/lib/brush.js configFor).
-export const GROW = 4;
-export const LR_SCALE = 2;
+// How much wider every trained splat is made before it is written: the ground
+// is covered by splats overlapping their neighbours, and the trainer settles
+// on extents that leave the background showing between them. A multiple, so it
+// is relative to whatever size a splat ended up at; the atom's `scale` param
+// is what turns it, without touching this file.
+export const SCALE = 2;
 // A picture of the run every so many iterations, from its first held-out
 // pose, over the first PREVIEW_SPLATS of the (shuffled) list.
 export const PREVIEW_EVERY = 200;
@@ -109,17 +113,15 @@ async function trainWithBrush({ atom, seed, tars, scene, eye, iters, budget, siz
     const name = `train-${atom.id}`;
     const ds = dataset(tars, atom.params?.camera_set, seed);
     const dir = await datasetDir(name, ds.files);
-    const grow = Number(atom.params?.grow) || GROW;
-    const lrScale = Number(atom.params?.lr_scale) || LR_SCALE;
     log?.({ event: 'training', tile: scene.tile, on: 'brush', views: ds.views,
-        held: ds.held, from: seed.count, iters, size, budget, grow, lr_scale: lrScale });
+        held: ds.held, from: seed.count, iters, size, budget });
     let training = null;
     let last = { iter: 0, ms: 0 };
     try {
         const app = new brush.BrushApp();
         app.initExisting(adapter, device, device.queue);
         training = await trainIn(app, dir, (init) => configFor(init, { iters, budget, size,
-            seed: atom.seed ?? 42, grow, lrScale }), {
+            seed: atom.seed ?? 42 }), {
             // Every tenth step, with the pace since the last report: a silent
             // minute on a slow card reads as a hang, and elapsed-over-steps
             // would carry the loading and tuning time in front of step one.
@@ -155,6 +157,21 @@ async function preview(device, training, iter, iters, eye, log) {
     log?.({ event: 'train', iter, of: iters, splats: total, picture: pointsPicture(some, eye) });
 }
 
+// Every splat, wider by `k` in the two directions it is wide. The smallest of
+// its three extents is the one across the surface it lies on — a splat is a
+// disc, and thickening it would put fog over the ground rather than cover it —
+// so that one is left alone, whichever axis the trainer's rotation put it on.
+export function widen(f, k) {
+    if (!(k > 0) || k === 1) return f;
+    for (let i = 0; i < f.count; i++) {
+        const thin = Math.min(f.sx[i], f.sy[i], f.sz[i]);
+        if (f.sx[i] !== thin) f.sx[i] *= k;
+        if (f.sy[i] !== thin) f.sy[i] *= k;
+        if (f.sz[i] !== thin) f.sz[i] *= k;
+    }
+    return f;
+}
+
 export async function run({ atom, inputs, log }) {
     if (!inputs?.assemble) throw new Error('train needs the assemble artifact');
     const tars = [].concat(inputs.frames ?? []).filter(Boolean);
@@ -179,7 +196,8 @@ export async function run({ atom, inputs, log }) {
 
     const splats = await trainWithBrush({ atom, seed, tars, scene, eye, iters, budget, size, log });
     const box = bounds(seed, MARGIN);
-    const out = keep(splats, box.lo, box.hi);
+    const scale = Number(atom.params?.scale) || SCALE;
+    const out = widen(keep(splats, box.lo, box.hi), scale);
     if (!out.count) {
         const span = (f) => bboxOf(f).map((v) => v.toFixed(1)).join(' ');
         throw new Error(`brush returned ${splats.count} splats and none inside the tile: `
@@ -187,14 +205,14 @@ export async function run({ atom, inputs, log }) {
     }
     if (out.count > budget) throw new Error(`${out.count} splats is over the budget of ${budget}`);
     const tar = pack(out, files);
-    log?.({ event: 'trained', tile: scene.tile, splats: out.count, of: splats.count });
+    log?.({ event: 'trained', tile: scene.tile, splats: out.count, of: splats.count, scale });
     return {
         files: [{ ext: 'tar', kind: 'ply', algo_version: ALGO, bytes: tar }],
         output: 'tar',
         result: {
             bytes: tar.length, splat_count: out.count, finite: true,
             bbox: bboxOf(out), origin: scene.origin, tile: scene.tile,
-            iters, backend: 'brush', frame_size: size, seeded: seed.count,
+            iters, backend: 'brush', frame_size: size, seeded: seed.count, scale,
             dropped: splats.count - out.count,
         },
     };

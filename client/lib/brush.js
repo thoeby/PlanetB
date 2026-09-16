@@ -62,21 +62,13 @@ export async function brushDevice(gpu = globalThis.navigator?.gpu) {
 // on edges, and a seed of uniform discs has none. No eval split: verify holds
 // its own poses back.
 //
-// `grow` and `lrScale` multiply what brush proposed rather than replacing it,
-// so the vendored build's own defaults stay the baseline (its COMMIT is what
-// pins them, and algo_version is what records the change — Invariant 2):
-//
-//   split-at-screen-size  a splat that projects bigger than this is split at
-//                         the next refinement, which is the cap on how large
-//                         a splat may become. The tiles came out with holes
-//                         everywhere between splats that were never allowed
-//                         to cover their own spacing, so `grow` lifts it.
-//   lr-scale              how fast a splat's extent may move. Over a few
-//                         hundred steps the default barely moves it off the
-//                         seed's size, so a splat that needs to be bigger
-//                         never gets there before the run ends.
-export function configFor(init, { iters, budget, size, seed = 42,
-    grow = 1, lrScale = 1 }) {
+// What is not touched here: `split-at-screen-size`. Raising it to let splats
+// grow larger panics brush's own rasteriser — "num_intersections > max
+// possible 4096" (crates/brush-render/src/render_aux.rs) — because that cap is
+// what bounds how many splats a screen tile can hold. A splat that has to be
+// bigger than the trainer will carry is widened after the run instead, where
+// brush never renders it (client/atoms/train.js, `widen`).
+export function configFor(init, { iters, budget, size, seed = 42 }) {
     return {
         ...init,
         'total-train-iters': iters,
@@ -84,8 +76,6 @@ export function configFor(init, { iters, budget, size, seed = 42,
         'sh-degree': 0,
         'growth-start-iter': 0,
         'growth-stop-iter': Math.round(iters * 0.6),
-        'split-at-screen-size': (init['split-at-screen-size'] ?? 32) * grow,
-        'lr-scale': (init['lr-scale'] ?? 0.005) * lrScale,
         'max-resolution': size,
         'eval-split-every': null,
         'eval-every': iters * 10,

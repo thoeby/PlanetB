@@ -9,7 +9,7 @@ import { configFor, keep, splatsFromBrush } from '../lib/brush.js';
 import { SH_C0, emptySplats, readPly } from '../lib/ply.js';
 import { readTar, writeTar } from '../lib/tar.js';
 import { transformsJson, cameraSet } from '../lib/cameras.js';
-import { dataset } from '../atoms/train.js';
+import { dataset, widen } from '../atoms/train.js';
 
 const near = (a, b, eps = 1e-5) => assert.ok(Math.abs(a - b) < eps, `${a} vs ${b}`);
 
@@ -54,14 +54,19 @@ test('the config speaks brush: iterations, budget, growth to the budget, no eval
     assert.equal(c['refine-every'], 200, 'what brush proposed and this does not touch stays');
 });
 
-test('a splat may grow past what brush proposes, by a multiple of its own numbers', () => {
-    const init = { 'split-at-screen-size': 30, 'lr-scale': 0.01 };
-    const c = configFor(init, { iters: 1200, budget: 400000, size: 1024, grow: 4, lrScale: 2 });
-    assert.equal(c['split-at-screen-size'], 120, 'four times bigger before it is split');
-    near(c['lr-scale'], 0.02);
-    const same = configFor(init, { iters: 1200, budget: 400000, size: 1024 });
-    assert.equal(same['split-at-screen-size'], 30, 'and left alone when nothing asks');
-    near(same['lr-scale'], 0.01);
+test('widen makes a splat bigger across the surface and not through it', () => {
+    const f = emptySplats(2);
+    f.sx.set([0.5, 0.1]); f.sy.set([0.1, 0.4]); f.sz.set([0.4, 0.3]);
+    widen(f, 2);
+    near(f.sx[0], 1); near(f.sy[0], 0.1); near(f.sz[0], 0.8);
+    near(f.sx[1], 0.1); near(f.sy[1], 0.8); near(f.sz[1], 0.6);
+});
+
+test('widening by one, or by nothing, leaves the splats alone', () => {
+    const f = emptySplats(1);
+    f.sx[0] = 0.5; f.sy[0] = 0.1; f.sz[0] = 0.4;
+    widen(widen(f, 1), 0);
+    near(f.sx[0], 0.5); near(f.sz[0], 0.4);
 });
 
 test('the dataset holds every frame but the held-out ones, and names the seed', () => {
