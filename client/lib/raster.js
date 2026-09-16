@@ -36,7 +36,8 @@ export function meshObject(m, materials = {}) {
         // drew both sides into it, so every sunlit point compared its depth
         // against its own and self-shadowed wherever the depth rounded the
         // wrong way. It was not the side: a heightfield's back face is the
-        // same surface. frame-v8's normal bias (build) is what ended it.
+        // same surface. Nor the bias (v8). It was the shadow map's own depth
+        // precision (v9, the constructor).
     });
     const mesh = new THREE.Mesh(g, mat);
     mesh.castShadow = true;
@@ -95,10 +96,16 @@ export class Raster {
             canvas, antialias: true, alpha: false, preserveDrawingBuffer: true,
         });
         r.setSize(size, size, false);
-        // Variance shadow maps blur: the sun is a disc, not a point, and a
-        // ridge's shadow on the valley has a soft edge.
+        // PCF, not VSM. Variance shadow maps store their depth moments as
+        // half floats (WebGLShadowMap: RGFormat, HalfFloatType): a 10-bit
+        // mantissa over a shadow camera kilometres deep is a depth step of a
+        // metre or two, the ground's true depth crosses it continuously along
+        // the sun, and step(z, mean) flips at every stair — regular stripes
+        // across flat ground, in every frame from v4 to v8, which no bias and
+        // no cast side could touch. PCF compares against a 24-bit depth
+        // texture: a third of a millimetre over the same range.
         r.shadowMap.enabled = shadows;
-        r.shadowMap.type = THREE.VSMShadowMap;
+        r.shadowMap.type = THREE.PCFSoftShadowMap;
         r.toneMapping = THREE.ACESFilmicToneMapping;
         r.toneMappingExposure = 1.0;
         r.outputColorSpace = THREE.SRGBColorSpace;
@@ -139,7 +146,8 @@ export class Raster {
         this.sun.target.position.copy(centre);
         const sc = this.sun.shadow.camera;
         sc.left = -radius; sc.right = radius; sc.top = radius; sc.bottom = -radius;
-        sc.near = 0.5; sc.far = radius * 4;
+        // The sun sits 2r from the centre; the scene is within r of it.
+        sc.near = radius * 0.9; sc.far = radius * 3.1;
         sc.updateProjectionMatrix();
         // The ground is one surface: whichever side the shadow pass draws, it
         // is the same triangles at the same depth, and every point of it

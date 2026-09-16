@@ -1,4 +1,4 @@
-// frame.js — `frame-v8`. The views `train` learns a tile from.
+// frame.js — `frame-v9`. The views `train` learns a tile from.
 //
 // One atom renders a range of a camera set (db/0005_jobs.sql chunks them at 20
 // views), so a z18 job's 120 views spread across six tabs. Out comes a tar of
@@ -12,10 +12,11 @@
 // them drew colours baked at assemble, for a sampled baseline and a ground
 // mesh that no longer exist: every tile is trained from these frames now,
 // so this is the world's one look. Every camera stands on the ground it is
-// over (client/lib/cameras.js). Milliseconds a frame. v7 tried to end the
-// shadow acne by which side the ground cast; a heightfield has one side. v8
-// ends it with a normal bias of a texel and a half (client/lib/raster.js
-// build), so no surface compares against itself.
+// over (client/lib/cameras.js). Milliseconds a frame. The stripes across the
+// ground in v4-v8 were the variance shadow map's half-float depth: a metre
+// or two a step over a shadow camera kilometres deep. v7 (cast side) and v8
+// (normal bias) did not touch them because they were not acne. v9 is PCF on
+// a 24-bit depth texture (client/lib/raster.js).
 
 import { cameraSet, transformsJson, viewCount } from '../lib/cameras.js';
 import { unpackMeshes } from '../lib/mesh.js';
@@ -25,7 +26,7 @@ import { toWebp } from '../lib/render.js';
 import { readTar, writeTar } from '../lib/tar.js';
 import { localFromLonLat, tileBbox, tileFrame } from '../lib/tilemath.js';
 
-export const ALGO = 'frame-v8';
+export const ALGO = 'frame-v9';
 export const SIZE = 1024;
 const QUALITY = 0.9;
 

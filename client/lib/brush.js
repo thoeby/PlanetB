@@ -88,6 +88,22 @@ export async function brushDevice(gpu = globalThis.navigator?.gpu) {
             deviceErrors.push(String(ev?.error?.message ?? ev?.error ?? '').slice(0, 1200));
         }
     });
+    // A shader the compiler refuses is not an uncaptured error: the module
+    // comes back invalid and everything built on it says "invalid due to a
+    // previous error", and the previous error — the compiler naming the line
+    // — is only ever in the module's own compilation info. brush creates its
+    // modules on this device object, so its createShaderModule is wrapped to
+    // read that info off every module and keep the first refusals.
+    const create = device.createShaderModule.bind(device);
+    device.createShaderModule = (desc) => {
+        const mod = create(desc);
+        mod.getCompilationInfo?.().then((info) => {
+            const bad = (info?.messages ?? []).filter((m) => m.type === 'error').slice(0, 3)
+                .map((m) => `${desc?.label ?? 'shader'}:${m.lineNum}:${m.linePos} ${m.message}`);
+            if (bad.length && deviceErrors.length < 6) deviceErrors.unshift(...bad);
+        }).catch(() => {});
+        return mod;
+    };
     return { adapter, device };
 }
 
