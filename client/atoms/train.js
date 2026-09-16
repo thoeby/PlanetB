@@ -28,7 +28,7 @@ import { boundsOf as frameBounds, groundOf } from './frame.js';
 import { pointsPicture, shuffled } from '../lib/preview.js';
 import { holdout } from '../lib/frames.js';
 import {
-    brushDevice, configFor, keep, loadBrush, readSplats, trainIn,
+    brushDevice, configFor, deviceStats, keep, loadBrush, readSplats, trainIn,
 } from '../lib/brush.js';
 import { unpackMeshes } from '../lib/mesh.js';
 import { datasetDir, removeDir } from '../lib/opfs.js';
@@ -157,8 +157,12 @@ async function trainWithBrush({ atom, seed, tars, scene, eye, iters, budget, siz
             onStep: (iter, ms) => {
                 if (iter % 10 !== 0 && iter !== 1) return;
                 const per = last.iter ? Math.round((ms - last.ms) / (iter - last.iter)) : null;
+                // And what those steps asked of the device, per step: the
+                // readbacks and their wait are where a slow step on an idle
+                // GPU goes (client/lib/brush.js deviceStats).
+                const asked = deviceStats(Math.max(iter - last.iter, 1));
                 last = { iter, ms };
-                log?.({ event: 'train', iter, of: iters, ms: Math.round(ms), per });
+                log?.({ event: 'train', iter, of: iters, ms: Math.round(ms), per, ...asked });
             },
             onWarn: (text) => log?.({ event: 'warning', text }),
             onStage: (text) => log?.({ event: 'stage', text }),

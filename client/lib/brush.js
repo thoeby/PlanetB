@@ -25,6 +25,50 @@ let lastPanic = '';
 // with, so the panel says what happened and not only where it landed.
 let deviceErrors = [];
 
+// What brush asks the device for, counted from the one place it can be:
+// every queue.submit, every mapAsync (a GPU->CPU readback, and on the web a
+// round trip through the event loop) with the time it took to come back, and
+// every buffer created (Dawn zero-clears each on first use). Per step, these
+// say where a step's time goes when the GPU is idle for most of it.
+const stats = { submits: 0, cmdbufs: 0, maps: 0, mapMs: 0, allocs: 0, allocBytes: 0 };
+
+// The counts since the last call, per `steps` steps.
+export function deviceStats(steps = 1) {
+    const out = {
+        submits: +(stats.submits / steps).toFixed(1),
+        maps: +(stats.maps / steps).toFixed(1),
+        map_ms: +(stats.mapMs / steps).toFixed(0),
+        allocs: +(stats.allocs / steps).toFixed(1),
+        alloc_mb: +(stats.allocBytes / steps / 1048576).toFixed(1),
+    };
+    for (const k of Object.keys(stats)) stats[k] = 0;
+    return out;
+}
+
+function countOn(device) {
+    const submit = device.queue.submit.bind(device.queue);
+    device.queue.submit = (bufs) => {
+        stats.submits += 1;
+        stats.cmdbufs += bufs?.length ?? 1;
+        return submit(bufs);
+    };
+    const create = device.createBuffer.bind(device);
+    device.createBuffer = (desc) => {
+        stats.allocs += 1;
+        stats.allocBytes += desc?.size ?? 0;
+        const buf = create(desc);
+        if (desc?.usage & 0x1) {                       // MAP_READ: a readback
+            const map = buf.mapAsync.bind(buf);
+            buf.mapAsync = async (...args) => {
+                const t = performance.now();
+                stats.maps += 1;
+                try { return await map(...args); } finally { stats.mapMs += performance.now() - t; }
+            };
+        }
+        return buf;
+    };
+}
+
 // Everything the device complained about during this run, for the atom's
 // error: the first few, whole. The first is usually the one that matters —
 // "[Invalid ShaderModule] is invalid due to a previous error" is the second,
@@ -95,6 +139,7 @@ export async function brushDevice(gpu = globalThis.navigator?.gpu) {
     }
     const device = await adapter.requestDevice({ requiredFeatures, requiredLimits });
     deviceErrors = [];
+    countOn(device);
     // A device is lost for a reason — out of memory, a driver reset, a
     // validation failure the runtime did not check for — and the reason is
     // only ever said here.

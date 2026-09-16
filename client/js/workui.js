@@ -105,7 +105,9 @@ async function onWorld(world, ready, toggle, showProgress) {
 export function lineOf(rec) {
     if (rec.event === 'train' && rec.iter != null) {
         return `train ${rec.atom ?? ''} step ${rec.iter} of ${rec.of}`
-            + (rec.per ? ` · ${rec.per} ms a step` : '');
+            + (rec.per ? ` · ${rec.per} ms a step` : '')
+            + (rec.maps != null ? ` · ${rec.maps} readbacks waiting ${rec.map_ms} ms`
+                + ` · ${rec.submits} submits · ${rec.allocs} buffers (${rec.alloc_mb} MB)` : '');
     }
     if (rec.event === 'stage') return `train ${rec.atom ?? ''} — ${rec.text}`;
     return `${rec.event} ${rec.atom ?? ''} ${rec.op ?? rec.state ?? ''}`.trim()
