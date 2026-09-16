@@ -1,12 +1,12 @@
--- A trained tile is built from half the splats, over three times the steps,
+-- A trained tile is built from a fraction of the splats it was (db/0115),
 -- and says how much of the budget to seed and how wide to write what comes back.
 BEGIN;
 SELECT plan(6);
 
 SET client_min_messages = warning;
 
-SELECT is(tile_budget(14), 400000::bigint, 'a z14 tile is half the splats it was');
-SELECT is(tile_budget(16), 300000::bigint, 'and a z16 tile too');
+SELECT is(tile_budget(14), 200000::bigint, 'a z14 tile is a quarter of the splats it was');
+SELECT is(tile_budget(16), 150000::bigint, 'and a z16 tile too');
 SELECT is(tile_budget(12), 900000::bigint, 'a merged tile is what it was');
 
 CREATE TEMP TABLE ids AS
@@ -29,7 +29,7 @@ CREATE TEMP TABLE t AS
 SELECT * FROM atom WHERE job_id = (SELECT jid FROM j) AND op = 'train';
 
 SELECT is((SELECT algo_version FROM t), 'train-v5', 'the trainer is train-v5');
-SELECT is((SELECT (params ->> 'iters')::int FROM t), 1200, 'over 1200 steps');
+SELECT is((SELECT (params ->> 'iters')::int FROM t), 400, 'over 400 steps (db/0115)');
 SELECT is((SELECT jsonb_build_array(params -> 'seed_share', params -> 'scale') FROM t),
     '[0.25, 2]'::jsonb,
     'seeded at a quarter (db/0114), every splat written twice as wide (db/0112)');
