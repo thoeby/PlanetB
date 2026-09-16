@@ -156,6 +156,17 @@ def encode_geotiff(raw: bytes, bounds: tuple | None = None) -> bytes:
         values = band.astype("float64")
         if src.nodata is not None:
             values = np.where(values == src.nodata, np.nan, values)
+        # Whole metres are a staircase too: on a hillside every metre of rise
+        # is a shelf and a riser, and the frames drew them as terraces. An
+        # int16 survey, or a float one someone rounded, comes back with
+        # nearly every sample on a whole number; a survey at half a metre or
+        # better does not. Refused, with the same sentence as 8-bit.
+        finite = values[np.isfinite(values)]
+        rounded = np.mean(np.abs(finite - np.round(finite)) < 1e-6) if finite.size else 0.0
+        if np.unique(finite).size > 50 and rounded > 0.99:
+            raise CutFailed("the coverage came back in whole metres (every sample a round"
+                            " number): publish the elevation as float32 at the survey's own"
+                            " precision, not rounded")
         return dem.encode(values)
 
 

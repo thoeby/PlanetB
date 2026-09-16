@@ -31,8 +31,8 @@ SELECT * FROM atom WHERE job_id = (SELECT jid FROM j) AND op = 'train';
 SELECT is((SELECT algo_version FROM t), 'train-v7', 'the trainer is train-v7');
 SELECT is((SELECT (params ->> 'iters')::int FROM t), 1200, 'over 1200 steps (db/0122)');
 SELECT is((SELECT jsonb_build_array(params -> 'seed_share', params -> 'scale') FROM t),
-    '[0.125, 3]'::jsonb,
-    'seeded at an eighth (db/0118), every splat written three times as wide (db/0121)');
+    '[0.0375, 3]'::jsonb,
+    'seeded at three eightieths (db/0126), every splat written three times as wide (db/0121)');
 
 SELECT * FROM finish();
 ROLLBACK;

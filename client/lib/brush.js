@@ -163,20 +163,27 @@ export function configFor(init, { iters, budget, size, seed = 42 }) {
 
 // Drives a training run to its end. `config(init)` is handed what brush
 // proposes for this dataset and returns the config to run with (configFor
-// above). `onStep(iter, elapsedMs)` is how the atom
-// beats its heartbeat; a Warning from brush is logged, not fatal.
-// `steps` a call: trainSteps returns only once that many steps have run, and
-// everything brush says on the way — loading, the seed placed, kernels tuned
-// — comes back with it. The first call asks for one step, so those reach the
-// panel before minutes of the first steps on a slow card, not after.
+// above). `onStep(iter, elapsedMs)` is how the atom beats its heartbeat; a
+// Warning from brush is logged, not fatal.
+//
+// One step a call, and a macrotask between calls. brush's own app yields to
+// the browser after every message it pulls off the stream
+// (apps/brush-app/src/ui/ui_process.rs: "in the browser that doesn't yield
+// back control fully though whereas yield_now() does" — a setTimeout(0)), and
+// brush-js's trainSteps(n) pulls n steps' worth of messages with no yield in
+// between. Pulled twenty at a time, the event loop never got a task between
+// steps, and WebGPU's readback callbacks arrive as tasks: every step cost a
+// scheduler wait rather than GPU time — the same 800 ms on a P2000, an M4000
+// and a 4060 Ti, where the demo did 150. Everything brush says on the way —
+// loading, the seed placed, kernels tuned — reaches the panel step by step.
 export async function trainIn(app, dir, config,
-    { steps = 20, onStep, onWarn, onBatch, onStage } = {}) {
+    { steps = 1, onStep, onWarn, onBatch, onStage } = {}) {
     const { BrushMessageKind: K } = mod;
     const training = app.startTrainingFromDirectory(dir, async (init) => config(init));
     let done = false;
     let iter = 0;
     while (!done) {
-        const msgs = await training.trainSteps(iter ? steps : 1).catch((err) => {
+        const msgs = await training.trainSteps(steps).catch((err) => {
             const said = deviceTrouble();
             throw new Error(`brush stopped at iteration ${iter}: ${err?.message ?? err}`
                 + (said ? ` — ${said}` : ''));
@@ -202,9 +209,11 @@ export async function trainIn(app, dir, config,
             }
             m.free?.();
         }
-        // Between batches the run is idle, which is when a picture of it can
-        // be taken (client/atoms/train.js).
+        // Between steps the run is idle, which is when a picture of it can
+        // be taken (client/atoms/train.js) — and when the browser gets its
+        // task back.
         await onBatch?.(iter, training);
+        await new Promise((r) => setTimeout(r, 0));
     }
     return training;
 }
