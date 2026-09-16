@@ -23,11 +23,14 @@ let lastPanic = '';
 // comes back as rubbish, or its map is rejected, and the runtime panics
 // somewhere else entirely. Both are kept and put on the error the atom fails
 // with, so the panel says what happened and not only where it landed.
-let lastDeviceError = '';
+let deviceErrors = [];
 
-// Everything the device complained about during this run, for the atom's error.
+// Everything the device complained about during this run, for the atom's
+// error: the first few, whole. The first is usually the one that matters —
+// "[Invalid ShaderModule] is invalid due to a previous error" is the second,
+// and the previous error is the compiler saying which line it refused.
 export function deviceTrouble() {
-    return [lastPanic, lastDeviceError].filter(Boolean).join(' · ');
+    return [lastPanic, ...deviceErrors].filter(Boolean).join(' · ');
 }
 
 export async function loadBrush() {
@@ -70,19 +73,20 @@ export async function brushDevice(gpu = globalThis.navigator?.gpu) {
         if (typeof adapter.limits[k] === 'number') requiredLimits[k] = adapter.limits[k];
     }
     const device = await adapter.requestDevice({ requiredFeatures, requiredLimits });
-    lastDeviceError = '';
+    deviceErrors = [];
     // A device is lost for a reason — out of memory, a driver reset, a
     // validation failure the runtime did not check for — and the reason is
     // only ever said here.
     device.lost?.then?.((info) => {
         if (info?.reason !== 'destroyed') {
-            lastDeviceError = `the GPU device was lost (${info?.reason ?? 'unknown'})`
-                + `${info?.message ? `: ${info.message}` : ''}`;
+            deviceErrors.push(`the GPU device was lost (${info?.reason ?? 'unknown'})`
+                + `${info?.message ? `: ${info.message}` : ''}`);
         }
     }).catch(() => {});
     device.addEventListener?.('uncapturederror', (ev) => {
-        if (!lastDeviceError) lastDeviceError = String(ev?.error?.message ?? ev?.error ?? '')
-            .slice(0, 300);
+        if (deviceErrors.length < 4) {
+            deviceErrors.push(String(ev?.error?.message ?? ev?.error ?? '').slice(0, 1200));
+        }
     });
     return { adapter, device };
 }
@@ -137,6 +141,14 @@ export async function trainIn(app, dir, config,
                 + (said ? ` — ${said}` : ''));
         });
         if (!msgs.length) break;
+        // A kernel this device refused to compile is refused for the whole
+        // run: every render after it is rubbish and every gradient NaN, and
+        // the run would go to its last step at full price and hand back
+        // nothing. Stop at the first batch that saw it.
+        if (deviceErrors.length) {
+            throw new Error(`the GPU refused brush's kernels at iteration ${iter}: `
+                + deviceTrouble());
+        }
         for (const m of msgs) {
             if (m.kind === K.TrainStep) { iter = m.iter; onStep?.(m.iter, m.elapsedMs); }
             else if (m.kind === K.Warning) onWarn?.(m.text);
