@@ -121,8 +121,17 @@ test('a collider stops the player and lets them slide', async ({ page }) => {
         player.walkSpeed = 50;
         player.update(0.001);
 
+        // Which tile the player is standing in is the finest published one
+        // over that ground, not the z10 the field was made from — the test
+        // tiles now go down to z14 where a merge needed a child. The wall goes
+        // on that key, with the same field under it, or collidersAt looks at a
+        // tile nobody put a wall on.
+        const here = terrain.tileAt(player.position) ?? k;
+        terrain.fields.set(here, field);
+        terrain.wanted.add(here);
+
         // A north-south wall 200 m east of where the player starts.
-        terrain.colliders.set(k, [{
+        terrain.colliders.set(here, [{
             center: [sx + 200, 0, sz], half: [2, 50, 400], yaw: 0,
         }]);
         const startX = player.position.x;

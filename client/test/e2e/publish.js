@@ -43,6 +43,40 @@ const putForward = (z, x, y, sha) => `
             END IF;
             RAISE NOTICE 'published % at %', '${sha}', ev;`;
 
+// The job, worked through by one hand: claim what is ready, hand back
+// something of the right shape for the op, claim what that made ready. Kept
+// out of publishSql so that what publishing *is* stays on one screen.
+const workTheJob = (sha, size) => `            LOOP
+                -- A trained tile's atoms ask for WebGPU and a buffer big
+                -- enough (db/0083); this loop makes the bytes itself.
+                SELECT * INTO a FROM claim_atom(
+                    '{"webgpu": true, "max_buffer_mb": 4096}'::jsonb);
+                EXIT WHEN a.id IS NULL;
+                IF a.job_id <> jid THEN
+                    RAISE EXCEPTION 'claimed atom % of job %, not %', a.id, a.job_id, jid;
+                END IF;
+                made := md5(ply || a.id::text) || md5(a.id::text);
+                IF a.op IN ('merge', 'assemble', 'train') THEN
+                    -- A tile with nothing under it is built rather than merged
+                    -- (db/0128): assemble, the frames, the training. Each of
+                    -- those but the frames hands back a ply, and it is the
+                    -- atom's own version that is registered.
+                    PERFORM register_artifact(made, CASE a.op
+                        WHEN 'assemble' THEN 'init_ply' ELSE 'ply' END,
+                        1024, a.algo_version);
+                    PERFORM submit_atom(a.id, made, shape || '{"bytes": 1024}');
+                ELSIF a.op = 'frame' THEN
+                    PERFORM register_artifact(made, 'frames', 1024, a.algo_version);
+                    PERFORM submit_atom(a.id, made,
+                        shape || jsonb_build_object('bytes', 1024, 'frames',
+                            (a.params ->> 'to')::int - (a.params ->> 'from')::int));
+                ELSE
+                    PERFORM register_artifact('${sha}', 'sog', ${size}, 'sog-v1');
+                    PERFORM submit_atom(a.id, '${sha}',
+                        shape || jsonb_build_object('bytes', ${size}));
+                END IF;
+            END LOOP;`;
+
 function publishSql(z, x, y, sha, size) {
     return `
         DO $$
@@ -53,6 +87,7 @@ function publishSql(z, x, y, sha, size) {
             a      atom%rowtype;
             parked bigint [];
             ply    text := encode(public.digest(random()::text, 'sha256'), 'hex');
+            made   text;
             -- db/0015_structural.sql wants a finite result with a box in it.
             shape  jsonb := '{"splat_count": 1000, "finite": true,
                               "bbox": [-10, -1, -10, 10, 5, 10]}'::jsonb;
@@ -61,8 +96,13 @@ function publishSql(z, x, y, sha, size) {
             PERFORM set_config('request.jwt.claims',
                 json_build_object('sub', uid, 'role', 'admin')::text, true);
 
-            -- An edit, which is the only thing that makes a tile stale.
-            UPDATE feature SET props = props || jsonb_build_object('bump', now()::text);
+            -- An edit, which is the only thing that makes a tile stale. Only
+            -- over this tile: bumping every feature in the world dirties every
+            -- tile in it, and the rebuilds that opens are then compiled by
+            -- whichever tab is next — which quietly rewrites the manifests of
+            -- the fixture ladder client/test/e2e/stream.spec.js reads.
+            UPDATE feature SET props = props || jsonb_build_object('bump', now()::text)
+            WHERE st_intersects(geom, tile_bbox(${z}, ${x}, ${y}));
             SELECT expected_version INTO ev FROM tile
             WHERE tile.z = ${z} AND tile.x = ${x} AND tile.y = ${y};
             jid := ensure_job(${z}, ${x}, ${y});
@@ -75,21 +115,7 @@ function publishSql(z, x, y, sha, size) {
             UPDATE atom SET state = 'waiting'
             WHERE id = ANY (coalesce(parked, '{}'::bigint []));
 
-            LOOP
-                SELECT * INTO a FROM claim_atom('{}'::jsonb);
-                EXIT WHEN a.id IS NULL;
-                IF a.job_id <> jid THEN
-                    RAISE EXCEPTION 'claimed atom % of job %, not %', a.id, a.job_id, jid;
-                END IF;
-                IF a.op = 'merge' THEN
-                    PERFORM register_artifact(ply, 'ply', 1024, 'merge-v1');
-                    PERFORM submit_atom(a.id, ply, shape || '{"bytes": 1024}');
-                ELSE
-                    PERFORM register_artifact('${sha}', 'sog', ${size}, 'sog-v1');
-                    PERFORM submit_atom(a.id, '${sha}',
-                        shape || jsonb_build_object('bytes', ${size}));
-                END IF;
-            END LOOP;
+${workTheJob(sha, size)}
 
             UPDATE atom SET state = 'ready'
             WHERE id = ANY (coalesce(parked, '{}'::bigint []));

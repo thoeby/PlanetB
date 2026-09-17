@@ -12,10 +12,13 @@ import { dirname, join } from 'node:path';
 
 import { CLIENT, FILES_ROOT, seedGround, seedWorld } from './serve.js';
 import { startServices } from './services.js';
-import { openPage, park, psql, signIn, unpark } from './worker.js';
+import { NO_GPU, openPage, park, psql, signIn, softwareGpu, unpark, WEBGPU_ARGS }
+    from './worker.js';
 import { canonicalise } from '../../lib/canon.js';
 import { encodePng } from '../../lib/png.js';
 import { tileBbox, tileX, tileY } from '../../lib/tilemath.js';
+
+const PREINSTALLED = '/opt/pw-browsers/chromium';
 import { FIXTURES } from '../../../tools/make-asset-fixtures.mjs';
 
 const EMAIL = 'build-e2e@splatworld.local';
@@ -32,6 +35,10 @@ let asset = null;
 let area = null;
 let centre = null;
 
+test.use({ launchOptions: {
+    ...(existsSync(PREINSTALLED) ? { executablePath: PREINSTALLED } : {}),
+    args: WEBGPU_ARGS,
+} });
 test.describe.configure({ timeout: 900000 });
 
 // A bench with a texture nobody else will produce: a SAN is a function of the
@@ -126,6 +133,7 @@ async function focusOnThisTile(page, tile) {
 
 test('a placed asset dirties its tile, renders into it, and stands on the ground',
     async ({ page }) => {
+        test.skip(await softwareGpu(page) !== false, NO_GPU);
         const errors = [];
         page.on('pageerror', (e) => errors.push(String(e)));
         await openPage(page, svc.pageUrl);

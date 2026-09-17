@@ -13,7 +13,8 @@ import { join } from 'node:path';
 
 import { CLIENT, FILES_ROOT, seedGround, seedWorld } from './serve.js';
 import { startServices } from './services.js';
-import { openPage, park, psql, signIn, unpark } from './worker.js';
+import { NO_GPU, openPage, park, psql, signIn, softwareGpu, unpark, WEBGPU_ARGS }
+    from './worker.js';
 import { tileX, tileY } from '../../lib/tilemath.js';
 
 const EMAIL = 'pilot-e2e@splatworld.local';
@@ -25,6 +26,12 @@ const LADDER = [14, 12, 10, 8, 6].map((z) => ({ z, x: tileX(LON, z), y: tileY(LA
 let svc = null;
 let parked = [];
 
+const PREINSTALLED = '/opt/pw-browsers/chromium';
+
+test.use({ launchOptions: {
+    ...(existsSync(PREINSTALLED) ? { executablePath: PREINSTALLED } : {}),
+    args: WEBGPU_ARGS,
+} });
 test.describe.configure({ timeout: 600000 });
 
 test.beforeAll(async () => {
@@ -71,6 +78,8 @@ test('one tab compiles the pilot from z14 up to z6, and the viewer streams it',
     async ({ page }) => {
         const errors = [];
         page.on('pageerror', (e) => errors.push(String(e)));
+        await openPage(page, svc.pageUrl);
+        test.skip(await softwareGpu(page) !== false, NO_GPU);
         await openPage(page, svc.pageUrl);
         await signIn(page, EMAIL, PW);
         await page.locator('.work-toggle').check();

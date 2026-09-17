@@ -69,7 +69,7 @@ function atomFor(t) {
         ...t,
         snapshot,
         id: readyAtom({
-            ...t, op: 'assemble', algo: 'assemble-v3', inputs: { snapshot },
+            ...t, op: 'assemble', algo: 'assemble-v5', inputs: { snapshot },
             params: { z: t.z, x: t.x, y: t.y, budget: BUDGET },
         }),
     };

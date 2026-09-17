@@ -142,3 +142,30 @@ export async function signIn(page, email, pw) {
         await api.login(e, p);
     }, [email, pw]);
 }
+
+// Chromium with WebGPU: a real Dawn device over SwiftShader, on a secure
+// origin (HANDOFF §2). A spec that waits for a tile to be *compiled* needs it,
+// because there is no sampler any more and every leaf tile is trained.
+export const WEBGPU_ARGS = [
+    '--use-gl=angle', '--use-angle=swiftshader', '--enable-unsafe-swiftshader',
+    '--disable-gpu-sandbox', '--enable-unsafe-webgpu',
+];
+
+// Whether the adapter this page can get is a software one, by what it says it
+// is — SwiftShader answers WebGPU calls like any other adapter, so the
+// description is what tells them apart. `null` means no WebGPU at all.
+export const softwareGpu = (page) => page.evaluate(async () => {
+    const adapter = await globalThis.navigator?.gpu?.requestAdapter?.().catch(() => null);
+    if (!adapter) return null;
+    const info = adapter.info ?? {};
+    return /swiftshader|llvmpipe|lavapipe|software/i.test(
+        `${info.description ?? ''} ${info.vendor ?? ''} ${info.architecture ?? ''}`);
+});
+
+// The sentence a spec says when it stands down. Training a real tile at its
+// own budget is hours on a software adapter: 60 000 splats for 80 iterations
+// at 128 px is four minutes (client/test/e2e/train.spec.js), and a z14 tile is
+// 800 000 for 1 200 at 1 024 px.
+export const NO_GPU = 'a tile is trained now, whatever its zoom, and training'
+    + ' one at its own budget needs a real GPU — HANDOFF §6 lists this among'
+    + ' the acceptances that are unrun here';

@@ -12,7 +12,8 @@ import { dirname, join } from 'node:path';
 
 import { CLIENT, FILES_ROOT, seedGround, seedWorld } from './serve.js';
 import { startServices } from './services.js';
-import { openPage, park, psql, revealPanels, signIn, unpark } from './worker.js';
+import { NO_GPU, openPage, park, psql, revealPanels, signIn, softwareGpu, unpark,
+    WEBGPU_ARGS } from './worker.js';
 import { canonicalise } from '../../lib/canon.js';
 import { encodePng } from '../../lib/png.js';
 import { tileBbox, tileX, tileY } from '../../lib/tilemath.js';
@@ -33,6 +34,12 @@ let area = null;
 let asset = null;
 let centre = null;
 
+const PREINSTALLED = '/opt/pw-browsers/chromium';
+
+test.use({ launchOptions: {
+    ...(existsSync(PREINSTALLED) ? { executablePath: PREINSTALLED } : {}),
+    args: WEBGPU_ARGS,
+} });
 test.describe.configure({ timeout: 900000 });
 
 const uid = (email) => psql(`SELECT id FROM auth.user WHERE email = '${email}'`);
@@ -113,6 +120,8 @@ const published = () => psql(`SELECT coalesce(published_version, 0)::text FROM t
                               WHERE z = ${TILE.z} AND x = ${TILE.x} AND y = ${TILE.y}`);
 
 test('a stranger renders my bounty and is paid for it', async ({ page, browser }) => {
+    await openPage(page, svc.pageUrl);
+    test.skip(await softwareGpu(page) !== false, NO_GPU);
     const ownerBefore = balance(OWNER);
     const workerBefore = balance(WORKER);
 

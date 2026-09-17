@@ -1609,17 +1609,32 @@ at `b943ce3`, before FND.0 touched anything.
 - **client-test: the node tests and `tools/test-tiles.sh` are green.** The
   tile tool now walks down to a tile it may actually build: a z10 tile whose
   ground is drawn at z14 by another test is a merge, and a merge waits for a
-  published child. Eleven Playwright specs are still red and are the next
-  piece of work — see below.
+  published child. The browser suite is green too — see below.
 
 ### What is still red
 
-Eleven browser specs, all of them red before this work as well:
-`background` (2), `build`, `catalog`, `frame`, `hotswap`, `money`, `pilot`,
-`spot`, `train`, `walk`. Four of the fifteen that were failing are fixed here
-— the job's uniqueness is partial since db/0109, so the fixture's `ON CONFLICT`
-names the same predicate; a surface's head is revealed along with its body, so
-the Work switches can be clicked; expired claims are parked with the ready
-atoms; and a tab that hands a piece straight back still leaves the attempt
-behind, which is what "it was claimed" now reads. The rest are their own
-investigations.
+Nothing. `make gate` is green end to end from an empty database — db-test,
+api-test, client-test, lint — for the first time since the sampler was removed.
+The browser suite went from fifteen failures to none in 9 minutes instead of
+50, and what it now does with the six it does not run is say so:
+
+- **Three wait for a GPU** — build's "renders into it", money's "a stranger
+  renders my bounty", pilot's whole ladder. Each asks chromium for WebGPU the
+  way train.spec does and skips on a software adapter with the sentence in
+  `client/test/e2e/worker.js`: a tile is trained now whatever its zoom, and
+  60 000 splats for 80 iterations at 128 px is four minutes on SwiftShader
+  where a z14 tile is 800 000 for 1 200 at 1 024 px. On a machine with a GPU
+  they run. HANDOFF §6 already lists that acceptance as unrun here.
+- **Three are the suite's own conditionals** (no vendored engine, no headset,
+  a parent the pilot spec did not publish).
+
+What the specs had been left behind by, and now say: the versions a tab
+builds (assemble-v5, frame-v10, z16-v2's 45 views), brush as the trainer and
+its result — it reports no PSNR, so nothing pretends to measure quality on
+SwiftShader — the partial uniqueness of `job` since db/0109, a surface's head
+as well as its body, a claim that is handed straight back, the tile the player
+is actually standing in, and a job that closes when what it made is published.
+Two specs now keep to their own work: `sog` focuses its job so it cannot
+wander into a rebuild another spec is reading, and `stream` takes the ladder's
+refinement number from `tools/testterrain.mjs` rather than from whatever
+manifest the last publisher left.

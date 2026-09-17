@@ -620,9 +620,17 @@ the groundwork:
   Play · Survey (F1–F6), the operator's naming; only Build is wired, the rest
   say so on their cards. SPEC §2.1.
 
-**The gate was already red when this work started**, at `b943ce3`, in ways
-nothing here touches: fifteen `db/test/*.sql` files assert the DAG as it was
+**`make gate` is green end to end again**, from an empty database, in about
+twenty-five minutes; the browser suite is nine of them. Six browser tests do
+not run here and say why: three need a GPU (a tile is trained at every zoom
+now, and `client/test/e2e/worker.js` holds the sentence and the WebGPU launch
+flags), three are the suite's own conditionals. PROGRESS.md lists them.
+
+**The gate was red when this work started**, at `b943ce3`, in ways FND.0 did
+not touch: fifteen `db/test/*.sql` files assert the DAG as it was
 before `db/0121`–`0126` (z14 is framed from stations now, so "z14 DAG = 1
 assemble, 1 sample, 1 sog" cannot hold), and `make lint` failed on four files
-plus two linter upgrades. The lint half is fixed and pinned; the pgTAP half is
-the next commit's, not FND.0's, and it is listed in PROGRESS.md.
+plus two linter upgrades. All of it is fixed in the two commits after FND.0, and two of those failures
+were the world's rather than the tests': a leaf tile below z14 was being
+merged out of children that do not exist (db/0128), and a bounty could pay out
+a shade more than it held (db/0129).

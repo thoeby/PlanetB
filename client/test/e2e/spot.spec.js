@@ -60,18 +60,21 @@ function buildDag() {
     const job = Number(psql(`INSERT INTO job (z, x, y, target_version, state)
                              VALUES (${TILE.z}, ${TILE.x}, ${TILE.y}, 1, 'open')
                              ON CONFLICT (z, x, y, target_version)
+                                 WHERE state <> 'cancelled'
                              DO UPDATE SET state = 'open' RETURNING id`));
     resetJob(job);
-    const asm = insert(job, 'assemble', 'assemble-v3', { snapshot },
+    const asm = insert(job, 'assemble', 'assemble-v5', { snapshot },
         { ...TILE, budget: BUDGET }, []);
-    const frames = [[0, 20], [20, 40], [40, 56]].map(([from, to]) =>
-        insert(job, 'frame', 'frame-v5', { assemble: asm, snapshot },
-            { camera_set: 'z16-v1', from, to, size: SIZE, samples: 1 }, [asm]));
+    // z16-v2 is 45 views, not v1's 56: three chunks of the real count,
+    // the way build_dag chunks them (db/0125).
+    const frames = [[0, 20], [20, 40], [40, 45]].map(([from, to]) =>
+        insert(job, 'frame', 'frame-v10', { assemble: asm, snapshot },
+            { camera_set: 'z16-v2', from, to, size: SIZE, samples: 1 }, [asm]));
     const trn = insert(job, 'train', 'train-v7', { assemble: asm, frames },
-        { budget: BUDGET, camera_set: 'z16-v1' }, frames);
+        { budget: BUDGET, camera_set: 'z16-v2' }, frames);
     const sog = insert(job, 'sog', 'sog-v1', { ply: trn }, { budget: BUDGET }, [trn]);
     [1, 2, 3].forEach((index) => insert(job, 'verify', 'verify-v1', { sog, frames },
-        { index, min_psnr: 22, camera_set: 'z16-v1', size: SIZE }, [sog]));
+        { index, min_psnr: 22, camera_set: 'z16-v2', size: SIZE }, [sog]));
     return { job, asm, frames, trn, sog };
 }
 

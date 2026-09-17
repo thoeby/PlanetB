@@ -48,6 +48,15 @@ export function ground(z, x, y) {
     return { origin, sw, ne, relief, blobs, height };
 }
 
+// What the tile's manifest says it is worth refining at: the ground it covers
+// over the splats across it. One place, because the fixture writes it into the
+// manifest and client/test/e2e/stream.spec.js expects the ladder it implies
+// even after another spec has republished a rung with a manifest of its own.
+export function geometricErrorM(z, x, y) {
+    const { sw, ne } = ground(z, x, y);
+    return (ne.x - sw.x) / GRID[z];
+}
+
 export function makeSplats(z, x, y) {
     const g = GRID[z];
     const n = g * g;

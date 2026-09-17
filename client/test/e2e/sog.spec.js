@@ -60,6 +60,14 @@ test('a merged ply becomes a sog the engine can read, twice over the same bytes'
         page.on('pageerror', (e) => errors.push(String(e)));
         await openPage(page, svc.pageUrl);
         await signIn(page, EMAIL, PW);
+        // This job and nothing else: publishing a child opens its parent's
+        // rebuild (db/0070), and a tab that wanders into one recompiles a tile
+        // another spec is reading (client/test/e2e/stream.spec.js).
+        const job = Number(psql(`SELECT job_id FROM atom WHERE id = ${merge}`));
+        await page.evaluate(async (id) => {
+            const work = await window.splatworld.work.ready();
+            work.focus(id);
+        }, job);
         await page.locator('.work-toggle').check();
         await expect.poll(() => stateOf(merge), { timeout: 180000 }).toBe('verified');
 
@@ -67,8 +75,15 @@ test('a merged ply becomes a sog the engine can read, twice over the same bytes'
             ...TILE, op: 'sog', algo: 'sog-v1',
             inputs: { ply: Number(merge) }, params: { budget: BUDGET, run },
         }));
-        await expect.poll(() => sogs.map(stateOf).join('/'), { timeout: 180000 })
-            .toBe('verified/verified');
+        // The merge was the job's last atom, and what a tab lands is published
+        // (SPEC §0.2) — which closes the job. These two are added to it
+        // afterwards, and a job that is not open is handed out to nobody, so
+        // the fixture holds it open while they run.
+        const reopen = () => {
+            psql(`UPDATE job SET state = 'open' WHERE id = ${job} AND state = 'done'`);
+            return sogs.map(stateOf).join('/');
+        };
+        await expect.poll(reopen, { timeout: 180000 }).toBe('verified/verified');
         await page.locator('.work-toggle').uncheck();
 
         const shas = sogs.map((id) => psql(`SELECT output_sha256 FROM atom WHERE id = ${id}`));

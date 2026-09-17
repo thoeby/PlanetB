@@ -18,7 +18,8 @@ import * as api from '../client/js/api.js';
 import * as tm from '../client/lib/tilemath.js';
 import { bboxOf } from '../client/lib/ply.js';
 import { packSog, unpackSog } from './sogwrite.mjs';
-import { GRID, makeColliders, makeHeight, makeSplats, writePly } from './testterrain.mjs';
+import { geometricErrorM, makeColliders, makeHeight, makeSplats, writePly }
+    from './testterrain.mjs';
 
 const API_URL = process.env.API_URL ?? 'http://localhost:3000';
 const FILES_URL = process.env.FILES_URL ?? 'http://localhost:8080';
@@ -322,9 +323,6 @@ async function compileTile(t) {
 
     // The manifest is the tile's whole description: nothing about a tile lives
     // in a file (ARCHITECTURE §2). geometric_error_m drives WP1.3's refinement.
-    const b = tm.tileBbox(t.z, t.x, t.y);
-    const span = tm.localFromLonLat(origin, b.east, b.north).x
-        - tm.localFromLonLat(origin, b.west, b.north).x;
     const done = await api.rpc('publish_tile', {
         z: t.z, x: t.x, y: t.y,
         target_version: want,
@@ -333,7 +331,7 @@ async function compileTile(t) {
             origin: { lon: origin.lon, lat: origin.lat, h: origin.h },
             splats: art.count,
             bytes: art.sog.length,
-            geometric_error_m: span / GRID[t.z],
+            geometric_error_m: geometricErrorM(t.z, t.x, t.y),
             algo_version: 'sog-v1',
             height: { sha256: art.heightSha, ...art.heightMeta },
             colliders: { sha256: art.collidersSha,

@@ -8,6 +8,7 @@ import { existsSync } from 'node:fs';
 import { join } from 'node:path';
 
 import { install, testTileRows, FILES_ROOT, CLIENT } from './serve.js';
+import { geometricErrorM } from '../../../tools/testterrain.mjs';
 
 let rows = [];
 
@@ -16,7 +17,16 @@ test.beforeAll(() => {
         test.skip(true, 'no vendored engine — run `make vendor`');
     }
     try {
-        rows = testTileRows();
+        // The ladder these checkpoints are about is the fixture's: what each
+        // tile is worth refining at, from the tool that made them. Another
+        // spec may have republished a rung with a manifest of its own by the
+        // time this runs (hotswap does, sog does), and the tile it left is
+        // fine — but the refinement this asserts is the fixture's ladder, so
+        // the number comes from tools/testterrain.mjs rather than the row.
+        rows = testTileRows().map((r) => ({
+            ...r,
+            manifest: { ...r.manifest, geometric_error_m: geometricErrorM(r.z, r.x, r.y) },
+        }));
     } catch (err) {
         test.skip(true, `no database to read tiles from: ${err.message}`);
     }

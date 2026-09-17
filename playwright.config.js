@@ -29,6 +29,10 @@ export default defineConfig({
         launchOptions: {
             ...(existsSync(preinstalled) ? { executablePath: preinstalled } : {}),
             // No GPU here; ANGLE over SwiftShader gives a real WebGL2 context.
+            // WebGPU is deliberately not turned on (HANDOFF §2 says how, and
+            // train.spec and gsgpu.spec ask for it themselves): a tab that has
+            // it takes training atoms, and training a real tile on SwiftShader
+            // is hours. What that costs is in PROGRESS.md.
             args: ['--use-gl=angle', '--use-angle=swiftshader',
                 '--enable-unsafe-swiftshader', '--disable-gpu-sandbox'],
         },

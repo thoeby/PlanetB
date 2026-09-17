@@ -3,9 +3,11 @@
 // which is the strongest form of the PSNR bar the deliverable sets; a
 // cross-GPU comparison needs two machines and is what that bar is really for.
 //
-// frame-v5 draws the baked mesh, so one machine renders
-// the same bytes twice. The frames here are small and lightly sampled: this is
-// software rendering.
+// frame-v10 draws the baked mesh, so one machine renders the same bytes twice.
+// The frames here are small: this is software rendering. The versions and the
+// camera set are the ones the tab builds — a tab refuses an atom of a version
+// it does not build (client/js/work.js), which is how this spec found out that
+// it had been left behind.
 
 import { test, expect } from '@playwright/test';
 import { existsSync } from 'node:fs';
@@ -62,7 +64,10 @@ const inspect = (page, url, name) => page.evaluate(async ([u, n]) => {
     c.getContext('2d').drawImage(bitmap, 0, 0);
     const { data } = c.getContext('2d').getImageData(0, 0, bitmap.width, bitmap.height);
     const seen = new Set();
-    for (let i = 0; i < data.length; i += 4 * 97) seen.add(data[i] >> 3);
+    // Every seventh pixel, not every ninety-seventh: a 48 x 48 frame has
+    // 2304 of them, and two dozen samples of a station's view of one hill
+    // can all land on the same tone without the frame being blank.
+    for (let i = 0; i < data.length; i += 4 * 7) seen.add(data[i] >> 3);
     return { w: bitmap.width, h: bitmap.height, tones: seen.size };
 }, [url, name]);
 
@@ -73,7 +78,7 @@ test('two tabs render the same range of a camera set to the same frames',
     async ({ page }) => {
         const snapshot = psql(`SELECT world_snapshot(${TILE.z}, ${TILE.x}, ${TILE.y})`);
         const assemble = readyAtom({
-            ...TILE, op: 'assemble', algo: 'assemble-v3', inputs: { snapshot },
+            ...TILE, op: 'assemble', algo: 'assemble-v5', inputs: { snapshot },
             params: { ...TILE, budget: 600000 },
         });
         const errors = [];
@@ -85,9 +90,9 @@ test('two tabs render the same range of a camera set to the same frames',
 
         // Two atoms, the same range, rendered one after the other by this tab.
         const frames = [1, 2].map((seed) => readyAtom({
-            ...TILE, op: 'frame', algo: 'frame-v5',
+            ...TILE, op: 'frame', algo: 'frame-v10',
             inputs: { assemble: Number(assemble), snapshot },
-            params: { camera_set: 'z16-v1', from: FROM, to: TO, run: seed,
+            params: { camera_set: 'z16-v2', from: FROM, to: TO, run: seed,
                 size: SIZE, samples: SAMPLES },
         }));
         await expect.poll(() => frames.map(stateOf).join('/'), { timeout: 240000 })
@@ -101,7 +106,7 @@ test('two tabs render the same range of a camera set to the same frames',
 
         const stats = resultOf(frames[0]);
         expect(stats.frames).toBe(TO - FROM);
-        expect(stats.camera_set).toBe('z16-v1');
+        expect(stats.camera_set).toBe('z16-v2');
         expect(stats.gpu_seconds).toBeLessThan(240);
 
         const tar = readTar(await fetch(svc.filesUrl + stats.path).then((r) => r.arrayBuffer()));
@@ -116,9 +121,15 @@ test('two tabs render the same range of a camera set to the same frames',
         expect(t.frames.map((f) => f.pose_id)).toEqual([8, 9, 10, 11, 12, 13]);
         expect(t.frames[0].transform_matrix[3]).toEqual([0, 0, 0, 1]);
 
-        // The frames are real WebP images of the size asked for, and not blank sky.
-        const shot = await inspect(page, svc.filesUrl + stats.path, 'frame_0008.webp');
-        expect([shot.w, shot.h]).toEqual([SIZE, SIZE]);
-        expect(shot.tones).toBeGreaterThan(3);
+        // The frames are real WebP images of the size asked for, and the range
+        // is not blank. One station's view of a synthetic hill can legitimately
+        // be two tones — z16-v2 looks straight down as well as from the side —
+        // so the range as a whole is what has to have a picture in it.
+        const shots = [];
+        for (const name of ['frame_0008.webp', 'frame_0009.webp', 'frame_0010.webp']) {
+            shots.push(await inspect(page, svc.filesUrl + stats.path, name));
+        }
+        for (const shot of shots) expect([shot.w, shot.h]).toEqual([SIZE, SIZE]);
+        expect(Math.max(...shots.map((v) => v.tones))).toBeGreaterThan(3);
         expect(errors).toEqual([]);
     });
