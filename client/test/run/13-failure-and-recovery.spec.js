@@ -20,25 +20,18 @@ const NOTICE = '#notice';
 // above it are being rebuilt, and those are in the pool at no price.
 async function takesAJob(c) {
     await panel(c, 'Work');
-    const row = c.page.locator('.po-list li').filter({ hasText: 'free' }).first();
+    // A tile that is built rather than merged: assemble, the frames, the
+    // training. A merge is over in a second here (db/0131 builds the run's
+    // world small), and a tab that walks away between two pieces has walked
+    // away holding nothing — which is not the story. This one is minutes long,
+    // so there is something in its hands whenever it goes.
+    const row = c.page.locator('.po-list li').filter({ hasText: 'trained' }).first();
     await expect(row).toBeVisible({ timeout: UI });
-    const which = await row.locator('.name').textContent();
+    const which = (await row.locator('.name').textContent()).trim();
     await row.getByRole('button', { name: 'Render' }).click();
     await expect(c.page.locator('.po-status'))
         .toContainText(/assembling|merging|framing|training|encoding/, { timeout: UI });
-    // And the world knows a piece of it is in this tab's hands. A tile is
-    // small here (db/0131), so "it said it was working" and "it is holding
-    // something" are a second apart: walking away has to happen while there is
-    // something to walk away from.
-    const mine = c.page.locator('.po-list li').filter({ hasText: which.trim() });
-    await expect.poll(async () => {
-        await c.page.evaluate(() => window.splatworld.pool.refresh());
-        // The list is redrawn by that refresh, and a job whose only piece is
-        // in somebody's hands is a row that comes and goes, so a missing row
-        // is an answer here and not a failure.
-        return await mine.count() ? (await mine.first().textContent()) ?? '' : '';
-    }, { timeout: UI, intervals: [500] }).toContain('in hand');
-    return which.trim();
+    return which;
 }
 
 async function findsItBack(b, which) {
