@@ -1,7 +1,7 @@
 -- WP0.6 acceptance: DAG shape for z18 and z14, ensure_job idempotency, claim,
 -- expiry (attempts++, 3rd -> failed), submit guards, structural budget rule.
 BEGIN;
-SELECT plan(32);
+SELECT plan(34);
 
 CREATE TEMP TABLE ids AS
 SELECT register('owner@example.com', 'password12') AS owner_id,
@@ -38,15 +38,17 @@ SELECT is((SELECT target_version FROM job WHERE id = (SELECT j14 FROM jobs)),
           'job targets the tile expected_version');
 
 -- DAG shape -------------------------------------------------------------
--- Since db/0016_sample.sql a z14 tile is the baseline: assembled and sampled at
--- its whole budget rather than merged from children it does not have.
+-- A z14 tile is the baseline every compiled area reaches, and since the
+-- sampler was removed it reaches it the way z16 and z18 do: assembled, framed
+-- from the stations of z16-v2 (45 views, 20 to a frame atom) and trained at
+-- its whole budget, rather than merged from children it does not have.
 SELECT is((SELECT count(*)::int FROM atom WHERE job_id = (SELECT j14 FROM jobs)),
-          3, 'z14 job has 3 atoms');
+          6, 'z14 job has 6 atoms');
 SELECT results_eq(
     $$SELECT op, count(*)::int FROM atom
       WHERE job_id = (SELECT j14 FROM jobs) GROUP BY op ORDER BY op$$,
-    $$VALUES ('assemble', 1), ('sample', 1), ('sog', 1)$$,
-    'z14 DAG = 1 assemble, 1 sample, 1 sog');
+    $$VALUES ('assemble', 1), ('frame', 3), ('sog', 1), ('train', 1)$$,
+    'z14 DAG = 1 assemble, 3 frame, 1 train, 1 sog');
 SELECT results_eq(
     $$SELECT op, count(*)::int FROM atom
       WHERE job_id = (SELECT j18 FROM jobs) GROUP BY op ORDER BY op$$,
@@ -58,12 +60,21 @@ SELECT is((SELECT count(*)::int FROM atom
            WHERE job_id = (SELECT j18 FROM jobs) AND state = 'ready'), 1,
     'only the assemble atom starts ready');
 SELECT is((SELECT count(*)::int FROM atom
-           WHERE op = 'frame' AND (params ->> 'to')::int - (params ->> 'from')::int = 20),
+           WHERE job_id = (SELECT j18 FROM jobs) AND op = 'frame'
+             AND (params ->> 'to')::int - (params ->> 'from')::int = 20),
     6, 'frame atoms cover 20 views each');
+-- 45 views do not divide by 20, so z14's last frame atom is the short one.
+SELECT is((SELECT max((params ->> 'to')::int) FROM atom
+           WHERE job_id = (SELECT j14 FROM jobs) AND op = 'frame'),
+    45, 'and between them they cover every view of the tile');
 SELECT is((SELECT (params ->> 'budget')::bigint FROM atom
-           WHERE op = 'train'), 2000000::bigint, 'z18 train budget is 2 M');
-SELECT ok((SELECT (params ->> 'needs_webgpu')::boolean FROM atom WHERE op = 'train'),
-    'train declares its GPU requirement');
+           WHERE op = 'train' AND job_id = (SELECT j18 FROM jobs)),
+    2000000::bigint, 'z18 train budget is 2 M');
+SELECT is((SELECT (params ->> 'budget')::bigint FROM atom
+           WHERE op = 'train' AND job_id = (SELECT j14 FROM jobs)),
+    800000::bigint, 'and z14 trains at its own, smaller one');
+SELECT ok((SELECT bool_and((params ->> 'needs_webgpu')::boolean) FROM atom
+           WHERE op = 'train'), 'train declares its GPU requirement');
 SELECT ok((SELECT count(DISTINCT atom_hash) = count(*) FROM atom),
     'every atom_hash is distinct');
 

@@ -7,7 +7,7 @@
 -- left of Invariant 8 is the honest half — the deterministic ops still have to
 -- agree with themselves, and nobody is asked to look at that.
 BEGIN;
-SELECT plan(11);
+SELECT plan(9);
 
 SET client_min_messages = warning;
 
@@ -45,40 +45,59 @@ SELECT ensure_job((SELECT z FROM tt), (SELECT x FROM tt), (SELECT y FROM tt)) AS
 SELECT is((SELECT count(*)::int FROM atom
            WHERE job_id = (SELECT jid FROM jobs) AND op = 'verify'), 0,
     'nothing is built to check a tile perceptually');
-SELECT is((SELECT count(*)::int FROM atom WHERE job_id = (SELECT jid FROM jobs)), 3,
-    'a leaf is assembled, sampled and encoded, and that is all');
+SELECT is((SELECT count(*)::int FROM atom WHERE job_id = (SELECT jid FROM jobs)), 6,
+    'a leaf is assembled, framed, trained and encoded, and that is all');
+SELECT results_eq(
+    $$SELECT op, count(*)::int FROM atom
+      WHERE job_id = (SELECT jid FROM jobs) GROUP BY op ORDER BY op$$,
+    $$VALUES ('assemble', 1), ('frame', 3), ('sog', 1), ('train', 1)$$,
+    'the baseline tile is trained like any other, not sampled');
 
 -- rendering it -----------------------------------------------------------
+-- One tab takes the job and works through it, as work.js does: claim what is
+-- ready, hand back something of the right shape, claim what that made ready.
+-- Every op's structural rules are met, so every submit is accepted on them
+-- and on nothing else.
 SELECT set_config('request.jwt.claims',
     json_build_object('sub', worker_id, 'role', 'player')::text, true) FROM ids;
 
-CREATE TEMP TABLE ca AS SELECT (claim_atom('{}'::jsonb)).id AS id;
-SELECT is(register_artifact(repeat('6', 64), 'init_ply', 512, 'assemble-v1'),
-    repeat('6', 64), 'the assembled scene is registered');
-SELECT is(submit_atom((SELECT id FROM ca), repeat('6', 64),
-    '{"splat_count": 1000, "finite": true, "gpu_seconds": 1,
-      "bbox": [-50, -5, -50, 50, 20, 50]}'::jsonb),
-    'verified', 'and accepted on its structural checks');
+CREATE TEMP TABLE said (op text, state text, sha text);
 
-CREATE TEMP TABLE cm AS SELECT (claim_atom('{}'::jsonb)).id AS id;
-SELECT is(register_artifact(repeat('7', 64), 'ply', 1024, 'sample-v1'),
-    repeat('7', 64), 'the samples are registered');
-SELECT is(submit_atom((SELECT id FROM cm), repeat('7', 64),
-    '{"splat_count": 1000, "finite": true, "gpu_seconds": 1,
-      "bbox": [-50, -5, -50, 50, 20, 50]}'::jsonb),
-    'verified', 'and accepted too');
+DO $$
+DECLARE
+    aid   bigint;
+    a     atom%rowtype;
+    sha   text;
+    kind  text;
+BEGIN
+    LOOP
+        aid := (claim_atom('{"webgpu": true, "buffer_mb": 4096}'::jsonb)).id;
+        EXIT WHEN aid IS NULL;
+        SELECT * INTO a FROM atom WHERE id = aid;
+        sha := md5(a.id::text) || md5(a.id::text || 'salt');
+        kind := CASE a.op WHEN 'assemble' THEN 'init_ply' WHEN 'frame' THEN 'frames'
+                          WHEN 'train' THEN 'ply' ELSE 'sog' END;
+        PERFORM register_artifact(sha, kind, 2048, a.algo_version);
+        INSERT INTO said (op, state, sha)
+        VALUES (a.op, submit_atom(a.id, sha, jsonb_build_object(
+            'splat_count', 1000, 'finite', true, 'gpu_seconds', 1,
+            'frames', (a.params ->> 'to')::int - (a.params ->> 'from')::int,
+            'bbox', '[-50, -5, -50, 50, 20, 50]'::jsonb)), sha);
+    END LOOP;
+END
+$$;
 
-CREATE TEMP TABLE cs AS SELECT (claim_atom('{}'::jsonb)).id AS id;
-SELECT is(register_artifact(repeat('8', 64), 'sog', 2048, 'sog-v1'),
-    repeat('8', 64), 'the sog is registered');
-SELECT is(submit_atom((SELECT id FROM cs), repeat('8', 64),
-    '{"splat_count": 1000, "finite": true, "gpu_seconds": 2,
-      "bbox": [-50, -5, -50, 50, 20, 50]}'::jsonb),
-    'verified', 'and is verified without waiting for anybody''s opinion');
+SELECT is((SELECT count(*)::int FROM said), 6, 'the tab worked through all six');
+SELECT is((SELECT count(*)::int FROM said WHERE state <> 'verified'), 0,
+    'and every one was accepted without waiting for anybody''s opinion');
+SELECT is((SELECT count(*)::int FROM atom
+           WHERE job_id = (SELECT jid FROM jobs) AND state <> 'verified'), 0,
+    'nothing is left in the job');
 
 SELECT ok(publish_tile((SELECT z FROM tt), (SELECT x FROM tt), (SELECT y FROM tt),
     (SELECT v FROM ver),
-    repeat('8', 64), '{"origin": {"lon": 9.5, "lat": 48.5, "h": 400}}'::jsonb),
+    (SELECT sha FROM said WHERE op = 'sog'),
+    '{"origin": {"lon": 9.5, "lat": 48.5, "h": 400}}'::jsonb),
     'the worker publishes it');
 
 -- what everybody else sees ------------------------------------------------
@@ -89,7 +108,8 @@ SELECT is((SELECT t.published_version FROM tile t, tt
            WHERE t.z = tt.z AND t.x = tt.x AND t.y = tt.y), (SELECT v FROM ver),
     'what lands is what everybody sees');
 SELECT is((SELECT t.sog_sha256 FROM tile t, tt
-           WHERE t.z = tt.z AND t.x = tt.x AND t.y = tt.y), repeat('8', 64),
+           WHERE t.z = tt.z AND t.x = tt.x AND t.y = tt.y),
+    (SELECT sha FROM said WHERE op = 'sog'),
     'and it is the bytes the worker made');
 
 ROLLBACK;

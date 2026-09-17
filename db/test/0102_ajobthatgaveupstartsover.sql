@@ -21,7 +21,14 @@ CREATE TEMP TABLE jobs AS
 SELECT ensure_job(14, tile_x(7.6, 14), tile_y(46.6, 14)) AS jid;
 GRANT SELECT ON jobs TO player;
 
--- The first atom finished, with an artifact the last one cannot use.
+-- The first atom finished, with an artifact the rest of the job cannot use.
+-- An atom reaches 'verified' through somebody's hands (db/0017's guard), and
+-- what it points at is a file that exists (Invariant 1).
+INSERT INTO artifact (sha256, kind, bytes, algo_version)
+VALUES (repeat('a', 64), 'init_ply', 4096, 'assemble-v5');
+UPDATE atom SET state = 'claimed', worker_id = my_worker(NULL),
+                claimed_at = now(), heartbeat_at = now()
+WHERE job_id = (SELECT jid FROM jobs) AND op = 'assemble';
 UPDATE atom SET state = 'verified', output_sha256 = repeat('a', 64), attempts = 1
 WHERE job_id = (SELECT jid FROM jobs) AND op = 'assemble';
 UPDATE atom SET state = 'failed', attempts = 3

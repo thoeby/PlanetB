@@ -91,7 +91,7 @@ BEGIN
         json_build_object('sub', p_user, 'role', 'player')::text, false);
     FOR i IN 1..p_iters LOOP
         BEGIN
-            SELECT * INTO a FROM claim_atom('{"webgpu": true, "vram_gb": 8}'::jsonb);
+            SELECT * INTO a FROM claim_atom('{"webgpu": true, "buffer_mb": 4096}'::jsonb);
             IF a.id IS NULL THEN
                 idle := idle + 1;
                 PERFORM pg_sleep(0.1);
@@ -99,13 +99,16 @@ BEGIN
                 idle := 0;
                 sha := encode(digest('out:' || a.atom_hash, 'sha256'), 'hex');
                 PERFORM register_artifact(sha,
-                    CASE a.op WHEN 'sog' THEN 'sog' ELSE 'ply' END, 1024, a.algo_version);
+                    CASE a.op WHEN 'sog' THEN 'sog' WHEN 'frame' THEN 'frames'
+                              ELSE 'ply' END, 1024, a.algo_version);
                 PERFORM heartbeat(a.id);
                 st := submit_atom(a.id, sha, jsonb_build_object(
                     'splat_count', 1000, 'finite', true, 'gpu_seconds', 1,
                     -- db/0015_structural.sql: a splat-producing op says where
                     -- its splats are, and a metre from the middle is inside
-                    -- every tile there is.
+                    -- every tile there is. A frame atom says how many frames
+                    -- it drew, and it drew the chunk it was given.
+                    'frames', (a.params ->> 'to')::int - (a.params ->> 'from')::int,
                     'bbox', jsonb_build_array(-1, -1, -1, 1, 1, 1)));
                 IF a.op = 'sog' AND st = 'verified' THEN
                     SELECT * INTO j FROM job WHERE id = a.job_id;

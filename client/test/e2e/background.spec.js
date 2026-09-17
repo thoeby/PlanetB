@@ -42,7 +42,13 @@ function seed(at) {
 }
 
 const stateOf = (id) => psql(`SELECT state FROM atom WHERE id = ${id}`);
-const claimed = (id) => psql(`SELECT (claimed_at IS NOT NULL)::text FROM atom WHERE id = ${id}`);
+
+// Whether this atom was ever in a tab's hands. Not "is claimed now": these
+// atoms cannot be finished — each names itself as its input — and a tab that
+// cannot do a piece hands it straight back to the pool, claim and all. What it
+// leaves behind is the attempt.
+const claimed = (id) => psql(
+    `SELECT (claimed_at IS NOT NULL OR attempts > 0)::text FROM atom WHERE id = ${id}`);
 
 test.beforeAll(async () => {
     if (!existsSync(join(CLIENT, 'vendor/playcanvas/playcanvas.js'))) {
@@ -92,7 +98,7 @@ test('helping render the world claims the nearest cheap atom and nothing else',
         const caps = JSON.parse(psql(`SELECT w.caps::text FROM worker w
                                       JOIN auth.user u ON u.id = w.user_id
                                       WHERE u.email = '${EMAIL}'`));
-        expect(caps.ops).toEqual(['assemble', 'sample', 'merge', 'sog']);
+        expect(caps.ops).toEqual(['assemble', 'merge', 'sog']);
         expect(Math.abs(caps.near.lon - at.lon)).toBeLessThan(0.001);
 
         await page.locator('.work-world').uncheck();

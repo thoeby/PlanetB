@@ -3,8 +3,9 @@
 -- An area at detail 10 has no tiles below z10, so its finest tile used to be a
 -- merge of sixteen children that do not exist: never handed out
 -- (db/0035_mergeready.sql), never rendered, and nothing said so. A tile with
--- nothing under it is the bottom of its own ladder now, and is assembled and
--- sampled the way a z14 leaf is (db/0045_coarseleaf.sql).
+-- nothing under it is the bottom of its own ladder now, and is built the way a
+-- z14 leaf is (db/0045_coarseleaf.sql) — which, since the sampler was removed
+-- and the branch put back in db/0128, means assembled, framed and trained.
 BEGIN;
 SELECT plan(9);
 
@@ -54,9 +55,9 @@ CREATE TEMP TABLE jobs AS
 SELECT ensure_job((SELECT z FROM coarse), (SELECT x FROM coarse),
                   (SELECT y FROM coarse)) AS jid;
 
-SELECT is((SELECT array_agg(op ORDER BY id) FROM atom WHERE job_id = (SELECT jid FROM jobs)),
-    ARRAY['assemble', 'sample', 'sog'],
-    'it is assembled and sampled, not merged out of nothing');
+SELECT is((SELECT array_agg(DISTINCT op) FROM atom WHERE job_id = (SELECT jid FROM jobs)),
+    ARRAY['assemble', 'frame', 'sog', 'train'],
+    'it is assembled, framed and trained, not merged out of nothing');
 
 -- And it is actually handed out, which is the whole point ---------------
 SELECT set_config('request.jwt.claims',

@@ -40,9 +40,9 @@ Local frame per tile: origin = tile centre at DEM height, X east, Y up, Z south,
 
 | z | edge @46°N | source | budget |
 |---|---|---|---|
-| 18 | ~110 m | trained from assembled scene (~120 views) | 2.0 M |
-| 16 | ~440 m | trained (~56 views) | 600 k |
-| 14 | 1.7 km | `sample` of the assembled scene, deterministic | 800 k |
+| 18 | ~110 m | trained from assembled scene (120 views) | 2.0 M |
+| 16 | ~440 m | trained (45 views, the stations of z16-v2) | 600 k |
+| 14 | 1.7 km | trained from the same stations (45 views) | 800 k |
 | 12…6 | 6.7 km … 450 km | `merge` of 16 children (z+2), deterministic | 900 k … 1.5 M |
 
 `area.detail` (10…18) = deepest zoom compiled inside that area. Default 14 (baseline). Raising it just dirties deeper tiles.
@@ -105,10 +105,13 @@ Trained tile (z16, z18):
 ```
 assemble ─▶ frame[0..N) ─▶ train ─▶ sog ─▶ verify×3 ─▶ (published by the third verification)
 ```
-Baseline tile (z14) — the floor every compiled area reaches, and not trained
-(WP2.8's decision; `db/0016_sample.sql`):
+Baseline tile (z14) — the floor every compiled area reaches, and trained like
+the finer ones since the sampler was removed ("the whole ground renders at z14
+through the one renderer"). A tile with nothing under it is built the same way
+whatever its zoom, which is what `db/0128` puts back for land drawn coarser
+than z14:
 ```
-assemble ─▶ sample ─▶ sog ─▶ (hash-verified in submit) ─▶ publish_tile
+assemble ─▶ frame[0..3) ─▶ train ─▶ sog ─▶ publish_tile
 ```
 Merged tile (z ≤ 12):
 ```
@@ -126,12 +129,15 @@ published tile; "apply to world" is what moves the pin.
 | op | inputs | output | algo |
 |---|---|---|---|
 | `assemble` | features+instances snapshot (GeoJSON), DEM/ortho tiles, GLBs | `init.ply`, `height.r16`, `colliders.json` (one tar artifact) | `assemble-v1`: terrain grid, terrainmods, road cuts, extruded footprints, seeded scatter, GLB placement |
-| `frame` | assemble artifact, camera set id, index range, samples | WebP frames + `transforms.json` | `frame-v2`: path traced (three.js + three-gpu-pathtracer, WebGL2) under the one sky of `lib/light.js`; placed GLBs with their textures |
+| `frame` | assemble artifact, camera set id, index range | WebP frames + `transforms.json` | `frame-v10`: rasterised, or path traced where the operator asks for it (`splatworld.renderer`, db/0119), under the one sky of `lib/light.js`; the void is transparent so the trainer learns no blue wall; placed GLBs with their textures |
 | `train` | frames, init.ply, budget, iters | `.ply` + the tile's height and colliders, in one tar | `train-v1`: Adam over a differentiable gaussian rasteriser (WebGPU, `client/lib/gsgpu.js`), poses injected from `transforms.json`, MCMC relocation and growth capped by the budget |
-| `sample` | assemble artifact, budget | `.ply` + the tile's height and colliders, in one tar | `sample-v1`: the same area-weighted surface sampling that seeds a trained tile, at the tile's whole budget |
 | `merge` | 16 child `.ply`/`.sog`, voxel, budget, seed | `.ply` | `merge-v1`, bit-exact deterministic (integer voxel keys, fixed iteration order, no atomics) |
 | `sog` | `.ply` | `.sog` | `sog-v1` = splat-transform core |
 | `verify` | `.sog`, the frame tars, 2 of the four held-out poses | `{psnr, passed}`, no artifact | `verify-v1` |
+
+There is no `sample` op any more: the atom that made a z14 tile's splats
+without training them was removed with the DEM mesh, and every leaf tile is
+trained.
 
 Capability filter at claim: `train` needs `webgpu` and a `maxBufferSize` at least as big as its widest per-splat array — 24 f32 a splat, so 183 MB at z18's budget and 55 MB at z16's (`min_buffer_mb`, db/0083). It used to ask for `vram ≥ 4 GB`; WebGPU reports no VRAM, so that was a number no tab could answer and no tab could pass. Everything else runs on WebGL2.
 

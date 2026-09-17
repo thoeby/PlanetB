@@ -105,6 +105,35 @@ const tileRow = (t) => JSON.parse(psql(
     `SELECT coalesce(to_json(t), 'null') FROM tile t
      WHERE z = ${t.z} AND x = ${t.x} AND y = ${t.y}`));
 
+// A merge is not handed out until something under it is published
+// (db/0035_mergeready.sql), and whether this tool's z10 tiles have anything
+// under them depends on what else is in the database: land drawn at z14 by
+// another test puts a whole ladder beneath them. So each tile says what it
+// needs first — itself if it is a leaf, otherwise one child, and that child's
+// own ladder before it.
+function ladderFor(t, depth = 0) {
+    const leaf = psql(`SELECT is_leaf_tile(${t.z}, ${t.x}, ${t.y})`) === 't';
+    if (leaf || depth > 3) return [t];
+    const child = JSON.parse(psql(
+        `SELECT coalesce((SELECT to_json(c) FROM (
+             SELECT z, x, y FROM tile
+             WHERE z = ${t.z + 2}
+               AND x BETWEEN ${t.x * 4} AND ${t.x * 4 + 3}
+               AND y BETWEEN ${t.y * 4} AND ${t.y * 4 + 3}
+               AND published_version > 0
+             ORDER BY x, y LIMIT 1) c), 'null'::json)`));
+    if (child) return [t];
+    const next = JSON.parse(psql(
+        `SELECT coalesce((SELECT to_json(c) FROM (
+             SELECT z, x, y FROM tile
+             WHERE z = ${t.z + 2}
+               AND x BETWEEN ${t.x * 4} AND ${t.x * 4 + 3}
+               AND y BETWEEN ${t.y * 4} AND ${t.y * 4 + 3}
+             ORDER BY x, y LIMIT 1) c), 'null'::json)`));
+    if (!next) return [t];
+    return [...ladderFor(next, depth + 1), t];
+}
+
 // ----------------------------------------------------------------- the worker
 
 // An artifact that already exists is never rewritten (Invariant 1), and the
@@ -139,7 +168,10 @@ async function putFile(path, bytes, sha) {
     }
 }
 
-const CAPS = { webgpu: true, vram_gb: 8, algo: ['merge-v1', 'sog-v1'] };
+// What this tab says it can do. A trained tile's atoms ask for WebGPU and a
+// buffer big enough for the budget (db/0083); this one makes the splats
+// itself, so it can hold any of them.
+const CAPS = { webgpu: true, max_buffer_mb: 4096 };
 
 // One job's work, and nothing else: claim_for is claim_atom narrowed to the job
 // this tool is compiling (db/0043_pool.sql). It used to take whatever
@@ -168,17 +200,34 @@ const shape = (art) => ({
     splat_count: art.count, gpu_seconds: 0.5, finite: true, bbox: art.bbox,
 });
 
-// A tile with nothing under it is assembled and sampled rather than merged
-// (db/0045_coarseleaf.sql), which is what the test region's area at detail 10
-// gets. Both produce a ply; this tool makes the same one either way, because
-// what it is testing is the ladder and the viewer, not the geometry.
-const PLY_OPS = { merge: 'merge-v1', assemble: 'assemble-v3', sample: 'sample-v4' };
-const PLY_KIND = { merge: 'ply', assemble: 'init_ply', sample: 'ply' };
+// A tile with nothing under it is built rather than merged
+// (db/0045_coarseleaf.sql, db/0128), which is what the test region's area at
+// detail 10 gets, and building means assemble, frames, train, sog. Every one
+// of those but the frames produces a ply; this tool makes the same one for all
+// of them, because what it is testing is the ladder and the viewer, not the
+// geometry. The version registered is the atom's own, so a DAG that moves on
+// needs nothing here.
+const PLY_KIND = { merge: 'ply', assemble: 'init_ply', sample: 'ply', train: 'ply' };
+
+// Frames are not splats: a frame atom hands back the pictures it drew, and the
+// only thing submit_atom asks of them is that there are as many as it was told
+// to draw (db/0015_structural.sql).
+const FRAMES = new TextEncoder().encode('splatworld test frames\n');
+const FRAMES_SHA = sha256(FRAMES);
 
 async function runAtom(atom, t, art) {
-    if (PLY_OPS[atom.op]) {
+    if (atom.op === 'frame') {
+        await upload(`/jobs/${atom.id}/frames.tar`, FRAMES, FRAMES_SHA,
+            'frames', atom.algo_version);
+        return api.rpc('submit_atom', {
+            atom_id: atom.id, output_sha256: FRAMES_SHA,
+            result: { finite: true, gpu_seconds: 0.5, bytes: FRAMES.length,
+                frames: Number(atom.params.to) - Number(atom.params.from) },
+        });
+    }
+    if (PLY_KIND[atom.op]) {
         await upload(`/jobs/${atom.id}/${atom.op}.ply`, art.ply, art.plySha,
-            PLY_KIND[atom.op], PLY_OPS[atom.op]);
+            PLY_KIND[atom.op], atom.algo_version);
         return api.rpc('submit_atom', {
             atom_id: atom.id, output_sha256: art.plySha,
             result: { ...shape(art), bytes: art.ply.length },
@@ -304,8 +353,18 @@ async function main() {
     ok(`signed in as ${EMAIL} (${api.role()})`);
 
     // Bottom up: publishing a child dirties its parent and bumps the parent's
-    // expected_version, so a parent's job may only be opened afterwards.
-    for (const t of TILES) await compileTile(t);
+    // expected_version, so a parent's job may only be opened afterwards — and
+    // a parent whose children exist needs one of them published before its
+    // merge can even be claimed.
+    const done = new Set();
+    for (const t of TILES) {
+        for (const step of ladderFor(t)) {
+            const key = `${step.z}/${step.x}/${step.y}`;
+            if (done.has(key)) continue;
+            done.add(key);
+            await compileTile(step);
+        }
+    }
 
     for (const t of TILES) {
         const [row] = await api.select('tile', {

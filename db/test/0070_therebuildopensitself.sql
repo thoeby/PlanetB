@@ -63,10 +63,12 @@ SELECT is((SELECT count(*) FROM jsonb_array_elements(render_pool(null, null, 40)
            WHERE (e ->> 'z')::int = 14), 1::bigint,
           'the tile that is built from the world is what is offered');
 SELECT is((SELECT e ->> 'made' FROM jsonb_array_elements(render_pool(null, null, 40)) e
-           WHERE (e ->> 'z')::int = 14), 'assembled',
+           WHERE (e ->> 'z')::int = 14), 'trained',
           'and the pool says what it is, from the job itself');
 
--- The three pieces of a z14 tile, run by somebody who owns none of it.
+-- The pieces of a z14 tile, run by somebody who owns none of it: assemble,
+-- the frames, the training and the encoding, each claimed only once what it
+-- waits on has landed.
 SELECT set_config('request.jwt.claims',
     json_build_object('sub', worker_id, 'role', 'player')::text, true) FROM ids;
 
@@ -74,24 +76,40 @@ CREATE TEMP TABLE a1 AS SELECT * FROM claim_for((SELECT id FROM job
     WHERE z = 14 AND x = (SELECT x FROM tt) AND y = (SELECT y FROM tt)), '{}'::jsonb);
 SELECT is((SELECT op FROM a1), 'assemble', 'the tile is assembled first');
 SELECT is(submit_atom((SELECT id FROM a1),
-    register_artifact(repeat('a', 64), 'init_ply', 4096, 'assemble-v1'),
+    register_artifact(repeat('a', 64), 'init_ply', 4096, 'assemble-v5'),
     '{"splat_count": 1000, "finite": true, "gpu_seconds": 1,
       "bbox": [-1, -1, -1, 1, 1, 1]}'::jsonb), 'verified', 'and it verifies');
 
-CREATE TEMP TABLE a2 AS SELECT * FROM claim_for((SELECT job_id FROM a1), '{}'::jsonb);
-SELECT is(submit_atom((SELECT id FROM a2),
-    register_artifact(repeat('b', 64), 'ply', 4096, 'sample-v1'),
-    '{"splat_count": 1000, "finite": true, "gpu_seconds": 1,
-      "bbox": [-1, -1, -1, 1, 1, 1]}'::jsonb), 'verified', 'then sampled');
+CREATE TEMP TABLE rest (op text, state text, sha text);
+DO $$
+DECLARE
+    jid   bigint := (SELECT job_id FROM a1);
+    aid   bigint;
+    a     atom%rowtype;
+    sha   text;
+BEGIN
+    LOOP
+        aid := (claim_for(jid, '{"webgpu": true, "buffer_mb": 4096}'::jsonb)).id;
+        EXIT WHEN aid IS NULL;
+        SELECT * INTO a FROM atom WHERE id = aid;
+        sha := md5(a.id::text) || md5(a.id::text || 'salt');
+        PERFORM register_artifact(sha,
+            CASE a.op WHEN 'frame' THEN 'frames' WHEN 'train' THEN 'ply' ELSE 'sog' END,
+            4096, a.algo_version);
+        INSERT INTO rest (op, state, sha)
+        VALUES (a.op, submit_atom(a.id, sha, jsonb_build_object(
+            'splat_count', 1000, 'finite', true, 'gpu_seconds', 1,
+            'frames', (a.params ->> 'to')::int - (a.params ->> 'from')::int,
+            'bbox', '[-1, -1, -1, 1, 1, 1]'::jsonb)), sha);
+    END LOOP;
+END
+$$;
 
-CREATE TEMP TABLE a3 AS SELECT * FROM claim_for((SELECT job_id FROM a1), '{}'::jsonb);
-SELECT ok(submit_atom((SELECT id FROM a3),
-    register_artifact(repeat('c', 64), 'sog', 2048, 'sog-v1'),
-    '{"splat_count": 1000, "finite": true, "gpu_seconds": 1,
-      "bbox": [-1, -1, -1, 1, 1, 1]}'::jsonb) = 'verified'
-    AND publish_tile(14, (SELECT x FROM tt), (SELECT y FROM tt),
+SELECT is((SELECT count(*)::int FROM rest WHERE state <> 'verified'), 0,
+    'then framed, trained and encoded, every piece of it');
+SELECT ok(publish_tile(14, (SELECT x FROM tt), (SELECT y FROM tt),
         (SELECT target_version FROM job WHERE id = (SELECT job_id FROM a1)),
-        repeat('c', 64),
+        (SELECT sha FROM rest WHERE op = 'sog'),
         '{"origin": {"lon": 7.505, "lat": 46.505, "h": 500}}'::jsonb),
     'and what lands is published');
 

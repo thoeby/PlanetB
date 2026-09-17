@@ -1591,15 +1591,35 @@ at `b943ce3`, before FND.0 touched anything.
   `client/test/cameras.test.js` is untouched and green), `INNER JOIN` spelled
   out in one pgTAP test, and `CP04` excluded with its reason. The linters are
   now pinned in `HANDOFF.md`: they moved rules under us.
-- **db-test: still red, 15 files.** They assert the DAG as it stood before
-  `db/0121`–`0126`: z14 is framed from stations now, so "z14 DAG = 1
-  assemble, 1 sample, 1 sog" cannot hold, and `submit_area` returns jsonb
-  where a test still reads a uuid. These are stale tests, not a broken world
-  — `make player-run` compiles and publishes through the same code — but
-  nothing is "green under" FND.0 until they are brought up to what the world
-  now does. That is the next commit's work, before FND.1.
-- **api-test: still red, 3 tests.** `server/test_crs*.py` finds a bare
-  `EPSG:3857` in `server/geoserver.py`, a bare 4326 in
-  `db/0104_thewholeground.sql` and two applied function bodies
-  (`set_ground`, `set_ground_layer`) that name a code instead of calling
-  `world_srid()`. Same commit.
+- **db-test: green.** Fifteen files asserted the DAG as it stood before the
+  sampler was removed. Two of them were right and the world was wrong:
+  `db/0128` puts back the branch that builds a tile with nothing under it
+  (a leaf below z14 had been getting a merge of sixteen children that do not
+  exist — never claimable, db/0035), and `db/0129` pays a bounty out to the
+  last cent (the shares were rounded one by one, so a job with several workers
+  could pay out a shade more than it held, out of everybody else's escrow).
+  The other thirteen were tests that had not been told: z14 is trained, not
+  sampled; `submit_area` answers with the submission; a fine tile is earned by
+  something standing on it; an atom reaches `verified` through somebody's
+  hands. `ARCHITECTURE.md` §2 and §5 say the trained z14 too.
+- **api-test: green.** `db/0130` routes `set_ground` and `set_ground_layer`
+  through `world_srid()`, and `map_tile_url`'s docstring names the constant
+  rather than the code. The file-by-file check exempts the two migrations
+  0130 corrects, by number, with the reason written next to the list.
+- **client-test: the node tests and `tools/test-tiles.sh` are green.** The
+  tile tool now walks down to a tile it may actually build: a z10 tile whose
+  ground is drawn at z14 by another test is a merge, and a merge waits for a
+  published child. Eleven Playwright specs are still red and are the next
+  piece of work — see below.
+
+### What is still red
+
+Eleven browser specs, all of them red before this work as well:
+`background` (2), `build`, `catalog`, `frame`, `hotswap`, `money`, `pilot`,
+`spot`, `train`, `walk`. Four of the fifteen that were failing are fixed here
+— the job's uniqueness is partial since db/0109, so the fixture's `ON CONFLICT`
+names the same predicate; a surface's head is revealed along with its body, so
+the Work switches can be clicked; expired claims are parked with the ready
+atoms; and a tab that hands a piece straight back still leaves the attempt
+behind, which is what "it was claimed" now reads. The rest are their own
+investigations.

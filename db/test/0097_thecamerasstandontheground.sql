@@ -1,4 +1,8 @@
--- Every frame atom of a trained tile is frame-v3 and carries its sample count.
+-- Every frame atom of a trained tile is of one version, and every one of them
+-- carries the same renderer choice: two tabs handed two chunks of one tile
+-- draw it the same way (Invariant 2).
+--
+-- It used to say frame-v3 and 32 paths a pixel; see db/test/0092.
 BEGIN;
 SELECT plan(4);
 
@@ -30,11 +34,11 @@ SELECT is((SELECT count(DISTINCT algo_version) FROM atom
            WHERE job_id = (SELECT j18 FROM jobs) AND op = 'frame'), 1::bigint,
     'all of one version');
 SELECT is((SELECT min(algo_version) FROM atom
-           WHERE job_id = (SELECT j18 FROM jobs) AND op = 'frame'), 'frame-v3',
-    'and that version is frame-v3');
-SELECT is((SELECT min((params ->> 'samples')::int) FROM atom
-           WHERE job_id = (SELECT j18 FROM jobs) AND op = 'frame'), 32,
-    'each traces 32 paths a pixel, as part of its identity');
+           WHERE job_id = (SELECT j18 FROM jobs) AND op = 'frame'), 'frame-v10',
+    'and that version is the one the client publishes');
+SELECT is((SELECT count(DISTINCT params - 'from' - 'to')::int FROM atom
+           WHERE job_id = (SELECT j18 FROM jobs) AND op = 'frame'), 1,
+    'and they differ in nothing but which views they draw');
 
 SELECT * FROM finish();
 ROLLBACK;

@@ -4,7 +4,11 @@
 
 import * as tm from '../client/lib/tilemath.js';
 
-export const GRID = { 6: 24, 8: 32, 10: 48 };
+// How many splats across a tile, per zoom. The finer ones are here because a
+// z10 tile whose ground is drawn at z14 by something else is a merge, and a
+// merge is not handed out until a child of it is published
+// (db/0035_mergeready.sql): the tool then walks down and publishes one.
+export const GRID = { 6: 24, 8: 32, 10: 48, 12: 56, 14: 64 };
 
 // mulberry32: the same tiles come out on every machine and every run.
 export function rng(seed) {

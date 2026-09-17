@@ -21,12 +21,12 @@ SELECT ensure_job(14, tile_x(7.405, 14), tile_y(46.405, 14), 0) AS id;
 
 SELECT is((SELECT algo_version FROM atom
            WHERE job_id = (SELECT id FROM j) AND op = 'assemble'),
-          'assemble-v2', 'the geometry is assembled under the new sky');
+          'assemble-v5', 'the geometry is assembled under the new sky');
 SELECT is((SELECT algo_version FROM atom
-           WHERE job_id = (SELECT id FROM j) AND op = 'sample'),
-          'sample-v3', 'and sampled by the sampler that spends splats on detail');
+           WHERE job_id = (SELECT id FROM j) AND op = 'train'),
+          'train-v7', 'and trained by the trainer the client runs');
 SELECT is((SELECT (params ->> 'budget')::bigint FROM atom
-           WHERE job_id = (SELECT id FROM j) AND op = 'sample'),
+           WHERE job_id = (SELECT id FROM j) AND op = 'train'),
           800000::bigint, 'with the budget it already had: what moved is where they go');
 
 -- A z16 tile is trained, and the trainer still knows which cameras it was shown

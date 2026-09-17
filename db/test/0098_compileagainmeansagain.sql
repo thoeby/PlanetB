@@ -21,7 +21,9 @@ VALUES ('00000000-0000-0000-0000-000000000098', 'footprint',
 SELECT set_config('request.jwt.claims',
     json_build_object('sub', owner_id, 'role', 'player')::text, true) FROM ids;
 CREATE TEMP TABLE sub AS
-SELECT submit_area('00000000-0000-0000-0000-000000000098', 'first') AS sid;
+-- submit_area answers with the submission, not its id (db/0069).
+SELECT (submit_area('00000000-0000-0000-0000-000000000098', 'first')
+        ->> 'id')::uuid AS sid;
 SELECT is((SELECT state FROM submission WHERE id = (SELECT sid FROM sub)), 'open',
     'the land is submitted and awaiting approval');
 SELECT is((area_progress('00000000-0000-0000-0000-000000000098') ->> 'to_submit')::int, 0,
@@ -38,13 +40,20 @@ INSERT INTO area (id, geom, owner_id, detail)
 SELECT '00000000-0000-0000-0000-000000000981'::uuid,
        st_geomfromtext('POLYGON((7.9 46.29,7.91 46.29,7.91 46.30,7.9 46.30,7.9 46.29))',
                        4326),
-       ids.owner_id, 16
+       ids.owner_id, 14
 FROM ids;
+-- A fine tile is earned, not asked for (db/0089): z16 exists under a z14 tile
+-- that has something on it, and asking for the finer detail is what
+-- materialises it.
+INSERT INTO feature (area_id, kind, geom)
+VALUES ('00000000-0000-0000-0000-000000000981', 'footprint',
+        st_geomfromtext('POINTZ(7.905 46.295 650)', 4326));
+SELECT set_area_detail('00000000-0000-0000-0000-000000000981', 16);
 CREATE TEMP TABLE j16 AS
 SELECT ensure_job(16, tile_x(7.905, 16), tile_y(46.295, 16)) AS jid;
 SELECT is((SELECT min(algo_version) FROM atom
-           WHERE job_id = (SELECT jid FROM j16) AND op = 'frame'), 'frame-v4',
-    'frames are frame-v4');
+           WHERE job_id = (SELECT jid FROM j16) AND op = 'frame'), 'frame-v10',
+    'frames are the version the client publishes');
 
 SELECT * FROM finish();
 ROLLBACK;

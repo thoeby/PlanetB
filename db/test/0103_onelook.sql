@@ -1,5 +1,8 @@
--- The atoms a job is built with after db/0103_onelook.sql: assemble-v3,
--- frame-v5, sample-v4, and the iterations the baked frames need.
+-- The atoms a job is built with: one assemble version, one frame version and
+-- one training run, whatever the zoom. db/0103_onelook.sql settled that the
+-- light is baked once and drawn as it is; what has moved since are the version
+-- names (assemble-v5, frame-v10), the iteration count (db/0114), and the
+-- sampler, which is gone — a z14 tile is trained like the rest.
 BEGIN;
 SELECT plan(6);
 
@@ -12,34 +15,40 @@ INSERT INTO area (id, geom, owner_id, detail)
 SELECT '00000000-0000-0000-0000-000000000103'::uuid,
        st_geomfromtext('POLYGON((7.8 46.29,7.81 46.29,7.81 46.30,7.8 46.30,7.8 46.29))',
                        4326),
-       ids.owner_id, 18
+       ids.owner_id, 14
 FROM ids;
+-- A fine tile is earned by something standing on it (db/0089), so there is
+-- something on it, and then the land asks for the detail.
+INSERT INTO feature (area_id, kind, geom)
+VALUES ('00000000-0000-0000-0000-000000000103', 'footprint',
+        st_geomfromtext('POINTZ(7.805 46.295 650)', 4326));
 
 SELECT set_config('request.jwt.claims',
     json_build_object('sub', owner_id, 'role', 'player')::text, true) FROM ids;
+SELECT set_area_detail('00000000-0000-0000-0000-000000000103', 18);
 CREATE TEMP TABLE jobs AS
 SELECT ensure_job(18, tile_x(7.805, 18), tile_y(46.295, 18)) AS j18,
        ensure_job(16, tile_x(7.805, 16), tile_y(46.295, 16)) AS j16,
        ensure_job(14, tile_x(7.805, 14), tile_y(46.295, 14)) AS j14;
 
 SELECT is((SELECT algo_version FROM atom
-           WHERE job_id = (SELECT j18 FROM jobs) AND op = 'assemble'), 'assemble-v3',
-    'assemble-v3 bakes the light');
+           WHERE job_id = (SELECT j18 FROM jobs) AND op = 'assemble'), 'assemble-v5',
+    'assemble bakes the light');
 SELECT is((SELECT min(algo_version) FROM atom
-           WHERE job_id = (SELECT j18 FROM jobs) AND op = 'frame'), 'frame-v5',
-    'frame-v5 draws it as it is');
+           WHERE job_id = (SELECT j18 FROM jobs) AND op = 'frame'), 'frame-v10',
+    'and the frames draw it as it is');
 SELECT is((SELECT (params ->> 'iters')::int FROM atom
-           WHERE job_id = (SELECT j18 FROM jobs) AND op = 'train'), 2500,
-    'z18: 2500 iterations');
+           WHERE job_id = (SELECT j18 FROM jobs) AND op = 'train'), 1200,
+    'z18: 1200 iterations');
 SELECT is((SELECT (params ->> 'iters')::int FROM atom
-           WHERE job_id = (SELECT j16 FROM jobs) AND op = 'train'), 2000,
-    'z16: 2000 iterations');
+           WHERE job_id = (SELECT j16 FROM jobs) AND op = 'train'), 1200,
+    'z16: the same run');
 SELECT is((SELECT algo_version FROM atom
-           WHERE job_id = (SELECT j14 FROM jobs) AND op = 'sample'), 'sample-v4',
-    'sample-v4 keeps the baked colour');
+           WHERE job_id = (SELECT j14 FROM jobs) AND op = 'train'), 'train-v7',
+    'and a z14 tile is trained, not sampled: there is no sampler');
 SELECT is((SELECT algo_version FROM atom
-           WHERE job_id = (SELECT j14 FROM jobs) AND op = 'assemble'), 'assemble-v3',
-    'a z14 job assembles with v3 too');
+           WHERE job_id = (SELECT j14 FROM jobs) AND op = 'assemble'), 'assemble-v5',
+    'a z14 job assembles with the same version too');
 
 SELECT * FROM finish();
 ROLLBACK;

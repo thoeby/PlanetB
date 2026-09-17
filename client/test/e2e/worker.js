@@ -15,7 +15,18 @@ export const psql = (sql) => execFileSync('psql',
 // would be handed to the tab under test. Everything claimable is set aside for
 // the duration and put back afterwards, the same way tools/make-test-tiles.mjs
 // and publish.js do.
+//
+// A claim that nobody is holding any more counts as claimable: the first
+// claim_atom of the run calls expire_claims, which hands it back to the pool
+// (db/0005_state.sql). A database that another test left atoms claimed in —
+// db/test/0006_concurrency.sh leaves thousands — would otherwise feed the tab
+// under test an atom out of somebody else's world half a minute in. They are
+// expired here instead, which is what was going to happen to them, and put
+// back ready like the rest.
 export function park() {
+    psql(`UPDATE atom SET state = 'ready', worker_id = null, claimed_at = null,
+                          heartbeat_at = null
+          WHERE state = 'claimed' AND heartbeat_at < now() - interval '5 minutes'`);
     const ids = psql("UPDATE atom SET state = 'waiting' WHERE state = 'ready' RETURNING id");
     return ids ? ids.split('\n').filter(Boolean) : [];
 }
@@ -69,9 +80,13 @@ export function readyAtom({ z, x, y, op, algo, params, inputs = {} }) {
     // claimed, and the atom sits `ready` until the spec times out.
     const want = psql(`SELECT expected_version FROM tile
                        WHERE z = ${z} AND x = ${x} AND y = ${y}`);
+    // Since db/0109_acancelledjobisnotthejob.sql the uniqueness is partial — a
+    // cancelled job does not hold the version — so the conflict target carries
+    // the same predicate as the index.
     const job = psql(`INSERT INTO job (z, x, y, target_version, state)
                       VALUES (${z}, ${x}, ${y}, ${want}, 'open')
-                      ON CONFLICT (z, x, y, target_version) DO UPDATE SET state = 'open'
+                      ON CONFLICT (z, x, y, target_version) WHERE state <> 'cancelled'
+                      DO UPDATE SET state = 'open'
                       RETURNING id`);
     // "A tile nobody else is compiling" has to be made true: since
     // db/0070_therebuildopensitself.sql a published child opens its parent's
@@ -111,7 +126,11 @@ export async function revealPanels(page) {
         const panel = document.getElementById('panel');
         if (!panel || !window.splatworld?.hud) return;
         panel.dataset.open = '1';
-        for (const body of panel.querySelectorAll('.tab-body')) body.hidden = false;
+        // A surface has a head as well as a body — Work's switches live in the
+        // head — and the frame hides the ones that are not the open tab's.
+        for (const part of panel.querySelectorAll('.tab-body, .tab-head, .head')) {
+            part.hidden = false;
+        }
     }).catch(() => {});
 }
 

@@ -395,9 +395,9 @@ def map_tile_url(base: str, layer: str, bbox: tuple, size: int) -> str:
     """One tile of a layer as a picture: WMS 1.1.1 GetMap in the tile projection.
 
     An albedo or a shade (db/0106) is a picture, not a measurement, so the WMS
-    draws it straight in EPSG:3857 and nothing is warped here. Outside the
-    layer's data the picture is transparent, which client/lib/geo.js reads as
-    "no albedo here".
+    draws it straight in the tile projection (crs.TILE, the one place the code
+    is written) and nothing is warped here. Outside the layer's data the
+    picture is transparent, which client/lib/geo.js reads as "no albedo here".
     """
     west, south, east, north = bbox
     query = urllib.parse.urlencode({

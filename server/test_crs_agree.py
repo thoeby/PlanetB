@@ -53,6 +53,15 @@ def code_of(text: str) -> str:
 # The migrations that predate the rework, and the one that defines it.
 BEFORE_THE_REWORK = 56
 
+# Two migrations were written after the rework and before anything checked
+# them: set_ground (0104) and set_ground_layer (0106) each build an envelope
+# with 4326 written out. A migration is history and is not edited, so what they
+# define is corrected in db/0130_thegroundcallsthesridtoo.sql — and the applied
+# schema, which is what computes, is held to the rule by
+# TheAppliedSchemaSaysItOnce below. Nothing may be added to this list: a new
+# migration calls world_srid().
+CORRECTED_LATER = {104, 106}
+
 
 def number_of(path: Path) -> int:
     return int(path.name[:4])
@@ -62,6 +71,8 @@ class SqlSaysItOnce(unittest.TestCase):
     def test_no_runtime_srid_in_new_migrations(self):
         for path in MIGRATIONS:
             if number_of(path) <= BEFORE_THE_REWORK:
+                continue
+            if number_of(path) in CORRECTED_LATER:
                 continue
             code = code_of(path.read_text("utf8"))
             found = BARE_SRID.search(code)

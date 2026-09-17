@@ -31,8 +31,12 @@ SELECT j FROM jsonb_array_elements(render_pool(7.805, 46.295, 20)) j
 WHERE (j ->> 'job')::bigint = (SELECT jid FROM jobs);
 SELECT is((SELECT (j ->> 'ready')::int FROM fresh), 1,
     'one piece can be taken: the assemble everything else waits on');
-SELECT is((SELECT (j ->> 'blocked')::int FROM fresh), 2,
-    'and two are waiting on it rather than "to do"');
+-- Everything else in the job — the frames, the training, the encoding — is
+-- waiting on that one piece, and the row says so rather than counting them as
+-- work a tab could take.
+SELECT is((SELECT (j ->> 'blocked')::int FROM fresh),
+    (SELECT count(*)::int - 1 FROM atom WHERE job_id = (SELECT jid FROM jobs)),
+    'and the rest are waiting on it rather than "to do"');
 
 -- It gives up for good.
 UPDATE atom SET state = 'failed', attempts = 3
@@ -43,8 +47,9 @@ SELECT j FROM jsonb_array_elements(render_pool(7.805, 46.295, 20)) j
 WHERE (j ->> 'job')::bigint = (SELECT jid FROM jobs);
 SELECT is((SELECT (j ->> 'ready')::int FROM dead), 0,
     'now nothing at all can be taken');
-SELECT is((SELECT (j ->> 'blocked')::int FROM dead), 2,
-    'and the two behind it say so');
+SELECT is((SELECT (j ->> 'blocked')::int FROM dead),
+    (SELECT count(*)::int - 1 FROM atom WHERE job_id = (SELECT jid FROM jobs)),
+    'and the ones behind it say so');
 SELECT is((SELECT (j ->> 'failed')::int FROM dead), 1, 'one gave up');
 
 -- Which is what the claim agrees with, and used not to.

@@ -46,7 +46,12 @@ SELECT throws_ok(format($$SELECT retry_job(%s)$$, (SELECT jid FROM jobs)),
 SELECT set_config('request.jwt.claims',
     json_build_object('sub', owner_id, 'role', 'player')::text, true) FROM ids;
 SELECT ok(may_retry_job((SELECT jid FROM jobs)), 'the owner of the ground is');
-SELECT is(retry_job((SELECT jid FROM jobs)), 1, 'and tries it again');
+-- Everything that is not in somebody's hands goes back to the beginning, so
+-- what this is worth saying is "the whole job", not a number that moves every
+-- time the DAG does.
+SELECT is(retry_job((SELECT jid FROM jobs)),
+    (SELECT count(*)::int FROM atom WHERE job_id = (SELECT jid FROM jobs)),
+    'and tries it again, every atom of it');
 SELECT is((SELECT state FROM atom
            WHERE job_id = (SELECT jid FROM jobs) AND op = 'assemble'), 'ready',
     'the atom is handed out again, from the beginning');

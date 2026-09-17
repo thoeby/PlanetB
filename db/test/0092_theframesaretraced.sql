@@ -1,4 +1,10 @@
--- Every frame atom of a trained tile is frame-v2 and carries its sample count.
+-- Every frame atom of a trained tile is of one version, and what the operator
+-- chose to draw it with rides along in its params (Invariant 2).
+--
+-- It used to say frame-v2 and 64 paths a pixel. The version moved on — frame-v10
+-- draws the void transparent (db/0125) — and the path tracer became the
+-- operator's choice rather than the default (db/0119), so the sample count is
+-- there when they ask for it and absent when they do not.
 BEGIN;
 SELECT plan(4);
 
@@ -30,11 +36,12 @@ SELECT is((SELECT count(DISTINCT algo_version) FROM atom
            WHERE job_id = (SELECT j18 FROM jobs) AND op = 'frame'), 1::bigint,
     'all of one version');
 SELECT is((SELECT min(algo_version) FROM atom
-           WHERE job_id = (SELECT j18 FROM jobs) AND op = 'frame'), 'frame-v2',
-    'and that version is frame-v2');
-SELECT is((SELECT min((params ->> 'samples')::int) FROM atom
-           WHERE job_id = (SELECT j18 FROM jobs) AND op = 'frame'), 64,
-    'each traces 64 paths a pixel, as part of its identity');
+           WHERE job_id = (SELECT j18 FROM jobs) AND op = 'frame'), 'frame-v10',
+    'and that version is the one the client publishes');
+SELECT is((SELECT bool_or(params ? 'samples') FROM atom
+           WHERE job_id = (SELECT j18 FROM jobs) AND op = 'frame'),
+    frame_renderer() ? 'samples',
+    'and it carries a path count exactly when the operator asked for the tracer');
 
 SELECT * FROM finish();
 ROLLBACK;

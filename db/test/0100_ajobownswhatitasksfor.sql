@@ -26,8 +26,11 @@ CREATE TEMP TABLE tt AS SELECT 14 AS z, tile_x(7.805, 14) AS x, tile_y(46.295, 1
 CREATE TEMP TABLE first AS
 SELECT ensure_job((SELECT z FROM tt), (SELECT x FROM tt), (SELECT y FROM tt)) AS jid;
 
--- The old job did all its work: assemble, sample and sog verified, the sog
--- with its output and manifest — and then never published (the tab left).
+-- The old job did all its work: every atom verified, the sog with its output
+-- and manifest — and then never published (the tab left). The bytes it stands
+-- for have to exist: an atom's output is an artifact (Invariant 1).
+INSERT INTO artifact (sha256, kind, bytes, algo_version)
+VALUES (repeat('c', 64), 'sog', 2048, 'sog-v1');
 UPDATE atom SET state = 'ready' WHERE job_id = (SELECT jid FROM first) AND state = 'waiting';
 UPDATE atom SET state = 'claimed', worker_id = '00000000-0000-0000-0000-000000001001',
                 claimed_at = now(), heartbeat_at = now()
@@ -38,6 +41,8 @@ UPDATE atom SET state = 'verified', output_sha256 = repeat('c', 64),
 WHERE job_id = (SELECT jid FROM first);
 CREATE TEMP TABLE oldsog AS
 SELECT id FROM atom WHERE job_id = (SELECT jid FROM first) AND op = 'sog';
+CREATE TEMP TABLE oldsize AS
+SELECT count(*) AS n FROM atom WHERE job_id = (SELECT jid FROM first);
 
 SELECT ok(recompile_land('00000000-0000-0000-0000-000000000100') > 0, 'compile it all again');
 SELECT is((SELECT state FROM job WHERE id = (SELECT jid FROM first)), 'cancelled',
@@ -47,8 +52,9 @@ SELECT ensure_job((SELECT z FROM tt), (SELECT x FROM tt), (SELECT y FROM tt)) AS
 SELECT isnt((SELECT jid FROM second), (SELECT jid FROM first), 'a new job');
 SELECT is((SELECT job_id FROM atom WHERE id = (SELECT id FROM oldsog)), (SELECT jid FROM second),
     'the verified sog moved to the new job');
-SELECT is((SELECT count(*) FROM atom WHERE job_id = (SELECT jid FROM second)), 3::bigint,
-    'and so did the assemble and the sample: the job owns what it asked for');
+SELECT is((SELECT count(*) FROM atom WHERE job_id = (SELECT jid FROM second)),
+    (SELECT n FROM oldsize),
+    'and so did everything it was built from: the job owns what it asked for');
 SELECT is((SELECT published_version FROM tile
            WHERE z = (SELECT z FROM tt) AND x = (SELECT x FROM tt) AND y = (SELECT y FROM tt)),
     (SELECT expected_version FROM tile
