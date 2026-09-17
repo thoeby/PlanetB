@@ -36,12 +36,32 @@ def geotiff(bounds, size=256, value=1234.0) -> bytes:
         return memfile.read()
 
 
+def asked_box(path: str) -> tuple | None:
+    """The BBOX of a WCS request, west, south, east, north."""
+    import urllib.parse
+
+    query = urllib.parse.parse_qs(urllib.parse.urlparse(path).query)
+    for name, values in query.items():
+        if name.upper() != "BBOX" or not values:
+            continue
+        numbers = values[0].split(",")
+        if len(numbers) >= 4:
+            try:
+                return tuple(float(v) for v in numbers[:4])
+            except ValueError:
+                return None
+    return None
+
+
 class Stub(http.server.BaseHTTPRequestHandler):
     asked: list[str] = []
 
     def do_GET(self):  # noqa: N802 - stdlib name
         Stub.asked.append(self.path)
-        body = geotiff((0, 0, 1, 1))
+        # The box that was asked for, not a fixed one somewhere else: a
+        # coverage serving ground nowhere near the tile warps to nothing but
+        # nodata, and a cut of pure nodata is no longer ground (ground.cut).
+        body = geotiff(asked_box(self.path) or (0, 0, 1, 1))
         self.send_response(200)
         self.send_header("Content-Type", "image/tiff")
         self.send_header("Content-Length", str(len(body)))

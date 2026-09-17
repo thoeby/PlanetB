@@ -28,6 +28,9 @@ from .importer import DEM_MAX, DEM_MIN, DEM_SIZE
 
 # Ground with no data becomes sea level rather than a hole: the terrain mesh has
 # to be continuous, and a NaN would travel into every vertex that samples it.
+# That fill is only ever right *beside* real ground. A tile that is nothing but
+# fill is not flat ground at sea level, it is ground nobody has surveyed, and
+# `all_fill` below is how the cut tells the two apart before it writes one.
 NODATA_ELEVATION_M = 0.0
 
 
@@ -35,6 +38,21 @@ def encode(elevation_m: np.ndarray) -> bytes:
     """Metres to dem-v2 samples: float32, clipped to what a planet has."""
     filled = np.where(np.isfinite(elevation_m), elevation_m, NODATA_ELEVATION_M)
     return np.clip(filled, DEM_MIN, DEM_MAX).astype("<f4").tobytes()
+
+
+def all_fill(raw: bytes) -> bool:
+    """Whether a cut tile holds no surveyed sample at all.
+
+    Outside a coverage the WCS answers with nodata, `encode` writes it as
+    NODATA_ELEVATION_M, and nothing downstream can tell it from real ground at
+    that height: client/lib/geo.js reads it as elevation, assemble builds a mesh
+    flat at exactly y = 0, and the trainer then keeps its splats against a box
+    zero metres high and throws every one of them away — fifteen minutes after
+    the moment this was knowable. A tile the survey does not reach is no ground
+    at all, and ground.cut answers None for it so the store says 404 and
+    assemble says which tile is outside the coverage.
+    """
+    return bool(np.all(decode(raw) == NODATA_ELEVATION_M))
 
 
 def decode(raw: bytes) -> np.ndarray:

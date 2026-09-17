@@ -9,7 +9,7 @@ import { configFor, keep, splatsFromBrush, withSubgroups } from '../lib/brush.js
 import { SH_C0, emptySplats, readPly } from '../lib/ply.js';
 import { readTar, writeTar } from '../lib/tar.js';
 import { transformsJson, cameraSet } from '../lib/cameras.js';
-import { dataset, widen } from '../atoms/train.js';
+import { MARGIN, bounds, dataset, widen } from '../atoms/train.js';
 
 const near = (a, b, eps = 1e-5) => assert.ok(Math.abs(a - b) < eps, `${a} vs ${b}`);
 
@@ -41,6 +41,32 @@ test('keep drops what left the box, went transparent or is not a number', () => 
     f.sx.fill(1); f.sy.fill(1); f.sz.fill(1); f.qw.fill(1);
     const out = keep(f, [-1, -1, -1], [1, 1, 1]);
     assert.equal(out.count, 1);
+});
+
+test('a seed with no height still keeps what the run put on it', () => {
+    // A tile whose ground came back as nodata is flat at exactly y = 0
+    // (server/splatworld/dem.py). The seed box was then zero metres high, and
+    // every splat of a finished run was dropped against it: "brush returned
+    // 35903 splats and none inside the tile", over a seed spanning
+    // [-846.8 0.0 -837.5 843.3 0.0 837.4].
+    const seed = emptySplats(2);
+    seed.x.set([-846.8, 843.3]); seed.y.set([0, 0]); seed.z.set([-837.5, 837.4]);
+    const box = bounds(seed, MARGIN);
+    assert.ok(box.hi[1] - box.lo[1] >= 4, `the window is ${box.hi[1] - box.lo[1]} m high`);
+
+    const trained = emptySplats(3);
+    trained.y.set([0.3, -0.4, -303.5]);   // on the ground, just under it, a floater
+    trained.a.fill(1);
+    assert.equal(keep(trained, box.lo, box.hi).count, 2, 'the surface stays, the floater goes');
+});
+
+test('a seed with height keeps the box it always had', () => {
+    // 14/8554/5800 of the user's own ground: 2482.9 m at the centre, the seed
+    // spanning -75.4..855.4. The floor must not widen a real tile's box.
+    const seed = emptySplats(2);
+    seed.x.set([-845, 845]); seed.y.set([-75.4, 855.4]); seed.z.set([-845, 845]);
+    const box = bounds(seed, MARGIN);
+    assert.equal(box.lo[1].toFixed(2), (-75.4 - (855.4 + 75.4) * MARGIN).toFixed(2));
 });
 
 test('the config speaks brush: iterations, budget, growth to the budget, no eval split', () => {

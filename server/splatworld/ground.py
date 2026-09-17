@@ -410,6 +410,8 @@ def cut(cfg: Config, z: int, x: int, y: int, kind: str = "dem") -> Path | None:
 
 
 def _cut_dem(world: dict, z: int, x: int, y: int, auth: dict) -> bytes | None:
+    from . import dem
+
     box = crs.tile_bounds(z, x, y)
     # Ask for the part of this tile the coverage actually has. A tile at z10
     # is twenty-seven kilometres across and a coverage is often four, and a
@@ -423,10 +425,19 @@ def _cut_dem(world: dict, z: int, x: int, y: int, auth: dict) -> bytes | None:
     if not raw:
         return None
     try:
-        return encode_geotiff(raw, box)
+        body = encode_geotiff(raw, box)
     except Exception as err:  # noqa: BLE001 - said back to the browser
         raise CutFailed(f"the coverage came back but could not be read:"
                         f" {err} — asked: {url}") from err
+    # A tile can clip a coverage's declared extent and still hold none of its
+    # survey: what comes back is then nodata warped over the whole tile, which
+    # `encode` writes as a tile flat at NODATA_ELEVATION_M. That is not ground,
+    # and saying so here is the difference between "outside the coverage" at the
+    # first request and a trainer throwing its own output away a quarter of an
+    # hour later (server/splatworld/dem.py all_fill).
+    if dem.all_fill(body):
+        return None
+    return body
 
 
 def _cut_image(layer: dict, z: int, x: int, y: int, auth: dict) -> bytes | None:

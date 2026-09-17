@@ -42,6 +42,14 @@ export const ALGO = 'train-v7';
 export const SPREAD = 1.15;
 // How far past the seed's box a splat may end up and still be this tile's.
 export const MARGIN = 0.15;
+// And never less than this, in metres. A share of the extent is nothing at all
+// on an axis the seed has no extent on, and a tile whose ground came back as
+// nodata (server/splatworld/dem.py) has a seed box exactly zero metres high:
+// `keep` then asks every trained splat to sit at exactly that height, none
+// does, and a finished run is thrown away whole — "brush returned 35903 splats
+// and none inside the tile". The server no longer serves such a tile, and a
+// run is no longer destroyed by one if it does.
+export const MIN_PAD_M = 2;
 // The seed is this share of the budget unless the atom says otherwise; brush
 // grows the rest where the frames say the picture is wrong (client/lib/brush.js
 // configFor). Every step costs what is in the frame — the projection, the sort,
@@ -89,9 +97,9 @@ export function dataset(tars, set, seed) {
     return { files, views: frames.length, held: back.size };
 }
 
-function bounds(seed, margin) {
+export function bounds(seed, margin) {
     const box = bboxOf(seed);
-    const pad = [0, 1, 2].map((k) => (box[k + 3] - box[k]) * margin);
+    const pad = [0, 1, 2].map((k) => Math.max((box[k + 3] - box[k]) * margin, MIN_PAD_M));
     return { lo: box.map((v, k) => v - pad[k % 3]).slice(0, 3),
         hi: box.slice(3).map((v, k) => v + pad[k]) };
 }
@@ -233,8 +241,10 @@ export async function run({ atom, inputs, log }) {
     const out = widen(keep(splats, box.lo, box.hi), scale);
     if (!out.count) {
         const span = (f) => bboxOf(f).map((v) => v.toFixed(1)).join(' ');
+        const win = [...box.lo, ...box.hi].map((v) => v.toFixed(1)).join(' ');
         throw new Error(`brush returned ${splats.count} splats and none inside the tile: `
-            + `theirs span [${span(splats)}], the seed [${span(seed)}]`);
+            + `theirs span [${span(splats)}], the seed [${span(seed)}], `
+            + `the window kept [${win}]`);
     }
     if (out.count > budget) throw new Error(`${out.count} splats is over the budget of ${budget}`);
     const tar = pack(out, files);
