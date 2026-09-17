@@ -36,9 +36,39 @@ export async function loadRaster(kind, z, x, y, { filesUrl = '', fetchFn = fetch
             throw new Error(`${res.status} ${url}${said ? ` — ${said}` : ''}`);
         }
         const { data, size } = await decode(await res.arrayBuffer());
-        return { kind, size, data, ...r };
+        const raster = { kind, size, data, ...r };
+        // The ancestor may hold ground and still hold none of *this* tile's.
+        // A z14 reading a z10 file samples thirty-two of its pixels, and if
+        // those are the ones the survey never reached they are all NODATA —
+        // a constant, which assemble turns into a mesh flat at exactly y = 0
+        // (it subtracts the centre sample from every height), and which the
+        // trainer then keeps its splats against a box zero metres high. The
+        // server refuses a cut that is nothing but fill; this refuses the
+        // window that is, and goes on to a coarser ancestor that may cover it.
+        if (kind === 'dem' && allNodata(raster)) continue;
+        return raster;
     }
     return null;
+}
+
+// Elevation the cut writes where the survey did not reach (dem.NODATA_ELEVATION_M
+// in server/splatworld/dem.py). A tile of it is not ground at sea level.
+export const NODATA_ELEVATION_M = 0;
+
+// Whether the rectangle this tile occupies inside `raster` holds no surveyed
+// sample. Read on the pixels the sampling will actually touch, one row of the
+// sub-rect at a time, so a tile beside the data is told from one inside it.
+export function allNodata({ data, size, u0, v0, span }) {
+    const lo = (t) => Math.max(0, Math.floor(t * size));
+    const hi = (t) => Math.min(size, Math.ceil(t * size));
+    const x1 = Math.max(hi(u0 + span), lo(u0) + 1);
+    const y1 = Math.max(hi(v0 + span), lo(v0) + 1);
+    for (let j = lo(v0); j < y1; j++) {
+        for (let i = lo(u0); i < x1; i++) {
+            if (data[j * size + i] !== NODATA_ELEVATION_M) return false;
+        }
+    }
+    return true;
 }
 
 // Bilinear, on pixel centres: gdalwarp put pixel i at (i + 0.5) / size of the
