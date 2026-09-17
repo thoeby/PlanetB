@@ -33,7 +33,10 @@ async function takesAJob(c) {
     const mine = c.page.locator('.po-list li').filter({ hasText: which.trim() });
     await expect.poll(async () => {
         await c.page.evaluate(() => window.splatworld.pool.refresh());
-        return (await mine.first().textContent()) ?? '';
+        // The list is redrawn by that refresh, and a job whose only piece is
+        // in somebody's hands is a row that comes and goes, so a missing row
+        // is an answer here and not a failure.
+        return await mine.count() ? (await mine.first().textContent()) ?? '' : '';
     }, { timeout: UI, intervals: [500] }).toContain('in hand');
     return which.trim();
 }
