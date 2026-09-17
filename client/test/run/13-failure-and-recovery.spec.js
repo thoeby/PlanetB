@@ -25,7 +25,11 @@ async function takesAJob(c) {
     // world small), and a tab that walks away between two pieces has walked
     // away holding nothing — which is not the story. This one is minutes long,
     // so there is something in its hands whenever it goes.
-    const row = c.page.locator('.po-list li').filter({ hasText: 'trained' }).first();
+    // The farthest one, not the nearest: the nearest is the tile B's land is
+    // on, and story 14 asks for that one to be built again. A job that was
+    // abandoned here would still be open there, and the two stories would be
+    // about each other.
+    const row = c.page.locator('.po-list li').filter({ hasText: 'trained' }).last();
     await expect(row).toBeVisible({ timeout: UI });
     const which = (await row.locator('.name').textContent()).trim();
     await row.getByRole('button', { name: 'Render' }).click();
