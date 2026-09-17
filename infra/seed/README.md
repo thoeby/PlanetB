@@ -103,6 +103,18 @@ Three files a player is *given*, cached once and gitignored like the DEM:
 | `tlm-visp.gpkg` | swissTLM3D Bodenbedeckung, one polygon layer, class in `OBJEKTART` | `tools/make-seed-cover.sh` | **stand-in** — `data.geo.admin.ch` is denied |
 | `worldcover-visp.tif` | ESA WorldCover 10 m class raster | `tools/make-seed-cover.sh` | real, off AWS |
 
+**Have real OSM of that ground already?** Point the script at it and it takes
+it as it is — no download, no stand-in:
+
+```sh
+OSM_GPKG=~/visp-osm.gpkg FORCE=1 bash tools/make-seed-osm.sh
+```
+
+Any GeoPackage does; the stories want layers `lines`, `areas` and `points`
+with OSM's own keys as fields (`highway`, `building`, `landuse`, `natural`,
+`barrier`, `waterway`, `lit`, `leaf_type`…), which is what QGIS writes when
+you save an Overpass or Geofabrik extract as a GeoPackage.
+
 A stand-in is written by hand in the real source's own shape and keys, over
 the same ground, and is deterministic. Each script says on every run which of
 the two it produced. **A story that passed against a stand-in has passed

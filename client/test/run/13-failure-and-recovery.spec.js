@@ -25,7 +25,16 @@ async function takesAJob(c) {
     const which = await row.locator('.name').textContent();
     await row.getByRole('button', { name: 'Render' }).click();
     await expect(c.page.locator('.po-status'))
-        .toContainText(/assembling|sampling|merging|encoding|framing/, { timeout: UI });
+        .toContainText(/assembling|merging|framing|training|encoding/, { timeout: UI });
+    // And the world knows a piece of it is in this tab's hands. A tile is
+    // small here (db/0131), so "it said it was working" and "it is holding
+    // something" are a second apart: walking away has to happen while there is
+    // something to walk away from.
+    const mine = c.page.locator('.po-list li').filter({ hasText: which.trim() });
+    await expect.poll(async () => {
+        await c.page.evaluate(() => window.splatworld.pool.refresh());
+        return (await mine.first().textContent()) ?? '';
+    }, { timeout: UI, intervals: [500] }).toContain('in hand');
     return which.trim();
 }
 
@@ -34,7 +43,11 @@ async function findsItBack(b, which) {
     await panel(b, 'Work');
     const row = b.page.locator('.po-list li').filter({ hasText: which });
     await expect(row.first()).toBeVisible({ timeout: UI });
-    await expect(row.first()).toContainText('handed back', { timeout: UI });
+    // A tab that goes away says so on its way out — unless it closed with its
+    // claim still in flight, and then the lease is what notices (db/0132; the
+    // run sets it to twenty seconds). Either way the row ends up saying the
+    // same thing, so this waits for the sentence rather than for the goodbye.
+    await expect(row.first()).toContainText('handed back', { timeout: 200000 });
     await expect(row.first()).toContainText('went away');
     // And it is work again, not a row with nothing to press.
     await expect(row.first().getByRole('button', { name: 'Render' })).toBeVisible();

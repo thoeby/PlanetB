@@ -20,6 +20,10 @@ export class DemFloor {
         this.fetchFn = fetchFn;
         this.tiles = new Map();
         this.pending = new Set();
+        // What the store said the last time it could not cut a tile, and
+        // nothing once one arrives. SPEC §3.12: the player standing on ground
+        // that cannot be cut is told, in place, in the words the server used.
+        this.trouble = '';
     }
 
     heightAt(lon, lat) {
@@ -37,9 +41,14 @@ export class DemFloor {
         if (this.pending.has(k)) return;
         this.pending.add(k);
         loadDem(Z, x, y, { filesUrl: this.filesUrl, fetchFn: this.fetchFn })
-            .then((dem) => { this.tiles.set(k, dem); })
+            .then((dem) => { this.tiles.set(k, dem); this.trouble = ''; })
             // A tile the store could not cut is asked for again, but not on
             // the next frame: a ground that answers 502 met a request storm.
-            .catch(() => { setTimeout(() => this.pending.delete(k), RETRY_MS); });
+            // What it said is kept, because it is the one thing the player
+            // standing there needs to read.
+            .catch((err) => {
+                this.trouble = String(err?.message ?? err);
+                setTimeout(() => this.pending.delete(k), RETRY_MS);
+            });
     }
 }

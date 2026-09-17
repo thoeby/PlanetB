@@ -39,7 +39,7 @@ test('ground already rendered can be asked for again',
             await b.page.locator('.su-note').fill('built with the new sky');
             await b.page.locator('.su-mine').click();
             await expect(b.page.locator('.su-status'))
-                .toContainText(/[1-9]\d* render job\(s\) are in the pool/,
+                .toContainText(/[1-9]\d* render job\(s\) in the pool/,
                     { timeout: UI });
         });
 
@@ -49,7 +49,7 @@ test('ground already rendered can be asked for again',
                 await panel(c, 'Work');
                 const rows = c.page.locator('.po-list li');
                 await expect(rows.first()).toBeVisible({ timeout: UI });
-                await expect(rows.filter({ hasText: 'assembled' }).first())
+                await expect(rows.filter({ hasText: 'trained' }).first())
                     .toBeVisible({ timeout: UI });
             });
 

@@ -100,7 +100,9 @@ async function compiles(b, c) {
 
     await looking(c);
     await panel(c, 'Work');
-    const fine = c.page.locator('.rows li').filter({ hasText: 'assembled' });
+    // A tile with nothing under it is trained, whatever its zoom, since the
+    // sampler was removed; the pool row says what the job makes.
+    const fine = c.page.locator('.po-list li').filter({ hasText: 'trained' });
     await expect(fine.first()).toBeVisible({ timeout: UI });
     await fine.first().getByRole('button', { name: 'Render' }).click();
     await expect(c.page.locator('.po-status'))

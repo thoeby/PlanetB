@@ -66,10 +66,16 @@ async function goesThere(b, drawn) {
         await expect(b.page.locator('#land')).toHaveText('Ben\u2019s field',
             { timeout: UI });
         await shows(b, 'you may build here');
-        // SPEC §3.2, post: claiming land renders nothing, so there is nothing
-        // waiting to be submitted on it yet.
+        // SPEC §3.2, post: claiming land renders nothing — no job is opened and
+        // nothing is drawn. What the land does have from the moment it is
+        // handed over is its own ground, which has never been rendered: one
+        // z14 tile, dirty, waiting to be submitted. The panel counts it
+        // (area_progress.to_submit) and B can send it whenever they like. What
+        // is in the pool over this ground is not B's doing and not this
+        // story's business: the operator's own first compile (story 1) reaches
+        // across it.
         await expect(b.page.locator('.tile', { hasText: 'Unsubmitted' }))
-            .toContainText('0', { timeout: UI });
+            .toContainText('1', { timeout: UI });
         const at = readCoords(await b.page.locator('#standing .coords').textContent());
         const lons = pairs(drawn).map((p) => p[0]);
         const lats = pairs(drawn).map((p) => p[1]);

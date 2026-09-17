@@ -708,8 +708,11 @@
       // is, over everything else — it is the ground under them — and the page
       // goes on drawing what it already has. It clears itself: the ground asks
       // again every few seconds, and says nothing once a tile arrives.
+      const trouble = floor?.trouble
+          ? `The elevation service is not answering \u2014 ${floor.trouble}`
+          : '';
       if (Date.now() < arrival.until) hud.notice(arrival.text);
-      else hud.notice(onTheRoute ? '' : missing);
+      else hud.notice(trouble || (onTheRoute ? '' : missing));
       const mine = areas.find((a) => a.mine) ?? areas[0];
       nextStep.show({
           things: (land.things?.() ?? []).length,
