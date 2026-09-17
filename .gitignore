@@ -25,3 +25,7 @@ __pycache__/
 /data
 postgrest.exe
 infra/seed/dem-visp.tif*
+# The fixtures of TASKS-foundation.md FND.0, cached by their tools like the DEM.
+infra/seed/osm-visp.gpkg
+infra/seed/tlm-visp.gpkg
+infra/seed/worldcover-visp.tif

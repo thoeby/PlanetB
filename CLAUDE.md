@@ -1,9 +1,11 @@
 # CLAUDE.md — splatworld
 
-Read `ARCHITECTURE.md` first, then work through **`PLAYER-RUN.md`** in order:
-the stories of `docs/SPEC.md` §3, each proven by a script that behaves like a
-player. One story = one commit. Do not start a story whose predecessor is not
-green on the same run. `TASKS.md` and `TASKS-usable.md` are history.
+Read `ARCHITECTURE.md` first, then work through **`PLAYER-RUN.md`** in order,
+and when its fifteen stories are green, **`TASKS-foundation.md`** (the
+decisions it implements are in `PLAN-foundation.md`): the stories of
+`docs/SPEC.md` §3, each proven by a script that behaves like a player. One
+story = one commit. Do not start a story whose predecessor is not green on the
+same run. `TASKS.md` and `TASKS-usable.md` are history.
 
 State of the work so far: `PROGRESS.md`. Environment setup and the traps already paid for: `HANDOFF.md`.
 
@@ -16,14 +18,14 @@ A persistent digital world on real geography, compiled into Gaussian-splat LOD t
 ## Invariants (never violate; if a task seems to require it, stop and ask)
 
 1. Every artifact is immutable and content-addressed (`sha256`). Files are never overwritten.
-2. Every atom has immutable inputs (artifact hashes + params + seed) and an `algo_version`.
+2. Every atom has immutable inputs (artifact hashes + params + seed) and an `algo_version`. A tile's snapshot pins the symbol version and the cover-mapping version it was built with.
 3. `publish_tile` is a compare-and-swap on `tile.expected_version`. A stale worker can never publish.
 4. Triggers only mark `tile.dirty`. Job/atom creation happens only through idempotent `ensure_job()`.
 5. Money, rights, editions: one SQL transaction each, `ref`-idempotent, ledger append-only.
 6. All client writes are authorised by row-level security, never by client code.
 7. Merged tiles (z ≤ 14) are deterministically reproducible → verified by hash equality.
 8. Trained tiles (z16/z18) are verified probabilistically (structural → 3 independent perceptual checks). Say so in code comments; do not call it "proof".
-9. Server never decides or performs rendering. No server-side worker, no cron that computes. GeoServer publishes the operator's elevation over WCS and nothing else; QGIS edits the database as the player, under RLS.
+9. Server never decides or performs rendering. Outside participants — QGIS, process servers — act as players with logins of their own, under RLS; the server decides and computes nothing, and sends nothing out. No server-side worker, no cron that computes. GeoServer publishes the operator's elevation over WCS and nothing else; QGIS edits the database as the player, under RLS.
 10. No new server components. Allowed processes: postgres, postgrest, geoserver, nginx — or, in place of nginx, the `splatworld` server in `server/` (Python stdlib + psycopg), which serves the file store and the static client and supervises PostgREST. It exists because nginx cannot be had with `--with-http_dav_module` on Windows without compiling it, and it is held to the same contract by `tools/files-test.sh`, nginx's own gate, which it passes unmodified. It computes nothing about the world. (Optional later: a dependency-free `ws` presence relay — not in v1.)
 
 ## Stack rules
@@ -62,13 +64,13 @@ green through it and `make gate` is green under it.
 
 ```
 splatworld/
-  CLAUDE.md  ARCHITECTURE.md  TASKS.md  Makefile
+  CLAUDE.md  ARCHITECTURE.md  TASKS-foundation.md  PLAN-foundation.md  TASKS.md  Makefile
   db/            0001_schema.sql 0002_rls.sql 0003_functions.sql … test/*.sql
   infra/         compose.yml postgrest.conf nginx.conf geoserver/  seed/
   client/        play.html edit.html catalog.html
                  js/{api,auth,tiles,origin,player,build,work,catalog}.js
                  atoms/{assemble,frame,train,merge,sog,verify}.js
-                 lib/{tilemath,canon,hash,ply,sogenc}.js   vendor/
-                 test/
+                 lib/{tilemath,canon,hash,ply,sogenc}.js   lib/gen/   vendor/
+                 flow/{elx,plugins,graph,palette}/    test/
   tools/         seed-dem.sh seed-ortho.sh seed-osm.sh (developer tooling, runs on the dev box, not the server)
 ```

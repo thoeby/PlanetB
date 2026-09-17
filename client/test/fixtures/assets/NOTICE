@@ -1,0 +1,32 @@
+# The fixture models — where they come from and what may be done with them
+
+Two sets live here.
+
+## The five canon-v1 fixtures
+
+`blender.glb`, `blender-interleaved.glb`, `cad.glb`, `cad-split.glb`,
+`sketchfab.glb` — one bench written the way three tools write it, made by
+`tools/make-asset-fixtures.mjs` for `client/test/canon.test.js`. Their bytes
+are pinned by that test: do not re-make them unless canon-v1 changes.
+
+## The eleven foundation models (TASKS-foundation.md FND.0)
+
+`tree-fir.glb`, `tree-larch.glb`, `bush.glb`, `rock.glb`, `street-lamp.glb`,
+`billboard.glb`, `bus.glb`, `tunnel-portal.glb`, `bridge-deck.glb`,
+`wall-segment-2m.glb`, `kerb-segment-1m.glb`.
+
+| source | made here, by `tools/make-fixture-models.mjs` (which builds them out of `tools/glbkit.mjs`) |
+|---|---|
+| licence | **CC0 1.0** — dedicated to the public domain by the splatworld project. No attribution is required, and none of it is anybody else's work. |
+| why not downloaded | FND.0 asks for CC0 models. Every CC0 host — Poly Haven, Sketchfab, Kenney, ambientCG — is denied at this container's egress proxy, and a fixture that cannot be re-made on the machine that needs it is not a fixture. |
+
+They are boxes and prisms at real sizes, which is what the stories measure:
+a segment's repeat length (`wall-segment-2m` is 2.00 m along X,
+`kerb-segment-1m` is 1.00 m), a live part's node name (`head` on the lamp,
+`screen` on the billboard), a terrain opening's footprint (`mouth` on the
+tunnel portal), and a tree's height for scatter. Re-make them with
+`node tools/make-fixture-models.mjs`; the bytes are the same every time.
+
+Replacing any of them with a real model off a CC0 site is welcome on a machine
+that can reach one: keep the file name and the node names, put the real
+source and licence in the table above, and the stories will not notice.

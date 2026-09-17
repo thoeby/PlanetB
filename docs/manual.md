@@ -55,7 +55,7 @@ pg_ctlcluster 16 main start
 su postgres -c "psql -c \"ALTER USER postgres PASSWORD 'postgres'\""
 curl -sSL https://github.com/PostgREST/postgrest/releases/download/v12.2.3/postgrest-v12.2.3-linux-static-x64.tar.xz \
   | tar xJ -C /usr/local/bin
-pip3 install sqlfluff
+pip3 install 'sqlfluff==3.4.2'
 cp .env.example .env
 npm install                  # eslint + playwright, tooling only
 make vendor                  # PlayCanvas, Draco and OpenLayers copies for the browser tests

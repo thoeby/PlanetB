@@ -69,7 +69,7 @@ curl -sSL -o /tmp/pgrst.tar.xz \
   https://github.com/PostgREST/postgrest/releases/download/v12.2.3/postgrest-v12.2.3-linux-static-x64.tar.xz
 tar xf /tmp/pgrst.tar.xz -C /usr/local/bin
 
-pip3 install --break-system-packages sqlfluff
+pip3 install --break-system-packages 'sqlfluff==3.4.2'   # pinned: see below
 
 cp .env.example .env
 npm install            # eslint and @playwright/test, dev tooling only
@@ -383,6 +383,12 @@ Things that cost time once. Do not rediscover them.
   times what the rest of the iteration did. `client/lib/gswgsl.js` rounds up to
   the next power of two at or above the tile's count.
 
+**Pin the linters.** `sqlfluff` and `eslint` both moved rules under us:
+sqlfluff 4.x turns on `AM05` and widens `CP04`, and eslint past 9.15 counts
+function lines differently. `make lint` is green with `sqlfluff==3.4.2` and the
+`eslint` in `package.json`; install those two and nothing newer, or spend the
+afternoon on style.
+
 **sqlfluff**
 - It has no plpgsql grammar; function bodies come back unparsable, so
   `.sqlfluff` sets `ignore = parsing`. That means the bodies are *not* linted
@@ -586,3 +592,37 @@ Two traps paid for:
   `psql -f db/test/000x.sql` — pgTAP prints TAP either way, and counting
   `^ ok` against `not ok` is the whole check. The suite is 502 assertions
   across 31 files.
+
+## 7. The foundation work (TASKS-foundation.md)
+
+`TASKS-foundation.md` is the task list after `PLAYER-RUN.md`'s fifteen
+stories; `PLAN-foundation.md` holds the decisions it implements. FND.0 laid
+the groundwork:
+
+- **Fixtures.** `tools/make-seed-osm.sh` and `tools/make-seed-cover.sh` cache
+  `infra/seed/{osm-visp.gpkg,tlm-visp.gpkg,worldcover-visp.tif}` beside the
+  DEM. **Overpass, Geofabrik and `data.geo.admin.ch` are all denied at this
+  container's egress; `*.amazonaws.com` is not.** So WorldCover is real and
+  the other two are stand-ins written by hand in the real sources' own shape
+  and keys (`infra/seed/README.md` says which is which, and both scripts say
+  so on every run). On a networked box the same scripts write the real thing.
+- **Models.** `tools/make-fixture-models.mjs` (on `tools/glbkit.mjs`) writes
+  the eleven GLBs the stories place — lamp with a `head` node, billboard with
+  a `screen`, portal with a `mouth`, a 2 m wall segment, a 1 m kerb. CC0,
+  made here, because every CC0 host is denied too
+  (`client/test/fixtures/assets/NOTICE`).
+- **Cover over WMS.** `tools/geoserver_cover.py` publishes a cover source as a
+  class raster — a vector one is burnt to codes with GDAL first — and
+  `tools/geoserver-fixture.py --cover NAME=PATH[:FIELD]` serves it. The class
+  style is a colour per code, injective, written in that module's docstring:
+  it is what FND.12's downloadable SLD has to reproduce.
+- **The views.** The apps drawer is Build · Automate · Work · Trade & Sell ·
+  Play · Survey (F1–F6), the operator's naming; only Build is wired, the rest
+  say so on their cards. SPEC §2.1.
+
+**The gate was already red when this work started**, at `b943ce3`, in ways
+nothing here touches: fifteen `db/test/*.sql` files assert the DAG as it was
+before `db/0121`–`0126` (z14 is framed from stations now, so "z14 DAG = 1
+assemble, 1 sample, 1 sog" cannot hold), and `make lint` failed on four files
+plus two linter upgrades. The lint half is fixed and pinned; the pgTAP half is
+the next commit's, not FND.0's, and it is listed in PROGRESS.md.

@@ -50,6 +50,38 @@ const look = (position, target, id, kind) => ({
     up: vertical(position, target) ? [0, 0, -1] : [0, 1, 0],
 });
 
+// The stations of z16-v2, lifted out of cameraSet so that each of its four
+// kinds of eye reads on one screen. A grid of points over the tile, each seen
+// from straight above and from `sides` compass directions at 55° down. Spacing
+// s is the tile over the count; the nadir height makes a 60° footprint two
+// spacings wide, so neighbours overlap by half; an oblique stands 0.45 s out
+// from its point, which puts it 0.64 s up. Alternate stations turn the compass
+// by half a step, so no two neighbours look from the same sides. Every eye
+// stands above the ground it is over.
+function stations(out, s, bounds, at) {
+    const { centre: c, extent: e } = bounds;
+    const st = s.stations ?? 0;
+    for (let gy = 0; gy < st; gy++) {
+        for (let gx = 0; gx < st; gx++) {
+            const spacing = 2 * e / st;
+            const tx = c[0] + ((gx + 0.5) / st * 2 - 1) * e;
+            const tz = c[2] + ((gy + 0.5) / st * 2 - 1) * e;
+            const t = [tx, at(tx, tz, c[1]), tz];
+            const nadir = [tx, Math.max(t[1] + spacing * 1.73, at(tx, tz, -Infinity) + 5), tz];
+            out.push(look(nadir, t, out.length, 'top'));
+            const turn = ((gx + gy) % 2) * Math.PI / s.sides;
+            for (let k = 0; k < s.sides; k++) {
+                const a = turn + (k / s.sides) * Math.PI * 2;
+                const d = spacing * 0.45;
+                const px = tx + Math.cos(a) * d;
+                const pz = tz + Math.sin(a) * d;
+                const py = Math.max(t[1] + d * Math.tan(55 * RAD), at(px, pz, -Infinity) + 5);
+                out.push(look([px, py, pz], t, out.length, 'oblique'));
+            }
+        }
+    }
+}
+
 // bounds: { centre: [x, y, z], extent } in the tile's own frame, metres.
 // ground(x, z): the terrain's height there, or null where it is not known.
 // Without it the poses sit at heights taken from the bounds alone, which in a
@@ -98,33 +130,7 @@ export function cameraSet(name, bounds, ground = null) {
         }
     }
 
-    // Stations (z16-v2): a grid of points over the tile, each seen from
-    // straight above and from `sides` compass directions at 55° down. Spacing
-    // s is the tile over the count; the nadir height makes a 60° footprint two
-    // spacings wide, so neighbours overlap by half; an oblique stands 0.45 s
-    // out from its point, which puts it 0.64 s up. Alternate stations turn the
-    // compass by half a step, so no two neighbours look from the same sides.
-    // Every eye stands above the ground it is over.
-    const st = s.stations ?? 0;
-    for (let gy = 0; gy < st; gy++) {
-        for (let gx = 0; gx < st; gx++) {
-            const spacing = 2 * e / st;
-            const tx = c[0] + ((gx + 0.5) / st * 2 - 1) * e;
-            const tz = c[2] + ((gy + 0.5) / st * 2 - 1) * e;
-            const t = [tx, at(tx, tz, c[1]), tz];
-            const nadir = [tx, Math.max(t[1] + spacing * 1.73, at(tx, tz, -Infinity) + 5), tz];
-            out.push(look(nadir, t, out.length, 'top'));
-            const turn = ((gx + gy) % 2) * Math.PI / s.sides;
-            for (let k = 0; k < s.sides; k++) {
-                const a = turn + (k / s.sides) * Math.PI * 2;
-                const d = spacing * 0.45;
-                const px = tx + Math.cos(a) * d;
-                const pz = tz + Math.sin(a) * d;
-                const py = Math.max(t[1] + d * Math.tan(55 * RAD), at(px, pz, -Infinity) + 5);
-                out.push(look([px, py, pz], t, out.length, 'oblique'));
-            }
-        }
-    }
+    stations(out, s, bounds, at);
 
     // Top-down: a square grid over the tile when the count is one, else one
     // over the middle and the rest around it, so the roofs and the ground

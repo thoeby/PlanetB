@@ -138,7 +138,8 @@ test('z16-v2 covers the tile from stations, above the ground', () => {
     const sides = cams.filter((c) => c.kind === 'oblique');
     assert.equal(nadir.length, 9); assert.equal(sides.length, 36);
     const xs = new Set(nadir.map((c) => Math.round(c.position[0])));
-    assert.deepEqual([...xs].sort((a, b) => a - b), [-567, 0, 567], 'three columns across the tile');
+    assert.deepEqual([...xs].sort((a, b) => a - b), [-567, 0, 567],
+        'three columns across the tile');
     // A 60° footprint from 980 m is 1130 m wide over a 567 m spacing: half overlap.
     for (const c of nadir) assert.ok(c.position[1] > 900 && c.position[1] < 1100);
     for (const c of sides) {

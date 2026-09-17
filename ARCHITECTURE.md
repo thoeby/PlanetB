@@ -14,11 +14,16 @@ QGIS connects to the database as the player, with a login of their own
 the policies that decide it in the browser. GeoServer publishes the operator's
 elevation over WCS and is asked for nothing else.
 
+Invariant 9, in full: outside participants — QGIS, process servers — act as
+players with logins of their own, under RLS. The server decides and computes
+nothing, and sends nothing out. A process server that runs a flow pulls what it
+needs over REST and writes back through the same RPCs a player's tab uses.
+
 ## 1. Concepts
 
 | concept | definition |
 |---|---|
-| **artifact** | immutable file, addressed by `sha256`; kind ∈ glb, thumb, dem, ortho, frames, init_ply, ply, sog, height, colliders |
+| **artifact** | immutable file, addressed by `sha256`; kind ∈ glb, thumb, dem, ortho, frames, init_ply, ply, sog, height, colliders, height_edit, cover, flow, material (`db/0127`) |
 | **tile** | `(z,x,y)`, z ∈ {6,8,10,12,14,16,18}; has `expected_version` (world-input snapshot counter) and a pointer to its current published `sog` artifact |
 | **world revision** | `feature.rev` / `instance.rev` monotonically increasing per row; a tile's `expected_version` bumps on any intersecting write |
 | **job** | "compile tile (z,x,y) at expected_version V"; unique per (tile, V) |
@@ -111,6 +116,11 @@ merge ─▶ sog ─▶ (hash-verified in submit) ─▶ publish_tile
 ```
 Atoms become `ready` when all `deps` are `verified`. Inputs to each atom are artifact hashes reserved at `ensure_job` time (children's current `sog_sha256`, DEM/ortho tile hashes, GLB hashes, features/instances snapshot hash) so the whole job is reproducible from its `target_version`.
 
+Invariant 2, refined: a tile's snapshot pins the **symbol version** and the
+**cover-mapping version** it was built with, instead of one digest over the
+whole rule table. An admin's unsaved or unapplied symbol never reaches a
+published tile; "apply to world" is what moves the pin.
+
 ## 6. Client atoms (`client/atoms/*.js`, run in a Worker + OffscreenCanvas)
 
 | op | inputs | output | algo |
@@ -145,3 +155,7 @@ Capability filter at claim: `train` needs `webgpu` and a `maxBufferSize` at leas
 ## 9. Not in v1
 
 Realtime multiplayer, taxes, tiers, leaderboards, server-side compute, Redis/queues/Node API, blockchain.
+
+Route movers are in: a mover is a route, a speed and a timetable, and every
+browser works out where the thing is from the world clock. Nothing is sent per
+frame, so this is not the realtime multiplayer that stays out.

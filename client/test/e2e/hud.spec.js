@@ -64,7 +64,7 @@ test('the chrome says where you are and what the world is doing', async ({ page 
     // The two numbers Build is played by, and nothing else about the route.
     await expect(page.locator('#top .num .caps')).toHaveText(['rendered', 'to decide']);
 
-    // Six apps, and only the one you are in is named.
+    // Six views, and only the one you are in is named.
     await expect(page.locator('#top .app-tab')).toHaveCount(6);
     await expect(page.locator('#top .app-tab[aria-selected="true"] .name'))
         .toHaveText('Build');
@@ -198,7 +198,7 @@ test('Tab opens the apps, F-keys switch them, and Build is the one with panels',
         await page.keyboard.press('Escape');
         await expect(drawer).toBeHidden();
 
-        await page.keyboard.press('F3');
+        await page.keyboard.press('F6');
         await expect(page.locator('#top .app-tab[aria-selected="true"] .name'))
             .toHaveText('Survey');
         // An app is a workspace over the same world: the plinth and Build's own

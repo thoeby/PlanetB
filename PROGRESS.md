@@ -1550,3 +1550,56 @@ refused a z8 tile as "whole metres" because the fill outside a 4 km coverage
 is one whole number over most of the tile (`ground.py` judges the survey
 without the fill); and a cut that failed was asked for again every frame
 (`floor.js` waits ten seconds).
+
+## FND.0: the groundwork for the foundation work
+
+`TASKS-foundation.md` is the task list after `PLAYER-RUN.md`, and
+`PLAN-foundation.md` the decisions it implements; both are in the repo and
+`CLAUDE.md` points at them. FND.0 changed no behaviour anyone can see except
+the names in the apps drawer. What it laid down:
+
+- **Words.** ARCHITECTURE gained Invariant 9's outside participants,
+  Invariant 2's pinned symbol and cover-mapping versions, the four new
+  artifact kinds and route movers in §9. SPEC gained §2.16 Flows, §2.17 Shape,
+  §2.18 Ports and movers, product types and live parts in §0.4 and §2.6,
+  Admin → Symbols and Ground cover, and §9.5 now reads "whoever holds the
+  approve right".
+- **The views** (the operator's, after the plan was written): Build ·
+  Automate · Work · Trade & Sell · Play · Survey on F1–F6. Drive, Photo and
+  Tour became Play; Render became Work; the catalog both ways is Trade &
+  Sell. Only Build is wired; the rest say so on their own card.
+- **`db/0127`**: artifact kinds `height_edit`, `cover`, `flow`, `material`.
+- **Fixtures**: `tools/make-seed-osm.sh`, `tools/make-seed-cover.sh`,
+  `tools/make-fixture-models.mjs` and the eleven CC0 models, and
+  `tools/geoserver_cover.py`, which publishes a cover source as a class
+  raster over the fixture's WMS. Two of the three data fixtures are
+  stand-ins, because Overpass, Geofabrik and swisstopo are all denied at this
+  container's egress — `infra/seed/README.md` and `HANDOFF.md` §7 say so, and
+  the scripts say so on every run.
+- **Harness**: `panelApp(page, name)` opens a view by its card;
+  `importFromFile(...)` pastes features out of a file into the player's own
+  layer through QGIS, under RLS, as a QGIS user does with an OSM extract.
+
+## The gate that was red before this work, and what is left of it
+
+`make lint` and `make db-test` and the CRS half of `make api-test` were red
+at `b943ce3`, before FND.0 touched anything.
+
+- **lint: fixed.** Five implicit coercions in `client/lib/brush.js`, one long
+  line in `client/test/frame.test.js`, `cameraSet` split so each of its four
+  kinds of eye reads on one screen (`client/lib/cameras.js`, same poses —
+  `client/test/cameras.test.js` is untouched and green), `INNER JOIN` spelled
+  out in one pgTAP test, and `CP04` excluded with its reason. The linters are
+  now pinned in `HANDOFF.md`: they moved rules under us.
+- **db-test: still red, 15 files.** They assert the DAG as it stood before
+  `db/0121`–`0126`: z14 is framed from stations now, so "z14 DAG = 1
+  assemble, 1 sample, 1 sog" cannot hold, and `submit_area` returns jsonb
+  where a test still reads a uuid. These are stale tests, not a broken world
+  — `make player-run` compiles and publishes through the same code — but
+  nothing is "green under" FND.0 until they are brought up to what the world
+  now does. That is the next commit's work, before FND.1.
+- **api-test: still red, 3 tests.** `server/test_crs*.py` finds a bare
+  `EPSG:3857` in `server/geoserver.py`, a bare 4326 in
+  `db/0104_thewholeground.sql` and two applied function bodies
+  (`set_ground`, `set_ground_layer`) that name a code instead of calling
+  `world_srid()`. Same commit.

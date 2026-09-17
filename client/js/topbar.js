@@ -74,8 +74,8 @@ function numbers() {
     return { node, cells };
 }
 
-// The apps, as glyphs. Only the one you are in carries its name and its key,
-// so six apps cost the width of one plus five icons.
+// The views, as glyphs. Only the one you are in carries its name and its key,
+// so six views cost the width of one plus five icons.
 function appTabs(onApp) {
     const buttons = new Map();
     const node = strip('top-apps');
@@ -97,7 +97,7 @@ function appTabs(onApp) {
 export function topBar(show, { onApps, onTray }) {
     const buttons = new Map();
     const apps = appTabs((name) => onApps(name));
-    const appsBtn = el('button', { type: 'button', id: 'apps-btn', title: 'Apps' },
+    const appsBtn = el('button', { type: 'button', id: 'apps-btn', title: 'Views' },
         el('span', { className: 'grid' }, ...Array.from({ length: 9 }, () => el('i'))),
         el('span', { className: 'hint mono', textContent: 'Tab' }));
     appsBtn.setAttribute('aria-selected', 'false');

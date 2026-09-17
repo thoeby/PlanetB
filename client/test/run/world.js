@@ -82,6 +82,25 @@ function seedDem() {
     }
 }
 
+// What a player is given besides the ground (TASKS-foundation.md FND.0): the
+// OSM extract they load into their land, and the two ground-cover sources an
+// admin maps. Cached like the DEM; a run without them skips the stories that
+// need them rather than failing the ones that do not.
+function seedFixtures() {
+    for (const [file, script] of [
+        ['infra/seed/osm-visp.gpkg', 'tools/make-seed-osm.sh'],
+        ['infra/seed/worldcover-visp.tif', 'tools/make-seed-cover.sh'],
+    ]) {
+        if (existsSync(join(REPO, file))) continue;
+        const made = sh('bash', [script], { stdio: 'pipe' });
+        if (made.status !== 0) {
+            process.stderr.write(`player-run: ${script} could not write ${file}; `
+                + 'the stories that need it will say so\n'
+                + `${made.stderr || made.stdout}\n`);
+        }
+    }
+}
+
 // The GeoServer the operator is given. In order: one they are already running
 // (RUN_GEOSERVER_URL), the container from infra/compose.yml, and — where no
 // container registry is reachable — tools/geoserver-fixture.py over the same
@@ -109,8 +128,20 @@ async function startGeoServer() {
                 '--project-directory', '.', 'stop', 'geoserver']),
         };
     }
+    // The cover fixtures of TASKS-foundation.md FND.0 are published beside the
+    // elevation, as the operator's own GeoServer publishes them: a story that
+    // maps ground cover has two sources to map (FND.12).
+    const covers = [];
+    for (const [name, file, field] of [
+        ['splatworld:tlm', 'infra/seed/tlm-visp.gpkg', 'OBJEKTART'],
+        ['splatworld:worldcover', 'infra/seed/worldcover-visp.tif', ''],
+    ]) {
+        const path = join(REPO, file);
+        if (existsSync(path)) covers.push('--cover', `${name}=${path}${field ? `:${field}` : ''}`);
+    }
     const p = spawn('python3', ['tools/geoserver-fixture.py',
-        '--tif', SEED_DEM, '--port', String(GS_PORT)], { cwd: REPO, stdio: 'ignore' });
+        '--tif', SEED_DEM, '--port', String(GS_PORT), ...covers],
+    { cwd: REPO, stdio: 'ignore' });
     const url = `http://127.0.0.1:${GS_PORT}/geoserver`;
     await waitFor(`${url}/wcs?service=WCS&version=1.0.0&request=GetCapabilities`,
         30, 'tools/geoserver-fixture.py');
@@ -166,6 +197,7 @@ function forgetGround() {
 
 export async function startWorld() {
     seedDem();
+    seedFixtures();
     emptyDatabase();
     emptyStore();
     const stops = [];

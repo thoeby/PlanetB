@@ -147,3 +147,22 @@ export async function panel(player, name) {
     const part = page.locator(`#panel .parts button[data-tab="${name}"]`);
     if (await part.getAttribute('aria-selected') !== 'true') await part.click();
 }
+
+// A view, by its card in the drawer (SPEC §2.1 Views). A player who wants
+// another workspace presses Tab and picks it off the card that says what it
+// is; nobody memorises F-keys on their first day, so neither does this.
+//
+// `where` is a page or a player, because a story holds players and the
+// harness's own checks hold pages.
+export async function panelApp(where, name) {
+    const page = where.page ?? where;
+    if (page.bringToFront) await page.bringToFront();
+    const drawer = page.locator('#apps');
+    if (await drawer.isHidden()) await page.keyboard.press('Tab');
+    await drawer.waitFor({ state: 'visible', timeout: UI });
+    const card = drawer.locator(`.app-card[data-app="${name}"]`);
+    await card.waitFor({ state: 'visible', timeout: UI });
+    await card.click();
+    await expect(page.locator('#top .app-tab[aria-selected="true"] .name'))
+        .toHaveText(name, { timeout: UI });
+}

@@ -35,11 +35,11 @@ const stats = { submits: 0, cmdbufs: 0, maps: 0, mapMs: 0, allocs: 0, allocBytes
 // The counts since the last call, per `steps` steps.
 export function deviceStats(steps = 1) {
     const out = {
-        submits: +(stats.submits / steps).toFixed(1),
-        maps: +(stats.maps / steps).toFixed(1),
-        map_ms: +(stats.mapMs / steps).toFixed(0),
-        allocs: +(stats.allocs / steps).toFixed(1),
-        alloc_mb: +(stats.allocBytes / steps / 1048576).toFixed(1),
+        submits: Number((stats.submits / steps).toFixed(1)),
+        maps: Number((stats.maps / steps).toFixed(1)),
+        map_ms: Number((stats.mapMs / steps).toFixed(0)),
+        allocs: Number((stats.allocs / steps).toFixed(1)),
+        alloc_mb: Number((stats.allocBytes / steps / 1048576).toFixed(1)),
     };
     for (const k of Object.keys(stats)) stats[k] = 0;
     return out;

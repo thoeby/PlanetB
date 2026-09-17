@@ -60,6 +60,26 @@ take 0 jobs because rendering the world is how you contribute to it.
 | **removed** | deleted; the tile becomes `changed` |
 
 ### 0.4 Product (catalog entry)
+A product is one of five types, chosen when it is registered and shown in
+words wherever it appears:
+
+| type | what it is | placed by |
+|---|---|---|
+| **model** | a GLB: a tree, a house, a lamp, a bus | a player, or a symbol's `place` layer |
+| **segment** | a GLB repeated along a line; its length in X is the repeat length | a symbol's `repeat` layer |
+| **profile** | a road cross-section — strips of material at an offset, width and height | a symbol's `surface` layer |
+| **collection** | models with weights, for scatter ("Mischwald": two firs to one birch) | a symbol's `scatter` layer |
+| **material** | a square PNG and its tiling size in metres | `surface`, `paint`, `extrude` |
+
+A **model** may also declare **live parts** and **ports**: a lamp whose head
+is a `light`, a sign whose face is a `screen`, a door or a rotor. A port is a
+named value anyone with the right may set (`on`, `image`, `colour`,
+`brightness`, `open`, `speed`); the world draws the part from it (2.18). A
+model may declare a **terrain opening** — a tunnel portal's mouth — and the
+ground is cut where its footprint falls. Markings travel with the
+registration, not in the GLB: the same GLB marked differently is a different
+product.
+
 | state | meaning |
 |---|---|
 | **draft** | uploaded, not yet registered |
@@ -130,6 +150,15 @@ dismissed. There are no other pages; old addresses redirect here.
 - **Menu**: Land · Build · Catalog · Render · Approve · Share · Account ·
   Admin (admins) · Setup (admins, only until ground is set). Each opens its
   panel; one panel open at a time; Escape closes.
+- **Views**: Build · Automate · Work · Trade & Sell · Play · Survey, on F1–F6
+  and in the apps drawer. A view is a workspace over the same world: the bar,
+  the panels and the instruments change, where you stand does not. Build
+  places things and gets them approved; Automate is the flow editor (2.16);
+  Work is the render pool and what it pays; Trade & Sell is the catalog, one's
+  own products and their prices; Play is walking, flying, driving, visiting and
+  the camera; Survey is top-down — parcels, ownership, rights, approvals and
+  coverage as layers. A view that is not wired yet says so on its card rather
+  than letting somebody find out by pressing it.
 
 ### 2.2 The world view
 - Terrain everywhere the ground reaches, from the DEM tiles, shaded by
@@ -212,12 +241,22 @@ may build on, otherwise the button says why.
 - **Product page**: 3D preview (orbit), properties (as defined by admins for
   its kind), licence text, maker (display name), placed-count, "Place this"
   (enters building mode with it picked, if allowed where you stand).
-- **Register a product**: drop a GLB → preview, automatic size in metres,
+- **Register a product**: first, what it is — Model · Repeating piece · Road
+  cross-section · Collection · Surface material (0.4); only that type's form
+  is shown. A repeating piece states its repeat length ("repeats every
+  2.00 m"); a cross-section is typed in as strips and drawn; a collection is
+  a list of models with weights; a material is a square PNG, a power of two,
+  at most 2048 px, with its tiling size in metres. For a Model: drop a GLB →
+  preview, automatic size in metres,
   triangle and texture size shown with the world's limits; Name; Kind
   (admin-defined); its kind's properties (admin-defined); Licence; Price
   (0 by default; editions optional, collapsed under "Sell it" — decision
   §9.6). Register → `listed`. Duplicate model → "this is already product X
   by Y" with a link; no second entry.
+- **Parts and ports** (Model): after the preview, the GLB's node tree. Click
+  a node to highlight it; give it a role (light, screen, door, rotor); add
+  the ports that role offers; mark a node as a terrain opening. The product
+  page then says what it can do ("Ports: on (on/off), colour").
 - **My products**: list with times placed, Withdraw, Edit name/properties
   (model is immutable; a new model is a new product).
 
@@ -309,9 +348,28 @@ returns to the admin).
   choosing a tile range; transfer; requests for land (§3.2).
 - **Players**: list, roles, make admin, block.
 - **Products**: all, block/unblock with note.
+- **Symbols**: what a drawn thing looks like. A symbol is a kind, a filter
+  over its properties ("highway = secondary") and a stack of generator
+  layers — surface, repeat, scatter, extrude, place, paint, check — each
+  with its own form. A preview beside it compiles a sample feature of that
+  kind with the same code the world uses, and its properties can be tried
+  on the spot. Saving makes a version; versions have a history and can be
+  opened read-only and made current again. **Nothing a symbol says reaches a
+  published tile until "Apply to world"**, which states how many symbols
+  changed and how many published tiles would be rebuilt, and puts those
+  rebuilds at the back of the pool.
+- **Ground cover**: where the natural ground comes from. Sources (a
+  GeoServer layer, its extent and its priority) and, per source, a table
+  mapping its values onto the vocabulary (Wald → landuse=forest, Fels →
+  natural=bare_rock); unmapped values are listed first and are simply not
+  shown. A style file for the operator to publish a vector source with is
+  offered for download. What each mapped class looks like is its symbol, so
+  there is no separate table of classes. Saving makes a mapping version;
+  "Apply to world" moves it, with the symbols.
 - **World**: ground coverage in use, GeoServer status, storage used,
-  maintenance queue (§5.3), rules (the existing build rules, read-only
-  here; editing stays where it is until decided).
+  maintenance queue (§5.3), the process server flows are checked against
+  ("Process server for checking flows"), rules (the existing build rules,
+  read-only here; editing stays where it is until decided).
 
 ### 2.14 Setup (admins, first run)
 Account (first player is admin) → display name → GeoServer address + admin
@@ -328,6 +386,74 @@ approved / refused with note (submitter), job done / paid / failed
 (renderer, owner), tile published (owner), product blocked (maker), build grant requested / given
 (owner / player), land assigned (player), QGIS project out of date (owner).
 Each notification has one action that goes to the thing.
+
+### 2.16 Flows (the Automate view)
+Logic for your land: the flows a process server runs. The view fills the page
+and the world stops drawing behind it until it is closed.
+- **Left — my flows**: the flows on land you own or may build on, grouped by
+  land. New (name + land) · Rename · Duplicate · Delete ("Delete flow <name>?
+  It is removed for everybody on <land>.").
+- **Centre — the canvas**: blocks from the palette (searchable, grouped as
+  their plugins group them) dragged in and wired; Delete removes the
+  selection; double-click a filter or a transformation opens its inner flow
+  with a breadcrumb back; named nets drawn as labels; undo/redo (Ctrl-Z /
+  Ctrl-Shift-Z, and buttons); Auto-layout. A block whose plugin this world
+  does not know is drawn hatched, says so, and is kept exactly as it came.
+- **Right — inspector**: the selected block's name (unique in its scope),
+  its parameters as widgets, constants on unwired inputs, port-group size.
+  With nothing selected: the flow's own inputs and outputs.
+- **Top**: Save · Validate · Export · Import · a dirty marker · Close (asks
+  Save / Discard / Stay).
+- **What is stored**: the flow is ELX — the same XML a process server reads,
+  byte for byte. Layout (where the blocks sit, which outputs are hidden) is
+  kept beside it in the world and never written into the ELX.
+- **Validate** asks the world's process server (Admin → World) whether the
+  flow is one it would run, and always also checks locally: one source per
+  net, every wired pair allowed, names unique per scope. Errors name the
+  block and go to it when clicked. No process server configured, or it does
+  not answer: the sentence says so and the local result is still shown.
+- **World blocks** (palette group World): Read port · Write port · Move a
+  mover · Events since · World clock. Each names an object on the flow's land
+  — by dropdown, or by "Pick in world", which leaves the view, asks for a
+  click, and comes back with what was clicked. Every flow has the inputs
+  `world` and `world_key`; a run binds them. Flows do not run yet: the world
+  answers only the clock.
+
+### 2.17 Shape (sculpting the ground)
+Land → Shape. The ground of one land, shaped by hand. The camera goes
+top-down-ish over the land, the boundary is drawn, and everybody else's
+ground is dimmed and marked "not yours".
+- **Brushes**: Raise · Lower · Smooth · Flatten (to the height the stroke
+  starts at) · Level (to a typed height) · Along line (click a path, or pick
+  a road that is already drawn: width, shoulder, greatest gradient — Apply
+  lays the bed once).
+- Size in metres and strength; the brush circle is drawn on the ground; the
+  terrain updates while painting; undo/redo per stroke.
+- Painting outside your land turns the brush red and changes nothing: "You
+  can only shape your own land."
+- **Save** → "ground saved · N tiles changed", and from there Submit and
+  approval like anything else. Leaving with unsaved strokes asks Save /
+  Discard / Stay.
+- The same heights are a layer in the QGIS project ("Ground shaping (m)"),
+  and a script in that project saves an edited raster back. The page tool is
+  the main one.
+- A road lying across ground too steep for it is **flagged, never fixed
+  silently**: the Submit dialog says "Road too steep across at N places" with
+  a button to each. It is a warning; the submission goes.
+
+### 2.18 Ports and movers (things that are not baked)
+- A published object with ports shows them in the Build panel: a switch, a
+  number, a colour, an image, per port. Whoever may build on the land may set
+  them, and everybody else sees the change within seconds — the light, the
+  door, the rotor are drawn over the splats and are never baked.
+- A **screen**'s content is a change like building: it is listed in Submit
+  and others see the new image only once it is approved. Nothing is rendered
+  for it.
+- **Movers** are things that are never baked at all: a product, a route (a
+  road the land owns or a line drawn on it), a speed and a timetable. Every
+  browser works out where the mover is from the world clock, so two players
+  standing at the same stop see the same bus at the same second. Movers need
+  no approval; they are not on the land, they move over it.
 
 ---
 
@@ -585,7 +711,8 @@ Made by the owner of the project:
    render publishes without a second decision; a renderer is paid (if a
    price exists) when the job lands.
 4. Land is assigned by an admin on request — placeholder until decided.
-5. The land owner approves his own land (and what grantees build on it).
+5. What is rendered is approved by whoever holds the approve right on the
+   land — the owner by default, and whoever the owner has granted it to.
 
 Still open — implemented as stated below until decided:
 

@@ -92,3 +92,20 @@ features, areas and dirty tiles it produces, seeds one z14 DEM and one z14 ortho
 tile straight off AWS, and checks both are registered and served with
 `Cache-Control: immutable`. The geo half skips rather than fails where the
 sources cannot be reached.
+
+## The player-run's fixtures (TASKS-foundation.md FND.0)
+
+Three files a player is *given*, cached once and gitignored like the DEM:
+
+| file | what | tool | source here |
+|---|---|---|---|
+| `osm-visp.gpkg` | OSM shapes of the DEM's 4 x 4 km, layers `lines`, `areas`, `points` | `tools/make-seed-osm.sh` | **stand-in** — Overpass is denied at this egress |
+| `tlm-visp.gpkg` | swissTLM3D Bodenbedeckung, one polygon layer, class in `OBJEKTART` | `tools/make-seed-cover.sh` | **stand-in** — `data.geo.admin.ch` is denied |
+| `worldcover-visp.tif` | ESA WorldCover 10 m class raster | `tools/make-seed-cover.sh` | real, off AWS |
+
+A stand-in is written by hand in the real source's own shape and keys, over
+the same ground, and is deterministic. Each script says on every run which of
+the two it produced. **A story that passed against a stand-in has passed
+against the stand-in only** — the same rule HANDOFF.md states for the
+GeoServer fixture. On a machine that can reach Overpass and swisstopo, the
+same scripts write the real thing and nothing else changes.

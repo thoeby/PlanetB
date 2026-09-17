@@ -18,9 +18,9 @@ SELECT ok((SELECT (out ->> 'dirtied')::int FROM g) >= 4,
 SELECT is((SELECT count(*)::int FROM job WHERE z = 14 AND state = 'open'),
     (SELECT (out ->> 'dirtied')::int FROM g), 'and each is open');
 SELECT ok((SELECT count(*) FROM tile WHERE z = 6) >= 1, 'the ladder above them exists');
-SELECT is((SELECT count(*)::int FROM atom a JOIN job j ON j.id = a.job_id
+SELECT is((SELECT count(*)::int FROM atom a INNER JOIN job j ON j.id = a.job_id
            WHERE j.z = 14 AND a.op = 'sample'), 0, 'nothing is sampled any more');
-SELECT ok((SELECT count(*) FROM atom a JOIN job j ON j.id = a.job_id
+SELECT ok((SELECT count(*) FROM atom a INNER JOIN job j ON j.id = a.job_id
            WHERE j.z = 14 AND a.op = 'train' AND (a.params ->> 'iters')::int = 1200) >= 4,
     'a z14 tile trains, at 1200 steps (db/0122)');
 SELECT is((SELECT min(algo_version) FROM atom WHERE op = 'frame'), 'frame-v10',

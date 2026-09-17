@@ -8,13 +8,20 @@ registry is unreachable — an offline box, a sandbox with an egress policy —
 this serves the same two conversations over `infra/seed/dem-visp.tif`:
 
   WCS 1.0.0   GetCapabilities / DescribeCoverage / GetCoverage  (the ground)
-  WMS 1.3.0   GetCapabilities / GetMap                          (QGIS hillshade)
+  WMS 1.3.0   GetCapabilities / GetMap                          (QGIS hillshade,
+                                                                 ground cover)
 
 It answers nothing else. It is a stand-in for a service the player is given,
 not for anything a player does: no story step touches it, and every story that
 passes here passes against the container too or it is not passing.
 
     python3 tools/geoserver-fixture.py --tif infra/seed/dem-visp.tif --port 8081
+
+The ground-cover fixtures of TASKS-foundation.md FND.0 are published the same
+way, as WMS layers painted by the class style of tools/geoserver_cover.py:
+
+    --cover splatworld:tlm=infra/seed/tlm-visp.gpkg:OBJEKTART
+    --cover splatworld:worldcover=infra/seed/worldcover-visp.tif
 """
 from __future__ import annotations
 
@@ -26,6 +33,7 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from xml.sax.saxutils import escape
 
 import rasterio
+from geoserver_cover import Cover
 from rasterio.io import MemoryFile
 from rasterio.transform import from_bounds
 from rasterio.vrt import WarpedVRT
@@ -76,7 +84,19 @@ WMS_CAPS = """<?xml version="1.0" encoding="UTF-8"?>
     <Layer>
       <Title>{label}</Title>
       <CRS>EPSG:4326</CRS><CRS>EPSG:3857</CRS>
-      <Layer queryable="0">
+{layers}    </Layer>
+  </Capability>
+</WMS_Capabilities>
+"""
+
+EXCEPTION = """<?xml version="1.0" encoding="UTF-8"?>
+<ServiceExceptionReport xmlns="http://www.opengis.net/ogc" version="1.2.0">
+  <ServiceException code="{code}">{text}</ServiceException>
+</ServiceExceptionReport>
+"""
+
+
+WMS_LAYER = """      <Layer queryable="0">
         <Name>{name}</Name><Title>{label}</Title>
         <CRS>EPSG:4326</CRS><CRS>EPSG:3857</CRS>
         <EX_GeographicBoundingBox>
@@ -86,15 +106,6 @@ WMS_CAPS = """<?xml version="1.0" encoding="UTF-8"?>
           <northBoundLatitude>{north}</northBoundLatitude>
         </EX_GeographicBoundingBox>
       </Layer>
-    </Layer>
-  </Capability>
-</WMS_Capabilities>
-"""
-
-EXCEPTION = """<?xml version="1.0" encoding="UTF-8"?>
-<ServiceExceptionReport xmlns="http://www.opengis.net/ogc" version="1.2.0">
-  <ServiceException code="{code}">{text}</ServiceException>
-</ServiceExceptionReport>
 """
 
 
@@ -161,7 +172,7 @@ class World:
                 + chunk(b"IDAT", zlib.compress(rows)) + chunk(b"IEND", b""))
 
 
-def handler_for(world: World):
+def handler_for(world: World, covers: dict):
     class Handler(BaseHTTPRequestHandler):
         protocol_version = "HTTP/1.1"
 
@@ -228,7 +239,14 @@ def handler_for(world: World):
 
         def wms(self, request: str, q: dict) -> None:
             if request == "getcapabilities":
-                return self.xml(WMS_CAPS.format(**world.fields()))
+                entries = [WMS_LAYER.format(**world.fields())]
+                for cover in covers.values():
+                    west, south, east, north = cover.bounds
+                    entries.append(WMS_LAYER.format(
+                        name=escape(cover.name), label=escape(cover.label),
+                        west=west, south=south, east=east, north=north))
+                return self.xml(WMS_CAPS.format(layers="".join(entries),
+                                                **world.fields()))
             if request != "getmap":
                 return self.refuse("OperationNotSupported", request)
             try:
@@ -241,8 +259,17 @@ def handler_for(world: World):
             # WMS 1.3.0 hands EPSG:4326 in latitude, longitude order.
             if q.get("version", "").startswith("1.3") and crs_name.upper() == "EPSG:4326":
                 bbox = (bbox[1], bbox[0], bbox[3], bbox[2])
+            asked = (q.get("layers") or q.get("layer") or "").split(",")[0]
+            cover = covers.get(asked) or covers.get(asked.replace("__", ":", 1))
             try:
-                self.send(world.hillshade_png(bbox, crs_name, width, height), "image/png")
+                if cover is not None:
+                    # A cover layer is a class raster: its colours are codes
+                    # (tools/geoserver_cover.py), not a picture of anything.
+                    self.send(cover.class_png(bbox, crs_name, width, height),
+                              "image/png")
+                else:
+                    self.send(world.hillshade_png(bbox, crs_name, width, height),
+                              "image/png")
             except Exception as err:  # noqa: BLE001
                 self.refuse("NoApplicableCode", str(err))
 
@@ -261,12 +288,26 @@ def main(argv: list[str]) -> int:
     ap.add_argument("--name", default="splatworld:visp",
                     help="how the coverage is named in the capabilities")
     ap.add_argument("--label", default="Visp elevation (GLO-30)")
+    ap.add_argument("--cover", action="append", default=[], metavar="NAME=PATH[:FIELD]",
+                    help="a ground-cover layer, published over WMS as a class raster")
     ap.add_argument("--verbose", action="store_true")
     args = ap.parse_args(argv)
     VERBOSE = args.verbose
 
     world = World(args.tif, args.name, args.label)
-    server = ThreadingHTTPServer((args.host, args.port), handler_for(world))
+    covers = {}
+    for spec in args.cover:
+        name, _, rest = spec.partition("=")
+        # NAME=PATH, or NAME=PATH:FIELD where the field is the class column.
+        if rest.endswith((".tif", ".gpkg")):
+            path, field = rest, ""
+        else:
+            path, _, field = rest.rpartition(":")
+        covers[name] = Cover(name, path, field or None, label=name)
+        print(f"geoserver-fixture: cover {name} ← {covers[name].path}"
+              + (f" classes {covers[name].classes}" if covers[name].classes else ""),
+              flush=True)
+    server = ThreadingHTTPServer((args.host, args.port), handler_for(world, covers))
     west, south, east, north = world.bounds
     print(f"geoserver-fixture: http://{args.host}:{args.port}/geoserver"
           f" — {args.name} over {west:.4f},{south:.4f},{east:.4f},{north:.4f}",

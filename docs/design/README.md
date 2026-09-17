@@ -22,6 +22,14 @@ panels and the instruments change, where you stand does not. Build is the one
 this repository implements; the other five switch the chrome and say on their
 own card that they are not wired yet. Build stays cyan.
 
+**The six are now named for what they are played for** (SPEC §2.1 Views, the
+operator's decision, and the one place the build departs from chrome6's
+artboard): Build · Automate · Work · Trade & Sell · Play · Survey. Drive,
+Photo and Tour are one view, Play; Render is Work; the catalog both ways is
+Trade & Sell; Automate is the flow editor. The glyphs, hues and the drawer are
+the artboard's; only the names, the keys behind them and Automate's glyph are
+ours.
+
 **Two things are ours rather than the mockup's**, and v6 does not move them:
 the compass is ruled — a tick every 15°, tall and lit where a point is named —
 and it stays under the strip rather than inside it, and the altimeter keeps the
@@ -53,7 +61,7 @@ Where each part of the design lives:
 |---|---|
 | colours, type, chamfers, the chrome | `client/hud.css` |
 | the strip along the top, the apps drawer, the notifications | `client/top.css` |
-| the apps, and what each is for | `client/js/apps.js` |
+| the views, and what each is for | `client/js/apps.js` |
 | the strip's cells: apps, numbers, clock, wallet, bell, you | `client/js/topbar.js` |
 | a notification's eight seconds, and the tray after them | `client/js/notify.js` |
 | the house styles a panel's contents inherit | `client/panel.css` |

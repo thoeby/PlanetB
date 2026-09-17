@@ -10,7 +10,10 @@ ignore = parsing
 # AL03/CP01/CP02 misfire on this dialect: PostGIS type modifiers and the
 # PUBLIC/VALUE keywords are parsed as identifiers, and INSERT..SELECT columns
 # do not want aliases.
-exclude_rules = AL03, CP01, CP02, LT05, LT09, LT12, ST05, ST06, ST07, AM04, CV02, RF01, RF02, RF03, RF04, CP03, LT02, LT01, LT14, CV08, ST02, ST03, ST09, AL01, AL05, CV03, CV12, LT08, LT04
+# CP04 wants the NULL in `IS NOT NULL`, and the one pgTAP takes as an
+# argument, spelled lowercase among uppercase keywords. It is a keyword
+# here and it is written like one.
+exclude_rules = AL03, CP01, CP02, CP04, LT05, LT09, LT12, ST05, ST06, ST07, AM04, CV02, RF01, RF02, RF03, RF04, CP03, LT02, LT01, LT14, CV08, ST02, ST03, ST09, AL01, AL05, CV03, CV12, LT08, LT04
 
 [sqlfluff:indentation]
 indented_joins = false
