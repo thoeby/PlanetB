@@ -708,8 +708,12 @@
       // is, over everything else — it is the ground under them — and the page
       // goes on drawing what it already has. It clears itself: the ground asks
       // again every few seconds, and says nothing once a tile arrives.
+      // SPEC §3.12: what went wrong, in the words the server used, and that
+      // the page has not given up — floor.js asks again every ten seconds and
+      // the line clears itself the moment a tile arrives.
       const trouble = floor?.trouble
           ? `The elevation service is not answering \u2014 ${floor.trouble}`
+            + '\nTrying again every few seconds.'
           : '';
       if (Date.now() < arrival.until) hud.notice(arrival.text);
       else hud.notice(trouble || (onTheRoute ? '' : missing));
