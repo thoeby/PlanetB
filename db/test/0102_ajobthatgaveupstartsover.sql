@@ -25,7 +25,7 @@ GRANT SELECT ON jobs TO player;
 -- An atom reaches 'verified' through somebody's hands (db/0017's guard), and
 -- what it points at is a file that exists (Invariant 1).
 INSERT INTO artifact (sha256, kind, bytes, algo_version)
-VALUES (repeat('a', 64), 'init_ply', 4096, 'assemble-v5');
+VALUES (repeat('a', 64), 'init_ply', 4096, 'assemble-v6');
 UPDATE atom SET state = 'claimed', worker_id = my_worker(NULL),
                 claimed_at = now(), heartbeat_at = now()
 WHERE job_id = (SELECT jid FROM jobs) AND op = 'assemble';

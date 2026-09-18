@@ -1,4 +1,4 @@
-// train.js — `train-v12`. The tile, learned from its own frames, by brush.
+// train.js — `train-v13`. The tile, learned from its own frames, by brush.
 //
 // `assemble` built the surfaces and `frame` path-traced them from a fixed
 // camera set. The seed is those surfaces sampled at the tile's whole budget
@@ -36,7 +36,7 @@ import { bboxOf, writePly } from '../lib/ply.js';
 import { rngOf, sampleSurfaces } from '../lib/sampling.js';
 import { readTar, writeTar } from '../lib/tar.js';
 
-export const ALGO = 'train-v12';
+export const ALGO = 'train-v13';
 // The in-plane sigma of a seed splat as a share of its spacing. Sigma, not
 // radius: a gaussian is visible out to about two of them, so a splat at 1.15
 // covered four to five times the distance to its neighbour — twenty times the

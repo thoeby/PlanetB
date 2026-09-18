@@ -78,14 +78,14 @@ function buildDag() {
                                  WHERE state <> 'cancelled'
                              DO UPDATE SET state = 'open' RETURNING id`));
     resetJob(job);
-    const asm = insert(job, 'assemble', 'assemble-v5', { snapshot },
+    const asm = insert(job, 'assemble', 'assemble-v6', { snapshot },
         { ...TILE, budget: BUDGET }, []);
     // z16-v2 is 45 views, not v1's 56: three chunks of the real count,
     // the way build_dag chunks them (db/0125).
     const frames = [[0, 20], [20, 40], [40, 45]].map(([from, to]) =>
         insert(job, 'frame', 'frame-v10', { assemble: asm, snapshot },
             { camera_set: 'z16-v2', from, to, size: FRAME_SIZE, samples: 1 }, [asm]));
-    const trn = insert(job, 'train', 'train-v12', { assemble: asm, frames },
+    const trn = insert(job, 'train', 'train-v13', { assemble: asm, frames },
         { budget: BUDGET, iters: 80, camera_set: 'z16-v2', size: TRAIN_SIZE,
             needs_webgpu: true, min_buffer_mb: 1 }, frames);
     const sog = insert(job, 'sog', 'sog-v1', { ply: trn }, { budget: BUDGET }, [trn]);

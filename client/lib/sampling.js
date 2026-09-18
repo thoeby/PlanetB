@@ -74,11 +74,29 @@ function detailOf(m, i) {
 // in. Returns each triangle's count and its own area, because a triangle that
 // was given fewer splats needs bigger ones: one spacing for the whole tile
 // leaves holes wherever the allocation went thin.
+// How much of the budget is spread by area alone, before detail is allowed an
+// opinion. Detail decides where the *rest* goes.
+//
+// Weighting purely by area x detail starves smooth ground by up to sixteen to
+// one, and what covered the thin places was the size of the splats given to
+// them — one splat per triangle, made big enough to reach its neighbour. That
+// is the same thing as SPREAD being 1.15: a tile held together by overlap,
+// which reads as a smear. Cut the overlap and the thin places are holes,
+// which is what they always were.
+//
+// So: four fifths of the budget goes by area, which covers the ground
+// evenly whatever is on it, and the last fifth goes by area x detail, which
+// is where the edges and the colour changes get their extra. Coverage stops
+// depending on how big a splat is allowed to be.
+const EVEN_SHARE = 0.8;
+
 function allocate(tris, total) {
     const areas = tris.map(([m, i]) => area(m, i));
+    const flat = areas.reduce((s, a) => s + a, 0) || 1;
     const weights = tris.map(([m, i], k) => areas[k] * detailOf(m, i));
     const sum = weights.reduce((s, a) => s + a, 0) || 1;
-    const exact = weights.map((a) => a / sum * total);
+    const exact = tris.map((_, k) => (areas[k] / flat) * total * EVEN_SHARE
+        + (weights[k] / sum) * total * (1 - EVEN_SHARE));
     const counts = exact.map(Math.floor);
     const left = total - counts.reduce((s, c) => s + c, 0);
     const order = exact.map((e, i) => [e - Math.floor(e), i])
