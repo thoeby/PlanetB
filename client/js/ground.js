@@ -35,7 +35,7 @@ export function covered(tiles, z, x, y) {
 
 // One tile's heights on an N×N grid, in its own frame (tile centre at 0 m),
 // and their shaded colours. `dem` is the loaded raster for this tile.
-export function tileGeometry(z, x, y, dem, n = N) {
+export function tileGeometry(z, x, y, dem, n = N, bump = null) {
     const b = tm.tileBbox(z, x, y);
     const frame = tm.tileFrame(z, x, y);
     const heights = new Float32Array(n * n);
@@ -45,7 +45,10 @@ export function tileGeometry(z, x, y, dem, n = N) {
         for (let i = 0; i < n; i++) {
             const lon = b.west + (b.east - b.west) * i / (n - 1);
             const { u, v } = inTile(z, x, y, lon, lat);
-            const h = sampleHeight(dem, u, v);
+            // FND.9: the ground as it is being shaped, while it is being
+            // shaped. The file is not saved yet and no tile has been compiled
+            // with it; this is the only place it can be seen.
+            const h = sampleHeight(dem, u, v) + (bump ? bump(lon, lat) : 0);
             const p = tm.localFromLonLat(frame, lon, lat, h);
             const k = j * n + i;
             heights[k] = h;
@@ -115,6 +118,20 @@ export class DemGround {
         this.tiles = tiles;         // the streamer's rows, by key
         this.entities = new Map();
         this.material = null;
+        // What the ground is being shaped into right now, and the tiles to
+        // draw even where a published tile covers them — you cannot shape
+        // ground you cannot see (FND.9).
+        this.bump = null;
+        this.force = new Set();
+    }
+
+    // Shape mode, on or off: the meshes are thrown away so the next few
+    // frames build them again with the shaping in them.
+    reshape(bump, force = []) {
+        this.bump = bump;
+        this.force = new Set(force);
+        for (const e of this.entities.values()) e.destroy();
+        this.entities.clear();
     }
 
     // Called every frame with the camera's local position: adds the tiles
@@ -128,7 +145,7 @@ export class DemGround {
         let built = false;
         for (const { x, y } of ringAround(cx, cy)) {
             const k = `${x}/${y}`;
-            if (covered(this.tiles, Z, x, y)) continue;
+            if (covered(this.tiles, Z, x, y) && !this.force.has(k)) continue;
             want.add(k);
             if (this.entities.has(k) || built) continue;
             const dem = this.floor.tiles.get(k);
@@ -146,7 +163,7 @@ export class DemGround {
 
     add(k, x, y, dem) {
         const { pc } = this;
-        const geo = tileGeometry(Z, x, y, dem);
+        const geo = tileGeometry(Z, x, y, dem, undefined, this.bump);
         const mesh = new pc.Mesh(this.app.graphicsDevice);
         mesh.setPositions(geo.positions);
         mesh.setNormals(geo.normals);

@@ -18,6 +18,7 @@ import { run } from '../atoms/assemble.js';
 import { readTar } from '../lib/tar.js';
 import { readPly } from '../lib/ply.js';
 import { earcut, ringArea, scatter, rng } from '../lib/poly.js';
+import { gridFor, writeR32 } from '../lib/r32.js';
 import { tileBbox } from '../lib/tilemath.js';
 
 const Z = 16;
@@ -87,12 +88,26 @@ const WORLD = {
     ],
 };
 
+// FND.9: a land over the west half of the tile, shaped two metres up.
+const LAND = { type: 'Polygon', coordinates: box(0.0, 0.0, 0.5, 1.0) };
+const GROUND = (() => {
+    const g = gridFor([B.west, B.south, B.west + (B.east - B.west) / 2, B.north], 4);
+    g.data.fill(2);
+    return writeR32(g);
+})();
+
+// The world the stub serves: the fixture, unless a test has pushed another.
+const WORLDS = [];
+
 async function serve() {
     const dem = demTile();
     const server = createServer((req, res) => {
         if (req.url.startsWith('/rpc/tile_world')) {
             res.writeHead(200, { 'Content-Type': 'application/json' });
-            res.end(JSON.stringify(WORLD));
+            res.end(JSON.stringify(WORLDS.at(-1) ?? WORLD));
+        } else if (req.url.endsWith('.r32')) {
+            res.writeHead(200, { 'Content-Type': 'application/octet-stream' });
+            res.end(Buffer.from(GROUND));
         } else if (req.url.startsWith('/geo/dem/')) {
             res.writeHead(200, { 'Content-Type': 'application/octet-stream' });
             res.end(dem);
@@ -106,7 +121,7 @@ async function serve() {
 }
 
 const ATOM = {
-    id: 1, op: 'assemble', algo_version: 'assemble-v6', seed: 7,
+    id: 1, op: 'assemble', algo_version: 'assemble-v7', seed: 7,
     inputs: { snapshot: WORLD.snapshot }, params: { z: Z, x: X, y: Y, budget: BUDGET },
 };
 
@@ -121,7 +136,7 @@ test('assemble produces the five files the rest of the pipeline reads', async ()
             ['scene.json', 'mesh.bin', 'init.ply', 'height.r16', 'colliders.json']);
 
         const scene = JSON.parse(new TextDecoder().decode(files.get('scene.json')));
-        assert.equal(scene.algo, 'assemble-v6');
+        assert.equal(scene.algo, 'assemble-v7');
         assert.deepEqual(scene.tile, { z: Z, x: X, y: Y });
         assert.ok(scene.origin.h > 350 && scene.origin.h < 460, 'the origin sits on the ground');
         assert.ok(scene.meshes.length >= 6, 'terrain, road, walls, roofs, water, trees');
@@ -136,6 +151,40 @@ test('assemble produces the five files the rest of the pipeline reads', async ()
         assert.equal(colliders.boxes.length, 2, 'one box per footprint');
         assert.ok(colliders.boxes[0].half[1] > 6, 'a 14 m building is 14 m tall');
         assert.ok(out.result.trees > 10, `trees were scattered, got ${out.result.trees}`);
+    } finally { s.stop(); }
+});
+
+// The ground a player shaped is what everything else stands on: the heights
+// the tile lands with are two metres higher over the land and unchanged
+// outside it (FND.9).
+test('a shaped land raises the ground under it and nothing else', async () => {
+    const s = await serve();
+    try {
+        // height.r16 is normalised over the tile's own range, so it is read
+        // back into metres before the two are compared.
+        const metres = async () => {
+            const out = await run({ atom: ATOM, apiUrl: s.url, filesUrl: s.url });
+            const files = readTar(out.files[0].bytes);
+            const scene = JSON.parse(new TextDecoder().decode(files.get('scene.json')));
+            const raw = files.get('height.r16');
+            const counts = new Uint16Array(raw.buffer, raw.byteOffset, raw.length / 2);
+            const span = scene.height.max - scene.height.min;
+            return { n: scene.height.size,
+                at: (i, j) => scene.height.min + counts[j * scene.height.size + i]
+                    / 65535 * span };
+        };
+        const plain = await metres();
+        WORLDS.push({ ...WORLD, height_edits: [
+            { area_id: 'a1', sha256: 'c'.repeat(64), rev: 1, geom: LAND }] });
+        const after = await metres();
+        WORLDS.pop();
+        const mid = Math.floor(plain.n / 2);
+        const west = Math.floor(plain.n * 0.15);
+        const east = Math.floor(plain.n * 0.85);
+        assert.ok(Math.abs(after.at(west, mid) - plain.at(west, mid) - 2) < 0.05,
+            'the shaped half came up two metres');
+        assert.ok(Math.abs(after.at(east, mid) - plain.at(east, mid)) < 0.05,
+            'and the rest of the tile did not move');
     } finally { s.stop(); }
 });
 

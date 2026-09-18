@@ -2001,3 +2001,41 @@ a tile with any `highway` in it is counted for every changed highway symbol.
 The number is what the operator is told before they apply, and nobody is
 charged for it. What it must never do is under-count — leave a tile built with
 a symbol nobody applies again — and it does not.
+
+## FND.9: the ground itself
+
+Story 24: B lays a road bed along the road he imported in story 19, raises a
+plateau beside it and smooths its edge, undoes the stroke he did not want and
+redoes it, finds that the brush does nothing outside his own land, saves,
+sends, and the tile that comes out of the compiler is ground that was shaped.
+
+**What a land carries is a grid of relative metres.** `.r32`, written down in
+`docs/rendering.md` §6: a small JSON header and one float32 per cell, at the
+z18 cell size, covering the land's own bounding box. Relative to the DEM,
+never absolute, so the operator can replace the elevation with a better one and
+everybody's shaping still means what it meant. It is a file like any other —
+immutable, content-addressed, written once (Invariant 1) — and `height_edit`
+(db/0141) is the pointer to the current one, saved by a compare-and-swap on the
+revision so two tabs cannot overwrite each other silently.
+
+**The compiler shapes the ground before anything stands on it.**
+`applyHeightEdits` is the first thing `assemble-v7` does, which is
+PLAN-foundation.md §3's order: the roads are cut into the shaped ground, the
+buildings stand on it, the trees are scattered over it. Cells outside the
+land's own outline are ignored — row-level security refuses the save and the
+page turns the brush red, and this is the third guard, the one that holds even
+for a file that got past both.
+
+**A tile's snapshot names the ground it was built on.** A land shaped after an
+atom was made moves the snapshot, so that atom cannot publish over it
+(Invariant 2), and the save marks only the tiles the changed box touches
+(Invariant 4 — it marks, it builds nothing).
+
+**Shaping is a mode the 3D view is in**, the way Place is: `Land → Shape`, six
+brushes with their keys on them, size and strength, undo and redo per stroke.
+Along line writes the whole bed as one stroke, holding the gradient the player
+asked for forwards and back, so one undo takes it all back. While it is on, the
+ground mesh is drawn over the land **even where a published tile covers it** —
+you cannot shape ground you cannot see — with what is being shaped in it
+(`DemGround.reshape`), because the file is not saved and no tile has been
+compiled with it yet.

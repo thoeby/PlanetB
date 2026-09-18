@@ -162,6 +162,9 @@ function changeWords(n, changes) {
     }
     if (changes?.moved) bits.push(`${changes.moved} moved`);
     if (changes?.features) bits.push(`${changes.features} drawn${kindWords(changes.kinds)}`);
+    // FND.9: a submission can be nothing but the ground, and an approver
+    // looking at one was being shown nothing at all.
+    if (changes?.ground) bits.push(`ground shaped (revision ${changes.ground})`);
     return bits.join(' \u00b7 ');
 }
 
@@ -169,7 +172,7 @@ function drawSubmit(ui, state) {
     ui.tiles.replaceChildren(...progressTiles(state.progress));
     const n = toSubmit(state.progress);
     const drawn = Number(state.changes?.features ?? 0)
-        + Number(state.changes?.objects ?? 0);
+        + Number(state.changes?.objects ?? 0) + Number(state.changes?.ground ?? 0);
     ui.changes.textContent = n
         ? `${changeWords(n, state.changes)} — this is what the approver sees.`
         : drawn

@@ -9,6 +9,7 @@
 import { sampleHeight } from './geo.js';
 import { Mesh } from './mesh.js';
 import { styleFor } from './rules.js';
+import { sampleR32 } from './r32.js';
 
 // Vertices across a tile. The store cuts elevation at 512² a tile
 // (server/splatworld/importer.py DEM_SIZE), so 513 reads all of it: 0.2 m at
@@ -84,6 +85,30 @@ export class Terrain {
         const u = this.h[Math.max(j - 1, 0) * n + i];
         const d = this.h[Math.min(j + 1, n - 1) * n + i];
         return Math.hypot((r - l) / (2 * this.stepX), (d - u) / (2 * this.stepZ));
+    }
+}
+
+// FND.9: the ground a player shaped, in metres relative to the DEM's.
+//
+// Each edit is one land's grid (client/lib/r32.js) and the land's own outline.
+// A cell outside that outline is ignored — the page turns the brush red there
+// and the database refuses the save, and this is the compile-side guard, so a
+// file that got past both still cannot lift somebody else's ground.
+//
+// Runs before everything else in `assemble`: roads are cut into the shaped
+// ground, buildings stand on it, trees are scattered over it.
+export function applyHeightEdits(terrain, edits, toLonLat) {
+    for (const edit of edits ?? []) {
+        if (!edit?.grid) continue;
+        for (let j = 0; j < terrain.size; j++) {
+            for (let i = 0; i < terrain.size; i++) {
+                const x = terrain.x(i);
+                const z = terrain.z(j);
+                if (edit.contains && !edit.contains(x, z)) continue;
+                const { lon, lat } = toLonLat(x, z);
+                terrain.h[j * terrain.size + i] += sampleR32(edit.grid, lon, lat);
+            }
+        }
     }
 }
 

@@ -1,4 +1,4 @@
-// assemble.js — `assemble-v6`. The world, as geometry, in one tile's own frame.
+// assemble.js — `assemble-v7`. The world, as geometry, in one tile's own frame.
 //
 // Terrain from the seeded DEM, cut by terrainmods and roads; footprints
 // extruded; forests scattered; water laid flat; the ground coloured by its own
@@ -25,13 +25,16 @@ import { MATERIALS } from '../lib/props.js';
 import { context, runAll } from '../lib/gen/index.js';
 import { rngOf, sampleSurfaces } from '../lib/sampling.js';
 import { writeTar } from '../lib/tar.js';
-import { GRID, Terrain, cutRoads, heightRaster, terrainMesh } from '../lib/terrain.js';
-import { localFromLonLat, tileBbox, tileFrame } from '../lib/tilemath.js';
+import {
+    GRID, Terrain, applyHeightEdits, cutRoads, heightRaster, terrainMesh,
+} from '../lib/terrain.js';
+import { readR32 } from '../lib/r32.js';
+import { localFromLonLat, lonLatFromLocal, tileBbox, tileFrame } from '../lib/tilemath.js';
 
 // v4 writes each surface's own colour and leaves the light to the one
 // renderer (client/lib/raster.js); v3 had baked it for a sampled baseline
 // that is gone. The cut elevation is read whole (terrain.js GRID).
-export const ALGO = 'assemble-v6';
+export const ALGO = 'assemble-v7';
 
 // What assemble and sample both use to turn surfaces into splats; re-exported
 // because both atoms have always reached for them here.
@@ -157,7 +160,8 @@ async function groundColour(z, x, y, filesUrl) {
 // it (db/0139): nothing here knows what a road, a wood or a roof is. Each
 // feature is put through the first symbol that matches it, and that symbol's
 // layers draw it (client/lib/gen/).
-function build({ z, sw, ne, dem, frame, world, random, assets, products, colourAt = null }) {
+function build({ z, sw, ne, dem, frame, world, random, assets, products,
+    ground = [], colourAt = null }) {
     const symbols = world.symbols ?? [];
     const feats = (world.features ?? []).map((f) => toLocal(frame, f));
     const terrain = new Terrain({ sw, ne, size: GRID[z] ?? 65, dem });
@@ -165,6 +169,9 @@ function build({ z, sw, ne, dem, frame, world, random, assets, products, colourA
     // measured from there, not from the ellipsoid.
     for (let i = 0; i < terrain.h.length; i++) terrain.h[i] -= frame.h;
     terrain.datum = frame.h;
+    // FND.9: what the lands here were shaped into, before anything stands on
+    // it. PLAN-foundation.md §3's first step.
+    applyHeightEdits(terrain, ground, (x, z0) => lonLatFromLocal(frame, { x, y: 0, z: z0 }));
 
     const edge = Math.hypot(ne.x - sw.x, sw.z - ne.z);
     const ctx = context({ terrain, random, radius: Math.max(6, edge / 140),
@@ -205,9 +212,24 @@ async function loadProducts(files, filesUrl) {
     return out;
 }
 
+// The lands here that somebody has shaped: the grid each one saved and its own
+// outline, in this tile's frame. A file that will not load is skipped, as a
+// missing GLB is — one lost file must not make a tile uncompilable.
+async function loadGround(edits, frame, filesUrl) {
+    const out = [];
+    for (const e of edits ?? []) {
+        const res = await fetch(`${filesUrl}/assets/${e.sha256}.r32`).catch(() => null);
+        if (!res?.ok) continue;
+        const local = toLocal(frame, { id: e.area_id, kind: 'area', geom: e.geom });
+        out.push({ grid: readR32(new Uint8Array(await res.arrayBuffer())),
+            contains: local.contains });
+    }
+    return out;
+}
+
 // Everything about where this tile is and what the ground under it looks
 // like, before a single feature is read.
-async function ground(z, x, y, filesUrl) {
+async function theGround(z, x, y, filesUrl) {
     const dem = await loadDem(z, x, y, { filesUrl });
     if (!dem) throw new Error(`no ground at ${z}/${x}/${y}: it is outside the world's coverage`);
     const colourAt = await groundColour(z, x, y, filesUrl);
@@ -235,13 +257,14 @@ export async function run({ atom, log, apiUrl, filesUrl }) {
         throw new Error(`the world moved: ${world.snapshot} is not ${atom.inputs.snapshot}`);
     }
 
-    const { centre, flat, frame, sw, ne, dem, colourAt } = await ground(z, x, y, filesUrl);
+    const { centre, flat, frame, sw, ne, dem, colourAt } = await theGround(z, x, y, filesUrl);
 
     const assets = await loadAssets(world.instances, { filesUrl });
     const products = await loadProducts(world.symbol_files, filesUrl);
+    const ground = await loadGround(world.height_edits, frame, filesUrl);
     const { terrain, meshes, boxes, trees, flags, roads, placed } =
         build({ z, sw, ne, dem, frame, world, random: rngOf(atom, z, x, y),
-            assets, products, colourAt });
+            assets, products, ground, colourAt });
     log?.({ event: 'assembled', z, x, y, meshes: meshes.length, trees,
         buildings: boxes.length, roads: roads.length,
         instances: placed.meshes.length, missing: placed.missing });

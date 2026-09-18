@@ -174,3 +174,34 @@ everywhere z14 is published); `frame-v2` second.
 Each of 1–5 is a training-loop setting or one kernel; none changes the DAG
 or the format. Run WP3.1's acceptance on a GPU before and after so the
 numbers above become measurements.
+
+## 6. `.r32` — a land's shaped ground (FND.9)
+
+What a player pulls the ground into is a file like any other: immutable,
+content-addressed, written once (Invariant 1). One float per cell, **metres
+relative to whatever the operator's DEM says is there** — so the operator can
+replace the elevation with a better one and everybody's shaping still means
+what it meant.
+
+```
+offset  bytes  what
+0       4      "R32\0"
+4       4      the header's length, uint32 little-endian
+8       n      the header, JSON, padded with spaces to a multiple of four
+8+n     4·w·h  the cells, float32 little-endian, row-major, north row first
+```
+
+The header is
+
+```json
+{"version": "r32-v1", "bbox": [west, south, east, north], "cell": 0.21,
+ "width": 964, "height": 512}
+```
+
+`bbox` is the land's own bounding box in degrees; `cell` is the metres one cell
+covers, the z18 cell size (512 cells across a z18 tile) unless the land is so
+large that the grid would pass 2048 cells across, in which case it is coarser
+and the file says so. Written by `client/lib/r32.js`, pointed at by
+`height_edit` (db/0141), and read by `client/lib/terrain.js`
+`applyHeightEdits`, which samples it bilinearly and ignores every cell outside
+the land's own outline.

@@ -263,3 +263,11 @@
 #panel .sy-changed { font-size: 12px; margin: 0 0 6px; }
 #panel .sy-confirm { margin-top: 8px; }
 #panel .sy-confirm-said { font-size: 12px; }
+
+/* FND.9: Shape. The brushes are a row of buttons with their keys on them, and
+ * the one in hand is the one picked out. */
+#panel .sc-brushes { flex-wrap: wrap; gap: 6px; }
+#panel .sc-brush { padding: 4px 10px; }
+#panel .sc-brush.picked { border-color: var(--accent); color: var(--accent); }
+#panel .sc-on-box { display: flex; gap: 6px; align-items: center; }
+#panel .sc-said { font-size: 11px; }

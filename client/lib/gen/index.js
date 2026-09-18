@@ -32,7 +32,7 @@ import * as terrainmod from './terrainmod.js';
 export const LAYERS = { surface, repeat, scatter, extrude, place, paint, check, terrainmod };
 
 // The order the meshes are written in, whatever order the features filled
-// them. It is the order `assemble-v6` wrote them in, which is what lets a
+// them. It is the order `assemble-v7` wrote them in, which is what lets a
 // world compiled by the symbols be compared with one compiled by the rules.
 export const MATERIALS = ['road', 'wall', 'roof', 'water', 'trunk', 'canopy'];
 

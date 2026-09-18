@@ -89,6 +89,7 @@
   import { mountCatalogPanel } from './js/catalogpanel.js';
   import { drawAreas, labelAreas, labelObjects, mountLand, ringsOf } from './js/land.js';
   import { mountGetLand } from './js/getland.js';
+  import { mountSculpt } from './js/sculptui.js';
   import { mountAssignLand } from './js/assignland.js';
   import { mountAttention } from './js/attention.js';
   import { mountPlaces, sameSpot } from './js/places.js';
@@ -408,6 +409,30 @@
           .then(() => build.refresh()),
   });
 
+  // FND.9: the ground itself, shaped in the page. It is a mode the 3D view is
+  // in while the panel is open, the way Place is, and what it changes is the
+  // land's own grid of relative metres (client/js/sculpt.js).
+  const sculpt = mountSculpt(hud.panel('Shape'), {
+      canvas, camera, pc, origin, terrain, player,
+      groundAt: (lon, lat) => terrain.heightAt(origin.localOf({ lon, lat, h: 0 })) ?? 0,
+      onShaped: () => groundMesh?.reshape(
+          (lon, lat) => sculpt.shaping()?.at(lon, lat) ?? 0, tilesOfShaping()),
+      onSaved: () => { build.refresh(); submit.refresh(); },
+  }, { lands: () => api.rpc('my_areas').catch(() => []) });
+
+  // The z14 tiles the land being shaped falls in: they are drawn as ground
+  // while Shape is on even where a published tile covers them, because you
+  // cannot shape ground you cannot see.
+  function tilesOfShaping() {
+      const b = sculpt.shaping()?.area?.bbox;
+      if (!b) return [];
+      const out = [];
+      for (let x = tm.tileX(b.west, 14); x <= tm.tileX(b.east, 14); x++) {
+          for (let y = tm.tileY(b.north, 14); y <= tm.tileY(b.south, 14); y++) out.push(`${x}/${y}`);
+      }
+      return out;
+  }
+
   // SPEC §2.16: Automate is a workspace of its own rather than a panel, so it
   // takes the window and the world stops being drawn under it. litegraph is
   // fetched the first time it is opened, not now (client/flow/boot.js).
@@ -571,7 +596,7 @@
         build.refresh(); areas.refresh(); showCredits();
         catalog.refresh(); admin.refresh(); symbols.list(); setup.refresh();
         land.refresh(); assignLand.refresh(); attention.refresh();
-        submit.refresh(); pool.refresh(); permission.refresh();
+        submit.refresh(); pool.refresh(); permission.refresh(); sculpt.refresh();
         showWho();
     },
   });
@@ -863,6 +888,6 @@
     app, pc, api, origin, streamer, camera, rows, terrain, player, setDriving, work, groundMesh,
     hud, setup, admin, symbols, catalog, land, submit, pool, permission, ground,
     share, goTo,
-    spot, build, preview, nearby, areas, wallet, flows, xr: { wants: wantsXr, rig: () => rig },
+    spot, build, preview, nearby, areas, wallet, flows, sculpt, xr: { wants: wantsXr, rig: () => rig },
   };
 </script>
