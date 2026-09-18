@@ -23,7 +23,7 @@ export const APPS = [
             + 'A6.2 6.2 0 0 1 12 8.4V10l2 2h2.5l2.3 1.9',
     },
     {
-        name: 'Automate', key: 'F2', hue: 'oklch(0.8 0.14 290)',
+        name: 'Automate', key: 'F2', hue: 'oklch(0.8 0.14 290)', live: true,
         desc: 'Logic for your land: flows the process servers run.',
         icon: 'M4 5h5v4H4z|M15 3h5v4h-5z|M15 13h5v4h-5z|M9 7h3a2 2 0 0 1 2 2v6'
             + '|M9 7h6|M14 5h1|M14 15h1',

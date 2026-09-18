@@ -134,6 +134,32 @@ dirty. That is the work queue.
   area you may write, and you have not checked it for a week, it renders two
   poses and reports the result. A failure marks the tile `suspect`.
 
+### Automate (the flow editor, same page)
+
+- **Tab** opens the views; **Automate** (F2) is the flow editor. It takes the
+  window, and the 3D view stops being drawn until it is closed.
+- A flow belongs to a **land**: you see the flows of every land you own or may
+  build on, and so does everybody else who builds there. Approvers for a land
+  can read its flows.
+- **New** asks for a name and a land. The canvas is litegraph; the palette is a
+  searchable strip above it — type part of a block's name or its group ("strings
+  contains") and drag the line onto the canvas. Wire by dragging port to port,
+  Delete removes the selection, Ctrl-Z and Ctrl-Shift-Z undo and redo,
+  **Auto-layout** lays the blocks out again.
+- Double-clicking a filter or a transformation opens its inner flow, with a
+  breadcrumb back.
+- The **inspector** on the right is about the selected block — its name (unique
+  in the flow), its parameters, constants on the inputs no wire reaches, and how
+  many slots a repeatable port has. With nothing selected it is about the flow:
+  its own inputs and outputs, and how each named net is drawn.
+- **Save** writes the ELX into the file store under the sha256 of its bytes and
+  moves the land's pointer at it. Two tabs cannot overwrite each other: the
+  second is told "this flow was changed in another tab — reload it". Where the
+  blocks sit is stored beside the flow, never inside the ELX.
+- **Validate**, **Export** and **Import** arrive with FND.2.
+- **Setup → step 4** registers the bundled block set with the world. Run it once
+  per install, and again after `bash tools/palette.sh` has changed the set.
+
 ### Work panel (same page)
 
 - Shows the GPU this tab has (WebGPU or WebGL2). Training needs WebGPU.

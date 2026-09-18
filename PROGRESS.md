@@ -1676,3 +1676,55 @@ Two specs now keep to their own work: `sog` focuses its job so it cannot
 wander into a rebuild another spec is reading, and `stream` takes the ladder's
 refinement number from `tools/testterrain.mjs` rather than from whatever
 manifest the last publisher left.
+
+## FND.1: flows are files on the land
+
+The Automate view is live (SPEC §2.16). A player who builds on a land draws a
+flow out of the standard blocks, saves it, and finds it again — on any machine,
+because what is saved is in the world and not in a browser.
+
+**What the world holds** — `db/0133_flowsarefilesontheland.sql`. `flow` is a
+pointer: which land, what it is called, the sha256 of the ELX, and `layout`.
+`save_flow` is a compare-and-swap on `rev` ("this flow was changed in another
+tab — reload it") and refuses a sha that is not a registered artifact of kind
+`flow`; `delete_flow` takes it off the land for everybody and leaves the file
+where it is, because something else may point at it (Invariant 1). Reading and
+writing are the land's rights, not the caller's word for them: `is_area_proposer`
+writes, and an approver for that land reads, because a flow is part of what they
+are being asked to say yes to (Invariant 6). `elx_plugin` records which block
+set the world saw, under which hash; `bundle_plugins()` is the admin RPC that
+says so, and Setup's step 4 calls it.
+
+**The save path**, in this order and no other (`client/js/flows.js`): serialize
+the graph to ELX → sha256 → PUT `/assets/{sha}.elx` → `register_artifact` →
+`save_flow`. Renaming and duplicating do not write a file at all — they point at
+the one that is already there. **Layout never enters the ELX.** The reference
+editor kept it in `localStorage`; here it is `flow.layout` in the world, which is
+the one change `client/flow/graph/layoutstore.js` makes to the file it was
+copied from.
+
+**The editor** is copied, file by file, from `wireon-process-editor` at
+`ab52530`: `client/flow/{elx,plugins,graph}/` — parse, serialize, nets, plugin
+parse and registry, register, import, export, named nets, subflows, port groups,
+history, layout, hidden outputs and the theme. Every file's header says where it
+came from and what changed. Two files changed at all: `graph/import.js` (the
+layout store it reads) and `graph/theme.js`, which was 518 lines and is now
+three — `themetokens.js`, `theme.js`, `themedraw.js` — with every colour read
+from `hud.css` instead of the reference's black on white, so a node's title bar
+is the view's own hue. litegraph itself is vendored and loaded as a classic
+script the first time Automate is opened, never at page load.
+
+**Their tests run here too**, in the browser lane:
+`client/test/e2e/flow-modules.spec.js` opens a page that loads the fifteen test
+files the reference repo has for those modules and reads the summary. 198 of
+them pass there; three were already red at the source and are corrected in the
+copy, with the correction in the header: two look for the `OR` node, which the
+sample moved inside `<filter name="Filter List">`, and one for a node called
+`Source`, which `file-response.elx` has not had for some time.
+
+**Deviations recorded.** The artifact kinds gained `plugin` in 0133: a plugin
+description is a file in the store and it is not a flow, and `elx_plugin` points
+at it. Story 16 wires the ports the bundled plugins actually declare — `Contains`
+takes `string` and `substring` — rather than FND.1's shorthand "pattern".
+`opencv`'s `plugin.xml` is in the palette; its 5.2 MB of trained weights and the
+prototxt beside them are not, and `client/test/palette.test.js` says so.

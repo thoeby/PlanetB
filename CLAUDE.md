@@ -71,6 +71,6 @@ splatworld/
                  js/{api,auth,tiles,origin,player,build,work,catalog}.js
                  atoms/{assemble,frame,train,merge,sog,verify}.js
                  lib/{tilemath,canon,hash,ply,sogenc}.js   lib/gen/   vendor/
-                 flow/{elx,plugins,graph,palette}/    test/
+                 flow/{elx,plugins,graph,palette,samples}/ boot.js   test/
   tools/         seed-dem.sh seed-ortho.sh seed-osm.sh (developer tooling, runs on the dev box, not the server)
 ```

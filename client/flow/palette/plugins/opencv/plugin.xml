@@ -1,0 +1,425 @@
+<plugin format="1" id="opencv">
+    <name>OpenCV</name>
+    <icon type="simicons">brand::logo.opencv</icon>
+
+    <value id="matrix">
+        <description type="short">OpenCV matrix type.</description>
+    </value>
+    <value id="rectangle">
+        <description type="short">OpenCV rectangle type.</description>
+    </value>
+
+    <service id="video-capture">
+        <name>Video Capture</name>
+        <description type="short">Video capturing device</description>
+        <description type="long">Service to capture video from files or cameras.</description>
+        <parameter id="filename">
+            <name>Filename</name>
+            <value id="string"/>
+        </parameter>
+    </service>
+
+    <node id="capture-camera">
+        <name>Take photo</name>
+        <icon type="simicons">technology::aperture</icon>
+        <description type="short">Capture Frame</description>
+        <description type="long">Take a picture/photo from a camera identified by 'camera'.</description>
+        <service plugin="opencv" id="video-capture"/>
+        <output name="frame">
+            <structure id="droplet"/>
+            <value plugin="opencv" id="matrix"/>
+        </output>
+        <output name="error code">
+            <structure id="droplet"/>
+            <value id="error-code"/>
+        </output>
+    </node>
+    <node id="color-convert">
+        <name>Convert Colors</name>
+        <icon type="simicons">formatting::color-switch</icon>
+        <description type="short">Color conversion</description>
+        <parameter id="format">
+            <name>Format</name>
+            <description type="short">Conversion format</description>
+            <description type="long">The format conversion to apply.</description>
+            <value_choices require="1" default-label="RGB → GRAY">
+                <value id="string" label="BGR → BGRA">COLOR_BGR2BGRA</value>
+                <value id="string" label="RGB → RGBA">COLOR_RGB2RGBA</value>
+
+                <value id="string" label="BGRA → BGR">COLOR_BGRA2BGR</value>
+                <value id="string" label="RGBA → RGB">COLOR_RGBA2RGB</value>
+
+                <value id="string" label="BGR → RGBA">COLOR_BGR2RGBA</value>
+                <value id="string" label="RGB → BGRA">COLOR_RGB2BGRA</value>
+
+                <value id="string" label="RGBA → BGR">COLOR_RGBA2BGR</value>
+                <value id="string" label="BGRA → RGB">COLOR_BGRA2RGB</value>
+
+                <value id="string" label="BGR → RGB">COLOR_BGR2RGB</value>
+                <value id="string" label="RGB → BGR">COLOR_RGB2BGR</value>
+
+                <value id="string" label="BGRA → RGBA">COLOR_BGRA2RGBA</value>
+                <value id="string" label="RGBA → BGRA">COLOR_RGBA2BGRA</value>
+
+                <value id="string" label="BGR → GRAY">COLOR_BGR2GRAY</value>
+                <value id="string" label="RGB → GRAY">COLOR_RGB2GRAY</value>
+                <value id="string" label="GRAY → BGR">COLOR_GRAY2BGR</value>
+                <value id="string" label="GRAY → RGB">COLOR_GRAY2RGB</value>
+                <value id="string" label="GRAY → BGRA">COLOR_GRAY2BGRA</value>
+                <value id="string" label="GRAY → RGBA">COLOR_GRAY2RGBA</value>
+                <value id="string" label="BGRA → GRAY">COLOR_BGRA2GRAY</value>
+                <value id="string" label="RGBA → GRAY">COLOR_RGBA2GRAY</value>
+
+                <value id="string" label="→"></value>
+                <value id="string" label="→"></value>
+                <value id="string" label="→"></value>
+                <value id="string" label="→"></value>
+                <value id="string" label="→"></value>
+                <value id="string" label="→"></value>
+                <value id="string" label="→"></value>
+                <value id="string" label="→"></value>
+            </value_choices>
+        </parameter>
+        <input name="in">
+            <structure id="droplet"/>
+            <structure id="list"/>
+            <structure id="table"/>
+            <structure id="map"/>
+            <value plugin="opencv" id="matrix"/>
+        </input>
+        <output name="out">
+            <structure id="droplet"/>
+            <structure id="list"/>
+            <structure id="table"/>
+            <structure id="map"/>
+            <value plugin="opencv" id="matrix"/>
+        </output>
+    </node>
+    <node id="crop">
+        <name>Crop</name>
+        <icon type="simicons">formatting::crop</icon>
+        <description type="short">Crop image</description>
+        <description type="long">Crops an image.</description>
+        <input name="in">
+            <value plugin="opencv" id="matrix"/>
+        </input>
+        <input name="x">
+            <structure id="droplet"/>
+            <value id="integer"/>
+        </input>
+        <input name="y">
+            <structure id="droplet"/>
+            <value id="integer"/>
+        </input>
+        <input name="width">
+            <structure id="droplet"/>
+            <value id="integer"/>
+        </input>
+        <input name="height">
+            <structure id="droplet"/>
+            <value id="integer"/>
+        </input>
+        <output name="out">
+            <value plugin="opencv" id="matrix"/>
+        </output>
+    </node>
+    <node id="face-detector">
+        <name>Face detector</name>
+        <icon type="simicons">operations::face.recognition</icon>
+        <description type="short">Detect faces in a frame.</description>
+        <description type="long">Dectects zero or more faces in a given frame.</description>
+        <input name="in">
+            <structure id="droplet"/>
+            <value plugin="opencv" id="matrix"/>
+        </input>
+        <output name="annotated">
+            <structure id="droplet"/>
+            <value plugin="opencv" id="matrix"/>
+        </output>
+        <output name="rectangles">
+            <structure id="list"/>
+            <value plugin="opencv" id="rectangle"/>
+        </output>
+    </node>
+    <node id="image-decode">
+        <name>Decode Image</name>
+        <description type="short">Decode an image</description>
+        <description type="long">Decode an image into a frame/matrix</description>
+        <input name="image">
+            <structure id="droplet"/>
+            <value id="bytes"/>
+        </input>
+        <output name="frame">
+            <structure id="droplet"/>
+            <value plugin="opencv" id="matrix"/>
+        </output>
+    </node>
+    <node id="image-encode">
+        <name>Encode Image</name>
+        <description type="short">Encode an image</description>
+        <description type="long">Encode a frame/matrix into an actual image format (like PNG, JPG, BMP, ...).</description>
+        <input name="frame">
+            <structure id="droplet"/>
+            <value plugin="opencv" id="matrix"/>
+        </input>
+        <input name="format">
+            <structure id="droplet" default="true">
+                <value id="string">png</value>
+            </structure>
+            <value id="string"/>
+        </input>
+        <output name="image">
+            <structure id="droplet"/>
+            <value id="bytes"/>
+        </output>
+    </node>
+    <node id="load-image">
+        <name>Load image</name>
+        <icon type="simicons">formatting::image.load</icon>
+        <description type="short">Load image</description>
+        <description type="long">Loads an image from the filesystem.</description>
+        <input name="path">
+            <structure id="droplet"/>
+            <value id="bytes"/>
+            <value id="filesystem path"/>
+        </input>
+        <output name="frame">
+            <structure id="droplet"/>
+            <value plugin="opencv" id="matrix"/>
+        </output>
+    </node>
+    <node id="resize">
+        <name>Resize</name>
+        <icon type="simicons"></icon>
+        <description type="short">Resize an image</description>
+        <description type="long">Resizes an image to a specific width and height (in pixels).</description>
+        <parameter id="interpolation">
+            <name>Interpolation</name>
+            <description type="short">Interpolation</description>
+            <description type="long">The resize interpolation method.</description>
+            <value_choices require="1" default-label="Bilinear">
+                <value id="string" label="Nearest Neighbour">nearest</value>
+                <value id="string" label="Bit exact nearest neighbor interpolation">nearest-exact</value>
+                <value id="string" label="Bilinear">bilinear</value>
+                <value id="string" label="Bit exact bilinear interpolation">bilinear-exact</value>
+                <value id="string" label="Bicubic">cubic</value>
+                <value id="string" label="Resampling using pixel area relation">area</value>
+                <value id="string" label="Lanczos interpolation over 8x8 neighborhood ">lanczos-8x8</value>
+            </value_choices>
+        </parameter>
+        <input name="in">
+            <value plugin="opencv" id="matrix"/>
+        </input>
+        <input name="width">
+            <structure id="droplet"/>
+            <value id="integer"/>
+        </input>
+        <input name="height">
+            <structure id="droplet"/>
+            <value id="integer"/>
+        </input>
+        <output name="out">
+            <value plugin="opencv" id="matrix"/>
+        </output>
+    </node>
+    <node id="save-image">
+        <name>Save image</name>
+        <icon type="simicons">formatting::image.save</icon>
+        <description type="short">Save image</description>
+        <input name="frame">
+            <structure id="droplet"/>
+            <value plugin="opencv" id="matrix"/>
+        </input>
+        <input name="path">
+            <structure id="droplet"/>
+            <value id="filesystem path"/>
+        </input>
+        <output name="error">
+            <structure id="droplet"/>
+            <value id="error-code"/>
+        </output>
+    </node>
+    <node id="save-video">
+        <name>Save Video</name>
+        <description type="short">Save video</description>
+        <description type="long">Save incoming frames to a video file.</description>
+        <input name="frame">
+            <structure id="droplet"/>
+            <value plugin="opencv" id="matrix"/>
+        </input>
+        <input name="path">
+            <structure id="droplet"/>
+            <value plugin="opencv" id="matrix"/>
+        </input>
+    </node>
+
+    <group id="blur">
+        <name>Blur</name>
+
+        <node id="average">
+            <name>Average Blur</name>
+            <description type="short">Blurs an image using the normalized box filter</description>
+            <input name="in">
+                <structure id="droplet"/>
+                <structure id="list"/>
+                <value plugin="opencv" id="matrix"/>
+            </input>
+            <input name="kernel width">
+                <structure id="droplet" default="true">
+                    <value id="integer">5</value>
+                </structure>
+                <value id="integer"/>
+            </input>
+            <input name="kernel height">
+                <structure id="droplet" default="true">
+                    <value id="integer">5</value>
+                </structure>
+                <value id="integer"/>
+            </input>
+            <output name="out">
+                <structure id="droplet"/>
+                <structure id="list"/>
+                <value plugin="opencv" id="matrix"/>
+            </output>
+        </node>
+
+        <node id="bilateral">
+            <name>Bilateral Blur</name>
+            <description type="short">Applies the bilateral filter to an image</description>
+            <input name="in">
+                <structure id="droplet"/>
+                <structure id="list"/>
+                <value plugin="opencv" id="matrix"/>
+            </input>
+            <input name="diameter">
+                <structure id="droplet" default="true">
+                    <value id="integer">9</value>
+                </structure>
+                <value id="integer"/>
+            </input>
+            <input name="sigma color">
+                <structure id="droplet" default="true">
+                    <value id="real">75</value>
+                </structure>
+                <value id="real"/>
+            </input>
+            <input name="sigma space">
+                <structure id="droplet" default="true">
+                    <value id="real">75</value>
+                </structure>
+                <value id="real"/>
+            </input>
+            <output name="out">
+                <structure id="droplet"/>
+                <structure id="list"/>
+                <value plugin="opencv" id="matrix"/>
+            </output>
+        </node>
+
+        <node id="gaussian">
+            <name>Gaussian Blur</name>
+            <description type="short">Blurs an image using a Gaussian filter</description>
+            <input name="in">
+                <structure id="droplet"/>
+                <structure id="list"/>
+                <value plugin="opencv" id="matrix"/>
+            </input>
+            <input name="kernel width">
+                <structure id="droplet" default="true">
+                    <value id="integer">5</value>
+                </structure>
+                <value id="integer"/>
+            </input>
+            <input name="kernel height">
+                <structure id="droplet" default="true">
+                    <value id="integer">5</value>
+                </structure>
+                <value id="integer"/>
+            </input>
+            <input name="sigma x">
+                <structure id="droplet" default="true">
+                    <value id="integer">0</value>
+                </structure>
+                <value id="integer"/>
+            </input>
+            <input name="sigma y">
+                <structure id="droplet" default="true">
+                    <value id="integer">0</value>
+                </structure>
+                <value id="integer"/>
+            </input>
+            <output name="out">
+                <structure id="droplet"/>
+                <structure id="list"/>
+                <value plugin="opencv" id="matrix"/>
+            </output>
+        </node>
+
+        <node id="median">
+            <name>Median Blur</name>
+            <description type="short">Blurs an image using the median filter</description>
+            <input name="in">
+                <structure id="droplet"/>
+                <structure id="list"/>
+                <value plugin="opencv" id="matrix"/>
+            </input>
+            <input name="kernel size">
+                <structure id="droplet" default="true">
+                    <value id="integer">5</value>
+                </structure>
+                <value id="integer"/>
+            </input>
+            <output name="out">
+                <structure id="droplet"/>
+                <structure id="list"/>
+                <value plugin="opencv" id="matrix"/>
+            </output>
+        </node>
+
+    </group>
+
+    <group id="edge-detection">
+        <name>Edge Detection</name>
+
+        <node id="canny">
+            <name>Edge Detection (Canny)</name>
+            <description type="short">Edge detection using Canny algorithm</description>
+            <input name="in">
+                <structure id="droplet"/>
+                <structure id="list"/>
+                <value plugin="opencv" id="matrix"/>
+            </input>
+            <input name="threshold 1">
+                <structure id="droplet" default="true">
+                    <value id="real">100</value>
+                </structure>
+                <value id="real"/>
+            </input>
+            <input name="threshold 2">
+                <structure id="droplet" default="true">
+                    <value id="real">200</value>
+                </structure>
+                <value id="real"/>
+            </input>
+            <input name="aperture size">
+                <structure id="droplet" default="true">
+                    <value id="integer">3</value>
+                </structure>
+                <value id="integer"/>
+            </input>
+            <input name="L2 gradient">
+                <structure id="droplet" default="true">
+                    <value id="boolean">false</value>
+                </structure>
+                <value id="boolean"/>
+            </input>
+            <output name="out">
+                <structure id="droplet"/>
+                <structure id="list"/>
+                <value plugin="opencv" id="matrix"/>
+            </output>
+        </node>
+
+    </group>
+
+</plugin>

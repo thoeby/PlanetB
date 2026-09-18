@@ -12,6 +12,7 @@
 
 import * as api from './api.js';
 import { el } from './chrome.js';
+import { bundledPlugins, bundlePlugins } from './flows.js';
 
 // Design 3k: three numbered steps, in the order they have to happen. Step 1
 // is the account, and client/js/auth.js mounts its form into the slot below —
@@ -67,6 +68,17 @@ const HTML = `
     </div>
     <ul class="gs-layers"></ul>
     <p class="gs-drawer note"></p>
+  </div>
+</div>
+<div class="step gs-step4">
+  <span class="n">4</span>
+  <div class="t">
+    <span class="head">Blocks</span>
+    <div class="note">The blocks flows are drawn with (Automate). They ship
+      with the page; this tells the world which set it saw, so a flow drawn
+      against one can still be read against another.</div>
+    <button type="button" class="gs-blocks">Register the bundled blocks</button>
+    <p class="gs-blocks-status status"></p>
   </div>
 </div>`;
 
@@ -200,6 +212,22 @@ async function addLayer(q, say, found, refresh) {
     }
 }
 
+// db/0133 elx_plugin: the bundled XMLs, stored and named. Run once, and again
+// when one of them has changed — the hashes decide, so running it twice over
+// the same set writes the same rows.
+async function registerBlocks(q, say) {
+    q('.gs-blocks').disabled = true;
+    say('.gs-blocks-status', 'reading the bundled blocks\u2026');
+    try {
+        const n = await bundlePlugins(await bundledPlugins());
+        say('.gs-blocks-status', `${n} plugin(s) registered`);
+    } catch (err) {
+        say('.gs-blocks-status', String(err.body?.message ?? err.message ?? err), true);
+    } finally {
+        q('.gs-blocks').disabled = false;
+    }
+}
+
 export function mountSetup(host, { onGround = () => {} } = {}) {
     const box = document.createElement('div');
     box.innerHTML = HTML;
@@ -252,6 +280,7 @@ export function mountSetup(host, { onGround = () => {} } = {}) {
         q('.gs-llayer').replaceChildren(...c.map((l) => new Option(l.title, l.id)));
     }).catch((err) => say('.gs-status', String(err.message ?? err), true));
     q('.gs-ladd').onclick = () => addLayer(q, say, found, show);
+    q('.gs-blocks').onclick = () => registerBlocks(q, say);
     q('.gs-done').onclick = () => done();
     q('.gs-again').onclick = () => again(q, say);
 
@@ -259,5 +288,6 @@ export function mountSetup(host, { onGround = () => {} } = {}) {
     // Where client/play.html mounts the sign-in form, so step 1 is a step
     // rather than a form at the bottom of the panel.
     return { refresh: show, done, account: q('.gs-account'),
+        blocks: () => registerBlocks(q, say),
         connect: () => connect(q, say).then((c) => { found = c; }) };
 }

@@ -1,0 +1,34 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>splatworld — flow modules</title>
+<!--
+  The reference editor's own test suite, run against this repository's copy of
+  its modules (client/flow/). It is a page because these modules are the
+  browser's: they parse XML with DOMParser and build litegraph nodes, neither
+  of which node has. The Playwright spec beside this file opens it and reads
+  the summary.
+-->
+<body>
+<script src="/test/e2e/flow/runner.js"></script>
+<script src="/vendor/litegraph/litegraph.js"></script>
+<script type="module" src="/test/e2e/flow/elx-parse.test.js"></script>
+<script type="module" src="/test/e2e/flow/elx-roundtrip.test.js"></script>
+<script type="module" src="/test/e2e/flow/plugin-parse.test.js"></script>
+<script type="module" src="/test/e2e/flow/plugin-registry.test.js"></script>
+<script type="module" src="/test/e2e/flow/graph-register.test.js"></script>
+<script type="module" src="/test/e2e/flow/elx-nets.test.js"></script>
+<script type="module" src="/test/e2e/flow/graph-layout.test.js"></script>
+<script type="module" src="/test/e2e/flow/graph-import.test.js"></script>
+<script type="module" src="/test/e2e/flow/graph-portgroup.test.js"></script>
+<script type="module" src="/test/e2e/flow/layoutstore.test.js"></script>
+<script type="module" src="/test/e2e/flow/graph-export.test.js"></script>
+<script type="module" src="/test/e2e/flow/named-nets.test.js"></script>
+<script type="module" src="/test/e2e/flow/block-constants.test.js"></script>
+<script type="module" src="/test/e2e/flow/hidden-outputs.test.js"></script>
+<script type="module" src="/test/e2e/flow/history.test.js"></script>
+<script type="module">
+  // Every test file above is a module, so they have all run their top-level
+  // registration by the time this one does.
+  const { passed, failed } = await window.runAllTests();
+  window.__flowTests = { passed, failed };
+</script>

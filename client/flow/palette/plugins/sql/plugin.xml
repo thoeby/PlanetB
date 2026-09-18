@@ -1,0 +1,76 @@
+<plugin format="1" id="sql">
+    <name>SQL</name>
+    <icon type="simicons">file::sql</icon>
+
+    <service id="database">
+        <name>Database</name>
+        <description type="short">Database connection</description>
+        <description type="long">A connection to an SQL database.</description>
+        <parameter id="type">
+            <name>Type</name>
+            <description type="short">Database type</description>
+            <description type="long">The database type (such as "sqlite3", "postgres", ...)</description>
+            <value_choices default-label="SQLite3">
+                <value id="string" label="SQLite3">sqlite3</value>
+                <value id="string" label="PostgreSQL">postgres</value>
+            </value_choices>
+        </parameter>
+        <parameter id="connection-string">
+            <name>Connection String</name>
+            <description type="short">Connection string</description>
+            <description type="long">The database connection string.</description>
+            <value id="string"></value>
+        </parameter>
+        <parameter id="connection-pool-size">
+            <name>Connection Pool Size</name>
+            <description type="short">Connection pool size</description>
+            <description type="long">The number of connections in the connections pool.</description>
+            <value id="integer">5</value>
+        </parameter>
+    </service>
+
+    <node id="execute-script">
+        <name>SQL Script</name>
+        <service plugin="sql" id="database"/>
+        <description type="short">Execute SQL script</description>
+        <description type="long">Load an SQL script from a filesystem path and execute it. If multiple scripts were provided, changes to the database are only committed when all of them succeeded.</description>
+        <input name="script path">
+            <structure id="droplet"/>
+            <structure id="list"/>
+            <value id="filesystem path"/>
+        </input>
+        <output name="error">
+            <structure id="droplet"/>
+            <structure id="list"/>
+            <value id="error-code"/>
+        </output>
+    </node>
+
+    <node id="sql">
+        <name>SQL</name>
+        <service plugin="sql" id="database"/>
+        <description type="short">Execute SQL query</description>
+        <description type="long">Executes an SQL query with optional parameters.</description>
+        <parameter id="table-header">
+            <name>Table Header</name>
+            <description type="short">Add table header</description>
+            <description type="long">Whether the output table header should be initialized from the SQL table colum names.</description>
+            <value id="boolean">true</value>
+        </parameter>
+        <input name="statement">
+            <structure id="droplet"/>
+            <value id="string"/>
+        </input>
+        <input name="param" type="group" min="0" max="10">
+            <structure id="droplet"/>
+        </input>
+        <output name="table">
+            <structure id="table"/>
+        </output>
+        <output name="error">
+            <structure id="droplet"/>
+            <value id="error-code"/>
+        </output>
+    </node>
+
+</plugin>

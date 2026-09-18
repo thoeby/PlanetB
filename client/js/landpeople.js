@@ -112,9 +112,10 @@ function drop(area, g, ctx) {
     const b = el('button', { type: 'button', textContent: 'revoke' });
     b.onclick = async () => {
         try {
+            // Same as above: db/0022 calls them `grantee_id` and `right_`.
             await ctx.api.rpc('revoke_grant', {
-                area_id: area.id, grantee: g.grantee_id ?? g.email,
-                right: g.right_ ?? g.right,
+                area_id: area.id, grantee_id: g.grantee_id,
+                right_: g.right_ ?? g.right,
             });
             ctx.say('revoked');
             await ctx.refresh();
@@ -135,8 +136,11 @@ function give(area, ctx) {
     const add = el('button', { type: 'button', textContent: 'Grant' });
     add.onclick = async () => {
         try {
+            // `right_`, as db/0022 names it: PostgREST matches an RPC by its
+            // argument names, so `right` was no function at all and this
+            // button had never given anybody anything.
             await ctx.api.rpc('set_grant', {
-                area_id: area.id, email: who.value, right: what.value,
+                area_id: area.id, email: who.value, right_: what.value,
             });
             who.value = '';
             ctx.say('granted');

@@ -1,0 +1,41 @@
+<elx>
+    <engine type="flow"/>
+    <input name="location"/>
+    <output name="response"/>
+    <node id="structures.map.create-empty" name="Create Map" plugin="builtin"/>
+    <node id="structures.map.insert-or-assign" name="Map Insert-Or-Assign" plugin="builtin">
+        <constant port="key">
+            <structure id="droplet">
+                <value id="string"><![CDATA[Location]]></value>
+            </structure>
+        </constant>
+    </node>
+    <node id="response.build-string" name="HTTP Build Response" plugin="http">
+        <constant port="status">
+            <structure id="droplet" plugin="">
+                <value id="integer" plugin="">301</value>
+            </structure>
+        </constant>
+        <constant port="body">
+            <structure id="droplet" plugin="">
+                <value id="string" plugin=""/>
+            </structure>
+        </constant>
+    </node>
+    <net name="N000">
+        <connection node="Create Map" port="map"/>
+        <connection node="Map Insert-Or-Assign" port="in"/>
+    </net>
+    <net name="N001">
+        <connection node="location"/>
+        <connection node="Map Insert-Or-Assign" port="value"/>
+    </net>
+    <net name="N002">
+        <connection node="Map Insert-Or-Assign" port="out"/>
+        <connection node="HTTP Build Response" port="headers"/>
+    </net>
+    <net name="N003">
+        <connection node="HTTP Build Response" port="response"/>
+        <connection node="response"/>
+    </net>
+</elx>

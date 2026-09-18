@@ -72,6 +72,9 @@ atom(id, job_id, atom_hash text UNIQUE, op, algo_version, deps bigint[], inputs 
 worker(id, user_id, caps jsonb, trust numeric DEFAULT 0.5, last_seen)
 worker_op_stats(worker_id, op, ok int, bad int, PK(worker_id,op))
 verification(atom_id, verifier_worker_id, kind CHECK IN ('structural','hash','perceptual'), passed bool, metrics jsonb, at)
+elx_plugin(id text PK, name, xml_sha256 → artifact, source CHECK IN ('bundled','runner'), seen_at)
+flow(id uuid PK, area_id → area, name, elx_sha256 → artifact, layout jsonb, rev bigint,
+     created_by, updated_at, deleted_at, UNIQUE(area_id, name) WHERE deleted_at IS NULL)
 ```
 
 Balance = `SUM(credit)-SUM(debit)` view. No mutable balances.
@@ -96,6 +99,9 @@ Balance = `SUM(credit)-SUM(debit)` view. No mutable balances.
 | `buy_asset(san)` | `UPDATE asset SET issued = issued+1 WHERE issued < editions RETURNING` + ledger + `asset_right`, ref `buy:{san}:{user}` |
 | `pay(to_account, amount, ref)` | generic transfer |
 | `propose / approve / merge_proposal` | per `area.rules.required_approvals` |
+| `save_flow(id, area, name, elx_sha256, layout, rev)` | **CAS** on `flow.rev`; the caller must build on the land; the sha must already be an artifact of kind `flow`. The ELX is the file, `layout` is beside it and never inside it |
+| `delete_flow(id, rev)` | soft-deletes the pointer for everybody on the land; the immutable ELX stays |
+| `bundle_plugins(plugins)` | admin: records which block set this world saw, by id and hash |
 
 Triggers: `feature`/`instance` insert/update → for every materialised tile intersecting the row's geometry up to `area.detail`: `dirty = true`, `expected_version = expected_version + 1`. Nothing else.
 

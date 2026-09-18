@@ -1,0 +1,1356 @@
+<plugin format="1" id="builtin">
+    <name>Built-In</name>
+    <icon type="simicons">controls::settings</icon>
+
+    <structure id="invalid">
+        <description type="short">An invalid value.</description>
+    </structure>
+    <structure id="droplet">
+        <description type="short">A container for a single value.</description>
+    </structure>
+    <structure id="list">
+        <description type="short">A list of values.</description>
+    </structure>
+    <structure id="map">
+        <description type="short">A key-value type container.</description>
+    </structure>
+    <structure id="table">
+        <description type="short">A table.</description>
+    </structure>
+
+    <value id="error-code">
+        <description type="short">An error code.</description>
+        <description type="long">A value to indicate success/failure with an optional error message.</description>
+    </value>
+    <value id="boolean">
+        <description type="short">A boolean value (true/false).</description>
+    </value>
+    <value id="integer">
+        <description type="short">An integral value.</description>
+    </value>
+    <value id="real">
+        <description type="short">A real (floating point) value.</description>
+    </value>
+    <value id="byte">
+        <description type="short">A byte (8-bits).</description>
+    </value>
+    <value id="bytes">
+        <description type="short">A container of bytes (8-bits per element).</description>
+    </value>
+    <value id="json">
+        <description type="short">JSON</description>
+    </value>
+    <value id="string">
+        <description type="short">A simple string.</description>
+    </value>
+    <value id="filesystem path">
+        <description type="short">A string representing a filesystem location.</description>
+    </value>
+    <value id="filesystem action">
+        <description type="short">Describes an action on the filesystem.</description>
+    </value>
+    <value id="url">
+        <description type="short">URL</description>
+        <description type="long">A URL (URI) as per RFC3986</description>
+    </value>
+
+    <node id="current-step">
+        <name>Current Step</name>
+        <description type="short">Get current step</description>
+        <description type="long">Get the current step of the process execution.</description>
+        <output name="step">
+            <structure id="droplet"/>
+            <value id="integer"/>
+        </output>
+    </node>
+
+    <group id="flow-control">
+        <name>Flow Control</name>
+        <icon type="simicons">data::flow</icon>
+
+        <node id="conditional">
+            <name>Conditional</name>
+            <icon type="simicons">status::condition.point</icon>
+            <description type="short">Forward input depending on condition</description>
+            <description type="long">Forwards either the input 'true' or the input 'false' to the output depending the condition.</description>
+            <input name="condition">
+                <structure id="droplet"/>
+                <value id="boolean"/>
+            </input>
+            <input name="true"/>
+            <input name="false"/>
+            <output name="out"/>
+        </node>
+
+        <node id="delay-seconds">
+            <name>Delay</name>
+            <icon type="simicons">time::hourglass</icon>
+            <description type="short">Delay for N seconds</description>
+            <description type="long">Forwards the input to the output after sleeping for a specified number of seconds.</description>
+            <input name="in"/>
+            <input name="seconds">
+                <structure id="droplet"/>
+                <value id="integer"/>
+            </input>
+            <output name="out"/>
+        </node>
+
+        <node id="demux">
+            <name>Demux</name>
+            <icon type="simicons">data::chart.multiplexer.01</icon>
+            <description type="short">Demultiplexer</description>
+            <description type="long">Forwards the input to one of the outputs.</description>
+            <input name="in"/>
+            <input name="selector">
+                <structure id="droplet"/>
+                <value id="integer"/>
+            </input>
+            <output name="out" type="group" min="2"/>
+        </node>
+
+        <node id="replace">
+            <name>Replace</name>
+            <description type="short">Replace Input</description>
+            <description type="long">Ignores the 'in' input and forwards the 'replacement' input to 'out'.</description>
+            <input name="in"/>
+            <input name="replacement"/>
+            <output name="out"/>
+        </node>
+
+        <node id="fifo">
+            <name>FIFO</name>
+            <icon type="simicons"></icon>
+            <parameter id="size">
+                <name>Size</name>
+                <description type="short">Size</description>
+                <description type="long">The size of the FIFO.</description>
+                <value id="integer">0</value>
+            </parameter>
+            <input name="in"/>
+            <output name="out"/>
+        </node>
+
+        <node id="if-else">
+            <name>If/Else</name>
+            <icon type="simicons">status::condition.point</icon>
+            <description type="short">Forward input to one of the two outputs.</description>
+            <description type="long">Forwards the input 'in' to either the output 'true' or 'false' depending on 'condition'.</description>
+            <input name="condition">
+                <structure id="droplet" plugin=""/>
+                <value id="error-code" plugin=""/>
+                <value id="boolean" plugin=""/>
+            </input>
+            <input name="in"/>
+            <output name="true"/>
+            <output name="false"/>
+        </node>
+
+        <node id="join">
+            <name>Join</name>
+            <icon type="simicons">data::chart.demultiplexer.01</icon>
+            <description type="short">Join multiple flow paths into one</description>
+            <description type="long">Takes the first input which is neither 'invalid' nor 'ignore' and forwards it to the output.</description>
+            <input name="in" type="group" min="2"/>
+            <output name="out"/>
+        </node>
+
+        <node id="mux">
+            <name>Mux</name>
+            <icon type="simicons">data::chart.demultiplexer.01</icon>
+            <description type="short">Multiplexer</description>
+            <description type="long">Selects one input to be forwarded to the output. Discards all other inputs.</description>
+            <input name="in" type="group" min="2"/>
+            <input name="selector">
+                <structure id="droplet"/>
+                <value id="integer"/>
+            </input>
+            <output name="out"/>
+        </node>
+
+        <node id="terminate">
+            <name>Terminate</name>
+            <icon type="simicons">controls::stop</icon>
+            <description type="short">Terminate process</description>
+            <description type="long">Terminates the process execution if presented with "true" on the input or an error-code holding an error.</description>
+            <input name="condition">
+                <structure id="droplet"/>
+                <value id="boolean"/>
+                <value id="error-code"/>
+            </input>
+        </node>
+    </group>
+
+    <group id="storage">
+        <name>Storage</name>
+
+        <group id="volatile">
+            <name>Volatile</name>
+
+            <node id="set">
+                <name>Set</name>
+                <description type="short">Set data in volatile storage</description>
+                <description type="long">Stores data in volatile storage. Returns previously stored data (if any).</description>
+                <input name="data"/>
+                <input name="key">
+                    <structure id="droplet"/>
+                    <value id="string"/>
+                </input>
+                <output name="prev data"/>
+            </node>
+
+            <node id="get">
+                <name>Get</name>
+                <description type="short">Get data from volatile storage</description>
+                <description type="long">Retrieves data previously stored in volatile storage.</description>
+                <input name="key">
+                    <structure id="droplet"/>
+                    <value id="string"/>
+                </input>
+                <output name="data"/>
+            </node>
+        </group>
+    </group>
+
+    <group id="structures">
+        <name>Structures</name>
+        <icon type="simicons">data::data.unstructured</icon>
+
+        <node id="is-invalid">
+            <name>Is Invalid</name>
+            <description type="short">Check if invalid</description>
+            <description type="long">Checks if a provided input is an invalid structure.</description>
+            <input name="in"/>
+            <output name="is invalid">
+                <structure id="droplet"/>
+                <value id="boolean"/>
+            </output>
+        </node>
+
+        <node id="is-droplet">
+            <name>Is Droplet</name>
+            <description type="short">Check if droplet</description>
+            <description type="long">Checks if a provided input is a droplet structure.</description>
+            <input name="in"/>
+            <output name="is droplet">
+                <structure id="droplet"/>
+                <value id="boolean"/>
+            </output>
+        </node>
+
+        <node id="is-list">
+            <name>Is List</name>
+            <description type="short">Check if list</description>
+            <description type="long">Checks if a provided input is a list structure.</description>
+            <input name="in"/>
+            <output name="is list">
+                <structure id="droplet"/>
+                <value id="boolean"/>
+            </output>
+        </node>
+
+        <node id="is-table">
+            <name>Is Table</name>
+            <description type="short">Check if table</description>
+            <description type="long">Checks if a provided input is a table structure.</description>
+            <input name="in"/>
+            <output name="is table">
+                <structure id="droplet"/>
+                <value id="boolean"/>
+            </output>
+        </node>
+
+        <node id="is-map">
+            <name>Is Map</name>
+            <description type="short">Check if map</description>
+            <description type="long">Checks if a provided input is a map structure.</description>
+            <input name="in"/>
+            <output name="is map">
+                <structure id="droplet"/>
+                <value id="boolean"/>
+            </output>
+        </node>
+
+        <group id="list">
+            <name>List</name>
+            <icon type="simicons">file::table-of-contents</icon>
+
+            <node id="accumulate">
+                <name>Accumulate</name>
+                <description type="short">Accumulate droplets into list</description>
+                <description type="list">Creates a list and adds each received input droplet to the list.</description>
+                <input name="droplet">
+                    <structure id="droplet"/>
+                </input>
+                <output name="list">
+                    <structure id="list"/>
+                </output>
+            </node>
+
+            <node id="append">
+                <name>Append</name>
+                <description type="short">Append to list</description>
+                <description type="long">Append one or more droplets to a list.</description>
+                <input name="in">
+                    <structure id="list"/>
+                </input>
+                <input name="append" type="group" min="1">
+                    <structure id="droplet"/>
+                    <structure id="list"/>
+                </input>
+                <output name="out">
+                    <structure id="list"/>
+                </output>
+            </node>
+
+            <node id="are-same-size">
+                <name>Are Same Size</name>
+                <description type="short">Compare list sizes</description>
+                <description type="long">Checks if the size of two or more input lists are the same (equal).</description>
+                <input name="list" type="group" min="2">
+                    <structure id="list"/>
+                </input>
+                <output name="are same size">
+                    <structure id="droplet"/>
+                    <value id="boolean"/>
+                </output>
+            </node>
+
+            <node id="fill">
+                <name>Fill</name>
+                <icon type="simicons"></icon>
+                <description type="short">Make list filled with value</description>
+                <description type="long">Makes a list of the specified size where each element is the same value.</description>
+                <input name="value">
+                    <structure id="droplet"/>
+                </input>
+                <input name="size">
+                    <structure id="droplet"/>
+                    <value id="integer"/>
+                </input>
+                <output name="list">
+                    <structure id="list"/>
+                </output>
+            </node>
+
+            <node id="for-each">
+                <name>For Each</name>
+                <input name="list">
+                    <structure id="list"/>
+                </input>
+                <output name="droplet">
+                    <structure id="droplet"/>
+                </output>
+                <output name="index">
+                    <structure id="droplet"/>
+                    <value id="integer"/>
+                </output>
+                <output name="is last">
+                    <structure id="droplet"/>
+                    <value id="boolean"/>
+                </output>
+            </node>
+
+            <node id="from-droplets">
+                <name>From Droplets</name>
+                <icon type="simicons"></icon>
+                <description type="short">Combine droplets into list</description>
+                <description type="long">Combines two or more droplets into a list.</description>
+                <input name="droplet" type="group" min="1">
+                    <structure id="droplet"/>
+                </input>
+                <output name="list">
+                    <structure id="list"/>
+                </output>
+            </node>
+
+            <node id="get-droplet">
+                <name>Get Droplet</name>
+                <icon type="simicons"></icon>
+                <description type="short">Get droplet from list</description>
+                <description type="long">Get a droplet from a list by index.</description>
+                <input name="list">
+                    <structure id="list"/>
+                </input>
+                <input name="index">
+                    <structure id="droplet"/>
+                    <value id="integer"/>
+                </input>
+                <output name="droplet">
+                    <structure id="droplet"/>
+                </output>
+            </node>
+
+            <node id="get-first">
+                <name>Get First</name>
+                <description type="short">Get first element</description>
+                <description type="long">Gets the first element of a list. If the list is empty, invalid is returned.</description>
+                <input name="list">
+                    <structure id="list"/>
+                </input>
+                <output name="droplet">
+                    <structure id="droplet"/>
+                    <structure id="invalid"/>
+                </output>
+            </node>
+
+            <node id="get-last">
+                <name>Get Last</name>
+                <description type="short">Get last element</description>
+                <description type="long">Gets the last element of a list. If the list is empty, invalid is returned.</description>
+                <input name="list">
+                    <structure id="list"/>
+                </input>
+                <output name="droplet">
+                    <structure id="droplet"/>
+                    <structure id="invalid"/>
+                </output>
+            </node>
+
+            <node id="remove-consecutive-duplicates">
+                <name>Remove Consecutive Duplicates</name>
+                <icon type="simicons"></icon>
+                <description type="short">Remove consecutive duplicates</description>
+                <description type="long">Eliminates all except the first element from every consecutive group of equivalent elements.</description>
+                <input name="in">
+                    <structure id="list"/>
+                </input>
+                <output name="out">
+                    <structure id="list"/>
+                </output>
+            </node>
+
+            <node id="remove-duplicates">
+                <name>Remove Duplicates</name>
+                <icon type="simicons"></icon>
+                <description type="short">Remove duplicates</description>
+                <description type="long">Eliminates all duplicate elements.</description>
+                <input name="in">
+                    <structure id="list"/>
+                </input>
+                <output name="out">
+                    <structure id="list"/>
+                </output>
+            </node>
+
+            <node id="remove-if">
+                <name>Remove (if)</name>
+                <icon type="simicons"></icon>
+                <description type="short">Remove matching elements</description>
+                <description type="long">Removes all elements which equal a specified value.</description>
+                <input name="in">
+                    <structure id="list"/>
+                </input>
+                <input name="value">
+                    <structure id="droplet"/>
+                </input>
+                <output name="out">
+                    <structure id="list"/>
+                </output>
+            </node>
+
+            <node id="remove-index">
+                <name>Remove (Index)</name>
+                <icon type="simicons"></icon>
+                <description type="short">Remove a specific element</description>
+                <description type="long">Removes a specific element by index.</description>
+                <input name="in">
+                    <structure id="list"/>
+                </input>
+                <input name="index">
+                    <structure id="droplet"/>
+                    <value id="integer"/>
+                </input>
+                <output name="out">
+                    <structure id="list"/>
+                </output>
+            </node>
+
+            <node id="repeat">
+                <name>Repeat</name>
+                <description type="short">Repeat input list</description>
+                <description type="long">Returns a list containing 'count' copies of the 'in' input list.</description>
+                <input name="in">
+                    <structure id="list"/>
+                </input>
+                <input name="count">
+                    <structure id="droplet"/>
+                    <value id="integer"/>
+                </input>
+                <output name="out">
+                    <structure id="list"/>
+                </output>
+            </node>
+
+            <node id="sample">
+                <name>Sample</name>
+                <description type="short">Get a sample of the list</description>
+                <description type="long">Get 'count' randomly chosen elements from the input list.</description>
+                <input name="in">
+                    <structure id="list"/>
+                </input>
+                <input name="count">
+                    <structure id="droplet"/>
+                    <value id="integer"/>
+                </input>
+                <output name="out">
+                    <structure id="list"/>
+                </output>
+            </node>
+
+            <node id="shuffle">
+                <name>Shuffle</name>
+                <icon type="simicons">operations::shuffle</icon>
+                <description type="short">Shuffle list</description>
+                <description type="long">Reorders the elements in a list such that each possible permutation of those elements has an equal probability of appearance.</description>
+                <input name="in">
+                    <structure id="list"/>
+                </input>
+                <output name="out">
+                    <structure id="list"/>
+                </output>
+            </node>
+
+            <node id="size">
+                <name>Size</name>
+                <icon type="simicons">instruments::ruler</icon>
+                <description type="short">List size</description>
+                <description type="long">Get the number of elements in a list.</description>
+                <input name="in">
+                    <structure id="list"/>
+                </input>>
+                <output name="size">
+                    <structure id="droplet"/>
+                    <value id="integer"/>
+                </output>
+            </node>
+
+            <node id="sort">
+                <name>Sort</name>
+                <icon type="simicons">operations::sort.ascending</icon>
+                <description type="short">Sort list</description>
+                <description type="long">Sorts a list (in ascending order).</description>
+                <input name="in">
+                    <structure id="list"/>
+                </input>
+                <output name="out">
+                    <structure id="list"/>
+                </output>
+            </node>
+
+            <node id="to-droplets">
+                <name>To Droplets</name>
+                <description type="short">Droplets from list</description>
+                <description type="long">Extracts individual droplets form a list.</description>
+                <input name="list">
+                    <structure id="list"/>
+                </input>
+                <output type="group" name="droplet" min="1">
+                    <structure id="droplet"/>
+                </output>
+            </node>
+        </group>
+
+        <group id="map">
+            <name>Map</name>
+            <icon type="simicons"></icon>
+
+            <node id="contains">
+                <name>Contains</name>
+                <icon type="simicons"></icon>
+                <description type="short">Contains key</description>
+                <description type="long">Checks if a particular key is present in the map.</description>
+                <input name="map">
+                    <structure id="map"/>
+                </input>>
+                <input name="key">
+                    <structure id="droplet"/>
+                </input>
+                <output name="contains">
+                    <structure id="droplet"/>
+                    <value id="boolean"/>
+                </output>
+            </node>
+
+            <node id="create-empty">
+                <name>Create Map</name>
+                <description type="short">Create empty map</description>
+                <description type="long">Creates an empty map structure.</description>
+                <output name="map">
+                    <structure id="map"/>
+                </output>
+            </node>
+
+            <node id="insert-or-assign">
+                <name>Insert Or Assign</name>
+                <icon type="simicons"></icon>
+                <description type="short">Insert or assign a value</description>
+                <description type="long">Inserts a value with a given key or assigns it if the key already exists.</description>
+                <input name="in">
+                    <structure id="map"/>
+                </input>
+                <input name="key">
+                    <structure id="droplet"/>
+                </input>
+                <input name="value">
+                    <structure id="droplet"/>
+                </input>
+                <output name="out">
+                    <structure id="map"/>
+                </output>
+            </node>
+
+            <node id="get">
+                <name>Get</name>
+                <icon type="simicons"></icon>
+                <description type="short">Get value from key</description>
+                <description type="long">Get the value associated with a given key from a map.</description>
+                <input name="map">
+                    <structure id="map"/>
+                </input>
+                <input name="key">
+                    <structure id="droplet"/>
+                    <structure id="invalid"/>
+                </input>
+                <output name="value"/>
+            </node>
+
+            <node id="size">
+                <name>Size</name>
+                <icon type="simicons">instruments::ruler</icon>
+                <description type="short">Map size</description>
+                <description type="long">Get the number of elements in a map.</description>
+                <input name="in">
+                    <structure id="map"/>
+                </input>>
+                <output name="size">
+                    <structure id="droplet"/>
+                    <value id="integer"/>
+                </output>
+            </node>
+
+            <node id="to-table">
+                <name>To Table</name>
+                <icon type="simicons"></icon>
+                <description type="short">Map to table</description>
+                <description type="long">Creates a table from a map. The resulting table will have two columns: key and value.</description>
+                <input name="map">
+                    <structure id="map"/>
+                </input>
+                <output name="table">
+                    <structure id="table"/>
+                </output>
+            </node>
+        </group>
+
+        <group id="table">
+            <name>Table</name>
+            <icon type="simicons">data::table.variant</icon>
+
+            <node id="accumulate-columns">
+                <name>Accumulate Columns</name>
+                <icon type="simicons">formatting::column</icon>
+                <description type="short">Accumulate lists as columns into a table</description>
+                <description type="long">Creates a table and adds each received list as a column to the table.</description>
+                <input name="list">
+                    <structure id="list"/>
+                </input>
+                <output name="table">
+                    <structure id="table"/>
+                </output>
+            </node>
+
+            <node id="accumulate-rows">
+                <name>Accumulate Rows</name>
+                <icon type="simicons">formatting::row</icon>
+                <description type="short">Accumulate lists as rows into a table</description>
+                <description type="long">Creates a table and adds each received list as a row to the table.</description>
+                <input name="list">
+                    <structure id="list"/>
+                </input>
+                <output name="table">
+                    <structure id="table"/>
+                </output>
+            </node>
+
+            <node id="append-row">
+                <name>Append Row</name>
+                <icon type="simicons">formatting::row</icon>
+                <description type="short">Append row</description>
+                <description type="long">Append a row to a table.</description>
+                <input name="table">
+                    <structure id="table"/>
+                </input>
+                <input name="row" type="group" min="1">
+                    <structure id="list"/>
+                    <structure id="table"/>
+                </input>
+                <output name="out">
+                    <structure id="table"/>
+                </output>
+            </node>
+
+            <node id="append-column">
+                <name>Append Column</name>
+                <icon type="simicons">formatting::column</icon>
+                <description type="short">Append column</description>
+                <description type="long">Append a colum to a table.</description>
+                <input name="table">
+                    <structure id="table"/>
+                </input>
+                <input name="column" type="group" min="1">
+                    <structure id="list"/>
+                    <structure id="table"/>
+                </input>
+                <output name="out">
+                    <structure id="table"/>
+                </output>
+            </node>
+
+            <node id="row-count">
+                <name>Row Count</name>
+                <icon type="simicons">instruments::ruler</icon>
+                <description type="short">Table row count</description>
+                <description type="long">Get the numbers of rows of a table.</description>
+                <input name="table">
+                    <structure id="table"/>
+                </input>
+                <output name="row count">
+                    <structure id="droplet"/>
+                    <value id="integer"/>
+                </output>
+            </node>
+
+            <node id="column-count">
+                <name>Column Count</name>
+                <icon type="simicons">instruments::ruler</icon>
+                <description type="short">Table column count</description>
+                <description type="long">Get the numbers of columns of a table.</description>
+                <input name="table">
+                    <structure id="table"/>
+                </input>
+                <output name="column count">
+                    <structure id="droplet"/>
+                    <value id="integer"/>
+                </output>
+            </node>
+
+            <node id="create">
+                <name>Create Table</name>
+                <icon type="simicons">data::table.variant</icon>
+                <description type="short">Create table</description>
+                <description type="long">Create a table of a specific size where each cell is pre-filled with a specific value.</description>
+                <input name="value">
+                    <structure id="droplet"/>
+                </input>
+                <input name="row count">
+                    <structure id="droplet"/>
+                    <value id="integer"/>
+                </input>
+                <input name="column count">
+                    <structure id="droplet"/>
+                    <value id="integer"/>
+                </input>
+                <output name="table">
+                    <structure id="table"/>
+                </output>
+            </node>
+
+            <node id="filter-by-column">
+                <name>Filter By Column</name>
+                <icon type="simicons">operations::filter</icon>
+                <description type="short">Filter table by column</description>
+                <description type="long">Removes any rows where a cell value does not equal a provided value.</description>
+                <input name="table">
+                    <structure id="table"/>
+                </input>
+                <input name="column index">
+                    <structure id="droplet"/>
+                    <value id="integer"/>
+                </input>
+                <input name="cell value">
+                    <structure id="droplet"/>
+                </input>
+                <output name="out">
+                    <structure id="table"/>
+                </output>
+            </node>
+
+            <node id="from-columns">
+                <name>From Columns</name>
+                <icon type="simicons"></icon>
+                <description type="short">Combine lists into table</description>
+                <description type="long">Combines one or more lists into a table (column-wise).</description>
+                <parameter id="output-empty">
+                    <name>Output if empty</name>
+                    <description type="short">Output empty tables</description>
+                    <description type="long">Whether to output a table if it is empty.</description>
+                    <value id="boolean">false</value>
+                </parameter>
+                <input name="column" type="group" min="1">
+                    <structure id="list"/>
+                </input>
+                <output name="table">
+                    <structure id="table"/>
+                </output>
+            </node>
+
+            <node id="from-rows">
+                <name>From Rows</name>
+                <icon type="simicons"></icon>
+                <description type="short">Combine lists into table</description>
+                <description type="long">Combines one or more lists into a table (row-wise).</description>
+                <parameter id="output-empty">
+                    <name>Output if empty</name>
+                    <description type="short">Output empty tables</description>
+                    <description type="long">Whether to output a table if it is empty.</description>
+                    <value id="boolean">false</value>
+                </parameter>
+                <input name="row" type="group" min="1">
+                    <structure id="list"/>
+                </input>
+                <output name="table">
+                    <structure id="table"/>
+                </output>
+            </node>
+
+            <node id="for-each-row">
+                <name>For-Each Row</name>
+                <description type="short">Each row of a table</description>
+                <description type="long">Returns each row of the table, one after another.</description>
+                <input name="table">
+                    <structure id="table"/>
+                </input>
+                <output name="row">
+                    <structure id="list"/>
+                </output>
+                <output name="index">
+                    <structure id="droplet"/>
+                    <value id="integer"/>
+                </output>
+                <output name="is last">
+                    <structure id="droplet"/>
+                    <value id="boolean"/>
+                </output>
+            </node>
+
+            <node id="get-cell">
+                <name>Get Cell</name>
+                <icon  type="simicons">data::table.cell</icon>
+                <description type="short">Get table cell</description>
+                <description type="long">Get a specific cell of a table.</description>
+                <input name="table">
+                    <constant>false</constant>
+                    <structure id="table"/>
+                </input>
+                <input name="row index">
+                    <structure id="droplet"/>
+                    <value id="integer"/>
+                </input>
+                <input name="column index">
+                    <structure id="droplet"/>
+                    <value id="integer"/>
+                </input>
+                <output name="cell">
+                    <structure id="droplet" plugin=""/>
+                </output>
+            </node>
+            <node id="get-column">
+                <name>Get Column</name>
+                <icon type="simicons">formatting::column</icon>
+                <description type="short">Get table column</description>
+                <description type="long">Get a specific column of a table.</description>
+                <input name="table">
+                    <constant>false</constant>
+                    <structure id="table" plugin=""/>
+                </input>
+                <input name="index">
+                    <structure id="droplet" plugin=""/>
+                    <value id="integer" plugin=""/>
+                    <value id="string"/>
+                </input>
+                <output name="column">
+                    <structure id="list" plugin=""/>
+                </output>
+            </node>
+            <node id="get-columns">
+                <name>Get Columns</name>
+                <icon type="simicons">formatting::column</icon>
+                <description type="short">Get table columns</description>
+                <description type="long">Constructs a table containing only specified columns.</description>
+                <input name="in">
+                    <constant>false</constant>
+                    <structure id="table"/>
+                </input>
+                <input name="indices">
+                    <structure id="list"/>
+                    <value id="integer"/>
+                    <value id="string"/>
+                </input>
+                <output name="out">
+                    <structure id="table"/>
+                </output>
+            </node>
+            <node id="get-horizontal-header">
+                <name>Get Horizontal Header</name>
+                <description type="short">Get horizontal table header</description>
+                <description type="long">Get the horizontal header from a table (if any).</description>
+                <input name="table">
+                    <constant>false</constant>
+                    <structure id="table"/>
+                </input>
+                <output name="header">
+                    <structure id="list"/>
+                    <structure id="invalid"/>
+                    <value id="string"/>
+                </output>
+            </node>
+            <node id="get-row">
+                <name>Get Row</name>
+                <icon type="simicons">formatting::row</icon>
+                <description type="short">Get table row</description>
+                <description type="long">Get a specific row of a table.</description>
+                <input name="table">
+                    <constant>false</constant>
+                    <structure id="table" plugin=""/>
+                </input>
+                <input name="index">
+                    <structure id="droplet" plugin=""/>
+                    <value id="integer" plugin=""/>
+                </input>
+                <output name="row">
+                    <structure id="list" plugin=""/>
+                </output>
+            </node>
+            <node id="get-row-by-cell-value">
+                <name>Row By Cell Value</name>
+                <description type="short">Get row by cell value</description>
+                <description type="long">Get the first row from a table where a cell matches a specific value.</description>
+                <input name="table">
+                    <structure id="table"/>
+                </input>
+                <input name="column index">
+                    <structure id="droplet"/>
+                    <value id="integer"/>
+                </input>
+                <input name="cell value">
+                    <structure id="droplet"/>
+                    <value category="equality"/>
+                </input>
+                <output name="row">
+                    <structure id="list"/>
+                </output>
+            </node>
+            <node id="has-horizontal-header">
+                <name>Has Horizontal Header</name>
+                <description type="short">Has horizontal header</description>
+                <description type="long">Checks whether a provided table has a horizontal header.</description>
+                <input name="table">
+                    <structure id="table"/>
+                </input>
+                <output name="has header">
+                    <structure id="droplet"/>
+                    <value id="boolean"/>
+                </output>
+            </node>
+            <node id="remove-column-index">
+                <name>Remove Column (Index)</name>
+                <icon type="simicons">formatting::column</icon>
+                <description type="short">Remove column</description>
+                <description type="long">Remove an existing table column by index.</description>
+                <input name="in">
+                    <structure id="table"/>
+                </input>
+                <input name="index">
+                    <structure id="droplet"/>
+                    <value id="integer"/>
+                </input>
+                <output name="out">
+                    <structure id="table"/>
+                </output>
+            </node>
+            <node id="remove-row-if">
+                <name>Remove Row (if)</name>
+                <icon type="simicons">formatting::row</icon>
+                <description type="short">Remove matching rows</description>
+                <description type="long">Remove any row where a column value equals a specified value.</description>
+                <input name="in">
+                    <structure id="table"/>
+                </input>
+                <input name="column index">
+                    <structure id="droplet"/>
+                    <value id="integer"/>
+                </input>
+                <input name="value">
+                    <structure id="droplet"/>
+                </input>
+                <output name="out">
+                    <structure id="table"/>
+                </output>
+            </node>
+            <node id="remove-row-index">
+                <name>Remove Row (Index)</name>
+                <icon type="simicons">formatting::row</icon>
+                <description type="short">Remove row</description>
+                <description type="long">Remove an existing table row by index.</description>
+                <input name="in">
+                    <structure id="table"/>
+                </input>
+                <input name="index">
+                    <structure id="droplet"/>
+                    <value id="integer"/>
+                </input>
+                <output name="out">
+                    <structure id="table"/>
+                </output>
+            </node>
+            <node id="sort-by-column">
+                <name>Sort (by column)</name>
+                <icon type="simicons">operations::sort.ascending</icon>
+                <description type="short">Sort table by column</description>
+                <description type="long">Sorts a table by a column (in ascending order).</description>
+                <input name="in">
+                    <structure id="table"/>
+                </input>
+                <input name="index">
+                    <structure id="droplet"/>
+                    <value id="integer"/>
+                </input>
+                <output name="out">
+                    <structure id="table"/>
+                </output>
+            </node>
+            <node id="transpose">
+                <name>Transpose</name>
+                <icon type="simicons">operations::transpose</icon>
+                <description type="short">Transpose table</description>
+                <description type="long">Flips the table around (rows become columns, columns become rows).</description>
+                <input name="in">
+                    <structure id="table"/>
+                </input>
+                <output name="out">
+                    <structure id="table"/>
+                </output>
+            </node>
+            <node id="pretty-print">
+                <name>Pretty Print</name>
+                <icon type="simicons">technology::printer</icon>
+                <description type="short">Pretty print a table</description>
+                <description type="long">Produces a pretty string representation of the table.</description>
+                <input name="table">
+                    <structure id="table"/>
+                </input>
+                <output name="string">
+                    <structure id="droplet"/>
+                    <value id="string"/>
+                </output>
+            </node>
+            <node id="set-column">
+                <name>Set Column</name>
+                <icon type="simicons">formatting::column</icon>
+                <description type="short">Set table column</description>
+                <description types="long">Sets (modifies) the contents of an existing column.</description>
+                <input name="table">
+                    <structure id="table"/>
+                </input>
+                <input name="column">
+                    <structure id="list"/>
+                </input>
+                <input name="index">
+                    <structure id="droplet"/>
+                    <value id="integer"/>
+                </input>
+                <output name="out">
+                    <structure id="table"/>
+                </output>
+            </node>
+            <node id="set-horizontal-header">
+                <name>Set Horizontal Header</name>
+                <description type="short">Set horizontal table header</description>
+                <description type="long">Sets the horizontal header of a table.</description>
+                <input name="table in">
+                    <structure id="table"/>
+                </input>
+                <input name="header">
+                    <structure id="list"/>
+                    <value id="string"/>
+                </input>
+                <output name="table out">
+                    <structure id="table"/>
+                </output>
+            </node>
+            <node id="set-row">
+                <name>Set Row</name>
+                <icon type="simicons">formatting::row</icon>
+                <description type="short">Set table row</description>
+                <description types="long">Sets (modifies) the contents of an existing row.</description>
+                <input name="table">
+                    <structure id="table"/>
+                </input>
+                <input name="row">
+                    <structure id="list"/>
+                </input>
+                <input name="index">
+                    <structure id="droplet"/>
+                    <value id="integer"/>
+                </input>
+                <output name="out">
+                    <structure id="table"/>
+                </output>
+            </node>
+        </group>
+    </group>
+
+    <group id="values">
+        <name>Values</name>
+        <icon type="simicons">data::value.variable</icon>
+
+        <node id="replace-if">
+            <name>Replace If</name>
+            <description type="short">Replace value if equal to</description>
+            <description type="long">Replaces any value on input 'in' with the value 'replacement' if it equals 'equal to'.</description>
+            <input name="in"/>
+            <input name="equal to">
+                <structure id="droplet"/>
+            </input>
+            <input name="replacement">
+                <structure id="droplet"/>
+            </input>
+            <output name="out"/>
+        </node>
+
+        <node id="to-integer">
+            <name>To Integer</name>
+            <icon type="simicons"></icon>
+            <description type="short">Value to integer</description>
+            <description type="long">Convert values to integer values.</description>
+            <input name="in">
+                <value id="integer"/>
+                <value id="real"/>
+                <value id="string"/>
+            </input>
+            <output name="integer">
+                <value id="integer"/>
+            </output>
+        </node>
+
+        <node id="to-string">
+            <name>To String</name>
+            <icon type="simicons">data::string-text</icon>
+            <description type="short">Value to string</description>
+            <description type="long">Convert values to string values.</description>
+            <input name="in"/>
+            <output name="string">
+                <value id="string"/>
+            </output>
+        </node>
+
+        <group id="bytes">
+            <name>Bytes</name>
+
+            <node id="from-string">
+                <name>From String</name>
+                <icon type="simicons"></icon>
+                <description type="short">Convert string to bytes</description>
+                <description type="long">Converts a string to bytes.</description>
+                <input name="string">
+                    <structure id="droplet"/>
+                    <structure id="list"/>
+                    <structure id="table"/>
+                    <structure id="map"/>
+                    <value id="string"/>
+                </input>
+                <output name="bytes">
+                    <structure id="droplet"/>
+                    <structure id="list"/>
+                    <structure id="table"/>
+                    <structure id="map"/>
+                    <value id="bytes"/>
+                </output>
+            </node>
+
+            <node id="to-string">
+                <name>To String</name>
+                <icon type="simicons"></icon>
+                <description type="short">Convert bytes to string</description>
+                <description type="long">Converts bytes to a string.</description>
+                <input name="bytes">
+                    <structure id="droplet"/>
+                    <structure id="list"/>
+                    <structure id="table"/>
+                    <structure id="map"/>
+                    <value id="bytes"/>
+                </input>
+                <output name="string">
+                    <structure id="droplet"/>
+                    <structure id="list"/>
+                    <structure id="table"/>
+                    <structure id="map"/>
+                    <value id="string"/>
+                </output>
+            </node>
+        </group>
+
+        <group id="error-code">
+            <name>Error Code</name>
+
+            <node id="check">
+                <name>Check Error</name>
+                <icon type="simicons">status::checkmark.outline.error</icon>
+                <description type="short">Check error code</description>
+                <description type="long">Checks whether an error code holds an error and retrieves the error message.</description>
+                <input name="error">
+                    <structure id="droplet"/>
+                    <structure id="list"/>
+                    <structure id="table"/>
+                    <structure id="map"/>
+                    <value id="error-code"/>
+                </input>
+                <output name="is error">
+                    <structure id="droplet"/>
+                    <structure id="list"/>
+                    <structure id="table"/>
+                    <structure id="map"/>
+                    <value id="boolean"/>
+                </output>
+                <output name="message">
+                    <structure id="droplet"/>
+                    <structure id="list"/>
+                    <structure id="table"/>
+                    <structure id="map"/>
+                    <value id="string"/>
+                </output>
+            </node>
+
+            <node id="make">
+                <name>Make Error</name>
+                <description type="short">Conditionally make an error</description>
+                <description type="long">Creates an error with a given message if 'condition' is true. Returns a non-error otherwise.</description>
+                <input name="condition">
+                    <structure id="droplet"/>
+                    <value id="boolean"/>   <!-- ToDo: Anything that implements values::category::boolean works -->
+                </input>
+                <input name="message">
+                    <structure id="droplet"/>
+                    <value id="string"/>
+                </input>
+                <output name="error">
+                    <structure id="droplet"/>
+                    <value id="error-code"/>
+                </output>
+            </node>
+
+            <node id="take-first">
+                <name>Forward First Error</name>
+                <icon type="simicons">data::chart.demultiplexer.01</icon>
+                <description type="short">Forward the first error-code holding an error</description>
+                <description type="long">Loops sequentially through all the inputs and forwards the first error-code holding an error to the output. If no error-code holding an error was encountered, returns an empty error-code (success).</description>
+                <input name="error" type="group" min="2">
+                    <structure id="droplet"/>
+                    <value id="error-code"/>
+                </input>
+                <output name="out">
+                    <structure id="droplet"/>
+                    <value id="error-code"/>
+                </output>
+            </node>
+
+        </group>
+
+        <group id="integer">
+            <name>Integer</name>
+
+            <node id="to-hex-string">
+                <name>To Hex String</name>
+                <description type="short">Integer to hexadecimal string</description>
+                <description type="long">Convert an integer value to a hexadecimal string value.</description>
+                <input name="integer">
+                    <structure id="droplet"/>
+                    <structure id="list"/>
+                    <structure id="map"/>
+                    <value id="integer"/>
+                </input>
+                <input name="prefix">
+                    <structure id="droplet"/>
+                    <value id="string"/>
+                </input>
+                <output name="string">
+                    <structure id="droplet"/>
+                    <structure id="list"/>
+                    <structure id="map"/>
+                    <value id="string"/>
+                </output>
+            </node>
+        </group>
+
+        <group id="real">
+            <name>Real</name>
+
+            <node id="to-real">
+                <name>To Real</name>
+                <icon type="simicons"></icon>
+                <description type="short">Value to real</description>
+                <description type="long">Convert values to real values. Returns invalid value if conversion is not possible.</description>
+                <input name="in">
+                    <value id="integer"/>
+                    <value id="real"/>
+                    <value id="string"/>
+                </input>
+                <output name="real">
+                    <value id="real"/>
+                </output>
+            </node>
+
+            <group id="constant">
+                <name>Constant</name>
+
+                <node id="epsilon">
+                    <name>Epsilon</name>
+                    <icon type="simicons"></icon>
+                    <description type="short">Epsilon</description>
+                    <description type="long">Returns the difference between 1.0 and the next representable value of the real (floating-point) type </description>
+                    <output name="constant">
+                        <structure id="droplet"/>
+                        <value id="real"/>
+                    </output>
+                </node>
+
+                <node id="infinity">
+                    <name>Infinity</name>
+                    <icon type="simicons"></icon>
+                    <description type="short">Infinity</description>
+                    <description type="long">Infinity constant</description>
+                    <output name="constant">
+                        <structure id="droplet"/>
+                        <value id="real"/>
+                    </output>
+                </node>
+
+                <node id="nan">
+                    <name>NaN</name>
+                    <icon type="simicons"></icon>
+                    <description type="short">NaN</description>
+                    <description type="long">Not-A-Number constant</description>
+                    <output name="constant">
+                        <structure id="droplet"/>
+                        <value id="real"/>
+                    </output>
+                </node>
+
+                <node id="zero">
+                    <name>Zero</name>
+                    <icon type="simicons"></icon>
+                    <description type="short">Zero</description>
+                    <description type="long">Zero constant</description>
+                    <output name="constant">
+                        <structure id="droplet"/>
+                        <value id="real"/>
+                    </output>
+                </node>
+
+            </group>
+
+        </group>
+
+    </group>
+
+</plugin>

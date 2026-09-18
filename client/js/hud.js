@@ -313,11 +313,16 @@ export function mountHud(doc) {
     let open = 'World';
     let app = 'Build';
     const drawers = drawersOf(() => f);
+    // A view that is a workspace of its own — Automate is the first — is told
+    // when it is switched to and away from; the chrome itself only changes hue.
+    const watching = [];
     const pickApp = (name) => {
         if (name === null) { drawers.apps(f.drawer.node.hidden); return app; }
+        const was = app;
         app = dressFor(f, name);
         drawers.apps(false);
         if (app !== 'Build') show('World');
+        if (app !== was) for (const fn of watching) fn(app, was);
         return app;
     };
     const f = buildFrame(doc, (name) => show(name), {
@@ -365,6 +370,7 @@ export function mountHud(doc) {
         notify: (n) => f.notify.push(n),
         // Which workspace the chrome is dressed for, and switching it.
         app: (name) => (name === undefined ? app : pickApp(name)),
+        onApp(fn) { watching.push(fn); },
         panel: (name) => f.bodies.get(name),
         // What a surface says above its parts, rather than inside one of them.
         panelHead: (name) => f.frame.heads.get(name),

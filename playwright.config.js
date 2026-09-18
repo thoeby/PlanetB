@@ -12,6 +12,11 @@ const preinstalled = '/opt/pw-browsers/chromium';
 
 export default defineConfig({
     testDir: 'client/test/e2e',
+    // Specs only. client/test/e2e/flow/ holds the reference editor's own test
+    // files, which are modules a *page* loads (flow-modules.spec.js opens it);
+    // playwright's default pattern would take them for node specs and fail on
+    // their absolute imports.
+    testMatch: '**/*.spec.js',
     timeout: 120000,
     expect: { timeout: 20000 },
     fullyParallel: false,

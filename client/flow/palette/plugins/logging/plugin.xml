@@ -1,0 +1,42 @@
+<plugin format="1" id="logging">
+    <name>Logging</name>
+    <icon type="simicons">file::catalog</icon>
+
+    <service id="text-file">
+        <name>Text File</name>
+        <description type="short">Text log file file</description>
+        <description type="long">A text file to log messages to.</description>
+        <parameter id="filepath">
+            <name>File Path</name>
+            <description type="short">Log file path</description>
+            <description type="long">The filesystem path to the log file.</description>
+            <value id="filesystem path"/>
+        </parameter>
+    </service>
+
+    <node id="log">
+        <name>Log</name>
+        <description type="short">Log message</description>
+        <description type="long">Add a message to a log.</description>
+        <service plugin="logging" id="text-file"/>
+        <input name="text">
+            <structure id="droplet"/>
+            <value id="string"/>
+        </input>
+    </node>
+
+    <node id="log-error">
+        <name>Log Error</name>
+        <description type="short">Log error</description>
+        <description type="long">Log an error message to the log (if any).</description>
+        <service plugin="logging" id="text-file"/>
+        <input name="error">
+            <structure id="droplet"/>
+            <structure id="list"/>
+            <structure id="table"/>
+            <structure id="map"/>
+            <value id="error-code"/>
+        </input>
+    </node>
+
+</plugin>

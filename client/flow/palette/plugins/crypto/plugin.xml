@@ -1,0 +1,230 @@
+<plugin format="1" id="crypto">
+    <name>Crypto</name>
+    <icon type="simicons">systems::encryption</icon>
+
+    <node id="uuid-generator">
+        <name>UUID Generator</name>
+        <icon type="simicons">file::uuid</icon>
+        <description type="short">Generate UUID</description>
+        <description type="long">Generate a UUID.</description>
+        <output name="uuid">
+            <structure id="list"/>
+            <value id="string"/>
+        </output>
+    </node>
+
+    <group id="hash">
+        <name>Hash</name>
+        <icon type="simicons">operations::hash</icon>
+
+        <node id="md5">
+            <name>MD5</name>
+            <icon type="simicons">operations::hash</icon>
+            <description type="short">MD5</description>
+            <description type="long">Performs MD5 hashing.</description>
+            <input name="data">
+                <value id="bytes"/>
+                <value id="string"/>
+            </input>
+            <output name="hash">
+                <value id="string"/>
+            </output>
+        </node>
+        <node id="sha1">
+            <name>SHA1</name>
+            <icon type="simicons">operations::hash</icon>
+            <description type="short">SHA1</description>
+            <description type="long">Performs SHA1 hashing.</description>
+            <input name="data">
+                <value id="bytes"/>
+                <value id="string"/>
+            </input>
+            <output name="hash">
+                <value id="string"/>
+            </output>
+        </node>
+        <node id="sha3-224">
+            <name>SHA3-224</name>
+            <icon type="simicons">operations::hash</icon>
+            <description type="short">SHA3-224</description>
+            <description type="long">Performs SHA3-224 hashing.</description>
+            <input name="data">
+                <value id="bytes"/>
+                <value id="string"/>
+            </input>
+            <output name="hash">
+                <value id="string"/>
+            </output>
+        </node>
+        <node id="sha3-256">
+            <name>SHA3-256</name>
+            <icon type="simicons">operations::hash</icon>
+            <description type="short">SHA3-256</description>
+            <description type="long">Performs SHA3-256 hashing.</description>
+            <input name="data">
+                <value id="bytes"/>
+                <value id="string"/>
+            </input>
+            <output name="hash">
+                <value id="string"/>
+            </output>
+        </node>
+        <node id="sha3-384">
+            <name>SHA3-384</name>
+            <icon type="simicons">operations::hash</icon>
+            <description type="short">SHA3-384</description>
+            <description type="long">Performs SHA3-384 hashing.</description>
+            <input name="data">
+                <value id="bytes"/>
+                <value id="string"/>
+            </input>
+            <output name="hash">
+                <value id="string"/>
+            </output>
+        </node>
+        <node id="sha3-512">
+            <name>SHA3-512</name>
+            <icon type="simicons">operations::hash</icon>
+            <description type="short">SHA3-512</description>
+            <description type="long">Performs SHA3-512 hashing.</description>
+            <input name="data">
+                <value id="bytes"/>
+                <value id="string"/>
+            </input>
+            <output name="hash">
+                <value id="string"/>
+            </output>
+        </node>
+    </group>
+
+    <group id="password">
+        <name>Password</name>
+
+        <node id="argon2-generate">
+            <name>Argon2 Generate</name>
+            <description type="short">Generate Argon2 hash</description>
+            <description type="long">Generates an Argon2 hash from a string (password).</description>
+            <input name="password">
+                <structure id="droplet"/>
+                <value id="string"/>
+            </input>
+            <input name="memory">
+                <structure id="droplet" default="true">
+                    <value id="integer">2048</value>
+                </structure>
+                <value id="integer"/>
+            </input>
+            <input name="passes">
+                <structure id="droplet" default="true">
+                    <value id="integer">1</value>
+                </structure>
+                <value id="integer"/>
+            </input>
+            <input name="variant">
+                <structure id="droplet" default="true">
+                    <value id="string">Argon2id</value>
+                </structure>
+                <value id="string"/>
+            </input>
+            <input name="salt length">
+                <structure id="droplet" default="true">
+                    <value id="integer">16</value>
+                </structure>
+                <value id="integer"/>
+            </input>
+            <input name="output length">
+                <structure id="droplet" default="true">
+                    <value id="integer">32</value>
+                </structure>
+                <value id="integer"/>
+            </input>
+            <output name="hash">
+                <structure id="droplet"/>
+                <value id="string"/>
+            </output>
+        </node>
+        <node id="argon2-check">
+            <name>Argon2 Check</name>
+            <description type="short">Check Argon2 password</description>
+            <description type="long">Checks a password against an existing Argon2 hash.</description>
+            <input name="password">
+                <structure id="droplet"/>
+                <value id="string"/>
+            </input>
+            <input name="hash">
+                <structure id="droplet"/>
+                <value id="string"/>
+            </input>
+            <output name="is match">
+                <structure id="droplet"/>
+                <value id="boolean"/>
+            </output>
+        </node>
+        <node id="bcrypt-check">
+            <name>Bcrypt Check</name>
+            <description type="short">Check bcrypt password</description>
+            <description type="long">Checks a password against an existing bcrypt hash.</description>
+            <input name="password">
+                <structure id="droplet"/>
+                <value id="string"/>
+            </input>
+            <input name="hash">
+                <structure id="droplet"/>
+                <value id="string"/>
+            </input>
+            <output name="is match">
+                <structure id="droplet"/>
+                <value id="boolean"/>
+            </output>
+        </node>
+        <node id="bcrypt-generate">
+            <name>Bcrypt Generate</name>
+            <description type="short">Generate bcrypt hash</description>
+            <description type="long">Generates a bcrypt hash from a string (password).</description>
+            <input name="password">
+                <structure id="droplet"/>
+                <value id="string"/>
+            </input>
+            <input name="cost">
+                <structure id="droplet" default="true">
+                    <value id="integer">12</value>
+                </structure>
+                <value id="integer"/>
+            </input>
+            <output name="hash">
+                <structure id="droplet"/>
+                <value id="string"/>
+            </output>
+        </node>
+    </group>
+
+    <group id="transcoding">
+        <name>Transcoding</name>
+
+        <node id="base64-encode">
+            <name>Base64 Encode</name>
+            <icon type="simicons">file::base.64.reference</icon>
+            <description type="short">Base64 Encode</description>
+            <description type="long">Performs base64 encoding.</description>
+            <input name="in">
+                <value id="bytes"/>
+            </input>
+            <output name="out">
+                <value id="string"/>
+            </output>
+        </node>
+        <node id="base64-decode">
+            <name>Base64 Decode</name>
+            <icon type="simicons">file::base.64.source</icon>
+            <description type="short">Base64 Decode</description>
+            <description type="long">Performs base64 decoding.</description>
+            <input name="in">
+                <value id="string"/>
+            </input>
+            <output name="out">
+                <value id="bytes"/>
+            </output>
+        </node>
+    </group>
+
+</plugin>

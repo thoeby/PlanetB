@@ -1,0 +1,94 @@
+<plugin format="1" id="csv">
+    <name>CSV</name>
+    <icon type="simicons">file::csv</icon>
+
+    <group id="from-file">
+        <name>From File</name>
+        <icon type="simicons"></icon>
+
+        <node id="table">
+            <name>CSV Table</name>
+            <icon type="simicons">file::csv.source</icon>
+            <description type="short">Load table from CSV file</description>
+            <description type="long">Load a CSV table from a file.</description>
+            <parameter id="column-separator">
+                <name>Column Separator</name>
+                <description type="short">Column separator character</description>
+                <description type="long">The character used to separate columns.</description>
+                <value id="string">,</value>
+            </parameter>
+            <parameter id="horizontal-header">
+                <name>Horizontal Header</name>
+                <description type="short">First row is header</description>
+                <description type="long">Whether the first row contains header labels.</description>
+                <value id="boolean">false</value>
+            </parameter>
+            <parameter id="trim">
+                <name>Trim</name>
+                <description type="short">Whether to trim spaces</description>
+                <description type="long">Whether to trim leading and trailing spaces from cells.</description>
+                <value id="boolean">true</value>
+            </parameter>
+            <parameter id="dequote">
+                <name>Dequote</name>
+                <description type="short">Whether to dequote.</description>
+                <description type="long">Whether to automatically dequote field data (removing ") during reading.</description>
+                <value id="boolean">true</value>
+            </parameter>
+            <input name="path">
+                <structure id="droplet"/>
+                <value id="filesystem path"/>
+            </input>
+            <output name="table">
+                <structure id="tablet"/>
+            </output>
+            <output name="error">
+                <structure id="droplet"/>
+                <value id="error-code"/>
+            </output>
+        </node>
+
+    </group>
+
+    <group id="to-file">
+        <name>To File</name>
+        <icon type="simicons"></icon>
+
+        <node id="table">
+            <name>CSV Table</name>
+            <icon type="simicons">file::csv.reference</icon>
+            <description type="short">Save table to CSV file</description>
+            <description type="long">Save a table to a CSV file.</description>
+            <parameter id="column-separator">
+                <name>Column Separator</name>
+                <description type="short">Column separator character</description>
+                <description type="long">The character used to separate columns.</description>
+                <value id="string">,</value>
+            </parameter>
+            <parameter id="horizontal-header">
+                <name>Horizontal Header</name>
+                <description type="short">First row is header</description>
+                <description type="long">If enabled, the first row in the resulting CSV file will be the table header (if the provided input table contains a header).</description>
+                <value id="boolean">false</value>
+            </parameter>
+            <parameter id="auto-quote">
+                <name>Auto Quote</name>
+                <description type="short">Whether to auto-quote</description>
+                <description type="long">Whether to automatically quote (surround with "...") string values.</description>
+                <value id="boolean">true</value>
+            </parameter>
+            <input name="table">
+                <structure id="tablet"/>
+            </input>
+            <input name="path">
+                <structure id="droplet"/>
+                <value id="filesystem path"/>
+            </input>
+            <output name="error">
+                <structure id="droplet"/>
+                <value id="error-code"/>
+            </output>
+        </node>
+    </group>
+
+</plugin>

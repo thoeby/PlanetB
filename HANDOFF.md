@@ -656,3 +656,44 @@ plus two linter upgrades. All of it is fixed in the two commits after FND.0, and
 were the world's rather than the tests': a leaf tile below z14 was being
 merged out of children that do not exist (db/0128), and a bounty could pay out
 a shade more than it held (db/0129).
+
+## 8. The flow editor (FND.1)
+
+**`client/flow/` is a copy, not a fork.** Every file there says in its header
+which file of `wireon-process-editor` it came from, at which commit, and what
+changed. Keep it that way: when one of those modules has to change, change it
+and extend the header's `changes:` list rather than quietly editing a copy. The
+copies keep the reference repository's formatting (two spaces, double quotes),
+so `eslint.config.js` turns style off for `client/flow/**` and leaves every
+rule that catches a mistake on — including the 400-line rule, which is why
+`theme.js` is three files here.
+
+**The copies are held honest by their own tests.** `client/test/e2e/flow/` is
+that repository's suite, with the imports pointed at `/flow/` and the fixtures
+at `/flow/palette` and `/flow/samples`; `client/test/e2e/flow-modules.spec.js`
+opens the page and fails if any of them does. Three of them were red at the
+source and carry the correction in their header — do not "fix" them back.
+
+**litegraph is a classic script.** It attaches `LiteGraph`, `LGraph` and
+`LGraphCanvas` to `window`, there is no module build of it, and this repository
+has no bundler. `client/flow/boot.js` loads it (and `flow.css`, and litegraph's
+own stylesheet) the first time somebody opens Automate, and never at page load.
+Nothing may `import` it.
+
+**The palette is static files and a list of them.** A browser cannot read a
+directory, so `client/flow/palette/manifest.json` says what is in
+`client/flow/palette/plugins/`. Add or remove a plugin and run
+`bash tools/palette.sh`; `client/test/palette.test.js` is the gate that notices
+if you forget. opencv's trained model is deliberately absent — see its NOTICE.
+
+**Layout is never in the ELX, and no longer in localStorage.** The reference
+editor kept node positions in the browser; here they are `flow.layout` in the
+world, so a flow looks the same on the next machine. That is the whole of what
+`client/flow/graph/layoutstore.js` changes about the file it was copied from,
+and `client/test/run/16-drawing-a-flow.spec.js` asserts the ELX has no
+coordinates in it.
+
+**While Automate is open the world is not drawn.** `client/play.html` sets a
+`paused` flag and `app.autoRender = false`; the update handler returns at once.
+A story that opens Automate and then expects the position line to move has to
+close it first.

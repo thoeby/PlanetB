@@ -1,0 +1,42 @@
+<plugin format="1" id="firefox">
+    <name>Firefox</name>
+    <icon type="simicons">technology::wikis</icon>
+
+    <service id="firefox-instance">
+        <name>FireFox</name>
+        <description type="short">FireFox instance</description>
+        <description type="long">A running FireFox instance.</description>
+        <parameter id="interface">
+            <name>Interface</name>
+            <description type="short">Network interface to FireFox</description>
+            <description type="long">The network interface to the running FireFox instance (eg. 127.0.0.1)</description>
+            <value id="string">127.0.0.1</value>
+        </parameter>
+        <parameter id="port">
+            <name>Port</name>
+            <description type="short">Network port to FireFox</description>
+            <description type="long">The network port to the running FireFox instance (eg. 2828)</description>
+            <value id="integer">2828</value>
+        </parameter>
+    </service>
+
+    <node id="get-rendered-html">
+        <name>Get Rendered HTML</name>
+        <description type="short">Get rendered HTML</description>
+        <description type="long">Retrieve the rendered HTML page from an URL.</description>
+        <service plugin="firefox" id="firefox-instance"/>
+        <input name="url">
+            <structure id="droplet"/>
+            <value id="string"/>
+        </input>
+        <output name="html">
+            <structure id="droplet"/>
+            <value id="string"/>
+        </output>
+        <output name="error">
+            <structure id="droplet"/>
+            <value id="error-code"/>
+        </output>
+    </node>
+
+</plugin>

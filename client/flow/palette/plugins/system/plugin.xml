@@ -1,0 +1,51 @@
+<plugin format="1" id="system">
+    <name>System</name>
+    <icon type="simicons">toggle::screen</icon>
+
+    <node id="find-executable">
+        <name>Find Executable</name>
+        <icon type="simicons">operations::search.locate</icon>
+        <description type="short">Find an executable</description>
+        <description type="long">Find an executable on the local filesystem by name.</description>
+        <input name="name">
+            <structure id="droplet"/>
+            <value id="string"/>
+        </input>
+        <output name="path">
+            <structure id="droplet"/>
+            <value id="filesystem path"/>
+        </output>
+        <output name="found">
+            <structure id="droplet"/>
+            <value id="boolean"/>
+        </output>
+    </node>
+
+    <node id="process">
+        <name>Process</name>
+        <icon type="simicons">operations::run</icon>
+        <description type="short">Process</description>
+        <description type="long">Launch an operating system process.</description>
+        <input name="executable">
+            <structure id="droplet"/>
+            <value id="filesystem path"/>
+        </input>
+        <input name="arguments">
+            <structure id="list"/>
+            <value id="string"/>
+        </input>
+        <output name="exit code">
+            <structure id="droplet"/>
+            <value id="integer"/>
+        </output>
+        <output name="stdout">
+            <structure id="droplet"/>
+            <value id="string"/>
+        </output>
+        <output name="stderr">
+            <structure id="droplet"/>
+            <value id="string"/>
+        </output>
+    </node>
+
+</plugin>

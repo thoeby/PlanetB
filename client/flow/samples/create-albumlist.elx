@@ -1,0 +1,445 @@
+<elx>
+    <engine type="flow">
+        <max_steps>0</max_steps>
+        <record_history>false</record_history>
+    </engine>
+    <filter id="structures.list" name="Filter List" type="standalone">
+        <elx>
+            <engine type="flow">
+                <max_steps>0</max_steps>
+                <record_history>false</record_history>
+            </engine>
+            <input name="list [in]">
+                <structure id="invalid" plugin=""/>
+            </input>
+            <input name="droplet [in]">
+                <structure id="droplet" plugin="">
+                    <value id="string" plugin=""><![CDATA[C:/Users/portablimaschina/Music/ACDC/Back in Black/AC,DC - Back In Black.flac]]></value>
+                </structure>
+            </input>
+            <input name="index">
+                <structure id="invalid" plugin=""/>
+            </input>
+            <net name="N001">
+                <connection node="droplet [in]" port="port"/>
+                <connection node="Split" port="string"/>
+            </net>
+            <net name="N002">
+                <connection node="Get Last" port="list"/>
+                <connection node="Split" port="substrings"/>
+            </net>
+            <net name="N003">
+                <connection node="Get Last" port="droplet"/>
+                <connection node="Contains 2" port="string"/>
+                <connection node="Contains" port="string"/>
+                <connection node="Contains 3" port="string"/>
+            </net>
+            <net name="N004">
+                <connection node="OR" port="out"/>
+                <connection node="keep" port="port"/>
+            </net>
+            <net name="N005">
+                <connection node="Contains" port="contains"/>
+                <connection node="OR" port="in [0]"/>
+            </net>
+            <net name="N006">
+                <connection node="Contains 2" port="contains"/>
+                <connection node="OR" port="in [1]"/>
+            </net>
+            <net name="N007">
+                <connection node="Contains 3" port="contains"/>
+                <connection node="OR" port="in [2]"/>
+            </net>
+            <node id="contains" name="Contains" plugin="strings">
+                <constant port="substring">
+                    <structure id="droplet" plugin="">
+                        <value id="string" plugin=""><![CDATA[png]]></value>
+                    </structure>
+                </constant>
+            </node>
+            <node id="split" name="Split" plugin="strings">
+                <constant port="separator">
+                    <structure id="droplet" plugin="">
+                        <value id="string" plugin=""><![CDATA[.]]></value>
+                    </structure>
+                </constant>
+            </node>
+            <node id="structures.list.get-last" name="Get Last" plugin="builtin"/>
+            <node id="logic.or" name="OR" plugin="mathematics">
+                <port_group id="in" size="3"></port_group>
+            </node>
+            <node id="contains" name="Contains 2" plugin="strings">
+                <constant port="substring">
+                    <structure id="droplet" plugin="">
+                        <value id="string" plugin=""><![CDATA[jpg]]></value>
+                    </structure>
+                </constant>
+            </node>
+            <node id="contains" name="Contains 3" plugin="strings">
+                <constant port="substring">
+                    <structure id="droplet" plugin="">
+                        <value id="string" plugin=""><![CDATA[jpeg]]></value>
+                    </structure>
+                </constant>
+            </node>
+            <output name="list [out]"/>
+            <output name="keep"/>
+        </elx>
+    </filter>
+    <filter id="structures.list" name="Filter List 2" type="standalone">
+        <elx>
+            <engine type="flow">
+                <max_steps>0</max_steps>
+                <record_history>false</record_history>
+            </engine>
+            <input name="list [in]"/>
+            <input name="droplet [in]"/>
+            <input name="index"/>
+            <net name="N001">
+                <connection node="droplet [in]" port="port"/>
+                <connection node="Split" port="string"/>
+            </net>
+            <net name="N002">
+                <connection node="Get Last" port="list"/>
+                <connection node="Split" port="substrings"/>
+            </net>
+            <net name="N003">
+                <connection node="Get Last" port="droplet"/>
+                <connection node="Contains" port="string"/>
+                <connection node="Contains 2" port="string"/>
+            </net>
+            <net name="N004">
+                <connection node="Contains" port="contains"/>
+                <connection node="OR" port="in [0]"/>
+            </net>
+            <net name="N005">
+                <connection node="OR" port="out"/>
+                <connection node="keep" port="port"/>
+            </net>
+            <net name="N006">
+                <connection node="Contains 2" port="contains"/>
+                <connection node="OR" port="in [1]"/>
+            </net>
+            <node id="contains" name="Contains" plugin="strings">
+                <constant port="substring">
+                    <structure id="droplet" plugin="">
+                        <value id="string" plugin=""><![CDATA[flac]]></value>
+                    </structure>
+                </constant>
+            </node>
+            <node id="split" name="Split" plugin="strings">
+                <constant port="separator">
+                    <structure id="droplet" plugin="">
+                        <value id="string" plugin=""><![CDATA[.]]></value>
+                    </structure>
+                </constant>
+            </node>
+            <node id="logic.or" name="OR" plugin="mathematics">
+                <port_group id="in" size="2"></port_group>
+            </node>
+            <node id="contains" name="Contains 2" plugin="strings">
+                <constant port="substring">
+                    <structure id="droplet" plugin="">
+                        <value id="string" plugin=""><![CDATA[mp3]]></value>
+                    </structure>
+                </constant>
+            </node>
+            <node id="structures.list.get-last" name="Get Last" plugin="builtin"/>
+            <output name="list [out]"/>
+            <output name="keep"/>
+        </elx>
+    </filter>
+    <input name="folder">
+        <structure id="droplet" plugin="">
+            <value id="filesystem path" plugin="">C:/Users/portablimaschina/Music/ACDC/Back in Black</value>
+        </structure>
+    </input>
+    <input name="target">
+        <structure id="droplet" plugin="">
+            <value id="filesystem path" plugin="">C:/Users/portablimaschina/Documents/valaisplus/tiles/0/1/2</value>
+        </structure>
+    </input>
+    <net name="N001">
+        <connection node="Entries" port="path"/>
+        <connection node="Parent Path" port="path"/>
+        <connection node="To String 3" port="path"/>
+        <connection node="folder" port="port"/>
+    </net>
+    <net name="N002">
+        <connection node="Entries" port="entries"/>
+        <connection node="To String" port="in"/>
+        <connection node="To String 2" port="in"/>
+        <connection node="Output 1" port="port"/>
+    </net>
+    <net name="N003">
+        <connection node="Filter List" port="list [in]"/>
+        <connection node="To String" port="string"/>
+    </net>
+    <net name="N004">
+        <connection node="Filter List" port="list [out]"/>
+        <connection node="From String" port="string"/>
+    </net>
+    <net name="N005">
+        <connection node="Get First" port="list"/>
+        <connection node="From String" port="path"/>
+    </net>
+    <net name="N006">
+        <connection node="Filter List 2" port="list [in]"/>
+        <connection node="To String 2" port="string"/>
+    </net>
+    <net name="N007">
+        <connection node="For-Each" port="list [in]"/>
+        <connection node="Filter List 2" port="list [out]"/>
+    </net>
+    <net name="N008">
+        <connection node="Parent Path" port="parent path"/>
+        <connection node="Split" port="string"/>
+    </net>
+    <net name="N009">
+        <connection node="Get Last" port="droplet"/>
+        <connection node="Concatenate" port="in [1]"/>
+    </net>
+    <net name="N010">
+        <connection node="Concatenate" port="in [3]"/>
+        <connection node="Join" port="out"/>
+    </net>
+    <net name="N011">
+        <connection node="For-Each" port="list [out]"/>
+        <connection node="Join" port="strings"/>
+    </net>
+    <net name="target">
+        <connection node="Append" port="in [0]"/>
+        <connection node="Append 2" port="in [0]"/>
+        <connection node="Create Directory" port="path"/>
+        <connection node="target" port="port"/>
+    </net>
+    <net name="N012">
+        <connection node="Append" port="out"/>
+        <connection node="Write" port="path"/>
+    </net>
+    <net name="N013">
+        <connection node="From String 2" port="bytes"/>
+        <connection node="Write" port="content"/>
+    </net>
+    <net name="N014">
+        <connection node="Concatenate" port="out"/>
+        <connection node="From String 2" port="string"/>
+    </net>
+    <net name="N015">
+        <connection node="Get First" port="droplet"/>
+        <connection node="Load image" port="path"/>
+    </net>
+    <net name="N016">
+        <connection node="Load image" port="frame"/>
+        <connection node="Resize" port="in"/>
+    </net>
+    <net name="N017">
+        <connection node="Append 2" port="out"/>
+        <connection node="Save image" port="path"/>
+    </net>
+    <net name="N018">
+        <connection node="Get Last" port="list"/>
+        <connection node="Output 2" port="port"/>
+        <connection node="Split 2" port="substrings"/>
+    </net>
+    <net name="N019">
+        <connection node="Split 2" port="string"/>
+        <connection node="To String 3" port="string"/>
+    </net>
+    <net name="N022">
+        <connection node="Save image" port="frame"/>
+        <connection node="Resize" port="out"/>
+    </net>
+    <node id="directory.entries" name="Entries" plugin="filesystem">
+        <parameter id="recursive">
+            <value id="boolean" plugin="">false</value>
+        </parameter>
+    </node>
+    <node id="values.to-string" name="To String" plugin="builtin"/>
+    <node id="path.from-string" name="From String" plugin="filesystem"/>
+    <node id="structures.list.get-first" name="Get First" plugin="builtin"/>
+    <node id="values.to-string" name="To String 2" plugin="builtin"/>
+    <node id="concatenate" name="Concatenate" plugin="strings">
+        <constant port="in [0]">
+            <structure id="droplet" plugin="">
+                <value id="string" plugin=""><![CDATA[<html><body><h2>]]></value>
+            </structure>
+        </constant>
+        <constant port="in [2]">
+            <structure id="droplet" plugin="">
+                <value id="string" plugin=""><![CDATA[</h2><table>]]></value>
+            </structure>
+        </constant>
+        <constant port="in [4]">
+            <structure id="droplet" plugin="">
+                <value id="string" plugin=""><![CDATA[</table></body></html>]]></value>
+            </structure>
+        </constant>
+        <parameter id="separator">
+            <value id="string" plugin=""><![CDATA[]]></value>
+        </parameter>
+        <port_group id="in" size="5"></port_group>
+    </node>
+    <node id="path.parent-path" name="Parent Path" plugin="filesystem"/>
+    <node id="split" name="Split" plugin="strings">
+        <constant port="separator">
+            <structure id="droplet" plugin="">
+                <value id="string" plugin=""><![CDATA[/]]></value>
+            </structure>
+        </constant>
+        <constant port="substrings"/>
+    </node>
+    <node id="structures.list.get-last" name="Get Last" plugin="builtin"/>
+    <node id="join" name="Join" plugin="strings">
+        <constant port="separator">
+            <structure id="droplet" plugin="">
+                <value id="string" plugin=""><![CDATA[]]></value>
+            </structure>
+        </constant>
+    </node>
+    <node id="file.write" name="Write" plugin="filesystem">
+        <constant port="truncate">
+            <structure id="droplet" plugin="">
+                <value id="boolean" plugin="">true</value>
+            </structure>
+        </constant>
+        <constant port="error"/>
+    </node>
+    <node id="path.append" name="Append" plugin="filesystem">
+        <constant port="in [1]">
+            <structure id="droplet" plugin="">
+                <value id="filesystem path" plugin="">content.html</value>
+            </structure>
+        </constant>
+        <port_group id="in" size="2"></port_group>
+    </node>
+    <node id="values.bytes.from-string" name="From String 2" plugin="builtin"/>
+    <node id="resize" name="Resize" plugin="opencv">
+        <constant port="width">
+            <structure id="droplet" plugin="">
+                <value id="integer" plugin="">512</value>
+            </structure>
+        </constant>
+        <constant port="height">
+            <structure id="droplet" plugin="">
+                <value id="integer" plugin="">512</value>
+            </structure>
+        </constant>
+        <parameter id="interpolation">
+            <value id="string" plugin=""><![CDATA[bilinear]]></value>
+        </parameter>
+    </node>
+    <node id="load-image" name="Load image" plugin="opencv"/>
+    <node id="save-image" name="Save image" plugin="opencv">
+        <constant port="error"/>
+    </node>
+    <node id="path.append" name="Append 2" plugin="filesystem">
+        <constant port="in [1]">
+            <structure id="droplet" plugin="">
+                <value id="filesystem path" plugin="">cover.jpg</value>
+            </structure>
+        </constant>
+        <port_group id="in" size="2"></port_group>
+    </node>
+    <node id="split" name="Split 2" plugin="strings">
+        <constant port="separator">
+            <structure id="droplet" plugin="">
+                <value id="string" plugin=""><![CDATA[/]]></value>
+            </structure>
+        </constant>
+    </node>
+    <node id="path.to-string" name="To String 3" plugin="filesystem"/>
+    <node id="directory.create" name="Create Directory" plugin="filesystem">
+        <constant port="error"/>
+    </node>
+    <output name="Output 1"/>
+    <output name="Output 2"/>
+    <transformation id="structures.list.for-each" name="For-Each" type="standalone">
+        <elx>
+            <engine type="flow">
+                <max_steps>0</max_steps>
+                <record_history>false</record_history>
+            </engine>
+            <input name="list [in]"/>
+            <input name="droplet [in]"/>
+            <input name="index"/>
+            <net name="N001">
+                <connection node="Concatenate" port="out"/>
+                <connection node="droplet [out]" port="port"/>
+            </net>
+            <net name="N002">
+                <connection node="To String" port="in"/>
+                <connection node="index" port="port"/>
+            </net>
+            <net name="N003">
+                <connection node="droplet [in]" port="port"/>
+                <connection node="Split" port="string"/>
+            </net>
+            <net name="N004">
+                <connection node="Get First" port="list"/>
+                <connection node="Split" port="substrings"/>
+            </net>
+            <net name="N005">
+                <connection node="Concatenate" port="in [3]"/>
+                <connection node="To String" port="string"/>
+            </net>
+            <net name="N006">
+                <connection node="Get Last" port="list"/>
+                <connection node="Split 2" port="substrings"/>
+            </net>
+            <net name="N007">
+                <connection node="Get First" port="droplet"/>
+                <connection node="Split 2" port="string"/>
+            </net>
+            <net name="N008">
+                <connection node="Get Last" port="droplet"/>
+                <connection node="Text Cleanup" port="in"/>
+            </net>
+            <net name="N009">
+                <connection node="Concatenate" port="in [1]"/>
+                <connection node="Text Cleanup" port="out"/>
+            </net>
+            <node id="concatenate" name="Concatenate" plugin="strings">
+                <constant port="in [0]">
+                    <structure id="droplet" plugin="">
+                        <value id="string" plugin=""><![CDATA[<tr><td>]]></value>
+                    </structure>
+                </constant>
+                <constant port="in [2]">
+                    <structure id="droplet" plugin="">
+                        <value id="string" plugin=""><![CDATA[</td><td>]]></value>
+                    </structure>
+                </constant>
+                <constant port="in [4]">
+                    <structure id="droplet" plugin="">
+                        <value id="error-code" plugin=""><![CDATA[</td></tr>]]></value>
+                    </structure>
+                </constant>
+                <parameter id="separator">
+                    <value id="string" plugin=""><![CDATA[]]></value>
+                </parameter>
+                <port_group id="in" size="5"></port_group>
+            </node>
+            <node id="values.to-string" name="To String" plugin="builtin"/>
+            <node id="split" name="Split" plugin="strings">
+                <constant port="separator">
+                    <structure id="droplet" plugin="">
+                        <value id="string" plugin=""><![CDATA[.]]></value>
+                    </structure>
+                </constant>
+            </node>
+            <node id="structures.list.get-first" name="Get First" plugin="builtin"/>
+            <node id="split" name="Split 2" plugin="strings">
+                <constant port="separator">
+                    <structure id="droplet" plugin="">
+                        <value id="string" plugin=""><![CDATA[-]]></value>
+                    </structure>
+                </constant>
+            </node>
+            <node id="structures.list.get-last" name="Get Last" plugin="builtin"/>
+            <node id="text.cleanup" name="Text Cleanup" plugin="strings"/>
+            <output name="list [out]"/>
+            <output name="droplet [out]"/>
+        </elx>
+    </transformation>
+</elx>

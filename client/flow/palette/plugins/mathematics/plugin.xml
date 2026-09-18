@@ -1,0 +1,913 @@
+<plugin format="1" id="mathematics">
+    <name>Mathematics</name>
+    <icon type="simicons">operations::function-math</icon>
+
+    <group id="arithmetic">
+        <name>Arithmetic</name>
+        <icon type="simicons">data::arithmetic</icon>
+
+        <node id="map-linear-range">
+            <name>Map Linear Range</name>
+            <icon type="simicons"></icon>
+            <descirption type="short">Map value from one range to another linearly.</descirption>
+            <description type="long">Maps an arithmetic value from one range [from_min, from_max] to another range [to_min, to_max] linearly.</description>
+            <input name="value">
+                <value id="integer"/>
+            </input>
+            <input name="from min">
+                <structure id="droplet"/>
+                <value id="integer"/>
+            </input>
+            <input name="from max">
+                <structure id="droplet"/>
+                <value id="integer"/>
+            </input>
+            <input name="to min">
+                <structure id="droplet"/>
+                <value id="integer"/>
+            </input>
+            <input name="to max">
+                <structure id="droplet"/>
+                <value id="integer"/>
+            </input>
+            <output name="out">
+                <value id="integer"/>
+            </output>
+        </node>
+
+        <node id="clamp">
+            <name>Clamp</name>
+            <icon type="simicons">technology::clamp</icon>
+            <description type="short">Clamp nummeric value</description>
+            <description type="long">Clamp a nummeric value between minimum and maximum values.</description>
+            <input name="value"/>
+            <input name="min">
+                <structure id="droplet"/>
+            </input>
+            <input name="max">
+                <structure id="droplet"/>
+            </input>
+            <output name="clamped"/>
+        </node>
+
+        <node id="is-even">
+            <name>Is Even</name>
+            <icon type="simicons"></icon>
+            <description type="short">Check if value is even</description>
+            <description type="long">Check if value is even.</description>
+            <input name="in">
+                <value id="integer"/>
+            </input>
+            <output name="is even">
+                <value id="boolean"/>
+            </output>
+        </node>
+
+        <node id="is-odd">
+            <name>Is Odd</name>
+            <icon type="simicons"></icon>
+            <description type="short">Check if value is odd</description>
+            <description type="long">Check if value is odd.</description>
+            <input name="in">
+                <value id="integer"/>
+            </input>
+            <output name="is odd">
+                <value id="boolean"/>
+            </output>
+        </node>
+
+        <group id="comparison">
+            <name>Comparison</name>
+            <icon type="simicons"></icon>
+
+            <node id="less">
+                <name>Less</name>
+                <icon type="simicons">data::arithmetic.comparison.less</icon>
+                <description type="short">Less than</description>
+                <input name="in 1"/>
+                <input name="in 2"/>
+                <output name="out"/>
+            </node>
+
+            <node id="less-equal">
+                <name>Less or equal</name>
+                <icon type="simicons">data::arithmetic.comparison.less.equal</icon>
+                <description type="short">Less than or equal</description>
+                <input name="in 1"/>
+                <input name="in 2"/>
+                <output name="out"/>
+            </node>
+
+            <node id="greater">
+                <name>Greater</name>
+                <icon type="simicons">data::arithmetic.comparison.greater</icon>
+                <description type="short">Greater than</description>
+                <input name="in 1"/>
+                <input name="in 2"/>
+                <output name="out"/>
+            </node>
+
+            <node id="greater-equal">
+                <name>Greater or equal</name>
+                <icon type="simicons">data::arithmetic.comparison.greater.equal</icon>
+                <description type="short">Greater than or equal</description>
+                <input name="in 1"/>
+                <input name="in 2"/>
+                <output name="out"/>
+            </node>
+
+            <node id="equal">
+                <name>Equal</name>
+                <icon type="simicons">data::arithmetic.comparison.equal</icon>
+                <description type="short">equal to</description>
+                <input name="in 1"/>
+                <input name="in 2"/>
+                <output name="out"/>
+            </node>
+
+            <node id="not-equal">
+                <name>Not Equal</name>
+                <icon type="simicons">data::arithmetic.comparison.unequal</icon>
+                <description type="short">Not equal to</description>
+                <input name="in 1"/>
+                <input name="in 2"/>
+                <output name="out"/>
+            </node>
+
+            <node id="in-range">
+                <name>In Range</name>
+                <icon type="simicons"></icon>
+                <description type="short">Check if value is in range</description>
+                <description type="long">Checks if a given value is within the range of [min, max].</description>
+                <input name="value"/>
+                <input name="min">
+                    <structure id="droplet"/>
+                </input>
+                <input name="max">
+                    <structure id="droplet"/>
+                </input>
+                <output name="in range">
+                    <value id="boolean"/>
+                </output>
+            </node>
+        </group>
+
+        <node id="lcm">
+            <name>LCM</name>
+            <icon type="simicons"></icon>
+            <description type="short">Least common multiple</description>
+            <descirption type="long">Calculates the least common multiple of two integers.</descirption>
+            <input name="a">
+                <value id="integer"/>
+            </input>
+            <input name="b">
+                <value id="integer"/>
+            </input>
+            <output name="lcm">
+                <value id="integer"/>
+            </output>
+        </node>
+
+        <node id="gcd">
+            <name>GCD</name>
+            <icon type="simicons"></icon>
+            <description type="short">Greatest Common Divisor</description>
+            <descirption type="long">Calculates the greatest common divisor of two integers.</descirption>
+            <input name="a">
+                <value id="integer"/>
+            </input>
+            <input name="b">
+                <value id="integer"/>
+            </input>
+            <output name="gcd">
+                <value id="integer"/>
+            </output>
+        </node>
+
+        <group id="unary">
+            <name>Unary</name>
+            <icon type="simicons">data::arithmetic</icon>
+
+            <node id="increment">
+                <name>Increment</name>
+                <icon type="simicons">operations::increment</icon>
+                <description type="short">Increment value</description>
+                <description type="long">Increment a numeric value.</description>
+                <input name="in"/>
+                <output name="out"/>
+            </node>
+
+            <node id="decrement">
+                <name>Decrement</name>
+                <icon type="simicons">operations::decrement</icon>
+                <description type="short">Decrement value</description>
+                <description type="long">Decrement a numeric value.</description>
+                <input name="in"/>
+                <output name="out"/>
+            </node>
+
+            <node id="absolute">
+                <name>Absolute</name>
+                <icon type="simicons">data::chart.line.absolute</icon>
+                <description type="short">Absolute value</description>
+                <description type="long">Get the absolute value.</description>
+                <input name="in"/>
+                <output name="out"/>
+            </node>
+
+            <node id="round">
+                <name>Round</name>
+                <icon type="simicons">data::round</icon>
+                <description type="short">Round</description>
+                <description type="long">Round value up or down.</description>
+                <input name="in"/>
+                <output name="out"/>
+            </node>
+
+            <node id="floor">
+                <name>Floor</name>
+                <icon type="simicons">data::round.down</icon>
+                <description type="short">Floor</description>
+                <description type="long">Round value down.</description>
+                <input name="in"/>
+                <output name="out"/>
+            </node>
+
+            <node id="ceil">
+                <name>Ceil</name>
+                <icon type="simicons">data::round.up</icon>
+                <description type="short">Ceil</description>
+                <description type="long">Round value up.</description>
+                <input name="in"/>
+                <output name="out"/>
+            </node>
+
+            <node id="sqrt">
+                <name>Square Root</name>
+                <icon type="simicons">data::squareroot</icon>
+                <description type="short">Square root</description>
+                <description type="long">Calculate square root.</description>
+                <input name="in"/>
+                <output name="out"/>
+            </node>
+
+            <node id="log-e">
+                <name>Logarithm Base e</name>
+                <icon type="simicons">data::loge</icon>
+                <description type="short">Natural logarithm</description>
+                <description type="long">Calculate the natural logarithm (base-e).</description>
+                <input name="in"/>
+                <output name="out"/>
+            </node>
+
+            <node id="log-2">
+                <name>Logarithm Base 2</name>
+                <icon type="simicons">data::log2</icon>
+                <description type="short">Base-2 logarithm</description>
+                <description type="long">Calculate the base-2 logarithm.</description>
+                <input name="in"/>
+                <output name="out"/>
+            </node>
+
+            <node id="log-10">
+                <name>Logarithm Base 10</name>
+                <icon type="simicons">data::log10</icon>
+                <description type="short">Base-10 logarithm</description>
+                <description type="long">Calculate the base-10 logarithm.</description>
+                <input name="in"/>
+                <output name="out"/>
+            </node>
+        </group>
+
+        <group id="binary">
+            <name>Binary</name>
+            <icon type="simicons">data::arithmetic</icon>
+
+            <node id="addition">
+                <name>Addition</name>
+                <icon type="simicons">data::arithmetic</icon>
+                <description type="short">Arithmetic addition.</description>
+                <description type="long">Arithmetically add values.</description>
+                <input name="in 1"/>
+                <input name="in 2"/>
+                <output name="out"/>
+            </node>
+
+            <node id="subtraction">
+                <name>Subtraction</name>
+                <icon type="simicons">data::arithmetic</icon>
+                <description type="short">Arithmetic subtraction.</description>
+                <description type="long">Arithmetically subtract values.</description>
+                <input name="in 1"/>
+                <input name="in 2"/>
+                <output name="out"/>
+            </node>
+
+            <node id="multiplication">
+                <name>Multiplication</name>
+                <icon type="simicons">data::arithmetic</icon>
+                <description type="short">Arithmetic multiplication.</description>
+                <description type="long">Arithmetically multiply values.</description>
+                <input name="in 1"/>
+                <input name="in 2"/>
+                <output name="out"/>
+            </node>
+
+            <node id="division">
+                <name>Division</name>
+                <icon type="simicons">data::arithmetic</icon>
+                <description type="short">Arithmetic division.</description>
+                <description type="long">Arithmetically divide values.</description>
+                <input name="in 1"/>
+                <input name="in 2"/>
+                <output name="out"/>
+            </node>
+
+            <node id="modulo">
+                <name>Modulo</name>
+                <icon type="simicons">data::arithmetic</icon>
+                <description type="short">Arithmetic modulo.</description>
+                <description type="long">Calculate arithmetic modulo values.</description>
+                <input name="in 1"/>
+                <input name="in 2"/>
+                <output name="out"/>
+            </node>
+
+            <node id="midpoint">
+                <name>Midpoint</name>
+                <icon type="simicons">data::arithmetic</icon>
+                <description type="short">Arithmetic midpoint.</description>
+                <description type="long">Calculate the arithmetic midpoint between two values.</description>
+                <input name="in 1"/>
+                <input name="in 2"/>
+                <output name="out"/>
+            </node>
+
+            <node id="power">
+                <name>Power</name>
+                <icon type="simicons">data::arithmetic</icon>
+                <description type="short">Arithmetic power.</description>
+                <description type="long">Calculate the power of two values.</description>
+                <input name="in 1"/>
+                <input name="in 2"/>
+                <output name="out"/>
+            </node>
+        </group>
+
+    </group>
+
+    <group id="constant">
+        <name>Constants</name>
+
+        <node id="euler">
+            <name>Euler Constant</name>
+            <description type="short">Euler constant</description>
+            <description type="long">Provides the mathematical euler constant.</description>
+            <output name="constant">
+                <structure id="droplet"/>
+                <value id="real"/>
+            </output>
+        </node>
+
+        <node id="pi">
+            <name>π</name>
+            <description type="short">Constant Pi</description>
+            <description type="long">Provides the mathematical constant "pi".</description>
+            <output name="constant">
+                <structure id="droplet"/>
+                <value id="real"/>
+            </output>
+        </node>
+
+        <node id="2pi">
+            <name>2π</name>
+            <description type="short">Constant 2*Pi</description>
+            <description type="long">Provides the mathematical constant "pi" multiplied by two.</description>
+            <output name="constant">
+                <structure id="droplet"/>
+                <value id="real"/>
+            </output>
+        </node>
+    </group>
+
+    <group id="conversions">
+        <name>Conversions</name>
+
+        <node id="deg-to-rad">
+            <name>Deg-2-Rad</name>
+            <description type="short">Degrees to radians</description>
+            <description type="long">Convert degrees to radians.</description>
+            <input name="deg">
+                <value id="real"/>
+            </input>
+            <output name="rad">
+                <value id="real"/>
+            </output>
+        </node>
+
+        <node id="rad-to-deg">
+            <name>Rad-2-Deg</name>
+            <description type="short">Radians to degrees</description>
+            <description type="long">Convert radians to degrees.</description>
+            <input name="rad">
+                <value id="real"/>
+            </input>
+            <output name="deg">
+                <value id="real"/>
+            </output>
+        </node>
+    </group>
+
+    <group id="function">
+        <name>Functions</name>
+
+        <node id="linear">
+            <name>Linear</name>
+            <description type="short">Calculate value of linear function</description>
+            <description type="long">Calculates the value of the equalition `out = c0 + (c1 * x)`.</description>
+            <input name="x">
+                <structure id="droplet"/>
+                <structure id="list"/>
+                <value id="real"/>
+            </input>
+            <input name="c0">
+                <structure id="droplet"/>
+                <value id="real"/>
+            </input>
+            <input name="c1">
+                <structure id="droplet"/>
+                <value id="real"/>
+            </input>
+            <output name="out">
+                <structure id="droplet"/>
+                <structure id="list"/>
+                <value id="real"/>
+            </output>
+        </node>
+
+        <node id="polynomial">
+            <name>Polynomial</name>
+            <description type="short">Calculate value of a polynomial function</description>
+            <description type="long">Calculates the value of the equation `out = c0 + (c1 * x) + (c2 * x^2) + (c3 * x^3) + ...`.</description>
+            <input name="x">
+                <structure id="droplet"/>
+                <structure id="list"/>
+                <value id="real"/>
+            </input>
+            <input name="coefficients">
+                <structure id="list"/>
+                <value id="real"/>
+            </input>
+            <output name="out">
+                <structure id="droplet"/>
+                <structure id="list"/>
+                <value id="real"/>
+            </output>
+        </node>
+
+        <node id="quadratic">
+            <name>Quadratic</name>
+            <description type="short">Calculate value of quadratic function</description>
+            <description type="long">Calculates the value of the equation `out = c0 + (c1 * x) + (c2 * x^2)`.</description>
+            <input name="x">
+                <structure id="droplet"/>
+                <structure id="list"/>
+                <value id="real"/>
+            </input>
+            <input name="c0">
+                <structure id="droplet"/>
+                <value id="real"/>
+            </input>
+            <input name="c1">
+                <structure id="droplet"/>
+                <value id="real"/>
+            </input>
+            <input name="c2">
+                <structure id="droplet"/>
+                <value id="real"/>
+            </input>
+            <output name="out">
+                <structure id="droplet"/>
+                <structure id="list"/>
+                <value id="real"/>
+            </output>
+        </node>
+    </group>
+
+    <group id="logic">
+        <name>Logic</name>
+        <icon type="simicons">data::logic.nand.ieee</icon>
+
+        <node id="not">
+            <name>NOT</name>
+            <icon type="simicons">data::logic.not.ieee</icon>
+            <description type="short">NOT</description>
+            <description type="long">Logical NOT (invert).</description>
+            <input name="in">
+                <value id="boolean"/>
+            </input>
+            <output name="out">
+                <value id="boolean"/>
+            </output>
+        </node>
+
+        <node id="and">
+            <name>AND</name>
+            <icon type="simicons">data::logic.and.ieee</icon>
+            <description type="short">AND</description>
+            <description type="long">Logical AND.</description>
+            <input name="in" type="group" min="2">
+                <value id="boolean"/>
+            </input>
+            <output name="out">
+                <value id="boolean"/>
+            </output>
+        </node>
+
+        <node id="or">
+            <name>OR</name>
+            <icon type="simicons">data::logic.or.ieee</icon>
+            <description type="short">OR</description>
+            <description type="long">Logical OR.</description>
+            <input name="in" type="group" min="2">
+                <value id="boolean"/>
+            </input>
+            <output name="out">
+                <value id="boolean"/>
+            </output>
+        </node>
+
+        <node id="xor">
+            <name>XOR</name>
+            <icon type="simicons">data::logic.xor.ieee</icon>
+            <description type="short">XOR</description>
+            <description type="long">Logical XOR.</description>
+            <input name="in" type="group" min="2">
+                <value id="boolean"/>
+            </input>
+            <output name="out">
+                <value id="boolean"/>
+            </output>
+        </node>
+
+    </group>
+
+    <group id="source">
+        <name>Sources</name>
+        <icon type="simicons">data::chart.line.sine</icon>
+
+        <node id="linspace">
+            <name>Linear Space</name>
+            <description type="short">Generate linearly spaced list of values</description>
+            <description type="long">Generates a list of 'count' linearly spaced values between 'min' and 'max' (both times inclusive).</description>
+            <input name="min">
+                <structure id="droplet"/>
+                <value id="real"/>
+            </input>
+            <input name="max">
+                <structure id="droplet"/>
+                <value id="real"/>
+            </input>
+            <input name="count">
+                <structure id="droplet"/>
+                <value id="integer"/>
+            </input>
+            <output name="out">
+                <structure id="list"/>
+                <value id="real"/>
+            </output>
+        </node>
+
+        <node id="linear">
+            <name>Linear</name>
+            <icon type="simicons">data::chart.line.linear</icon>
+            <description type="short">Generate linear function</description>
+            <description type="long">Generates a linear function.</description>
+            <input name="count">
+                <structure id="droplet"/>
+                <value id="integer"/>
+            </input>
+            <input name="slope">
+                <structure id="droplet"/>
+                <value id="real"/>
+            </input>
+            <output name="out">
+                <structure id="list"/>
+                <value id="real"/>
+            </output>
+        </node>
+
+        <node id="sine">
+            <name>Sine</name>
+            <icon type="simicons">data::chart.line.sine</icon>
+            <description type="short">Generate sine</description>
+            <description type="long">Generate a list of sine values.</description>
+            <input name="count">
+                <structure id="droplet" plugin=""/>
+                <value id="integer" plugin=""/>
+            </input>
+            <input name="amplitude">
+                <structure id="droplet"/>
+                <structure id="droplet" default="true">
+                    <value id="real">1.0</value>
+                </structure>
+                <value id="real"/>
+            </input>
+            <input name="phase">
+                <structure id="droplet"/>
+                <structure id="droplet" default="true">
+                    <value id="real">0.0</value>
+                </structure>
+                <value id="real"/>
+            </input>
+            <output name="out">
+                <structure id="list" plugin=""/>
+                <value id="real" plugin=""/>
+            </output>
+        </node>
+
+        <node id="cosine">
+            <name>Cosine</name>
+            <icon type="simicons">data::chart.line.cosine</icon>
+            <description type="short">Generate cosine</description>
+            <description type="long">Generate a list of cosine values.</description>
+            <input name="count">
+                <structure id="droplet" plugin=""/>
+                <value id="integer" plugin=""/>
+            </input>
+            <input name="amplitude">
+                <structure id="droplet"/>
+                <structure id="droplet" default="true">
+                    <value id="real">1.0</value>
+                </structure>
+                <value id="real"/>
+            </input>
+            <input name="phase">
+                <structure id="droplet" default="true">
+                    <value id="real">0.0</value>
+                </structure>
+                <value id="real"/>
+            </input>
+            <output name="out">
+                <structure id="list" plugin=""/>
+                <value id="real" plugin=""/>
+            </output>
+        </node>
+
+        <node id="tangent">
+            <name>Tangent</name>
+            <icon type="simicons"></icon>
+            <description type="short">Generate tangent</description>
+            <description type="long">Generate a list of tangent values.</description>
+            <input name="count">
+                <structure id="droplet" plugin=""/>
+                <value id="integer" plugin=""/>
+            </input>
+            <input name="amplitude">
+                <structure id="droplet"/>
+                <structure id="droplet" default="true">
+                    <value id="real">1.0</value>
+                </structure>
+                <value id="real"/>
+            </input>
+            <input name="phase">
+                <structure id="droplet" default="true">
+                    <value id="real">0.0</value>
+                </structure>
+                <value id="real"/>
+            </input>
+            <output name="out">
+                <structure id="list" plugin=""/>
+                <value id="real" plugin=""/>
+            </output>
+        </node>
+
+        <node id="step">
+            <name>Step</name>
+            <icon type="simicons"></icon>
+            <description type="short"></description>
+            <description type="long"></description>
+            <input name="low">
+                <structure id="droplet"/>
+            </input>
+            <input name="high">
+                <structure id="droplet"/>
+            </input>
+            <input name="delay">
+                <structure id="droplet"/>
+                <value id="integer"/>
+            </input>
+            <input name="count">
+                <structure id="droplet"/>
+                <value id="integer"/>
+            </input>
+            <output name="out">
+                <structure id="list"/>
+            </output>
+        </node>
+
+        <group id="random">
+            <name>Random</name>
+            <icon type="simicons">data::random</icon>
+
+            <node id="uniform-integer">
+                <name>Random (Uniform) (Integer)</name>
+                <icon type="simicons">data::random</icon>
+                <description type="short">Pseudo random numbers</description>
+                <description type="long">Generate a list of uniformly distributed pseudo random numbers between min and max.</description>
+                <input name="count">
+                    <structure id="droplet" plugin=""/>
+                    <value id="integer" plugin=""/>
+                </input>
+                <input name="min">
+                    <structure id="droplet" plugin=""/>
+                    <value id="integer" plugin=""/>
+                </input>
+                <input name="max">
+                    <structure id="droplet" plugin=""/>
+                    <value id="integer" plugin=""/>
+                </input>
+                <output name="out">
+                    <structure id="list"/>
+                    <value id="integer"/>
+                </output>
+            </node>
+
+            <node id="uniform-real">
+                <name>Random (Uniform) (Real)</name>
+                <icon type="simicons">data::random</icon>
+                <description type="short">Pseudo random numbers</description>
+                <description type="long">Generate a list of uniformly distributed pseudo random numbers between min and max.</description>
+                <input name="count">
+                    <structure id="droplet" plugin=""/>
+                    <value id="integer" plugin=""/>
+                </input>
+                <input name="min">
+                    <structure id="droplet" plugin=""/>
+                    <value id="real" plugin=""/>
+                </input>
+                <input name="max">
+                    <structure id="droplet" plugin=""/>
+                    <value id="real" plugin=""/>
+                </input>
+                <output name="out">
+                    <structure id="list"/>
+                    <value id="real"/>
+                </output>
+            </node>
+        </group>
+
+    </group>
+
+    <group id="statistics">
+        <name>Statistics</name>
+
+        <node id="max">
+            <name>Max</name>
+            <description type="short">Get maximum value</description>
+            <description type="long">Returns the largest (maximum) value of a list of values.</description>
+            <input name="values">
+                <structure id="list"/>
+            </input>
+            <output name="max">
+                <structure id="droplet"/>
+            </output>
+        </node>
+
+        <node id="mean">
+            <name>Mean</name>
+            <description type="short">Calculate mean value</description>
+            <description type="long">Calculates the mean value of a list of numeric inputs.</description>
+            <input name="values">
+                <structure id="list"/>
+                <value id="integer"/>
+                <value id="real"/>
+            </input>
+            <output name="mean">
+                <structure id="droplet"/>
+                <value id="real"/>
+            </output>
+        </node>
+
+        <node id="median">
+            <name>Median</name>
+            <description type="short">Calculate median value</description>
+            <description type="long">Calculates the median value of a list of numeric inputs.</description>
+            <input name="values">
+                <structure id="list"/>
+                <value id="integer"/>
+                <value id="real"/>
+            </input>
+            <output name="median">
+                <structure id="droplet"/>
+                <value id="real"/>
+            </output>
+        </node>
+
+        <node id="min">
+            <name>Min</name>
+            <description type="short">Get minimum value</description>
+            <description type="long">Returns the smallest (minimum) value of a list of values.</description>
+            <input name="values">
+                <structure id="list"/>
+            </input>
+            <output name="min">
+                <structure id="droplet"/>
+            </output>
+        </node>
+
+    </group>
+
+    <group id="trigonometry">
+        <name>Trigonometry</name>
+
+        <node id="sine">
+            <name>Sine</name>
+            <description type="short">Sine value</description>
+            <description type="long">Calculate the sine value of an input.</description>
+            <input name="in">
+                <value id="real"/>
+            </input>
+            <output name="out">
+                <value id="real"/>
+            </output>
+        </node>
+
+        <node id="cosine">
+            <name>Cosine</name>
+            <description type="short">Cosine value</description>
+            <description type="long">Calculate the cosine value of an input.</description>
+            <input name="in">
+                <value id="real"/>
+            </input>
+            <output name="out">
+                <value id="real"/>
+            </output>
+        </node>
+
+        <node id="tangent">
+            <name>Tangent</name>
+            <description type="short">Tangent value</description>
+            <description type="long">Calculate the tangent value of an input.</description>
+            <input name="in">
+                <value id="real"/>
+            </input>
+            <output name="out">
+                <value id="real"/>
+            </output>
+        </node>
+
+        <node id="arcus-sine">
+            <name>Arcus-Sine</name>
+            <description type="short">Arcus-Sine value</description>
+            <description type="long">Calculate the arcus-sine value of an input.</description>
+            <input name="in">
+                <value id="real"/>
+            </input>
+            <output name="out">
+                <value id="real"/>
+            </output>
+        </node>
+
+        <node id="arcus-cosine">
+            <name>Arcus-Cosine</name>
+            <description type="short">Arcus-Cosine value</description>
+            <description type="long">Calculate the arcus-cosine value of an input.</description>
+            <input name="in">
+                <value id="real"/>
+            </input>
+            <output name="out">
+                <value id="real"/>
+            </output>
+        </node>
+
+        <node id="arcus-tangent">
+            <name>Arcus-Tangent</name>
+            <description type="short">Arcus-Tangent value</description>
+            <description type="long">Calculate the arcus-tangent value of an input.</description>
+            <input name="in">
+                <value id="real"/>
+            </input>
+            <output name="out">
+                <value id="real"/>
+            </output>
+        </node>
+
+        <node id="atan2">
+            <name>atan2</name>
+            <description type="short">atan2</description>
+            <description type="long">Perform the atan2(x, y) calculation.</description>
+            <input name="X">
+                <value id="real"/>
+            </input>
+            <input name="Y">
+                <value id="real"/>
+            </input>
+            <output name="out">
+                <value id="real"/>
+            </output>
+        </node>
+
+    </group>
+
+</plugin>

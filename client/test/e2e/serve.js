@@ -141,9 +141,11 @@ export function demSeeded(z, x, y) {
     return false;
 }
 
+// `rows` is a snapshot, or a function called on every request — so a republish
+// made during a test is visible to the page's next poll — or null for every
+// published tile in the database.
 export async function install(page, rows) {
-    // Tile rows are read fresh on every request when no snapshot is given, so a
-    // republish made during a test is visible to the page's next poll.
+    const tiles = () => (typeof rows === 'function' ? rows() : rows ?? tileRows());
     await page.route('https://code.playcanvas.com/**', (route) => {
         const local = join(CLIENT, 'vendor/playcanvas/playcanvas.js');
         route.fulfill({ contentType: 'text/javascript', body: readFileSync(local) });
@@ -153,7 +155,7 @@ export async function install(page, rows) {
         if (url.pathname !== '/tile') return route.fulfill({ status: 404, body: '[]' });
         return route.fulfill({
             contentType: 'application/json',
-            body: JSON.stringify(rows ?? tileRows()),
+            body: JSON.stringify(tiles()),
         });
     });
     await page.route('http://localhost:8080/**', (route) => {

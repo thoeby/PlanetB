@@ -1,0 +1,124 @@
+<plugin format="1" id="xlsx">
+    <name>XLSX</name>
+    <icon type="simicons">file::xls</icon>
+
+    <value id="document">
+        <description type="short">An XLSX document</description>
+    </value>
+    <value id="worksheet">
+        <description type="short">An XLSX worksheet</description>
+    </value>
+
+    <group id="document">
+        <name>Document</name>
+
+        <node id="load">
+            <name>Load Document</name>
+            <input name="path">
+                <structure id="droplet"/>
+                <value id="filesystem path"/>
+            </input>
+            <output name="document">
+                <structure id="droplet"/>
+                <value plugin="xlsx" id="document"/>
+            </output>
+            <output name="error">
+                <structure id="error"/>
+                <value id="error-code"/>
+            </output>
+        </node>
+
+        <node id="save">
+            <name>Save Document</name>
+            <input name="document">
+                <structure id="droplet"/>
+                <value plugin="xlsx" id="document"/>
+            </input>
+            <output name="error">
+                <structure id="error"/>
+                <value id="error-code"/>
+            </output>
+        </node>
+
+        <node id="save-as">
+            <name>Save Document As</name>
+            <input name="document">
+                <structure id="droplet"/>
+                <value plugin="xlsx" id="document"/>
+            </input>
+            <input name="path">
+                <structure id="droplet"/>
+                <value id="filesystem path"/>
+            </input>
+            <output name="error">
+                <structure id="error"/>
+                <value id="error-code"/>
+            </output>
+        </node>
+
+        <node id="worksheet-get">
+            <name>Get Worksheet</name>
+            <input name="document">
+                <structure id="droplet"/>
+                <value plugin="xlsx" id="document"/>
+            </input>
+            <input name="name">
+                <structure id="droplet"/>
+                <value id="string"/>
+            </input>
+            <output name="sheet">
+                <structure id="droplet"/>
+                <value plugin="xlsx" id="worksheet"/>
+            </output>
+        </node>
+
+    </group>
+
+    <group id="worksheet">
+        <name>Worksheet</name>
+
+        <node id="cell-value-get">
+            <name>Get Cell Value</name>
+            <input name="sheet">
+                <structure id="droplet"/>
+                <value plugin="xlsx" id="worksheet"/>
+            </input>
+            <input name="cell reference">
+                <structure id="droplet"/>
+                <value id="string"/>
+            </input>
+            <output name="value">
+                <structure id="droplet"/>
+                <value id="boolean"/>
+                <value id="integer"/>
+                <value id="real"/>
+                <value id="string"/>
+            </output>
+        </node>
+
+        <node id="cell-value-set">
+            <name>Set Cell Value</name>
+            <input name="sheet">
+                <structure id="droplet"/>
+                <value plugin="xlsx" id="worksheet"/>
+            </input>
+            <input name="value">
+                <structure id="droplet"/>
+                <value id="boolean"/>
+                <value id="integer"/>
+                <value id="real"/>
+                <value id="string"/>
+            </input>
+            <input name="cell reference">
+                <structure id="droplet"/>
+                <value id="string"/>
+            </input>
+            <output name="error">
+                <structure id="droplet"/>
+                <value id="error-code"/>
+            </output>
+        </node>
+
+    </group>
+
+</plugin>

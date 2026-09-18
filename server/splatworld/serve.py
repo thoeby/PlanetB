@@ -43,6 +43,8 @@ TYPES = {
     ".wasm": "application/wasm",
     ".svg": "image/svg+xml",
     ".txt": "text/plain; charset=utf-8",
+    # A flow, exactly as a process server reads it (db/0133).
+    ".elx": "application/xml; charset=utf-8",
 }
 
 CORS = {

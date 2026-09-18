@@ -930,6 +930,14 @@ minute"). Open points for it are in `PLAN-foundation.md` §10.
   shape and keys, deterministically, and both scripts say which they produced
   on every run. FND.4's and FND.12's stories therefore pass against a
   stand-in here and must be re-run where the real sources are reachable.
+- **FND.1's three small departures from this file**, each with its reason in
+  `PROGRESS.md`: the migration is `db/0133` (0128–0132 were spent making the
+  gate green, see PROGRESS), and it adds the artifact kind `plugin`, because
+  `elx_plugin` points at a file that is not a flow; story 16 wires the ports
+  the bundled plugins actually declare (`Contains` takes `string` and
+  `substring`) rather than this file's shorthand "pattern"; and three of the
+  reference editor's own tests were red at the source, so the copies carry the
+  correction and say so in their headers.
 - **The gate was red before this work started** (`b943ce3`), in ways FND.0
   does not touch: fifteen `db/test/*.sql` files and `tools/test-tiles.sh`
   assert the atom DAG as it stood before `db/0121`–`0126`, and three

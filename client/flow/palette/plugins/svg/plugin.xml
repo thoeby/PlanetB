@@ -1,0 +1,137 @@
+<plugin format="1" id="svg">
+    <name>SVG</name>
+    <icon type="simicons">file::svg</icon>
+
+    <value id="bitmap">
+        <description type="short">SVG bitmap</description>
+    </value>
+    <value id="document">
+        <description type="short">SVG document</description>
+    </value>
+
+    <node id="render-svg">
+        <name>Render SVG</name>
+        <description type="short">Render SVG image</description>
+        <description type="long">Render an SVG image to a bitmap that can be saved to a regular image format.</description>
+        <input name="SVG">
+            <structure id="droplet"/>
+            <value id="filesystem path"/>
+            <value id="string"/>
+            <value id="bytes"/>
+        </input>
+        <input name="Width">
+            <structure id="droplet"/>
+            <value id="integer"/>
+        </input>
+        <input name="Height">
+            <structure id="droplet"/>
+            <value id="integer"/>
+        </input>
+        <input name="StyleSheet">
+            <structure id="droplet"/>
+            <value id="string"/>
+        </input>
+        <output name="Bitmap">
+            <structure id="droplet"/>
+            <value plugin="svg" id="bitmap"/>
+        </output>
+    </node>
+
+    <group id="bitmap">
+        <name>Bitmap</name>
+
+        <node id="to-png-file">
+            <name>To PNG File</name>
+            <description type="short">To PNG file</description>
+            <description type="long">Write rendered SVG to PNG file on filesystem.</description>
+            <input name="bitmap">
+                <structure id="droplet"/>
+                <value plugin="svg" id="bitmap"/>
+            </input>
+            <input name="filesystem path">
+                <structure id="droplet"/>
+                <value id="filesystem path"/>
+            </input>
+            <output name="error">
+                <structure id="droplet"/>
+                <value id="error-code"/>
+            </output>
+        </node>
+
+        <node id="to-png-memory">
+            <name>To PNG Memory</name>
+            <description type="short">To PNG memory</description>
+            <description type="long">Write rendered SVG to PNG file in memory.</description>
+            <input name="bitmap">
+                <structure id="droplet"/>
+                <value plugin="svg" id="bitmap"/>
+            </input>
+            <output name="png">
+                <structure id="droplet"/>
+                <value id="bytes"/>
+            </output>
+        </node>
+    </group>
+
+    <group id="document">
+        <name>Document</name>
+
+        <node id="apply-stylesheet">
+            <name>Apply StyleSheet</name>
+            <description type="short">Apply stylesheet to SVG</description>
+            <description type="long">Apply a stylesheet (CSS) to an SVG document.</description>
+            <input name="document in">
+                <structure id="droplet"/>
+                <value plugin="svg" id="document"/>
+            </input>
+            <input name="stylesheet">
+                <structure id="droplet"/>
+                <value id="string"/>
+            </input>
+            <output name="document out">
+                <structure id="droplet"/>
+                <value plugin="svg" id="document"/>
+            </output>
+        </node>
+
+        <node id="load">
+            <name>Load SVG Document</name>
+            <icon type="simicons"></icon>
+            <description type="short">Load SVG document</description>
+            <description type="long">Load an SVG document from filesystem or memory.</description>
+            <input name="file">
+                <structure id="droplet"/>
+                <value id="filesystem path"/>
+                <value id="string"/>
+                <value id="bytes"/>
+            </input>
+            <output name="document">
+                <structure id="droplet"/>
+                <value plugin="svg" id="document"/>
+            </output>
+        </node>
+
+        <node id="render-to-bitmap">
+            <name>Render To Bitmap</name>
+            <icon type="simicons"></icon>
+            <description type="short">Render SVG document to bitmap</description>
+            <description type="long">Render SVG document to bitmap.</description>
+            <input name="document">
+                <structure id="droplet"/>
+                <value plugin="svg" id="document"/>
+            </input>
+            <input name="width">
+                <structure id="droplet"/>
+                <value id="integer"/>
+            </input>
+            <input name="height">
+                <structure id="droplet"/>
+                <value id="integer"/>
+            </input>
+            <output name="bitmap">
+                <structrue id="droplet"/>
+                <value plugin="svg" id="bitmap"/>
+            </output>
+        </node>
+    </group>
+</plugin>

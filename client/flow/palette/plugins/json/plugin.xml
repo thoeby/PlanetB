@@ -1,0 +1,203 @@
+<plugin format="1" id="json">
+    <name>JSON</name>
+    <icon type="simicons">file::json</icon>
+
+    <node id="create-empty-object">
+        <name>Empty Object</name>
+        <description type="short">Create empty JSON object.</description>
+        <description type="long">Creates an empty JSON object.</description>
+        <output name="json">
+            <structure id="droplet"/>
+            <value id="json"/>
+        </output>
+    </node>
+
+    <node id="from-string">
+        <name>From String</name>
+        <description type="short">Parse JSON from string</description>
+        <description type="long">Parses JSON from a string.</description>
+        <input name="string">
+            <structure id="droplet"/>
+            <value id="string"/>
+        </input>
+        <output name="json">
+            <structure id="droplet"/>
+            <value id="json"/>
+        </output>
+        <output name="error">
+            <structure id="droplet"/>
+            <value id="json"/>
+        </output>
+    </node>
+
+    <node id="from-table">
+        <name>From Table</name>
+        <icon type="simicons">data::table.variant</icon>
+        <description type="short">Represent Table as JSON</description>
+        <description type="long">Returns a JSON array representing the provided table. The table must have a horizontal header. The table is row-major.</description>
+        <input name="table">
+            <structure id="table"/>
+        </input>
+        <output name="json">
+            <structure id="droplet"/>
+            <value id="json"/>
+        </output>
+    </node>
+
+    <node id="template-render">
+        <name>Render Template</name>
+        <description type="short">Render a template with specific data</description>
+        <description type="long">A template renderer loosely inspired by jinja for python.</description>
+        <parameter id="trim-blocks">
+            <name>Trim Blocks</name>
+            <description type="short">Trim Blocks</description>
+            <description type="long">When enabled, remove the first newline after a template statement.</description>
+            <value id="boolean">true</value>
+        </parameter>
+        <parameter id="left-strip-blocks">
+            <name>Left Strip Blocks</name>
+            <description type="short">Left Strip Blocks</description>
+            <description type="long">If enabled, strip tabs and spaces from the beginning of a line to the start of a statement block.</description>
+            <value id="boolean">false</value>
+        </parameter>
+        <input name="template">
+            <structure id="droplet"/>
+            <value id="string"/>
+            <value id="filesystem path"/>
+        </input>
+        <input name="json">
+            <constant>false</constant>
+            <structure id="droplet"/>
+            <value id="json"/>
+        </input>
+        <output name="string">
+            <structure id="droplet"/>
+            <value id="string"/>
+        </output>
+        <output name="error">
+            <structure id="droplet"/>
+            <value id="error-code"/>
+        </output>
+    </node>
+
+    <node id="to-string">
+        <name>To String</name>
+        <description type="short">Dump JSON as string</description>
+        <description type="long">Dump a JSON object as a string.</description>
+        <parameter id="indentation">
+            <name>Indentation</name>
+            <description type="short">Indentation level</description>
+            <description type="long">Controls the indentation level. Set to -1 to disable indentation and print the most compact form.</description>
+            <value id="integer">4</value>
+        </parameter>
+        <input name="json">
+            <structure id="droplet"/>
+            <value id="json"/>
+        </input>
+        <output name="string">
+            <structure id="droplet"/>
+            <value id="string"/>
+        </output>
+    </node>
+
+    <node id="get">
+        <name>Get</name>
+        <description type="short">Get from JSON pointer.</description>
+        <description type="long">Retrieve value(s) via a JSON pointer.</description>
+        <input name="json">
+            <structure id="droplet"/>
+            <value id="json"/>
+        </input>
+        <input name="pointer">
+            <structure id="droplet"/>
+            <value id="string"/>
+        </input>
+        <output name="out">
+            <structure id="droplet"/>
+            <structure id="list"/>
+            <structure id="map"/>
+        </output>
+    </node>
+
+    <node id="set">
+        <name>Set</name>
+        <description type="short">Set a JSON value.</description>
+        <description type="long">Set a JSON value with a specific key.</description>
+        <input name="json">
+            <value id="json"/>
+        </input>
+        <input name="key">
+            <structure id="droplet"/>
+            <value id="string"/>
+        </input>
+        <input name="value">
+        </input>
+        <output name="out">
+            <value id="json"/>
+        </output>
+    </node>
+
+    <group id="array">
+        <name>Array</name>
+
+        <node id="append">
+            <name>Array Append</name>
+            <description type="short">Append to a JSON array</description>
+            <description type="long">Appends to an existing JSON array.</description>
+            <input name="json">
+                <structure id="droplet"/>
+                <value id="json"/>
+            </input>
+            <input name="value">
+            </input>
+            <output name="out">
+                <structure id="droplet"/>
+                <value id="json"/>
+            </output>
+        </node>
+
+        <node id="create-empty">
+            <name>Empty Array</name>
+            <description type="short">Create empty JSON array.</description>
+            <description type="long">Creates an empty JSON array.</description>
+            <output name="json">
+                <structure id="droplet"/>
+                <value id="json"/>
+            </output>
+        </node>
+
+        <node id="get-element">
+            <name>Get Element</name>
+            <description type="short">Get JSON array element</description>
+            <description type="long">Get a specific element from a JSON array by index.</description>
+            <input name="json">
+                <structure id="droplet"/>
+                <value id="json"/>
+            </input>
+            <input name="index">
+                <structure id="droplet"/>
+                <value id="integer"/>
+            </input>
+            <output name="element">
+                <structure id="droplet"/>
+                <value id="json"/>
+            </output>
+        </node>
+
+        <node id="size">
+            <name>Array Size</name>
+            <icon type="simicons">instruments::ruler</icon>
+            <description type="short">Get JSON array size</description>
+            <description type="long">Get the size (number of elements) in a JSON array.</description>
+            <input name="json">
+                <structure id="droplet"/>
+                <value id="json"/>
+            </input>
+            <output name="size">
+                <structure id="droplet"/>
+                <value id="integer"/>
+            </output>
+        </node>
+    </group>
+
+</plugin>
