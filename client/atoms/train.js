@@ -1,4 +1,4 @@
-// train.js — `train-v8`. The tile, learned from its own frames, by brush.
+// train.js — `train-v9`. The tile, learned from its own frames, by brush.
 //
 // `assemble` built the surfaces and `frame` path-traced them from a fixed
 // camera set. The seed is those surfaces sampled at the tile's whole budget
@@ -36,7 +36,7 @@ import { bboxOf, writePly } from '../lib/ply.js';
 import { rngOf, sampleSurfaces } from '../lib/sampling.js';
 import { readTar, writeTar } from '../lib/tar.js';
 
-export const ALGO = 'train-v8';
+export const ALGO = 'train-v9';
 // In-plane radius of a seed splat as a share of its spacing: overlapping, so
 // the first render is a surface and not a sieve.
 export const SPREAD = 1.15;
@@ -52,16 +52,17 @@ export const MARGIN = 0.15;
 export const MIN_PAD_M = 2;
 // The seed is this share of the budget unless the atom says otherwise; brush
 // grows the rest where the frames say the picture is wrong (client/lib/brush.js
-// configFor). A seed is paid for on every one of the run's steps, so this was
-// walked down to a fortieth on the reasoning that densification would fill the
-// tile in and only where it was needed — which is true of a 30 000-step run
-// and not of this one. Brush grows by a fraction of what it has at each refine,
-// and the growth window of a 1 200-step run holds about five of them: a 22 500
-// seed reached 37 000 of a 600 000 budget, one splat per 77 m² of a z14 tile,
-// and `widen` then blew each one up to hide the gaps. Half the budget on the
-// surface needs seven doublings-worth rather than thirty-two, which is what
-// the run can actually deliver.
-export const SEED_SHARE = 0.5;
+// configFor). What decides whether a seed ever reaches the budget is how many
+// refine passes the growth window holds, not how big the seed is, because
+// brush grows by a fraction of what it already has — about a tenth, measured
+// on the run that started this (22 500 → 37 000 in five passes). At brush's
+// own interval those five passes are all a 1 200-step run gets, which is why
+// a fortieth of the budget came back as a splat per 77 m²; the answer is not
+// a bigger seed but a shorter `refine_every` (db/0138: twenty, so thirty-six
+// passes, so 33×). A seed half the budget reaches it by starting there, and
+// leaves the sampler — a uniform walk of the surface, taken before a frame
+// has been looked at — deciding where a forest's splats go.
+export const SEED_SHARE = 0.0375;
 // How much wider every trained splat is made before it is written: the ground
 // is covered by splats overlapping their neighbours, and the trainer settles
 // on extents that leave the background showing between them. A multiple, so it
