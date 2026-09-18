@@ -103,7 +103,7 @@ test('story 10 — C asks to build on B’s land, and B says yes',
             await b.page.locator('.su-note').fill('Cara’s bench');
             await b.page.locator('.su-mine').click();
             await expect(b.page.locator('.su-status'))
-                .toContainText('render job(s) are in the pool', { timeout: UI });
+                .toContainText('render job(s) in the pool', { timeout: UI });
         });
 
         await b.close();

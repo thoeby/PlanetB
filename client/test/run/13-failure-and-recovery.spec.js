@@ -20,13 +20,22 @@ const NOTICE = '#notice';
 // above it are being rebuilt, and those are in the pool at no price.
 async function takesAJob(c) {
     await panel(c, 'Work');
-    const row = c.page.locator('.po-list li').filter({ hasText: 'free' }).first();
+    // A tile that is built rather than merged: assemble, the frames, the
+    // training. A merge is over in a second here (db/0131 builds the run's
+    // world small), and a tab that walks away between two pieces has walked
+    // away holding nothing — which is not the story. This one is minutes long,
+    // so there is something in its hands whenever it goes.
+    // The farthest one, not the nearest: the nearest is the tile B's land is
+    // on, and story 14 asks for that one to be built again. A job that was
+    // abandoned here would still be open there, and the two stories would be
+    // about each other.
+    const row = c.page.locator('.po-list li').filter({ hasText: 'trained' }).last();
     await expect(row).toBeVisible({ timeout: UI });
-    const which = await row.locator('.name').textContent();
+    const which = (await row.locator('.name').textContent()).trim();
     await row.getByRole('button', { name: 'Render' }).click();
     await expect(c.page.locator('.po-status'))
-        .toContainText(/assembling|sampling|merging|encoding|framing/, { timeout: UI });
-    return which.trim();
+        .toContainText(/assembling|merging|framing|training|encoding/, { timeout: UI });
+    return which;
 }
 
 async function findsItBack(b, which) {
@@ -34,7 +43,11 @@ async function findsItBack(b, which) {
     await panel(b, 'Work');
     const row = b.page.locator('.po-list li').filter({ hasText: which });
     await expect(row.first()).toBeVisible({ timeout: UI });
-    await expect(row.first()).toContainText('handed back', { timeout: UI });
+    // A tab that goes away says so on its way out — unless it closed with its
+    // claim still in flight, and then the lease is what notices (db/0132; the
+    // run sets it to twenty seconds). Either way the row ends up saying the
+    // same thing, so this waits for the sentence rather than for the goodbye.
+    await expect(row.first()).toContainText('handed back', { timeout: 200000 });
     await expect(row.first()).toContainText('went away');
     // And it is work again, not a row with nothing to press.
     await expect(row.first().getByRole('button', { name: 'Render' })).toBeVisible();

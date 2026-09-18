@@ -55,10 +55,35 @@ async function knowsTheSchema(apiUrl) {
     }
 }
 
+// How big the world this run builds is. Every tile is trained since the
+// sampler was removed, and a z14 tile at the operator's own numbers — 800 000
+// splats, 1 200 iterations, 1 024 px — is hours on a software adapter and
+// minutes on a GPU. The stories are about what a player does, not about how
+// many splats it takes, so the run turns the three numbers db/0131 exposes
+// down to a twentieth. The operator's world is untouched: unset, they are what
+// they always were. RUN_FULL_SIZE=1 renders at the real size.
+const SMALL = ['budget_scale', '0.05'], ITERS = ['iters', '60'],
+    PX = ['frame_px', '192'],
+    // How long a claim is left alone after its tab stops beating (db/0132).
+    // Story 13 watches a render somebody walked away from come back, and five
+    // minutes of watching is not a story. It cannot go below the minute the
+    // tab beats at (client/js/work.js HEARTBEAT_MS), or the world takes work
+    // away from a tab that is doing it.
+    LEASE = ['lease', '150 seconds'];
+
 function emptyDatabase() {
     const done = sh('make', ['db-reset'], { stdio: 'pipe' });
     if (done.status !== 0) {
         throw new Error(`make db-reset failed:\n${done.stderr || done.stdout}`);
+    }
+    if (process.env.RUN_FULL_SIZE === '1') return;
+    const db = process.env.PGDATABASE ?? 'splatworld';
+    for (const [key, value] of [SMALL, ITERS, PX, LEASE]) {
+        const set = sh('psql', ['-v', 'ON_ERROR_STOP=1', '--no-psqlrc', '-q', '-c',
+            `ALTER DATABASE "${db}" SET splatworld.${key} = '${value}'`], { stdio: 'pipe' });
+        if (set.status !== 0) {
+            throw new Error(`could not set splatworld.${key}:\n${set.stderr || set.stdout}`);
+        }
     }
 }
 

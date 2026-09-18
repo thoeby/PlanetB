@@ -1,9 +1,13 @@
 // Compiling ground again (db/0081_compileitagain.sql).
 //
 // Not one of SPEC §3's stories: this is the thing the operator could not do —
-// the world's recipe moves (a rule, a sampler with a new version) and the tiles
+// the world's recipe moves (a rule, a trainer with a new version) and the tiles
 // do not, because nothing about the land changed. B asks for their land to be
 // built again, and it goes through Submit and an approval like anything else.
+//
+// Here the recipe has not moved — this run built the tile minutes ago with the
+// versions it still has — so what comes back is the same bytes, published
+// again. That is the same door, and the page says so.
 
 import { test, expect, looking, open, panel, signIn, UI } from './players.js';
 
@@ -38,9 +42,18 @@ test('ground already rendered can be asked for again',
             await expect(b.page.locator('.su-mine')).toBeEnabled({ timeout: UI });
             await b.page.locator('.su-note').fill('built with the new sky');
             await b.page.locator('.su-mine').click();
+            // What comes back depends on whether the recipe moved. A job at a
+            // new version owns the pieces the old one made (db/0100), so when
+            // nothing about how a tile is built has changed, the same bytes
+            // are still the answer and the tile publishes again at once: "0
+            // render job(s) in the pool, 1 already published". When an
+            // algo_version or a rule has moved, the pieces no longer match and
+            // there is work. Either way it went through Submit and an approval
+            // like anything else, and the page says which happened.
             await expect(b.page.locator('.su-status'))
-                .toContainText(/[1-9]\d* render job\(s\) are in the pool/,
-                    { timeout: UI });
+                .toContainText(/\d+ render job\(s\) in the pool/, { timeout: UI });
+            await expect(b.page.locator('.su-status'))
+                .toContainText(/[1-9]\d* tile\(s\) approved/, { timeout: UI });
         });
 
         await test.step('a tile that was already published is in the pool again',
@@ -49,7 +62,7 @@ test('ground already rendered can be asked for again',
                 await panel(c, 'Work');
                 const rows = c.page.locator('.po-list li');
                 await expect(rows.first()).toBeVisible({ timeout: UI });
-                await expect(rows.filter({ hasText: 'assembled' }).first())
+                await expect(rows.filter({ hasText: 'trained' }).first())
                     .toBeVisible({ timeout: UI });
             });
 

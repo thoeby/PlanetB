@@ -11,6 +11,7 @@
 #
 #   bash tools/make-seed-osm.sh          # writes infra/seed/osm-visp.gpkg
 #   FORCE=1 bash tools/make-seed-osm.sh  # fetches it again
+#   OSM_GPKG=mine.gpkg FORCE=1 bash tools/make-seed-osm.sh   # takes yours
 #
 # Overpass is the source. Where a machine cannot reach it — this container's
 # egress policy denies overpass-api.de, its mirrors and Geofabrik both — the
@@ -38,6 +39,19 @@ command -v ogr2ogr > /dev/null || {
 mkdir -p "$(dirname "$out")"
 tmp=$(mktemp -d)
 trap 'rm -rf "$tmp"' EXIT
+
+# A file you already have wins over anything this script could fetch: an
+# extract pulled in QGIS, a Geofabrik clip, an export from somewhere else.
+# Layers are taken as they come if they are already named lines/areas/points,
+# and otherwise by what they hold.
+if [ -n "${OSM_GPKG:-}" ]; then
+    [ -s "$OSM_GPKG" ] || { echo "make-seed-osm: no such file: $OSM_GPKG" >&2; exit 1; }
+    ogr2ogr -f GPKG "$tmp/osm.gpkg" "$OSM_GPKG"
+    mv "$tmp/osm.gpkg" "$out"
+    echo "make-seed-osm: $out — yours, from $OSM_GPKG"
+    ogrinfo -so "$out" | sed -n '2,20p'
+    exit 0
+fi
 
 bbox="$south,$west,$north,$east"
 query="[out:xml][timeout:90];

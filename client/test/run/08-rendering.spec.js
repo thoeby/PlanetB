@@ -9,6 +9,7 @@
 
 import { test, expect, open, panel, signIn, RENDER, UI } from './players.js';
 import { variety } from './pixels.js';
+import { tileX, tileY } from '../../lib/tilemath.js';
 
 // A rectangle of the 3D view with no chrome over it (story 1 uses the same).
 const VIEW = { x: 690, y: 120, width: 370, height: 240 };
@@ -23,8 +24,8 @@ const status = (player) => player.page.locator('.po-status');
 async function take(c, row) {
     await row.getByRole('button', { name: 'Render' }).click();
     // What the tab is doing, while it does it: a compile is minutes long.
-    await expect(status(c)).toContainText(/assembling|sampling|merging|encoding/,
-        { timeout: UI });
+    await expect(status(c)).toContainText(
+        /assembling|framing|training|merging|encoding/, { timeout: UI });
     await expect(status(c)).toContainText('is published', { timeout: RENDER });
 }
 
@@ -33,6 +34,11 @@ async function take(c, row) {
 async function aLooks(browser, world, testInfo, here) {
     const a = await open(browser, world, 'A', testInfo);
     await a.page.goto(`${world.pageUrl}#at=${here.lat},${here.lon},0,0`);
+    // The world line is written by the 3D loop, so wait for the page to have
+    // one rather than for the sentence to appear out of nothing: a third tab
+    // opening while another is training takes its time to get an engine.
+    await a.page.waitForFunction(() => Boolean(window.splatworld?.app), null,
+        { timeout: 120000 });
     await panel(a, 'Setup');
     await expect(a.page.locator('#world'))
         .toContainText('1 published tiles', { timeout: UI });
@@ -75,24 +81,48 @@ test('story 8 — C renders what B approved, and the world has it',
                 await b.page.locator('.su-note').fill('the benches and the pond');
                 await b.page.locator('.su-mine').click();
                 await expect(b.page.locator('.su-status'))
-                    .toContainText('render job(s) are in the pool', { timeout: UI });
+                    .toContainText('render job(s) in the pool', { timeout: UI });
             });
 
-        const fine = c.page.locator('.rows li').filter({ hasText: 'assembled' });
+        // The row is named for its tile, and the one this story is about is
+        // the z14 tile B built on: the ground around it is in the pool too,
+        // and since the sampler was removed every tile with nothing under it
+        // is trained, so "trained" alone no longer picks one row out.
+        const mine = `14/${tileX(here.lon, 14)}/${tileY(here.lat, 14)}`;
+        // `.rows li` is also the Build panel's list of this land's tiles, so
+        // the pool's own list is where this looks.
+        const fine = c.page.locator('.po-list li').filter({ hasText: mine });
         await test.step('the pool says what the job is and what it needs',
             async () => {
                 await panel(c, 'Work');
+                // The pool is read when it is opened and after something is
+                // done to it, not on a timer, and approving has only just
+                // opened this job. A player would press the tab again; this
+                // asks the panel to read the pool again, which is the same.
+                await expect.poll(async () => {
+                    await c.page.evaluate(() => window.splatworld.pool.refresh());
+                    return fine.count();
+                }, { timeout: UI, intervals: [1000] }).toBeGreaterThan(0);
                 await expect(fine).toHaveCount(1, { timeout: UI });
                 await expect(fine).toContainText('free');
+                await expect(fine).toContainText('trained');
+                // What the row says about the machine is about the piece that
+                // can be taken *now* — the assemble — not about the training
+                // waiting behind it (client/js/poolui.js needs()).
                 await expect(fine).toContainText('no GPU needed');
             });
 
         await test.step('C takes it, and their tab compiles it', () => take(c, fine));
 
+        // B has said everything they have to say, and this machine gives two
+        // tabs a 3D context and not three (HANDOFF §2): the third opens, draws
+        // its chrome and never gets an engine. So B leaves before A arrives,
+        // which is what a player would do anyway.
+        await b.close();
         await test.step('A, elsewhere, stands there and the world has a tile',
             () => aLooks(browser, world, testInfo, here));
 
-        const coarse = c.page.locator('.rows li')
+        const coarse = c.page.locator('.po-list li')
             .filter({ hasText: 'merged from its children' });
         await test.step('the tile above it is stale, and its rebuild is offered',
             async () => {
@@ -102,6 +132,5 @@ test('story 8 — C renders what B approved, and the world has it',
 
         await test.step('C takes that too', () => take(c, coarse.first()));
 
-        await b.close();
         await c.close();
     });
