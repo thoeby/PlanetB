@@ -36,11 +36,12 @@ async function boot(page, query = '') {
     return errors;
 }
 
-const budget = (page) => page.evaluate(() => window.splatworld.streamer.limits.splats);
+const budget = (page) => page.evaluate(() => window.splatworld.app.scene.gsplat.splatBudget);
 // What the plain page picks: the device's own budget (client/js/traverse.js).
 const own = (page) => page.evaluate(async () => {
     const t = await import('./js/traverse.js');
-    return window.splatworld.app.graphicsDevice.isWebGPU ? t.LIMITS.splats : t.WEBGL_LIMITS.splats;
+    const webgpu = window.splatworld.app.graphicsDevice.isWebGPU;
+    return webgpu ? t.LIMITS.splatBudget : t.WEBGL_LIMITS.splatBudget;
 });
 
 test('?xr=1 takes the headset budget, and the plain page keeps its own',

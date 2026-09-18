@@ -148,18 +148,23 @@ test('at most four tiles are started per pass', () => {
     assert.equal(selectTiles(w, camera(1e6)).load.length, 0, 'nothing while four are in flight');
 });
 
-test('the caps bound the loaded set and evict the least recently used', () => {
+test('the tile cap bounds the loaded set and evicts the least recently used', () => {
     const w = world();
     settle(w, camera(1e6));
-    const tight = selectTiles(w, camera(1e6), { tiles: 2, splats: 25e6, inflight: 4 });
+    const tight = selectTiles(w, camera(1e6), { tiles: 2, splatBudget: 25e6, inflight: 4 });
     assert.equal(tight.want.size, 2, 'the tile cap holds');
     assert.ok(tight.want.has('10/535/361'), 'and keeps the tile under the camera');
     assert.equal(tight.unload.length, 2, 'the other two are evicted');
 
-    const budget = selectTiles(w, camera(1e6),
-        { tiles: 40, splats: GRID[10] ** 2 * 3, inflight: 4 });
-    assert.equal(budget.want.size, 3, 'the splat budget holds too');
-    assert.ok(budget.splats <= GRID[10] ** 2 * 3, `${budget.splats} splats`);
+    // And it is the only cap here now: how much of a tile to draw is the
+    // engine's to decide, tile by tile, against one budget for the scene
+    // (client/js/traverse.js applyTileCap, client/play.html splatBudget). A
+    // tile that would once have been skipped for being too big is held and
+    // drawn coarse instead.
+    const fat = selectTiles(w, camera(1e6),
+        { tiles: 40, splatBudget: GRID[10] ** 2 * 3, inflight: 4 });
+    assert.equal(fat.want.size, 4, 'every tile in view is held');
+    assert.equal(fat.splats, undefined, 'and nothing here counts splats any more');
 });
 
 test('frustum culling drops tiles behind the camera', () => {

@@ -45,18 +45,18 @@ test('a republished tile is swapped in within 35 s, with no empty frame',
         // frame counter below asserts the scene is never empty.
         await page.waitForFunction(
             () => [...window.splatworld.streamer.entries.entries()]
-                .some(([k, e]) => k.startsWith('10/') && e.entity),
+                .some(([k, e]) => k.startsWith('10/') && e.resident),
             null, { timeout: 60000 });
 
         const before = await page.evaluate(() => {
             const [k] = [...window.splatworld.streamer.entries.entries()]
-                .filter(([key, e]) => key.startsWith('10/') && e.entity)
+                .filter(([key, e]) => key.startsWith('10/') && e.resident)
                 .map(([key]) => key);
             // Watch every frame from here on: the tile must never be absent.
             window.__watch = { min: Infinity, frames: 0, key: k };
             const tick = () => {
                 const n = [...window.splatworld.streamer.entries.values()]
-                    .filter((e) => e.entity).length;
+                    .filter((e) => e.resident).length;
                 window.__watch.min = Math.min(window.__watch.min, n);
                 window.__watch.frames++;
                 requestAnimationFrame(tick);
@@ -71,7 +71,7 @@ test('a republished tile is swapped in within 35 s, with no empty frame',
 
         // The poll is on its 30 s timer; give it 35.
         await page.waitForFunction((k) => window.splatworld.streamer.swaps > 0
-            && window.splatworld.streamer.entries.get(k)?.entity, before.key,
+            && window.splatworld.streamer.entries.get(k)?.resident, before.key,
         { timeout: 35000 });
 
         const after = await page.evaluate((k) => ({

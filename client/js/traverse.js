@@ -16,12 +16,15 @@ export const REFINE_PX = 2;
 export const HYSTERESIS = 1.4;
 // 12 M splats is what a mid-range card sorts and draws at 60 fps; 25 M was
 // what the engine would accept, not what it could show.
-export const LIMITS = { tiles: 64, splats: 12e6, inflight: 4 };
+// `splatBudget` is what the engine draws, not what this holds: a tile that
+// does not fit is drawn at a coarser level rather than left out
+// (client/lib/lodorder.js, client/atoms/sog.js). `tiles` is the memory cap.
+export const LIMITS = { tiles: 64, splatBudget: 12e6, inflight: 4 };
 // Without WebGPU the engine sorts every loaded splat on the CPU each time the
 // camera turns and ships the order back as a texture; past a few million that
 // is the stutter, not the draw. Under WebGL2 the world is kept a third the
 // size and tiles are taken two at a time (client/play.html).
-export const WEBGL_LIMITS = { tiles: 48, splats: 4e6, inflight: 2 };
+export const WEBGL_LIMITS = { tiles: 48, splatBudget: 4e6, inflight: 2 };
 
 // How long a tile that has left the view is kept before it is thrown away.
 // Panning is turning your head and turning it back, and a tile dropped the
@@ -185,22 +188,17 @@ function prioritise(world, camera, wanted) {
     })).sort((a, b) => (a.d - b.d) || (b.used - a.used)).map((e) => e.c);
 }
 
-// Nearest first, and a tile that does not fit is passed over rather than
-// ending the list: the one that would not fit is a near tile with a lot of
-// splats in it, and everything after it is further away and smaller. Stopping
-// there is why a world seen from a mountain had five kilometres of tiles in it
-// and nothing behind them.
-function applyCaps(ordered, limits) {
-    const keep = [];
-    let splats = 0;
-    for (const c of ordered) {
-        if (keep.length >= limits.tiles) break;
-        const n = c.row.manifest?.splats ?? 0;
-        if (splats + n > limits.splats) continue;
-        keep.push(c);
-        splats += n;
-    }
-    return { keep, splats };
+// Nearest first, up to the number of tiles this machine will hold.
+//
+// This used to cap the splats too, and skip a tile that did not fit — which is
+// why the ground at the edge of the view went missing rather than going
+// coarse. A tile now carries its own levels and the engine spends one budget
+// across all of them (client/js/tiles.js fileOf, play.html splatBudget), so
+// how much of a tile to draw is the engine's question and it can answer it for
+// every tile at once. What is left here is memory: each tile is an asset, an
+// entity and a placement, and that is what `tiles` bounds.
+function applyTileCap(ordered, limits) {
+    return ordered.slice(0, limits.tiles);
 }
 
 // One tile covers the other's ground: the same tile, an ancestor or a descendant.
@@ -227,7 +225,7 @@ function replaced(world, keep, k) {
 // camera: { position, planes, screenH, fovY }.
 export function selectTiles(world, camera, limits = LIMITS) {
     const ordered = prioritise(world, camera, traverse(world, camera));
-    const { keep, splats } = applyCaps(ordered, limits);
+    const keep = applyTileCap(ordered, limits);
     const want = new Set(keep.map((c) => c.key));
 
     const load = [];
@@ -244,6 +242,6 @@ export function selectTiles(world, camera, limits = LIMITS) {
     const unload = [...world.loaded.keys()]
         .filter((k) => !want.has(k) && cold(k) && replaced(world, keep, k))
         .sort((a, b) => (world.loaded.get(a).usedAt - world.loaded.get(b).usedAt));
-    return { want, load, unload, splats };
+    return { want, load, unload };
 }
 

@@ -72,9 +72,9 @@ async function flyTo(page, altitude) {
         }
         return {
             loaded: [...streamer.entries.keys()].sort(),
-            placed: [...streamer.entries.values()].filter((e) => e.entity).length,
+            placed: [...streamer.entries.values()].filter((e) => e.resident).length,
             worst: Math.max(0, ...[...streamer.entries.values()]
-                .filter((e) => e.entity)
+                .filter((e) => e.resident)
                 .map((e) => {
                     const p = e.entity.getLocalPosition();
                     return Math.hypot(p.x, p.y, p.z);
@@ -98,7 +98,13 @@ test('the engine and the test tiles load', async ({ page }) => {
     // The .sog bundles are not merely fetched: the engine decoded them and put
     // the gaussians on the device.
     const splats = await page.evaluate(() => [...window.splatworld.streamer.entries.values()]
-        .map((e) => (e.entity ? e.asset?.resource?.gsplatData?.numSplats ?? 0 : 0)));
+        .map((e) => {
+            if (!e.entity) return 0;
+            const r = e.asset?.resource;
+            // A .sog resource keeps its count on gsplatData; an octree
+            // resource keeps its own (gsplat-octree.resource.js numSplats).
+            return r?.gsplatData?.numSplats ?? r?.numSplats ?? 0;
+        }));
     expect(splats).toEqual([2304, 2304, 2304, 2304]);
 
     // And something was actually drawn: the frame is not the clear colour.
@@ -155,7 +161,7 @@ test('flying 60 km rebases the origin and keeps entities near it', async ({ page
             rebases: origin.rebases,
             drift: Math.hypot(p.x, p.z),
             worst: Math.max(0, ...[...streamer.entries.values()]
-                .filter((e) => e.entity)
+                .filter((e) => e.resident)
                 .map((e) => {
                     const q = e.entity.getLocalPosition();
                     return Math.hypot(q.x, q.y, q.z);

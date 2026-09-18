@@ -34,18 +34,20 @@ test('a browser with no runtime is not an error', async () => {
 });
 
 test('XR holds a third of the desktop budget, and hands it back on the way out', () => {
-    assert.ok(XR_LIMITS.splats <= 8e6, 'TASKS.md WP5.4: 8 M splats');
+    assert.ok(XR_LIMITS.splatBudget <= 8e6, 'TASKS.md WP5.4: 8 M splats drawn');
     assert.ok(XR_LIMITS.tiles < LIMITS.tiles);
     assert.deepEqual(limitsFor(true, LIMITS), XR_LIMITS);
     assert.deepEqual(limitsFor(false, LIMITS), LIMITS);
 });
 
-test('the streamer keeps what the XR budget allows and no more', () => {
-    // Twelve z6 roots of two million splats each, all of them in view: enough
-    // that the budget is what decides, not the traversal. The desktop budget
-    // holds six of them, XR's four.
+test('a headset holds fewer tiles, and is given a smaller budget to draw them', () => {
+    // Thirty z6 roots, all in view. What the traversal caps is how many tiles
+    // are *held* — each one is an asset, an entity and a placement per eye.
+    // How many splats are *drawn* out of them is the engine's, against
+    // `splatBudget`, which client/play.html hands it (client/js/traverse.js
+    // applyTileCap). The two used to be the same number and are not.
     const rows = [];
-    for (let i = 0; i < 12; i++) {
+    for (let i = 0; i < 30; i++) {
         const z = tm.MIN_ZOOM;
         const x = 33 + i;
         const y = 22;
@@ -64,9 +66,10 @@ test('the streamer keeps what the XR budget allows and no more', () => {
         fovY: 45 * tm.RAD_PER_DEG };
     const desktop = selectTiles(world, camera, LIMITS);
     const xr = selectTiles(world, camera, XR_LIMITS);
-    assert.equal(desktop.want.size, 6, '12 M splats is six of these tiles');
-    assert.equal(xr.want.size, 4, '8 M splats is four of these tiles');
-    assert.ok(xr.load.length <= XR_LIMITS.inflight, 'and it loads them two at a time');
+    assert.equal(desktop.want.size, 30, 'a desktop holds all thirty');
+    assert.equal(xr.want.size, XR_LIMITS.tiles, 'a headset holds its cap');
+    assert.ok(XR_LIMITS.splatBudget < LIMITS.splatBudget, 'and draws less out of them');
+    assert.ok(xr.load.length <= XR_LIMITS.inflight, 'loading them two at a time');
 });
 
 test('a teleport lands on the ground, with the eyes above it', () => {

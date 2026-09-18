@@ -43,6 +43,27 @@ export function cameraState(cameraEntity, screenH, pc = null) {
     };
 }
 
+// Whether a loaded asset's splats are on the device.
+//
+// A single-level .sog is ready when its splats are decoded. An octree asset is
+// ready when its *index* parses; the file it names is fetched afterwards by the
+// octree's own loader. A tile's octree names exactly one file, so file 0 is the
+// tile. These are the engine fields this file depends on (PlayCanvas 2.22,
+// pinned by tools/vendor.sh): re-read this one function on a version bump.
+export function splatsHere(entry) {
+    const resource = entry?.asset?.resource;
+    if (!resource) return false;
+    const octree = resource.octree;
+    return octree ? Boolean(octree.getFileResource(0)) : true;
+}
+
+// How long a placed tile is given to produce its splats before it is counted
+// as drawing anyway, with a complaint. The octree's loader retries twice and
+// then puts the url aside silently — nothing fires an error this file could
+// hear — so without this a 404 on one .sog would wedge refine, coarsen and the
+// swap for ever. It degrades the picture; it cannot stop the world.
+export const RESIDENT_MS = 10000;
+
 // Where the traversal starts: every published tile with no published tile above
 // it. A world compiles from the leaves up (SPEC §5.3) — the first thing anybody
 // publishes is a z14, and its z12, z10, z8 and z6 are rebuilt from it
@@ -112,6 +133,7 @@ export class TileStreamer {
     }
 
     update(camera) {
+        this.settleResidency(Date.now());
         this.placeNext();
         const sel = selectTiles(this.world(), camera, this.limits);
         const now = Date.now();
@@ -124,25 +146,60 @@ export class TileStreamer {
         return sel;
     }
 
+    // A placed tile starts drawing when its splats arrive, and a swap finishes
+    // then too: until the tile taking a tile's place has something in it, the
+    // old one stays. Called once per update, before anything is decided.
+    settleResidency(now) {
+        for (const [k, e] of this.entries) {
+            if (e.pending && (splatsHere(e.pending) || now - e.pending.placedAt > RESIDENT_MS)) {
+                this.finishSwap(k, e);
+            }
+            if (!e.entity || e.resident) continue;
+            if (splatsHere(e)) e.resident = true;
+            else if (now - e.placedAt > RESIDENT_MS) {
+                e.resident = true;
+                console.warn(`tile ${k}: no splats ${RESIDENT_MS} ms after it was placed`);
+            }
+        }
+    }
+
+    // What to fetch for a tile, and what to tell the engine it is called.
+    //
+    // PlayCanvas picks its parser from the asset's *declared* filename and
+    // fetches from the url (framework/handlers/loader.js), so a tile's levels
+    // are stored content-addressed like everything else and only *called*
+    // `lod-meta.json` — the name the octree parser matches on. Invariant 1 is
+    // untouched (client/atoms/sog.js).
+    //
+    // A tile published before sog-v2 carries no levels and is loaded as the
+    // single-level .sog it is. That arm is not a switch anybody can set; it is
+    // the same "if the manifest says so" as `manifest.height`, and it goes
+    // when nothing in the world is older than sog-v2.
+    fileOf(c) {
+        const shown = showing(c.row, this.candidates);
+        const sha = shown?.sha ?? c.row.sog_sha256;
+        const dir = `${this.filesUrl}/tiles/${c.z}/${c.x}/${c.y}`;
+        const lod = shown?.manifest?.lod;
+        return lod
+            ? { url: `${dir}/${lod.sha256}.json`, filename: 'lod-meta.json' }
+            : { url: `${dir}/${sha}.sog`, filename: `${sha}.sog` };
+    }
+
     url(c) {
-        const sha = showing(c.row, this.candidates)?.sha ?? c.row.sog_sha256;
-        return `${this.filesUrl}/tiles/${c.z}/${c.x}/${c.y}/${sha}.sog`;
+        return this.fileOf(c).url;
     }
 
     begin(c) {
         if (this.entries.has(c.key)) return;
-        const asset = new this.pc.Asset(c.key, 'gsplat', {
-            url: this.url(c), filename: `${c.row.sog_sha256}.sog`,
-        });
-        // `resident` is whether this tile's splats are on screen, which is not
-        // the same question as whether it has an entity: an entity is made
-        // when the bytes arrive, and today those happen together. They stop
-        // happening together the moment a tile is more than one file
-        // (PLAN-lod.md), and the ground and the traversal both ask the first
-        // question while reading the second. So it gets its own field now,
-        // answered the same way, and the answer moves later on its own.
+        const asset = new this.pc.Asset(c.key, 'gsplat', this.fileOf(c));
+        // `resident` is whether this tile's splats are on screen, which is a
+        // different question from whether it has an entity: a tile with levels
+        // has an entity as soon as its index parses and nothing in it until the
+        // file that index names arrives (`splatsHere`). The ground and the
+        // traversal ask this one; `pending` is the same question for a tile
+        // waiting to take another's place.
         const entry = { usedAt: ++this.clock, seenAt: Date.now(), row: c.row,
-            asset, entity: null, resident: false, placedAt: 0 };
+            asset, entity: null, resident: false, placedAt: 0, pending: null };
         this.entries.set(c.key, entry);
         this.pending++;
         // The in-flight count must fall exactly once per load, whichever way it
@@ -185,8 +242,8 @@ export class TileStreamer {
             this.place(entity, entry.row);
             this.app.root.addChild(entity);
             entry.entity = entity;
-            entry.resident = true;
             entry.placedAt = Date.now();
+            entry.resident = splatsHere(entry);
             return entry;
         }
         return null;
@@ -204,6 +261,10 @@ export class TileStreamer {
     unload(k) {
         const e = this.entries.get(k);
         if (!e) return;
+        if (e.pending) {
+            this.release(e.pending.entity, e.pending.asset);
+            e.pending = null;
+        }
         if (!e.settled) {
             e.settled = true;
             this.pending--;
@@ -281,10 +342,8 @@ export class TileStreamer {
         const e = this.entries.get(k);
         if (!e || e.swapping === row.sog_sha256) return;
         e.swapping = row.sog_sha256;
-        const asset = new this.pc.Asset(`${k}@${row.published_version}`, 'gsplat', {
-            url: this.url({ z: row.z, x: row.x, y: row.y, row }),
-            filename: `${row.sog_sha256}.sog`,
-        });
+        const asset = new this.pc.Asset(`${k}@${row.published_version}`, 'gsplat',
+            this.fileOf({ z: row.z, x: row.x, y: row.y, key: k, row }));
         asset.ready(() => this.adopt(k, e, asset, row));
         asset.once('error', () => {
             if (e.swapping === row.sog_sha256) e.swapping = null;
@@ -294,7 +353,10 @@ export class TileStreamer {
         this.app.assets.load(asset);
     }
 
-    // The new asset has arrived: put it in the scene, then take the old one out.
+    // The new asset's index has arrived: put it in the scene beside the old
+    // one and wait. It is not the tile until it has splats in it — for a few
+    // frames both are there, which the balancer answers by drawing a little
+    // less of each, and which is the price of never showing a hole.
     adopt(k, e, asset, row) {
         if (this.entries.get(k) !== e || e.swapping !== row.sog_sha256) {
             this.release(null, asset);
@@ -304,12 +366,21 @@ export class TileStreamer {
         entity.addComponent('gsplat', { asset });
         this.place(entity, row);
         this.app.root.addChild(entity);
+        e.pending = { entity, asset, row, placedAt: Date.now() };
+        this.settleResidency(Date.now());
+    }
+
+    // The parked tile has splats (or has run out of time): it becomes the tile,
+    // and the one it replaced goes.
+    finishSwap(k, e) {
+        const { entity, asset, row } = e.pending;
         const oldEntity = e.entity, oldAsset = e.asset;
         e.entity = entity;
-        e.resident = true;
-        e.placedAt = Date.now();
         e.asset = asset;
         e.row = row;
+        e.resident = true;
+        e.placedAt = Date.now();
+        e.pending = null;
         e.swapping = null;
         this.swaps++;
         this.release(oldEntity, oldAsset);

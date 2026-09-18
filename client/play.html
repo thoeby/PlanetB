@@ -272,6 +272,13 @@
   // tiles have to be loaded before there is anything to enter. Without a
   // headset the budget follows the device (traverse.js WEBGL_LIMITS).
   const limits = wantsXr ? XR_LIMITS : device.isWebGPU ? LIMITS : WEBGL_LIMITS;
+  // How many splats the engine may draw at once, across every tile on screen.
+  // A tile carries its own levels (client/atoms/sog.js) and the engine spends
+  // this across all of them, so a tile that does not fit is drawn coarse
+  // instead of being left out — which is what the traversal used to do, and
+  // why the ground at the edge of the view went missing rather than going
+  // soft (client/js/traverse.js applyTileCap).
+  app.scene.gsplat.splatBudget = limits.splatBudget;
   const streamer = new TileStreamer(app, pc, {
     origin, filesUrl: api.endpoints().files, fetchRows, limits,
   });
@@ -585,7 +592,7 @@
       status.textContent = 'no headset on this browser';
       return;
     }
-    status.textContent = `${XR_LIMITS.splats / 1e6} M splat budget`;
+    status.textContent = `${XR_LIMITS.splatBudget / 1e6} M splat budget`;
     xrPanel.querySelector('.xr-enter').onclick = () => {
       rig = rig ?? new pc.Entity('xr-rig');
       if (!rig.parent) app.root.addChild(rig);

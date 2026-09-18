@@ -16,7 +16,7 @@ import { raycastGround } from './build.js';
 // TASKS.md WP5.4: 8 M splats. Fewer tiles for the same reason — each one is a
 // draw call per eye — and less in flight, because a stall in a headset is
 // nausea rather than a slow frame.
-export const XR_LIMITS = { tiles: 24, splats: 8e6, inflight: 2 };
+export const XR_LIMITS = { tiles: 24, splatBudget: 8e6, inflight: 2 };
 
 // How far a teleport may reach, and how far above the ground it puts the eyes.
 export const TELEPORT = { far: 120, eye: 1.7, step: 0.5 };

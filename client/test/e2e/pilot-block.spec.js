@@ -94,14 +94,14 @@ test('a z12 block of the pilot, compiled by one tab and streamed', async ({ page
     }, [LON, LAT]);
     await expect.poll(() => page.evaluate(
         () => [...window.splatworld.streamer.entries.values()]
-            .filter((e) => e.entity).map((e) => `${e.row.z}/`).join('')),
+            .filter((e) => e.resident).map((e) => `${e.row.z}/`).join('')),
     { timeout: 180000 }).toContain('14/');
     await page.waitForTimeout(4000);
 
     mkdirSync(join(REPO, 'docs'), { recursive: true });
     writeFileSync(join(REPO, 'docs/pilot.png'), Buffer.from(await frame(page), 'base64'));
     const seen = await page.evaluate(() => [...window.splatworld.streamer.entries.values()]
-        .filter((e) => e.entity).map((e) => `${e.row.z}/${e.row.x}/${e.row.y}`));
+        .filter((e) => e.resident).map((e) => `${e.row.z}/${e.row.x}/${e.row.y}`));
     console.log(`# streaming ${seen.length} tiles: ${seen.join(' ')}`);
     expect(seen.some((k) => k.startsWith('14/'))).toBe(true);
 });

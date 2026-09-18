@@ -7,7 +7,7 @@ import assert from 'node:assert/strict';
 
 import * as tm from '../lib/tilemath.js';
 import { FloatingOrigin } from '../js/origin.js';
-import { POLL_MS, RETRY_MS, TileStreamer } from '../js/tiles.js';
+import { POLL_MS, RESIDENT_MS, RETRY_MS, TileStreamer, splatsHere } from '../js/tiles.js';
 
 // The tiles tools/make-test-tiles.mjs publishes, with the manifests it writes.
 const GRID = { 6: 24, 8: 32, 10: 48 };
@@ -66,7 +66,16 @@ function fakeApp({ manual = false, fail = () => false } = {}) {
     const app = {
         root: { addChild() {} },
         loads: [],
-        fire: (a) => (fail(a) ? a.once_.error?.('boom') : a.ready_.forEach((fn) => fn())),
+        // A .sog asset carries its splats the moment it is ready; an octree
+        // asset carries an index and fetches its file afterwards, which is
+        // what `octree` models here (client/js/tiles.js splatsHere).
+        fire: (a) => {
+            if (fail(a)) { a.once_.error?.('boom'); return; }
+            a.resource = a.file.filename === 'lod-meta.json'
+                ? { octree: { file0: null, getFileResource: () => a.resource.octree.file0 } }
+                : { gsplatData: { numSplats: 1 } };
+            a.ready_.forEach((fn) => fn());
+        },
     };
     app.assets = { add() {}, remove() {}, load: (a) => (manual ? app.loads.push(a) : app.fire(a)) };
     return app;
@@ -244,4 +253,93 @@ test('of two swaps in flight, only the newest is adopted', async () => {
     s.swap('10/535/361', swapRow(rows[0], 'c'.repeat(64)));
     s.app.fire(s.app.loads[2]);
     assert.equal(s.swaps, 1, 'a version older than the one asked for last is dropped');
+});
+
+
+// ------------------------------------------------------- a tile with levels
+
+const withLod = (r, sha = 'e'.repeat(64)) => ({
+    ...r, manifest: { ...r.manifest, lod: { sha256: sha, levels: [100, 25] } },
+});
+
+test('a tile that published its levels is fetched as its levels', () => {
+    const rows = COORDS.map((c) => row(...c));
+    const lod = withLod(rows[0]);
+    const s = streamerWith([lod, ...rows.slice(1)], null);
+    const file = s.fileOf({ z: 10, x: 535, y: 361, row: lod });
+    assert.match(file.url, /\/tiles\/10\/535\/361\/e{64}\.json$/);
+    assert.equal(file.filename, 'lod-meta.json', 'which is how the engine picks its parser');
+});
+
+test('a tile published before its levels existed is still fetched as a .sog', () => {
+    const rows = COORDS.map((c) => row(...c));
+    const s = streamerWith(rows, null);
+    const file = s.fileOf({ z: 10, x: 535, y: 361, row: rows[0] });
+    assert.match(file.url, /\/tiles\/10\/535\/361\/a{64}\.sog$/);
+    assert.equal(file.filename, `${'a'.repeat(64)}.sog`);
+});
+
+test('splatsHere knows an index from the splats it names', () => {
+    assert.equal(splatsHere(undefined), false);
+    assert.equal(splatsHere({ asset: {} }), false, 'nothing loaded');
+    assert.equal(splatsHere({ asset: { resource: { gsplatData: {} } } }), true, 'a .sog');
+    const empty = { octree: { getFileResource: () => null } };
+    assert.equal(splatsHere({ asset: { resource: empty } }), false, 'an index and no file');
+    const full = { octree: { getFileResource: () => ({}) } };
+    assert.equal(splatsHere({ asset: { resource: full } }), true, 'and one with its file');
+});
+
+test('a tile with levels is not drawing until the file its index names arrives', () => {
+    const rows = COORDS.map((c) => row(...c)).map((r) => withLod(r));
+    const s = streamerWith(rows, null);
+    const cam = camera(1e6);
+    s.update(cam);
+    s.update(cam);                                   // places the first arrival
+    const e = [...s.entries.values()].find((x) => x.entity);
+    assert.ok(e, 'a tile was placed');
+    assert.equal(e.resident, false, 'placed, and holding nothing yet');
+    e.asset.resource.octree.file0 = {};              // the .sog lands
+    s.update(cam);
+    assert.equal(e.resident, true, 'and drawing once it does');
+});
+
+test('a tile whose splats never come is counted as drawing anyway, with a complaint', () => {
+    // The octree's loader gives up silently, so without this a 404 on one file
+    // would wedge refine, coarsen and the swap for ever.
+    const rows = COORDS.map((c) => row(...c)).map((r) => withLod(r));
+    const s = streamerWith(rows, null);
+    s.update(camera(1e6));
+    s.update(camera(1e6));
+    const e = [...s.entries.values()].find((x) => x.entity);
+    assert.equal(e.resident, false);
+    const warned = [];
+    const was = console.warn;
+    console.warn = (m) => warned.push(m);
+    try { s.settleResidency(e.placedAt + RESIDENT_MS + 1); } finally { console.warn = was; }
+    assert.equal(e.resident, true);
+    assert.equal(warned.length, 1, 'and it said so');
+});
+
+test('a swap keeps the tile it replaces until the new one has splats', async () => {
+    const rows = COORDS.map((c) => row(...c)).map((r) => withLod(r));
+    const fresh = withLod(swapRow(rows[0], 'b'.repeat(64)), 'f'.repeat(64));
+    const s = streamerWith(rows, async () => [fresh, ...rows.slice(1)]);
+    const old = { destroyed: false, destroy() { this.destroyed = true; } };
+    const entry = { row: rows[0], entity: old, asset: { unload() {} }, usedAt: 1,
+        resident: true, placedAt: 1, pending: null };
+    s.entries.set('10/535/361', entry);
+
+    assert.equal(await s.poll(), 1);
+    assert.equal(s.swaps, 0, 'the new index is in the scene, but it is not the tile yet');
+    assert.ok(entry.pending, 'it is parked');
+    assert.equal(entry.entity, old, 'and the old one is still what the tile is');
+    assert.equal(old.enabled, undefined, 'still in the scene');
+
+    entry.pending.asset.resource.octree.file0 = {};
+    s.settleResidency(Date.now());
+    assert.equal(s.swaps, 1, 'now it is the tile');
+    assert.equal(entry.pending, null);
+    assert.equal(old.enabled, false, 'and the old one leaves');
+    await tick();
+    assert.ok(old.destroyed);
 });
