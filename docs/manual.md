@@ -134,6 +134,21 @@ dirty. That is the work queue.
   area you may write, and you have not checked it for a week, it renders two
   poses and reports the result. A failure marks the tile `suspect`.
 
+### The vocabulary
+
+Since db/0135 the world describes what is drawn in OSM's words. The kind of a
+feature is an OSM key — `highway`, `railway`, `aerialway`, `barrier`,
+`waterway`, `building`, `landuse`, `natural`, `natural_point` — and which one it
+is is a property of the same name: a road is `highway=secondary`, a wood is
+`landuse=forest` or `natural=wood`, a pond is `natural=water`, a tree is
+`natural_point=tree`. QGIS has one layer per key, and Admin → Vocabulary adds
+values and properties to them without a migration.
+
+Nothing that was drawn before changed: db/0135 renamed the kinds (the rows
+followed) and moved what used to be the kind into a property. The compiler reads
+the new shape and draws the same geometry, to the byte
+(`client/test/assemble.test.js`).
+
 ### Automate (the flow editor, same page)
 
 - **Tab** opens the views; **Automate** (F2) is the flow editor. It takes the

@@ -55,7 +55,10 @@ account(id uuid PK, owner_id uuid)                 -- owner_id = auth user; syst
 ledger(id bigserial, at, debit uuid, credit uuid, amount numeric(18,6), ref text UNIQUE)  -- append-only
 area(id, geom geometry(Polygon,4326), owner_id, detail smallint, rules jsonb, created_at)
 grant_(area_id, grantee_id, right_ text CHECK IN ('direct_edit','edit','approve'), PK(area_id,grantee_id,right_))
-feature(id, area_id, kind, geom geometry(GeometryZ,4326), props jsonb, rev bigint, deleted_at)
+feature(id, area_id, kind → kind(name), geom geometry(GeometryZ,4326), props jsonb, rev bigint, deleted_at)
+  -- kind is an OSM key since db/0135: highway, railway, aerialway, barrier,
+  -- waterway, building, landuse, natural, natural_point (+ terrainmod).
+  -- Which one it is is a property of the same name: landuse=forest.
 instance(id, area_id, san, lon, lat, h, yaw, pitch, roll, scale, props jsonb, rev bigint, deleted_at)
 proposal(id, area_id, author_id, state, diff jsonb, created_at)
 approval(proposal_id, reviewer_id, at, PK(proposal_id,reviewer_id))

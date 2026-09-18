@@ -40,10 +40,10 @@ SELECT throws_like(
     'an area of two rings says which it is and how many');
 
 -- And what the whole chain was failing on: a feature drawn inside that land.
-INSERT INTO gis.f_water (geom) VALUES
+INSERT INTO gis.f_natural (geom) VALUES
     (st_geomfromtext('MULTIPOLYGON(((7.01 46.01, 7.02 46.01, 7.02 46.02, 7.01 46.01)))', 4326));
 SELECT is((SELECT (kind, area_id IS NOT null) FROM feature),
-          ('water'::text, true),
+          ('natural'::text, true),
           'water drawn inside it finds the area, which is what the error was');
 
 -- Moving and deleting the land go through the same trigger.

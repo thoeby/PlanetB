@@ -14,7 +14,7 @@ SELECT '00000000-0000-0000-0000-0000000000d1'::uuid,
        '{"name": "the pool field"}'::jsonb
 FROM who;
 INSERT INTO feature (area_id, kind, geom)
-VALUES ('00000000-0000-0000-0000-0000000000d1', 'forest',
+VALUES ('00000000-0000-0000-0000-0000000000d1', 'landuse',
         st_force3d(st_makeenvelope(7.702, 46.702, 7.706, 46.706, 4326)));
 SET LOCAL role = 'player';
 

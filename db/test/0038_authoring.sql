@@ -64,7 +64,7 @@ SELECT is((SELECT count(*) FROM tile WHERE z = 16), 0::bigint,
 
 -- Draw something on it and the tiles under that something appear.
 INSERT INTO feature (area_id, kind, geom)
-SELECT (SELECT id FROM mine), 'footprint',
+SELECT (SELECT id FROM mine), 'building',
        st_force3d(st_centroid(a.geom)) FROM area a WHERE a.id = (SELECT id FROM mine);
 SELECT cmp_ok((SELECT count(*) FROM tile WHERE z = 16), '>', 0::bigint,
     'and the z16 tiles now exist to be compiled');
@@ -82,7 +82,7 @@ SET LOCAL request.jwt.claims = '{"sub":"00000000-0000-0000-0000-0000000a8001","r
 -- ------------------------------------------------------------------ rescue
 
 INSERT INTO feature (area_id, kind, geom)
-SELECT mine.id, 'forest',
+SELECT mine.id, 'landuse',
     st_force3d(st_makeenvelope(20.01, 20.01, 20.02, 20.02, 4326)) FROM mine;
 
 SELECT ok((SELECT (land_removal((SELECT id FROM mine)) ->> 'features')::int) > 0,

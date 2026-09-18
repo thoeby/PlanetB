@@ -15,7 +15,7 @@ SELECT '00000000-0000-0000-0000-000000000098'::uuid,
        ids.owner_id, 14
 FROM ids;
 INSERT INTO feature (area_id, kind, geom)
-VALUES ('00000000-0000-0000-0000-000000000098', 'footprint',
+VALUES ('00000000-0000-0000-0000-000000000098', 'building',
         st_geomfromtext('POINTZ(7.805 46.295 650)', 4326));
 
 SELECT set_config('request.jwt.claims',
@@ -46,7 +46,7 @@ FROM ids;
 -- that has something on it, and asking for the finer detail is what
 -- materialises it.
 INSERT INTO feature (area_id, kind, geom)
-VALUES ('00000000-0000-0000-0000-000000000981', 'footprint',
+VALUES ('00000000-0000-0000-0000-000000000981', 'building',
         st_geomfromtext('POINTZ(7.905 46.295 650)', 4326));
 SELECT set_area_detail('00000000-0000-0000-0000-000000000981', 16);
 CREATE TEMP TABLE j16 AS

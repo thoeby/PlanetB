@@ -9,8 +9,14 @@
 -- /app/rules.html without touching the compiler.
 --
 -- Order matters: first match wins, so the catch-alls sort last (999).
-
-INSERT INTO build_rule (name, kind, ordering, filter, style) VALUES
+--
+-- Seeded once, and only into a world that has no rules yet. A migration is
+-- replayed against a database that already has everything in it whenever the
+-- ledger is missing (server/splatworld/migrate.py), and a seed without this
+-- guard writes a second copy of itself — or, once db/0135 renamed the kinds
+-- these rows name, fails on the check constraint and stops the replay.
+INSERT INTO build_rule (name, kind, ordering, filter, style)
+SELECT * FROM (VALUES
 ('spruce', 'forest', 10, '[{"prop": "species", "op": "in", "value": ["spruce", "picea", "fichte", "epicea", "\u00e9pic\u00e9a"]}]'::jsonb, '{"sides": 6, "taper": 0.24, "height": [18, 30], "mature": 70, "color": [0.1, 0.25, 0.15], "age_prop": "age"}'::jsonb),
 ('fir', 'forest', 20, '[{"prop": "species", "op": "in", "value": ["fir", "abies", "tanne", "weisstanne", "sapin"]}]'::jsonb, '{"sides": 6, "taper": 0.26, "height": [20, 32], "mature": 80, "color": [0.11, 0.27, 0.17], "age_prop": "age"}'::jsonb),
 ('pine', 'forest', 30, '[{"prop": "species", "op": "in", "value": ["pine", "pinus", "foehre", "f\u00f6hre", "kiefer"]}]'::jsonb, '{"sides": 6, "taper": 0.34, "height": [15, 26], "mature": 60, "color": [0.16, 0.29, 0.14], "age_prop": "age"}'::jsonb),
@@ -27,4 +33,5 @@ INSERT INTO build_rule (name, kind, ordering, filter, style) VALUES
 ('hipped roof', 'footprint', 20, '[{"prop": "roof", "op": "in", "value": ["hip", "hipped", "pyramidal", "walmdach", "zeltdach"]}]'::jsonb, '{"roof": "hip", "height": {"prop": "height", "else": {"prop": "levels", "times": 3, "else": 6}}}'::jsonb),
 ('any building', 'footprint', 999, '[]'::jsonb, '{"roof": "flat", "height": {"prop": "height", "else": {"prop": "levels", "times": 3, "else": 6}}}'::jsonb),
 ('any road', 'road', 999, '[]'::jsonb, '{"width": {"prop": "width", "min": 2, "max": 40, "else": 5}}'::jsonb),
-('any terrainmod', 'terrainmod', 999, '[]'::jsonb, '{"amount": {"prop": "amount", "else": 0}, "op": {"prop": "op", "text": true, "else": "flatten"}}'::jsonb);
+('any terrainmod', 'terrainmod', 999, '[]'::jsonb, '{"amount": {"prop": "amount", "else": 0}, "op": {"prop": "op", "text": true, "else": "flatten"}}'::jsonb)) AS seed (name, kind, ordering, filter, style)
+WHERE NOT EXISTS (SELECT 1 FROM build_rule);

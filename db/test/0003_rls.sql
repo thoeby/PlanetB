@@ -58,7 +58,7 @@ FROM ids;
 
 INSERT INTO feature (id, area_id, kind, geom)
 VALUES ('00000000-0000-0000-0000-0000000000f1',
-        '00000000-0000-0000-0000-0000000000a1', 'forest',
+        '00000000-0000-0000-0000-0000000000a1', 'landuse',
         st_geomfromtext('POLYGONZ((7.1 46.1 0,7.2 46.1 0,7.2 46.2 0,7.1 46.2 0,7.1 46.1 0))', 4326));
 
 INSERT INTO proposal (id, area_id, author_id, diff)
@@ -91,7 +91,7 @@ $$;
 SET LOCAL ROLE anon;
 SET LOCAL request.jwt.claims = '{}';
 SELECT throws_ok($$INSERT INTO feature (area_id, kind, geom)
-    VALUES ('00000000-0000-0000-0000-0000000000a1', 'road',
+    VALUES ('00000000-0000-0000-0000-0000000000a1', 'highway',
             st_geomfromtext('POINTZ(7.1 46.1 0)', 4326))$$,
     '42501', NULL, 'D1 anon INSERT feature denied');
 SELECT throws_ok($$UPDATE feature SET props = '{"x":1}'::jsonb$$, '42501', NULL,
@@ -108,7 +108,7 @@ RESET ROLE;
 SET LOCAL ROLE player;
 SELECT become(stranger_id, 'player') FROM ids;
 SELECT throws_ok($$INSERT INTO feature (area_id, kind, geom)
-    VALUES ('00000000-0000-0000-0000-0000000000a1', 'road',
+    VALUES ('00000000-0000-0000-0000-0000000000a1', 'highway',
             st_geomfromtext('POINTZ(7.1 46.1 0)', 4326))$$,
     '42501', NULL, 'D3 stranger INSERT feature denied');
 SELECT is(touched($$UPDATE feature SET props = '{"x":1}'::jsonb$$), 0,
@@ -135,7 +135,7 @@ SELECT throws_ok($$INSERT INTO atom (job_id, atom_hash, op, algo_version)
 -- D6, D9, D10, A5: 'edit' grantee --------------------------------------
 SELECT become(editor_id, 'player') FROM ids;
 SELECT throws_ok($$INSERT INTO feature (area_id, kind, geom)
-    VALUES ('00000000-0000-0000-0000-0000000000a1', 'road',
+    VALUES ('00000000-0000-0000-0000-0000000000a1', 'highway',
             st_geomfromtext('POINTZ(7.1 46.1 0)', 4326))$$,
     '42501', NULL, 'D6 edit grantee INSERT feature denied (needs direct_edit)');
 SELECT throws_ok($$INSERT INTO proposal (area_id, author_id, diff)
@@ -168,7 +168,7 @@ SELECT is(touched($$UPDATE feature SET props = '{"x":1}'::jsonb$$), 1,
 -- A3: owner ------------------------------------------------------------
 SELECT become(owner_id, 'player') FROM ids;
 SELECT lives_ok($$INSERT INTO feature (area_id, kind, geom)
-    VALUES ('00000000-0000-0000-0000-0000000000a1', 'road',
+    VALUES ('00000000-0000-0000-0000-0000000000a1', 'highway',
             st_geomfromtext('LINESTRINGZ(7.1 46.1 0,7.2 46.2 0)', 4326))$$,
     'A3 area owner INSERT feature');
 SELECT is((SELECT count(*)::int FROM account), 1, 'owner sees only their own account');

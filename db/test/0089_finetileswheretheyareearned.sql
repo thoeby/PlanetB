@@ -21,7 +21,7 @@ SELECT is((SELECT max(z)::int FROM area_tiles('00000000-0000-0000-0000-000000000
 -- A lake. Water is a shape on the ground: it earns the first trained rung and
 -- not the last.
 INSERT INTO feature (area_id, kind, geom)
-VALUES ('00000000-0000-0000-0000-000000000089', 'water',
+VALUES ('00000000-0000-0000-0000-000000000089', 'natural',
         st_force3d(st_geomfromtext('POLYGON((7.876 46.291,7.884 46.291,'
                                    '7.884 46.296,7.876 46.296,7.876 46.291))', 4326)));
 SELECT is((SELECT max(z)::int FROM area_tiles('00000000-0000-0000-0000-000000000089')), 16,
@@ -31,7 +31,7 @@ SELECT cmp_ok((SELECT count(*)::int FROM area_tiles('00000000-0000-0000-0000-000
 
 -- A building has walls you walk up to.
 INSERT INTO feature (area_id, kind, geom)
-VALUES ('00000000-0000-0000-0000-000000000089', 'footprint',
+VALUES ('00000000-0000-0000-0000-000000000089', 'building',
         st_force3d(st_geomfromtext('POLYGON((7.8770 46.2915,7.8772 46.2915,'
                                    '7.8772 46.2917,7.8770 46.2917,'
                                    '7.8770 46.2915))', 4326)));
@@ -56,9 +56,9 @@ SELECT is(
 
 -- What the kind says is what decides it, because what the world may hold is a
 -- table and not a list in code (db/0040_properties.sql).
-SELECT is((SELECT fine FROM kind WHERE name = 'water'), false,
+SELECT is((SELECT fine FROM kind WHERE name = 'natural'), false,
     'water is a shape on the ground');
-SELECT is((SELECT fine FROM kind WHERE name = 'footprint'), true,
+SELECT is((SELECT fine FROM kind WHERE name = 'building'), true,
     'a footprint is not');
 
 -- The tiles are made and marked: a block nobody dirtied would never be sent.
@@ -69,7 +69,7 @@ SELECT is((SELECT count(*)::int FROM tile WHERE z = 18 AND NOT dirty), 0,
 -- what is compiled into those still has it in. Not every tile of the block:
 -- the other fifteen never had it, and are still waiting to be built at all.
 UPDATE feature SET deleted_at = now()
-WHERE area_id = '00000000-0000-0000-0000-000000000089' AND kind = 'footprint';
+WHERE area_id = '00000000-0000-0000-0000-000000000089' AND kind = 'building';
 SELECT cmp_ok((SELECT count(*)::int FROM tile WHERE z = 18 AND expected_version > 1),
     '>', 0, 'and taking it away marks the tiles it stood on once more');
 

@@ -13,7 +13,7 @@ INSERT INTO area (id, geom, owner_id, detail) VALUES
  st_makeenvelope(50.0, 50.0, 50.2, 50.2, 4326),
  '00000000-0000-0000-0000-0000000d1001', 14);
 INSERT INTO feature (area_id, kind, geom) VALUES
-('00000000-0000-0000-0000-0000000d1002', 'forest',
+('00000000-0000-0000-0000-0000000d1002', 'landuse',
  st_force3d(st_makeenvelope(50.01, 50.01, 50.02, 50.02, 4326)));
 
 SET LOCAL request.jwt.claims = '{"sub":"00000000-0000-0000-0000-0000000d1001","role":"player"}';

@@ -31,7 +31,11 @@ from psycopg import sql
 from . import crs
 from .config import Config
 
-KINDS = ("road", "forest", "water", "footprint", "terrainmod")
+# The kinds a source layer may be imported as. OSM's keys since db/0135; the
+# value of the key is a property, so an import says `kind: landuse` and puts
+# `landuse: forest` in the props it maps.
+KINDS = ("highway", "railway", "aerialway", "barrier", "waterway",
+         "building", "landuse", "natural", "natural_point", "terrainmod")
 AREA_ZOOM = 12
 MIN_ZOOM = 6
 

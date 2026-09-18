@@ -11,7 +11,7 @@ SELECT '00000000-0000-0000-0000-0000000000a7'::uuid,
        st_makeenvelope(7.20, 46.20, 7.21, 46.21, 4326), uid, 14
 FROM who;
 INSERT INTO feature (area_id, kind, geom)
-VALUES ('00000000-0000-0000-0000-0000000000a7', 'forest',
+VALUES ('00000000-0000-0000-0000-0000000000a7', 'landuse',
         st_force3d(st_makeenvelope(7.202, 46.202, 7.206, 46.206, 4326)));
 
 CREATE TEMP TABLE j AS

@@ -18,7 +18,7 @@ SELECT '00000000-0000-0000-0000-0000000000d1'::uuid,
        st_makeenvelope(7.50, 46.50, 7.51, 46.51, 4326), uid, 14
 FROM who;
 INSERT INTO feature (area_id, kind, geom)
-VALUES ('00000000-0000-0000-0000-0000000000d1', 'footprint',
+VALUES ('00000000-0000-0000-0000-0000000000d1', 'building',
         st_geomfromtext('POINTZ(7.505 46.505 500)', 4326));
 
 CREATE TEMP TABLE j AS

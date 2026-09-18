@@ -930,6 +930,15 @@ minute"). Open points for it are in `PLAN-foundation.md` §10.
   shape and keys, deterministically, and both scripts say which they produced
   on every run. FND.4's and FND.12's stories therefore pass against a
   stand-in here and must be re-run where the real sources are reachable.
+- **FND.3's key properties are not `required`.** The task asks for the property
+  named after the kind to be required. It is seeded with its choices and is not,
+  because a required key refuses every row that does not carry it — the rows
+  already in the world, a bulk import that has not classified everything, and a
+  surveyor drawing a boundary before they know what is inside it. db/0040
+  settled the same question once already ("refusing an unknown key would make
+  every import a migration"). A blank key costs exactly what it should: the
+  compiler draws nothing for it. The reason is written into db/0135 beside the
+  rows.
 - **FND.2's process-server half is unrun.** There is no process server in this
   container and none is reachable, so `make flow-test` skips the validation
   against one with the sentence this file asks for, and story 17 asserts what

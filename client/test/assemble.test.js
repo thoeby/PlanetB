@@ -1,7 +1,13 @@
-// WP2.3 — assemble-v2 without a browser: the same inputs and the same seed
+// WP2.3 — assemble without a browser: the same inputs and the same seed
 // produce the same bytes, and what comes out is the five files the rest of the
 // pipeline reads. The world and the DEM are served from memory, so this test
 // needs neither a database nor a seeded store.
+//
+// FND.3 moved the vocabulary to OSM's — a road is `highway=secondary`, a wood
+// is `landuse=forest` — and the fixture below is written in it. Nothing the
+// compiler draws changed, and the last test in this file is what says so: it
+// holds the hashes `assemble-v5` produced from the same world in the old
+// vocabulary, and the new compiler has to match them exactly.
 
 import test from 'node:test';
 import assert from 'node:assert/strict';
@@ -41,15 +47,17 @@ const box = (u, v, w, h) => [[at(u, v), at(u + w, v), at(u + w, v + h),
 const WORLD = {
     z: Z, x: X, y: Y, snapshot: 'a'.repeat(64), instances: [],
     features: [
-        { id: '1', kind: 'footprint', rev: 1, props: { height: 14, roof: 'gabled' },
-            geom: { type: 'Polygon', coordinates: box(0.30, 0.30, 0.004, 0.004) } },
-        { id: '2', kind: 'footprint', rev: 1, props: { levels: 2 },
+        { id: '1', kind: 'building', rev: 1, props: { building: 'house', height: 14,
+            roof: 'gabled' },
+        geom: { type: 'Polygon', coordinates: box(0.30, 0.30, 0.004, 0.004) } },
+        { id: '2', kind: 'building', rev: 1, props: { building: 'house', levels: 2 },
             geom: { type: 'Polygon', coordinates: box(0.40, 0.30, 0.003, 0.003) } },
-        { id: '3', kind: 'forest', rev: 1, props: { leaf_type: 'broadleaved' },
-            geom: { type: 'Polygon', coordinates: box(0.55, 0.55, 0.2, 0.2) } },
-        { id: '4', kind: 'water', rev: 1, props: {},
+        { id: '3', kind: 'landuse', rev: 1, props: { landuse: 'forest',
+            leaf_type: 'broadleaved' },
+        geom: { type: 'Polygon', coordinates: box(0.55, 0.55, 0.2, 0.2) } },
+        { id: '4', kind: 'natural', rev: 1, props: { natural: 'water' },
             geom: { type: 'Polygon', coordinates: box(0.1, 0.6, 0.15, 0.1) } },
-        { id: '5', kind: 'road', rev: 1, props: { width: 9, class: 'secondary' },
+        { id: '5', kind: 'highway', rev: 1, props: { highway: 'secondary', width: 9 },
             geom: { type: 'LineString',
                 coordinates: [at(0.05, 0.2), at(0.5, 0.25), at(0.95, 0.4)] } },
         { id: '6', kind: 'terrainmod', rev: 1, props: { op: 'flatten', amount: 0 },
@@ -59,15 +67,16 @@ const WORLD = {
     // seeded ones this fixture needs: a building's height off its own column,
     // a road's width off its own, a flattening terrainmod.
     rules: [
-        { name: 'any building', kind: 'footprint', ordering: 999, enabled: true, filter: [],
+        { name: 'any building', kind: 'building', ordering: 999, enabled: true, filter: [],
             style: { roof: 'flat',
                 height: { prop: 'height', else: { prop: 'levels', times: 3, else: 6 } } } },
-        { name: 'any road', kind: 'road', ordering: 999, enabled: true, filter: [],
+        { name: 'any road', kind: 'highway', ordering: 999, enabled: true, filter: [],
             style: { width: { prop: 'width', min: 2, max: 40, else: 5 } } },
         { name: 'any terrainmod', kind: 'terrainmod', ordering: 999, enabled: true, filter: [],
             style: { amount: { prop: 'amount', else: 0 },
                 op: { prop: 'op', text: true, else: 'flatten' } } },
-        { name: 'any forest', kind: 'forest', ordering: 999, enabled: true, filter: [],
+        { name: 'any forest', kind: 'landuse', ordering: 999, enabled: true,
+            filter: [{ op: 'in', prop: 'landuse', value: ['forest'] }],
             style: { height: [12, 22], sides: 6, taper: 0.28, mature: 70, age_prop: 'age' } },
     ],
 };
@@ -91,7 +100,7 @@ async function serve() {
 }
 
 const ATOM = {
-    id: 1, op: 'assemble', algo_version: 'assemble-v5', seed: 7,
+    id: 1, op: 'assemble', algo_version: 'assemble-v5b', seed: 7,
     inputs: { snapshot: WORLD.snapshot }, params: { z: Z, x: X, y: Y, budget: BUDGET },
 };
 
@@ -106,7 +115,7 @@ test('assemble produces the five files the rest of the pipeline reads', async ()
             ['scene.json', 'mesh.bin', 'init.ply', 'height.r16', 'colliders.json']);
 
         const scene = JSON.parse(new TextDecoder().decode(files.get('scene.json')));
-        assert.equal(scene.algo, 'assemble-v5');
+        assert.equal(scene.algo, 'assemble-v5b');
         assert.deepEqual(scene.tile, { z: Z, x: X, y: Y });
         assert.ok(scene.origin.h > 350 && scene.origin.h < 460, 'the origin sits on the ground');
         assert.ok(scene.meshes.length >= 6, 'terrain, road, walls, roofs, water, trees');
@@ -165,3 +174,29 @@ test('a ring is triangulated, wound and scattered the same way every time', () =
     assert.deepEqual(scatter(holed, 4, rng(1)), pts, 'same seed, same trees');
 });
 
+
+// The same world, drawn the same way. These two hashes were produced by
+// `assemble-v5` — the compiler as it stood at bbf9e77, before FND.3 — over
+// this same fixture written in the old vocabulary: road, forest, water,
+// footprint, with rules keyed on those kinds. db/0135 renames the kinds and
+// moves what used to be the kind into a property; `by(kind, key, values)` in
+// assemble.js reads the new shape. If a single triangle or splat moves, this
+// is what notices.
+const BEFORE_FND3 = {
+    mesh: 'f7d2a23134b5c7b3d336c73f8e1a4bfd6250422ffbd6dc4fc18f7356dd3cf6e1',
+    ply: 'c488cd8c0c1403c7fa2eacfdb6df2bcf5ff054825a6b31a3423ae726f0a65a8f',
+    trees: 118,
+};
+
+test('the OSM vocabulary draws what the old one drew, to the byte', async () => {
+    const s = await serve();
+    try {
+        const out = await run({ atom: ATOM, apiUrl: s.url, filesUrl: s.url });
+        const files = readTar(out.files[0].bytes);
+        assert.equal(sha(files.get('mesh.bin')), BEFORE_FND3.mesh,
+            'the geometry is the same geometry');
+        assert.equal(sha(files.get('init.ply')), BEFORE_FND3.ply,
+            'and so is what the trainer starts from');
+        assert.equal(out.result.trees, BEFORE_FND3.trees, 'the same trees, in the same places');
+    } finally { s.stop(); }
+});

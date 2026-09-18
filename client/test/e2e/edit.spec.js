@@ -1,4 +1,4 @@
-// WP5.3's acceptance, in the browser: a forest drawn with the mouse on the
+// WP5.3's acceptance, in the browser: a wood drawn with the mouse on the
 // editor's map becomes a feature row, and every tile that forest covers goes
 // dirty. The clicks are real clicks on the OpenLayers viewport — what is under
 // test is the map, not a function call that pretends to be one.
@@ -139,12 +139,14 @@ test('a forest drawn on the map becomes a feature row and dirties its tiles',
         await expect(page.locator('.edit-perm')).toHaveText('you may draw here');
         expect(features(), 'the area starts empty').toBe(0);
 
-        await page.selectOption('.edit-kind', 'forest');
+        await page.selectOption('.edit-kind', 'landuse');
         await page.click('.edit-draw');
         const drawn = await drawTriangle(page);
         await expect(page.locator('.edit-status')).toContainText('drawn');
 
-        // The prop form is the kind's own: what `assemble` reads off a forest.
+        // The prop form is the kind's own: what `assemble` reads off a wood.
+        // `landuse` names which kind of land use it is, and is required.
+        await page.selectOption('.edit-field[data-key="landuse"]', 'forest');
         await page.selectOption('.edit-field[data-key="leaf_type"]', 'broadleaved');
         await page.click('.edit-save');
         await expect(page.locator('.edit-status')).toHaveText(/^saved /);
@@ -152,7 +154,7 @@ test('a forest drawn on the map becomes a feature row and dirties its tiles',
         const id = psql(`SELECT id FROM feature
                          WHERE area_id = '${area}' AND deleted_at IS NULL`);
         expect(id).toMatch(/^[0-9a-f-]{36}$/);
-        expect(psql(`SELECT kind FROM feature WHERE id = '${id}'`)).toBe('forest');
+        expect(psql(`SELECT kind FROM feature WHERE id = '${id}'`)).toBe('landuse');
         expect(psql(`SELECT props ->> 'leaf_type' FROM feature WHERE id = '${id}'`))
             .toBe('broadleaved');
         // feature.geom is GeometryZ: the tab put the third ordinate on.
@@ -199,7 +201,7 @@ test('a saved forest can be picked up, re-typed and deleted', async ({ page }) =
     const box = await page.locator('#map').boundingBox();
     const inside = [Math.round(box.x + box.width / 2), Math.round(box.y + box.height / 2) - 13];
     await page.mouse.click(...inside);
-    await expect(page.locator('.edit-status')).toContainText('forest');
+    await expect(page.locator('.edit-status')).toContainText('landuse');
     await expect(page.locator('.edit-field[data-key="leaf_type"]'))
         .toHaveValue('broadleaved');
 
@@ -264,7 +266,7 @@ test('a stranger is refused by the panel and then by the database',
         const refused = await page.evaluate(async (areaId) => {
             const { api } = window.splatworld;
             try {
-                await api.insert('feature', [{ area_id: areaId, kind: 'forest',
+                await api.insert('feature', [{ area_id: areaId, kind: 'landuse',
                     geom: 'SRID=4326;POLYGON Z ((31.04 31.04 0, 31.05 31.04 0, '
                         + '31.05 31.05 0, 31.04 31.04 0))' }]);
                 return 'allowed';

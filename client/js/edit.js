@@ -17,19 +17,43 @@ import { tileX, tileY } from '../lib/tilemath.js';
 // (client/lib/props.js, client/lib/terrain.js). A field nobody compiles is a
 // field nobody should be asked to fill in.
 export const KINDS = {
-    road: {
+    highway: {
         geometry: 'LineString',
-        fields: [{ key: 'width', label: 'width (m)', type: 'number', step: 0.5, value: 5 }],
+        fields: [
+            { key: 'highway', label: 'class', type: 'select',
+                options: ['motorway', 'trunk', 'primary', 'secondary', 'tertiary',
+                    'unclassified', 'residential', 'service', 'track', 'path',
+                    'footway', 'cycleway', 'steps'],
+                value: 'residential' },
+            { key: 'width', label: 'width (m)', type: 'number', step: 0.5, value: 5 },
+        ],
     },
-    forest: {
-        geometry: 'Polygon',
-        fields: [{ key: 'leaf_type', label: 'leaves', type: 'select',
-            options: ['needleleaved', 'broadleaved'], value: 'needleleaved' }],
-    },
-    water: { geometry: 'Polygon', fields: [] },
-    footprint: {
+    landuse: {
         geometry: 'Polygon',
         fields: [
+            { key: 'landuse', label: 'class', type: 'select',
+                options: ['forest', 'meadow', 'farmland', 'vineyard', 'orchard', 'grass'],
+                value: 'forest' },
+            { key: 'leaf_type', label: 'leaves', type: 'select',
+                options: ['needleleaved', 'broadleaved'], value: 'needleleaved' },
+        ],
+    },
+    natural: {
+        geometry: 'Polygon',
+        fields: [
+            { key: 'natural', label: 'class', type: 'select',
+                options: ['wood', 'scrub', 'heath', 'grassland', 'bare_rock', 'scree',
+                    'glacier', 'water', 'wetland', 'sand', 'shingle'],
+                value: 'water' },
+        ],
+    },
+    building: {
+        geometry: 'Polygon',
+        fields: [
+            { key: 'building', label: 'building', type: 'select',
+                options: ['yes', 'house', 'residential', 'barn', 'chalet', 'church',
+                    'commercial', 'industrial', 'garage'],
+                value: 'house' },
             { key: 'height', label: 'height (m)', type: 'number', step: 0.5, value: '' },
             { key: 'levels', label: 'levels', type: 'number', step: 1, value: '' },
             { key: 'roof', label: 'roof', type: 'select',
@@ -54,7 +78,7 @@ export const geometryOf = (kind) => KINDS[kind]?.geometry ?? 'Polygon';
 
 // What the form makes of what was typed: numbers as numbers, blanks left out
 // altogether so a prop the user did not fill in does not override the
-// compiler's own default (a footprint with no height is six metres tall).
+// compiler's own default (a building with no height is six metres tall).
 export function propsFrom(kind, values = {}) {
     const out = {};
     for (const f of KINDS[kind]?.fields ?? []) {

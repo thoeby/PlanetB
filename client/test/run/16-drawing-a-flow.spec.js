@@ -306,4 +306,8 @@ test('story 16 — a flow is drawn on a land, saved, and found again',
             () => othersLook(browser, world, testInfo, a, saved));
         await test.step('8 — closing with a change asks Save, Discard or Stay',
             () => closesDirty(a));
+
+        // A window nobody closed is a WebGL context nobody gave back, and the
+        // next story opens two of its own.
+        await a.close();
     });

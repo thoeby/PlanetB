@@ -22,7 +22,7 @@ SELECT is((project_state() ->> 'stale')::boolean, false,
 -- moves and the project on disk is told.
 SET LOCAL role = 'postgres';
 INSERT INTO property (kind, name, label, type, choices, required, ordering)
-VALUES ('forest', 'managed', 'Managed', 'choice',
+VALUES ('landuse', 'managed', 'Managed', 'choice',
         ARRAY['managed', 'wild'], false, 50);
 SET LOCAL role = 'player';
 

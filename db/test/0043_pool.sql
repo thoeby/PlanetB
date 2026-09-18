@@ -33,7 +33,7 @@ SELECT throws_like($$SELECT submit_area('00000000-0000-0000-0000-0000000c0003')$
     '%nothing to submit%', 'empty land is nothing to compile');
 
 INSERT INTO feature (area_id, kind, geom)
-SELECT '00000000-0000-0000-0000-0000000c0003', 'forest',
+SELECT '00000000-0000-0000-0000-0000000c0003', 'landuse',
        st_force3d(st_envelope(st_buffer(a.geom, -0.002)))
 FROM area a WHERE a.id = '00000000-0000-0000-0000-0000000c0003';
 

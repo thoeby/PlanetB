@@ -315,10 +315,13 @@ The download is a `.qgs` generated for this world and this player:
 - A PostgreSQL connection to the world's database with a login of this
   player's own embedded in it (REFACTOR-direct-pg.md S2/S3: it was WFS-T
   through GeoServer, as one operator, until then).
-- Layers: land (yours editable, others read-only by RLS), road, forest,
-  water, footprint, terrainmod, tree (points), objects (points, read-only —
-  objects are placed in the page), tile state (read-only, styled by §0.2),
-  ground hillshade (WMS), catalog (non-spatial, for the dropdowns).
+- Layers: land (yours editable, others read-only by RLS), and one per key of
+  the vocabulary — Highway, Railway, Aerialway, Barrier, Waterway (lines),
+  Landuse, Natural, Building, Terrain edit (areas), Tree points (points) —
+  plus objects (points, read-only — objects are placed in the page), tile
+  state (read-only, styled by §0.2), ground hillshade (WMS), catalog
+  (non-spatial, for the dropdowns). A kind added in Admin is a layer on the
+  next download.
 - Forms: every property from Admin as the right widget (dropdown for
   choices, range for numbers, text otherwise); `model` on tree as a
   dropdown over the catalog layer showing name + maker; required fields
@@ -338,10 +341,12 @@ bought), my lands, my grants, my products, notifications with read state,
 returns to the admin).
 
 ### 2.13 Admin panel (admins)
-- **Properties**: per kind (land, road, forest, water, footprint,
-  terrainmod, tree, and each product kind): add, rename, reorder, set
-  choices, required, delete (shows how many features/products use it;
-  deletion keeps stored values but hides the field).
+- **Properties**: per kind (land, each key of the vocabulary — `highway`,
+  `railway`, `aerialway`, `barrier`, `waterway`, `building`, `landuse`,
+  `natural`, `natural_point` — `terrainmod`, and each product kind): add,
+  rename, reorder, set choices, required, delete (shows how many
+  features/products use it; deletion keeps stored values but hides the
+  field).
 - **Kinds**: add a product kind; add a drawable kind (creates the QGIS
   layer on next download).
 - **Land**: map with all land; assign land to a player by drawing or by
@@ -497,7 +502,8 @@ Validation: `e2e/land.spec`.
 Pre: own land.
 1. Land → "Shape this land in QGIS" → download `.qgs`.
 2. Open in QGIS: layers load, hillshade visible, your land editable.
-3. Draw a forest inside the land, form: type dropdown → Save.
+3. Draw a wood inside the land — Landuse, `landuse = forest` — form: type
+   dropdown → Save.
 4. Back in the page within 30 s: the tile shows `changed`, Land card says
    "1 tile changed — Submit".
 5. Place a tree point, model dropdown → Save → same.
@@ -529,7 +535,7 @@ A's undo removes one; save; B sees one.
 ### 3.5 Submitting for approval
 Pre: land with `changed` tiles.
 1. Submit (from Land or Build) → dialog: "3 tiles · 2 objects added, 1
-   moved · forest changed on 1 tile" with the changes listed per tile; note.
+   moved · landuse changed on 1 tile" with the changes listed per tile; note.
 2. Submit → tiles `awaiting approval`; the owner is notified (or "Submit and
    approve" if that is you).
 Fail: nothing changed → Submit disabled with "nothing to submit"; a tile
@@ -589,7 +595,7 @@ existing product.
 Validation: `e2e/catalog.spec`.
 
 ### 3.10 Admin defines a property
-1. Admin → Properties → kind "forest" → Add "leaf_type", choices
+1. Admin → Properties → kind "landuse" → Add "leaf_type", choices
    broadleaved / needleleaved, required.
 2. Owners see the "QGIS project out of date" banner; the next download has
    the dropdown; the Build panel's product forms (for product kinds) update

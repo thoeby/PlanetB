@@ -27,10 +27,10 @@ SELECT '00000000-0000-0000-0000-0000000000d2'::uuid,
        ids.owner_id, 10
 FROM ids;
 INSERT INTO feature (area_id, kind, geom)
-VALUES ('00000000-0000-0000-0000-0000000000d1', 'footprint',
+VALUES ('00000000-0000-0000-0000-0000000000d1', 'building',
         st_geomfromtext('POINTZ(9.5 46.5 400)', 4326));
 INSERT INTO feature (area_id, kind, geom)
-VALUES ('00000000-0000-0000-0000-0000000000d2', 'forest',
+VALUES ('00000000-0000-0000-0000-0000000000d2', 'landuse',
         st_geomfromtext('POLYGONZ((0.45 0.45 0,0.55 0.45 0,0.55 0.55 0,0.45 0.55 0,0.45 0.45 0))',
                         4326));
 

@@ -1,4 +1,4 @@
-// assemble.js — `assemble-v5`. The world, as geometry, in one tile's own frame.
+// assemble.js — `assemble-v5b`. The world, as geometry, in one tile's own frame.
 //
 // Terrain from the seeded DEM, cut by terrainmods and roads; footprints
 // extruded; forests scattered; water laid flat; the ground coloured by its own
@@ -33,7 +33,7 @@ import { localFromLonLat, tileBbox, tileFrame } from '../lib/tilemath.js';
 // v4 writes each surface's own colour and leaves the light to the one
 // renderer (client/lib/raster.js); v3 had baked it for a sampled baseline
 // that is gone. The cut elevation is read whole (terrain.js GRID).
-export const ALGO = 'assemble-v5';
+export const ALGO = 'assemble-v5b';
 
 // What assemble and sample both use to turn surfaces into splats; re-exported
 // because both atoms have always reached for them here.
@@ -174,22 +174,31 @@ function build({ z, sw, ne, dem, frame, world, random, assets, colourAt = null }
     // it (db/0036_rules.sql): nothing here knows a species or a column name.
     const rules = world.rules ?? [];
     const feats = (world.features ?? []).map((f) => toLocal(frame, f));
-    const by = (kind) => feats.filter((f) => f.kind === kind);
+    // The vocabulary is OSM's since db/0135: what used to be a kind of its own
+    // is a key and a value now — a road is `highway=*`, a wood is
+    // `landuse=forest` or `natural=wood`. `key` and `values` are how a kind is
+    // narrowed to the ones this world draws that way; a kind on its own still
+    // means all of it.
+    const by = (kind, key = null, values = null) => feats.filter((f) => f.kind === kind
+        && (!key || (values ?? []).includes(f.props?.[key])));
     const terrain = new Terrain({ sw, ne, size: GRID[z] ?? 65, dem });
     // The frame's origin is the ground under the tile centre, so heights are
     // measured from there, not from the ellipsoid.
     for (let i = 0; i < terrain.h.length; i++) terrain.h[i] -= frame.h;
     terrain.datum = frame.h;
     applyTerrainmods(terrain, by('terrainmod'), rules);
-    const roads = roadsOf(by('road'), terrain, rules);
+    const roads = roadsOf(by('highway'), terrain, rules);
     cutRoads(terrain, roads);
 
     const edge = Math.hypot(ne.x - sw.x, sw.z - ne.z);
-    const built = buildings(by('footprint'), terrain, rules);
-    const wood = trees(by('forest'), terrain, random, Math.max(6, edge / 140), rules);
+    const built = buildings(by('building'), terrain, rules);
+    const woods = [...by('landuse', 'landuse', ['forest']),
+        ...by('natural', 'natural', ['wood'])];
+    const wood = trees(woods, terrain, random, Math.max(6, edge / 140), rules);
     const placed = placeInstances(world.instances, assets ?? new Map(), frame);
     const meshes = clip([terrainMesh(terrain, 'terrain', colourAt), roadMesh(roads, terrain),
-        built.walls, built.roofs, waterMesh(by('water'), terrain),
+        built.walls, built.roofs,
+        waterMesh(by('natural', 'natural', ['water']), terrain),
         wood.trunks, wood.canopies, ...placed.meshes], sw, ne);
     built.boxes = [...built.boxes, ...placed.boxes].filter((b) => b.center[0] >= sw.x - CLIP_M
         && b.center[0] <= ne.x + CLIP_M && b.center[2] <= sw.z + CLIP_M

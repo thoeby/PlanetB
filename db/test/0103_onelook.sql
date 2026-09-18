@@ -1,7 +1,7 @@
 -- The atoms a job is built with: one assemble version, one frame version and
 -- one training run, whatever the zoom. db/0103_onelook.sql settled that the
 -- light is baked once and drawn as it is; what has moved since are the version
--- names (assemble-v5, frame-v10), the iteration count (db/0114), and the
+-- names (assemble-v5b, frame-v10), the iteration count (db/0114), and the
 -- sampler, which is gone — a z14 tile is trained like the rest.
 BEGIN;
 SELECT plan(6);
@@ -20,7 +20,7 @@ FROM ids;
 -- A fine tile is earned by something standing on it (db/0089), so there is
 -- something on it, and then the land asks for the detail.
 INSERT INTO feature (area_id, kind, geom)
-VALUES ('00000000-0000-0000-0000-000000000103', 'footprint',
+VALUES ('00000000-0000-0000-0000-000000000103', 'building',
         st_geomfromtext('POINTZ(7.805 46.295 650)', 4326));
 
 SELECT set_config('request.jwt.claims',
@@ -32,7 +32,7 @@ SELECT ensure_job(18, tile_x(7.805, 18), tile_y(46.295, 18)) AS j18,
        ensure_job(14, tile_x(7.805, 14), tile_y(46.295, 14)) AS j14;
 
 SELECT is((SELECT algo_version FROM atom
-           WHERE job_id = (SELECT j18 FROM jobs) AND op = 'assemble'), 'assemble-v5',
+           WHERE job_id = (SELECT j18 FROM jobs) AND op = 'assemble'), 'assemble-v5b',
     'assemble bakes the light');
 SELECT is((SELECT min(algo_version) FROM atom
            WHERE job_id = (SELECT j18 FROM jobs) AND op = 'frame'), 'frame-v10',
@@ -47,7 +47,7 @@ SELECT is((SELECT algo_version FROM atom
            WHERE job_id = (SELECT j14 FROM jobs) AND op = 'train'), 'train-v7',
     'and a z14 tile is trained, not sampled: there is no sampler');
 SELECT is((SELECT algo_version FROM atom
-           WHERE job_id = (SELECT j14 FROM jobs) AND op = 'assemble'), 'assemble-v5',
+           WHERE job_id = (SELECT j14 FROM jobs) AND op = 'assemble'), 'assemble-v5b',
     'a z14 job assembles with the same version too');
 
 SELECT * FROM finish();

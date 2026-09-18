@@ -709,3 +709,15 @@ wants a local problem has to import a file that has one; it cannot draw one.
 serializer's element order is not the process server's, and story 17 compares
 the exported file to the imported one byte for byte. The same reason is why
 `importFiles` saves the arriving file and then only the layout.
+
+**The vocabulary is OSM's** (FND.3, db/0135). A kind is a key — `highway`,
+`landuse`, `natural`, `building`, `natural_point`, `railway`, `aerialway`,
+`barrier`, `waterway` — and which one it is is a property of the same name. When
+you write a fixture, a seed or a test that inserts a feature, give it both: a
+`landuse` with no `landuse` is drawn as nothing, on purpose.
+
+**A migration that seeds data has to be idempotent.** `migrate.apply` replays
+every file against a database that already has them whenever the ledger is
+missing, and forgives only "already there" errors. A bare `INSERT` is neither:
+it either duplicates itself or fails on a constraint a later migration added.
+Guard it with `WHERE NOT EXISTS`, as db/0037 now does.

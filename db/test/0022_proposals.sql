@@ -70,7 +70,7 @@ SET LOCAL ROLE player;
 SELECT become(editor_id, 'player') FROM ids;
 
 SELECT throws_ok($$INSERT INTO feature (area_id, kind, geom)
-    VALUES ('00000000-0000-0000-0000-0000000000a1', 'road',
+    VALUES ('00000000-0000-0000-0000-0000000000a1', 'highway',
             st_geomfromtext('POINTZ(10.01 46.01 0)', 4326))$$,
     '42501', null, 'an edit grantee may not write the world');
 
@@ -79,7 +79,7 @@ SELECT throws_ok($$INSERT INTO feature (area_id, kind, geom)
 INSERT INTO prop VALUES ('f1', propose('00000000-0000-0000-0000-0000000000a1',
     '{"ops": [{"op": "insert", "table": "feature",
                "id": "00000000-0000-0000-0000-0000000000f1",
-               "values": {"kind": "road",
+               "values": {"kind": "highway",
                           "area_id": "00000000-0000-0000-0000-0000000000a2",
                           "props": {"lanes": 2},
                           "geom": {"type": "LineString",

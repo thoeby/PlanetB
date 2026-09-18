@@ -20,12 +20,12 @@ SELECT set_config('request.jwt.claims',
 INSERT INTO gis.area (geom, detail) VALUES
     (st_geomfromtext('MULTIPOLYGON(((7 46, 7.2 46, 7.2 46.2, 7 46.2, 7 46)))',
                      world_srid()), 0);
-INSERT INTO gis.f_water (geom) VALUES
+INSERT INTO gis.f_natural (geom) VALUES
     (st_geomfromtext('MULTIPOLYGON(((7.01 46.01, 7.02 46.01, 7.02 46.02, 7.01 46.01)))',
                      world_srid())),
     (st_geomfromtext('MULTIPOLYGON(((7.05 46.01, 7.06 46.01, 7.06 46.02, 7.05 46.01)))',
                      world_srid()));
-INSERT INTO gis.f_forest (geom) VALUES
+INSERT INTO gis.f_landuse (geom) VALUES
     (st_geomfromtext('MULTIPOLYGON(((7.03 46.05, 7.04 46.05, 7.04 46.06, 7.03 46.05)))',
                      world_srid()));
 
@@ -35,16 +35,16 @@ SELECT is(jsonb_array_length(area_drawn((SELECT id FROM mine))), 2,
           'one row per kind that was drawn, not one per shape');
 SELECT is(
     (SELECT k ->> 'count' FROM jsonb_array_elements(area_drawn((SELECT id FROM mine))) k
-     WHERE k ->> 'kind' = 'water'),
+     WHERE k ->> 'kind' = 'natural'),
     '2', 'with how many of that kind there are');
 SELECT is(
     (SELECT array_agg(k ->> 'kind' ORDER BY k ->> 'kind')
      FROM jsonb_array_elements(area_drawn((SELECT id FROM mine))) k),
-    ARRAY['forest', 'water'], 'named by kind, in a settled order');
+    ARRAY['landuse', 'natural'], 'named by kind, in a settled order');
 SELECT ok(
     (SELECT (k -> 'lat')::numeric BETWEEN 46 AND 46.2
      FROM jsonb_array_elements(area_drawn((SELECT id FROM mine))) k
-     WHERE k ->> 'kind' = 'forest'),
+     WHERE k ->> 'kind' = 'landuse'),
     'and a point inside one of them to fly to');
 SELECT is(area_drawn('00000000-0000-0000-0000-0000000000ff'), '[]'::jsonb,
           'an area with nothing drawn on it is an empty list, not null');

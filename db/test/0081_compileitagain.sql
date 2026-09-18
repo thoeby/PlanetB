@@ -16,7 +16,7 @@ SELECT '00000000-0000-0000-0000-0000000000b1'::uuid,
        '{"name": "the high field"}'::jsonb
 FROM who;
 INSERT INTO feature (area_id, kind, geom)
-VALUES ('00000000-0000-0000-0000-0000000000b1', 'forest',
+VALUES ('00000000-0000-0000-0000-0000000000b1', 'landuse',
         st_force3d(st_makeenvelope(7.302, 46.302, 7.306, 46.306, 4326)));
 
 CREATE TEMP TABLE j AS

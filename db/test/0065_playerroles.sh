@@ -60,28 +60,28 @@ as_ben () { PGPASSWORD="$PW" psql -h "${PGHOST:-localhost}" -p "${PGPORT:-5432}"
 is "a password session is Ben" "$BEN" "$(as_ben -c 'SELECT current_user_id()')"
 is "and a player" "player" "$(as_ben -c 'SELECT current_user_role()')"
 
-as_ben -c "INSERT INTO gis.f_forest (geom, leaf_type) VALUES (
+as_ben -c "INSERT INTO gis.f_landuse (geom, leaf_type) VALUES (
     st_geomfromtext('MULTIPOLYGON(((7.878 46.292,7.880 46.292,7.880 46.294,
                      7.878 46.294,7.878 46.292)))', 4326), 'broadleaved')" > /dev/null
 is "a forest drawn over a direct connection is Ben's" "$BEN" \
    "$($PSQL -c "SELECT a.owner_id FROM feature f JOIN area a ON a.id = f.area_id
-                WHERE f.kind = 'forest' ORDER BY f.id DESC LIMIT 1")"
+                WHERE f.kind = 'landuse' ORDER BY f.id DESC LIMIT 1")"
 is "with the form's answer on it" "broadleaved" \
    "$($PSQL -c "SELECT props ->> 'leaf_type' FROM feature
-                WHERE kind = 'forest' ORDER BY id DESC LIMIT 1")"
+                WHERE kind = 'landuse' ORDER BY id DESC LIMIT 1")"
 
 says "drawing on Cara's land says whose it is" \
-     "$(as_ben -c "INSERT INTO gis.f_forest (geom) VALUES (
+     "$(as_ben -c "INSERT INTO gis.f_landuse (geom) VALUES (
          st_geomfromtext('MULTIPOLYGON(((7.862 46.282,7.864 46.282,7.864 46.284,
                           7.862 46.284,7.862 46.282)))', 4326))")" \
      "Cara owns it"
 says "drawing where nobody has land says so" \
-     "$(as_ben -c "INSERT INTO gis.f_forest (geom) VALUES (
+     "$(as_ben -c "INSERT INTO gis.f_landuse (geom) VALUES (
          st_geomfromtext('MULTIPOLYGON(((7.90 46.30,7.902 46.30,7.902 46.302,
                           7.90 46.302,7.90 46.30)))', 4326))")" \
      "not your land"
 says "coordinates the wrong way round say so" \
-     "$(as_ben -c "INSERT INTO gis.f_forest (geom) VALUES (
+     "$(as_ben -c "INSERT INTO gis.f_landuse (geom) VALUES (
          st_geomfromtext('MULTIPOLYGON(((46.292 7.878,46.292 7.880,46.294 7.880,
                           46.294 7.878,46.292 7.878)))', 4326))")" \
      "longitude and latitude swapped"

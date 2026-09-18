@@ -200,4 +200,8 @@ test('story 17 — flows go out as files and come back as files',
             }
             await expect(a.page.locator('#flows')).toBeHidden({ timeout: UI });
         });
+
+        // A window nobody closed is a WebGL context nobody gave back, and the
+        // next story opens two of its own.
+        await a.close();
     });

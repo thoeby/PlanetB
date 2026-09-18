@@ -115,12 +115,12 @@ export function seedWorld(z, x, y) {
                                                 'required_approvals', 1))
                 RETURNING id INTO aid;
                 INSERT INTO feature (area_id, kind, geom, props) VALUES
-                    (aid, 'forest',
+                    (aid, 'landuse',
                      st_force3d(st_geomfromtext('${wood}', 4326)),
-                     '{"leaf_type": "broadleaved"}'),
-                    (aid, 'footprint',
+                     '{"landuse": "forest", "leaf_type": "broadleaved"}'),
+                    (aid, 'building',
                      st_force3d(st_geomfromtext('${house}', 4326)),
-                     '{"height": 9, "roof": "gabled"}');
+                     '{"building": "house", "height": 9, "roof": "gabled"}');
             END IF;
         END $$`);
 }

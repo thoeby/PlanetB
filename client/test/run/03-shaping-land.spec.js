@@ -60,10 +60,10 @@ test('story 3 — B shapes their land in QGIS, and the page says so',
 
         await test.step('QGIS opens it and B draws a wood and a tree', async () => {
             const [wood, tree] = drawInQgis(project, [
-                { layer: 'Wood', geometry: squareAt(here),
-                    attributes: { leaf_type: 'broadleaved' } },
-                { layer: 'Single tree', geometry: `POINT(${here.lon} ${here.lat})`,
-                    attributes: { model: 'Larch' } },
+                { layer: 'Landuse', geometry: squareAt(here),
+                    attributes: { landuse: 'forest', leaf_type: 'broadleaved' } },
+                { layer: 'Tree points', geometry: `POINT(${here.lon} ${here.lat})`,
+                    attributes: { natural: 'tree', model: 'Larch' } },
             ]);
             expect(wood.error ?? '', 'the wood saved').toBe('');
             expect(wood.ok).toBe(true);
@@ -79,17 +79,17 @@ test('story 3 — B shapes their land in QGIS, and the page says so',
             });
 
         await test.step('and what was drawn is listed on the land', async () => {
-            // On the land card, where the sentence says it is — not anywhere on
-            // the page: "tree" is inside "street level", which is a word the
-            // How fine control uses (client/js/landui.js).
+            // On the land card, where the sentence says it is — not anywhere
+            // on the page. The kinds are OSM's since db/0135: a wood is a
+            // `landuse`, a tree is a `natural_point`.
             const list = b.page.locator('.land-drawn');
-            await expect(list).toContainText('forest', { timeout: UI });
-            await expect(list).toContainText('tree');
+            await expect(list).toContainText('landuse', { timeout: UI });
+            await expect(list).toContainText('natural_point');
         });
 
         await test.step('drawing off B’s land is refused, in words', async () => {
             const [out] = drawInQgis(project, [{
-                layer: 'Wood',
+                layer: 'Landuse', attributes: { landuse: 'forest' },
                 geometry: squareAt({ lon: here.lon + 0.02, lat: here.lat + 0.01 }),
             }]);
             expect(out.ok, 'QGIS should not have saved that').toBe(false);

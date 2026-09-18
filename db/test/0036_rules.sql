@@ -5,14 +5,19 @@ SELECT plan(8);
 
 SET client_min_messages = warning;
 
-SELECT ok((SELECT count(*) FROM build_rule WHERE kind = 'forest') >= 10,
+SELECT ok((SELECT count(*) FROM build_rule WHERE kind = 'landuse') >= 10,
           'the species that were a constant in props.js are rows');
+-- The catch-all is the rule with nothing in its filter but the key the kind is
+-- named for: db/0135 put `landuse = forest` on every rule that used to be about
+-- the kind `forest`, because the kind is a key and a value now.
 SELECT ok((SELECT count(*) FROM build_rule
-           WHERE kind = 'forest' AND filter = '[]'::jsonb) = 1,
+           WHERE kind = 'landuse'
+             AND filter = '[{"op": "in", "prop": "landuse", "value": ["forest"]}]'::jsonb)
+          = 1,
           'and exactly one of them is the else-rule');
 
 -- Ordering is the whole semantics: first match wins, catch-alls last.
-SELECT is((SELECT name FROM build_rule WHERE kind = 'forest'
+SELECT is((SELECT name FROM build_rule WHERE kind = 'landuse'
            ORDER BY ordering, id LIMIT 1), 'spruce',
           'a named species is tried before the catch-all');
 

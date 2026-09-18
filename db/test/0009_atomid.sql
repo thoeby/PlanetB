@@ -16,7 +16,7 @@ INSERT INTO area (id, geom, owner_id, detail) VALUES
 -- One feature spanning two neighbouring z12 tiles: identical world snapshot,
 -- no children, same zoom — the case that used to collapse into one atom.
 INSERT INTO feature (area_id, kind, geom) VALUES
-('00000000-0000-0000-0000-0000000a1002', 'forest',
+('00000000-0000-0000-0000-0000000a1002', 'landuse',
  st_force3d(st_makeenvelope(20.01, 20.01, 20.19, 20.19, 4326)));
 
 SET LOCAL role = 'admin';

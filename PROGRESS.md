@@ -1766,3 +1766,50 @@ Two older things fixed on the way, both found by the story: `saveFlow` did not
 give the sha back, so a flow could be exported only after being reopened; and
 the view's boot was not memoised, so two callers racing at open built two
 canvases and the palette appeared twice.
+
+## FND.3: the vocabulary is OSM's
+
+The five words the world started with — road, forest, water, footprint, tree —
+were this world's own. Everybody who surveys anything already knows OSM's, so
+`db/0135` makes the kind an OSM key and what used to be the kind the value of
+that key: a road is `highway=secondary`, a wood is `landuse=forest`, a pond is
+`natural=water`, a tree is `natural_point=tree`. `railway`, `aerialway`,
+`barrier` and `waterway` are new kinds beside them, with the properties
+PLAN-foundation.md §5 lists.
+
+**Nothing that is drawn changed.** `feature.kind` is a foreign key with
+ON UPDATE CASCADE, so the three renames carried every row; the two splits moved
+their rows by hand and kept every property they had. The QGIS layers and their
+forms are generated from the `kind` table (db/0041), so the project has a layer
+per key on the next download without anything being written for it.
+
+**The compiler was told in the same commit.** `by(kind)` in
+`client/atoms/assemble.js` is `by(kind, key, values)`, and its version is
+`assemble-v5b` — the atom's code changed, so Invariant 2 says its version must,
+and a worker running the old code against this world would find no roads at all.
+The picture is the same to the byte: `client/test/assemble.test.js` holds the
+`mesh.bin` and `init.ply` hashes `assemble-v5` produced from the same fixture in
+the old vocabulary, and the new compiler has to match them exactly. It does.
+
+**What the key property is not.** FND.3 asks for it to be `required`. It is not,
+and db/0135 says why beside the rows: a required key refuses every feature that
+does not carry one — the rows already in the world, an import that has not
+classified everything yet, a boundary drawn before what is inside it is known.
+db/0040 settled the same question when it wrote that refusing an unknown key
+would make every import a migration. A blank key costs what it should: the
+compiler draws nothing for it.
+
+**An older thing fixed on the way**: `db/0037`'s rule seed was not idempotent.
+Replaying the migrations against a database that already has them — which is
+what happens when the ledger is missing (`server/splatworld/migrate.py`) — wrote
+a second copy of every rule, and once db/0135 renamed the kinds those rows name
+it stopped the replay outright. The seed is guarded now, and
+`server/test_migrate.py` is what noticed.
+
+Two test-side races fixed with it: the browser ladder (`stream.spec.js`) broke
+out of its settle loop on a single unchanged frame, and a coarse parent is kept
+in the scene until the pass after its children are all in — so there is a frame
+where nothing is loading and the set still holds a tile that is about to go; it
+waits five frames now. And stories 16 and 17 left a window open, which is a
+WebGL context nobody gave back: the story after them opens two of its own, and
+this container gives only two pages a context at a time.

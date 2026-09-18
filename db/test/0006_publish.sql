@@ -26,7 +26,7 @@ SELECT '00000000-0000-0000-0000-0000000000a1'::uuid,
 FROM ids;
 INSERT INTO feature (id, area_id, kind, geom)
 VALUES ('00000000-0000-0000-0000-0000000000f1',
-        '00000000-0000-0000-0000-0000000000a1', 'footprint',
+        '00000000-0000-0000-0000-0000000000a1', 'building',
         st_geomfromtext('POINTZ(7.5 46.5 500)', 4326));
 
 -- z12, because since db/0016_sample.sql a z14 tile is assembled and sampled

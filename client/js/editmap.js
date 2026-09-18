@@ -10,8 +10,8 @@
 import { TILE, WORLD } from '../lib/crs.js';
 
 export const COLOURS = {
-    road: '#d8b84a', forest: '#54a15a', water: '#4a8fc4',
-    footprint: '#d0794f', terrainmod: '#9b7fd0',
+    highway: '#d8b84a', landuse: '#54a15a', natural: '#4a8fc4',
+    building: '#d0794f', terrainmod: '#9b7fd0',
 };
 export const AREA_COLOURS = { write: '#5fa96a', propose: '#d8b84a', read: '#6d7780' };
 

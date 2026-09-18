@@ -19,7 +19,7 @@ SELECT '00000000-0000-0000-0000-000000000085'::uuid,
        ids.owner_id, 14
 FROM ids;
 INSERT INTO feature (area_id, kind, geom)
-VALUES ('00000000-0000-0000-0000-000000000085', 'footprint',
+VALUES ('00000000-0000-0000-0000-000000000085', 'building',
         st_geomfromtext('POINTZ(7.805 46.295 650)', 4326));
 
 -- A job open on it, so the delete has something to supersede.

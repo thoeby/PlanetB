@@ -18,7 +18,7 @@ SELECT '00000000-0000-0000-0000-000000000112'::uuid,
        ids.owner_id, 14
 FROM ids;
 INSERT INTO feature (area_id, kind, geom)
-VALUES ('00000000-0000-0000-0000-000000000112', 'footprint',
+VALUES ('00000000-0000-0000-0000-000000000112', 'building',
         st_geomfromtext('POINTZ(7.885 46.295 650)', 4326));
 SELECT set_config('request.jwt.claims',
     json_build_object('sub', owner_id, 'role', 'player')::text, true) FROM ids;

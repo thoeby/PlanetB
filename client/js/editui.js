@@ -183,8 +183,8 @@ async function save(ctx) {
     if (!area) { ctx.say('no area here', true); return null; }
     const kind = ctx.q('.edit-kind').value;
     const geom = geoOf(ctx, f);
-    // Kinds can be re-typed, but a road is a line and a forest is a ring: a
-    // forest with no ring compiles to nothing at all, silently. Multi and
+    // Kinds can be re-typed, but a highway is a line and a landuse is a ring:
+    // a landuse with no ring compiles to nothing at all, silently. Multi and
     // single are the same shape as far as `assemble` is concerned.
     const base = (t) => String(t).replace(/^Multi/, '');
     if (base(geom.type) !== base(geometryOf(kind))) {
@@ -319,8 +319,8 @@ export function mountEditor(doc, { mountAuth } = {}) {
         state: { areas: [], target: null, pending: null, selected: null, draw: null } };
 
     for (const k of KIND_NAMES) q('.edit-kind').append(new Option(k, k));
-    q('.edit-kind').value = 'forest';
-    renderForm(q('.edit-props'), 'forest', null);
+    q('.edit-kind').value = 'landuse';
+    renderForm(q('.edit-props'), 'landuse', null);
     interactions(ctx);
     wire(ctx, mountAuth);
     ctx.map.updateSize();
