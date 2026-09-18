@@ -562,25 +562,26 @@ class Handler(BaseHTTPRequestHandler):
             self._json(200, {"error": f"{type(err).__name__}: {err}"})
 
     def _import_properties(self) -> None:
-        """Which feature properties the world's rules actually read.
+        """Which feature properties the world's symbols actually read.
 
         The import page offers these as the things a column can be mapped to.
         They are not a list in the page and not a constant in the compiler:
-        they are whatever `build_rule` mentions (db/0036_rules.sql), so adding
-        a rule that reads `bhd` makes `bhd` mappable with nothing to change.
+        they are whatever a symbol mentions (db/0139), so adding a layer that
+        reads `bhd` makes `bhd` mappable with nothing to change.
         """
         import psycopg
 
         query = """
-            SELECT r.kind, array_agg(DISTINCT p) FROM build_rule r,
+            SELECT s.kind, array_agg(DISTINCT p) FROM symbol s,
             LATERAL (
-              SELECT jsonb_path_query(jsonb_build_array(r.filter, r.style),
+              SELECT jsonb_path_query(jsonb_build_array(s.filter, s.layers),
                                       '$.**.prop') #>> '{}' AS p
               UNION
-              SELECT v #>> '{}' FROM jsonb_each(r.style) e(k, v)
+              SELECT v #>> '{}' FROM jsonb_array_elements(s.layers) l,
+                   LATERAL jsonb_each(coalesce(l -> 'params', '{}'::jsonb)) e(k, v)
               WHERE e.k LIKE %s
             ) q
-            WHERE p IS NOT NULL AND r.enabled GROUP BY r.kind
+            WHERE p IS NOT NULL AND s.enabled GROUP BY s.kind
         """
         try:
             with psycopg.connect(self.cfg.dsn(), autocommit=True,

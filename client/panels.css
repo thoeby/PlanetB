@@ -223,3 +223,34 @@
 #panel .mk-live input[type="text"] { flex: 0 1 8rem; min-width: 0; }
 #panel .mk-said { font-size: 11px; margin-top: 4px; }
 #panel .build-ports { font-size: 11px; }
+
+/* FND.7: Symbols. Three columns in a wide part — the symbols on the left, the
+ * one being edited in the middle, the sample it builds on the right. */
+#panel .sy-cols {
+  display: grid; grid-template-columns: 1fr 1.4fr 1fr; gap: 14px; align-items: start;
+}
+#panel .sy-list, #panel .sy-stack, #panel .sy-versions { margin: 6px 0; padding: 0; }
+#panel .sy-list li, #panel .sy-stack li, #panel .sy-versions li {
+  display: flex; gap: 6px; align-items: baseline; margin: 2px 0;
+}
+#panel .sy-symbol, #panel .sy-layer { flex: 1 1 auto; text-align: left; padding: 4px 8px; }
+#panel .sy-symbol.picked, #panel .sy-layer.picked {
+  border-color: var(--accent); color: var(--accent);
+}
+#panel .sy-up, #panel .sy-down, #panel .sy-drop { flex: 0 0 auto; padding: 2px 6px; }
+#panel .sy-cond, #panel .sy-lcond, #panel .sy-prop {
+  display: flex; gap: 4px; align-items: center; margin: 3px 0;
+}
+#panel .sy-cond input, #panel .sy-lcond input, #panel .sy-prop input {
+  flex: 1 1 4rem; min-width: 0;
+}
+#panel .sy-layer-form label { display: flex; gap: 6px; align-items: center; margin: 3px 0; }
+#panel .sy-layer-form label input, #panel .sy-layer-form label select {
+  flex: 1 1 6rem; min-width: 0;
+}
+#panel .sy-preview { cursor: grab; touch-action: none; }
+#panel .sy-preview:active { cursor: grabbing; }
+#panel button.link {
+  background: none; border: none; padding: 0; color: var(--accent);
+  text-decoration: underline; cursor: pointer; font: inherit;
+}

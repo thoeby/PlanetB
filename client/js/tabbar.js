@@ -70,7 +70,8 @@ export const TABS = [
     { name: 'Settings', group: 'top', key: '`', width: 470,
         parts: [{ name: 'Setup', label: 'Setup' },
             { name: 'Land', label: 'Land', key: '0', wide: true },
-            { name: 'Vocabulary', label: 'Vocabulary', wide: true }] },
+            { name: 'Vocabulary', label: 'Vocabulary', wide: true },
+            { name: 'Symbols', label: 'Symbols', wide: true }] },
 ];
 
 // Every part there is, with the surface that holds it.
@@ -87,8 +88,8 @@ export const PART_LEDE = {
     'Render jobs': 'Tiles waiting to be compiled, and what they pay.',
     Land: 'Who is waiting for land, the ground it would be drawn on, and every'
         + ' piece of it there is.',
-    Vocabulary: 'What things may say about themselves, and what the compiler'
-        + ' makes of them.',
+    Vocabulary: 'What things may say about themselves.',
+    Symbols: 'What the compiler lays down where a thing is drawn.',
 };
 
 // Every panel body there is: a surface without parts is its own leaf.

@@ -1921,3 +1921,58 @@ the part looks like, because a light that is on and one that is off have to
 stay different while the maker is looking at them. `Renderer` gained
 `dispose()`: a browser gives a tab about sixteen WebGL contexts and this form
 draws again and again.
+
+## FND.7: a rule is a symbol, and a symbol is layers
+
+Story 22: A builds "Kantonsstrasse" — when `highway = secondary`: a surface
+with the cross-section of story 20, a kerb repeated either side, a lamp every
+thirty metres on the right where the road is `lit` — sees it on a sample of its
+own kind, and saves it. Saving changes nothing anybody has published: the world
+is built with the applied style until somebody applies this one, which is
+FND.8's.
+
+**The compiler stops knowing what a road is.** `client/lib/gen/` is seven
+layers and the eighth on its way out: `surface`, `repeat`, `scatter`,
+`extrude`, `place`, `paint`, `check`, and `terrainmod` until FND.11 retires it.
+`runAll` makes three passes over the features — `shape` moves the ground,
+`prepare` gathers the roads that are cut into it, `run` draws — which is
+PLAN-foundation.md §3's order, and the reason the old compiler's two phases
+(terrainmods, then roads, then everything) come out the same way.
+
+**The same bytes.** `assemble-v6` is `assemble-v5c`'s output exactly:
+`client/test/assemble.test.js` still holds the hashes `assemble-v5` produced
+from the same fixture in the old vocabulary, and they did not move. Two things
+made that possible. `extrudeOne` and `scatterOne` were lifted out of
+`client/lib/props.js` so a layer draws one feature with the code that used to
+draw all of them at once; and the meshes are written in one fixed order
+(`gen/index.js`'s `MATERIALS`) whatever order the features filled them, because
+a feature-major walk fills them in a different order than a kind-major one did.
+
+**Where it can still differ**, and this is written down rather than hidden: the
+old compiler scattered every `landuse=forest` and then every `natural=wood`,
+while the new one takes features in id order. A world with both, interleaved,
+gets the same trees in a different order — which is a different scatter, not a
+worse one. Nothing published is rebuilt for it (the snapshot is unchanged), and
+the fixture the hashes are pinned on has one stand.
+
+**db/0139** turns every `build_rule` row into a symbol with the one layer that
+reproduces it — which layer is read off what the rule produced, because that is
+all a rule ever said about itself — and drops `build_rule`, `rules_digest()`
+and `rulesui.js` behind it. Water, which was written into the compiler rather
+than into a rule, is a symbol now like everything else. A tile's snapshot pins
+the applied `style_version` where it pinned the rules' digest (Invariant 2).
+
+**Settings → Symbols** is a part of its own: the symbols on the left, the one
+being edited in the middle (the rules editor's filter builder, and a layer
+stack whose forms are built from `client/lib/symbols.js`), and on the right a
+sample of the symbol's own kind — a 60 m S-curve, a 40 × 30 m polygon or a
+point, on a gentle slope — compiled in the tab by the same `gen/` the atom
+runs. Deviation from the task: it is drawn with `client/lib/render.js`, the
+renderer the tile's own frames are traced with, rather than with a second
+PlayCanvas view. It is the world's shading, it needs no engine in a panel, and
+it costs one WebGL context instead of two.
+
+**One description of a layer, not two.** `client/lib/symbols.js` says what
+fields a layer has and which of them name a product of which type; the editor
+builds its forms from it, and the refusal it says before saving is the sentence
+db/0139's `check_layers` says again (Invariant 6).

@@ -1,4 +1,4 @@
-// assemble.js — `assemble-v5c`. The world, as geometry, in one tile's own frame.
+// assemble.js — `assemble-v6`. The world, as geometry, in one tile's own frame.
 //
 // Terrain from the seeded DEM, cut by terrainmods and roads; footprints
 // extruded; forests scattered; water laid flat; the ground coloured by its own
@@ -21,19 +21,17 @@ import { boundsOf, placeMeshes } from '../lib/glbmesh.js';
 import { packMeshes } from '../lib/mesh.js';
 import { bboxOf, writePly } from '../lib/ply.js';
 import { contains } from '../lib/poly.js';
-import { styleFor } from '../lib/rules.js';
-import { MATERIALS, buildings, roadMesh, trees, waterMesh } from '../lib/props.js';
+import { MATERIALS } from '../lib/props.js';
+import { context, runAll } from '../lib/gen/index.js';
 import { rngOf, sampleSurfaces } from '../lib/sampling.js';
 import { writeTar } from '../lib/tar.js';
-import {
-    GRID, Terrain, applyTerrainmods, cutRoads, heightRaster, terrainMesh,
-} from '../lib/terrain.js';
+import { GRID, Terrain, cutRoads, heightRaster, terrainMesh } from '../lib/terrain.js';
 import { localFromLonLat, tileBbox, tileFrame } from '../lib/tilemath.js';
 
 // v4 writes each surface's own colour and leaves the light to the one
 // renderer (client/lib/raster.js); v3 had baked it for a sampled baseline
 // that is gone. The cut elevation is read whole (terrain.js GRID).
-export const ALGO = 'assemble-v5c';
+export const ALGO = 'assemble-v6';
 
 // What assemble and sample both use to turn surfaces into splats; re-exported
 // because both atoms have always reached for them here.
@@ -74,28 +72,6 @@ function toLocal(frame, feature) {
         contains: (x, z) => contains(rings, x, z),
     };
 }
-
-// A road's height follows its centreline, smoothed: the ground under a road is
-// not as bumpy as a 30 m DEM says it is.
-function roadsOf(features, terrain, rules = []) {
-    const out = [];
-    for (const f of features) {
-        const width = Number(styleFor(rules, f).width) || 5;
-        for (const line of f.lines) {
-            if (line.length < 2) continue;
-            const raw = line.map(([x, z]) => terrain.at(x, z));
-            const h = raw.map((_, i) => (raw[Math.max(i - 1, 0)] + raw[i]
-                + raw[Math.min(i + 1, raw.length - 1)]) / 3);
-            const segments = [];
-            for (let i = 0; i + 1 < line.length; i++) {
-                segments.push({ a: line[i], b: line[i + 1], ha: h[i], hb: h[i + 1] });
-            }
-            out.push({ width, segments });
-        }
-    }
-    return out;
-}
-
 
 // A feature that crosses the tile's edge arrives whole — a road runs for
 // kilometres, a forest spills into the next tile — and a tile shows its own
@@ -177,41 +153,71 @@ async function groundColour(z, x, y, filesUrl) {
     };
 }
 
-function build({ z, sw, ne, dem, frame, world, random, assets, colourAt = null }) {
-    // What a feature becomes is decided by the world's rules, which travel with
-    // it (db/0036_rules.sql): nothing here knows a species or a column name.
-    const rules = world.rules ?? [];
+// What a feature becomes is decided by the world's symbols, which travel with
+// it (db/0139): nothing here knows what a road, a wood or a roof is. Each
+// feature is put through the first symbol that matches it, and that symbol's
+// layers draw it (client/lib/gen/).
+function build({ z, sw, ne, dem, frame, world, random, assets, products, colourAt = null }) {
+    const symbols = world.symbols ?? [];
     const feats = (world.features ?? []).map((f) => toLocal(frame, f));
-    // The vocabulary is OSM's since db/0135: what used to be a kind of its own
-    // is a key and a value now — a road is `highway=*`, a wood is
-    // `landuse=forest` or `natural=wood`. `key` and `values` are how a kind is
-    // narrowed to the ones this world draws that way; a kind on its own still
-    // means all of it.
-    const by = (kind, key = null, values = null) => feats.filter((f) => f.kind === kind
-        && (!key || (values ?? []).includes(f.props?.[key])));
     const terrain = new Terrain({ sw, ne, size: GRID[z] ?? 65, dem });
     // The frame's origin is the ground under the tile centre, so heights are
     // measured from there, not from the ellipsoid.
     for (let i = 0; i < terrain.h.length; i++) terrain.h[i] -= frame.h;
     terrain.datum = frame.h;
-    applyTerrainmods(terrain, by('terrainmod'), rules);
-    const roads = roadsOf(by('highway'), terrain, rules);
-    cutRoads(terrain, roads);
 
     const edge = Math.hypot(ne.x - sw.x, sw.z - ne.z);
-    const built = buildings(by('building'), terrain, rules);
-    const woods = [...by('landuse', 'landuse', ['forest']),
-        ...by('natural', 'natural', ['wood'])];
-    const wood = trees(woods, terrain, random, Math.max(6, edge / 140), rules);
+    const ctx = context({ terrain, random, radius: Math.max(6, edge / 140),
+        asset: (san) => products?.get(san)?.bytes ?? null,
+        product: (san) => products?.get(san)?.json ?? null,
+        // The roads every `surface` layer gathered, cut into the hill before
+        // anything is drawn on it.
+        cut: () => cutRoads(terrain, ctx.roads) });
+    const drawn = runAll(symbols, feats, ctx);
     const placed = placeInstances(world.instances, assets ?? new Map(), frame);
-    const meshes = clip([terrainMesh(terrain, 'terrain', colourAt), roadMesh(roads, terrain),
-        built.walls, built.roofs,
-        waterMesh(by('natural', 'natural', ['water']), terrain),
-        wood.trunks, wood.canopies, ...placed.meshes], sw, ne);
-    built.boxes = [...built.boxes, ...placed.boxes].filter((b) => b.center[0] >= sw.x - CLIP_M
-        && b.center[0] <= ne.x + CLIP_M && b.center[2] <= sw.z + CLIP_M
-        && b.center[2] >= ne.z - CLIP_M);
-    return { terrain, meshes, built, wood, roads, placed };
+    const meshes = clip([terrainMesh(terrain, 'terrain', colourAt),
+        ...drawn.meshes, ...placed.meshes], sw, ne);
+    const boxes = [...drawn.boxes, ...placed.boxes]
+        .filter((b) => b.center[0] >= sw.x - CLIP_M
+            && b.center[0] <= ne.x + CLIP_M && b.center[2] <= sw.z + CLIP_M
+            && b.center[2] >= ne.z - CLIP_M);
+    return { terrain, meshes, boxes, trees: ctx.trees, flags: drawn.flags,
+        paints: ctx.paints, roads: ctx.roads, placed };
+}
+
+// The files the pinned symbols name (db/0139): a segment's or a model's GLB,
+// a cross-section's or a collection's JSON, a material's PNG. Fetched by
+// digest like an instance's GLB, once each, and a missing one is skipped
+// rather than fatal — one lost product must not make a tile uncompilable.
+const EXT = { model: 'glb', segment: 'glb', material: 'png',
+    profile: 'json', collection: 'json' };
+
+async function loadProducts(files, filesUrl) {
+    const out = new Map();
+    for (const [san, what] of Object.entries(files ?? {})) {
+        const ext = EXT[what.type] ?? 'glb';
+        const res = await fetch(`${filesUrl}/assets/${what.sha256}.${ext}`).catch(() => null);
+        if (!res?.ok) continue;
+        const bytes = new Uint8Array(await res.arrayBuffer());
+        out.set(san, { type: what.type, bytes,
+            json: ext === 'json' ? JSON.parse(new TextDecoder().decode(bytes)) : null });
+    }
+    return out;
+}
+
+// Everything about where this tile is and what the ground under it looks
+// like, before a single feature is read.
+async function ground(z, x, y, filesUrl) {
+    const dem = await loadDem(z, x, y, { filesUrl });
+    if (!dem) throw new Error(`no ground at ${z}/${x}/${y}: it is outside the world's coverage`);
+    const colourAt = await groundColour(z, x, y, filesUrl);
+    const b = tileBbox(z, x, y);
+    const flat = tileFrame(z, x, y, 0);
+    const frame = tileFrame(z, x, y, sampleGround(dem));
+    return { b, dem, colourAt, flat, frame,
+        centre: { lon: (b.west + b.east) / 2, lat: (b.south + b.north) / 2 },
+        sw: localFromLonLat(frame, b.west, b.south),
+        ne: localFromLonLat(frame, b.east, b.north) };
 }
 
 // -------------------------------------------------------------------- atom
@@ -229,22 +235,15 @@ export async function run({ atom, log, apiUrl, filesUrl }) {
         throw new Error(`the world moved: ${world.snapshot} is not ${atom.inputs.snapshot}`);
     }
 
-    const dem = await loadDem(z, x, y, { filesUrl });
-    if (!dem) throw new Error(`no ground at ${z}/${x}/${y}: it is outside the world's coverage`);
-    const colourAt = await groundColour(z, x, y, filesUrl);
-
-    const b = tileBbox(z, x, y);
-    const centre = { lon: (b.west + b.east) / 2, lat: (b.south + b.north) / 2 };
-    const flat = tileFrame(z, x, y, 0);
-    const frame = tileFrame(z, x, y, sampleGround(dem));
-    const sw = localFromLonLat(frame, b.west, b.south);
-    const ne = localFromLonLat(frame, b.east, b.north);
+    const { centre, flat, frame, sw, ne, dem, colourAt } = await ground(z, x, y, filesUrl);
 
     const assets = await loadAssets(world.instances, { filesUrl });
-    const { terrain, meshes, built, wood, roads, placed } =
-        build({ z, sw, ne, dem, frame, world, random: rngOf(atom, z, x, y), assets, colourAt });
-    log?.({ event: 'assembled', z, x, y, meshes: meshes.length, trees: wood.count,
-        buildings: built.boxes.length, roads: roads.length,
+    const products = await loadProducts(world.symbol_files, filesUrl);
+    const { terrain, meshes, boxes, trees, flags, roads, placed } =
+        build({ z, sw, ne, dem, frame, world, random: rngOf(atom, z, x, y),
+            assets, products, colourAt });
+    log?.({ event: 'assembled', z, x, y, meshes: meshes.length, trees,
+        buildings: boxes.length, roads: roads.length,
         instances: placed.meshes.length, missing: placed.missing });
 
     const random = rngOf(atom, z, x, y);
@@ -255,7 +254,7 @@ export async function run({ atom, log, apiUrl, filesUrl }) {
         algo: ALGO, tile: { z, x, y }, origin: { ...centre, h: frame.h },
         budget, materials: MATERIALS, meshes: specs, height: height.meta,
         instances: world.instances ?? [], snapshot: world.snapshot,
-        counts: { trees: wood.count, buildings: built.boxes.length, splats: splats.count },
+        counts: { trees, buildings: boxes.length, splats: splats.count },
         // The frame at ground level; the flat one is what tilemath gives for h=0.
         frame: { lon: frame.lon, lat: frame.lat, h: frame.h, flat_h: flat.h },
     };
@@ -265,7 +264,7 @@ export async function run({ atom, log, apiUrl, filesUrl }) {
         { name: 'init.ply', bytes: writePly(splats) },
         { name: 'height.r16', bytes: height.bytes },
         { name: 'colliders.json',
-            bytes: new TextEncoder().encode(JSON.stringify({ boxes: built.boxes })) },
+            bytes: new TextEncoder().encode(JSON.stringify({ boxes })) },
     ]);
     return {
         files: [{ ext: 'tar', kind: 'init_ply', algo_version: ALGO, bytes: tar }],
@@ -273,8 +272,11 @@ export async function run({ atom, log, apiUrl, filesUrl }) {
         result: {
             bytes: tar.length, splat_count: splats.count, finite: true,
             bbox: bboxOf(splats),
-            trees: wood.count, buildings: built.boxes.length, snapshot: world.snapshot,
+            trees, buildings: boxes.length, snapshot: world.snapshot,
             instances: (world.instances ?? []).length - placed.missing,
+            // FND.11 reads these in the Submit dialog: where a road is laid
+            // across a slope steeper than its symbol allows.
+            flags,
         },
     };
 }

@@ -378,8 +378,7 @@ returns to the admin).
   "Apply to world" moves it, with the symbols.
 - **World**: ground coverage in use, GeoServer status, storage used,
   maintenance queue (§5.3), the process server flows are checked against
-  ("Process server for checking flows"), rules (the existing build rules,
-  read-only here; editing stays where it is until decided).
+  ("Process server for checking flows").
 
 ### 2.14 Setup (admins, first run)
 Account (first player is admin) → display name → GeoServer address + admin

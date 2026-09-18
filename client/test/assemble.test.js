@@ -63,21 +63,27 @@ const WORLD = {
         { id: '6', kind: 'terrainmod', rev: 1, props: { op: 'flatten', amount: 0 },
             geom: { type: 'Polygon', coordinates: box(0.7, 0.1, 0.1, 0.1) } },
     ],
-    // The rules travel with the world (db/0036_rules.sql). These are the
-    // seeded ones this fixture needs: a building's height off its own column,
-    // a road's width off its own, a flattening terrainmod.
-    rules: [
+    // The symbols travel with the world (db/0139). These are the migrated
+    // ones this fixture needs — each the single layer that reproduces the
+    // rule it came from: a building's height off its own column, a road's
+    // width off its own, a flattening terrainmod, a stand of trees, a lake.
+    symbols: [
         { name: 'any building', kind: 'building', ordering: 999, enabled: true, filter: [],
-            style: { roof: 'flat',
-                height: { prop: 'height', else: { prop: 'levels', times: 3, else: 6 } } } },
+            layers: [{ layer: 'extrude', params: { roof: 'flat',
+                height: { prop: 'height', else: { prop: 'levels', times: 3, else: 6 } } } }] },
         { name: 'any road', kind: 'highway', ordering: 999, enabled: true, filter: [],
-            style: { width: { prop: 'width', min: 2, max: 40, else: 5 } } },
+            layers: [{ layer: 'surface',
+                params: { width: { prop: 'width', min: 2, max: 40, else: 5 } } }] },
         { name: 'any terrainmod', kind: 'terrainmod', ordering: 999, enabled: true, filter: [],
-            style: { amount: { prop: 'amount', else: 0 },
-                op: { prop: 'op', text: true, else: 'flatten' } } },
+            layers: [{ layer: 'terrainmod', params: { amount: { prop: 'amount', else: 0 },
+                op: { prop: 'op', text: true, else: 'flatten' } } }] },
         { name: 'any forest', kind: 'landuse', ordering: 999, enabled: true,
             filter: [{ op: 'in', prop: 'landuse', value: ['forest'] }],
-            style: { height: [12, 22], sides: 6, taper: 0.28, mature: 70, age_prop: 'age' } },
+            layers: [{ layer: 'scatter', params: { height: [12, 22], sides: 6,
+                taper: 0.28, mature: 70, age_prop: 'age' } }] },
+        { name: 'water', kind: 'natural', ordering: 999, enabled: true,
+            filter: [{ op: 'in', prop: 'natural', value: ['water'] }],
+            layers: [{ layer: 'surface', params: {} }] },
     ],
 };
 
@@ -100,7 +106,7 @@ async function serve() {
 }
 
 const ATOM = {
-    id: 1, op: 'assemble', algo_version: 'assemble-v5c', seed: 7,
+    id: 1, op: 'assemble', algo_version: 'assemble-v6', seed: 7,
     inputs: { snapshot: WORLD.snapshot }, params: { z: Z, x: X, y: Y, budget: BUDGET },
 };
 
@@ -115,7 +121,7 @@ test('assemble produces the five files the rest of the pipeline reads', async ()
             ['scene.json', 'mesh.bin', 'init.ply', 'height.r16', 'colliders.json']);
 
         const scene = JSON.parse(new TextDecoder().decode(files.get('scene.json')));
-        assert.equal(scene.algo, 'assemble-v5c');
+        assert.equal(scene.algo, 'assemble-v6');
         assert.deepEqual(scene.tile, { z: Z, x: X, y: Y });
         assert.ok(scene.origin.h > 350 && scene.origin.h < 460, 'the origin sits on the ground');
         assert.ok(scene.meshes.length >= 6, 'terrain, road, walls, roofs, water, trees');
