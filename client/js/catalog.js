@@ -12,12 +12,25 @@ import * as api from './api.js';
 import { CANON_VERSION, canonicalise } from '../lib/canon.js';
 import { sha256 } from '../lib/hash.js';
 import { renderThumb, ALGO as THUMB_ALGO } from '../lib/thumb.js';
+import { canonCollection, canonProfile, describe } from '../lib/product.js';
 
 const CATEGORIES = ['prop', 'building', 'vegetation', 'vehicle', 'furniture', 'other'];
 const LICENSES = ['cc0', 'free', 'paid', 'limited'];
 
 const FIELDS = 'san,name,category,license,price,editions,issued,tris,tex_bytes,'
-    + 'bbox,sha256,thumb_sha256,canon_version,creator_id,created_at';
+    + 'bbox,sha256,thumb_sha256,canon_version,creator_id,created_at,type,parts';
+
+// What each of the five is, in the words the catalog uses for it (FND.5).
+export const TYPES = [
+    { id: 'model', words: 'Model' },
+    { id: 'segment', words: 'Repeating piece' },
+    { id: 'profile', words: 'Road cross-section' },
+    { id: 'collection', words: 'Collection' },
+    { id: 'material', words: 'Surface material' },
+];
+
+export const typeWords = (type) =>
+    TYPES.find((t) => t.id === (type ?? 'model'))?.words ?? type;
 
 export const thumbUrl = (asset) => (asset.thumb_sha256
     ? `${api.endpoints().files}/assets/${asset.thumb_sha256}.webp` : null);
@@ -29,11 +42,12 @@ export const glbUrl = (asset) => `${api.endpoints().files}/assets/${asset.sha256
 // PostgREST does the filtering: a `search` matches the name, `category` and
 // `license` are exact. Everything is a public read (db/0003_rls.sql).
 export async function searchAssets({ search = '', category = '', license = '',
-    limit = 60 } = {}) {
+    type = '', limit = 60 } = {}) {
     const params = { select: FIELDS, order: 'created_at.desc', limit: String(limit) };
     if (search.trim()) params.name = `ilike.*${search.trim()}*`;
     if (category) params.category = `eq.${category}`;
     if (license) params.license = `eq.${license}`;
+    if (type) params.type = `eq.${type}`;
     return api.select('asset', params);
 }
 
@@ -125,5 +139,50 @@ export async function publishAsset(canon, meta) {
     }
     return registered;
 }
+
+// ------------------------------------------------- the four that are not models
+
+// A product whose file is not a GLB: the bytes, the kind of artifact they are,
+// and the extension they are stored under. The rest of the path is a model's —
+// store it, register it, catalogue it, in that order.
+async function publishFile(bytes, ext, kind, algo, meta) {
+    const sha = await sha256(bytes);
+    await store(bytes, ext, sha, kind, algo);
+    return api.rpc('register_asset',
+        { sha256: sha, canon_version: 0, meta: { ...meta, type: meta.type } });
+}
+
+// A surface material: the PNG itself, and how many metres of ground one tile
+// of it covers.
+export const publishMaterial = (png, meta) =>
+    publishFile(png, 'png', 'material', 'material-v1',
+        { ...meta, type: 'material',
+            parts: { tiling: Number(meta.tiling), px: Number(meta.px) } });
+
+// A road's cross-section. There is no file to upload, so the description is
+// the file: canonical JSON, named by its own sha256 (client/lib/product.js).
+export async function publishProfile(profile, meta) {
+    const canon = canonProfile(profile);
+    return publishFile(describe(canon), 'json', 'profile', 'profile-v1',
+        { ...meta, type: 'profile', profile: canon.strips,
+            parts: { profile: canon } });
+}
+
+// A collection, the same way, and then the rows that say what is in it. The
+// rows are a client write under RLS: only the maker may add to their own
+// (db/0137).
+export async function publishCollection(members, meta) {
+    const canon = canonCollection(members);
+    const san = await publishFile(describe(canon), 'json', 'collection',
+        'collection-v1', { ...meta, type: 'collection', parts: { collection: canon } });
+    await api.insert('collection_item', canon.members.map((m) => ({
+        collection_san: san, member_san: m.san, weight: m.weight,
+    })), { on_conflict: 'collection_san,member_san' });
+    return san;
+}
+
+export const membersOf = (san) => api.select('collection_item', {
+    collection_san: `eq.${san}`, select: 'member_san,weight', order: 'member_san.asc',
+});
 
 export { CATEGORIES, LICENSES };

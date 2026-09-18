@@ -1,9 +1,9 @@
 #!/usr/bin/env node
 // The models the foundation stories are played with (TASKS-foundation.md
-// FND.0). Eleven GLBs: two trees, a bush, a rock, a street lamp whose head is
+// FND.0). Twelve GLBs: two trees, a bush, a rock, a street lamp whose head is
 // its own node, a billboard whose screen is its own node, a bus, a tunnel
-// portal whose mouth is its own node, a bridge deck, a 2 m wall segment and a
-// 1 m kerb segment.
+// portal whose mouth is its own node, a bridge deck, a 2 m wall segment, a
+// 1 m kerb segment, and five centimetres of one that is too short to repeat.
 //
 // They are written here rather than downloaded: every CC0 model host is
 // outside this container's egress policy, and a fixture that cannot be
@@ -121,6 +121,12 @@ const kerb1m = () => [
     { name: 'kerb', mesh: box([-0.5, 0, -0.15], [0.5, 0.12, 0.15]), material: 0 },
 ];
 
+// Five centimetres of it: too short to be a repeat at all, which is what
+// story 20's refusal is about.
+const pebble5cm = () => [
+    { name: 'pebble', mesh: box([-0.025, 0, -0.04], [0.025, 0.05, 0.04]), material: 0 },
+];
+
 const MODELS = [
     ['tree-fir', fir, [BARK, NEEDLE]],
     ['tree-larch', larch, [BARK, LEAF]],
@@ -133,6 +139,7 @@ const MODELS = [
     ['bridge-deck', bridgeDeck, [CONCRETE, STEEL]],
     ['wall-segment-2m', wall2m, [STONE]],
     ['kerb-segment-1m', kerb1m, [CONCRETE]],
+    ['pebble-segment-5cm', pebble5cm, [STONE]],
 ];
 
 mkdirSync(OUT, { recursive: true });

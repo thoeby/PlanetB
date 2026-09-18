@@ -721,3 +721,14 @@ every file against a database that already has them whenever the ledger is
 missing, and forgives only "already there" errors. A bare `INSERT` is neither:
 it either duplicates itself or fails on a constraint a later migration added.
 Guard it with `WHERE NOT EXISTS`, as db/0037 now does.
+
+**A view over a table does not grow with it.** `api.asset` was
+`SELECT * FROM public.asset`, and `*` is expanded once — when the view is
+created. FND.5 added two columns to `asset` and the page's read came back 400
+until db/0137 replaced the view. Any migration that adds a column to a table the
+API exposes has to replace that table's view in the same file.
+
+**Do not edit client/ while a player-run is going.** The page is served from
+disk on every navigation, so a spec that started before the edit meets the code
+after it — and a story that had nothing to do with the change fails in a way
+that reads like a real bug. Wait for the run, or run the affected stories only.

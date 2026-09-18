@@ -274,7 +274,11 @@ function toggler(host, ctx, state, { acts, onKey, onClick, say }) {
 }
 
 async function fillCatalog(host, state, say, search) {
-    const rows = await searchAssets({ search, limit: 12 }).catch(() => []);
+    // Models only (FND.5): the other four types are used by symbols — a
+    // repeating piece runs along a wall, a cross-section is a road's profile, a
+    // collection is what a forest is scattered from, a material covers ground.
+    // None of them is a thing anybody puts down one of.
+    const rows = await searchAssets({ search, type: 'model', limit: 12 }).catch(() => []);
     host.querySelector('.build-assets').replaceChildren(...rows.map((a) => assetRow(a, (asset) => {
         state.brush = asset;
         state.selected = null;

@@ -1842,3 +1842,41 @@ extract, where no land drawn on the page reaches. It runs through the middle
 now. `import.py` also drops a mapped field the target layer has not got, which
 is what QGIS's own paste does: one mapping written for six layers names fields
 only some of them have.
+
+## FND.5: a product is not always a model
+
+`db/0137` gives `asset` a `type` and a `parts`, and the catalog five kinds of
+thing: a **model** somebody places, a **segment** that repeats along a line, a
+**profile** that is a road's cross-section, a **collection** that is "trees like
+these, in these proportions", and a **material** that is a surface. Four of them
+are never placed at all — they are what a symbol reaches for — but they are
+made, named, licensed and paid for exactly as a model is, so they are in the
+catalog.
+
+**Each still has a file behind it**, because a SAN is the sha256 of what the
+thing is (Invariant 1). A model and a segment are GLBs, a material is a PNG, and
+a profile and a collection are the canonical JSON that describes them
+(`client/lib/product.js`) — written once, immutable, and two identical
+cross-sections are one file and one catalog entry. The artifact kinds gained
+`profile` and `collection`; `can_write` gained `.png` and `.json`.
+
+**The rules are in one place and checked twice.** `check_asset_type` says what
+each type needs — a repeating piece at least 0.10 m long, a material square, a
+power of two, at most 2048 px and with a tiling size, a cross-section with at
+least one strip — and the page checks the same thing before it uploads so the
+refusal arrives before the bytes do (Invariant 6). A collection holds models,
+which `collection_item`'s own trigger says.
+
+**The Place panel lists models only.** A wall segment is not a thing anybody
+puts one of down.
+
+**A trap worth writing down**: `api.asset` was created in db/0007 as
+`SELECT * FROM public.asset`, and a view expands `*` once, when it is created.
+Adding two columns to the table added nothing to the view, and the page's read
+came back 400. db/0137 replaces the view.
+
+Fixtures: `tools/make-fixture-materials.mjs` writes the two surface materials
+and the 3000 px one the refusal is about — deterministic PNGs, written here
+because every CC0 texture host is outside this container's egress policy — and
+`make-fixture-models.mjs` gained five centimetres of kerb, which is too short
+to be a repeat.
