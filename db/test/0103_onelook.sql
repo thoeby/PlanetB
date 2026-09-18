@@ -44,7 +44,7 @@ SELECT is((SELECT (params ->> 'iters')::int FROM atom
            WHERE job_id = (SELECT j16 FROM jobs) AND op = 'train'), 1200,
     'z16: the same run');
 SELECT is((SELECT algo_version FROM atom
-           WHERE job_id = (SELECT j14 FROM jobs) AND op = 'train'), 'train-v7',
+           WHERE job_id = (SELECT j14 FROM jobs) AND op = 'train'), 'train-v8',
     'and a z14 tile is trained, not sampled: there is no sampler');
 SELECT is((SELECT algo_version FROM atom
            WHERE job_id = (SELECT j14 FROM jobs) AND op = 'assemble'), 'assemble-v5',

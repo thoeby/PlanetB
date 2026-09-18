@@ -186,11 +186,18 @@ export async function brushDevice(gpu = globalThis.navigator?.gpu) {
 // what bounds how many splats a screen tile can hold. A splat that has to be
 // bigger than the trainer will carry is widened after the run instead, where
 // brush never renders it (client/atoms/train.js, `widen`).
-export function configFor(init, { iters, budget, size, seed = 42 }) {
+export function configFor(init, { iters, budget, size, seed = 42, refineEvery = 0 }) {
     return {
         ...init,
         'total-train-iters': iters,
         'max-splats': budget,
+        // How often brush looks for splats to split. It grows by a fraction of
+        // what it has at each of these, so how many happen in the growth window
+        // is what decides whether the budget is ever reached: at its own
+        // default a 1 200-step run gets about five, which took a 22 500 seed to
+        // 37 000 of a 600 000 budget — one splat per 77 m² of a z14 tile. Zero
+        // leaves brush's own number alone.
+        ...(refineEvery > 0 ? { 'refine-every': refineEvery } : {}),
         'sh-degree': 0,
         'growth-start-iter': 0,
         'growth-stop-iter': Math.round(iters * 0.6),

@@ -1,4 +1,4 @@
-// train.js — `train-v7`. The tile, learned from its own frames, by brush.
+// train.js — `train-v8`. The tile, learned from its own frames, by brush.
 //
 // `assemble` built the surfaces and `frame` path-traced them from a fixed
 // camera set. The seed is those surfaces sampled at the tile's whole budget
@@ -36,7 +36,7 @@ import { bboxOf, writePly } from '../lib/ply.js';
 import { rngOf, sampleSurfaces } from '../lib/sampling.js';
 import { readTar, writeTar } from '../lib/tar.js';
 
-export const ALGO = 'train-v7';
+export const ALGO = 'train-v8';
 // In-plane radius of a seed splat as a share of its spacing: overlapping, so
 // the first render is a surface and not a sieve.
 export const SPREAD = 1.15;
@@ -52,18 +52,25 @@ export const MARGIN = 0.15;
 export const MIN_PAD_M = 2;
 // The seed is this share of the budget unless the atom says otherwise; brush
 // grows the rest where the frames say the picture is wrong (client/lib/brush.js
-// configFor). Every step costs what is in the frame — the projection, the sort,
-// the tile intersections, the backward pass — so a seed is not free ground to
-// stand on: it is paid for on every one of the run's steps, including where
-// the picture was already right. Densification is the thing that puts splats
-// where they are needed, and it is cheap because it only does it there.
-export const SEED_SHARE = 0.0375;
+// configFor). A seed is paid for on every one of the run's steps, so this was
+// walked down to a fortieth on the reasoning that densification would fill the
+// tile in and only where it was needed — which is true of a 30 000-step run
+// and not of this one. Brush grows by a fraction of what it has at each refine,
+// and the growth window of a 1 200-step run holds about five of them: a 22 500
+// seed reached 37 000 of a 600 000 budget, one splat per 77 m² of a z14 tile,
+// and `widen` then blew each one up to hide the gaps. Half the budget on the
+// surface needs seven doublings-worth rather than thirty-two, which is what
+// the run can actually deliver.
+export const SEED_SHARE = 0.5;
 // How much wider every trained splat is made before it is written: the ground
 // is covered by splats overlapping their neighbours, and the trainer settles
 // on extents that leave the background showing between them. A multiple, so it
 // is relative to whatever size a splat ended up at; the atom's `scale` param
-// is what turns it, without touching this file.
-export const SCALE = 3;
+// is what turns it, without touching this file. It was 3 while a tile came out
+// with a splat per 77 m² in it: at that spacing widening is not overlap, it is
+// twenty-six-metre blobs smeared over a hillside, and it was hiding a tile that
+// had not been filled rather than covering one that had.
+export const SCALE = 1.3;
 // A picture of the run every so many iterations, from its first held-out
 // pose, over the first PREVIEW_SPLATS of the (shuffled) list.
 export const PREVIEW_EVERY = 200;
@@ -158,7 +165,7 @@ async function trainWithBrush({ atom, seed, tars, scene, eye, iters, budget, siz
         const app = new brush.BrushApp();
         app.initExisting(adapter, device, device.queue);
         training = await trainIn(app, dir, (init) => configFor(init, { iters, budget, size,
-            seed: atom.seed ?? 42 }), {
+            seed: atom.seed ?? 42, refineEvery: Number(atom.params?.refine_every) || 0 }), {
             // Every tenth step, with the pace since the last report: a silent
             // minute on a slow card reads as a hang, and elapsed-over-steps
             // would carry the loading and tuning time in front of step one.
