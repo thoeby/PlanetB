@@ -159,6 +159,18 @@ export function captionOf(rec) {
     if (rec.event === 'train') {
         return `${tile}training ${rec.iter} of ${rec.of} · ${rec.splats} splats`;
     }
+    // What the run actually came back with. The record has carried `splats`
+    // and `of` since train-v5 and the caption fell through to the bare word
+    // "trained", so the one number that says whether a tile is a picture or a
+    // handful of blobs was in the log and not on the screen.
+    if (rec.event === 'trained') {
+        return `${tile}trained: ${rec.splats} splats kept of ${rec.of}`
+            + `${rec.scale ? `, widened \u00d7${rec.scale}` : ''}`;
+    }
+    if (rec.event === 'sogged') {
+        return `${tile}packed: ${rec.splats} splats, ${Math.round(rec.bytes / 1024)} kB`
+            + `${rec.levels ? ` \u00b7 levels ${rec.levels.join('/')}` : ''}`;
+    }
     // A refused submit is the run thrown away, and the rule that threw it is
     // the only thing worth saying about it (client/js/work.js broke).
     if (rec.event === 'rejected') {

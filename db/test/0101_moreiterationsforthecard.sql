@@ -1,4 +1,4 @@
--- The train atom a z18 and a z16 job are built with: train-v10, the iteration
+-- The train atom a z18 and a z16 job are built with: train-v11, the iteration
 -- counts a full-budget seed needs, and z18 trained at the frames' own size.
 BEGIN;
 SELECT plan(6);
@@ -25,8 +25,8 @@ SELECT ensure_job(18, tile_x(7.805, 18), tile_y(46.295, 18)) AS j18,
        ensure_job(16, tile_x(7.805, 16), tile_y(46.295, 16)) AS j16;
 
 SELECT is((SELECT algo_version FROM atom
-           WHERE job_id = (SELECT j18 FROM jobs) AND op = 'train'), 'train-v10',
-    'a z18 job trains with train-v10');
+           WHERE job_id = (SELECT j18 FROM jobs) AND op = 'train'), 'train-v11',
+    'a z18 job trains with train-v11');
 SELECT is((SELECT (params ->> 'iters')::int FROM atom
            WHERE job_id = (SELECT j18 FROM jobs) AND op = 'train'), 1200,
     'z18: 1200 iterations (db/0122)');

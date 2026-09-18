@@ -1,4 +1,4 @@
-// train.js — `train-v10`. The tile, learned from its own frames, by brush.
+// train.js — `train-v11`. The tile, learned from its own frames, by brush.
 //
 // `assemble` built the surfaces and `frame` path-traced them from a fixed
 // camera set. The seed is those surfaces sampled at the tile's whole budget
@@ -36,10 +36,15 @@ import { bboxOf, writePly } from '../lib/ply.js';
 import { rngOf, sampleSurfaces } from '../lib/sampling.js';
 import { readTar, writeTar } from '../lib/tar.js';
 
-export const ALGO = 'train-v10';
-// In-plane radius of a seed splat as a share of its spacing: overlapping, so
-// the first render is a surface and not a sieve.
-export const SPREAD = 1.15;
+export const ALGO = 'train-v11';
+// The in-plane sigma of a seed splat as a share of its spacing. Sigma, not
+// radius: a gaussian is visible out to about two of them, so a splat at 1.15
+// covered four to five times the distance to its neighbour — twenty times the
+// area it is meant to hold — and `widen` multiplied that again. A tile of
+// 134 000 splats at 4.6 m spacing came back looking like a few dozen blobs,
+// because each one was twenty metres across. Half the spacing puts the
+// two-sigma edge at one spacing: covered, with overlap, and no smear.
+export const SPREAD = 0.5;
 // How far past the seed's box a splat may end up and still be this tile's,
 // measured up and down. Across the ground there is far less room than this:
 // see EDGE_PAD_M.
@@ -74,11 +79,13 @@ export const MIN_PAD_M = 2;
 // on the run that started this (22 500 → 37 000 in five passes). At brush's
 // own interval those five passes are all a 1 200-step run gets, which is why
 // a fortieth of the budget came back as a splat per 77 m²; the answer is not
-// a bigger seed but a shorter `refine_every` (db/0138: twenty, so thirty-six
-// passes, so 33×). A seed half the budget reaches it by starting there, and
-// leaves the sampler — a uniform walk of the surface, taken before a frame
-// has been looked at — deciding where a forest's splats go.
-export const SEED_SHARE = 0.0375;
+// a bigger seed alone but a shorter `refine_every` as well (db/0138). That
+// bought passes and lost yield: at twenty steps a pass there is a fifth as
+// much gradient built up, so fewer splats clear the threshold, and 36 passes
+// came to 5.96× rather than 33× — 134 000 of a 600 000 budget. So the seed
+// carries the tile and growth puts the rest where the frames say the picture
+// is wrong (db/0145).
+export const SEED_SHARE = 0.1;
 // How much wider every trained splat is made before it is written: the ground
 // is covered by splats overlapping their neighbours, and the trainer settles
 // on extents that leave the background showing between them. A multiple, so it
@@ -87,7 +94,7 @@ export const SEED_SHARE = 0.0375;
 // with a splat per 77 m² in it: at that spacing widening is not overlap, it is
 // twenty-six-metre blobs smeared over a hillside, and it was hiding a tile that
 // had not been filled rather than covering one that had.
-export const SCALE = 1.3;
+export const SCALE = 1;
 // A picture of the run every so many iterations, from its first held-out
 // pose, over the first PREVIEW_SPLATS of the (shuffled) list.
 export const PREVIEW_EVERY = 200;
