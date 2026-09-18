@@ -15,7 +15,7 @@
 // seeded from the atom, and the tar carries no timestamps.
 
 import { fetchJson } from '../js/api.js';
-import { loadDemExact, loadImage, sampleRgb } from '../lib/geo.js';
+import { fillVoids, loadDemExact, loadImage, sampleRgb } from '../lib/geo.js';
 import { loadAssets } from '../lib/assets.js';
 import { boundsOf, placeMeshes } from '../lib/glbmesh.js';
 import { packMeshes } from '../lib/mesh.js';
@@ -226,6 +226,11 @@ export async function run({ atom, log, apiUrl, filesUrl }) {
             + 'for this tile at this zoom — either it is outside the coverage, or the '
             + 'coverage refused the cut. A coarser one would make a quilt of it.');
     }
+    // The survey's own holes, closed before they become geometry: a void is
+    // written as zero and the datum is subtracted from it, so an unfilled one
+    // is a two-kilometre pit that the frames see sky through (geo.js
+    // fillVoids).
+    fillVoids(dem);
     const colourAt = await groundColour(z, x, y, filesUrl);
 
     const b = tileBbox(z, x, y);

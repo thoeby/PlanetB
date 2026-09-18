@@ -100,7 +100,9 @@ export function mountPool(host, { loop, where = () => ({}) } = {}) {
             ? [] : await api.rpc('pool_held_back', { limit_: 12 }).catch(() => []);
         // What this machine is, asked once and only when the panel is open:
         // probing the adapter is the slowest part of mounting anything.
-        state.caps ??= (await loop?.().catch(() => null))?.caps ?? null;
+        const l = await loop?.().catch(() => null);
+        state.caps ??= l?.caps ?? null;
+        state.shots = l?.pictures ?? null;
         draw();
         return state.rows;
     }
@@ -251,6 +253,7 @@ function drawPool(ui, state, acts, draw) {
         phaseTabs(state.page, state.phase, acts.look),
         pager(state.page, PAGE, acts.turn));
     ui.list.replaceChildren(
-        ...state.rows.map((r) => poolCard(r, acts, state.caps)));
+        ...state.rows.map((r) => poolCard(r, acts, state.caps,
+            state.shots?.get(`${r.z}/${r.x}/${r.y}`) ?? null)));
     if (!state.rows.length) ui.list.append(...nothingWaiting(state.held));
 }

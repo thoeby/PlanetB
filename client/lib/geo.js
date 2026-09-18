@@ -67,6 +67,68 @@ export async function loadRaster(kind, z, x, y,
 export const loadExact = (kind, z, x, y, opts) =>
     loadRaster(kind, z, x, y, { ...opts, exact: true });
 
+// The voids inside a cut, filled from what surrounds them.
+//
+// A survey has holes in it: steep rock, snow, water, anything the sensor did
+// not get a return from. The cut writes those as NODATA_ELEVATION_M, which is
+// zero, and `assemble` subtracts the tile's own datum from every sample — so
+// a void two thousand metres up becomes a vertex two thousand metres down.
+// The mesh keeps every triangle (client/lib/terrain.js terrainMesh), so what
+// it makes is not a hole but a pit with near-vertical walls: the frames see
+// sky through it, the trainer learns the sky, and the tile comes back with
+// holes in it that no number of steps will close.
+//
+// So the void is filled before anything looks at it: each pass gives every
+// void sample the mean of the neighbours that have ground, and the ground
+// creeps inward. It is not survey data and does not pretend to be — it is the
+// surface a person would draw across a gap, which is what the frames need to
+// see. A cut that is nothing but void never gets here (loadRaster refuses it).
+export function fillVoids(dem, passes = 64) {
+    const { data, size } = dem;
+    let left = 0;
+    for (let i = 0; i < data.length; i++) if (data[i] === NODATA_ELEVATION_M) left++;
+    if (!left || left === data.length) return dem;
+    for (let pass = 0; pass < passes && left; pass++) {
+        const next = data.slice();
+        let filled = 0;
+        for (let j = 0; j < size; j++) {
+            for (let i = 0; i < size; i++) {
+                const k = j * size + i;
+                if (data[k] !== NODATA_ELEVATION_M) continue;
+                let sum = 0;
+                let n = 0;
+                for (let dj = -1; dj <= 1; dj++) {
+                    for (let di = -1; di <= 1; di++) {
+                        const y = j + dj, x = i + di;
+                        if (y < 0 || x < 0 || y >= size || x >= size) continue;
+                        const v = data[y * size + x];
+                        if (v !== NODATA_ELEVATION_M) { sum += v; n++; }
+                    }
+                }
+                if (n) { next[k] = sum / n; filled++; }
+            }
+        }
+        if (!filled) break;
+        data.set(next);
+        left -= filled;
+    }
+    // A void the creep never reached — a whole corner of the tile with no
+    // ground anywhere near it — is levelled at what the tile does know,
+    // because a pit is worse than a plateau.
+    if (left) {
+        let sum = 0;
+        let n = 0;
+        for (let i = 0; i < data.length; i++) {
+            if (data[i] !== NODATA_ELEVATION_M) { sum += data[i]; n++; }
+        }
+        const flat = n ? sum / n : 0;
+        for (let i = 0; i < data.length; i++) {
+            if (data[i] === NODATA_ELEVATION_M) data[i] = flat;
+        }
+    }
+    return dem;
+}
+
 // Elevation the cut writes where the survey did not reach (dem.NODATA_ELEVATION_M
 // in server/splatworld/dem.py). A tile of it is not ground at sea level.
 export const NODATA_ELEVATION_M = 0;

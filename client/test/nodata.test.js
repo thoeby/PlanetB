@@ -8,7 +8,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 
-import { allNodata, loadDem, loadDemExact, loadRaster } from '../lib/geo.js';
+import { allNodata, fillVoids, loadDem, loadDemExact, loadRaster } from '../lib/geo.js';
 
 const raster = (size, fill) => ({ size, data: new Float32Array(size * size).fill(fill) });
 
@@ -86,4 +86,26 @@ test('a mesh gets its own cut or none: no ancestor quilt', async () => {
 
     assert.ok(await loadDem(14, 8551, 5812, { fetchFn }),
         'while the floor under a player still takes what it can get');
+});
+
+test('a void inside a cut is filled, not left as a two-kilometre pit', () => {
+    // A survey has holes in it — steep rock, snow, water. The cut writes them
+    // as zero and assemble subtracts the tile's datum from every sample, so
+    // an unfilled void two thousand metres up becomes a vertex two thousand
+    // metres down, and the frames see sky through the walls of it.
+    const size = 16;
+    const data = new Float32Array(size * size).fill(2400);
+    for (let j = 6; j < 10; j++) for (let i = 6; i < 10; i++) data[j * size + i] = 0;
+    const out = fillVoids({ data, size });
+    for (let i = 0; i < data.length; i++) {
+        assert.notEqual(out.data[i], 0, `sample ${i} is still a void`);
+    }
+    assert.ok(Math.abs(out.data[8 * size + 8] - 2400) < 1,
+        'and the fill is the ground around it, not a number from nowhere');
+});
+
+test('a cut with no ground at all is left alone', () => {
+    const data = new Float32Array(64);
+    assert.equal(fillVoids({ data, size: 8 }).data.every((v) => v === 0), true,
+        'there is nothing to fill it from, and loadRaster refuses it anyway');
 });

@@ -51,7 +51,23 @@ function log(e) {
         el('span', { className: 'po-log-when', textContent: AGO(r.at) }))))];
 }
 
-export function poolCard(e, acts, caps) {
+// The last picture this tab drew of the tile, if it drew one: a canvas the
+// card owns, painted from the record the work loop kept (client/js/work.js
+// pictures). A tile nobody here has worked on has none, and says so rather
+// than leaving a grey box with no explanation.
+function preview(rec) {
+    if (!rec?.picture?.rgba) return null;
+    const p = rec.picture;
+    const canvas = el('canvas', { className: 'po-shot', width: p.width, height: p.height });
+    canvas.getContext('2d').putImageData(
+        new ImageData(new Uint8ClampedArray(p.rgba), p.width, p.height), 0, 0);
+    return el('figure', { className: 'po-shot-box' }, canvas,
+        el('figcaption', { className: 'sub',
+            textContent: `${p.width}\u00d7${p.height} \u00b7 ${rec.event === 'trained'
+                ? 'as it finished' : `at step ${rec.iter ?? '?'}`}` }));
+}
+
+export function poolCard(e, acts, caps, shot = null) {
     const end = el('div', { className: 'end' },
         el('span', { style: `color: var(--${Number(e.bounty) > 0 ? 'warn' : 'ink-3'})`,
             textContent: Number(e.bounty) > 0 ? `${cr(e.bounty)} cr` : 'free' }));
@@ -77,8 +93,12 @@ export function poolCard(e, acts, caps) {
     }
     if (e.may_retry) end.append(button('Drop', 'po-retry', acts.drop));
 
+    // Top to bottom: what it looks like, then what can be done to it, then
+    // what has happened to it.
+    const shown = preview(shot);
     return el('li', { className: 'po-card', 'data-phase': e.phase },
         el('div', { className: 'who' },
+            ...(shown ? [shown] : []),
             el('div', { className: 'name', textContent: `${e.z}/${e.x}/${e.y}` }),
             el('div', { className: 'sub',
                 textContent: [KM(e.metres), what(e), e.made,

@@ -272,3 +272,6 @@
 #panel .po-tabs, #panel .po-pager { display: flex; align-items: center; gap: 8px; }
 #panel .po-pager { justify-content: space-between; margin-top: 4px; }
 #panel .po-pager button[disabled] { opacity: 0.4; cursor: default; }
+#panel .po-shot-box { margin: 0 0 6px; display: flex; flex-direction: column; gap: 3px; }
+#panel .po-shot { width: 100%; max-width: 220px; height: auto; display: block;
+  border: 1px solid var(--line); background: #0b0e12; image-rendering: auto; }

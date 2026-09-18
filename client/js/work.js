@@ -25,6 +25,10 @@ export const ALGO = {
     merge: 'merge-v1', sog: 'sog-v3', verify: 'verify-v1',
 };
 
+// How many tiles' last picture to keep. A picture is a few hundred kilobytes
+// of rgba and a tab works through a lot of tiles.
+const PICTURES = 24;
+
 const HEARTBEAT_MS = 60_000;
 const IDLE_MS = 15_000;
 // How long the pace may hold the loop back before it takes an atom anyway.
@@ -110,8 +114,19 @@ export class WorkLoop {
         this.spawn = spawn;
         this.cache = cache ?? new InputCache({ filesUrl, fetchFn });
         this.fetchFn = fetchFn ?? ((...a) => fetch(...a));
+        // The last picture each tile was seen in, so a panel that is not the
+        // work panel can show it (client/js/poolcard.js). One per tile, the
+        // newest: a run pumps one every two hundred steps and keeping them
+        // all would be a video nobody asked for.
+        this.pictures = new Map();
         this.log = (rec) => {
             const full = { t: Date.now(), ...rec };
+            if (rec.picture && rec.tile) {
+                this.pictures.set(`${rec.tile.z}/${rec.tile.x}/${rec.tile.y}`, full);
+                if (this.pictures.size > PICTURES) {
+                    this.pictures.delete(this.pictures.keys().next().value);
+                }
+            }
             console.debug(JSON.stringify(full));
             log(full);
         };
