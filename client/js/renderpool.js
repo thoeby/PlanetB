@@ -5,14 +5,23 @@
 
 import * as api from './api.js';
 import { setBounty } from './wallet.js';
-import { DOING, beyond, cr, drawnWhen, el, poolRow, what } from './poolui.js';
+import { DOING, cr, drawnWhen, el, what } from './poolui.js';
+import { phaseTabs, pager, poolCard } from './poolcard.js';
 import { empty } from './empty.js';
 
 const said = (err) => String(err?.body?.message ?? err?.message ?? err);
 
+// Cards on a page. Enough to scroll through, few enough that the page after
+// this one is a press away rather than a scroll to the bottom of everything.
+const PAGE = 12;
+
 export function mountPool(host, { loop, where = () => ({}) } = {}) {
     const ui = poolParts(host);
-    const state = { rows: [], held: [], sort: 'Nearest', caps: null, picked: null };
+    // A page of one kind of work at a time (db/0146 pool_page). `page` is
+    // what the server answered: its rows, how many there are of this kind,
+    // and how many of each kind there are altogether.
+    const state = { page: null, rows: [], held: [], phase: 'render',
+        offset: 0, caps: null, picked: null };
     const say = (msg, bad = false) => {
         ui.status.textContent = msg;
         ui.status.dataset.bad = bad ? '1' : '';
@@ -23,7 +32,15 @@ export function mountPool(host, { loop, where = () => ({}) } = {}) {
         retry: (entry, button) => retry(entry, button),
         drop: (entry, button) => drop(entry, button),
         pick: (entry) => { state.picked = entry.job; draw(); },
+        redo: (entry, button) => redo(entry, button),
+        look: (phase) => look(phase),
+        turn: (offset) => turn(offset),
     };
+
+    // Which kind of work, and which page of it. Both reset the other: a page
+    // number means nothing across two different lists.
+    const look = (phase) => { state.phase = phase; state.offset = 0; refresh(); };
+    const turn = (offset) => { state.offset = offset; refresh(); };
 
     const draw = () => {
         try {
@@ -46,6 +63,12 @@ export function mountPool(host, { loop, where = () => ({}) } = {}) {
         (n) => (n ? `${n} piece(s) start over` : 'nothing to try again'));
     const drop = (entry, button) => ask(entry, button, 'drop_job',
         (gone) => (gone ? 'dropped from the pool' : 'nothing to drop'));
+    // The frames are what a tile was trained on, so a tile trained against
+    // the wrong ones is put right by asking for them again (db/0147). The
+    // training goes back to waiting; nothing is unmade.
+    const redo = (entry, button) => ask(entry, button, 'redo_renders',
+        (n) => (n ? `${n} frame(s) will be drawn again, and the training after them`
+            : 'this tile has no frames of its own'));
     async function ask(entry, button, fn, said) {
         button.disabled = true;
         try {
@@ -61,12 +84,18 @@ export function mountPool(host, { loop, where = () => ({}) } = {}) {
     // the answer "nothing is waiting", never the answer "the question failed".
     async function refresh() {
         const { lon, lat } = where() ?? {};
-        state.rows = await api.rpc('render_pool',
-            { lon: lon ?? null, lat: lat ?? null, limit: 60 })
-            .catch((err) => { say(`could not read the pool: ${said(err)}`, true); return []; });
-        // Why the list is short, when it is. A job the pool hides on purpose
-        // is a job somebody who has just approved something is looking for
-        // (db/0082_whythepoolisempty.sql).
+        state.page = await api.rpc('pool_page',
+            { lon: lon ?? null, lat: lat ?? null, phase: state.phase,
+                limit: PAGE, offset: state.offset })
+            .catch((err) => { say(`could not read the pool: ${said(err)}`, true); return null; });
+        state.rows = state.page?.rows ?? [];
+        // A page past the end of a list that shrank while it was being looked
+        // at is an empty panel with tiles behind it; step back to the last one.
+        if (!state.rows.length && state.offset > 0) {
+            state.offset = Math.max(0, Math.floor(
+                (Number(state.page?.total ?? 1) - 1) / PAGE) * PAGE);
+            return refresh();
+        }
         state.held = state.rows.length
             ? [] : await api.rpc('pool_held_back', { limit_: 12 }).catch(() => []);
         // What this machine is, asked once and only when the panel is open:
@@ -219,20 +248,9 @@ function nothingWaiting(held) {
 
 function drawPool(ui, state, acts, draw) {
     ui.head.replaceChildren(
-        el('span', { className: 'label',
-            textContent: `${state.rows.length} waiting to be compiled` }),
-        el('div', { className: 'row' }, ...['Nearest', 'Best pay'].map((key) => {
-            const b = el('button', { type: 'button', textContent: key });
-            if (key === state.sort) b.dataset.on = '1';
-            b.onclick = () => { state.sort = key; draw(); };
-            return b;
-        })));
-    // Nearest is what somebody is waiting to walk on; best pay is what a
-    // stranger's tab is looking for. render_pool already ordered by pay.
-    const rows = state.sort === 'Best pay'
-        ? [...state.rows].sort((a, b) => Number(b.bounty) - Number(a.bounty))
-        : [...state.rows].sort((a, b) => (a.metres ?? 0) - (b.metres ?? 0));
+        phaseTabs(state.page, state.phase, acts.look),
+        pager(state.page, PAGE, acts.turn));
     ui.list.replaceChildren(
-        ...rows.map((r) => poolRow(r, acts, state.caps, state.picked)));
-    if (!rows.length) ui.list.append(...nothingWaiting(state.held));
+        ...state.rows.map((r) => poolCard(r, acts, state.caps)));
+    if (!state.rows.length) ui.list.append(...nothingWaiting(state.held));
 }

@@ -32,9 +32,9 @@ SELECT is((SELECT e.detail FROM tile_event e, t
            WHERE e.z = t.z AND e.x = t.x AND e.y = t.y ORDER BY e.id DESC LIMIT 1),
     'the elevation service did not answer', 'in the words the tab used');
 
-PERFORM claim_for((SELECT job FROM t), '{}'::jsonb);
+SELECT (claim_for((SELECT job FROM t), '{}'::jsonb)).id AS taken \gset
 SELECT fail_atom((SELECT id FROM first), 'and again');
-PERFORM claim_for((SELECT job FROM t), '{}'::jsonb);
+SELECT (claim_for((SELECT job FROM t), '{}'::jsonb)).id AS taken2 \gset
 SELECT is(fail_atom((SELECT id FROM first), 'and again'), 'failed',
     'the third attempt is the last');
 SELECT is((SELECT count(*) FROM tile_event e, t

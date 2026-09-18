@@ -257,3 +257,18 @@
   letter-spacing: 0.08em; text-transform: uppercase; color: var(--ink-3);
 }
 #panel .empty button { margin-top: 4px; }
+
+/* The render pool's cards (client/js/poolcard.js). A card is a row of .rows
+   with the tile's last few events under it, so why a tile is stuck is on the
+   card and not in a status line that scrolls away. */
+#panel .po-card { align-items: flex-start; }
+#panel .po-card[data-phase="train"] { box-shadow: inset 2px 0 0 var(--warn); }
+#panel .po-log { list-style: none; margin: 4px 0 0; padding: 0;
+  display: flex; flex-direction: column; gap: 2px; }
+#panel .po-log > li { display: flex; gap: 6px; align-items: baseline;
+  font-family: var(--mono); font-size: 11px; }
+#panel .po-log-what { color: var(--ink-2); overflow-wrap: anywhere; min-width: 0; }
+#panel .po-log-when { color: var(--ink-3); margin-left: auto; white-space: nowrap; }
+#panel .po-tabs, #panel .po-pager { display: flex; align-items: center; gap: 8px; }
+#panel .po-pager { justify-content: space-between; margin-top: 4px; }
+#panel .po-pager button[disabled] { opacity: 0.4; cursor: default; }
