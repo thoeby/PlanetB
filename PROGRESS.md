@@ -1976,3 +1976,28 @@ it costs one WebGL context instead of two.
 fields a layer has and which of them name a product of which type; the editor
 builds its forms from it, and the refusal it says before saving is the sentence
 db/0139's `check_layers` says again (Invariant 6).
+
+## FND.8: a style reaches the world when somebody says so
+
+Story 23: B's road from story 19 is submitted, approved and rendered — and
+comes out as the migrated symbol draws it, a plain surface, because that is the
+style the world is built with. A applies the symbols story 22 saved; the tiles
+holding a road go stale, their rebuilds are in the pool saying "style update",
+and the same ground looks different afterwards. Then A edits the symbol again
+and saves: the counter says one symbol is waiting, nothing is queued, and the
+picture does not move.
+
+`apply_styles` (db/0140) is one transaction: pin a `style_version` over every
+enabled symbol, mark the published tiles a changed symbol is in, and ask
+`ensure_job` for each (Invariant 4 — it marks and asks, it computes nothing).
+The rebuilds carry no bounty, and `render_pool` sorts by bounty first, so
+"at the back of the pool" needed no new mechanism — only `job.reason`, so a
+rebuild nobody asked for by name can say where it came from.
+
+**"Is in" is read by kind, not by filter**, and this is a deliberate
+over-count. Whether a symbol's conditions hold for a feature is
+`client/lib/rules.js`'s question, and it is answered in a tab (Invariant 9):
+a tile with any `highway` in it is counted for every changed highway symbol.
+The number is what the operator is told before they apply, and nobody is
+charged for it. What it must never do is under-count — leave a tile built with
+a symbol nobody applies again — and it does not.

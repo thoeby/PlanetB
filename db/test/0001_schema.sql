@@ -48,8 +48,11 @@ SELECT columns_are('public', 'tile', ARRAY[
     'sog_sha256', 'manifest', 'published_at', 'published_by', 'suspect',
     'candidate_version', 'candidate_sha256', 'candidate_manifest',
     'candidate_by', 'candidate_at', 'refused_note']);
+-- `reason` is db/0140's (FND.8): a rebuild nobody asked for by name says
+-- where it came from.
 SELECT columns_are('public', 'job', ARRAY[
-    'id', 'z', 'x', 'y', 'target_version', 'bounty', 'state', 'created_at']);
+    'id', 'z', 'x', 'y', 'target_version', 'bounty', 'state', 'created_at',
+    'reason']);
 SELECT columns_are('public', 'atom', ARRAY[
     'id', 'job_id', 'atom_hash', 'op', 'algo_version', 'deps', 'inputs',
     'params', 'seed', 'state', 'worker_id', 'claimed_at', 'heartbeat_at',

@@ -26,6 +26,18 @@ const HTML = `
       <span class="label">Symbols</span>
       <button type="button" class="sy-new">New symbol</button>
     </div>
+    <div class="sy-apply-box">
+      <p class="muted sy-changed"></p>
+      <button type="button" class="sy-apply primary" disabled>Apply to world</button>
+      <div class="sy-confirm" hidden>
+        <p class="sy-confirm-said"></p>
+        <input class="sy-note" placeholder="a note, if you like">
+        <div class="row">
+          <button type="button" class="sy-really primary">Yes, apply it</button>
+          <button type="button" class="sy-not">Cancel</button>
+        </div>
+      </div>
+    </div>
     <div class="note">The first symbol of a kind whose conditions all hold
       decides what the compiler lays down. A symbol with no conditions catches
       everything the ones above it left.</div>
@@ -121,6 +133,39 @@ function paint(ui) {
     }
 }
 
+// What is saved but not built with, and how much of the world it would
+// rebuild. The numbers are the database's (db/0140), not a count made here.
+async function changes(ui) {
+    const rows = await api.rpc('style_changes').catch(() => []);
+    ui.state.changed = rows ?? [];
+    const tiles = (rows ?? []).reduce((n, c) => Math.max(n, c.tiles ?? 0), 0);
+    ui.q('.sy-changed').textContent = rows?.length
+        ? `${rows.length} symbol${rows.length === 1 ? '' : 's'} changed since the last`
+            + ` apply \u00b7 ${tiles} published tile${tiles === 1 ? '' : 's'}`
+            + ' would be rebuilt'
+        : 'the world is built with every symbol as it stands';
+    ui.q('.sy-apply').disabled = !rows?.length;
+    return rows;
+}
+
+// Applying is one transaction in the database and nothing here (Invariant 4):
+// it pins a style, marks the tiles it changed, and opens their jobs at the
+// back of the pool.
+async function apply(ui) {
+    const note = ui.q('.sy-note').value.trim();
+    try {
+        const got = await api.rpc('apply_styles', { note: note || null });
+        ui.q('.sy-confirm').hidden = true;
+        ui.say(`applied \u00b7 ${got.symbols} symbol(s) \u00b7 ${got.tiles}`
+            + ' tile(s) to render again');
+        await changes(ui);
+        return got;
+    } catch (err) {
+        ui.say(String(err.body?.message ?? err.message ?? err), true);
+        return null;
+    }
+}
+
 async function list(ui) {
     const rows = await api.selectAll('symbol',
         { order: 'kind.asc,ordering.asc,id.asc' }).catch(() => []);
@@ -131,6 +176,7 @@ async function list(ui) {
         ui.q('.sy-list').append(el('li', { className: 'muted',
             textContent: 'no symbols yet — what is drawn becomes nothing' }));
     }
+    await changes(ui);
     return rows;
 }
 
@@ -186,7 +232,8 @@ export function mountSymbols(host) {
     host.append(box);
     const q = (sel) => box.querySelector(sel);
     const ui = { box, q, preview: new SymbolPreview(),
-        state: { at: null, layerAt: 0, layers: [], rows: [], types: new Map(), files: new Map() },
+        state: { at: null, layerAt: 0, layers: [], rows: [], changed: [],
+            types: new Map(), files: new Map() },
         say: (msg, bad = false) => {
             q('.sy-status').textContent = msg;
             q('.sy-status').dataset.bad = bad ? '1' : '';
@@ -199,7 +246,8 @@ export function mountSymbols(host) {
         fill(ui, (await list(ui))[0] ?? null);
     });
     return { ui, list: () => list(ui), fill: (s) => fill(ui, s), save: () => save(ui),
-        current: () => current(ui), paint: () => paint(ui) };
+        current: () => current(ui), paint: () => paint(ui),
+        changes: () => changes(ui), apply: () => apply(ui) };
 }
 
 // What every product in the catalog is, and the file behind it: a layer may
@@ -259,6 +307,15 @@ function wire(ui) {
     q('.sy-new').onclick = () => fill(ui, null);
     q('.sy-add-cond').onclick = () => { q('.sy-conds').append(condRow()); again(); };
     q('.sy-save').onclick = () => save(ui);
+    q('.sy-apply').onclick = () => {
+        const tiles = ui.state.changed.reduce((n, c) => Math.max(n, c.tiles ?? 0), 0);
+        q('.sy-confirm-said').textContent =
+            `${ui.state.changed.length} symbol(s) would go into the world, and`
+            + ` ${tiles} published tile(s) would be rendered again.`;
+        q('.sy-confirm').hidden = false;
+    };
+    q('.sy-not').onclick = () => { q('.sy-confirm').hidden = true; };
+    q('.sy-really').onclick = () => apply(ui);
     q('.sy-history').onclick = () => history(ui);
     q('.sy-add-prop').onclick = () => {
         q('.sy-props').append(propRow('', '', again));
