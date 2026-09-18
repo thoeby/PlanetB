@@ -55,3 +55,22 @@ test('a wide map is one coarse cut, not a hundred and forty fine ones', async ()
     });
     assert.equal(answered, 169, 'and then the whole map has ground');
 });
+
+test('fill is not ground: a coarse cut does not pave what the survey missed', async () => {
+    // loadRaster refuses a cut only when the whole window is fill, and
+    // heightNear asks for a coarse tile as itself — so a z6 cut with one
+    // surveyed corner arrives whole. The fill in it is written as an
+    // elevation of zero (server/splatworld/dem.py), which is not sea level
+    // and is not somewhere a player stands.
+    const size = 8;
+    const data = new Float32Array(size * size);        // all fill …
+    data[0] = 1800;                                    // … but one surveyed pixel
+    const floor = new DemFloor({
+        fetchFn: async () => new Response(data.buffer, { status: 200 }),
+    });
+    floor.heightNear(7.85, 46.29);
+    await tick(); await tick();
+    assert.equal(floor.heightNear(7.85, 46.29), null,
+        'the middle of the cut is fill, so there is no ground there');
+    assert.equal(floor.heightAt(7.85, 46.29), null, 'and none under the player either');
+});

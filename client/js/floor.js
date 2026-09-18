@@ -8,7 +8,7 @@
 // tile, kept, and null while it is on its way.
 
 import { inTile } from '../lib/demshade.js';
-import { loadDem, sampleHeight } from '../lib/geo.js';
+import { NODATA_ELEVATION_M, loadDem, sampleHeight } from '../lib/geo.js';
 import * as tm from '../lib/tilemath.js';
 
 const Z = 14;
@@ -55,12 +55,21 @@ export class DemFloor {
             if (dem === null) continue;
             const { u, v } = inTile(z, x, y, lon, lat);
             const h = sampleHeight(dem, u, v);
-            if (h !== null && h !== undefined) best = h;
+            if (h !== null && h !== undefined && h !== NODATA_ELEVATION_M) best = h;
         }
         if (best === null && ask) this.request(...ask);
         return best;
     }
 
+    // A cut is refused only when the whole window it was asked for is fill
+    // (client/lib/geo.js loadRaster, allNodata), so a tile that straddles the
+    // edge of the survey arrives with ground in one half and fill in the
+    // other, and a coarse tile asked for as itself — which heightNear does
+    // — arrives whenever it holds ground anywhere at all. The fill is
+    // written as an elevation of zero (server/splatworld/dem.py), and
+    // sampleHeight does not know it from sea level: unfiltered, a map drew
+    // half a continent of ground at 0 m because one corner of a z6 cut was
+    // surveyed. Outside the survey there is no height, and this says so.
     at(z, lon, lat) {
         const x = tm.tileX(lon, z);
         const y = tm.tileY(lat, z);
@@ -69,7 +78,8 @@ export class DemFloor {
         if (dem === undefined) { this.request(k, z, x, y); return null; }
         if (dem === null) return null;
         const { u, v } = inTile(z, x, y, lon, lat);
-        return sampleHeight(dem, u, v);
+        const h = sampleHeight(dem, u, v);
+        return h === NODATA_ELEVATION_M ? null : h;
     }
 
     request(k, z, x, y) {
