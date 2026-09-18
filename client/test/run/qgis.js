@@ -79,3 +79,15 @@ export function importFromFile(project, layer, gpkg, sourceLayer, filter, into,
     return inQgis('import.py', project,
         { layer, gpkg: path, source_layer: sourceLayer, filter, into, clip })[0];
 }
+
+/**
+ * Shape a land's ground in QGIS and send it back with the script the project
+ * ships (TASKS-foundation.md FND.10).
+ *
+ * @param {string} project path to the player's downloaded .qgs
+ * @param {Object} how {area, world, email, password, add, block}
+ * @returns {{ok: boolean, rev?: number, tiles?: number, error?: string}}
+ */
+export function shapeInQgis(project, how) {
+    return inQgis('shape.py', project, how)[0];
+}

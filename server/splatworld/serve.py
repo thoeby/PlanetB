@@ -233,8 +233,12 @@ class Handler(BaseHTTPRequestHandler):
             self._send(200, b"ok\n")
         elif path == "/" or path == "/app" or path.startswith("/app/"):
             self._serve_client(path)
+        elif path == "/qgis/save-ground.py":
+            self._qgis_script()
         elif path in ("/qgis/project.qgs", "/qgis/credentials"):
             self._qgis(path)
+        elif path.startswith("/geo/height_edit/"):
+            self._shaped_ground(path)
         elif first in STORE_PREFIXES:
             self._serve_store(path)
         else:
@@ -274,6 +278,18 @@ class Handler(BaseHTTPRequestHandler):
                    {"Content-Disposition": 'attachment; filename="splatworld.qgs"',
                     "Cache-Control": "no-store", **CORS})
 
+    # FND.10: the script that sends a raster QGIS edited back to the world.
+    # It is a file of this repository, served as it is — the world does not
+    # write it and does not run it.
+    def _qgis_script(self) -> None:
+        target = self.cfg.repo / "gis" / "save-ground.py"
+        if not target.is_file():
+            self._text(404, "no such file")
+            return
+        self._send(200, target.read_bytes(), "text/x-python",
+                   {"Content-Disposition": 'attachment; filename="save_ground.py"',
+                    "Cache-Control": "no-store", **CORS})
+
     def _serve_client(self, path: str) -> None:
         rel = path[len("/app"):] if path.startswith("/app") else "/"
         if rel in ("", "/"):
@@ -289,6 +305,44 @@ class Handler(BaseHTTPRequestHandler):
             body = point_at_this_server(body, self.cfg)
         # The client is edited while the server runs; never let a browser cache it.
         self._send(200, body, content_type(target), {"Cache-Control": "no-store"})
+
+    # FND.10: a land's shaped ground, as a raster QGIS can open. It is the
+    # same immutable file the world stores, in another shape of the same
+    # numbers — a format conversion, and nothing about the world is decided or
+    # computed here (Invariant 9). Public, because reading this world is.
+    def _shaped_ground(self, path: str) -> None:
+        import psycopg
+
+        from . import geotiff
+
+        m = re.fullmatch(r"/geo/height_edit/([0-9a-fA-F-]{36})\.tif", path)
+        if not m:
+            self._text(404, "not found")
+            return
+        try:
+            with psycopg.connect(self.cfg.dsn(), autocommit=True,
+                                 connect_timeout=10) as db:
+                row = db.execute(
+                    "SELECT sha256 FROM height_edit WHERE area_id = %s"
+                    " ORDER BY rev DESC LIMIT 1", (m[1],)).fetchone()
+        except Exception as err:  # noqa: BLE001 - QGIS shows an empty layer
+            self._text(502, f"could not ask the world: {err}")
+            return
+        if not row:
+            self._text(404, "this land has not been shaped")
+            return
+        target = safe_join(self.cfg.files, f"/assets/{row[0]}.r32")
+        if not target or not target.is_file():
+            self._text(404, "no such file")
+            return
+        try:
+            body = geotiff.of(target.read_bytes())
+        except ValueError as err:
+            self._text(502, str(err))
+            return
+        # The pointer moves when the land is shaped again, so this answer is
+        # about now; the file behind it is immutable, this address is not.
+        self._send(200, body, "image/tiff", {"Cache-Control": "no-store", **CORS})
 
     def _serve_store(self, path: str) -> None:
         target = safe_join(self.cfg.files, path)

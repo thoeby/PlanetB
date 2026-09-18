@@ -2039,3 +2039,27 @@ ground mesh is drawn over the land **even where a published tile covers it** —
 you cannot shape ground you cannot see — with what is being shaped in it
 (`DemGround.reshape`), because the file is not saved and no tile has been
 compiled with it yet.
+
+## FND.10: the shaped ground is a layer in the project
+
+Story 25: B downloads the project, QGIS opens **Ground shaping (m) · Ben's
+field** with story 24's shaping in it, a plugin adds three metres to a block of
+cells, the script the project ships sends it back, and the page says the ground
+moved without being reloaded. Sent to a land that is not his, the world refuses
+it in words.
+
+**A format conversion, and nothing else.** The world stores `.r32`; QGIS opens
+rasters. `server/splatworld/geotiff.py` writes one immutable file's numbers as a
+single-strip float32 GeoTIFF — no GDAL, no numpy, the standard library and
+`struct` (Invariant 10) — served at `/geo/height_edit/{area}.tif`. The same
+bytes in, the same bytes out; nothing about the world is decided or computed
+there (Invariant 9). The layer reads it through GDAL's `/vsicurl_streaming/`,
+because this file server answers a whole GET and not a range of one.
+
+**Saving a project does not save a raster**, so the shaping is sent back by
+`gis/save-ground.py`: it reads the layer through the provider, writes the
+`.r32`, PUTs it and calls `save_height_edit` — exactly what the Shape panel
+does, as the player, under the same row-level security. It finds the API the
+way the page does, by reading the world's own `splatworld:api` meta tag. A
+plain script rather than a Processing algorithm, because headless QGIS runs a
+plain script and the choice was left open; `docs/manual.md` records it.

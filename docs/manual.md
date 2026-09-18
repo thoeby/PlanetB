@@ -311,3 +311,34 @@ against a live world.
   to one job (`PROGRESS.md` deviation 55).
 - `assemble` fetches `/geo` tiles by path, not by hash (Invariant 2 is not
   pinned for terrain and imagery); a `/geo` path is therefore write-once.
+
+## Shaping the ground in QGIS
+
+The project the Land panel hands you carries a **Ground shaping (m)** raster
+for every land there is: one float per cell, metres above or below what the
+operator's elevation says is there, read from the world's own file
+(`docs/rendering.md` §6) through a GeoTIFF view of it. It is a raster like any
+other — open it, edit it with whatever raster-editing plugin you use.
+
+Saving the project does not save a raster, so the shaping is sent back by a
+script instead:
+
+1. Download it from the world at `/qgis/save-ground.py` (the Land panel says
+   where).
+2. In the QGIS Python console:
+
+   ```python
+   from save_ground import save
+   save(iface.activeLayer(), "<the land's id>", "http://<the world>",
+        "you@example.com", "<your password>")
+   ```
+
+It writes one immutable `.r32`, registers it, and calls `save_height_edit` —
+exactly what the page's Shape panel does, as you. The world refuses a land that
+is not yours in words, and the script prints what it said.
+
+**Why a plain script and not a Processing algorithm**: headless QGIS runs a
+plain script, which is what the player-run needs to prove this story
+(`client/test/run/25-shape-in-qgis.spec.js`), and an algorithm would have been
+a second thing to keep working for no gain. FND.10 left the choice open; this
+is the choice.

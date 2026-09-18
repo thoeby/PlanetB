@@ -372,3 +372,16 @@ GRANT EXECUTE ON FUNCTION area_lines(uuid) TO anon, player, admin;
 CREATE FUNCTION api.area_lines(area uuid) RETURNS jsonb
 LANGUAGE sql STABLE AS $$SELECT public.area_lines(area)$$;
 GRANT EXECUTE ON FUNCTION api.area_lines(uuid) TO anon, player, admin;
+
+-- What revision a land's shaping is at, so a save from outside the page can
+-- name the one it is replacing (the compare-and-swap above). Reading is
+-- public in this world; saving is not.
+CREATE FUNCTION height_edit_rev(p_area uuid) RETURNS bigint
+LANGUAGE sql STABLE AS $$
+SELECT coalesce((SELECT rev FROM current_height_edit(p_area)), 0);
+$$;
+GRANT EXECUTE ON FUNCTION height_edit_rev(uuid) TO anon, player, admin;
+
+CREATE FUNCTION api.height_edit_rev(area uuid) RETURNS bigint
+LANGUAGE sql STABLE AS $$SELECT public.height_edit_rev(area)$$;
+GRANT EXECUTE ON FUNCTION api.height_edit_rev(uuid) TO anon, player, admin;

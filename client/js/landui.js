@@ -139,6 +139,12 @@ function shapeInQgis(area, state, ctx) {
             el('li', {}, 'Open the downloaded project in QGIS.'),
             el('li', {}, 'Draw on a layer — a wood, a road, a tree.'),
             el('li', {}, 'Save. This page has it within half a minute.')),
+        // FND.10: the ground itself is a raster in the same project, and a
+        // raster is not saved by saving the project.
+        el('div', { className: 'note qgis-ground' },
+            'Shape your ground in the page (Land \u2192 Shape) or in QGIS with a'
+            + ' raster-editing plugin, on the "Ground shaping (m)" layer; save'
+            + ' it with the script in the project.'),
         status);
 }
 
