@@ -21,13 +21,25 @@ function subRect(z, x, y, az) {
 // The finest cut tile covering (z,x,y): itself, else an ancestor two zooms up,
 // and so on. Returns null when nothing covers it — a 404 is that; any other
 // failure is an error, not an absence.
-export async function loadRaster(kind, z, x, y, { filesUrl = '', fetchFn = fetch, decode }) {
+//
+// `exact` refuses the ancestors. A tile read from two zooms up holds sixteen
+// of this tile's samples, and from four zooms up one: stretched over a 513
+// mesh (client/lib/terrain.js GRID) that is a quilt of bilinear triangles,
+// which is what a player saw in the frames. For a *floor* that is still
+// better than nothing — any ground beats hanging in the air. For `assemble`
+// it is not: the mesh becomes the frames, the frames become the tile, and
+// nothing anywhere says the ground was coarse. The store answers 404 for a
+// tile outside the coverage's own envelope as well as for one outside the
+// world (server/splatworld/ground.py, "outside the coverage"), so the fall
+// was silent and looked like detail that had simply not been trained yet.
+export async function loadRaster(kind, z, x, y,
+    { filesUrl = '', fetchFn = fetch, decode, exact = false }) {
     for (let az = z; az >= MIN_Z; az -= 2) {
         const r = subRect(z, x, y, az);
         const ext = kind === 'dem' ? 'r16' : 'png';
         const url = `${filesUrl}/geo/${kind}/${az}/${r.ax}/${r.ay}.${ext}`;
         const res = await fetchFn(url);
-        if (res.status === 404) continue;
+        if (res.status === 404) { if (exact) return null; continue; }
         if (!res.ok) {
             // Whatever the store said, in the atom's error: the difference
             // between "no world here" and "the cut failed" is the difference
@@ -50,6 +62,10 @@ export async function loadRaster(kind, z, x, y, { filesUrl = '', fetchFn = fetch
     }
     return null;
 }
+
+// Cut at this tile's own zoom or not at all.
+export const loadExact = (kind, z, x, y, opts) =>
+    loadRaster(kind, z, x, y, { ...opts, exact: true });
 
 // Elevation the cut writes where the survey did not reach (dem.NODATA_ELEVATION_M
 // in server/splatworld/dem.py). A tile of it is not ground at sea level.
@@ -112,6 +128,11 @@ export const decodeDem = async (buf) => {
 
 export const loadDem = (z, x, y, opts) =>
     loadRaster('dem', z, x, y, { ...opts, decode: opts.decode ?? decodeDem });
+
+// The elevation for a tile that is about to become a mesh, its frames and a
+// trained tile: this zoom's cut or nothing (loadRaster `exact`).
+export const loadDemExact = (z, x, y, opts) =>
+    loadRaster('dem', z, x, y, { ...opts, decode: opts.decode ?? decodeDem, exact: true });
 
 export const sampleHeight = (dem, u, v) => bilinear(dem, u, v, 1, (i) => dem.data[i])[0];
 

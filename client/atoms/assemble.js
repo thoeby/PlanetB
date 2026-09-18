@@ -15,7 +15,7 @@
 // seeded from the atom, and the tar carries no timestamps.
 
 import { fetchJson } from '../js/api.js';
-import { loadDem, loadImage, sampleRgb } from '../lib/geo.js';
+import { loadDemExact, loadImage, sampleRgb } from '../lib/geo.js';
 import { loadAssets } from '../lib/assets.js';
 import { boundsOf, placeMeshes } from '../lib/glbmesh.js';
 import { packMeshes } from '../lib/mesh.js';
@@ -212,8 +212,20 @@ export async function run({ atom, log, apiUrl, filesUrl }) {
         throw new Error(`the world moved: ${world.snapshot} is not ${atom.inputs.snapshot}`);
     }
 
-    const dem = await loadDem(z, x, y, { filesUrl });
-    if (!dem) throw new Error(`no ground at ${z}/${x}/${y}: it is outside the world's coverage`);
+    // This tile's own cut, never an ancestor's (client/lib/geo.js loadDemExact).
+    // A z14 read from z10 holds sixteen of this tile's samples, stretched over
+    // a 513-vertex mesh: the quilt of bilinear triangles a player saw in the
+    // frames. The mesh becomes the frames and the frames become the tile, so a
+    // coarse read here is not a slightly softer tile, it is a tile trained
+    // against a smear — and the store answers 404 for a tile outside the
+    // coverage's own envelope as well as for one outside the world, so the
+    // fall was silent.
+    const dem = await loadDemExact(z, x, y, { filesUrl });
+    if (!dem) {
+        throw new Error(`no ground cut at ${z}/${x}/${y}: the store has no elevation `
+            + 'for this tile at this zoom — either it is outside the coverage, or the '
+            + 'coverage refused the cut. A coarser one would make a quilt of it.');
+    }
     const colourAt = await groundColour(z, x, y, filesUrl);
 
     const b = tileBbox(z, x, y);

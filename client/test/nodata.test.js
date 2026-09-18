@@ -8,7 +8,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 
-import { allNodata, loadRaster } from '../lib/geo.js';
+import { allNodata, loadDem, loadDemExact, loadRaster } from '../lib/geo.js';
 
 const raster = (size, fill) => ({ size, data: new Float32Array(size * size).fill(fill) });
 
@@ -62,4 +62,28 @@ test('loadRaster gives up when every ancestor is fill where this tile is', async
     const fetchFn = async () => ({ status: 200, ok: true, arrayBuffer: async () => null });
     const decode = async () => raster(8, 0);
     assert.equal(await loadRaster('dem', 14, 8554, 5800, { fetchFn, decode }), null);
+});
+
+test('a mesh gets its own cut or none: no ancestor quilt', async () => {
+    // loadRaster walks up two zooms at a time when a tile has not been cut,
+    // and the store answers 404 both for a tile outside the world and for one
+    // outside the coverage's own envelope (server/splatworld/ground.py
+    // "outside the coverage"). So a z14 that missed came back as sixteen of
+    // its samples read from z10, stretched over a 513-vertex mesh: the quilt
+    // of bilinear triangles a player saw in the frames. `assemble` asks for
+    // this tile's own zoom or nothing.
+    const asked = [];
+    const data = new Float32Array(8 * 8).fill(1800);
+    const fetchFn = async (url) => {
+        asked.push(String(url));
+        return String(url).includes('/dem/14/')
+            ? new Response('', { status: 404 })
+            : new Response(data.buffer, { status: 200 });
+    };
+    assert.equal(await loadDemExact(14, 8551, 5812, { fetchFn }), null,
+        'a coarser cut is not this tile\u2019s ground');
+    assert.equal(asked.length, 1, 'and the ancestors are not even asked for');
+
+    assert.ok(await loadDem(14, 8551, 5812, { fetchFn }),
+        'while the floor under a player still takes what it can get');
 });
