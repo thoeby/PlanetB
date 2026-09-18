@@ -12,7 +12,7 @@
 // actually has answers it.
 
 import * as tm from './tilemath.js';
-import { loadDem, sampleHeight } from './geo.js';
+import { NODATA_ELEVATION_M, loadDem, sampleHeight } from './geo.js';
 
 // The deepest tile that holds the whole rectangle. Deeper is finer, and a
 // rectangle straddling a tile boundary at one zoom is inside a single tile two
@@ -40,10 +40,21 @@ export async function groundOver(rect, { filesUrl = '', fetchFn } = {}) {
         z,
         x,
         y,
+        // Null outside the tile, and null where the survey never reached.
+        // The store writes fill as an elevation of zero
+        // (server/splatworld/dem.py) and a cut is refused only when the whole
+        // of it is fill (client/lib/geo.js loadRaster), so one tile over a
+        // thirty-kilometre view arrives with a few surveyed kilometres in it
+        // and fill for the rest. Unfiltered, that fill is ground at sea level:
+        // shadeRect took its `low` from it, squeezed the real hillside into
+        // the top of the range as one bright square, and painted the other
+        // nine tenths of the map a flat olive that reads as land. The land map
+        // said the world was everywhere and its terrain was one patch.
         at(lon, lat) {
             const { u, v } = inTile(z, x, y, lon, lat);
             if (u < 0 || v < 0 || u > 1 || v > 1) return null;
-            return sampleHeight(dem, u, v);
+            const h = sampleHeight(dem, u, v);
+            return h === NODATA_ELEVATION_M ? null : h;
         },
     };
 }

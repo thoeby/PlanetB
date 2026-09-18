@@ -83,3 +83,38 @@ function fakeCtx(painted) {
         fillRect(x, y, w, h) { painted.push({ x, y, w, h, fill: this.fillStyle }); },
     };
 }
+
+test('fill is not ground, and one surveyed corner is not a continent of it', async () => {
+    // What the land map showed at 31 km across: one bright square of real
+    // hillside and nine tenths of the canvas a flat olive that reads as land.
+    // A cut is refused only when the whole of it is fill (geo.js loadRaster),
+    // so one tile over a wide view arrives with a few surveyed kilometres in
+    // it and fill — elevation 0.0 — for the rest.
+    const size = 32;
+    const data = new Float32Array(size * size);          // all fill …
+    for (let j = 0; j < 4; j++) {
+        for (let i = 0; i < 4; i++) data[j * size + i] = 2400 + i * 20;
+    }                                                     // … but one corner
+    const ground = await groundOver(VISP, {
+        fetchFn: async () => new Response(data.buffer, { status: 200 }),
+    });
+    assert.ok(ground, 'the cut arrives: it is not all fill');
+
+    const b = tm.tileBbox(ground.z, ground.x, ground.y);
+    const inCorner = ground.at(b.west + (b.east - b.west) * 0.02,
+        b.north - (b.north - b.south) * 0.02);
+    assert.ok(inCorner > 2000, `the surveyed corner has ground: ${inCorner}`);
+    assert.equal(ground.at((b.west + b.east) / 2, (b.south + b.north) / 2), null,
+        'and the middle of the tile, which nobody surveyed, has none');
+
+    // So the shading paints the corner and leaves the rest of the canvas to
+    // whatever is behind it, instead of washing it flat.
+    let painted = 0;
+    const ctx = { save() {}, restore() {}, beginPath() {}, rect() {}, clip() {},
+        fillRect() { painted++; }, set fillStyle(_v) {}, get fillStyle() { return ''; } };
+    const drew = shadeRect(ctx, ground,
+        { ...b, x0: 0, y0: 0, w: 200, h: 200, cell: 10 });
+    assert.equal(drew, true, 'there is ground here, so it shades');
+    assert.ok(painted > 0, 'the surveyed part is painted');
+    assert.ok(painted < 21 * 21 * 0.5, `${painted} cells painted: the fill was painted too`);
+});
