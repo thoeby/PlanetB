@@ -21,7 +21,7 @@ import { sha256 } from '../lib/hash.js';
 import { InputCache, resolveInputs } from './inputs.js';
 
 export const ALGO = {
-    assemble: 'assemble-v5', frame: 'frame-v10', train: 'train-v9',
+    assemble: 'assemble-v5', frame: 'frame-v10', train: 'train-v10',
     merge: 'merge-v1', sog: 'sog-v3', verify: 'verify-v1',
 };
 
@@ -157,8 +157,20 @@ export class WorkLoop {
             const out = await this.compute(atom, progress);
             const state = await this.deliver(atom, out, (Date.now() - started) / 1000,
                 progress);
-            this[state === 'failed' ? 'failed' : 'done'] += 1;
-            this.log({ event: 'submit', atom: atom.id, op: atom.op, state });
+            // Anything but 'verified' is submit_atom refusing the work: a
+            // structural rule said no, the attempt was counted, and the atom
+            // went back to `ready` for whoever claims next — this tab, in
+            // practice, since it is the only one asking
+            // (db/0094_apieceisnotleftinaclosedjob.sql). Counting that as done
+            // and saying only 'ready' is how three rejected quarter-hours read
+            // as three good ones.
+            this[state === 'verified' ? 'done' : 'failed'] += 1;
+            if (state === 'verified') {
+                this.log({ event: 'submit', atom: atom.id, op: atom.op, state });
+            } else {
+                this.log({ event: 'rejected', atom: atom.id, op: atom.op, state,
+                    rule: await this.broke(atom.id) });
+            }
             return state;
         } catch (err) {
             this.failed += 1;
@@ -180,6 +192,16 @@ export class WorkLoop {
             this.timers.clearInterval(timer);
             this.atom = null;
         }
+    }
+
+    // Which rule refused an atom. submit_atom writes the name to `verification`
+    // and returns only the atom's new state, so this is the one place the
+    // reason exists at all; the rules themselves are in `structural_rule`.
+    async broke(id) {
+        const rows = await this.api.select('verification',
+            { atom_id: `eq.${id}`, kind: 'eq.structural', passed: 'is.false',
+                select: 'metrics', order: 'at.desc', limit: '1' }).catch(() => []);
+        return rows[0]?.metrics?.rule ?? 'unknown';
     }
 
     // A claim that fails is nothing to do, not a crash: logged once per streak

@@ -1,4 +1,4 @@
-// train.js — `train-v9`. The tile, learned from its own frames, by brush.
+// train.js — `train-v10`. The tile, learned from its own frames, by brush.
 //
 // `assemble` built the surfaces and `frame` path-traced them from a fixed
 // camera set. The seed is those surfaces sampled at the tile's whole budget
@@ -36,12 +36,28 @@ import { bboxOf, writePly } from '../lib/ply.js';
 import { rngOf, sampleSurfaces } from '../lib/sampling.js';
 import { readTar, writeTar } from '../lib/tar.js';
 
-export const ALGO = 'train-v9';
+export const ALGO = 'train-v10';
 // In-plane radius of a seed splat as a share of its spacing: overlapping, so
 // the first render is a surface and not a sieve.
 export const SPREAD = 1.15;
-// How far past the seed's box a splat may end up and still be this tile's.
+// How far past the seed's box a splat may end up and still be this tile's,
+// measured up and down. Across the ground there is far less room than this:
+// see EDGE_PAD_M.
 export const MARGIN = 0.15;
+// And across the ground, in metres. `assemble` clips its meshes to the tile
+// plus CLIP_M = 8 m (client/atoms/assemble.js), and `bbox_fits` accepts a
+// tile's splats out to the tile plus 10 m (db/0015_structural.sql) — so a
+// trained tile has two metres of ground to spare, at every zoom, and this
+// leaves one of them for the arithmetic.
+//
+// MARGIN used to do this job on all three axes: 15 % of a z14 tile is a 254 m
+// halo, and `keep` handed back every splat brush had moved into it. One of
+// them past 856.6 m made `result.bbox` wider than the rule allows, submit_atom
+// refused the finished run, put the atom back to `ready` with an attempt
+// counted (db/0094_apieceisnotleftinaclosedjob.sql), and the tab claimed it
+// and trained it again — a quarter of an hour a time, three times, saying
+// nothing about why.
+export const EDGE_PAD_M = 1;
 // And never less than this, in metres. A share of the extent is nothing at all
 // on an axis the seed has no extent on, and a tile whose ground came back as
 // nodata (server/splatworld/dem.py) has a seed box exactly zero metres high:
@@ -105,9 +121,14 @@ export function dataset(tars, set, seed) {
     return { files, views: frames.length, held: back.size };
 }
 
+// The window a trained splat has to be inside to be this tile's. Height is
+// the seed's own span plus a share of it; x and z are the seed's span plus a
+// metre, because that is all the room the server's rule leaves (EDGE_PAD_M).
 export function bounds(seed, margin) {
     const box = bboxOf(seed);
-    const pad = [0, 1, 2].map((k) => Math.max((box[k + 3] - box[k]) * margin, MIN_PAD_M));
+    const pad = [0, 1, 2].map((k) => (k === 1
+        ? Math.max((box[k + 3] - box[k]) * margin, MIN_PAD_M)
+        : Math.min((box[k + 3] - box[k]) * margin, EDGE_PAD_M)));
     return { lo: box.map((v, k) => v - pad[k % 3]).slice(0, 3),
         hi: box.slice(3).map((v, k) => v + pad[k]) };
 }

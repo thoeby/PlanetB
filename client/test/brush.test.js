@@ -9,7 +9,7 @@ import { configFor, keep, splatsFromBrush, withSubgroups } from '../lib/brush.js
 import { SH_C0, emptySplats, readPly } from '../lib/ply.js';
 import { readTar, writeTar } from '../lib/tar.js';
 import { transformsJson, cameraSet } from '../lib/cameras.js';
-import { MARGIN, bounds, dataset, widen } from '../atoms/train.js';
+import { EDGE_PAD_M, MARGIN, bounds, dataset, widen } from '../atoms/train.js';
 
 const near = (a, b, eps = 1e-5) => assert.ok(Math.abs(a - b) < eps, `${a} vs ${b}`);
 
@@ -58,6 +58,30 @@ test('a seed with no height still keeps what the run put on it', () => {
     trained.y.set([0.3, -0.4, -303.5]);   // on the ground, just under it, a floater
     trained.a.fill(1);
     assert.equal(keep(trained, box.lo, box.hi).count, 2, 'the surface stays, the floater goes');
+});
+
+test('the window stops a metre past the seed, across the ground', () => {
+    // The whole reason a finished run was refused. `assemble` clips to the
+    // tile plus 8 m and db/0015_structural.sql's bbox_fits accepts the tile
+    // plus 10 m, so a trained tile has two metres of ground to spare — and
+    // MARGIN, 15 % of a z14 tile, is 254 of them.
+    const seed = emptySplats(2);
+    seed.x.set([-846.8, 843.3]); seed.y.set([-75.4, 855.4]); seed.z.set([-837.5, 837.4]);
+    const box = bounds(seed, MARGIN);
+    const LIMIT = 856.6;                            // tile_edge_m(14,...)/2 + 10
+    for (const k of [0, 2]) {
+        assert.ok(Math.abs(box.lo[k] + 846.8) <= EDGE_PAD_M + 1e-9
+            || Math.abs(box.lo[k] + 837.5) <= EDGE_PAD_M + 1e-9,
+        `axis ${k} reaches ${box.lo[k]}`);
+        assert.ok(Math.abs(box.lo[k]) < LIMIT && Math.abs(box.hi[k]) < LIMIT,
+            `axis ${k} spans ${box.lo[k]}..${box.hi[k]}, outside what the rule takes`);
+    }
+    assert.ok(box.hi[1] - box.lo[1] > 855.4 + 75.4, 'height still gets its share');
+
+    // And a splat brush moved ten metres off the edge is not this tile's.
+    const trained = emptySplats(2);
+    trained.x.set([840, 857]); trained.a.fill(1);
+    assert.equal(keep(trained, box.lo, box.hi).count, 1);
 });
 
 test('a seed with height keeps the box it always had', () => {

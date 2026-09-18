@@ -159,6 +159,12 @@ export function captionOf(rec) {
     if (rec.event === 'train') {
         return `${tile}training ${rec.iter} of ${rec.of} · ${rec.splats} splats`;
     }
+    // A refused submit is the run thrown away, and the rule that threw it is
+    // the only thing worth saying about it (client/js/work.js broke).
+    if (rec.event === 'rejected') {
+        return `${rec.op} #${rec.atom} refused: the ${rec.rule} rule said no`
+            + `${rec.state === 'failed' ? ', and that was the last attempt' : ''}`;
+    }
     return rec.event;
 }
 

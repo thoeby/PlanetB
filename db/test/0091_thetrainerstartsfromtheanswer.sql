@@ -25,8 +25,8 @@ SELECT ensure_job(18, tile_x(7.805, 18), tile_y(46.295, 18)) AS j18,
        ensure_job(16, tile_x(7.805, 16), tile_y(46.295, 16)) AS j16;
 
 SELECT is((SELECT algo_version FROM atom
-           WHERE job_id = (SELECT j18 FROM jobs) AND op = 'train'), 'train-v9',
-    'a z18 job trains with train-v9');
+           WHERE job_id = (SELECT j18 FROM jobs) AND op = 'train'), 'train-v10',
+    'a z18 job trains with train-v10');
 SELECT is((SELECT (params ->> 'iters')::int FROM atom
            WHERE job_id = (SELECT j18 FROM jobs) AND op = 'train'), 1200,
     'z18: 1200 iterations (db/0122)');
