@@ -17,6 +17,20 @@ export function emptySplats(n) {
     return f;
 }
 
+// The same splats in the order `order` names: `out[t] = f[order[t]]`. Generic
+// over the fields, so it moves whatever a splat set carries and not a list of
+// names this file would have to keep in step.
+export function permute(f, order) {
+    const n = order.length;
+    const out = { count: n };
+    for (const k of Object.keys(f)) {
+        if (k === 'count') continue;
+        out[k] = new f[k].constructor(n);
+        for (let i = 0; i < n; i++) out[k][i] = f[k][order[i]];
+    }
+    return out;
+}
+
 // [minx, miny, minz, maxx, maxy, maxz] in the tile's own frame — what
 // submit_atom's bbox rule checks against the tile (db/0015_structural.sql).
 export function bboxOf(f) {

@@ -7,6 +7,7 @@
 // a preview, not a render, and it is meant to be drawn every few seconds
 // over a hundred thousand points on the CPU without anybody noticing.
 
+import { permute } from './ply.js';
 import { perspective, viewMatrix } from './cameras.js';
 
 const put = (img, depth, size, px, py, d, r, g, b) => {
@@ -65,16 +66,11 @@ export function topDown(f, size = 256) {
 // a fair sample of the whole: a preview reads the first hundred thousand.
 export function shuffled(f, random) {
     const n = f.count;
-    const order = [...Array(n).keys()];
+    const order = new Uint32Array(n);
+    for (let i = 0; i < n; i++) order[i] = i;
     for (let i = n - 1; i > 0; i--) {
         const j = Math.floor(random() * (i + 1));
-        [order[i], order[j]] = [order[j], order[i]];
+        const t = order[i]; order[i] = order[j]; order[j] = t;
     }
-    const out = { count: n };
-    for (const k of Object.keys(f)) {
-        if (k === 'count') continue;
-        out[k] = new f[k].constructor(n);
-        for (let i = 0; i < n; i++) out[k][i] = f[k][order[i]];
-    }
-    return out;
+    return permute(f, order);
 }
