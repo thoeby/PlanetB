@@ -195,9 +195,37 @@ function nameField(node, canvas, err, on) {
     return name;
 }
 
+// What Validate found, listed under the inspector. `goTo` takes the player to
+// the block a problem names; a problem about the flow as a whole names none.
+function drawProblems(found, list, goTo) {
+    found.replaceChildren(el('h3', { textContent: 'Check' }));
+    found.hidden = false;
+    if (!list.length) {
+        found.append(el('p', { className: 'muted',
+            textContent: 'Nothing wrong that this page can see.' }));
+        return;
+    }
+    const rows = el('ul', { className: 'fl-problem-list' });
+    for (const p of list) {
+        const li = el('li', {});
+        li.dataset.block = p.block ?? '';
+        const b = el('button', { type: 'button',
+            textContent: p.where ? `${p.where} \u203a ${p.words}` : p.words });
+        b.onclick = () => p.block && goTo?.(p.block);
+        li.append(b);
+        rows.append(li);
+    }
+    found.append(rows);
+}
+
 export function mountInspector(host, canvas, on) {
     const body = el('div', { className: 'fl-inspect' });
-    host.append(body);
+    // What Validate found, under the inspector rather than inside it: it is
+    // about the flow, and it stays there while blocks are selected and
+    // deselected (FND.2).
+    const found = el('div', { className: 'fl-problems' });
+    found.hidden = true;
+    host.append(body, found);
 
     function drawBlock(node) {
         const err = el('p', { className: 'fl-err', hidden: true });
@@ -240,5 +268,6 @@ export function mountInspector(host, canvas, on) {
     return {
         node: host,
         show(node) { if (node && node._irKind === 'node') drawBlock(node); else drawFlow(); },
+        problems: (list, goTo) => drawProblems(found, list, goTo),
     };
 }

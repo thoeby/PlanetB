@@ -19,7 +19,8 @@ import { mountFlowList, ask } from './flowlist.js';
 import { mountInspector } from './flowinspector.js';
 import { parseElx } from '../flow/elx/parse.js';
 import { topBar } from './flowsbar.js';
-import { bindKeys, refresh, create, openFlow, save } from './flowsdo.js';
+import { bindKeys, refresh, create, openFlow, save, importFiles, exportFlow, validate }
+    from './flowsdo.js';
 
 // The columns, once. Everything below fills them.
 function frame(doc) {
@@ -38,15 +39,23 @@ function frame(doc) {
 }
 
 // litegraph, the canvas, the inspector and the keys — the first time somebody
-// opens the view, and never at page load.
-async function boot(ctx) {
-    if (ctx.canvas) return ctx.canvas;
+// opens the view, and never at page load. The promise is kept, not just the
+// result: two callers that arrive while the plugins are still being fetched
+// would otherwise each build a canvas, and the view would have two of
+// everything.
+function boot(ctx) {
+    ctx.booting = ctx.booting ?? building(ctx);
+    return ctx.booting;
+}
+
+async function building(ctx) {
     const lg = await bootFlow(flows.bundledPlugins());
     ctx.canvas = mountCanvas(ctx.mid, lg, {
         changed: () => { ctx.mark(true); ctx.inspector?.show(ctx.canvas.selected()); },
         selected: (node) => ctx.inspector?.show(node),
         scope: () => ctx.inspector?.show(null),
         trouble: (text) => ctx.say(text),
+        files: (files) => importFiles(ctx, files),
     });
     ctx.inspector = mountInspector(ctx.right, ctx.canvas, { changed: () => ctx.mark(true) });
     ctx.bar.wire(ctx.canvas, ctx.acts);
@@ -71,13 +80,34 @@ function closing(ctx) {
     box.node.querySelector('.fl-acts').prepend(discard);
 }
 
-export function mountFlows(doc, { onOpen, onClose, onStay, lands }) {
-    const { root, left, mid, right, bar } = frame(doc);
+// An .elx from the machine: the Import button opens this, and a file dropped
+// on the canvas goes the same way (flowcanvas.js hands it over).
+function filePicker(ctx) {
+    const picker = el('input', { type: 'file', accept: '.elx,application/xml',
+        multiple: true, className: 'fl-file' });
+    picker.hidden = true;
+    picker.onchange = async () => {
+        const files = [...picker.files];
+        picker.value = '';
+        await importFiles(ctx, files);
+    };
+    return picker;
+}
+
+// Everything the view holds, in one bag the actions in flowsdo.js are handed.
+function context(parts, { onClose, onStay, lands }) {
+    const { root, mid, right, bar } = parts;
     const ctx = {
         root, mid, right, bar, lands, canvas: null, inspector: null,
-        state: { open: null, dirty: false, said: '' },
+        state: { open: null, dirty: false, said: '', problems: [] },
         parse: parseElx, empty: EMPTY_FLOW,
         say: (text) => { ctx.state.said = text; bar.said.textContent = text; },
+        // What Validate found, in the panel under the inspector: each problem
+        // says where it is, and pressing it goes to the block it is about.
+        problems(list) {
+            ctx.state.problems = list;
+            ctx.inspector?.problems(list, (block) => ctx.canvas?.goTo(block));
+        },
         mark(dirty) {
             ctx.state.dirty = dirty;
             bar.dirty.hidden = !dirty;
@@ -91,12 +121,20 @@ export function mountFlows(doc, { onOpen, onClose, onStay, lands }) {
         // chrome may already have been dressed for another one.
         stay: () => { root.hidden = false; onStay?.(); },
     };
-    // Validate, export and import are FND.2's; the buttons are here because the
-    // bar is, and they say so rather than doing nothing.
-    const later = (what) => () => ctx.say(`${what} comes with the next story.`);
+    return ctx;
+}
+
+export function mountFlows(doc, opts) {
+    const parts = frame(doc);
+    const { root, left } = parts;
+    const ctx = context(parts, opts);
+    const picker = filePicker(ctx);
+    root.append(picker);
     ctx.acts = {
         save: () => save(ctx), close: () => closing(ctx),
-        validate: later('Validate'), exportElx: later('Export'), importElx: later('Import'),
+        validate: () => validate(ctx),
+        exportElx: () => exportFlow(ctx),
+        importElx: () => picker.click(),
     };
     ctx.list = mountFlowList(left, {
         create: (areaId, name) => create(ctx, areaId, name),
@@ -113,7 +151,7 @@ export function mountFlows(doc, { onOpen, onClose, onStay, lands }) {
         node: root,
         async show() {
             root.hidden = false;
-            onOpen?.();
+            opts.onOpen?.();
             try {
                 await boot(ctx);
                 ctx.canvas.fit();
@@ -130,6 +168,10 @@ export function mountFlows(doc, { onOpen, onClose, onStay, lands }) {
         dirty: () => ctx.state.dirty,
         openFlow: (row) => openFlow(ctx, row),
         save: () => save(ctx),
+        validate: () => validate(ctx),
+        exportFlow: () => exportFlow(ctx),
+        importFiles: (files, areaId) => importFiles(ctx, files, areaId),
+        problems: () => ctx.state.problems,
         refresh: () => refresh(ctx),
         canvas: () => ctx.canvas,
     };

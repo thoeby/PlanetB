@@ -13,6 +13,7 @@
 import * as api from './api.js';
 import { el } from './chrome.js';
 import { bundledPlugins, bundlePlugins } from './flows.js';
+import { checkingServer, setCheckingServer } from './flowcheck.js';
 
 // Design 3k: three numbered steps, in the order they have to happen. Step 1
 // is the account, and client/js/auth.js mounts its form into the slot below —
@@ -79,6 +80,15 @@ const HTML = `
       against one can still be read against another.</div>
     <button type="button" class="gs-blocks">Register the bundled blocks</button>
     <p class="gs-blocks-status status"></p>
+    <div class="note">A process server can be asked whether a flow is one it
+      would run (Automate → Validate). Leave this empty and the page still
+      checks what it can see for itself.</div>
+    <div class="row">
+      <input class="gs-elx" type="text" placeholder="http://localhost:8088"
+        autocomplete="off">
+      <button type="button" class="gs-elx-save">Use this server</button>
+    </div>
+    <p class="gs-elx-status status"></p>
   </div>
 </div>`;
 
@@ -228,6 +238,24 @@ async function registerBlocks(q, say) {
     }
 }
 
+// Where a flow may be checked (db/0134). Empty is a choice, not a gap: the
+// page still checks what it can see for itself.
+function wireCheckingServer(q, say) {
+    const words = (url) => (url ? `flows are checked against ${url}`
+        : 'no process server \u2014 flows are checked here only');
+    q('.gs-elx-save').onclick = async () => {
+        try {
+            say('.gs-elx-status', words(await setCheckingServer(q('.gs-elx').value.trim())));
+        } catch (err) {
+            say('.gs-elx-status', String(err.body?.message ?? err.message ?? err), true);
+        }
+    };
+    checkingServer().then((url) => {
+        q('.gs-elx').value = url;
+        say('.gs-elx-status', words(url));
+    });
+}
+
 export function mountSetup(host, { onGround = () => {} } = {}) {
     const box = document.createElement('div');
     box.innerHTML = HTML;
@@ -281,6 +309,7 @@ export function mountSetup(host, { onGround = () => {} } = {}) {
     }).catch((err) => say('.gs-status', String(err.message ?? err), true));
     q('.gs-ladd').onclick = () => addLayer(q, say, found, show);
     q('.gs-blocks').onclick = () => registerBlocks(q, say);
+    wireCheckingServer(q, say);
     q('.gs-done').onclick = () => done();
     q('.gs-again').onclick = () => again(q, say);
 

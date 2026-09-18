@@ -930,6 +930,17 @@ minute"). Open points for it are in `PLAN-foundation.md` §10.
   shape and keys, deterministically, and both scripts say which they produced
   on every run. FND.4's and FND.12's stories therefore pass against a
   stand-in here and must be re-run where the real sources are reachable.
+- **FND.2's process-server half is unrun.** There is no process server in this
+  container and none is reachable, so `make flow-test` skips the validation
+  against one with the sentence this file asks for, and story 17 asserts what
+  the page says when nobody was asked. `docs/flow.md` has the two commands to
+  run where one exists, and the table to record it in.
+- **FND.2's local check is about the file, not the canvas.** The task asks for
+  "a string wired into a boolean-only port" to be caught locally. No canvas can
+  hold that wire — litegraph vetoes the connection as it is made and import
+  drops it — so the check reads the bytes that would be run: the canvas's when
+  something is unsaved, the saved file's otherwise. That is where such a flow
+  can actually exist, and it is what the server would be sent.
 - **FND.1's three small departures from this file**, each with its reason in
   `PROGRESS.md`: the migration is `db/0133` (0128–0132 were spent making the
   gate green, see PROGRESS), and it adds the artifact kind `plugin`, because

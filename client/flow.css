@@ -95,6 +95,14 @@
 #flows .fl-ports li input { flex: 1; }
 #flows .fl-err { color: var(--bad); font-size: 12px; margin: 6px 0; }
 #flows .fl-unknown { color: var(--warn); font-size: 12px; margin: 6px 0; }
+#flows .fl-problems { border-top: 1px solid var(--edge); margin-top: 12px; }
+#flows .fl-problems[hidden] { display: none; }
+#flows .fl-problem-list { margin: 6px 0; padding: 0; list-style: none; }
+#flows .fl-problem-list li { padding: 2px 0; }
+#flows .fl-problem-list button { width: 100%; text-align: left;
+  text-transform: none; font-family: var(--body); font-weight: 400;
+  letter-spacing: 0; font-size: 12px; color: var(--bad);
+  border-color: var(--edge); background: none; }
 #flows .fl-ask { position: absolute; inset: 0; display: grid; place-items: center;
   background: rgba(0, 0, 0, 0.6); z-index: 8; }
 #flows .fl-ask > div { background: var(--panel-solid); border: 1px solid var(--edge);

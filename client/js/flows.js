@@ -81,8 +81,11 @@ export async function saveFlow({ id = null, areaId, name, elx = null, sha = null
     layout = {}, rev = 0 }) {
     const at = elx === null ? sha : await storeElx(elx);
     if (!at) throw new Error('a flow is saved with its ELX or with its sha');
-    return api.rpc('save_flow',
+    const done = await api.rpc('save_flow',
         { id, area: areaId, name, elx_sha256: at, layout, rev });
+    // The sha comes back with the id and the rev, because the caller's next
+    // move — exporting exactly what was saved — is about the file, not the row.
+    return { ...done, elx_sha256: at };
 }
 
 export const deleteFlow = (id, rev) => api.rpc('delete_flow', { id, rev });

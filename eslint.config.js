@@ -11,6 +11,7 @@ const browser = {
     requestAnimationFrame: 'readonly', cancelAnimationFrame: 'readonly',
     URL: 'readonly', crypto: 'readonly', navigator: 'readonly',
     ResizeObserver: 'readonly', getComputedStyle: 'readonly',
+    location: 'readonly',
     // The flow editor reads and writes XML in the page (client/flow/elx).
     DOMParser: 'readonly', XMLSerializer: 'readonly',
     TextEncoder: 'readonly', TextDecoder: 'readonly', Worker: 'readonly',

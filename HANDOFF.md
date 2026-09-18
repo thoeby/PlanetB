@@ -697,3 +697,15 @@ coordinates in it.
 `paused` flag and `app.autoRender = false`; the update handler returns at once.
 A story that opens Automate and then expects the position line to move has to
 close it first.
+
+**Validate's local half reads the file, not the canvas** (FND.2). litegraph
+vetoes an invalid connection as it is made and `importFlow` drops one it cannot
+make, so a canvas is always locally valid and checking it would find nothing
+ever. `client/js/flowsdo.js` hands `localProblems` the bytes that would be run —
+the canvas's when something is unsaved, the saved file's otherwise. A test that
+wants a local problem has to import a file that has one; it cannot draw one.
+
+**An export is the saved bytes.** Do not "simplify" it to `canvas.elx()`: the
+serializer's element order is not the process server's, and story 17 compares
+the exported file to the imported one byte for byte. The same reason is why
+`importFiles` saves the arriving file and then only the layout.

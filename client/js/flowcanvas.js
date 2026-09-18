@@ -88,11 +88,16 @@ function makeHistory(graph, restore, changed) {
     return history;
 }
 
-// A drop from the palette lands where the pointer was let go, in graph space.
-function wireDrop(wrap, palette, put) {
+// A drop on the canvas is one of two things: a line from the palette, which
+// becomes a block where the pointer was let go, or an .elx from the machine,
+// which becomes a flow of its own (FND.2). Anything else is ignored.
+function wireDrop(wrap, palette, put, onFiles) {
     wrap.ondragover = (e) => { e.preventDefault(); e.dataTransfer.dropEffect = 'copy'; };
     wrap.ondrop = (e) => {
         e.preventDefault();
+        const files = [...(e.dataTransfer.files ?? [])]
+            .filter((f) => /\.elx$/i.test(f.name) || f.type.includes('xml'));
+        if (files.length) { onFiles?.(files); return; }
         const block = palette.blockOf(e.dataTransfer.getData('text/plain'));
         if (block) put(block, { clientX: e.clientX, clientY: e.clientY });
     };
@@ -125,6 +130,18 @@ function handle(parts, on) {
         },
         selected: () => (view.selected_nodes
             ? Object.values(view.selected_nodes)[0] ?? null : null),
+        // Put a named block in the middle of the view and select it: what a
+        // problem in the check list does when it is pressed.
+        goTo(name) {
+            const node = (graph._nodes ?? []).find((n) => n._irName === name);
+            if (!node) return false;
+            const r = view.canvas.getBoundingClientRect();
+            view.ds.offset[0] = r.width / (2 * view.ds.scale) - node.pos[0];
+            view.ds.offset[1] = r.height / (2 * view.ds.scale) - node.pos[1];
+            parts.select(node);
+            graph.setDirtyCanvas(true, true);
+            return true;
+        },
         removeSelected() {
             const sel = Object.values(view.selected_nodes ?? {});
             if (!sel.length) return 0;
@@ -222,7 +239,7 @@ export function mountCanvas(host, { LiteGraph, LGraph, LGraphCanvas }, on = {}) 
         }
     };
     const palette = mountPalette(bench, { onDrop: put });
-    wireDrop(wrap, palette, put);
+    wireDrop(wrap, palette, put, on.files);
 
     let hash = '';
     function load(flow, { keep = false, layout = null } = {}) {

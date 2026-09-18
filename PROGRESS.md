@@ -1728,3 +1728,41 @@ at it. Story 16 wires the ports the bundled plugins actually declare — `Contai
 takes `string` and `substring` — rather than FND.1's shorthand "pattern".
 `opencv`'s `plugin.xml` is in the palette; its 5.2 MB of trained weights and the
 prototxt beside them are not, and `client/test/palette.test.js` says so.
+
+## FND.2: a flow is a file, in and out
+
+Import, export and Validate (SPEC §2.16). A `.elx` a process server wrote is
+dropped on the canvas or picked with Import; it becomes a flow of its own on the
+land, laid out, named after the file. Export gives the saved bytes back exactly.
+
+**Exactly is the point.** This editor's serializer writes a flow in its own
+order — nodes before nets — and a file from a process server is usually the
+other way round, so re-serializing on export would be the editor rewriting
+somebody else's file. So an import saves the file as it arrived and then saves
+only the layout beside it, and an export of a flow nobody has changed is byte
+for byte the file that came in. A flow with unsaved changes is told "save
+first" rather than exported as something it is not.
+
+**Validate has two halves and shows both.** The process server is the
+authority, and its address is the operator's (`app_setting`, db/0134, Settings →
+Setup); the page POSTs the ELX and reads the `<elx_api_msg>` envelope with
+`client/flow/validate.js` — `parseEnvelope` and its two DOM helpers, copied from
+the reference editor's `rest.js`, and nothing else of that file. No server
+configured, or one that does not answer, is a sentence and nothing else breaks.
+Alongside it, always, the page's own check: one source per net, every wired pair
+allowed by the ports' rule, names unique per scope.
+
+**The local check reads the bytes that would be run, not the canvas.** A canvas
+cannot hold a wire the ports refuse — litegraph vetoes the connection as it is
+made, and import drops it — so checking the canvas would only ever find nothing.
+The file is where such a flow exists, and the file is what the server is handed:
+the canvas's bytes when something is unsaved, the saved file's otherwise.
+
+**What is unrun**: there is no process server in this container. `make flow-test`
+says so and skips that half; `docs/flow.md` holds the two commands and the table
+to fill in where one exists.
+
+Two older things fixed on the way, both found by the story: `saveFlow` did not
+give the sha back, so a flow could be exported only after being reopened; and
+the view's boot was not memoised, so two callers racing at open built two
+canvases and the palette appeared twice.

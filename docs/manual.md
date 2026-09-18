@@ -156,9 +156,19 @@ dirty. That is the work queue.
   moves the land's pointer at it. Two tabs cannot overwrite each other: the
   second is told "this flow was changed in another tab — reload it". Where the
   blocks sit is stored beside the flow, never inside the ELX.
-- **Validate**, **Export** and **Import** arrive with FND.2.
+- **Import** takes `.elx` files — the button, or dropping them on the canvas.
+  Each becomes a flow of its own on the land, laid out, named after the file.
+  **Export** gives back the saved bytes exactly; a flow with unsaved changes is
+  told "save first" rather than exported as something else.
+- **Validate** asks two things and shows both: the process server, if the
+  operator set one in Setup, and what the page can see for itself — one source
+  per net, every wired pair allowed, names unique. Each problem is a line under
+  the inspector, and pressing it goes to the block. `docs/flow.md` has the
+  detail, including what is still unproven.
 - **Setup → step 4** registers the bundled block set with the world. Run it once
-  per install, and again after `bash tools/palette.sh` has changed the set.
+  per install, and again after `bash tools/palette.sh` has changed the set. The
+  same step holds the address of the process server flows are checked against;
+  leaving it empty is a choice, and the page still checks what it can.
 
 ### Work panel (same page)
 
