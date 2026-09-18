@@ -1,12 +1,17 @@
-// renderpool.js — the Render pool panel (design 3f): what this machine can do,
-// every tile waiting to be compiled, what each pays, and the one button that
-// takes it. claim_for hands out the work and the escrow pays on publish
-// (db/0043_pool.sql); this panel decides nothing.
+// renderpool.js — the Work queues (design 8a–8d): every tile waiting to be
+// compiled, drawn as a card each, in a tab per kind of work — All, Render
+// jobs, Training and Publish, which are the phases the pool itself sorts into
+// (db/0152 pool_open.phase). A card opens into client/js/jobdetail.js.
+//
+// claim_for hands out the work and the escrow pays on publish
+// (db/0043_pool.sql); this panel decides nothing. Only the queue the player is
+// looking at is drawn, and only it is asked for: a page of one kind of work is
+// one request, and four tabs of the same cards would be four.
 
 import * as api from './api.js';
-import { setBounty } from './wallet.js';
-import { DOING, cr, drawnWhen, el, what } from './poolui.js';
-import { pager, phaseTabs, poolCard, sortTabs } from './poolcard.js';
+import { DOING, beyond, drawnWhen, el, what } from './poolui.js';
+import { pager, poolCard, showChips, sortChips } from './poolcard.js';
+import { jobDetail } from './jobdetail.js';
 import { empty } from './empty.js';
 
 const said = (err) => String(err?.body?.message ?? err?.message ?? err);
@@ -15,103 +20,239 @@ const said = (err) => String(err?.body?.message ?? err?.message ?? err);
 // this one is a press away rather than a scroll to the bottom of everything.
 const PAGE = 24;
 
-export function mountPool(host, { loop, where = () => ({}) } = {}) {
-    const ui = poolParts(host);
+// Which phase of the pool each tab of Work shows, and the sentence under it.
+export const QUEUES = {
+    'Every job': { phase: 'all',
+        foot: 'Payouts are what the owner put in the pool. “free” means nobody'
+            + ' pays — you can still draw it.' },
+    'Render jobs': { phase: 'render',
+        foot: 'The ground and the frames: what a tile is drawn from, and the'
+            + ' long part of drawing it.' },
+    Training: { phase: 'train',
+        foot: 'Training is minutes of a GPU. A piece a tab gives up on goes'
+            + ' back into the pool with the reason on it.' },
+    Publishing: { phase: 'publish',
+        foot: 'Packing a trained tile and merging the one above it: the cheap'
+            + ' end, and what puts a tile on screen.' },
+};
+
+// One tab: the chips over the cards, the cards, and the line under them.
+function queueParts(name) {
+    const ui = {
+        chips: el('div', { className: 'jc-chiprow' }),
+        list: el('ul', { className: 'rows po-list po-grid' }),
+        foot: el('div', { className: 'jc-footline' },
+            el('span', { className: 'note', textContent: QUEUES[name].foot })),
+        detail: el('div', { className: 'jd-host' }),
+    };
+    ui.detail.hidden = true;
+    ui.node = el('div', { className: 'wk-queue' }, ui.chips, ui.list, ui.foot, ui.detail);
+    return ui;
+}
+
+// A card opened (design 8f). It takes the tab over rather than opening a
+// window of its own: the cards behind it are the list it moves through.
+function drawDetail(state, ctx, parts) {
+    const e = state.rows.find((r) => r.job === state.open);
+    parts.detail.hidden = !e;
+    parts.list.hidden = Boolean(e);
+    parts.chips.hidden = Boolean(e);
+    parts.foot.hidden = Boolean(e);
+    if (!e) { parts.detail.replaceChildren(); return; }
+    parts.detail.replaceChildren(jobDetail(e, {
+        rows: state.rows, atoms: state.atoms, acts: ctx.acts, caps: state.caps,
+        onGo: ctx.onGo, close: ctx.acts.close, where: ctx.where, say: ctx.say,
+        refresh: ctx.refresh, doing: ctx.doing(e),
+    }));
+}
+
+// The chips over the cards: whose work (the All tab only), in what order, and
+// which page. The counts are the whole pool's, not the page's.
+function drawChips(state, ctx, parts) {
+    const first = state.name === 'Every job'
+        ? [showChips(state.page, state.phase, ctx.acts.who)] : [];
+    parts.chips.replaceChildren(...first,
+        sortChips(state.page, ctx.acts.by),
+        pager(state.page, PAGE, ctx.acts.turn));
+}
+
+// What may be done to a job, in one place: the card and the opened card offer
+// the same, and both ask the same RPC.
+function actionsOf(state, { loop, say, refresh, draw, ask }) {
+    return {
+        render: (entry, button) => runJob(entry, button, { loop, say, refresh }),
+        retry: (entry, button) => ask(entry, button, 'retry_job',
+            (n) => (n ? `${n} piece(s) start over` : 'nothing to try again')),
+        drop: (entry, button) => ask(entry, button, 'drop_job',
+            (gone) => (gone ? 'dropped from the pool' : 'nothing to drop')),
+        // The frames are what a tile was trained on, so a tile trained against
+        // the wrong ones is put right by asking for them again (db/0147). The
+        // training goes back to waiting; nothing is unmade.
+        redo: (entry, button) => ask(entry, button, 'redo_renders',
+            (n) => (n ? `${n} frame(s) will be drawn again, and the training after them`
+                : 'this tile has no frames of its own')),
+        open: (entry) => { state.open = entry.job; return openPieces(state, draw); },
+        close: () => { state.open = null; state.atoms = []; draw(); },
+        who: (phase) => { state.phase = phase; state.offset = 0; refresh(); },
+        turn: (offset) => { state.offset = offset; refresh(); },
+        by: (sort) => { state.sort = sort; state.offset = 0; refresh(); },
+    };
+}
+
+// The pieces of the one job that is open: public, and asked for only when a
+// card is opened rather than for every card on the page (db/0003_rls).
+async function openPieces(state, redraw) {
+    state.atoms = await api.select('atom',
+        { job_id: `eq.${state.open}`, order: 'id',
+            select: 'id,op,state,attempts,claimed_at' }).catch(() => []);
+    redraw();
+}
+
+// The tab the player has open, drawn: its chips, its cards, and the card that
+// is open over them. The other tabs are left empty until they are asked for.
+function drawQueue(state, ui, ctx, count, say) {
+    try {
+        const parts = ui.get(state.name);
+        drawChips(state, ctx, parts);
+        parts.list.replaceChildren(...state.rows.map((r) => poolCard(r, ctx.acts,
+            state.caps, state.shots?.get(`${r.z}/${r.x}/${r.y}`) ?? null,
+            ctx.doing(r))));
+        if (!state.rows.length) parts.list.append(...nothingWaiting(state));
+        drawDetail(state, ctx, parts);
+        for (const [name, q] of Object.entries(QUEUES)) {
+            count(name, Number(state.page?.[q.phase] ?? 0));
+        }
+    } catch (err) {
+        say(`the pool could not be drawn: ${said(err)}`, true);
+        console.error(err);
+    }
+}
+
+// What this machine is doing, on the card of the job it is doing it to. The
+// grid is redrawn only when the job changes hands; a line every step would
+// rebuild the page under somebody's hand.
+function tick(state, ui, draw) {
+    const live = state.work?.atom?.job_id ?? null;
+    if (live !== state.shownLive) { state.shownLive = live; draw(); return; }
+    const doing = DOING[state.work?.atom?.op] ?? 'working';
+    for (const parts of ui.values()) {
+        const at = parts.list.querySelector('li[data-live="1"] .jc-status');
+        if (at) at.textContent = `${doing} on this machine`;
+    }
+}
+
+// A pool that cannot be read says so in its own line; an empty list is the
+// answer "nothing is waiting", never the answer "the question failed".
+async function readPool(state, { where, loop, say, draw }) {
+    const { lon, lat } = where() ?? {};
+    state.page = await api.rpc('pool_page',
+        { lon: lon ?? null, lat: lat ?? null,
+            phase: state.phase === 'all' ? null : state.phase,
+            limit: PAGE, offset: state.offset, sort: state.sort })
+        .catch((err) => { say(`could not read the pool: ${said(err)}`, true); return null; });
+    state.rows = state.page?.rows ?? [];
+    // A page past the end of a list that shrank while it was being looked at
+    // is an empty panel with tiles behind it; step back to the last one.
+    if (!state.rows.length && state.offset > 0) {
+        state.offset = Math.max(0, Math.floor(
+            (Number(state.page?.total ?? 1) - 1) / PAGE) * PAGE);
+        return readPool(state, { where, loop, say, draw });
+    }
+    state.held = state.rows.length
+        ? [] : await api.rpc('pool_held_back', { limit_: 12 }).catch(() => []);
+    // What this machine is, asked once and only when the panel is open:
+    // probing the adapter is the slowest part of mounting anything.
+    state.work ??= await loop?.().catch(() => null) ?? null;
+    state.caps ??= state.work?.caps ?? null;
+    state.shots = state.work?.pictures ?? null;
+    // A job that has left the pool cannot stay open over an empty page.
+    if (state.open && !state.rows.some((r) => r.job === state.open)) state.open = null;
+    draw();
+    return state.rows;
+}
+
+// Design 8f: the arrows move through the jobs and Escape goes back to the
+// cards. On the way down, because the page's own Escape closes the panel and
+// the card behind this one is the nearer thing to close.
+function moveWithKeys(state, ui, acts) {
+    document.addEventListener('keydown', (event) => {
+        const parts = ui.get(state.name);
+        if (!parts || parts.detail.hidden || !parts.detail.offsetParent) return;
+        if (event.target?.closest?.('input, select, textarea')) return;
+        const step = { ArrowDown: 1, ArrowUp: -1 }[event.key] ?? 0;
+        if (!step && event.key !== 'Escape') return;
+        event.preventDefault();
+        event.stopPropagation();
+        if (!step) { acts.close(); return; }
+        const at = state.rows.findIndex((r) => r.job === state.open);
+        const next = state.rows[Math.min(Math.max(at + step, 0), state.rows.length - 1)];
+        if (next) acts.open(next);
+    }, true);
+}
+
+export function mountPool(hosts, { loop, where = () => ({}), onGo, count = () => {},
+    statusHost = null } = {}) {
+    const ui = new Map();
+    for (const [name, host] of Object.entries(hosts)) {
+        const parts = queueParts(name);
+        host.append(parts.node);
+        ui.set(name, parts);
+    }
+    const status = el('p', { className: 'po-status status' });
+    (statusHost ?? Object.values(hosts)[0]).append(status);
     // A page of one kind of work at a time (db/0146 pool_page). `page` is
     // what the server answered: its rows, how many there are of this kind,
-    // and how many of each kind there are altogether.
-    const state = { page: null, rows: [], held: [], phase: 'all',
-        sort: 'near', offset: 0, caps: null, picked: null };
+    // and how many of each kind there are altogether. `name` is the tab the
+    // player has open, which is the only one drawn.
+    const state = { name: Object.keys(hosts)[0], page: null, rows: [], held: [],
+        phase: 'all', sort: 'near', offset: 0, caps: null, shots: null,
+        open: null, atoms: [], work: null };
     const say = (msg, bad = false) => {
-        ui.status.textContent = msg;
-        ui.status.dataset.bad = bad ? '1' : '';
+        status.textContent = msg;
+        status.dataset.bad = bad ? '1' : '';
     };
 
-    const acts = {
-        render: (entry, button) => render(entry, button),
-        retry: (entry, button) => retry(entry, button),
-        drop: (entry, button) => drop(entry, button),
-        pick: (entry) => { state.picked = entry.job; draw(); },
-        redo: (entry, button) => redo(entry, button),
-        look: (phase) => look(phase),
-        turn: (offset) => turn(offset),
-        by: (sort) => by(sort),
-    };
+    const ctx = { where, onGo, say,
+        // What this tab is doing to this job, if it is doing anything to it.
+        doing: (e) => (state.work?.atom?.job_id === e.job
+            ? DOING[state.work.atom.op] ?? state.work.atom.op : '') };
 
-    // Which kind of work, and which page of it. Both reset the other: a page
-    // number means nothing across two different lists.
-    const look = (phase) => { state.phase = phase; state.offset = 0; refresh(); };
-    const turn = (offset) => { state.offset = offset; refresh(); };
-    const by = (sort) => { state.sort = sort; state.offset = 0; refresh(); };
+    const draw = () => drawQueue(state, ui, ctx, count, say);
 
-    const draw = () => {
-        try {
-            drawPool(ui, state, acts, draw);
-            ui.price.replaceChildren(...priceCard(state, say, refresh));
-        } catch (err) {
-            say(`the pool could not be drawn: ${said(err)}`, true);
-            console.error(err);
+    // Which tab, which kind of work, which page, in what order. Each of them
+    // resets the page: a page number means nothing across two lists.
+    const look = (name) => {
+        if (!ui.has(name)) return null;
+        for (const [other, parts] of ui) {
+            if (other !== name) parts.list.replaceChildren();
         }
+        const same = name === state.name;
+        state.name = name;
+        state.phase = QUEUES[name].phase;
+        if (!same) { state.offset = 0; state.open = null; }
+        return refresh();
     };
 
-    const render = (entry, button) => runJob(entry, button,
-        { loop, say, refresh });
-
-    // Start a job that gave up over from its first atom, or take it out of the
-    // pool. The person pressing either is the one whose ground it is; nothing
-    // is retried on its own, because three failures usually mean something
-    // to fix, and a job the tool cannot finish does not sit there for ever.
-    const retry = (entry, button) => ask(entry, button, 'retry_job',
-        (n) => (n ? `${n} piece(s) start over` : 'nothing to try again'));
-    const drop = (entry, button) => ask(entry, button, 'drop_job',
-        (gone) => (gone ? 'dropped from the pool' : 'nothing to drop'));
-    // The frames are what a tile was trained on, so a tile trained against
-    // the wrong ones is put right by asking for them again (db/0147). The
-    // training goes back to waiting; nothing is unmade.
-    const redo = (entry, button) => ask(entry, button, 'redo_renders',
-        (n) => (n ? `${n} frame(s) will be drawn again, and the training after them`
-            : 'this tile has no frames of its own'));
-    async function ask(entry, button, fn, said) {
+    const ask = async (entry, button, fn, saidIt) => {
         button.disabled = true;
         try {
             const r = await api.rpc(fn, { job_id: entry.job });
-            say(`${entry.z}/${entry.x}/${entry.y}: ${said(r)}`);
+            say(`${entry.z}/${entry.x}/${entry.y}: ${saidIt(r)}`);
         } catch (err) {
-            say(String(err.body?.message ?? err.message ?? err), true);
+            say(said(err), true);
         }
         await refresh();
-    }
+    };
+    function refresh() { return readPool(state, { where, loop, say, draw }); }
+    const acts = actionsOf(state, { loop, say, refresh, draw, ask });
+    ctx.acts = acts;
+    ctx.refresh = () => refresh();
 
-    // A pool that cannot be read says so in its own line; an empty list is
-    // the answer "nothing is waiting", never the answer "the question failed".
-    async function refresh() {
-        const { lon, lat } = where() ?? {};
-        state.page = await api.rpc('pool_page',
-            { lon: lon ?? null, lat: lat ?? null,
-                phase: state.phase === 'all' ? null : state.phase,
-                limit: PAGE, offset: state.offset, sort: state.sort })
-            .catch((err) => { say(`could not read the pool: ${said(err)}`, true); return null; });
-        state.rows = state.page?.rows ?? [];
-        // A page past the end of a list that shrank while it was being looked
-        // at is an empty panel with tiles behind it; step back to the last one.
-        if (!state.rows.length && state.offset > 0) {
-            state.offset = Math.max(0, Math.floor(
-                (Number(state.page?.total ?? 1) - 1) / PAGE) * PAGE);
-            return refresh();
-        }
-        state.held = state.rows.length
-            ? [] : await api.rpc('pool_held_back', { limit_: 12 }).catch(() => []);
-        // What this machine is, asked once and only when the panel is open:
-        // probing the adapter is the slowest part of mounting anything.
-        const l = await loop?.().catch(() => null);
-        state.caps ??= l?.caps ?? null;
-        state.shots = l?.pictures ?? null;
-        draw();
-        return state.rows;
-    }
-
+    moveWithKeys(state, ui, acts);
     refresh();
-    return { refresh, render, retry, drop };
+    const note = () => tick(state, ui, draw);
+    return { refresh, draw, say, look, note,
+        render: acts.render, retry: acts.retry, drop: acts.drop, redo: acts.redo };
 }
 
 // One job, taken out of the pool by the player who pressed Render: claim, run,
@@ -181,60 +322,9 @@ async function landed(tile, entry, rows, caps) {
     return `${tile}: ${now.ready} piece(s) left — press Render again.`;
 }
 
-function poolParts(host) {
-    const ui = {
-        head: el('div', { className: 'spread' }),
-        list: el('ul', { className: 'rows po-list' }),
-        price: el('div', { className: 'section po-price' }),
-        status: el('p', { className: 'po-status status' }),
-    };
-    host.append(ui.head, ui.list, ui.price, ui.status);
-    return ui;
-}
-
-// What to pay for one tile in the queue, on the tile you picked out of it.
-//
-// This was on the wallet panel, where nothing ever told it which tile was
-// meant: `target()` was never called from anywhere, so it showed "no tile in
-// front of you" for the life of the page and there was no way to make it show
-// anything else. A price is a thing you put on a job in the queue, so it lives
-// beside the queue.
-function priceCard(state, say, refresh) {
-    const row = state.rows.find((r) => r.job === state.picked);
-    if (!row) {
-        return [empty('No tile picked',
-            'Pick one out of the queue above and you can offer to have it'
-            + ' compiled sooner. The money is held until the tile publishes.')];
-    }
-    const amount = el('input', { type: 'number', min: '0', step: '1', value: '10',
-        className: 'po-amount' });
-    const set = el('button', { type: 'button', className: 'po-set primary',
-        textContent: 'Raise the price' });
-    set.onclick = async () => {
-        set.disabled = true;
-        try {
-            await setBounty(row.job, Number(amount.value));
-            say('held until the tile publishes');
-        } catch (err) {
-            say(String(err.body?.message ?? err.message ?? err), true);
-        }
-        set.disabled = false;
-        await refresh();
-    };
-    return [
-        el('span', { className: 'label',
-            textContent: `What to pay for ${row.z}/${row.x}/${row.y}` }),
-        el('div', { className: 'row' }, amount, set),
-        el('div', { className: 'note',
-            textContent: `It pays ${cr(row.bounty)} cr now. What you add is held`
-                + ' from your credits until the tile publishes, and is then'
-                + ' shared out by the time each tab reported.' }),
-    ];
-}
-
 // An empty pool with jobs behind it is the thing that reads as "my approval
 // did nothing". Each one says which of the three reasons it is.
-function nothingWaiting(held) {
+function nothingWaiting({ held }) {
     if (!held?.length) {
         return [empty('The pool is clear',
             'Every tile anybody submitted is compiled. Jobs appear here the'
@@ -249,16 +339,4 @@ function nothingWaiting(held) {
                 el('div', { className: 'name', textContent: `${h.z}/${h.x}/${h.y}` }),
                 el('div', { className: 'sub', textContent: h.why })))),
     ];
-}
-
-function drawPool(ui, state, acts, draw) {
-    ui.head.replaceChildren(
-        phaseTabs(state.page, state.phase, acts.look),
-        sortTabs(state.page, acts.by),
-        pager(state.page, PAGE, acts.turn));
-    ui.list.classList.add('po-grid');
-    ui.list.replaceChildren(
-        ...state.rows.map((r) => poolCard(r, acts, state.caps,
-            state.shots?.get(`${r.z}/${r.x}/${r.y}`) ?? null)));
-    if (!state.rows.length) ui.list.append(...nothingWaiting(state.held));
 }

@@ -1,6 +1,11 @@
 # The design
 
-`splatworld-v6.dc.html` is the design of record for the page, with
+`splatworld-v8.dc.html` is the design of record for the Work window — five
+tabs, a card for every job, and a card opened — on the `chrome7.dc.html`
+chrome; `splatworld-v7.dc.html` is the turn before it, which adds a seventh
+view and four parts inside Build that are not built yet.
+
+`splatworld-v6.dc.html` is the design of record for the rest of the page, with
 `chrome6.dc.html` as the chrome every artboard imports — the strip along the
 top, the position line, the altimeter up the right-hand edge, the plinth along
 the bottom, the minimap, the controls panel and the legend.
@@ -71,6 +76,21 @@ Where each part of the design lives:
 | the frame, the panel and its tabs, the app the chrome is dressed for | `client/js/hud.js` |
 | the map in the corner | `client/js/hudmap.js` |
 | the panels themselves | `client/js/{land,build,pool,permission,wallet,…}ui.js` |
+| the Work window's look (v8) | `client/work.css` |
+| the machine strip, and the loop behind it | `client/js/workui.js` |
+| Work's Settings tab | `client/js/worksettings.js` |
+| the four queues, one per kind of work | `client/js/renderpool.js` |
+| one job as a card, and the chips over the cards | `client/js/poolcard.js` |
+| a card opened | `client/js/jobdetail.js` |
+
+Two places where the Work window differs from v8, because the build has no
+such thing to show: its Publish tab holds finished work waiting on the machine
+for a person to review and then upload, and nothing is held back here — a
+piece's bytes are uploaded and registered as it is computed, and the tile
+publishes when its last one lands (Invariant 3) — so that tab is the pool's own
+`publish` phase, the packing and the merge (db/0152). And there is no storage
+cap to report, so Settings is the two switches, what this machine is, how far
+each zoom has got and the log.
 
 `../SPEC.md` is the product specification the design serves. Where the two
 differ the design is newer — it says so in its own first line ("turn 3 ·

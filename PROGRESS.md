@@ -1676,3 +1676,35 @@ Two specs now keep to their own work: `sog` focuses its job so it cannot
 wander into a rebuild another spec is reading, and `stream` takes the ladder's
 refinement number from `tools/testterrain.mjs` rather than from whatever
 manifest the last publisher left.
+
+## The work window (design v8)
+
+Work was a machine strip over one list of cards. It is now the window
+`docs/design/splatworld-v8.dc.html` draws: five tabs — All, Render jobs,
+Training, Publish, Settings — a card for every job, and a card that opens into
+where the tile is, what its pieces are and what has happened to it.
+
+- **The tabs are the pool's own kinds of work.** `pool_open.phase` (db/0152)
+  already sorts a job into render, train or publish, and `pool_page` counts
+  them; each tab is one phase, and the counts on the tabs are the whole pool's
+  rather than the page's. Only the tab a player is looking at is drawn and
+  asked for: the same cards in four tabs would be four requests and four
+  copies of every card for anything that reads the panel.
+- **The machine is one strip above every tab** (`client/js/workui.js`): how far
+  the world has got, what this machine is, and what it is doing right now, lit
+  while it is busy. What just happened to a job is said there too, beside it,
+  rather than four times over in four tabs.
+- **Settings is a tab of Work** (`client/js/worksettings.js`): the two
+  switches, what this machine is, how far each zoom has got as a bar each (the
+  `progress` view), and the log, which now keeps two hundred lines and can be
+  followed, copied or cleared.
+- **A card opens** (`client/js/jobdetail.js`): where the tile is on a small
+  map, the facts that fly you there, its pieces — the job's atoms, read once
+  for the one job that is open — what it pays, and the tile's own events. ↑ ↓
+  move through the queue and Escape goes back to the cards.
+- **Two places v8 cannot be had as drawn**, and both say so: nothing is held
+  back on this machine for review, so Publish is the pool's packing-and-merge
+  phase rather than an outbox; and there is no storage cap to report.
+- Incidentally fixed on the way through: `renderpool.js` used `beyond()`
+  without importing it, so a job that did not publish threw instead of saying
+  why.

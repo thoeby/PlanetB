@@ -1,0 +1,772 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <meta name="design_doc_mode" content="canvas">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@600;700&family=Sora:wght@400;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <style>
+    body{margin:0;background:#0b0d10;font-family:'Sora',sans-serif;color:#f2efe8}
+    a{color:#f2efe8}a:hover{color:oklch(0.78 0.14 200)}
+    *{box-sizing:border-box}
+  </style>
+</helmet>
+
+<section style="display:flex;flex-wrap:wrap;gap:56px;padding:56px;width:max-content;max-width:4400px;font-family:'Sora',sans-serif;color:#f2efe8">
+
+  <div style="width:100%;display:flex;flex-direction:column;gap:10px;max-width:1400px">
+    <div style="font-family:'Rajdhani',sans-serif;font-weight:700;font-size:28px;text-transform:uppercase;letter-spacing:0.1em">Turn 8 · the work window</div>
+    <div style="color:rgba(242,239,232,0.7);font-size:15px;line-height:1.5">The Work window rebuilt on the <a href="splatworld-v7.dc.html">v7</a> chrome: five tabs — All, Render jobs, Training, Publish, Settings — and a card for every job instead of a text row. Every number, status sentence and log line is kept from the current build; only the container changed. A card is clickable: <a href="#8f">8f</a> is what opens, with the tile's location, its frames and its log. Machine state stays in one strip at the top of every tab so you always see what this machine is doing; the settings that cause it live in the Settings tab.</div>
+  </div>
+
+  <!-- 8a · All -->
+  <div id="8a" style="display:flex;flex-direction:column;gap:12px">
+    <div style="display:flex;gap:12px;align-items:baseline;font-size:15px"><a href="#8a" style="font-family:'JetBrains Mono',monospace;font-size:12px;padding:3px 8px;background:oklch(0.78 0.14 200);color:#0b0d10;text-decoration:none">8a</a><span style="font-family:'Rajdhani',sans-serif;font-weight:700;font-size:20px;text-transform:uppercase;letter-spacing:0.08em">All</span><span style="color:rgba(242,239,232,0.6)">every job · filter mine / completed / all · sort by payout or distance</span></div>
+    <div style="position:relative;width:1920px;height:1080px;overflow:hidden;background:#0b0d10;font-size:14px">
+      <img src="assets/world.webp" alt="" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover">
+      <dc-import name="Chrome7" app="Build" active="Work" toast="" hint-size="100%,100%" style="position:absolute;inset:0"></dc-import>
+
+      <div style="position:absolute;left:24px;top:80px;bottom:130px;width:1080px;display:flex;flex-direction:column;background:rgba(12,14,18,0.985);backdrop-filter:blur(14px);border:1px solid rgba(255,255,255,0.12);clip-path:polygon(12px 0,100% 0,100% calc(100% - 12px),calc(100% - 12px) 100%,0 100%,0 12px);overflow:hidden">
+        <div style="padding:18px 20px 0;display:flex;flex-direction:column;gap:12px">
+          <div style="display:flex;justify-content:space-between;align-items:flex-start">
+            <div style="display:flex;flex-direction:column;gap:4px">
+              <span style="font-family:'Rajdhani',sans-serif;font-weight:700;font-size:26px;text-transform:uppercase;letter-spacing:0.08em;line-height:1">Work</span>
+              <span style="font-size:12px;color:rgba(242,239,232,0.6)">What this machine can compute for the world. Nine jobs in reach.</span>
+            </div>
+            <div style="display:flex;align-items:center;gap:10px">
+              <span style="display:flex;align-items:center;gap:8px;height:28px;padding:0 11px;border:1px solid rgba(255,255,255,0.2);font-family:'Rajdhani',sans-serif;font-weight:700;font-size:12px;letter-spacing:0.1em;text-transform:uppercase;color:rgba(242,239,232,0.75)"><span style="width:7px;height:7px;border-radius:50%;background:rgba(242,239,232,0.5)"></span>idle — 34 done, 12 failed</span>
+              <span style="font-size:18px;color:rgba(242,239,232,0.5)">✕</span>
+            </div>
+          </div>
+          <div style="display:flex;align-items:center;gap:16px;padding:9px 12px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.09);font-size:12px;color:rgba(242,239,232,0.7)">
+            <span style="font-family:'Rajdhani',sans-serif;font-weight:600;font-size:11px;letter-spacing:0.14em;text-transform:uppercase;color:rgba(242,239,232,0.5)">This machine</span>
+            <span><b style="color:#f2efe8;font-weight:600">17/354</b> tiles drawn</span>
+            <span><b style="color:#f2efe8;font-weight:600">633</b> atoms waiting</span>
+            <span style="font-family:'JetBrains Mono',monospace;font-size:11px;color:rgba(242,239,232,0.5)">WebGPU · nvidia · buffers to 2047 MB</span>
+            <div style="margin-left:auto;display:flex;align-items:center;gap:8px">
+              <div style="width:110px;height:4px;background:rgba(255,255,255,0.12)"><div style="width:21%;height:100%;background:oklch(0.78 0.14 200)"></div></div>
+              <span style="font-family:'JetBrains Mono',monospace;font-size:11px">4.2 / 20 GB</span>
+            </div>
+          </div>
+        </div>
+
+        <div style="margin-top:12px;display:flex;font-family:'Rajdhani',sans-serif;font-weight:700;font-size:14px;letter-spacing:0.1em;text-transform:uppercase">
+          <sc-for list="{{ tabsAll }}" as="t" hint-placeholder-count="5">
+            <span style="flex:1;height:42px;display:inline-flex;align-items:center;justify-content:center;gap:7px;border-bottom:{{ t.border }};background:{{ t.bg }};color:{{ t.fg }}">{{ t.name }}<span style="font-family:'JetBrains Mono',monospace;font-size:11px;opacity:0.75">{{ t.count }}</span></span>
+          </sc-for>
+        </div>
+
+        <div style="display:flex;align-items:center;gap:10px;padding:12px 20px;border-bottom:1px solid rgba(255,255,255,0.08)">
+          <span style="font-family:'Rajdhani',sans-serif;font-weight:600;font-size:11px;letter-spacing:0.14em;text-transform:uppercase;color:rgba(242,239,232,0.5)">Show</span>
+          <sc-for list="{{ showChips }}" as="c" hint-placeholder-count="3">
+            <span style="height:26px;padding:0 10px;display:inline-flex;align-items:center;background:{{ c.bg }};border:{{ c.border }};color:{{ c.fg }};font-family:'Rajdhani',sans-serif;font-weight:700;font-size:12px;letter-spacing:0.08em;text-transform:uppercase">{{ c.label }}</span>
+          </sc-for>
+          <span style="width:1px;height:20px;background:rgba(255,255,255,0.15);margin:0 4px"></span>
+          <span style="font-family:'Rajdhani',sans-serif;font-weight:600;font-size:11px;letter-spacing:0.14em;text-transform:uppercase;color:rgba(242,239,232,0.5)">Sort</span>
+          <sc-for list="{{ sortChips }}" as="c" hint-placeholder-count="2">
+            <span style="height:26px;padding:0 10px;display:inline-flex;align-items:center;gap:6px;background:{{ c.bg }};border:{{ c.border }};color:{{ c.fg }};font-family:'Rajdhani',sans-serif;font-weight:700;font-size:12px;letter-spacing:0.08em;text-transform:uppercase">{{ c.label }}<span style="font-family:'JetBrains Mono',monospace;font-size:10px;opacity:0.7">{{ c.dir }}</span></span>
+          </sc-for>
+          <span style="margin-left:auto;font-size:12px;color:rgba(242,239,232,0.55)">6 of 9 shown · 3 completed hidden</span>
+        </div>
+
+        <div style="flex:1;min-height:0;overflow:auto;padding:16px 20px;display:grid;grid-template-columns:repeat(3,1fr);gap:14px;align-content:start">
+          <sc-for list="{{ cardsAll }}" as="j" hint-placeholder-count="6">
+            <div style="display:flex;flex-direction:column;background:{{ j.bg }};border:1px solid {{ j.border }};box-shadow:{{ j.glow }}">
+              <div style="position:relative;height:{{ previewH }};background:repeating-linear-gradient(135deg,rgba(242,239,232,0.055) 0 6px,transparent 6px 12px),#12151a;border-bottom:1px solid {{ j.border }};display:flex;align-items:center;justify-content:center">
+                <span style="font-family:'JetBrains Mono',monospace;font-size:11px;color:rgba(242,239,232,0.4)">{{ j.thumb }}</span>
+                <span style="position:absolute;left:8px;top:8px;padding:2px 7px;background:rgba(10,12,15,0.85);border:1px solid {{ j.kindColor }};color:{{ j.kindColor }};font-family:'Rajdhani',sans-serif;font-weight:700;font-size:10px;letter-spacing:0.12em;text-transform:uppercase">{{ j.kind }}</span>
+                <span style="display:{{ payDisplay }};position:absolute;right:8px;top:8px;padding:2px 7px;background:rgba(10,12,15,0.85);font-family:'JetBrains Mono',monospace;font-size:11px;color:{{ j.payColor }}">{{ j.pay }}</span>
+                <span style="position:absolute;left:8px;bottom:8px;font-family:'JetBrains Mono',monospace;font-size:10px;color:rgba(242,239,232,0.55)">{{ j.overlay }}</span>
+              </div>
+              <div style="padding:11px 12px 12px;display:flex;flex-direction:column;gap:7px;flex:1">
+                <div style="display:flex;justify-content:space-between;align-items:baseline;gap:8px">
+                  <span style="font-family:'Rajdhani',sans-serif;font-weight:700;font-size:18px;letter-spacing:0.04em;line-height:1">{{ j.tile }}</span>
+                  <span style="font-family:'JetBrains Mono',monospace;font-size:11px;color:rgba(242,239,232,0.5)">{{ j.dist }}</span>
+                </div>
+                <span style="font-size:12px;color:{{ j.statusColor }};line-height:1.4">{{ j.status }}</span>
+                <span style="font-size:12px;color:rgba(242,239,232,0.55);line-height:1.4">{{ j.pieces }}</span>
+                <div style="margin-top:auto;display:flex;flex-direction:column;gap:5px">
+                  <div style="height:4px;background:rgba(255,255,255,0.1)"><div style="width:{{ j.bar }};height:100%;background:{{ j.barColor }}"></div></div>
+                  <span style="font-family:'JetBrains Mono',monospace;font-size:10px;color:rgba(242,239,232,0.55)">{{ j.frames }}</span>
+                </div>
+              </div>
+              <div style="display:flex;align-items:center;gap:8px;padding:9px 12px;border-top:1px solid rgba(255,255,255,0.08);background:rgba(255,255,255,0.02)">
+                <span style="height:28px;padding:0 12px;background:{{ j.actionBg }};border:1px solid {{ j.kindColor }};color:{{ j.actionFg }};font-family:'Rajdhani',sans-serif;font-weight:700;font-size:12px;letter-spacing:0.1em;text-transform:uppercase;display:inline-flex;align-items:center;clip-path:polygon(5px 0,100% 0,100% calc(100% - 5px),calc(100% - 5px) 100%,0 100%,0 5px)">{{ j.action }}</span>
+                <span style="height:28px;padding:0 10px;border:1px solid rgba(255,255,255,0.2);color:rgba(242,239,232,0.8);font-family:'Rajdhani',sans-serif;font-weight:700;font-size:12px;letter-spacing:0.1em;text-transform:uppercase;display:inline-flex;align-items:center">{{ j.second }}</span>
+                <span style="margin-left:auto;font-family:'Rajdhani',sans-serif;font-weight:700;font-size:11px;letter-spacing:0.1em;text-transform:uppercase;color:rgba(242,239,232,0.6)">Details ›</span>
+              </div>
+              <sc-if value="{{ j.hasNote }}" hint-placeholder-val="{{ false }}">
+                <div style="display:flex;gap:9px;padding:9px 12px;border-top:1px solid rgba(255,255,255,0.08);background:oklch(0.8 0.18 25 / 0.07)">
+                  <span style="flex:none;padding:2px 6px;border:1px solid oklch(0.8 0.18 25);color:oklch(0.8 0.18 25);font-family:'Rajdhani',sans-serif;font-weight:700;font-size:10px;letter-spacing:0.1em;text-transform:uppercase;height:20px">gave up</span>
+                  <span style="font-size:11px;line-height:1.45;color:rgba(242,239,232,0.7)">{{ j.note }}</span>
+                  <span style="flex:none;font-family:'JetBrains Mono',monospace;font-size:10px;color:rgba(242,239,232,0.45)">{{ j.noteAge }}</span>
+                </div>
+              </sc-if>
+            </div>
+          </sc-for>
+        </div>
+
+        <div style="border-top:1px solid rgba(255,255,255,0.1);padding:10px 20px;display:flex;justify-content:space-between;align-items:center;font-size:12px;color:rgba(242,239,232,0.6)">
+          <span>Payouts are what the owner put in the pool. <b style="color:#f2efe8;font-weight:600">free</b> means nobody pays — you can still draw it.</span>
+          <span style="display:flex;gap:8px"><span style="height:28px;padding:0 11px;border:1px solid rgba(255,255,255,0.22);color:#f2efe8;font-family:'Rajdhani',sans-serif;font-weight:700;font-size:12px;letter-spacing:0.1em;text-transform:uppercase;display:inline-flex;align-items:center">Take next 3</span><span style="height:28px;padding:0 11px;border:1px solid rgba(255,255,255,0.22);color:rgba(242,239,232,0.75);font-family:'Rajdhani',sans-serif;font-weight:700;font-size:12px;letter-spacing:0.1em;text-transform:uppercase;display:inline-flex;align-items:center">Drop all</span></span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 8b · Render jobs -->
+  <div id="8b" style="display:flex;flex-direction:column;gap:12px">
+    <div style="display:flex;gap:12px;align-items:baseline;font-size:15px"><a href="#8b" style="font-family:'JetBrains Mono',monospace;font-size:12px;padding:3px 8px;background:oklch(0.78 0.14 200);color:#0b0d10;text-decoration:none">8b</a><span style="font-family:'Rajdhani',sans-serif;font-weight:700;font-size:20px;text-transform:uppercase;letter-spacing:0.08em">Render jobs</span><span style="color:rgba(242,239,232,0.6)">a set of images per job · gallery on the card, swipe in the wide one · new / partial / completed</span></div>
+    <div style="position:relative;width:1920px;height:1080px;overflow:hidden;background:#0b0d10;font-size:14px">
+      <img src="assets/world.webp" alt="" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover">
+      <dc-import name="Chrome7" app="Build" active="Work" toast="" hint-size="100%,100%" style="position:absolute;inset:0"></dc-import>
+
+      <div style="position:absolute;left:24px;top:80px;bottom:130px;width:1080px;display:flex;flex-direction:column;background:rgba(12,14,18,0.985);backdrop-filter:blur(14px);border:1px solid rgba(255,255,255,0.12);clip-path:polygon(12px 0,100% 0,100% calc(100% - 12px),calc(100% - 12px) 100%,0 100%,0 12px);overflow:hidden">
+        <div style="padding:18px 20px 0;display:flex;flex-direction:column;gap:12px">
+          <div style="display:flex;justify-content:space-between;align-items:flex-start">
+            <div style="display:flex;flex-direction:column;gap:4px">
+              <span style="font-family:'Rajdhani',sans-serif;font-weight:700;font-size:26px;text-transform:uppercase;letter-spacing:0.08em;line-height:1">Work</span>
+              <span style="font-size:12px;color:rgba(242,239,232,0.6)">Draw the frames a trained tile asks for. One job can hold several.</span>
+            </div>
+            <div style="display:flex;align-items:center;gap:10px">
+              <span style="display:flex;align-items:center;gap:8px;height:28px;padding:0 11px;border:1px solid oklch(0.78 0.14 200);background:oklch(0.78 0.14 200 / 0.1);font-family:'Rajdhani',sans-serif;font-weight:700;font-size:12px;letter-spacing:0.1em;text-transform:uppercase;color:oklch(0.78 0.14 200)"><span style="width:7px;height:7px;border-radius:50%;background:oklch(0.78 0.14 200);box-shadow:0 0 8px oklch(0.78 0.14 200)"></span>drawing 1 of 3 frames</span>
+              <span style="font-size:18px;color:rgba(242,239,232,0.5)">✕</span>
+            </div>
+          </div>
+          <div style="display:flex;align-items:center;gap:16px;padding:9px 12px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.09);font-size:12px;color:rgba(242,239,232,0.7)">
+            <span style="font-family:'Rajdhani',sans-serif;font-weight:600;font-size:11px;letter-spacing:0.14em;text-transform:uppercase;color:rgba(242,239,232,0.5)">This machine</span>
+            <span><b style="color:#f2efe8;font-weight:600">17/354</b> tiles drawn</span>
+            <span><b style="color:#f2efe8;font-weight:600">633</b> atoms waiting</span>
+            <span style="font-family:'JetBrains Mono',monospace;font-size:11px;color:rgba(242,239,232,0.5)">WebGPU · nvidia · buffers to 2047 MB</span>
+            <div style="margin-left:auto;display:flex;align-items:center;gap:8px">
+              <div style="width:110px;height:4px;background:rgba(255,255,255,0.12)"><div style="width:21%;height:100%;background:oklch(0.78 0.14 200)"></div></div>
+              <span style="font-family:'JetBrains Mono',monospace;font-size:11px">4.2 / 20 GB</span>
+            </div>
+          </div>
+        </div>
+
+        <div style="margin-top:12px;display:flex;font-family:'Rajdhani',sans-serif;font-weight:700;font-size:14px;letter-spacing:0.1em;text-transform:uppercase">
+          <sc-for list="{{ tabsRender }}" as="t" hint-placeholder-count="5">
+            <span style="flex:1;height:42px;display:inline-flex;align-items:center;justify-content:center;gap:7px;border-bottom:{{ t.border }};background:{{ t.bg }};color:{{ t.fg }}">{{ t.name }}<span style="font-family:'JetBrains Mono',monospace;font-size:11px;opacity:0.75">{{ t.count }}</span></span>
+          </sc-for>
+        </div>
+
+        <div style="display:flex;align-items:center;gap:10px;padding:12px 20px;border-bottom:1px solid rgba(255,255,255,0.08)">
+          <span style="font-family:'Rajdhani',sans-serif;font-weight:600;font-size:11px;letter-spacing:0.14em;text-transform:uppercase;color:rgba(242,239,232,0.5)">State</span>
+          <sc-for list="{{ stateChips }}" as="c" hint-placeholder-count="4">
+            <span style="height:26px;padding:0 10px;display:inline-flex;align-items:center;gap:6px;background:{{ c.bg }};border:{{ c.border }};color:{{ c.fg }};font-family:'Rajdhani',sans-serif;font-weight:700;font-size:12px;letter-spacing:0.08em;text-transform:uppercase">{{ c.label }}<span style="font-family:'JetBrains Mono',monospace;font-size:10px;opacity:0.7">{{ c.dir }}</span></span>
+          </sc-for>
+          <span style="width:1px;height:20px;background:rgba(255,255,255,0.15);margin:0 4px"></span>
+          <span style="font-family:'Rajdhani',sans-serif;font-weight:600;font-size:11px;letter-spacing:0.14em;text-transform:uppercase;color:rgba(242,239,232,0.5)">Frames</span>
+          <sc-for list="{{ viewChips }}" as="c" hint-placeholder-count="3">
+            <span style="height:26px;padding:0 10px;display:inline-flex;align-items:center;background:{{ c.bg }};border:{{ c.border }};color:{{ c.fg }};font-family:'Rajdhani',sans-serif;font-weight:700;font-size:12px;letter-spacing:0.08em;text-transform:uppercase">{{ c.label }}</span>
+          </sc-for>
+          <span style="margin-left:auto;font-size:12px;color:rgba(242,239,232,0.55)">5 jobs · 14 frames in them</span>
+        </div>
+
+        <div style="flex:1;min-height:0;overflow:auto;padding:16px 20px;display:grid;grid-template-columns:repeat(3,1fr);gap:14px;align-content:start">
+          <div style="grid-column:span 2;display:flex;flex-direction:column;background:oklch(0.78 0.14 200 / 0.07);border:1px solid oklch(0.78 0.14 200);box-shadow:0 0 26px oklch(0.78 0.14 200 / 0.22)">
+            <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;padding:10px 12px;border-bottom:1px solid oklch(0.78 0.14 200 / 0.5)">
+              <div style="display:flex;align-items:baseline;gap:10px">
+                <span style="font-family:'Rajdhani',sans-serif;font-weight:700;font-size:20px;letter-spacing:0.04em;line-height:1">14/8548/5801</span>
+                <span style="font-family:'JetBrains Mono',monospace;font-size:11px;color:rgba(242,239,232,0.55)">2.6 km · trained · waiting to be drawn</span>
+              </div>
+              <span style="display:flex;align-items:center;gap:8px"><span style="font-family:'JetBrains Mono',monospace;font-size:11px;color:rgba(242,239,232,0.5)">frame 2 of 3</span><span style="height:26px;padding:0 9px;border:1px solid rgba(255,255,255,0.2);font-family:'Rajdhani',sans-serif;font-weight:700;font-size:11px;letter-spacing:0.1em;text-transform:uppercase;display:inline-flex;align-items:center">Open</span></span>
+            </div>
+            <div style="display:flex;align-items:stretch;gap:10px;padding:12px">
+              <span style="width:32px;flex:none;display:inline-flex;align-items:center;justify-content:center;border:1px solid rgba(255,255,255,0.2);background:rgba(255,255,255,0.04);font-size:16px;color:rgba(242,239,232,0.7)">‹</span>
+              <div style="flex:1;position:relative;height:214px;background:repeating-linear-gradient(135deg,rgba(242,239,232,0.055) 0 6px,transparent 6px 12px),#12151a;border:1px solid rgba(255,255,255,0.12);display:flex;align-items:center;justify-content:center">
+                <span style="font-family:'JetBrains Mono',monospace;font-size:12px;color:rgba(242,239,232,0.4)">frame 2 · 256×256 · drawn 14:31</span>
+                <span style="position:absolute;left:10px;top:10px;padding:2px 7px;background:rgba(10,12,15,0.85);border:1px solid oklch(0.8 0.15 145);color:oklch(0.8 0.15 145);font-family:'Rajdhani',sans-serif;font-weight:700;font-size:10px;letter-spacing:0.12em;text-transform:uppercase">ready</span>
+                <span style="position:absolute;right:10px;bottom:10px;font-family:'JetBrains Mono',monospace;font-size:10px;color:rgba(242,239,232,0.5)">az 128° · el 34° · at step 2400</span>
+              </div>
+              <span style="width:32px;flex:none;display:inline-flex;align-items:center;justify-content:center;border:1px solid rgba(255,255,255,0.2);background:rgba(255,255,255,0.04);font-size:16px;color:rgba(242,239,232,0.7)">›</span>
+            </div>
+            <div style="display:flex;align-items:center;gap:8px;padding:0 12px 12px">
+              <sc-for list="{{ strip }}" as="s" hint-placeholder-count="3">
+                <div style="flex:1;position:relative;height:56px;background:repeating-linear-gradient(135deg,rgba(242,239,232,0.055) 0 6px,transparent 6px 12px),#12151a;border:{{ s.border }};display:flex;align-items:flex-end;justify-content:space-between;padding:4px 6px">
+                  <span style="font-family:'JetBrains Mono',monospace;font-size:10px;color:rgba(242,239,232,0.5)">{{ s.label }}</span>
+                  <span style="font-family:'Rajdhani',sans-serif;font-weight:700;font-size:10px;letter-spacing:0.1em;text-transform:uppercase;color:{{ s.color }}">{{ s.state }}</span>
+                </div>
+              </sc-for>
+              <span style="flex:none;font-family:'JetBrains Mono',monospace;font-size:11px;color:rgba(242,239,232,0.45)">swipe ← →</span>
+            </div>
+          </div>
+
+          <sc-for list="{{ cardsRender }}" as="j" hint-placeholder-count="4">
+            <div style="display:flex;flex-direction:column;background:{{ j.bg }};border:1px solid {{ j.border }}">
+              <div style="display:flex;gap:2px;height:{{ previewH }};border-bottom:1px solid {{ j.border }}">
+                <sc-for list="{{ j.shots }}" as="s" hint-placeholder-count="3">
+                  <div style="flex:1;position:relative;background:repeating-linear-gradient(135deg,rgba(242,239,232,0.055) 0 6px,transparent 6px 12px),#12151a;display:flex;align-items:flex-end;padding:5px">
+                    <span style="font-family:'JetBrains Mono',monospace;font-size:9px;color:rgba(242,239,232,0.45)">{{ s.label }}</span>
+                    <span style="position:absolute;right:5px;top:5px;width:7px;height:7px;background:{{ s.color }};transform:rotate(45deg)"></span>
+                  </div>
+                </sc-for>
+                <div style="width:44px;flex:none;background:rgba(10,12,15,0.7);display:flex;align-items:center;justify-content:center;font-family:'JetBrains Mono',monospace;font-size:12px;color:rgba(242,239,232,0.6)">{{ j.more }}</div>
+              </div>
+              <div style="padding:11px 12px 12px;display:flex;flex-direction:column;gap:7px;flex:1">
+                <div style="display:flex;justify-content:space-between;align-items:baseline;gap:8px">
+                  <span style="font-family:'Rajdhani',sans-serif;font-weight:700;font-size:18px;letter-spacing:0.04em;line-height:1">{{ j.tile }}</span>
+                  <span style="display:{{ payDisplay }};font-family:'JetBrains Mono',monospace;font-size:11px;color:{{ j.payColor }}">{{ j.pay }}</span>
+                </div>
+                <span style="font-size:12px;color:{{ j.statusColor }};line-height:1.4">{{ j.status }}</span>
+                <span style="font-size:12px;color:rgba(242,239,232,0.55);line-height:1.4">{{ j.pieces }}</span>
+                <div style="margin-top:auto;display:flex;flex-direction:column;gap:5px">
+                  <div style="height:4px;background:rgba(255,255,255,0.1)"><div style="width:{{ j.bar }};height:100%;background:{{ j.barColor }}"></div></div>
+                  <span style="font-family:'JetBrains Mono',monospace;font-size:10px;color:rgba(242,239,232,0.55)">{{ j.frames }} · {{ j.dist }}</span>
+                </div>
+              </div>
+              <div style="display:flex;align-items:center;gap:8px;padding:9px 12px;border-top:1px solid rgba(255,255,255,0.08);background:rgba(255,255,255,0.02)">
+                <span style="height:28px;padding:0 12px;background:{{ j.actionBg }};border:1px solid {{ j.kindColor }};color:{{ j.actionFg }};font-family:'Rajdhani',sans-serif;font-weight:700;font-size:12px;letter-spacing:0.1em;text-transform:uppercase;display:inline-flex;align-items:center;clip-path:polygon(5px 0,100% 0,100% calc(100% - 5px),calc(100% - 5px) 100%,0 100%,0 5px)">{{ j.action }}</span>
+                <span style="height:28px;padding:0 10px;border:1px solid rgba(255,255,255,0.2);color:rgba(242,239,232,0.8);font-family:'Rajdhani',sans-serif;font-weight:700;font-size:12px;letter-spacing:0.1em;text-transform:uppercase;display:inline-flex;align-items:center">{{ j.second }}</span>
+                <span style="margin-left:auto;font-family:'Rajdhani',sans-serif;font-weight:700;font-size:11px;letter-spacing:0.1em;text-transform:uppercase;color:rgba(242,239,232,0.6)">Details ›</span>
+              </div>
+            </div>
+          </sc-for>
+        </div>
+
+        <div style="border-top:1px solid rgba(255,255,255,0.1);padding:10px 20px;display:flex;justify-content:space-between;align-items:center;font-size:12px;color:rgba(242,239,232,0.6)">
+          <span>A partial job keeps the frames already drawn. Dropping it throws its pieces away.</span>
+          <span style="font-family:'Rajdhani',sans-serif;font-weight:700;font-size:12px;letter-spacing:0.1em;text-transform:uppercase;color:rgba(242,239,232,0.7)">Frame log</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 8c · Training -->
+  <div id="8c" style="display:flex;flex-direction:column;gap:12px">
+    <div style="display:flex;gap:12px;align-items:baseline;font-size:15px"><a href="#8c" style="font-family:'JetBrains Mono',monospace;font-size:12px;padding:3px 8px;background:oklch(0.78 0.14 200);color:#0b0d10;text-decoration:none">8c</a><span style="font-family:'Rajdhani',sans-serif;font-weight:700;font-size:20px;text-transform:uppercase;letter-spacing:0.08em">Training</span><span style="color:rgba(242,239,232,0.6)">one splat preview per job · step progress · the live log under the running one</span></div>
+    <div style="position:relative;width:1920px;height:1080px;overflow:hidden;background:#0b0d10;font-size:14px">
+      <img src="assets/world.webp" alt="" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover">
+      <dc-import name="Chrome7" app="Build" active="Work" toast="" hint-size="100%,100%" style="position:absolute;inset:0"></dc-import>
+
+      <div style="position:absolute;left:24px;top:80px;bottom:130px;width:1080px;display:flex;flex-direction:column;background:rgba(12,14,18,0.985);backdrop-filter:blur(14px);border:1px solid rgba(255,255,255,0.12);clip-path:polygon(12px 0,100% 0,100% calc(100% - 12px),calc(100% - 12px) 100%,0 100%,0 12px);overflow:hidden">
+        <div style="padding:18px 20px 0;display:flex;flex-direction:column;gap:12px">
+          <div style="display:flex;justify-content:space-between;align-items:flex-start">
+            <div style="display:flex;flex-direction:column;gap:4px">
+              <span style="font-family:'Rajdhani',sans-serif;font-weight:700;font-size:26px;text-transform:uppercase;letter-spacing:0.08em;line-height:1">Work</span>
+              <span style="font-size:12px;color:rgba(242,239,232,0.6)">Fit the splats for a tile. Long jobs; one preview each.</span>
+            </div>
+            <div style="display:flex;align-items:center;gap:10px">
+              <span style="display:flex;align-items:center;gap:8px;height:28px;padding:0 11px;border:1px solid oklch(0.82 0.16 80);background:oklch(0.82 0.16 80 / 0.1);font-family:'Rajdhani',sans-serif;font-weight:700;font-size:12px;letter-spacing:0.1em;text-transform:uppercase;color:oklch(0.82 0.16 80)"><span style="width:7px;height:7px;border-radius:50%;background:oklch(0.82 0.16 80);box-shadow:0 0 8px oklch(0.82 0.16 80)"></span>training 600 of 2400</span>
+              <span style="font-size:18px;color:rgba(242,239,232,0.5)">✕</span>
+            </div>
+          </div>
+          <div style="display:flex;align-items:center;gap:16px;padding:9px 12px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.09);font-size:12px;color:rgba(242,239,232,0.7)">
+            <span style="font-family:'Rajdhani',sans-serif;font-weight:600;font-size:11px;letter-spacing:0.14em;text-transform:uppercase;color:rgba(242,239,232,0.5)">This machine</span>
+            <span><b style="color:#f2efe8;font-weight:600">17/354</b> tiles drawn</span>
+            <span><b style="color:#f2efe8;font-weight:600">633</b> atoms waiting</span>
+            <span style="font-family:'JetBrains Mono',monospace;font-size:11px;color:rgba(242,239,232,0.5)">WebGPU · nvidia · buffers to 2047 MB</span>
+            <div style="margin-left:auto;display:flex;align-items:center;gap:8px">
+              <div style="width:110px;height:4px;background:rgba(255,255,255,0.12)"><div style="width:21%;height:100%;background:oklch(0.78 0.14 200)"></div></div>
+              <span style="font-family:'JetBrains Mono',monospace;font-size:11px">4.2 / 20 GB</span>
+            </div>
+          </div>
+        </div>
+
+        <div style="margin-top:12px;display:flex;font-family:'Rajdhani',sans-serif;font-weight:700;font-size:14px;letter-spacing:0.1em;text-transform:uppercase">
+          <sc-for list="{{ tabsTrain }}" as="t" hint-placeholder-count="5">
+            <span style="flex:1;height:42px;display:inline-flex;align-items:center;justify-content:center;gap:7px;border-bottom:{{ t.border }};background:{{ t.bg }};color:{{ t.fg }}">{{ t.name }}<span style="font-family:'JetBrains Mono',monospace;font-size:11px;opacity:0.75">{{ t.count }}</span></span>
+          </sc-for>
+        </div>
+
+        <div style="display:flex;align-items:center;gap:10px;padding:12px 20px;border-bottom:1px solid rgba(255,255,255,0.08)">
+          <span style="font-family:'Rajdhani',sans-serif;font-weight:600;font-size:11px;letter-spacing:0.14em;text-transform:uppercase;color:rgba(242,239,232,0.5)">State</span>
+          <sc-for list="{{ trainChips }}" as="c" hint-placeholder-count="4">
+            <span style="height:26px;padding:0 10px;display:inline-flex;align-items:center;gap:6px;background:{{ c.bg }};border:{{ c.border }};color:{{ c.fg }};font-family:'Rajdhani',sans-serif;font-weight:700;font-size:12px;letter-spacing:0.08em;text-transform:uppercase">{{ c.label }}<span style="font-family:'JetBrains Mono',monospace;font-size:10px;opacity:0.7">{{ c.dir }}</span></span>
+          </sc-for>
+          <span style="margin-left:auto;font-size:12px;color:rgba(242,239,232,0.55)">2 running · 1 paused · 1 finished today</span>
+        </div>
+
+        <div style="flex:1;min-height:0;overflow:auto;padding:16px 20px;display:grid;grid-template-columns:repeat(3,1fr);gap:14px;align-content:start">
+          <sc-for list="{{ cardsTrain }}" as="j" hint-placeholder-count="4">
+            <div style="display:flex;flex-direction:column;background:{{ j.bg }};border:1px solid {{ j.border }};box-shadow:{{ j.glow }}">
+              <div style="position:relative;height:200px;background:repeating-linear-gradient(135deg,rgba(242,239,232,0.055) 0 6px,transparent 6px 12px),#12151a;border-bottom:1px solid {{ j.border }};display:flex;align-items:center;justify-content:center">
+                <span style="font-family:'JetBrains Mono',monospace;font-size:11px;color:rgba(242,239,232,0.4)">{{ j.thumb }}</span>
+                <span style="position:absolute;left:8px;top:8px;padding:2px 7px;background:rgba(10,12,15,0.85);border:1px solid {{ j.kindColor }};color:{{ j.kindColor }};font-family:'Rajdhani',sans-serif;font-weight:700;font-size:10px;letter-spacing:0.12em;text-transform:uppercase">{{ j.kind }}</span>
+                <span style="position:absolute;left:8px;bottom:8px;font-family:'JetBrains Mono',monospace;font-size:10px;color:rgba(242,239,232,0.55)">{{ j.overlay }}</span>
+                <span style="display:{{ payDisplay }};position:absolute;right:8px;top:8px;padding:2px 7px;background:rgba(10,12,15,0.85);font-family:'JetBrains Mono',monospace;font-size:11px;color:{{ j.payColor }}">{{ j.pay }}</span>
+              </div>
+              <div style="padding:11px 12px 12px;display:flex;flex-direction:column;gap:7px;flex:1">
+                <div style="display:flex;justify-content:space-between;align-items:baseline;gap:8px">
+                  <span style="font-family:'Rajdhani',sans-serif;font-weight:700;font-size:18px;letter-spacing:0.04em;line-height:1">{{ j.tile }}</span>
+                  <span style="font-family:'JetBrains Mono',monospace;font-size:11px;color:rgba(242,239,232,0.5)">{{ j.dist }}</span>
+                </div>
+                <span style="font-size:12px;color:{{ j.statusColor }};line-height:1.4">{{ j.status }}</span>
+                <div style="display:flex;flex-direction:column;gap:5px">
+                  <div style="height:4px;background:rgba(255,255,255,0.1)"><div style="width:{{ j.bar }};height:100%;background:{{ j.barColor }}"></div></div>
+                  <span style="font-family:'JetBrains Mono',monospace;font-size:10px;color:rgba(242,239,232,0.55)">{{ j.frames }}</span>
+                </div>
+                <div style="display:{{ logDisplay }};margin-top:auto;flex-direction:column;gap:3px;padding:7px 8px;background:rgba(0,0,0,0.35);border:1px solid rgba(255,255,255,0.07)">
+                  <sc-for list="{{ j.log }}" as="l" hint-placeholder-count="2">
+                    <span style="font-family:'JetBrains Mono',monospace;font-size:10px;line-height:1.4;color:rgba(242,239,232,0.6);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ l }}</span>
+                  </sc-for>
+                </div>
+              </div>
+              <div style="display:flex;align-items:center;gap:8px;padding:9px 12px;border-top:1px solid rgba(255,255,255,0.08);background:rgba(255,255,255,0.02)">
+                <span style="height:28px;padding:0 12px;background:{{ j.actionBg }};border:1px solid {{ j.kindColor }};color:{{ j.actionFg }};font-family:'Rajdhani',sans-serif;font-weight:700;font-size:12px;letter-spacing:0.1em;text-transform:uppercase;display:inline-flex;align-items:center;clip-path:polygon(5px 0,100% 0,100% calc(100% - 5px),calc(100% - 5px) 100%,0 100%,0 5px)">{{ j.action }}</span>
+                <span style="height:28px;padding:0 10px;border:1px solid rgba(255,255,255,0.2);color:rgba(242,239,232,0.8);font-family:'Rajdhani',sans-serif;font-weight:700;font-size:12px;letter-spacing:0.1em;text-transform:uppercase;display:inline-flex;align-items:center">{{ j.second }}</span>
+                <span style="margin-left:auto;font-family:'Rajdhani',sans-serif;font-weight:700;font-size:11px;letter-spacing:0.1em;text-transform:uppercase;color:rgba(242,239,232,0.6)">Details ›</span>
+              </div>
+            </div>
+          </sc-for>
+        </div>
+
+        <div style="border-top:1px solid rgba(255,255,255,0.1);padding:10px 20px;display:flex;justify-content:space-between;align-items:center;font-size:12px;color:rgba(242,239,232,0.6)">
+          <span>A paused training keeps its steps. It resumes from the step it stopped at.</span>
+          <span style="font-family:'Rajdhani',sans-serif;font-weight:700;font-size:12px;letter-spacing:0.1em;text-transform:uppercase;color:rgba(242,239,232,0.7)">Full log</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 8d · Publish -->
+  <div id="8d" style="display:flex;flex-direction:column;gap:12px">
+    <div style="display:flex;gap:12px;align-items:baseline;font-size:15px"><a href="#8d" style="font-family:'JetBrains Mono',monospace;font-size:12px;padding:3px 8px;background:oklch(0.78 0.14 200);color:#0b0d10;text-decoration:none">8d</a><span style="font-family:'Rajdhani',sans-serif;font-weight:700;font-size:20px;text-transform:uppercase;letter-spacing:0.08em">Publish</span><span style="color:rgba(242,239,232,0.6)">finished work waiting for your review, then upload</span></div>
+    <div style="position:relative;width:1920px;height:1080px;overflow:hidden;background:#0b0d10;font-size:14px">
+      <img src="assets/world.webp" alt="" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover">
+      <dc-import name="Chrome7" app="Build" active="Work" toast="" hint-size="100%,100%" style="position:absolute;inset:0"></dc-import>
+
+      <div style="position:absolute;left:24px;top:80px;bottom:130px;width:1080px;display:flex;flex-direction:column;background:rgba(12,14,18,0.985);backdrop-filter:blur(14px);border:1px solid rgba(255,255,255,0.12);clip-path:polygon(12px 0,100% 0,100% calc(100% - 12px),calc(100% - 12px) 100%,0 100%,0 12px);overflow:hidden">
+        <div style="padding:18px 20px 0;display:flex;flex-direction:column;gap:12px">
+          <div style="display:flex;justify-content:space-between;align-items:flex-start">
+            <div style="display:flex;flex-direction:column;gap:4px">
+              <span style="font-family:'Rajdhani',sans-serif;font-weight:700;font-size:26px;text-transform:uppercase;letter-spacing:0.08em;line-height:1">Work</span>
+              <span style="font-size:12px;color:rgba(242,239,232,0.6)">Look at it once, then send it. Nothing leaves this machine on its own.</span>
+            </div>
+            <div style="display:flex;align-items:center;gap:10px">
+              <span style="display:flex;align-items:center;gap:8px;height:28px;padding:0 11px;border:1px solid oklch(0.8 0.15 145);background:oklch(0.8 0.15 145 / 0.1);font-family:'Rajdhani',sans-serif;font-weight:700;font-size:12px;letter-spacing:0.1em;text-transform:uppercase;color:oklch(0.8 0.15 145)"><span style="width:7px;height:7px;border-radius:50%;background:oklch(0.8 0.15 145)"></span>3 to review · 0 uploading</span>
+              <span style="font-size:18px;color:rgba(242,239,232,0.5)">✕</span>
+            </div>
+          </div>
+          <div style="display:flex;align-items:center;gap:16px;padding:9px 12px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.09);font-size:12px;color:rgba(242,239,232,0.7)">
+            <span style="font-family:'Rajdhani',sans-serif;font-weight:600;font-size:11px;letter-spacing:0.14em;text-transform:uppercase;color:rgba(242,239,232,0.5)">This machine</span>
+            <span><b style="color:#f2efe8;font-weight:600">17/354</b> tiles drawn</span>
+            <span><b style="color:#f2efe8;font-weight:600">633</b> atoms waiting</span>
+            <span style="font-family:'JetBrains Mono',monospace;font-size:11px;color:rgba(242,239,232,0.5)">WebGPU · nvidia · buffers to 2047 MB</span>
+            <div style="margin-left:auto;display:flex;align-items:center;gap:8px">
+              <div style="width:110px;height:4px;background:rgba(255,255,255,0.12)"><div style="width:21%;height:100%;background:oklch(0.78 0.14 200)"></div></div>
+              <span style="font-family:'JetBrains Mono',monospace;font-size:11px">4.2 / 20 GB</span>
+            </div>
+          </div>
+        </div>
+
+        <div style="margin-top:12px;display:flex;font-family:'Rajdhani',sans-serif;font-weight:700;font-size:14px;letter-spacing:0.1em;text-transform:uppercase">
+          <sc-for list="{{ tabsPub }}" as="t" hint-placeholder-count="5">
+            <span style="flex:1;height:42px;display:inline-flex;align-items:center;justify-content:center;gap:7px;border-bottom:{{ t.border }};background:{{ t.bg }};color:{{ t.fg }}">{{ t.name }}<span style="font-family:'JetBrains Mono',monospace;font-size:11px;opacity:0.75">{{ t.count }}</span></span>
+          </sc-for>
+        </div>
+
+        <div style="display:flex;align-items:center;gap:10px;padding:12px 20px;border-bottom:1px solid rgba(255,255,255,0.08)">
+          <span style="font-family:'Rajdhani',sans-serif;font-weight:600;font-size:11px;letter-spacing:0.14em;text-transform:uppercase;color:rgba(242,239,232,0.5)">State</span>
+          <sc-for list="{{ pubChips }}" as="c" hint-placeholder-count="3">
+            <span style="height:26px;padding:0 10px;display:inline-flex;align-items:center;gap:6px;background:{{ c.bg }};border:{{ c.border }};color:{{ c.fg }};font-family:'Rajdhani',sans-serif;font-weight:700;font-size:12px;letter-spacing:0.08em;text-transform:uppercase">{{ c.label }}<span style="font-family:'JetBrains Mono',monospace;font-size:10px;opacity:0.7">{{ c.dir }}</span></span>
+          </sc-for>
+          <span style="margin-left:auto;display:flex;align-items:center;gap:10px;font-size:12px;color:rgba(242,239,232,0.55)">18 frames · 212 MB to send<span style="height:28px;padding:0 11px;background:oklch(0.8 0.15 145);color:#0b0d10;font-family:'Rajdhani',sans-serif;font-weight:700;font-size:12px;letter-spacing:0.1em;text-transform:uppercase;display:inline-flex;align-items:center;clip-path:polygon(5px 0,100% 0,100% calc(100% - 5px),calc(100% - 5px) 100%,0 100%,0 5px)">Upload all</span></span>
+        </div>
+
+        <div style="flex:1;min-height:0;overflow:auto;padding:16px 20px;display:grid;grid-template-columns:repeat(3,1fr);gap:14px;align-content:start">
+          <sc-for list="{{ cardsPub }}" as="j" hint-placeholder-count="3">
+            <div style="display:flex;flex-direction:column;background:{{ j.bg }};border:1px solid {{ j.border }}">
+              <div style="position:relative;height:{{ previewH }};background:repeating-linear-gradient(135deg,rgba(242,239,232,0.055) 0 6px,transparent 6px 12px),#12151a;border-bottom:1px solid {{ j.border }};display:flex;align-items:center;justify-content:center">
+                <span style="font-family:'JetBrains Mono',monospace;font-size:11px;color:rgba(242,239,232,0.4)">{{ j.thumb }}</span>
+                <span style="position:absolute;left:8px;top:8px;padding:2px 7px;background:rgba(10,12,15,0.85);border:1px solid {{ j.kindColor }};color:{{ j.kindColor }};font-family:'Rajdhani',sans-serif;font-weight:700;font-size:10px;letter-spacing:0.12em;text-transform:uppercase">{{ j.kind }}</span>
+                <span style="position:absolute;left:8px;bottom:8px;font-family:'JetBrains Mono',monospace;font-size:10px;color:rgba(242,239,232,0.55)">{{ j.overlay }}</span>
+                <span style="display:{{ payDisplay }};position:absolute;right:8px;top:8px;padding:2px 7px;background:rgba(10,12,15,0.85);font-family:'JetBrains Mono',monospace;font-size:11px;color:{{ j.payColor }}">{{ j.pay }}</span>
+              </div>
+              <div style="padding:11px 12px 12px;display:flex;flex-direction:column;gap:8px;flex:1">
+                <div style="display:flex;justify-content:space-between;align-items:baseline;gap:8px">
+                  <span style="font-family:'Rajdhani',sans-serif;font-weight:700;font-size:18px;letter-spacing:0.04em;line-height:1">{{ j.tile }}</span>
+                  <span style="font-family:'JetBrains Mono',monospace;font-size:11px;color:rgba(242,239,232,0.5)">{{ j.size }}</span>
+                </div>
+                <span style="font-size:12px;color:{{ j.statusColor }};line-height:1.4">{{ j.status }}</span>
+                <div style="display:flex;flex-direction:column;gap:5px">
+                  <sc-for list="{{ j.checks }}" as="c" hint-placeholder-count="3">
+                    <span style="display:flex;align-items:center;gap:8px;font-size:12px;color:rgba(242,239,232,0.7)"><span style="width:7px;height:7px;flex:none;background:{{ c.color }};transform:rotate(45deg)"></span>{{ c.what }}</span>
+                  </sc-for>
+                </div>
+              </div>
+              <div style="display:flex;align-items:center;gap:8px;padding:9px 12px;border-top:1px solid rgba(255,255,255,0.08);background:rgba(255,255,255,0.02)">
+                <span style="height:28px;padding:0 12px;background:{{ j.actionBg }};border:1px solid {{ j.kindColor }};color:{{ j.actionFg }};font-family:'Rajdhani',sans-serif;font-weight:700;font-size:12px;letter-spacing:0.1em;text-transform:uppercase;display:inline-flex;align-items:center;clip-path:polygon(5px 0,100% 0,100% calc(100% - 5px),calc(100% - 5px) 100%,0 100%,0 5px)">{{ j.action }}</span>
+                <span style="height:28px;padding:0 10px;border:1px solid rgba(255,255,255,0.2);color:rgba(242,239,232,0.8);font-family:'Rajdhani',sans-serif;font-weight:700;font-size:12px;letter-spacing:0.1em;text-transform:uppercase;display:inline-flex;align-items:center">{{ j.second }}</span>
+                <span style="margin-left:auto;font-family:'Rajdhani',sans-serif;font-weight:700;font-size:11px;letter-spacing:0.1em;text-transform:uppercase;color:rgba(242,239,232,0.6)">Details ›</span>
+              </div>
+            </div>
+          </sc-for>
+        </div>
+
+        <div style="border-top:1px solid rgba(255,255,255,0.1);padding:10px 20px;display:flex;justify-content:space-between;align-items:center;font-size:12px;color:rgba(242,239,232,0.6)">
+          <span>Uploaded frames go to the tile's owner for approval. Yours stay yours until then.</span>
+          <span style="font-family:'Rajdhani',sans-serif;font-weight:700;font-size:12px;letter-spacing:0.1em;text-transform:uppercase;color:rgba(242,239,232,0.7)">Upload history</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 8e · Settings -->
+  <div id="8e" style="display:flex;flex-direction:column;gap:12px">
+    <div style="display:flex;gap:12px;align-items:baseline;font-size:15px"><a href="#8e" style="font-family:'JetBrains Mono',monospace;font-size:12px;padding:3px 8px;background:oklch(0.78 0.14 200);color:#0b0d10;text-decoration:none">8e</a><span style="font-family:'Rajdhani',sans-serif;font-weight:700;font-size:20px;text-transform:uppercase;letter-spacing:0.08em">Settings</span><span style="color:rgba(242,239,232,0.6)">work in the background · help render the world · storage in GB · what is drawn per zoom</span></div>
+    <div style="position:relative;width:1920px;height:1080px;overflow:hidden;background:#0b0d10;font-size:14px">
+      <img src="assets/world.webp" alt="" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover">
+      <dc-import name="Chrome7" app="Build" active="Work" toast="" hint-size="100%,100%" style="position:absolute;inset:0"></dc-import>
+
+      <div style="position:absolute;left:24px;top:80px;bottom:130px;width:1080px;display:flex;flex-direction:column;background:rgba(12,14,18,0.985);backdrop-filter:blur(14px);border:1px solid rgba(255,255,255,0.12);clip-path:polygon(12px 0,100% 0,100% calc(100% - 12px),calc(100% - 12px) 100%,0 100%,0 12px);overflow:hidden">
+        <div style="padding:18px 20px 0;display:flex;flex-direction:column;gap:12px">
+          <div style="display:flex;justify-content:space-between;align-items:flex-start">
+            <div style="display:flex;flex-direction:column;gap:4px">
+              <span style="font-family:'Rajdhani',sans-serif;font-weight:700;font-size:26px;text-transform:uppercase;letter-spacing:0.08em;line-height:1">Work</span>
+              <span style="font-size:12px;color:rgba(242,239,232,0.6)">What this machine gives the world, and how much of it.</span>
+            </div>
+            <div style="display:flex;align-items:center;gap:10px">
+              <span style="display:flex;align-items:center;gap:8px;height:28px;padding:0 11px;border:1px solid rgba(255,255,255,0.2);font-family:'Rajdhani',sans-serif;font-weight:700;font-size:12px;letter-spacing:0.1em;text-transform:uppercase;color:rgba(242,239,232,0.75)"><span style="width:7px;height:7px;border-radius:50%;background:rgba(242,239,232,0.5)"></span>idle — 34 done, 12 failed</span>
+              <span style="font-size:18px;color:rgba(242,239,232,0.5)">✕</span>
+            </div>
+          </div>
+        </div>
+
+        <div style="margin-top:12px;display:flex;font-family:'Rajdhani',sans-serif;font-weight:700;font-size:14px;letter-spacing:0.1em;text-transform:uppercase">
+          <sc-for list="{{ tabsSet }}" as="t" hint-placeholder-count="5">
+            <span style="flex:1;height:42px;display:inline-flex;align-items:center;justify-content:center;gap:7px;border-bottom:{{ t.border }};background:{{ t.bg }};color:{{ t.fg }}">{{ t.name }}<span style="font-family:'JetBrains Mono',monospace;font-size:11px;opacity:0.75">{{ t.count }}</span></span>
+          </sc-for>
+        </div>
+
+        <div style="flex:1;min-height:0;overflow:auto;padding:18px 20px;display:grid;grid-template-columns:1fr 1fr;gap:16px;align-content:start">
+          <div style="display:flex;flex-direction:column;gap:14px">
+            <div style="display:flex;flex-direction:column;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.1)">
+              <sc-for list="{{ toggles }}" as="t" hint-placeholder-count="2">
+                <div style="display:flex;align-items:center;gap:14px;padding:14px 14px;border-bottom:1px solid rgba(255,255,255,0.07)">
+                  <div style="display:flex;flex-direction:column;gap:3px;flex:1">
+                    <span style="font-family:'Rajdhani',sans-serif;font-weight:700;font-size:16px;letter-spacing:0.04em;text-transform:uppercase;line-height:1">{{ t.name }}</span>
+                    <span style="font-size:12px;color:rgba(242,239,232,0.6);line-height:1.45">{{ t.what }}</span>
+                  </div>
+                  <span style="width:44px;height:22px;flex:none;position:relative;background:{{ t.trackBg }};border:1px solid {{ t.trackBorder }}"><span style="position:absolute;left:{{ t.knobLeft }};top:2px;width:16px;height:16px;background:{{ t.knob }}"></span></span>
+                </div>
+              </sc-for>
+              <div style="padding:12px 14px;display:flex;flex-direction:column;gap:9px">
+                <div style="display:flex;justify-content:space-between;align-items:baseline"><span style="font-family:'Rajdhani',sans-serif;font-weight:600;font-size:11px;letter-spacing:0.14em;text-transform:uppercase;color:rgba(242,239,232,0.55)">Storage for work</span><span style="font-family:'JetBrains Mono',monospace;font-size:12px">4.2 GB used of 20 GB</span></div>
+                <div style="height:8px;background:rgba(255,255,255,0.1);display:flex"><div style="width:14%;background:oklch(0.78 0.14 200)"></div><div style="width:7%;background:oklch(0.82 0.16 80)"></div></div>
+                <div style="display:flex;gap:16px;font-size:12px;color:rgba(242,239,232,0.65)"><span style="display:flex;align-items:center;gap:7px"><span style="width:7px;height:7px;background:oklch(0.78 0.14 200);transform:rotate(45deg)"></span>drawn tiles 2.8 GB</span><span style="display:flex;align-items:center;gap:7px"><span style="width:7px;height:7px;background:oklch(0.82 0.16 80);transform:rotate(45deg)"></span>training data 1.4 GB</span></div>
+                <div style="display:flex;align-items:center;gap:10px">
+                  <div style="flex:1;height:4px;background:rgba(255,255,255,0.12);position:relative"><div style="width:60%;height:100%;background:rgba(242,239,232,0.6)"></div><span style="position:absolute;left:60%;top:-5px;width:12px;height:14px;background:#f2efe8;transform:translateX(-50%)"></span></div>
+                  <span style="font-family:'JetBrains Mono',monospace;font-size:12px;width:78px;text-align:right">20 GB cap</span>
+                </div>
+                <div style="display:flex;gap:8px"><span style="height:28px;padding:0 11px;border:1px solid rgba(255,255,255,0.22);font-family:'Rajdhani',sans-serif;font-weight:700;font-size:12px;letter-spacing:0.1em;text-transform:uppercase;display:inline-flex;align-items:center">Clear drawn tiles</span><span style="height:28px;padding:0 11px;border:1px solid oklch(0.8 0.18 25 / 0.5);color:oklch(0.8 0.18 25);font-family:'Rajdhani',sans-serif;font-weight:700;font-size:12px;letter-spacing:0.1em;text-transform:uppercase;display:inline-flex;align-items:center">Clear everything</span></div>
+              </div>
+            </div>
+
+            <div style="display:flex;flex-direction:column;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.1)">
+              <div style="display:flex;justify-content:space-between;align-items:center;padding:12px 14px;border-bottom:1px solid rgba(255,255,255,0.07)"><span style="font-family:'Rajdhani',sans-serif;font-weight:700;font-size:16px;letter-spacing:0.04em;text-transform:uppercase;line-height:1">This machine</span><span style="font-family:'JetBrains Mono',monospace;font-size:11px;color:rgba(242,239,232,0.55)">WebGPU · nvidia</span></div>
+              <sc-for list="{{ machine }}" as="m" hint-placeholder-count="4">
+                <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;padding:9px 14px;border-bottom:1px solid rgba(255,255,255,0.05);font-size:13px">
+                  <span style="color:rgba(242,239,232,0.75)">{{ m.k }}</span>
+                  <span style="font-family:'JetBrains Mono',monospace;font-size:12px;color:{{ m.color }}">{{ m.v }}</span>
+                </div>
+              </sc-for>
+              <div style="padding:11px 14px;font-size:12px;color:rgba(242,239,232,0.6);line-height:1.45">Idle — 34 done, 12 failed. Failures are kept for a day so you can see why.</div>
+            </div>
+          </div>
+
+          <div style="display:flex;flex-direction:column;gap:14px">
+            <div style="display:flex;flex-direction:column;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.1)">
+              <div style="display:flex;justify-content:space-between;align-items:center;padding:12px 14px;border-bottom:1px solid rgba(255,255,255,0.07)"><span style="font-family:'Rajdhani',sans-serif;font-weight:700;font-size:16px;letter-spacing:0.04em;text-transform:uppercase;line-height:1">Help render the world</span><span style="font-family:'JetBrains Mono',monospace;font-size:11px;color:rgba(242,239,232,0.55)">17/354 tiles drawn · 633 atoms waiting</span></div>
+              <sc-for list="{{ zoom }}" as="z" hint-placeholder-count="5">
+                <div style="display:flex;align-items:center;gap:12px;padding:9px 14px;border-bottom:1px solid rgba(255,255,255,0.05);font-size:13px">
+                  <span style="width:42px;flex:none;font-family:'Rajdhani',sans-serif;font-weight:700;font-size:14px;letter-spacing:0.08em;text-transform:uppercase;color:{{ z.color }}">{{ z.level }}</span>
+                  <div style="flex:1;height:6px;background:rgba(255,255,255,0.1)"><div style="width:{{ z.bar }};height:100%;background:{{ z.color }}"></div></div>
+                  <span style="width:70px;flex:none;text-align:right;font-family:'JetBrains Mono',monospace;font-size:12px;color:rgba(242,239,232,0.7)">{{ z.count }}</span>
+                  <span style="width:96px;flex:none;text-align:right;font-size:12px;color:rgba(242,239,232,0.55)">{{ z.what }}</span>
+                </div>
+              </sc-for>
+              <div style="padding:11px 14px;display:flex;justify-content:space-between;align-items:center;font-size:12px;color:rgba(242,239,232,0.6)"><span>Nearest tiles first, then whatever the world asks for.</span><span style="font-family:'Rajdhani',sans-serif;font-weight:700;font-size:12px;letter-spacing:0.1em;text-transform:uppercase;color:rgba(242,239,232,0.75)">Only near me</span></div>
+            </div>
+
+            <div style="display:flex;flex-direction:column;background:rgba(0,0,0,0.35);border:1px solid rgba(255,255,255,0.1)">
+              <div style="display:flex;justify-content:space-between;align-items:center;padding:10px 14px;border-bottom:1px solid rgba(255,255,255,0.08)"><span style="font-family:'Rajdhani',sans-serif;font-weight:700;font-size:14px;letter-spacing:0.08em;text-transform:uppercase;line-height:1">Log</span><span style="display:flex;gap:8px;font-family:'Rajdhani',sans-serif;font-weight:700;font-size:11px;letter-spacing:0.1em;text-transform:uppercase"><span style="color:oklch(0.78 0.14 200)">Follow</span><span style="color:rgba(242,239,232,0.6)">Copy</span><span style="color:rgba(242,239,232,0.6)">Clear</span></span></div>
+              <div style="padding:9px 14px;display:flex;flex-direction:column;gap:4px;max-height:270px;overflow:auto">
+                <sc-for list="{{ logLines }}" as="l" hint-placeholder-count="7">
+                  <span style="font-family:'JetBrains Mono',monospace;font-size:11px;line-height:1.5;color:{{ l.color }}">{{ l.text }}</span>
+                </sc-for>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div style="border-top:1px solid rgba(255,255,255,0.1);padding:10px 20px;display:flex;justify-content:space-between;align-items:center;font-size:12px;color:rgba(242,239,232,0.6)">
+          <span>Turning both off leaves the world alone; you keep every tile already drawn here.</span>
+          <span style="font-family:'Rajdhani',sans-serif;font-weight:700;font-size:12px;letter-spacing:0.1em;text-transform:uppercase;color:rgba(242,239,232,0.7)">Advanced</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 8f · job detail -->
+  <div id="8f" style="display:flex;flex-direction:column;gap:12px">
+    <div style="display:flex;gap:12px;align-items:baseline;font-size:15px"><a href="#8f" style="font-family:'JetBrains Mono',monospace;font-size:12px;padding:3px 8px;background:oklch(0.78 0.14 200);color:#0b0d10;text-decoration:none">8f</a><span style="font-family:'Rajdhani',sans-serif;font-weight:700;font-size:20px;text-transform:uppercase;letter-spacing:0.08em">Job detail</span><span style="color:rgba(242,239,232,0.6)">a card opened: where the tile is, its frames, its pieces and its log</span></div>
+    <div style="position:relative;width:1920px;height:1080px;overflow:hidden;background:#0b0d10;font-size:14px">
+      <img src="assets/world.webp" alt="" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover">
+      <dc-import name="Chrome7" app="Build" active="Work" toast="" hint-size="100%,100%" style="position:absolute;inset:0"></dc-import>
+      <div style="position:absolute;inset:0;background:rgba(6,8,10,0.4)"></div>
+
+      <div style="position:absolute;left:24px;top:80px;bottom:130px;width:1500px;display:flex;background:rgba(12,14,18,0.985);backdrop-filter:blur(14px);border:1px solid rgba(255,255,255,0.14);clip-path:polygon(12px 0,100% 0,100% calc(100% - 12px),calc(100% - 12px) 100%,0 100%,0 12px);overflow:hidden">
+        <div style="width:320px;flex:none;display:flex;flex-direction:column;border-right:1px solid rgba(255,255,255,0.12);background:rgba(10,12,15,0.6)">
+          <div style="padding:16px 16px 12px;display:flex;flex-direction:column;gap:6px;border-bottom:1px solid rgba(255,255,255,0.1)">
+            <span style="font-family:'Rajdhani',sans-serif;font-weight:700;font-size:22px;text-transform:uppercase;letter-spacing:0.08em;line-height:1">Work</span>
+            <span style="font-size:12px;color:rgba(242,239,232,0.6)">Render jobs · 5</span>
+          </div>
+          <sc-for list="{{ listRows }}" as="r" hint-placeholder-count="5">
+            <div style="display:flex;gap:10px;padding:11px 16px;border-bottom:1px solid rgba(255,255,255,0.06);background:{{ r.bg }};border-left:2px solid {{ r.mark }}">
+              <div style="width:52px;height:40px;flex:none;background:repeating-linear-gradient(135deg,rgba(242,239,232,0.055) 0 5px,transparent 5px 10px),#12151a;border:1px solid rgba(255,255,255,0.1)"></div>
+              <div style="display:flex;flex-direction:column;gap:2px;min-width:0;flex:1">
+                <span style="font-family:'Rajdhani',sans-serif;font-weight:700;font-size:15px;letter-spacing:0.04em;line-height:1.1;color:{{ r.fg }}">{{ r.tile }}</span>
+                <span style="font-size:11px;color:rgba(242,239,232,0.55);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ r.meta }}</span>
+              </div>
+              <span style="flex:none;font-family:'JetBrains Mono',monospace;font-size:10px;color:{{ r.payColor }}">{{ r.pay }}</span>
+            </div>
+          </sc-for>
+          <div style="margin-top:auto;border-top:1px solid rgba(255,255,255,0.1);padding:12px 16px;font-size:12px;color:rgba(242,239,232,0.6);line-height:1.45">↑ ↓ moves through the jobs. Esc goes back to the cards.</div>
+        </div>
+
+        <div style="flex:1;display:flex;flex-direction:column;min-width:0">
+          <div style="display:flex;align-items:center;gap:14px;padding:14px 20px;border-bottom:1px solid rgba(255,255,255,0.12);background:linear-gradient(180deg,rgba(24,27,33,0.95),rgba(14,16,20,0.95))">
+            <span style="font-family:'Rajdhani',sans-serif;font-weight:700;font-size:24px;letter-spacing:0.04em;line-height:1">14/8548/5801</span>
+            <span style="padding:3px 8px;border:1px solid oklch(0.78 0.14 200);color:oklch(0.78 0.14 200);font-family:'Rajdhani',sans-serif;font-weight:700;font-size:11px;letter-spacing:0.12em;text-transform:uppercase">render</span>
+            <span style="font-size:12px;color:rgba(242,239,232,0.65)">trained · waiting to be drawn · 2.6 km · Maloja Nord · owner A. Giacometti</span>
+            <span style="font-family:'JetBrains Mono',monospace;font-size:12px;color:rgba(242,239,232,0.7)">free</span>
+            <div style="margin-left:auto;display:flex;gap:8px;align-items:center">
+              <span style="height:32px;padding:0 14px;background:oklch(0.78 0.14 200);color:#0b0d10;font-family:'Rajdhani',sans-serif;font-weight:700;font-size:13px;letter-spacing:0.08em;text-transform:uppercase;display:inline-flex;align-items:center;clip-path:polygon(6px 0,100% 0,100% calc(100% - 6px),calc(100% - 6px) 100%,0 100%,0 6px)">Render</span>
+              <span style="height:32px;padding:0 12px;border:1px solid rgba(255,255,255,0.25);font-family:'Rajdhani',sans-serif;font-weight:700;font-size:13px;letter-spacing:0.08em;text-transform:uppercase;display:inline-flex;align-items:center">Drop</span>
+              <span style="height:32px;padding:0 12px;border:1px solid rgba(255,255,255,0.25);font-family:'Rajdhani',sans-serif;font-weight:700;font-size:13px;letter-spacing:0.08em;text-transform:uppercase;display:inline-flex;align-items:center;color:rgba(242,239,232,0.75)">Fly there</span>
+              <span style="font-size:18px;color:rgba(242,239,232,0.5);margin-left:4px">✕</span>
+            </div>
+          </div>
+
+          <div style="flex:1;min-height:0;display:flex;flex-direction:column;gap:14px;padding:16px 20px;overflow:auto">
+            <div style="display:grid;grid-template-columns:420px 1fr;gap:14px">
+              <div style="display:flex;flex-direction:column;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.1)">
+                <div style="display:flex;justify-content:space-between;align-items:center;padding:10px 12px;border-bottom:1px solid rgba(255,255,255,0.08)"><span style="font-family:'Rajdhani',sans-serif;font-weight:700;font-size:14px;letter-spacing:0.08em;text-transform:uppercase;line-height:1">Where it is</span><span style="font-family:'JetBrains Mono',monospace;font-size:11px;color:rgba(242,239,232,0.55)">46.4021N 9.6912E</span></div>
+                <div style="position:relative;height:250px;background:repeating-linear-gradient(0deg,rgba(255,255,255,0.05) 0 1px,transparent 1px 30px),repeating-linear-gradient(90deg,rgba(255,255,255,0.05) 0 1px,transparent 1px 30px),#12151a">
+                  <div style="position:absolute;left:150px;top:90px;width:90px;height:60px;background:oklch(0.78 0.14 200 / 0.22);border:1px solid oklch(0.78 0.14 200)"></div>
+                  <span style="position:absolute;left:195px;top:82px;transform:translate(-50%,-100%);padding:2px 7px;background:rgba(10,12,15,0.9);border:1px solid oklch(0.78 0.14 200 / 0.6);font-family:'JetBrains Mono',monospace;font-size:10px;white-space:nowrap">14/8548/5801 · z14</span>
+                  <div style="position:absolute;left:96px;top:196px;width:10px;height:10px;background:oklch(0.82 0.16 80);border:2px solid #0b0d10;transform:rotate(45deg)"></div>
+                  <span style="position:absolute;left:112px;top:192px;font-family:'JetBrains Mono',monospace;font-size:10px;color:rgba(242,239,232,0.6)">you · 2.6 km</span>
+                  <span style="position:absolute;left:10px;top:8px;font-family:'Rajdhani',sans-serif;font-weight:600;font-size:11px;letter-spacing:0.14em;text-transform:uppercase;color:rgba(242,239,232,0.55)">Map · 2 km</span>
+                </div>
+                <div style="display:flex;flex-direction:column">
+                  <sc-for list="{{ place }}" as="p" hint-placeholder-count="4">
+                    <div style="display:flex;justify-content:space-between;gap:12px;padding:8px 12px;border-top:1px solid rgba(255,255,255,0.06);font-size:12px"><span style="color:rgba(242,239,232,0.65)">{{ p.k }}</span><span style="font-family:'JetBrains Mono',monospace;font-size:11px">{{ p.v }}</span></div>
+                  </sc-for>
+                </div>
+              </div>
+
+              <div style="display:flex;flex-direction:column;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.1)">
+                <div style="display:flex;justify-content:space-between;align-items:center;padding:10px 12px;border-bottom:1px solid rgba(255,255,255,0.08)"><span style="font-family:'Rajdhani',sans-serif;font-weight:700;font-size:14px;letter-spacing:0.08em;text-transform:uppercase;line-height:1">Frames · 2 of 3</span><span style="display:flex;gap:8px;align-items:center;font-size:11px;color:rgba(242,239,232,0.55)">1 ready · 2 waiting<span style="height:24px;padding:0 9px;border:1px solid rgba(255,255,255,0.2);font-family:'Rajdhani',sans-serif;font-weight:700;font-size:11px;letter-spacing:0.1em;text-transform:uppercase;display:inline-flex;align-items:center">Gallery</span></span></div>
+                <div style="display:flex;gap:10px;padding:12px;align-items:stretch">
+                  <span style="width:30px;flex:none;display:inline-flex;align-items:center;justify-content:center;border:1px solid rgba(255,255,255,0.2);background:rgba(255,255,255,0.04);font-size:16px;color:rgba(242,239,232,0.7)">‹</span>
+                  <div style="flex:1;position:relative;height:226px;background:repeating-linear-gradient(135deg,rgba(242,239,232,0.055) 0 6px,transparent 6px 12px),#12151a;border:1px solid rgba(255,255,255,0.12);display:flex;align-items:center;justify-content:center">
+                    <span style="font-family:'JetBrains Mono',monospace;font-size:12px;color:rgba(242,239,232,0.4)">frame 2 · 256×256 · at step 2400</span>
+                    <span style="position:absolute;left:10px;top:10px;padding:2px 7px;background:rgba(10,12,15,0.85);border:1px solid oklch(0.8 0.15 145);color:oklch(0.8 0.15 145);font-family:'Rajdhani',sans-serif;font-weight:700;font-size:10px;letter-spacing:0.12em;text-transform:uppercase">ready</span>
+                  </div>
+                  <span style="width:30px;flex:none;display:inline-flex;align-items:center;justify-content:center;border:1px solid rgba(255,255,255,0.2);background:rgba(255,255,255,0.04);font-size:16px;color:rgba(242,239,232,0.7)">›</span>
+                </div>
+                <div style="display:flex;gap:8px;padding:0 12px 12px">
+                  <sc-for list="{{ strip }}" as="s" hint-placeholder-count="3">
+                    <div style="flex:1;position:relative;height:52px;background:repeating-linear-gradient(135deg,rgba(242,239,232,0.055) 0 6px,transparent 6px 12px),#12151a;border:{{ s.border }};display:flex;align-items:flex-end;justify-content:space-between;padding:4px 6px">
+                      <span style="font-family:'JetBrains Mono',monospace;font-size:10px;color:rgba(242,239,232,0.5)">{{ s.label }}</span>
+                      <span style="font-family:'Rajdhani',sans-serif;font-weight:700;font-size:10px;letter-spacing:0.1em;text-transform:uppercase;color:{{ s.color }}">{{ s.state }}</span>
+                    </div>
+                  </sc-for>
+                </div>
+              </div>
+            </div>
+
+            <div style="display:grid;grid-template-columns:420px 1fr;gap:14px">
+              <div style="display:flex;flex-direction:column;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.1)">
+                <div style="padding:10px 12px;border-bottom:1px solid rgba(255,255,255,0.08);font-family:'Rajdhani',sans-serif;font-weight:700;font-size:14px;letter-spacing:0.08em;text-transform:uppercase;line-height:1">Pieces · 1 to do, 2 waiting on the rest</div>
+                <sc-for list="{{ pieces }}" as="p" hint-placeholder-count="3">
+                  <div style="display:flex;align-items:center;gap:10px;padding:9px 12px;border-bottom:1px solid rgba(255,255,255,0.05);font-size:12px">
+                    <span style="width:7px;height:7px;flex:none;background:{{ p.color }};transform:rotate(45deg)"></span>
+                    <span style="flex:1;color:rgba(242,239,232,0.8)">{{ p.what }}</span>
+                    <span style="font-family:'JetBrains Mono',monospace;font-size:11px;color:rgba(242,239,232,0.5)">{{ p.when }}</span>
+                    <span style="font-family:'Rajdhani',sans-serif;font-weight:700;font-size:10px;letter-spacing:0.1em;text-transform:uppercase;color:{{ p.color }}">{{ p.state }}</span>
+                  </div>
+                </sc-for>
+              </div>
+
+              <div style="display:flex;flex-direction:column;background:rgba(0,0,0,0.4);border:1px solid rgba(255,255,255,0.1)">
+                <div style="display:flex;justify-content:space-between;align-items:center;padding:10px 12px;border-bottom:1px solid rgba(255,255,255,0.08)"><span style="font-family:'Rajdhani',sans-serif;font-weight:700;font-size:14px;letter-spacing:0.08em;text-transform:uppercase;line-height:1">Log · this job</span><span style="display:flex;gap:10px;font-family:'Rajdhani',sans-serif;font-weight:700;font-size:11px;letter-spacing:0.1em;text-transform:uppercase"><span style="color:oklch(0.78 0.14 200)">Follow</span><span style="color:rgba(242,239,232,0.6)">Copy</span></span></div>
+                <div style="flex:1;min-height:0;overflow:auto;padding:9px 12px;display:flex;flex-direction:column;gap:4px">
+                  <sc-for list="{{ jobLog }}" as="l" hint-placeholder-count="8">
+                    <span style="font-family:'JetBrains Mono',monospace;font-size:11px;line-height:1.5;color:{{ l.color }}">{{ l.text }}</span>
+                  </sc-for>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</section>
+
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;density&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;default&quot;:&quot;comfortable&quot;,&quot;options&quot;:[&quot;comfortable&quot;,&quot;compact&quot;],&quot;tsType&quot;:&quot;string&quot;,&quot;section&quot;:&quot;Cards&quot;},&quot;payouts&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:true,&quot;tsType&quot;:&quot;boolean&quot;,&quot;section&quot;:&quot;Cards&quot;},&quot;cardLogs&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:true,&quot;tsType&quot;:&quot;boolean&quot;,&quot;section&quot;:&quot;Cards&quot;}}">
+class Component extends DCLogic {
+  renderVals() {
+    const p = this.props;
+    const C = 'oklch(0.78 0.14 200)', A = 'oklch(0.82 0.16 80)', G = 'oklch(0.8 0.15 145)', R = 'oklch(0.8 0.18 25)';
+    const dim = 'rgba(242,239,232,0.6)';
+    const dense = (p.density ?? 'comfortable') === 'compact';
+    const TABS = [['All', '9'], ['Render jobs', '5'], ['Training', '2'], ['Publish', '3'], ['Settings', '']];
+    const tabs = (active) => TABS.map(([name, count]) => {
+      const on = name === active;
+      return { name, count, fg: on ? C : 'rgba(242,239,232,0.6)', border: on ? '2px solid ' + C : '1px solid rgba(255,255,255,0.12)', bg: on ? 'oklch(0.78 0.14 200 / 0.08)' : 'transparent' };
+    });
+    const chips = (items, on) => items.map((it, i) => {
+      const label = Array.isArray(it) ? it[0] : it, dir = Array.isArray(it) ? it[1] : '';
+      const sel = i === on;
+      return { label, dir, bg: sel ? C : 'transparent', fg: sel ? '#0b0d10' : 'rgba(242,239,232,0.75)', border: sel ? '1px solid ' + C : '1px solid rgba(255,255,255,0.2)' };
+    });
+    const card = (o) => {
+      const kc = o.kind === 'train' ? A : o.kind === 'publish' ? G : o.kind === 'done' ? G : C;
+      const live = !!o.live;
+      return {
+        kind: o.kindLabel || o.kind, kindColor: kc,
+        bg: live ? 'oklch(0.78 0.14 200 / 0.07)' : o.dimmed ? 'rgba(255,255,255,0.015)' : 'rgba(255,255,255,0.03)',
+        border: live ? kc : 'rgba(255,255,255,0.1)',
+        glow: live ? '0 0 26px oklch(0.78 0.14 200 / 0.22)' : 'none',
+        tile: o.tile, dist: o.dist || '', thumb: o.thumb, overlay: o.overlay || '',
+        status: o.status, statusColor: o.statusColor || 'rgba(242,239,232,0.8)',
+        pieces: o.pieces || '', frames: o.frames || '', bar: o.bar || '0%', barColor: o.barColor || kc,
+        pay: o.pay, payColor: o.pay === 'free' ? 'rgba(242,239,232,0.6)' : C,
+        action: o.action, actionBg: o.ghost ? 'transparent' : kc, actionFg: o.ghost ? kc : '#0b0d10', second: o.second || 'Drop',
+        hasNote: !!o.note, note: o.note || '', noteAge: o.noteAge || '',
+        size: o.size || '', checks: o.checks || [], shots: o.shots || [], more: o.more || '', log: o.log || [],
+      };
+    };
+    const shot = (label, state) => ({ label, color: state === 'ready' ? G : state === 'drawing' ? C : 'rgba(242,239,232,0.35)' });
+
+    const cardsAll = [
+      card({ kind: 'render', tile: '14/8548/5801', dist: '2.6 km', pay: 'free', thumb: 'tile preview · 256×256', overlay: '256×256 · at step 2400', status: 'trained · waiting to be drawn', pieces: '1 piece to do · 2 waiting on the rest', frames: '2/3 frames · 1 ready · 2 waiting', bar: '66%', action: 'Render' }),
+      card({ kind: 'render', tile: '14/8545/5800', dist: '2.8 km', pay: 'free', thumb: 'nothing drawn yet', overlay: '256×256 · at step ?', status: 'trained · waiting to be drawn', pieces: '1 piece to do · 5 waiting on the rest', frames: '0/3 frames · 1 ready · 5 waiting', bar: '0%', action: 'Render', note: 'dropped: the job and its pieces are gone, and compiling this tile again computes them rather than adopting them', noteAge: '14 min ago' }),
+      card({ kind: 'train', kindLabel: 'training', tile: '14/8548/5800', dist: '3.0 km', pay: '0.70 cr', thumb: 'splat render preview', overlay: '214 998 splats', status: 'training 600 of 2400', statusColor: A, pieces: '1 waiting on the rest · trained · waiting to be drawn', frames: '3/3 frames · 1 in hand · 1 waiting', bar: '25%', barColor: A, action: 'Pause', second: 'Drop' }),
+      card({ kind: 'render', tile: '14/8551/5810', dist: '0.4 km', pay: '0.70 cr', live: true, thumb: 'drawing now · frame 1 of 3', overlay: '256×256 · at step 2400', status: 'rendering on this machine · merge #19', statusColor: C, pieces: '2 pieces in hand · none waiting', frames: '1/3 frames · 62% · 2:14 left', bar: '62%', action: 'Stop', ghost: true, second: 'Log' }),
+      card({ kind: 'publish', kindLabel: 'publish', tile: '14/8550/5809', pay: '—', dist: '1.2 km', thumb: '8 frames ready', overlay: '8 × 256×256 · 94 MB', status: 'drawn · waiting for your review', statusColor: G, pieces: 'nothing left to compute', frames: '8/8 frames · 8 ready', bar: '100%', barColor: G, action: 'Review', second: 'Discard' }),
+      card({ kind: 'done', kindLabel: 'done', tile: '14/8547/5799', dist: '3.4 km', pay: '0.55 cr', dimmed: true, thumb: 'drawn 13:52', overlay: '3 × 256×256', status: 'drawn and uploaded · approved by R. Keller', statusColor: G, pieces: 'paid 0.55 cr into your wallet', frames: '3/3 frames · all ready', bar: '100%', barColor: G, action: 'Open', ghost: true, second: 'Hide' }),
+    ];
+
+    const cardsRender = [
+      card({ kind: 'render', tile: '14/8545/5800', dist: '2.8 km', pay: 'free', status: 'trained · waiting to be drawn', pieces: '1 piece to do · 5 waiting on the rest', frames: '0/3 frames · 1 ready · 5 waiting', bar: '0%', action: 'Render', shots: [shot('f1', 'waiting'), shot('f2', 'waiting'), shot('f3', 'waiting')], more: '+2' }),
+      card({ kind: 'render', tile: '14/8551/5810', dist: '0.4 km', pay: '0.70 cr', live: true, status: 'drawing frame 1 of 3 · 62%', statusColor: C, pieces: '2 pieces in hand · none waiting', frames: '1/3 frames · 2:14 left', bar: '62%', action: 'Stop', ghost: true, second: 'Log', shots: [shot('f1', 'drawing'), shot('f2', 'waiting'), shot('f3', 'waiting')], more: '' }),
+      card({ kind: 'render', tile: '14/8552/5811', dist: '4.1 km', pay: '1.10 cr', status: 'trained · waiting to be drawn', pieces: '4 pieces to do · 1 waiting on the rest', frames: '0/6 frames · 6 waiting', bar: '0%', action: 'Render', shots: [shot('f1', 'waiting'), shot('f2', 'waiting'), shot('f3', 'waiting')], more: '+3' }),
+      card({ kind: 'done', kindLabel: 'completed', tile: '14/8547/5799', dist: '3.4 km', pay: '0.55 cr', dimmed: true, status: 'drawn · uploaded 13:52', statusColor: G, pieces: 'nothing left to compute', frames: '3/3 frames · all ready', bar: '100%', barColor: G, action: 'Open', ghost: true, second: 'Hide', shots: [shot('f1', 'ready'), shot('f2', 'ready'), shot('f3', 'ready')], more: '' }),
+    ];
+
+    const cardsTrain = [
+      card({ kind: 'train', kindLabel: 'training', tile: '14/8548/5800', dist: '3.0 km', pay: '0.70 cr', live: true, thumb: 'splat render preview · step 600', overlay: '214 998 splats · 423 ms a step', status: 'training 600 of 2400 · about 12 min left', statusColor: A, frames: 'step 600 / 2400 · 2 readbacks waiting 9 ms', bar: '25%', barColor: A, action: 'Pause', second: 'Drop', log: ['train 24067 step 590 of 2400 · 423 ms a step · 7 submits', 'train 23965 step 1350 of 2400 · 445 ms a step · 3.2 buffers'] }),
+      card({ kind: 'train', kindLabel: 'training', tile: '14/8553/5812', dist: '5.2 km', pay: '1.40 cr', thumb: 'splat render preview · step 1350', overlay: '198 402 splats · 445 ms a step', status: 'training 1350 of 2400', statusColor: A, frames: 'step 1350 / 2400 · 2 readbacks waiting 35 ms', bar: '56%', barColor: A, action: 'Pause', second: 'Drop', log: ['train 23869 step 620 of 2400 · 425 ms a step · 7.1 submits', 'train 24073 step 900 of 2400 · 458 ms a step · 3.1 buffers'] }),
+      card({ kind: 'train', kindLabel: 'paused', tile: '14/8544/5798', dist: '6.0 km', pay: '1.40 cr', thumb: 'splat render preview · step 820', overlay: '176 550 splats · paused 41 min ago', status: 'paused at step 820 of 2400 · resumes there', statusColor: dim, frames: 'step 820 / 2400 · kept on disk 0.4 GB', bar: '34%', barColor: 'rgba(242,239,232,0.45)', action: 'Resume', ghost: true, second: 'Drop', log: ['train 23990 step 820 of 2400 · paused by you'] }),
+      card({ kind: 'done', kindLabel: 'trained', tile: '14/8546/5802', dist: '3.8 km', pay: '1.10 cr', dimmed: true, thumb: 'splat render preview · step 2400', overlay: '231 004 splats · trained 12:08', status: 'trained · now a render job', statusColor: G, frames: 'step 2400 / 2400 · handed to render', bar: '100%', barColor: G, action: 'Open', ghost: true, second: 'Hide', log: ['train 23801 step 2400 of 2400 · done in 18 min'] }),
+    ];
+
+    const cardsPub = [
+      card({ kind: 'publish', kindLabel: 'review', tile: '14/8550/5809', pay: '—', size: '94 MB', thumb: '8 frames · gallery', overlay: '8 × 256×256 · drawn 14:12', status: 'drawn on this machine · waiting for your review', statusColor: G, action: 'Review 8', second: 'Discard', checks: [{ what: 'all 8 frames drawn to step 2400', color: G }, { what: 'no frame darker than its neighbours', color: G }, { what: 'owner A. Giacometti accepts uploads', color: G }] }),
+      card({ kind: 'publish', kindLabel: 'review', tile: '14/8547/5803', pay: '0.70 cr', size: '38 MB', thumb: '3 frames · gallery', overlay: '3 × 256×256 · drawn 13:58', status: 'one frame stopped early · look before you send', statusColor: A, action: 'Review 3', second: 'Discard', checks: [{ what: 'frame 2 stopped at step 1780', color: A }, { what: 'frames 1 and 3 drawn to step 2400', color: G }, { what: 'paid from the pool on approval', color: G }] }),
+      card({ kind: 'publish', kindLabel: 'uploading', tile: '14/8549/5806', pay: '0.55 cr', size: '80 MB', thumb: 'sending frame 5 of 7', overlay: '7 × 256×256 · 61%', status: 'uploading · 61% · 1:10 left', statusColor: C, action: 'Pause', ghost: true, second: 'Cancel', checks: [{ what: '4 of 7 frames accepted', color: G }, { what: 'frame 5 in flight', color: C }, { what: 'then it waits for the owner', color: dim }] }),
+    ];
+
+    const toggles = [
+      { name: 'Work in the background', what: 'Keep computing while the window is not in front. Stops on battery.', on: true },
+      { name: 'Help render the world', what: 'Take jobs nobody pays for, near you first. This is what draws the map.', on: true },
+    ].map(t => ({ ...t, trackBg: t.on ? C : 'rgba(255,255,255,0.12)', trackBorder: t.on ? C : 'rgba(255,255,255,0.2)', knobLeft: t.on ? '24px' : '2px', knob: t.on ? '#0b0d10' : 'rgba(242,239,232,0.7)' }));
+
+    const machine = [
+      { k: 'Renderer', v: 'WebGPU · nvidia', color: '#f2efe8' },
+      { k: 'Buffers', v: 'up to 2047 MB', color: '#f2efe8' },
+      { k: 'A step takes', v: '423 – 458 ms', color: '#f2efe8' },
+      { k: 'Jobs at once', v: '2', color: '#f2efe8' },
+      { k: 'Failed today', v: '12 · 34 done', color: R },
+    ];
+
+    const zoom = [
+      { level: 'z6', count: '0 / 1', bar: '0%', what: 'whole region', color: 'rgba(242,239,232,0.5)' },
+      { level: 'z8', count: '0 / 1', bar: '0%', what: 'valley', color: 'rgba(242,239,232,0.5)' },
+      { level: 'z10', count: '0 / 4', bar: '0%', what: 'village', color: 'rgba(242,239,232,0.5)' },
+      { level: 'z12', count: '1 / 25', bar: '4%', what: 'street', color: A },
+      { level: 'z14', count: '16 / 323', bar: '5%', what: 'building', color: C },
+    ];
+
+    const logLines = [
+      'train 24067 step 590 of 2400 · 423 ms a step · 2 readbacks waiting 9 ms · 7 submits · 6.1 buffers (1.1 MB)',
+      'train 23965 step 1350 of 2400 · 445 ms a step · 2 readbacks waiting 35 ms · 7.7 submits · 3.2 buffers (6.4 MB)',
+      'train 23869 step 620 of 2400 · 425 ms a step · 2 readbacks waiting 12 ms · 7.1 submits · 7.8 buffers (1.5 MB)',
+      'train 24073 step 900 of 2400 · 458 ms a step · 2 readbacks waiting 67 ms · 7.4 submits · 3.1 buffers (3.1 MB)',
+      'draw 14/8551/5810 frame 1 · 256×256 · at step 2400',
+      'drop 14/8545/5800 · gave up · pieces discarded',
+      'idle · 34 done, 12 failed',
+    ].map((text, i) => ({ text, color: i === 5 ? R : i === 6 ? 'rgba(242,239,232,0.55)' : 'rgba(242,239,232,0.75)' }));
+
+    const strip = [
+      { label: 'frame 1', state: 'ready', color: G, border: '1px solid rgba(255,255,255,0.12)' },
+      { label: 'frame 2', state: 'shown', color: C, border: '1px solid ' + C },
+      { label: 'frame 3', state: 'waiting', color: 'rgba(242,239,232,0.45)', border: '1px solid rgba(255,255,255,0.12)' },
+    ];
+
+    const listRows = [
+      { tile: '14/8548/5801', meta: '2.6 km · trained · 2/3 frames', pay: 'free', sel: true },
+      { tile: '14/8545/5800', meta: '2.8 km · trained · 0/3 frames', pay: 'free' },
+      { tile: '14/8551/5810', meta: '0.4 km · drawing · 62%', pay: '0.70' },
+      { tile: '14/8552/5811', meta: '4.1 km · trained · 0/6 frames', pay: '1.10' },
+      { tile: '14/8547/5799', meta: '3.4 km · uploaded 13:52', pay: '0.55' },
+    ].map(r => ({ ...r, bg: r.sel ? 'oklch(0.78 0.14 200 / 0.12)' : 'transparent', mark: r.sel ? C : 'transparent', fg: r.sel ? C : '#f2efe8', payColor: r.pay === 'free' ? 'rgba(242,239,232,0.5)' : C }));
+
+    const place = [
+      { k: 'Land', v: 'Maloja Nord' },
+      { k: 'Owner', v: 'A. Giacometti' },
+      { k: 'Ground', v: '1796 m' },
+      { k: 'Atoms in this tile', v: '633 waiting' },
+      { k: 'Payout pool', v: 'free · nobody pays' },
+    ];
+
+    const pieces = [
+      { what: 'splats → frame 1', when: '14:12', state: 'done', color: G },
+      { what: 'splats → frame 2', when: '14:31', state: 'to do', color: C },
+      { what: 'frame 3 · waits on the rest of the tile', when: '—', state: 'waiting', color: 'rgba(242,239,232,0.45)' },
+    ];
+
+    const jobLog = [
+      'adopt 14/8548/5801 · trained at step 2400 · 214 998 splats',
+      'plan 3 frames · 1 piece to do · 2 waiting on the rest',
+      'draw frame 1 · 256×256 · 1.8 s · 7 submits · 6.1 buffers (1.1 MB)',
+      'frame 1 ready · kept on disk 11 MB',
+      'draw frame 2 · queued · waits for a free buffer',
+      'readback waiting 9 ms · 3.2 buffers (6.4 MB)',
+      'frame 3 waits on the rest of the tile · 2 pieces outstanding',
+      'no payout: this tile is free · drawn because you help render the world',
+    ].map((text, i) => ({ text, color: i === 7 ? 'rgba(242,239,232,0.55)' : i === 3 ? G : 'rgba(242,239,232,0.75)' }));
+
+    return {
+      tabsAll: tabs('All'), tabsRender: tabs('Render jobs'), tabsTrain: tabs('Training'), tabsPub: tabs('Publish'), tabsSet: tabs('Settings'),
+      showChips: chips(['Mine', 'Completed', 'All'], 2),
+      sortChips: chips([['Payout', '↓'], ['Distance', '↑']], 1),
+      stateChips: chips([['New', '3'], ['Partial', '1'], ['Completed', '1'], ['All', '5']], 3),
+      trainChips: chips([['Running', '2'], ['Paused', '1'], ['Trained', '1'], ['All', '4']], 3),
+      pubChips: chips([['To review', '2'], ['Uploading', '1'], ['Sent', '9']], 0),
+      cardsAll, cardsRender, cardsTrain, cardsPub,
+      toggles, machine, zoom, logLines, strip, listRows, place, pieces, jobLog,
+      previewH: dense ? '108px' : '150px',
+      payDisplay: (p.payouts ?? true) ? 'inline-flex' : 'none',
+      logDisplay: (p.cardLogs ?? true) ? 'flex' : 'none',
+    };
+  }
+}
+
+</script>
+</body>
+</html>

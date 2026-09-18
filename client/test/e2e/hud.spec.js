@@ -90,11 +90,11 @@ test('the chrome says where you are and what the world is doing', async ({ page 
     await expect(page.locator('#alt .read .v')).toHaveText(/[\d,—]/);
 
     // Work is a surface with queues behind it: the machine strip above them,
-    // and Render jobs the only queue so far.
+    // and the five tabs of design 8 under it.
     await page.locator('#tabs .tab[data-tab="Work"]').click();
     await expect(page.locator('#panel .head #work .work-state')).toBeVisible();
     await expect(page.locator('#panel .parts .part:not([hidden])'))
-        .toHaveText(['Render jobs']);
+        .toHaveText([/^All/, /^Render jobs/, /^Training/, /^Publish/, /^Settings/]);
     await page.locator('#panel .close').click();
 
     // The map, and the legend's four states.
@@ -167,7 +167,8 @@ test('every panel has something in it', async ({ page }) => {
     // The strip comes first in the page, then the plinth.
     expect(tabs).toEqual(['Wallet', 'Profile', 'Share', 'Setup', 'Land',
         'Vocabulary', 'Place', 'Catalog', 'Your land',
-        'Submit', 'Permission', 'Render jobs']);
+        'Submit', 'Permission', 'Every job', 'Render jobs', 'Training',
+        'Publishing', 'Machine']);
     // A world with no ground opens on Setup by itself, so close whatever is
     // docked before opening them one at a time.
     await page.evaluate(() => window.splatworld.hud.show('World'));

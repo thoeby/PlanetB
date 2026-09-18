@@ -1,0 +1,301 @@
+/* work.css — the Work window (docs/design v8): the strip that says what this
+ * machine is doing, the queues as a grid of cards, a card opened, and the
+ * Settings tab.
+ *
+ * client/panel.css is the house styles every panel inherits and
+ * client/panels.css what one surface needs that no other does; this is Work's,
+ * which is the largest of them and has a design turn of its own.
+ */
+
+/* ------------------------------------------------------- the machine strip */
+
+/* One line above every queue: what the world has drawn, what this machine is,
+   and what it is doing — the last of them lit, because "is my tab rendering?"
+   is the only question this is ever opened to answer. */
+#panel .wk-strip {
+  display: flex; flex-direction: row; align-items: center; gap: 16px; margin: 0 0 12px;
+  padding: 9px 12px; background: rgba(255, 255, 255, 0.04);
+  border: 1px solid var(--edge-2);
+}
+#panel .wk-strip > .label { flex: 0 0 auto; }
+#panel .wk-strip .work-progress { color: var(--ink-2); white-space: nowrap; }
+#panel .wk-strip .work-gpu {
+  color: var(--ink-3); flex: 1 1 auto; min-width: 0;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+#panel .wk-strip .work-now { margin-left: auto; flex: 0 0 auto; font-size: 12px; }
+#panel .wk-strip .work-view { flex: 0 0 auto; }
+#panel .po-status { margin: 0 0 4px; }
+
+/* ------------------------------------------------------------- the queues */
+
+#panel .wk-queue { display: flex; flex-direction: column; }
+/* A rule that gives an element its own display beats the hidden attribute
+   unless this says so (hud.css says the same of its sections): the cards and
+   the chips are hidden while a card is open. */
+#panel .jc-chiprow[hidden], #panel .rows.po-grid[hidden], #panel .jd-host[hidden],
+#panel .jc-footline[hidden] { display: none; }
+#panel .jc-chiprow {
+  display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+  padding: 0 0 12px; border-bottom: 1px solid var(--edge-2);
+}
+#panel .jc-chips { display: flex; align-items: center; gap: 6px; }
+#panel .jc-chips > .label { margin-right: 2px; }
+#panel .jc-chip {
+  min-height: 26px; padding: 0 10px; display: inline-flex; align-items: center;
+  gap: 6px; font-size: 12px; letter-spacing: 0.08em;
+}
+#panel .jc-chip[data-on="1"] {
+  background: var(--accent); border-color: var(--accent); color: var(--ground);
+  box-shadow: none;
+}
+#panel .jc-chip > i { font-family: var(--mono); font-size: 10px; font-style: normal; opacity: 0.7; }
+#panel .jc-shown { margin-left: auto; font-size: 12px; color: var(--ink-3); }
+/* Which page of them, at the far end of the line the chips start (design 8). */
+#panel .jc-chiprow .po-pager { flex: 0 0 auto; margin-left: auto; gap: 8px; }
+#panel .jc-chiprow .po-pager button { padding: 4px 9px; min-height: 26px; }
+
+/* A card each, three across, as the design lays the window out. The list keeps
+   its `rows` and `po-list` classes, so what reads the pool by row still finds
+   it. panel.css sizes the grid by how wide the window is; this is the window
+   the design draws, so three is what it holds. */
+#panel .rows.po-grid {
+  display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px;
+  margin: 16px 0 0; padding: 0;
+}
+#panel .rows.po-grid > li {
+  display: flex; flex-direction: column; align-items: stretch; padding: 0; gap: 0;
+  border: 1px solid var(--edge-2); background: rgba(255, 255, 255, 0.03);
+  border-top: 1px solid var(--edge-2);
+}
+#panel .rows.po-grid > li:hover { background: rgba(255, 255, 255, 0.05); }
+#panel .rows.po-grid > li[data-live="1"] {
+  background: var(--accent-dim); border-color: var(--accent);
+  box-shadow: 0 0 26px oklch(0.78 0.14 200 / 0.22);
+}
+#panel .rows.po-grid > li.empty { grid-column: 1 / -1; }
+
+/* The picture: what the job is, over the hatch that stands in for the frame
+   nobody has drawn yet. */
+#panel .jc-shot {
+  position: relative; height: 112px; display: flex; align-items: center;
+  justify-content: center; border-bottom: 1px solid var(--edge-2);
+  background: repeating-linear-gradient(135deg, rgba(242, 239, 232, 0.055) 0 6px,
+    transparent 6px 12px), #12151a;
+}
+/* The picture the card keeps of its own tile (client/js/poolcard.js): the last
+   one this machine drew of it, filling the space the hatch stands in for. */
+#panel .jc-shot .po-shot {
+  position: absolute; inset: 0; width: 100%; height: 100%; max-width: none;
+  object-fit: cover; border: 0; margin: 0;
+}
+#panel .jc-shot .jc-shotline { position: absolute; right: 8px; bottom: 8px; }
+#panel .jc-kind, #panel .jc-pay, #panel .jc-over {
+  position: absolute; z-index: 2; padding: 2px 7px;
+  background: rgba(10, 12, 15, 0.85);
+}
+#panel .jc-thumb {
+  max-width: 68%; text-align: center; font-size: 11px;
+  color: rgba(242, 239, 232, 0.4);
+}
+#panel .jc-kind {
+  left: 8px; top: 8px; border: 1px solid var(--ink-3); color: var(--ink-2);
+  font-family: var(--head); font-weight: 700; font-size: 10px;
+  letter-spacing: 0.12em; text-transform: uppercase;
+}
+#panel .po-card[data-phase="render"] .jc-kind { border-color: var(--accent); color: var(--accent); }
+#panel .po-card[data-phase="train"] .jc-kind { border-color: var(--warn); color: var(--warn); }
+#panel .po-card[data-phase="publish"] .jc-kind { border-color: oklch(0.8 0.15 145); color: oklch(0.8 0.15 145); }
+#panel .jc-pay { right: 8px; top: 8px; font-size: 11px; color: var(--ink-3); }
+#panel .jc-pay[data-paid="1"] { color: var(--warn); }
+#panel .jc-over { left: 8px; bottom: 8px; background: none; font-size: 10px; color: var(--ink-3); }
+
+#panel .jc-body { display: flex; flex-direction: column; gap: 7px; padding: 11px 12px 12px; flex: 1; }
+#panel .jc-title { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; }
+#panel .jc-title .name {
+  font-family: var(--head); font-weight: 700; font-size: 18px;
+  letter-spacing: 0.04em; line-height: 1;
+}
+#panel .jc-dist { font-size: 11px; color: var(--ink-3); }
+#panel .jc-status { font-size: 12px; line-height: 1.4; color: var(--ink); }
+#panel .rows.po-grid > li[data-live="1"] .jc-status { color: var(--accent); }
+#panel .po-card[data-phase="train"] .jc-status { color: var(--warn); }
+#panel .jc-body .sub { font-size: 12px; line-height: 1.4; color: var(--ink-3); }
+#panel .jc-bar, #panel .wk-bar { height: 4px; background: rgba(255, 255, 255, 0.1); margin-top: auto; }
+#panel .jc-bar > i, #panel .wk-bar > i { display: block; height: 100%; background: var(--accent); }
+#panel .po-card[data-phase="train"] .jc-bar > i { background: var(--warn); }
+#panel .jc-count { font-size: 10px; color: var(--ink-3); }
+
+#panel .jc-foot {
+  display: flex; align-items: center; flex-wrap: wrap; gap: 6px; padding: 9px 12px;
+  border-top: 1px solid var(--edge-2); background: rgba(255, 255, 255, 0.02);
+}
+#panel .jc-foot button { white-space: nowrap; padding: 5px 9px; min-height: 28px; }
+#panel .jc-foot .jc-open {
+  margin-left: auto; background: none; border: 0; padding: 0;
+  color: var(--ink-3); font-size: 11px;
+}
+#panel .jc-foot .jc-open:hover { color: var(--accent); background: none; }
+#panel .jc-note {
+  display: flex; gap: 9px; align-items: flex-start; padding: 9px 12px;
+  border-top: 1px solid var(--edge-2); font-size: 11px; line-height: 1.45;
+  color: var(--ink-2);
+}
+#panel .jc-note[data-tone="bad"] { background: oklch(0.8 0.18 25 / 0.07); }
+#panel .jc-note .chip { flex: none; }
+/* The tile's last few events, under the card's buttons (db/0143 tile_event). */
+#panel .po-card .po-log {
+  margin: 0; padding: 8px 12px; border-top: 1px solid var(--edge-2);
+  display: flex; flex-direction: column; gap: 4px;
+}
+#panel .po-card .po-log > li { border: 0; padding: 0; }
+#panel .jc-footline {
+  display: flex; justify-content: space-between; align-items: center; gap: 12px;
+  margin-top: 14px; padding-top: 10px; border-top: 1px solid var(--edge);
+}
+
+/* ---------------------------------------------------------- a card opened */
+
+#panel .jd { display: grid; grid-template-columns: 260px 1fr; gap: 0; border: 1px solid var(--edge); }
+#panel .jd-list {
+  display: flex; flex-direction: column; border-right: 1px solid var(--edge);
+  background: rgba(10, 12, 15, 0.6); max-height: 640px; overflow-y: auto;
+}
+#panel .jd-row {
+  display: grid; grid-template-columns: 1fr auto; gap: 2px 8px; text-align: left;
+  padding: 10px 12px; background: none; border: 0;
+  border-bottom: 1px solid var(--edge-2); border-left: 2px solid transparent;
+  text-transform: none; letter-spacing: 0; font-weight: 400;
+}
+#panel .jd-row .name {
+  font-family: var(--head); font-weight: 700; font-size: 15px; letter-spacing: 0.04em;
+}
+#panel .jd-row .mono { font-size: 11px; color: var(--ink-3); }
+#panel .jd-row[aria-current="true"] {
+  background: var(--accent-dim); border-left-color: var(--accent);
+}
+#panel .jd-row[aria-current="true"] .name { color: var(--accent); }
+#panel .jd-pay { grid-column: 2; grid-row: 1 / 3; align-self: center; text-align: right; }
+#panel .jd-main { display: flex; flex-direction: column; min-width: 0; }
+#panel .jd-head {
+  display: flex; align-items: center; gap: 12px; padding: 12px 14px;
+  border-bottom: 1px solid var(--edge);
+  background: linear-gradient(180deg, rgba(24, 27, 33, 0.95), rgba(14, 16, 20, 0.95));
+}
+#panel .jd-head .name {
+  font-family: var(--head); font-weight: 700; font-size: 22px; letter-spacing: 0.04em;
+}
+#panel .jd-status { font-size: 12px; color: var(--ink-2); white-space: nowrap; }
+#panel .jd-acts { margin-left: auto; display: flex; gap: 6px; align-items: center; }
+#panel .jd-acts button, #panel .jd-acts .chip { white-space: nowrap; }
+#panel .jd-close { background: none; border: 0; font-size: 18px; color: var(--ink-3); }
+#panel .jd-grid {
+  display: grid; grid-template-columns: 1fr 1fr; gap: 14px; padding: 14px;
+  align-items: start;
+}
+#panel .jd-card { border: 1px solid var(--edge-2); background: rgba(255, 255, 255, 0.03); }
+#panel .jd-card .wk-card-head {
+  display: flex; justify-content: space-between; align-items: center;
+  padding: 10px 12px; border-bottom: 1px solid var(--edge-2);
+}
+#panel .jd-map { display: block; width: 100%; height: auto; }
+#panel .jd-fact, #panel .jd-piece, #panel .wk-fact {
+  display: flex; align-items: center; justify-content: space-between; gap: 10px;
+  padding: 8px 12px; border-top: 1px solid var(--edge-2); font-size: 12px;
+  color: var(--ink-2);
+}
+#panel .jd-piece { justify-content: flex-start; }
+#panel .jd-piece > span:nth-child(2) { flex: 1; }
+#panel .jd-piece .dot, #panel .wk-dot {
+  width: 7px; height: 7px; flex: none; background: var(--ink-3); transform: rotate(45deg);
+}
+#panel .jd-piece .dot[data-tone="accent"], #panel .wk-fact [data-tone="accent"] { background: var(--accent); }
+#panel .jd-piece .dot[data-tone="warn"] { background: var(--warn); }
+#panel .jd-piece .dot[data-tone="bad"] { background: var(--bad); }
+#panel .jd-state {
+  font-family: var(--head); font-weight: 700; font-size: 10px;
+  letter-spacing: 0.1em; text-transform: uppercase; color: var(--ink-3);
+}
+#panel .jd-state[data-tone="accent"] { color: var(--accent); }
+#panel .jd-state[data-tone="warn"] { color: var(--warn); }
+#panel .jd-state[data-tone="bad"] { color: var(--bad); }
+#panel .jd-price { display: flex; gap: 6px; padding: 10px 12px; }
+#panel .jd-price .po-amount { width: 6rem; }
+#panel .jd-card .note { padding: 0 12px 12px; margin: 0; }
+#panel .jd-logcard { background: rgba(0, 0, 0, 0.4); }
+#panel .jd-log {
+  margin: 0; padding: 9px 12px; max-height: 190px; overflow: auto;
+  font-size: 11px; line-height: 1.5; color: var(--ink-2); white-space: pre-wrap;
+}
+
+/* --------------------------------------------------------------- settings */
+
+#panel .wk-settings {
+  display: grid; grid-template-columns: 1fr 1fr; gap: 16px; align-items: start;
+}
+/* A column of a grid is as wide as its widest unbreakable line unless this
+   says otherwise, and a renderer string is one long line. */
+#panel .wk-settings > * { min-width: 0; }
+#panel .wk-col { display: flex; flex-direction: column; gap: 14px; min-width: 0; }
+#panel .wk-card { border: 1px solid var(--edge-2); background: rgba(255, 255, 255, 0.03); }
+#panel .wk-card-head {
+  display: flex; justify-content: space-between; align-items: center; gap: 10px;
+  padding: 10px 12px; border-bottom: 1px solid var(--edge-2);
+}
+#panel .wk-card-head > .label { white-space: nowrap; }
+#panel .wk-card-head > .mono {
+  min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  color: var(--ink-3);
+}
+#panel .wk-switch { margin: 0; padding: 12px; border-bottom: 1px solid var(--edge-2); }
+#panel .wk-switch-text { display: flex; flex-direction: column; gap: 3px; }
+#panel .wk-switch-text > b {
+  font-family: var(--head); font-weight: 700; font-size: 15px;
+  letter-spacing: 0.04em; text-transform: uppercase; color: var(--ink);
+}
+#panel .wk-switches .wk-switch:last-child { border-bottom: 0; }
+#panel .wk-fact:first-child { border-top: 0; }
+#panel .wk-fact > span:last-child {
+  max-width: 62%; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+/* An empty log is a block that says so rather than nothing at all. */
+#panel .wk-log .work-log:empty { display: block; }
+#panel .wk-log .work-log:empty::before {
+  content: "nothing yet — the lines appear as this machine works";
+  color: var(--ink-3);
+}
+#panel .wk-zoom {
+  display: flex; align-items: center; gap: 10px; padding: 8px 12px;
+  border-top: 1px solid var(--edge-2); font-size: 12px;
+}
+#panel .wk-zoom-z {
+  width: 34px; flex: none; font-family: var(--head); font-weight: 700;
+  font-size: 13px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--accent);
+}
+#panel .wk-zoom .wk-bar { flex: 1; height: 6px; margin: 0; }
+#panel .wk-zoom .mono { width: 70px; text-align: right; }
+#panel .wk-zoom .note { width: 90px; text-align: right; font-size: 11px; }
+#panel .wk-log { background: rgba(0, 0, 0, 0.35); }
+#panel .wk-acts { display: flex; gap: 6px; }
+#panel .wk-acts button { min-height: 24px; padding: 2px 8px; font-size: 11px; border: 0; background: none; color: var(--ink-3); }
+#panel .wk-acts button:hover { background: none; color: var(--ink); }
+#panel .wk-acts button[data-on="1"] { color: var(--accent); box-shadow: none; background: none; }
+#panel .wk-log .work-log {
+  margin: 0; padding: 9px 12px; max-height: 240px; overflow: auto;
+  white-space: pre-wrap; font-size: 11px; line-height: 1.5;
+}
+#panel .wk-foot { grid-column: 1 / -1; margin: 4px 0 0; }
+
+/* The count a part carries, as the design hangs it on the tab (design 8a). */
+#panel > .parts .part .count {
+  margin-left: 6px; font-family: var(--mono); font-size: 10px; opacity: 0.75;
+}
+
+/* Under 1200px the window is a column of cards two across; the detail view
+   stacks rather than losing its list. */
+@media (max-width: 1200px) {
+  #panel .po-grid { grid-template-columns: repeat(2, 1fr); }
+  #panel .wk-settings, #panel .jd-grid { grid-template-columns: 1fr; }
+  #panel .jd { grid-template-columns: 1fr; }
+  #panel .jd-list { flex-direction: row; overflow-x: auto; max-height: none; }
+}

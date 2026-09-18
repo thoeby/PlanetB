@@ -1,44 +1,53 @@
-// workui.js — the work panel: what this tab can do, what it is doing, and the
-// tiles of mine that need doing.
+// workui.js — what this machine is doing, and what it does with itself.
+//
+// Two places, since design 8: the strip along the top of every Work tab — how
+// far the world has got, what this machine can compute, and what it is doing
+// right now — and the Settings tab under it, which holds the two switches, the
+// machine's own facts, the world's progress by zoom and the log
+// (client/js/worksettings.js draws those).
 //
 // It owns no policy. ensure_job decides whether a job may be opened, claim_atom
 // decides what this tab is given, and both live in the database.
 
 import * as api from './api.js';
 import { WorkLoop, probeCaps } from './work.js';
+import { el, logBlock, machineRows, settingsLayout, shortCaps, switches, worldLine,
+    zoomRows } from './worksettings.js';
 
-// Design 5d, the top of Work: your machine in one strip — what it can do, what
-// it is doing right now, and the two switches that decide what it does with
-// itself. The queue below it is client/js/renderpool.js; this is the only place
-// the machine is described.
-//
-// What it is doing is said first and loudest, because "is my tab rendering?"
-// is the only question this block is ever opened to answer.
-const HTML = `
-<div class="section machine">
-  <div class="spread">
-    <span class="label">This machine</span>
-    <span class="work-gpu mono">probing…</span>
-  </div>
-  <div class="work-now">
-    <i class="pip"></i><span class="work-state">idle</span>
-  </div>
-  <label class="row-switch"><span>Work in the background</span>
-    <input type="checkbox" class="work-toggle"></label>
-  <label class="row-switch"><span>Help render the world</span>
-    <input type="checkbox" class="work-world"></label>
-  <div class="work-progress note mono"></div>
-  <figure class="work-view" hidden>
-    <figcaption>
-      <span class="work-view-what mono"></span>
-      <progress class="work-view-bar" max="1" value="0"></progress>
-    </figcaption>
-    <canvas width="256" height="256" title="click for the full-size frame"></canvas>
-  </figure>
-  <pre class="work-log note mono"></pre>
-</div>`;
+// The strip (design 8a): one line above every queue, said the same way
+// whichever one is open. What the tab is doing is on the right and lit,
+// because "is my tab rendering?" is the only question this is ever opened to
+// answer.
+function strip() {
+    const node = el('div', { className: 'section machine wk-strip' },
+        el('span', { className: 'label', textContent: 'This machine' }),
+        el('span', { className: 'work-progress mono' }),
+        el('span', { className: 'work-gpu mono', textContent: 'probing…' }),
+        el('div', { className: 'work-now' },
+            el('i', { className: 'pip' }),
+            el('span', { className: 'work-state', textContent: 'idle' })));
+    return { node, gpu: node.querySelector('.work-gpu'),
+        world: node.querySelector('.work-progress'),
+        now: node.querySelector('.work-now'),
+        state: node.querySelector('.work-state') };
+}
 
-const LOG_LINES = 6;
+// What an atom is drawing, while it draws it. The cards keep a picture per
+// tile of their own (client/js/poolcard.js); this is the one in hand.
+function preview() {
+    const node = el('figure', { className: 'work-view' },
+        el('figcaption', {},
+            el('span', { className: 'work-view-what mono' }),
+            el('progress', { className: 'work-view-bar', max: '1', value: '0' })),
+        el('canvas', { width: 256, height: 256,
+            title: 'click for the full-size frame' }));
+    node.hidden = true;
+    return node;
+}
+
+// How many lines the log keeps, and how many of them the block shows.
+const LOG_LINES = 200;
+const SHOWN_LINES = 8;
 
 // What "help render the world" claims: the cheap deterministic ops that fill in
 // the baseline. Training and framing are somebody's job, not background work.
@@ -53,20 +62,6 @@ const describe = (caps) => (caps.webgpu
     ? `WebGPU · ${caps.adapter?.vendor ?? 'gpu'} · buffers to ${caps.max_buffer_mb} MB`
     : `WebGL2 only · ${caps.renderer ?? 'unknown renderer'}`);
 
-
-// One line per zoom of how far the world has got. Public (db/0024_progress.sql):
-// what is drawn and what is not is not a secret.
-async function progressLine() {
-    const rows = await api.select('progress',
-        { select: 'z,tiles,published,dirty,jobs_open,atoms_ready', order: 'z' })
-        .catch(() => []);
-    if (!rows.length) return '';
-    const total = rows.reduce((a, r) => a + Number(r.tiles), 0);
-    const done = rows.reduce((a, r) => a + Number(r.published), 0);
-    const ready = rows.reduce((a, r) => a + Number(r.atoms_ready), 0);
-    return `${done}/${total} tiles drawn · ${ready} atoms waiting\n`
-        + rows.map((r) => `z${r.z} ${r.published}/${r.tiles}`).join('  ');
-}
 
 // The loop is built once, on the first thing that needs it, because probing
 // the adapter is the slowest part of mounting the panel.
@@ -180,65 +175,111 @@ export function captionOf(rec) {
     return rec.event;
 }
 
-export function mountWork(host, { loop, autostart = false, frames, where } = {}) {
-    host.innerHTML = HTML;
-    const gpu = host.querySelector('.work-gpu');
-    const toggle = host.querySelector('.work-toggle');
-    const state = host.querySelector('.work-state');
-    const logEl = host.querySelector('.work-log');
-    const lines = [];
+// One record kept: a picture is shown, anything else is a line in the log and
+// in the block the Settings tab draws it in.
+function keep(rec, { view, lines, set }) {
+    if (rec.picture) { showPicture(view, rec); return null; }
+    const line = lineOf(rec);
+    lines.push(line);
+    if (lines.length > LOG_LINES) lines.splice(0, lines.length - LOG_LINES);
+    const block = set()?.log;
+    if (block) {
+        block.pre.textContent = lines.slice(-SHOWN_LINES).join('\n');
+        if (block.following()) block.pre.scrollTop = block.pre.scrollHeight;
+    }
+    if (rec.event === 'submit' || rec.event === 'error') view.hidden = true;
+    return line;
+}
 
-    // The error is the whole message when there is one: a panel that says
-    // "error 1630 assemble" and nothing else is not worth reading.
-    const view = host.querySelector('.work-view');
+// The Settings tab (design 8e), built from the parts worksettings.js draws and
+// wired to the loop. The switches are the only controls on it: everything else
+// is the machine and the world saying what they are.
+function mountSettings(host, { ready, work, lines }) {
+    const sw = switches();
+    const facts = el('div', { className: 'wk-facts' });
+    const zoom = el('div', { className: 'wk-zooms' });
+    const log = logBlock(() => lines);
+    host.append(settingsLayout({ sw: sw.node, facts, zoom, log: log.node }));
+    const redraw = () => facts.replaceChildren(...machineRows(work()?.caps, work()));
+    const refresh = async () => {
+        host.querySelector('.wk-gpu').textContent = shortCaps(work()?.caps);
+        host.querySelector('.wk-world').textContent = await worldLine();
+        zoom.replaceChildren(...await zoomRows());
+        redraw();
+    };
+    sw.toggle.onchange = async () => {
+        const w = await ready();
+        if (sw.toggle.checked) w.start(); else w.stop();
+        redraw();
+    };
+    sw.world.onchange = () => onWorld(sw.world, ready, sw.toggle, refresh);
+    return { ...sw, refresh, redraw, log };
+}
+
+export function mountWork(host, { loop, autostart = false, frames, where,
+    settings = null } = {}) {
+    const ui = strip();
+    const view = preview();
+    host.replaceChildren(ui.node);
+    ui.node.append(view);
     view.querySelector('canvas').onclick = () => {
         if (view.full) globalThis.open?.(URL.createObjectURL(view.full), '_blank');
     };
+    const lines = [];
+    let work = loop ?? null;
+    let set = null;
+
+    // The error is the whole message when there is one: a panel that says
+    // "error 1630 assemble" and nothing else is not worth reading.
+    const listeners = new Set();
     const log = (rec) => {
-        // A record with a picture is the work itself, shown rather than said.
-        if (rec.picture) { showPicture(view, rec); return; }
-        lines.push(lineOf(rec));
-        logEl.textContent = lines.slice(-LOG_LINES).join('\n');
-        if (rec.event === 'submit' || rec.event === 'error') view.hidden = true;
+        const line = keep(rec, { view, lines, set: () => set });
+        for (const fn of listeners) fn(rec, line);
         render();
     };
-    const now = host.querySelector('.work-now');
     const render = () => {
-        state.textContent = describeState(work);
-        now.dataset.doing = toneOf(work);
+        ui.state.textContent = describeState(work);
+        ui.now.dataset.doing = toneOf(work);
+        set?.redraw();
     };
-
-    let work = loop ?? null;
-    const world = host.querySelector('.work-world');
 
     // The pace: while "help render the world" is on and the tab is drawing
     // slower than 30 fps, the next atom waits. A tab with no renderer to
     // measure (a headless worker) never waits.
-    const pace = () => ((world.checked && frames && frames() > FRAME_MS) ? BACKOFF_MS : 0);
+    const pace = () => ((set?.world.checked && frames && frames() > FRAME_MS)
+        ? BACKOFF_MS : 0);
 
     async function ready() {
-        if (!work) work = await makeLoop({ gpu, log, pace, where, world });
+        if (!work) {
+            work = await makeLoop({ gpu: ui.gpu, log, pace, where,
+                world: set?.world ?? { checked: false } });
+        }
         return work;
     }
 
     const showProgress = async () => {
-        host.querySelector('.work-progress').textContent = await progressLine();
+        ui.world.textContent = await worldLine();
+        await set?.refresh();
     };
-    world.onchange = () => onWorld(world, ready, toggle, showProgress);
+    if (settings) set = mountSettings(settings, { ready, work: () => work, lines });
 
-    toggle.onchange = async () => {
-        const w = await ready();
-        if (toggle.checked) w.start(); else w.stop();
-        render();
-    };
-
-    ready().then(() => { if (autostart) { toggle.checked = true; toggle.onchange(); } })
+    ready().then(() => {
+        if (autostart && set) { set.toggle.checked = true; set.toggle.onchange(); }
+    })
         .catch((err) => log({ event: 'probe-failed', err: String(err?.message ?? err) }));
     render();
     showProgress();
     // No refresh: the list of my dirty tiles with a Render button each is gone
     // (T6). Work reaches a tab through the pool, where it carries a price and
     // anybody can take it, rather than through a list only its owner could see.
-    return { ready, loop: () => work, log, progress: showProgress,
-        world: (on) => { world.checked = on; return world.onchange(); } };
+    return { ready, loop: () => work, log, progress: showProgress, view: () => view,
+        lines: () => lines,
+        onLog(fn) { listeners.add(fn); return () => listeners.delete(fn); },
+        // Only where the Settings tab is mounted: the switch is a control on
+        // it, not something the loop carries.
+        world: (on) => {
+            if (!set) return null;
+            set.world.checked = on;
+            return set.world.onchange();
+        } };
 }

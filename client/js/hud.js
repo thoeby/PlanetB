@@ -241,6 +241,17 @@ function state(f) {
             b.querySelector('.count')?.remove();
             if (n > 0) b.append(el('span', { className: 'count', textContent: String(n) }));
         },
+        // How many jobs are behind one part of a surface, on the part's own
+        // tab (design 8a: every queue carries its count). A null takes it off;
+        // zero is a number worth showing, because an empty queue is an answer.
+        partCount(name, n) {
+            const b = f.frame.partButtons.get(name);
+            if (!b) return;
+            b.querySelector('.count')?.remove();
+            if (n !== null && n !== undefined) {
+                b.append(el('span', { className: 'count', textContent: String(n) }));
+            }
+        },
         // Who you are, on the chip that is you: initials on the face, the name
         // beside it, and a lit pip when somebody is signed in at all.
         signedIn(label) {

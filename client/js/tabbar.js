@@ -50,12 +50,19 @@ export const TABS = [
     { name: 'Publish', group: 'bar', key: '4', width: 500,
         parts: [{ name: 'Submit', label: 'Submit' },
             { name: 'Permission', label: 'Approve' }] },
-    // Work is a surface with queues behind it, not one list. The machine
-    // strip is the surface's own head (hud.js panelHead) because what this tab
-    // can do is the same answer whichever queue is open; the queues are parts.
-    // Render jobs is the only one so far.
-    { name: 'Work', group: 'bar', key: '5', width: 760,
-        parts: [{ name: 'Render jobs', label: 'Render jobs' }] },
+    // Work is a surface with queues behind it, not one list (design 8a–8f).
+    // The machine strip is the surface's own head (hud.js panelHead) because
+    // what this tab can do is the same answer whichever queue is open, and the
+    // queues are the kinds of work the pool itself sorts into (db/0152
+    // pool_open.phase), a tab each. The names are the code's and the labels
+    // the design's: Publish and Settings are surfaces of their own, so no part
+    // may take either word for its name.
+    { name: 'Work', group: 'bar', key: '5', width: 1040,
+        parts: [{ name: 'Every job', label: 'All' },
+            { name: 'Render jobs', label: 'Render jobs' },
+            { name: 'Training', label: 'Training' },
+            { name: 'Publishing', label: 'Publish' },
+            { name: 'Machine', label: 'Settings' }] },
     // A link that puts somebody where you stand is something you hand out, so
     // it belongs to you rather than to a button of its own (v6).
     { name: 'Profile', group: 'top', key: 'p', width: 470,
@@ -84,7 +91,11 @@ export const PART_LEDE = {
     Setup: 'Your account, your GeoServer, and the ground the world sits on.',
     Submit: 'Send what you placed to be rendered.',
     Permission: 'What somebody built, waiting for a person to say yes.',
-    'Render jobs': 'Tiles waiting to be compiled, and what they pay.',
+    'Every job': 'What this machine can compute for the world.',
+    'Render jobs': 'Draw the ground and the frames a tile asks for.',
+    Training: 'Fit the splats for a tile. Long jobs; one preview each.',
+    Publishing: 'The cheap end: pack a trained tile, or merge the one above it.',
+    Machine: 'What this machine gives the world, and how much of it.',
     Land: 'Who is waiting for land, the ground it would be drawn on, and every'
         + ' piece of it there is.',
     Vocabulary: 'What things may say about themselves, and what the compiler'

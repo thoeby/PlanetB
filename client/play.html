@@ -11,6 +11,7 @@
 <link rel="stylesheet" href="./top.css">
 <link rel="stylesheet" href="./panel.css">
 <link rel="stylesheet" href="./panels.css">
+<link rel="stylesheet" href="./work.css">
 <style>
   /* Only what a module's own markup needs and hud.css cannot know about. */
   .work-progress { white-space: pre-line; font-size: 12px; margin: 4px 0; }
@@ -135,8 +136,11 @@
   // taking, so background work can stand aside while the tab is being played,
   // and where the player is, so the nearest unfinished tile is claimed first.
   const frame = { ms: 0 };
+  // The strip above every Work tab, and the Settings tab under it (design 8e):
+  // the machine is one thing, said once, wherever you are looking at it from.
   const work = mountWork(headFor('Work', 'work'), {
     frames: () => frame.ms,
+    settings: hud.panel('Machine'),
     where: () => {
       const p = camera.getPosition();
       const g = origin.geodeticOf({ x: p.x, y: p.y, z: p.z });
@@ -467,20 +471,43 @@
   });
   // The pool is a queue other tabs are taking work out of, so what it showed
   // when the page loaded is not what is in it now: opening the tab asks again.
-  const pool = mountPool(hud.panel('Render jobs'), {
+  const pool = mountPool({
+      'Every job': hud.panel('Every job'),
+      'Render jobs': hud.panel('Render jobs'),
+      Training: hud.panel('Training'),
+      Publishing: hud.panel('Publishing'),
+  }, {
       loop: () => work.ready(),
+      // What just happened to a job is said beside what the machine is doing,
+      // not four times over in four tabs (design 8: the machine's own strip).
+      statusHost: hud.panelHead('Work'),
+      count: (name, n) => hud.partCount(name, n),
       where: () => {
           const p = camera.getPosition();
           return origin.geodeticOf({ x: p.x, y: p.y, z: p.z });
       },
+      // SPEC §2.9's move, on a tile instead of a submission: put me where I
+      // can see the ground this job is about.
+      onGo: (at) => {
+          if (at?.lon === undefined) return;
+          const p = origin.localOf({ lon: at.lon, lat: at.lat, h: 0 });
+          player.position = { x: p.x, y: (terrain.heightAt(p) ?? p.y) + 2, z: p.z + 12 };
+          player.yaw = 0;
+      },
   });
+  // Which card is lit, and what it says this machine is doing to it, follow
+  // the loop rather than the refresh (design 8a).
+  work.onLog(() => pool.note());
 
   // Opening a tab is asking what is there now. The world changes outside this
   // page — somebody draws in QGIS, somebody else's tab renders a tile — and a
   // panel that answers from what it knew at load time tells the player that
   // nothing has changed since they last sent it, which is the one thing they
   // know to be untrue.
-  hud.whenShown('Render jobs', () => pool.refresh());
+  for (const queue of ['Every job', 'Render jobs', 'Training', 'Publishing']) {
+      hud.whenShown(queue, () => pool.look(queue));
+  }
+  hud.whenShown('Machine', () => work.progress());
   hud.whenShown('Your land', () => land.refresh());
   hud.whenShown('Submit', () => submit.refresh());
 

@@ -122,7 +122,8 @@ test('the panel says how far the world has got, and so does an unauthenticated t
         await openPage(page, svc.pageUrl);
         await expect(page.locator('.work-progress')).toContainText('tiles drawn',
             { timeout: 30000 });
-        await expect(page.locator('.work-progress')).toContainText('z14');
+        // Per zoom, the Settings tab of Work draws it as a bar each (8e).
+        await expect(page.locator('.wk-zooms')).toContainText('z14');
 
         const res = await fetch(`${svc.apiUrl}/progress?select=z,tiles,published&order=z`);
         expect(res.status).toBe(200);

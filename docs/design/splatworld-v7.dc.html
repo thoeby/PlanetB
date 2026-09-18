@@ -1,0 +1,1307 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <meta name="design_doc_mode" content="canvas">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@600;700&family=Sora:wght@400;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <style>
+    body{margin:0;background:#0b0d10;font-family:'Sora',sans-serif;color:#f2efe8}
+    a{color:#f2efe8}a:hover{color:oklch(0.78 0.14 200)}
+    *{box-sizing:border-box}
+  </style>
+</helmet>
+
+<section style="display:flex;flex-wrap:wrap;gap:56px;padding:56px;width:max-content;max-width:3960px;font-family:'Sora',sans-serif;color:#f2efe8">
+
+  <div style="width:100%;display:flex;flex-direction:column;gap:10px;max-width:1400px">
+    <div style="font-family:'Rajdhani',sans-serif;font-weight:700;font-size:28px;text-transform:uppercase;letter-spacing:0.1em">Turn 7 · the foundation surfaces</div>
+    <div style="color:rgba(242,239,232,0.7);font-size:15px;line-height:1.5">Artboards for what PLAN-foundation adds: a seventh app, <b style="font-weight:600">Flows</b> (F7, its own hue), and four new parts inside Build — Symbols and Ground cover as tabs of Settings, Shape as a part of Land, product types and ports in Catalog Register, and live ports in Place. Chrome, type and colour are unchanged from <a href="splatworld-v6.dc.html">v6</a>; the only addition to the bar is the Flows app icon. Flows is a full-screen editor: the world stays behind it, dimmed and paused. Every refusal is the sentence the plan writes, next to the control that caused it.</div>
+  </div>
+
+  <!-- 7a -->
+  <div id="7a" style="display:flex;flex-direction:column;gap:12px">
+    <div style="display:flex;gap:12px;align-items:baseline;font-size:15px"><a href="#7a" style="font-family:'JetBrains Mono',monospace;font-size:12px;padding:3px 8px;background:oklch(0.8 0.14 290);color:#0b0d10;text-decoration:none">7a</a><span style="font-family:'Rajdhani',sans-serif;font-weight:700;font-size:20px;text-transform:uppercase;letter-spacing:0.08em">Flows · drawing a flow</span><span style="color:rgba(242,239,232,0.6)">my flows per land · palette · canvas with a subflow open · inspector · dirty</span></div>
+    <div style="position:relative;width:1920px;height:1080px;overflow:hidden;background:#0b0d10;font-size:14px">
+      <img src="assets/world.webp" alt="" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover">
+      <div style="position:absolute;inset:0;background:rgba(6,8,10,0.72)"></div>
+      <dc-import name="Chrome7" app="Flows" toast="" toast-action="" toast-age="" toast-progress="0%" hint-size="100%,100%" style="position:absolute;inset:0"></dc-import>
+
+      <div style="position:absolute;left:0;right:0;top:44px;bottom:0;display:flex;flex-direction:column;background:rgba(10,12,15,0.94);border-top:1px solid rgba(255,255,255,0.1)">
+        <div style="height:48px;flex:none;display:flex;align-items:center;gap:14px;padding:0 18px;border-bottom:1px solid rgba(255,255,255,0.12);background:linear-gradient(180deg,rgba(24,27,33,0.95),rgba(14,16,20,0.95))">
+          <span style="font-family:'Rajdhani',sans-serif;font-weight:700;font-size:20px;text-transform:uppercase;letter-spacing:0.08em;line-height:1">lamp at dusk</span>
+          <span style="font-size:12px;color:rgba(242,239,232,0.6)">Bergli · yours</span>
+          <span style="display:flex;align-items:center;gap:7px;padding:3px 9px;border:1px solid oklch(0.82 0.16 80 / 0.6);color:oklch(0.82 0.16 80);font-family:'Rajdhani',sans-serif;font-weight:700;font-size:11px;letter-spacing:0.12em;text-transform:uppercase"><span style="width:6px;height:6px;background:oklch(0.82 0.16 80);transform:rotate(45deg)"></span>unsaved changes</span>
+          <div style="margin-left:auto;display:flex;gap:8px;align-items:center">
+            <span style="height:34px;padding:0 15px;background:oklch(0.8 0.14 290);color:#0b0d10;font-family:'Rajdhani',sans-serif;font-weight:700;font-size:13px;letter-spacing:0.08em;text-transform:uppercase;display:inline-flex;align-items:center;gap:8px;clip-path:polygon(6px 0,100% 0,100% calc(100% - 6px),calc(100% - 6px) 100%,0 100%,0 6px)">Save<span style="font-family:'JetBrains Mono',monospace;font-size:10px;opacity:0.7">⌘S</span></span>
+            <span style="height:34px;padding:0 13px;border:1px solid rgba(255,255,255,0.25);font-family:'Rajdhani',sans-serif;font-weight:700;font-size:13px;letter-spacing:0.08em;text-transform:uppercase;display:inline-flex;align-items:center">Validate</span>
+            <span style="height:34px;padding:0 13px;border:1px solid rgba(255,255,255,0.25);font-family:'Rajdhani',sans-serif;font-weight:700;font-size:13px;letter-spacing:0.08em;text-transform:uppercase;display:inline-flex;align-items:center">Export .elx</span>
+            <span style="height:34px;padding:0 13px;border:1px solid rgba(255,255,255,0.25);font-family:'Rajdhani',sans-serif;font-weight:700;font-size:13px;letter-spacing:0.08em;text-transform:uppercase;display:inline-flex;align-items:center">Import</span>
+            <span style="width:1px;height:26px;background:rgba(255,255,255,0.15)"></span>
+            <span style="height:34px;padding:0 13px;border:1px solid rgba(255,255,255,0.25);font-family:'Rajdhani',sans-serif;font-weight:700;font-size:13px;letter-spacing:0.08em;text-transform:uppercase;display:inline-flex;align-items:center;color:rgba(242,239,232,0.75)">Close · Esc</span>
+          </div>
+        </div>
+
+        <div style="flex:1;display:flex;min-height:0">
+          <div style="width:300px;flex:none;display:flex;flex-direction:column;border-right:1px solid rgba(255,255,255,0.12);background:rgba(14,16,20,0.7)">
+            <div style="padding:14px 16px 10px;display:flex;justify-content:space-between;align-items:baseline"><span style="font-family:'Rajdhani',sans-serif;font-weight:700;font-size:18px;text-transform:uppercase;letter-spacing:0.08em;line-height:1">My flows</span><span style="font-size:11px;color:rgba(242,239,232,0.5)">4 on 2 lands</span></div>
+            <sc-for list="{{ flowGroups }}" as="g" hint-placeholder-count="3">
+              <div style="display:flex;flex-direction:column">
+                <div style="display:flex;justify-content:space-between;align-items:center;padding:8px 16px;background:rgba(255,255,255,0.03);border-top:1px solid rgba(255,255,255,0.07)"><span style="font-family:'Rajdhani',sans-serif;font-weight:600;font-size:11px;letter-spacing:0.14em;text-transform:uppercase;color:rgba(242,239,232,0.55)">{{ g.land }}</span><span style="font-family:'Rajdhani',sans-serif;font-weight:700;font-size:10px;letter-spacing:0.1em;text-transform:uppercase;color:{{ g.rightColor }}">{{ g.right }}</span></div>
+                <sc-for list="{{ g.flows }}" as="f" hint-placeholder-count="2">
+                  <div style="display:flex;align-items:center;gap:10px;padding:9px 16px;border-top:1px solid rgba(255,255,255,0.05);background:{{ f.bg }};border-left:2px solid {{ f.mark }};font-size:13px;color:{{ f.fg }}">
+                    <span style="flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ f.name }}</span>
+                    <span style="font-family:'JetBrains Mono',monospace;font-size:10px;color:rgba(242,239,232,0.45)">{{ f.blocks }}</span>
+                  </div>
+                </sc-for>
+                <sc-if value="{{ g.empty }}" hint-placeholder-val="{{ false }}">
+                  <div style="padding:9px 16px;border-top:1px solid rgba(255,255,255,0.05);font-size:12px;color:rgba(242,239,232,0.55)">No flows on {{ g.short }} yet — <span style="color:oklch(0.8 0.14 290)">New flow</span></div>
+                </sc-if>
+              </div>
+            </sc-for>
+            <div style="margin-top:auto;border-top:1px solid rgba(255,255,255,0.1);padding:12px 16px;display:flex;flex-wrap:wrap;gap:6px">
+              <span style="height:30px;padding:0 11px;background:oklch(0.8 0.14 290);color:#0b0d10;font-family:'Rajdhani',sans-serif;font-weight:700;font-size:12px;letter-spacing:0.08em;text-transform:uppercase;display:inline-flex;align-items:center;clip-path:polygon(5px 0,100% 0,100% calc(100% - 5px),calc(100% - 5px) 100%,0 100%,0 5px)">New flow</span>
+              <span style="height:30px;padding:0 11px;border:1px solid rgba(255,255,255,0.22);font-family:'Rajdhani',sans-serif;font-weight:700;font-size:12px;letter-spacing:0.08em;text-transform:uppercase;display:inline-flex;align-items:center">Duplicate</span>
+              <span style="height:30px;padding:0 11px;border:1px solid rgba(255,255,255,0.22);font-family:'Rajdhani',sans-serif;font-weight:700;font-size:12px;letter-spacing:0.08em;text-transform:uppercase;display:inline-flex;align-items:center">Rename</span>
+              <span style="height:30px;padding:0 11px;border:1px solid oklch(0.8 0.18 25 / 0.5);color:oklch(0.8 0.18 25);font-family:'Rajdhani',sans-serif;font-weight:700;font-size:12px;letter-spacing:0.08em;text-transform:uppercase;display:inline-flex;align-items:center">Delete</span>
+            </div>
+          </div>
+
+          <div style="width:260px;flex:none;display:flex;flex-direction:column;border-right:1px solid rgba(255,255,255,0.12);background:rgba(14,16,20,0.55)">
+            <div style="padding:14px 14px 10px;display:flex;flex-direction:column;gap:9px">
+              <span style="font-family:'Rajdhani',sans-serif;font-weight:700;font-size:18px;text-transform:uppercase;letter-spacing:0.08em;line-height:1">Blocks</span>
+              <div style="height:32px;border:1px solid rgba(255,255,255,0.18);background:rgba(255,255,255,0.04);display:flex;align-items:center;gap:8px;padding:0 10px;font-size:13px">
+                <svg viewBox="0 0 24 24" style="width:14px;height:14px;flex:none;fill:none;stroke:rgba(242,239,232,0.5);stroke-width:2;stroke-linecap:round"><path d="M11 11a6 6 0 1 0-12 0 6 6 0 0 0 12 0zM15 15l-4-4" transform="translate(4 3)"></path></svg>
+                <span>string</span><span style="margin-left:auto;font-family:'JetBrains Mono',monospace;font-size:10px;color:rgba(242,239,232,0.45)">11</span>
+              </div>
+            </div>
+            <div style="flex:1;overflow:hidden;display:flex;flex-direction:column">
+              <sc-for list="{{ palette }}" as="p" hint-placeholder-count="12">
+                <div style="display:flex;align-items:center;gap:9px;padding:{{ p.pad }};border-top:1px solid rgba(255,255,255,0.05);background:{{ p.bg }};font-size:{{ p.size }};color:{{ p.fg }};font-family:{{ p.font }};font-weight:{{ p.weight }};letter-spacing:{{ p.tracking }};text-transform:{{ p.transform }}">
+                  <span style="width:7px;height:7px;flex:none;background:{{ p.dot }};transform:rotate(45deg)"></span>
+                  <span style="flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ p.name }}</span>
+                  <span style="font-family:'JetBrains Mono',monospace;font-size:10px;color:rgba(242,239,232,0.4);text-transform:none;letter-spacing:0">{{ p.plugin }}</span>
+                </div>
+              </sc-for>
+            </div>
+            <div style="border-top:1px solid rgba(255,255,255,0.1);padding:10px 14px;font-size:11px;color:rgba(242,239,232,0.55);line-height:1.45">Drag onto the canvas. Groups come from the plugins the process servers report.</div>
+          </div>
+
+          <div style="flex:1;position:relative;min-width:0;overflow:hidden;background:#0e1014">
+            <div style="position:absolute;inset:0;background:repeating-linear-gradient(0deg,rgba(255,255,255,0.045) 0 1px,transparent 1px 40px),repeating-linear-gradient(90deg,rgba(255,255,255,0.045) 0 1px,transparent 1px 40px)"></div>
+            <svg viewBox="0 0 1000 988" preserveAspectRatio="none" style="position:absolute;inset:0;width:100%;height:100%;fill:none;stroke:oklch(0.8 0.14 290);stroke-width:2">
+              <path d="M240 157C286 157 274 187 320 187"></path>
+              <path d="M510 187C566 187 544 277 600 277"></path>
+              <path d="M240 337C286 337 274 367 320 367" stroke="rgba(242,239,232,0.45)"></path>
+              <path d="M510 367C560 367 550 299 600 299" stroke="rgba(242,239,232,0.45)"></path>
+            </svg>
+            <div style="position:absolute;left:530px;top:126px;display:flex;align-items:center;gap:6px;padding:2px 8px;background:rgba(14,16,20,0.9);border:1px solid oklch(0.8 0.14 290 / 0.6);font-family:'JetBrains Mono',monospace;font-size:10px;color:oklch(0.8 0.14 290)">net · dusk</div>
+
+            <sc-for list="{{ nodes }}" as="n" hint-placeholder-count="5">
+              <div style="position:absolute;left:{{ n.left }};top:{{ n.top }};width:{{ n.w }};background:rgba(18,21,26,0.97);border:1px solid {{ n.border }};box-shadow:{{ n.glow }}">
+                <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;height:26px;padding:0 8px;background:{{ n.head }};border-bottom:1px solid {{ n.border }}">
+                  <span style="font-family:'Rajdhani',sans-serif;font-weight:700;font-size:12px;letter-spacing:0.08em;text-transform:uppercase;line-height:1;color:{{ n.fg }}">{{ n.title }}</span>
+                  <span style="font-family:'JetBrains Mono',monospace;font-size:9px;color:rgba(242,239,232,0.45)">{{ n.plugin }}</span>
+                </div>
+                <div style="display:flex;flex-direction:column;padding:5px 0;background:{{ n.body }}">
+                  <sc-for list="{{ n.rows }}" as="r" hint-placeholder-count="2">
+                    <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;height:22px;padding:0 7px;font-size:11px">
+                      <span style="display:flex;align-items:center;gap:6px;color:rgba(242,239,232,0.8)"><span style="width:7px;height:7px;flex:none;background:{{ r.inDot }};transform:rotate(45deg)"></span>{{ r.in }}</span>
+                      <span style="display:flex;align-items:center;gap:6px;font-family:'JetBrains Mono',monospace;font-size:10px;color:{{ r.valColor }}">{{ r.val }}<span style="width:7px;height:7px;flex:none;background:{{ r.outDot }};transform:rotate(45deg)"></span></span>
+                    </div>
+                  </sc-for>
+                </div>
+              </div>
+            </sc-for>
+
+            <div style="position:absolute;left:600px;top:560px;width:200px;background:repeating-linear-gradient(135deg,rgba(242,239,232,0.07) 0 6px,transparent 6px 12px),rgba(18,21,26,0.95);border:1px dashed rgba(242,239,232,0.35);padding:8px 9px;display:flex;flex-direction:column;gap:4px">
+              <span style="font-family:'Rajdhani',sans-serif;font-weight:700;font-size:12px;letter-spacing:0.08em;text-transform:uppercase;color:rgba(242,239,232,0.8)">unknown block</span>
+              <span style="font-family:'JetBrains Mono',monospace;font-size:10px;color:rgba(242,239,232,0.6)">opencv/threshold</span>
+              <span style="font-size:11px;color:rgba(242,239,232,0.55);line-height:1.4">Kept exactly as it is. It will run where that plugin is installed.</span>
+            </div>
+
+            <div style="position:absolute;left:18px;top:14px;display:flex;align-items:center;gap:8px;font-size:12px">
+              <span style="color:rgba(242,239,232,0.55)">lamp at dusk</span>
+              <span style="color:rgba(242,239,232,0.4)">›</span>
+              <span style="font-family:'Rajdhani',sans-serif;font-weight:700;font-size:13px;letter-spacing:0.08em;text-transform:uppercase;color:oklch(0.8 0.14 290)">For-Each · lamps</span>
+              <span style="height:24px;padding:0 9px;border:1px solid rgba(255,255,255,0.22);font-family:'Rajdhani',sans-serif;font-weight:700;font-size:11px;letter-spacing:0.08em;text-transform:uppercase;display:inline-flex;align-items:center;color:rgba(242,239,232,0.7)">Back</span>
+            </div>
+            <div style="position:absolute;right:18px;top:14px;display:flex;gap:6px">
+              <sc-for list="{{ canvasTools }}" as="t" hint-placeholder-count="4">
+                <span style="height:28px;padding:0 10px;background:rgba(14,16,20,0.9);border:1px solid rgba(255,255,255,0.18);font-family:'Rajdhani',sans-serif;font-weight:700;font-size:11px;letter-spacing:0.08em;text-transform:uppercase;display:inline-flex;align-items:center;gap:7px;color:{{ t.fg }}">{{ t.name }}<span style="font-family:'JetBrains Mono',monospace;font-size:9px;color:rgba(242,239,232,0.45);text-transform:none;letter-spacing:0">{{ t.key }}</span></span>
+              </sc-for>
+            </div>
+            <div style="position:absolute;left:18px;bottom:14px;display:flex;align-items:center;gap:14px;height:30px;padding:0 12px;background:rgba(14,16,20,0.9);border:1px solid rgba(255,255,255,0.14);font-size:11px;color:rgba(242,239,232,0.65)">
+              <span><b style="color:#f2efe8;font-weight:600">5</b> blocks</span>
+              <span><b style="color:#f2efe8;font-weight:600">4</b> wires</span>
+              <span>1 named net</span>
+              <span style="color:rgba(242,239,232,0.5)">Layout is kept beside the flow, never in the ELX</span>
+            </div>
+          </div>
+
+          <div style="width:360px;flex:none;display:flex;flex-direction:column;border-left:1px solid rgba(255,255,255,0.12);background:rgba(14,16,20,0.7)">
+            <div style="padding:14px 16px 12px;border-bottom:1px solid rgba(255,255,255,0.1);display:flex;flex-direction:column;gap:10px">
+              <div style="display:flex;justify-content:space-between;align-items:baseline"><span style="font-family:'Rajdhani',sans-serif;font-weight:700;font-size:18px;text-transform:uppercase;letter-spacing:0.08em;line-height:1">Inspector</span><span style="font-family:'JetBrains Mono',monospace;font-size:10px;color:rgba(242,239,232,0.45)">strings/contains</span></div>
+              <div style="display:flex flex-direction:column;gap:6px;flex-direction:column;display:flex">
+                <span style="font-family:'Rajdhani',sans-serif;font-weight:600;font-size:11px;letter-spacing:0.14em;text-transform:uppercase;color:rgba(242,239,232,0.55)">Name · identity in this flow</span>
+                <div style="height:34px;border:1px solid oklch(0.8 0.18 25);background:oklch(0.8 0.18 25 / 0.08);display:flex;align-items:center;justify-content:space-between;padding:0 10px;font-size:13px">contains<span style="font-family:'JetBrains Mono',monospace;font-size:10px;color:rgba(242,239,232,0.5)">edit</span></div>
+                <span style="font-size:12px;color:oklch(0.8 0.18 25);line-height:1.4">“contains” is already used in this flow.</span>
+              </div>
+            </div>
+            <div style="flex:1;overflow:hidden;display:flex;flex-direction:column;gap:16px;padding:14px 16px">
+              <div style="display:flex;flex-direction:column;gap:8px">
+                <span style="font-family:'Rajdhani',sans-serif;font-weight:600;font-size:11px;letter-spacing:0.14em;text-transform:uppercase;color:rgba(242,239,232,0.55)">Parameters</span>
+                <div style="display:flex;align-items:center;justify-content:space-between;font-size:13px"><span>Case sensitive</span><span style="width:38px;height:20px;background:rgba(255,255,255,0.12);border:1px solid rgba(255,255,255,0.2);position:relative"><span style="position:absolute;left:2px;top:2px;width:14px;height:14px;background:rgba(242,239,232,0.7)"></span></span></div>
+                <div style="display:flex;align-items:center;justify-content:space-between;font-size:13px"><span>Max matches</span><div style="width:110px;height:30px;border:1px solid rgba(255,255,255,0.18);background:rgba(255,255,255,0.04);display:flex;align-items:center;justify-content:space-between;padding:0 8px;font-family:'JetBrains Mono',monospace;font-size:12px"><span style="color:rgba(242,239,232,0.5)">−</span>1<span style="color:rgba(242,239,232,0.5)">+</span></div></div>
+              </div>
+              <div style="display:flex;flex-direction:column;gap:8px">
+                <div style="display:flex;justify-content:space-between;align-items:baseline"><span style="font-family:'Rajdhani',sans-serif;font-weight:600;font-size:11px;letter-spacing:0.14em;text-transform:uppercase;color:rgba(242,239,232,0.55)">Constants</span><span style="font-size:11px;color:rgba(242,239,232,0.45)">on inputs nothing is wired to</span></div>
+                <div style="display:flex;flex-direction:column;gap:6px">
+                  <div style="display:flex;align-items:center;gap:8px;font-size:13px"><span style="width:66px;flex:none;color:rgba(242,239,232,0.65)">pattern</span><div style="flex:1;height:30px;border:1px solid rgba(255,255,255,0.18);background:rgba(255,255,255,0.04);display:flex;align-items:center;padding:0 8px;font-family:'JetBrains Mono',monospace;font-size:12px">"dusk"</div></div>
+                  <div style="display:flex;align-items:center;gap:8px;font-size:13px"><span style="width:66px;flex:none;color:rgba(242,239,232,0.65)">input</span><div style="flex:1;height:30px;border:1px dashed rgba(255,255,255,0.22);display:flex;align-items:center;padding:0 8px;font-size:12px;color:rgba(242,239,232,0.5)">wired · from World clock</div></div>
+                </div>
+              </div>
+              <div style="display:flex;align-items:center;justify-content:space-between;font-size:13px"><div style="display:flex;flex-direction:column;gap:2px"><span>Port group · inputs</span><span style="font-size:11px;color:rgba(242,239,232,0.55)">how many of them</span></div><div style="display:flex;border:1px solid rgba(255,255,255,0.2);font-family:'JetBrains Mono',monospace;font-size:12px"><span style="width:28px;height:28px;display:inline-flex;align-items:center;justify-content:center">−</span><span style="width:34px;height:28px;display:inline-flex;align-items:center;justify-content:center;border-left:1px solid rgba(255,255,255,0.2);border-right:1px solid rgba(255,255,255,0.2)">2</span><span style="width:28px;height:28px;display:inline-flex;align-items:center;justify-content:center">+</span></div></div>
+            </div>
+            <div style="margin-top:auto;border-top:1px solid rgba(255,255,255,0.1);padding:12px 16px;display:flex;flex-direction:column;gap:8px">
+              <div style="display:flex;justify-content:space-between;align-items:center"><span style="font-family:'Rajdhani',sans-serif;font-weight:600;font-size:11px;letter-spacing:0.14em;text-transform:uppercase;color:rgba(242,239,232,0.55)">Flow inputs and outputs</span><span style="font-family:'Rajdhani',sans-serif;font-weight:700;font-size:11px;letter-spacing:0.1em;text-transform:uppercase;color:oklch(0.8 0.14 290)">Add</span></div>
+              <sc-for list="{{ flowIO }}" as="io" hint-placeholder-count="4">
+                <div style="display:flex;align-items:center;justify-content:space-between;padding:6px 0;border-top:1px solid rgba(255,255,255,0.06);font-size:12px">
+                  <span style="display:flex;align-items:center;gap:8px"><span style="font-family:'Rajdhani',sans-serif;font-weight:700;font-size:10px;letter-spacing:0.1em;text-transform:uppercase;color:{{ io.color }}">{{ io.dir }}</span>{{ io.name }}</span>
+                  <span style="font-family:'JetBrains Mono',monospace;font-size:10px;color:rgba(242,239,232,0.5)">{{ io.type }}</span>
+                </div>
+              </sc-for>
+              <span style="font-size:11px;color:rgba(242,239,232,0.5);line-height:1.4">Nothing selected shows this list on its own.</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 7b -->
+  <div id="7b" style="display:flex;flex-direction:column;gap:12px">
+    <div style="display:flex;gap:12px;align-items:baseline;font-size:15px"><a href="#7b" style="font-family:'JetBrains Mono',monospace;font-size:12px;padding:3px 8px;background:oklch(0.8 0.14 290);color:#0b0d10;text-decoration:none">7b</a><span style="font-family:'Rajdhani',sans-serif;font-weight:700;font-size:20px;text-transform:uppercase;letter-spacing:0.08em">Flows · World blocks and the port picker</span><span style="color:rgba(242,239,232,0.6)">Write port selected · object list with “pick in world” · validate result</span></div>
+    <div style="position:relative;width:1920px;height:1080px;overflow:hidden;background:#0b0d10;font-size:14px">
+      <img src="assets/world.webp" alt="" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover">
+      <div style="position:absolute;inset:0;background:rgba(6,8,10,0.72)"></div>
+      <dc-import name="Chrome7" app="Flows" toast="" toast-action="" toast-age="" toast-progress="0%" hint-size="100%,100%" style="position:absolute;inset:0"></dc-import>
+
+      <div style="position:absolute;left:0;right:0;top:44px;bottom:0;display:flex;flex-direction:column;background:rgba(10,12,15,0.94);border-top:1px solid rgba(255,255,255,0.1)">
+        <div style="height:48px;flex:none;display:flex;align-items:center;gap:14px;padding:0 18px;border-bottom:1px solid rgba(255,255,255,0.12);background:linear-gradient(180deg,rgba(24,27,33,0.95),rgba(14,16,20,0.95))">
+          <span style="font-family:'Rajdhani',sans-serif;font-weight:700;font-size:20px;text-transform:uppercase;letter-spacing:0.08em;line-height:1">lamp on</span>
+          <span style="font-size:12px;color:rgba(242,239,232,0.6)">Bergli · build grant from L. Fasser</span>
+          <span style="display:flex;align-items:center;gap:7px;padding:3px 9px;border:1px solid oklch(0.8 0.15 145 / 0.6);color:oklch(0.8 0.15 145);font-family:'Rajdhani',sans-serif;font-weight:700;font-size:11px;letter-spacing:0.12em;text-transform:uppercase"><span style="width:6px;height:6px;background:oklch(0.8 0.15 145);transform:rotate(45deg)"></span>saved 14:29</span>
+          <div style="margin-left:auto;display:flex;gap:8px;align-items:center">
+            <span style="height:34px;padding:0 15px;border:1px solid rgba(255,255,255,0.25);font-family:'Rajdhani',sans-serif;font-weight:700;font-size:13px;letter-spacing:0.08em;text-transform:uppercase;display:inline-flex;align-items:center;color:rgba(242,239,232,0.6)">Save</span>
+            <span style="height:34px;padding:0 15px;background:oklch(0.8 0.15 145);color:#0b0d10;font-family:'Rajdhani',sans-serif;font-weight:700;font-size:13px;letter-spacing:0.08em;text-transform:uppercase;display:inline-flex;align-items:center;clip-path:polygon(6px 0,100% 0,100% calc(100% - 6px),calc(100% - 6px) 100%,0 100%,0 6px)">Validate</span>
+            <span style="height:34px;padding:0 13px;border:1px solid rgba(255,255,255,0.25);font-family:'Rajdhani',sans-serif;font-weight:700;font-size:13px;letter-spacing:0.08em;text-transform:uppercase;display:inline-flex;align-items:center">Export .elx</span>
+            <span style="height:34px;padding:0 13px;border:1px solid rgba(255,255,255,0.25);font-family:'Rajdhani',sans-serif;font-weight:700;font-size:13px;letter-spacing:0.08em;text-transform:uppercase;display:inline-flex;align-items:center">Import</span>
+            <span style="width:1px;height:26px;background:rgba(255,255,255,0.15)"></span>
+            <span style="height:34px;padding:0 13px;border:1px solid rgba(255,255,255,0.25);font-family:'Rajdhani',sans-serif;font-weight:700;font-size:13px;letter-spacing:0.08em;text-transform:uppercase;display:inline-flex;align-items:center;color:rgba(242,239,232,0.75)">Close · Esc</span>
+          </div>
+        </div>
+
+        <div style="flex:1;display:flex;min-height:0">
+          <div style="width:260px;flex:none;display:flex;flex-direction:column;border-right:1px solid rgba(255,255,255,0.12);background:rgba(14,16,20,0.55)">
+            <div style="padding:14px 14px 10px;display:flex;flex-direction:column;gap:9px">
+              <span style="font-family:'Rajdhani',sans-serif;font-weight:700;font-size:18px;text-transform:uppercase;letter-spacing:0.08em;line-height:1">Blocks</span>
+              <div style="height:32px;border:1px solid oklch(0.8 0.14 290 / 0.6);background:oklch(0.8 0.14 290 / 0.08);display:flex;align-items:center;gap:8px;padding:0 10px;font-size:13px"><span>world</span><span style="margin-left:auto;font-family:'JetBrains Mono',monospace;font-size:10px;color:rgba(242,239,232,0.45)">5</span></div>
+            </div>
+            <div style="display:flex;align-items:center;justify-content:space-between;padding:8px 14px;background:oklch(0.8 0.14 290 / 0.14);border-top:1px solid rgba(255,255,255,0.07);border-bottom:1px solid rgba(255,255,255,0.07)"><span style="font-family:'Rajdhani',sans-serif;font-weight:700;font-size:11px;letter-spacing:0.14em;text-transform:uppercase;color:oklch(0.8 0.14 290)">World</span><span style="font-family:'JetBrains Mono',monospace;font-size:10px;color:rgba(242,239,232,0.45)">plugin=world</span></div>
+            <sc-for list="{{ worldBlocks }}" as="w" hint-placeholder-count="5">
+              <div style="display:flex;flex-direction:column;gap:2px;padding:9px 14px;border-bottom:1px solid rgba(255,255,255,0.05);background:{{ w.bg }}">
+                <div style="display:flex;align-items:center;gap:8px;font-size:13px;color:{{ w.fg }}"><span style="width:7px;height:7px;flex:none;background:oklch(0.8 0.14 290);transform:rotate(45deg)"></span>{{ w.name }}</div>
+                <span style="font-size:11px;color:rgba(242,239,232,0.5);padding-left:15px">{{ w.what }}</span>
+              </div>
+            </sc-for>
+            <div style="margin-top:auto;border-top:1px solid rgba(255,255,255,0.1);padding:10px 14px;font-size:11px;color:rgba(242,239,232,0.55);line-height:1.45">Every World block is built only from standard blocks — strings, json, http. Nothing here talks to the world by itself.</div>
+          </div>
+
+          <div style="flex:1;position:relative;min-width:0;overflow:hidden;background:#0e1014">
+            <div style="position:absolute;inset:0;background:repeating-linear-gradient(0deg,rgba(255,255,255,0.045) 0 1px,transparent 1px 40px),repeating-linear-gradient(90deg,rgba(255,255,255,0.045) 0 1px,transparent 1px 40px)"></div>
+            <svg viewBox="0 0 1040 988" preserveAspectRatio="none" style="position:absolute;inset:0;width:100%;height:100%;fill:none;stroke:oklch(0.8 0.14 290);stroke-width:2">
+              <path d="M280 187C330 187 320 217 370 217"></path>
+              <path d="M560 217C620 217 600 307 660 307"></path>
+            </svg>
+            <sc-for list="{{ nodes2 }}" as="n" hint-placeholder-count="3">
+              <div style="position:absolute;left:{{ n.left }};top:{{ n.top }};width:{{ n.w }};background:rgba(18,21,26,0.97);border:1px solid {{ n.border }};box-shadow:{{ n.glow }}">
+                <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;height:26px;padding:0 8px;background:{{ n.head }};border-bottom:1px solid {{ n.border }}">
+                  <span style="font-family:'Rajdhani',sans-serif;font-weight:700;font-size:12px;letter-spacing:0.08em;text-transform:uppercase;line-height:1;color:{{ n.fg }}">{{ n.title }}</span>
+                  <span style="font-family:'JetBrains Mono',monospace;font-size:9px;color:rgba(242,239,232,0.45)">{{ n.plugin }}</span>
+                </div>
+                <div style="display:flex;flex-direction:column;padding:5px 0;background:{{ n.body }}">
+                  <sc-for list="{{ n.rows }}" as="r" hint-placeholder-count="3">
+                    <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;height:22px;padding:0 7px;font-size:11px">
+                      <span style="display:flex;align-items:center;gap:6px;color:rgba(242,239,232,0.8)"><span style="width:7px;height:7px;flex:none;background:{{ r.inDot }};transform:rotate(45deg)"></span>{{ r.in }}</span>
+                      <span style="display:flex;align-items:center;gap:6px;font-family:'JetBrains Mono',monospace;font-size:10px;color:{{ r.valColor }}">{{ r.val }}<span style="width:7px;height:7px;flex:none;background:{{ r.outDot }};transform:rotate(45deg)"></span></span>
+                    </div>
+                  </sc-for>
+                </div>
+              </div>
+            </sc-for>
+
+            <div style="position:absolute;left:18px;bottom:14px;width:520px;display:flex;flex-direction:column;background:rgba(14,16,20,0.92);border:1px solid oklch(0.8 0.15 145 / 0.5)">
+              <div style="display:flex;align-items:center;gap:10px;padding:10px 14px;border-bottom:1px solid rgba(255,255,255,0.08)">
+                <span style="width:8px;height:8px;background:oklch(0.8 0.15 145);transform:rotate(45deg)"></span>
+                <span style="font-family:'Rajdhani',sans-serif;font-weight:700;font-size:14px;letter-spacing:0.08em;text-transform:uppercase;color:oklch(0.8 0.15 145)">Valid</span>
+                <span style="font-size:12px;color:rgba(242,239,232,0.65)">elx.wireon.ch · 14:31 · code 0</span>
+              </div>
+              <sc-for list="{{ checks }}" as="c" hint-placeholder-count="4">
+                <div style="display:flex;align-items:center;gap:10px;padding:7px 14px;border-top:1px solid rgba(255,255,255,0.05);font-size:12px">
+                  <span style="width:6px;height:6px;flex:none;background:{{ c.color }};transform:rotate(45deg)"></span>
+                  <span style="flex:1;color:rgba(242,239,232,0.8)">{{ c.what }}</span>
+                  <span style="font-family:'Rajdhani',sans-serif;font-weight:700;font-size:10px;letter-spacing:0.1em;text-transform:uppercase;color:{{ c.color }}">{{ c.verdict }}</span>
+                </div>
+              </sc-for>
+              <div style="padding:9px 14px;border-top:1px solid rgba(255,255,255,0.08);font-size:11px;color:rgba(242,239,232,0.55);line-height:1.45">Local checks always run. Server checks only when a process server is set under Settings › World.</div>
+              <div style="display:flex;gap:9px;padding:9px 14px;border-top:1px solid rgba(255,255,255,0.08);background:oklch(0.82 0.16 80 / 0.08);font-size:11px;color:oklch(0.82 0.16 80);line-height:1.45"><span style="width:7px;height:7px;flex:none;margin-top:4px;background:oklch(0.82 0.16 80);transform:rotate(45deg)"></span>When it is silent: the process server did not answer (connection refused). It must allow requests from https://splatworld.ch. Nothing else breaks.</div>
+            </div>
+            <div style="position:absolute;right:18px;top:14px;display:flex;align-items:center;gap:10px;height:30px;padding:0 12px;background:rgba(14,16,20,0.9);border:1px solid rgba(255,255,255,0.14);font-size:11px;color:rgba(242,239,232,0.65)">
+              <span style="font-family:'Rajdhani',sans-serif;font-weight:600;font-size:10px;letter-spacing:0.14em;text-transform:uppercase;color:rgba(242,239,232,0.5)">Flow inputs</span>
+              <span style="font-family:'JetBrains Mono',monospace;font-size:11px;color:oklch(0.8 0.14 290)">world</span>
+              <span style="font-family:'JetBrains Mono',monospace;font-size:11px;color:oklch(0.8 0.14 290)">world_key</span>
+              <span style="color:rgba(242,239,232,0.5)">used by World blocks · cannot be removed</span>
+            </div>
+          </div>
+
+          <div style="width:400px;flex:none;display:flex;flex-direction:column;border-left:1px solid rgba(255,255,255,0.12);background:rgba(14,16,20,0.7)">
+            <div style="padding:14px 16px 12px;border-bottom:1px solid rgba(255,255,255,0.1);display:flex;flex-direction:column;gap:6px">
+              <div style="display:flex;justify-content:space-between;align-items:baseline"><span style="font-family:'Rajdhani',sans-serif;font-weight:700;font-size:18px;text-transform:uppercase;letter-spacing:0.08em;line-height:1">Write port</span><span style="font-family:'JetBrains Mono',monospace;font-size:10px;color:oklch(0.8 0.14 290)">world/port.write</span></div>
+              <span style="font-size:12px;color:rgba(242,239,232,0.6);line-height:1.45">Writes one port of one object. The run’s key decides whether it is allowed.</span>
+            </div>
+            <div style="flex:1;display:flex;flex-direction:column;gap:14px;padding:14px 16px;overflow:hidden">
+              <div style="display:flex;flex-direction:column;gap:7px">
+                <div style="display:flex;justify-content:space-between;align-items:baseline"><span style="font-family:'Rajdhani',sans-serif;font-weight:600;font-size:11px;letter-spacing:0.14em;text-transform:uppercase;color:rgba(242,239,232,0.55)">Object · on Bergli</span><span style="font-family:'Rajdhani',sans-serif;font-weight:700;font-size:11px;letter-spacing:0.1em;text-transform:uppercase;color:oklch(0.8 0.14 290)">Pick in world</span></div>
+                <div style="height:34px;border:1px solid oklch(0.8 0.14 290);background:oklch(0.8 0.14 290 / 0.1);display:flex;align-items:center;justify-content:space-between;padding:0 10px;font-size:13px">Street lamp · lamp-2<span style="color:rgba(242,239,232,0.5)">▴</span></div>
+                <div style="display:flex;flex-direction:column;border:1px solid rgba(255,255,255,0.18);background:rgba(12,14,18,0.98)">
+                  <sc-for list="{{ objects }}" as="o" hint-placeholder-count="5">
+                    <div style="display:flex;align-items:center;gap:10px;padding:8px 10px;border-bottom:1px solid rgba(255,255,255,0.06);background:{{ o.bg }};font-size:12px">
+                      <span style="flex:1;min-width:0;color:{{ o.fg }}">{{ o.name }}</span>
+                      <span style="font-family:'JetBrains Mono',monospace;font-size:10px;color:rgba(242,239,232,0.45)">{{ o.ports }}</span>
+                    </div>
+                  </sc-for>
+                  <div style="display:flex;align-items:center;gap:9px;padding:9px 10px;font-size:12px;color:oklch(0.8 0.14 290)">
+                    <svg viewBox="0 0 24 24" style="width:14px;height:14px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round"><path d="M12 21s7-6.2 7-11a7 7 0 1 0-14 0c0 4.8 7 11 7 11zM12 10h.01"></path></svg>
+                    Pick in world — Flows closes, you click the object, you come back here
+                  </div>
+                </div>
+              </div>
+              <div style="display:flex;flex-direction:column;gap:7px">
+                <span style="font-family:'Rajdhani',sans-serif;font-weight:600;font-size:11px;letter-spacing:0.14em;text-transform:uppercase;color:rgba(242,239,232,0.55)">Port · from the product</span>
+                <div style="display:flex;flex-direction:column;gap:5px">
+                  <sc-for list="{{ portChoices }}" as="p" hint-placeholder-count="3">
+                    <div style="display:flex;align-items:center;justify-content:space-between;height:32px;padding:0 10px;border:1px solid {{ p.border }};background:{{ p.bg }};font-size:13px;color:{{ p.fg }}">{{ p.name }}<span style="font-family:'JetBrains Mono',monospace;font-size:10px;color:rgba(242,239,232,0.5)">{{ p.type }}</span></div>
+                  </sc-for>
+                </div>
+              </div>
+              <div style="display:flex;flex-direction:column;gap:7px">
+                <span style="font-family:'Rajdhani',sans-serif;font-weight:600;font-size:11px;letter-spacing:0.14em;text-transform:uppercase;color:rgba(242,239,232,0.55)">Value</span>
+                <div style="display:flex;align-items:center;gap:12px"><span style="width:44px;height:24px;background:oklch(0.8 0.14 290);position:relative;flex:none"><span style="position:absolute;right:2px;top:2px;width:18px;height:18px;background:#0b0d10"></span></span><span style="font-size:13px">true — switch it on</span></div>
+                <span style="font-size:11px;color:rgba(242,239,232,0.55);line-height:1.45">Or wire the input instead; a wired input hides this field.</span>
+              </div>
+            </div>
+            <div style="margin-top:auto;border-top:1px solid rgba(255,255,255,0.1);padding:12px 16px;display:flex;flex-direction:column;gap:6px;font-size:12px;color:rgba(242,239,232,0.6)">
+              <span style="font-family:'Rajdhani',sans-serif;font-weight:600;font-size:11px;letter-spacing:0.14em;text-transform:uppercase;color:rgba(242,239,232,0.55)">When this runs</span>
+              <span style="line-height:1.45">Flows do not run yet. A runner takes them from the pool later; the world only ever answers pulls.</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 7c -->
+  <div id="7c" style="display:flex;flex-direction:column;gap:12px">
+    <div style="display:flex;gap:12px;align-items:baseline;font-size:15px"><a href="#7c" style="font-family:'JetBrains Mono',monospace;font-size:12px;padding:3px 8px;background:oklch(0.78 0.14 200);color:#0b0d10;text-decoration:none">7c</a><span style="font-family:'Rajdhani',sans-serif;font-weight:700;font-size:20px;text-transform:uppercase;letter-spacing:0.08em">Settings · Symbols</span><span style="color:rgba(242,239,232,0.6)">filter, layer stack, the layer’s form, live preview on a sample, versions</span></div>
+    <div style="position:relative;width:1920px;height:1080px;overflow:hidden;background:#0b0d10;font-size:14px">
+      <img src="assets/world.webp" alt="" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover">
+      <dc-import name="Chrome7" app="Build" active="Settings" toast="Saved as version 4 — not in the world yet" toast-action="" toast-age="3 s" toast-progress="30%" hint-size="100%,100%" style="position:absolute;inset:0"></dc-import>
+
+      <div style="position:absolute;left:24px;right:24px;top:80px;bottom:130px;display:flex;flex-direction:column;background:rgba(14,16,20,0.9);backdrop-filter:blur(14px);border:1px solid rgba(255,255,255,0.12);clip-path:polygon(12px 0,100% 0,100% calc(100% - 12px),calc(100% - 12px) 100%,0 100%,0 12px);overflow:hidden">
+        <div style="flex:none;display:flex;align-items:center;gap:18px;padding:16px 20px 0">
+          <span style="font-family:'Rajdhani',sans-serif;font-weight:700;font-size:26px;text-transform:uppercase;letter-spacing:0.08em;line-height:1">Settings</span>
+          <div style="display:flex;gap:2px;font-family:'Rajdhani',sans-serif;font-weight:700;font-size:13px;letter-spacing:0.1em;text-transform:uppercase">
+            <sc-for list="{{ settingsTabs }}" as="t" hint-placeholder-count="7">
+              <span style="height:32px;padding:0 13px;display:inline-flex;align-items:center;border-bottom:2px solid {{ t.line }};color:{{ t.fg }}">{{ t.name }}</span>
+            </sc-for>
+          </div>
+          <div style="margin-left:auto;display:flex;align-items:center;gap:14px">
+            <span style="font-size:12px;color:oklch(0.82 0.16 80)">3 symbols changed since the last apply · 41 published tiles would be rebuilt</span>
+            <span style="height:34px;padding:0 15px;background:oklch(0.78 0.14 200);color:#0b0d10;font-family:'Rajdhani',sans-serif;font-weight:700;font-size:13px;letter-spacing:0.08em;text-transform:uppercase;display:inline-flex;align-items:center;clip-path:polygon(6px 0,100% 0,100% calc(100% - 6px),calc(100% - 6px) 100%,0 100%,0 6px)">Apply to world</span>
+            <span style="font-size:16px;color:rgba(242,239,232,0.5)">✕</span>
+          </div>
+        </div>
+        <div style="flex:1;display:flex;min-height:0;margin-top:14px;border-top:1px solid rgba(255,255,255,0.1)">
+          <div style="width:320px;flex:none;display:flex;flex-direction:column;border-right:1px solid rgba(255,255,255,0.1)">
+            <div style="padding:12px 16px 10px;display:flex;justify-content:space-between;align-items:baseline"><span style="font-family:'Rajdhani',sans-serif;font-weight:700;font-size:16px;text-transform:uppercase;letter-spacing:0.08em;line-height:1">Symbols</span><span style="font-family:'Rajdhani',sans-serif;font-weight:700;font-size:11px;letter-spacing:0.1em;text-transform:uppercase;color:oklch(0.78 0.14 200)">New symbol</span></div>
+            <div style="flex:1;overflow:hidden;display:flex;flex-direction:column">
+              <sc-for list="{{ symbols }}" as="s" hint-placeholder-count="10">
+                <div style="display:flex;align-items:center;gap:10px;padding:{{ s.pad }};border-top:1px solid rgba(255,255,255,0.06);background:{{ s.bg }};border-left:2px solid {{ s.mark }};font-size:{{ s.size }};font-family:{{ s.font }};font-weight:{{ s.weight }};letter-spacing:{{ s.tracking }};text-transform:{{ s.transform }};color:{{ s.fg }}">
+                  <span style="width:9px;flex:none;font-family:'JetBrains Mono',monospace;font-size:9px;color:rgba(242,239,232,0.35)">{{ s.grip }}</span>
+                  <span style="flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ s.name }}</span>
+                  <span style="font-family:'JetBrains Mono',monospace;font-size:10px;color:rgba(242,239,232,0.4);letter-spacing:0;text-transform:none">{{ s.layers }}</span>
+                  <span style="width:28px;height:15px;flex:none;background:{{ s.swBg }};border:1px solid {{ s.swBorder }};position:relative;display:{{ s.swDisplay }}"><span style="position:absolute;top:1px;{{ s.swSide }}:1px;width:11px;height:11px;background:{{ s.swKnob }}"></span></span>
+                </div>
+              </sc-for>
+            </div>
+            <div style="border-top:1px solid rgba(255,255,255,0.1);padding:10px 16px;font-size:11px;color:rgba(242,239,232,0.55);line-height:1.45">Drag to reorder. The order decides who wins where two symbols match the same feature.</div>
+          </div>
+
+          <div style="flex:1;min-width:0;display:flex;flex-direction:column;overflow:hidden">
+            <div style="padding:14px 20px;display:flex;flex-direction:column;gap:12px;border-bottom:1px solid rgba(255,255,255,0.1)">
+              <div style="display:flex;gap:12px;align-items:center">
+                <div style="flex:1;height:36px;border:1px solid rgba(255,255,255,0.18);background:rgba(255,255,255,0.04);display:flex;align-items:center;padding:0 12px;font-family:'Rajdhani',sans-serif;font-weight:700;font-size:18px;letter-spacing:0.06em;text-transform:uppercase">Kantonsstrasse</div>
+                <span style="font-family:'JetBrains Mono',monospace;font-size:11px;color:rgba(242,239,232,0.55)">kind highway · version 3 in the world</span>
+              </div>
+              <div style="display:flex;flex-direction:column;gap:7px">
+                <div style="display:flex;justify-content:space-between;align-items:baseline"><span style="font-family:'Rajdhani',sans-serif;font-weight:600;font-size:11px;letter-spacing:0.14em;text-transform:uppercase;color:rgba(242,239,232,0.55)">When</span><span style="font-size:11px;color:rgba(242,239,232,0.5)">all conditions must hold</span></div>
+                <div style="display:flex;gap:8px;align-items:center">
+                  <div style="height:32px;padding:0 10px;border:1px solid rgba(255,255,255,0.18);background:rgba(255,255,255,0.04);display:flex;align-items:center;font-size:13px">highway</div>
+                  <div style="height:32px;padding:0 10px;border:1px solid rgba(255,255,255,0.18);background:rgba(255,255,255,0.04);display:flex;align-items:center;font-family:'JetBrains Mono',monospace;font-size:12px">eq</div>
+                  <div style="height:32px;padding:0 10px;border:1px solid rgba(255,255,255,0.18);background:rgba(255,255,255,0.04);display:flex;align-items:center;font-size:13px">secondary</div>
+                  <span style="height:32px;padding:0 10px;border:1px dashed rgba(255,255,255,0.25);display:inline-flex;align-items:center;font-family:'Rajdhani',sans-serif;font-weight:700;font-size:11px;letter-spacing:0.1em;text-transform:uppercase;color:rgba(242,239,232,0.6)">Add condition</span>
+                  <span style="margin-left:auto;font-size:12px;color:rgba(242,239,232,0.6)">matches 1 284 features in the world</span>
+                </div>
+              </div>
+            </div>
+            <div style="flex:1;display:flex;min-height:0">
+              <div style="width:340px;flex:none;display:flex;flex-direction:column;border-right:1px solid rgba(255,255,255,0.1)">
+                <div style="padding:12px 16px 8px;display:flex;justify-content:space-between;align-items:baseline"><span style="font-family:'Rajdhani',sans-serif;font-weight:600;font-size:11px;letter-spacing:0.14em;text-transform:uppercase;color:rgba(242,239,232,0.55)">Layers · in order</span><span style="font-family:'Rajdhani',sans-serif;font-weight:700;font-size:11px;letter-spacing:0.1em;text-transform:uppercase;color:oklch(0.78 0.14 200)">Add layer</span></div>
+                <sc-for list="{{ symLayers }}" as="l" hint-placeholder-count="4">
+                  <div style="display:flex;align-items:center;gap:9px;padding:9px 16px;border-top:1px solid rgba(255,255,255,0.06);background:{{ l.bg }};border-left:2px solid {{ l.mark }}">
+                    <span style="font-family:'JetBrains Mono',monospace;font-size:9px;color:rgba(242,239,232,0.35)">⠿</span>
+                    <div style="display:flex;flex-direction:column;gap:2px;flex:1;min-width:0">
+                      <span style="font-family:'Rajdhani',sans-serif;font-weight:700;font-size:13px;letter-spacing:0.08em;text-transform:uppercase;line-height:1;color:{{ l.fg }}">{{ l.kind }}</span>
+                      <span style="font-size:11px;color:rgba(242,239,232,0.6);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ l.what }}</span>
+                    </div>
+                    <svg viewBox="0 0 24 24" style="width:15px;height:15px;flex:none;fill:none;stroke:{{ l.eye }};stroke-width:1.6"><path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7S1 12 1 12zM15 12a3 3 0 1 1-6 0 3 3 0 0 1 6 0z"></path></svg>
+                  </div>
+                </sc-for>
+                <div style="margin-top:auto;border-top:1px solid rgba(255,255,255,0.1);padding:10px 16px;font-size:11px;color:rgba(242,239,232,0.55);line-height:1.45">The ground is painted first, then these run in this order.</div>
+              </div>
+              <div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:12px;padding:14px 18px;overflow:hidden">
+                <div style="display:flex;justify-content:space-between;align-items:baseline"><span style="font-family:'Rajdhani',sans-serif;font-weight:700;font-size:16px;text-transform:uppercase;letter-spacing:0.08em;line-height:1;color:oklch(0.78 0.14 200)">Repeat · lamps</span><span style="font-family:'JetBrains Mono',monospace;font-size:11px;color:rgba(242,239,232,0.5)">layer 3 of 4</span></div>
+                <div style="display:flex;flex-direction:column;gap:6px">
+                  <span style="font-family:'Rajdhani',sans-serif;font-weight:600;font-size:11px;letter-spacing:0.14em;text-transform:uppercase;color:rgba(242,239,232,0.55)">What to repeat · segments and models</span>
+                  <div style="height:36px;border:1px solid oklch(0.8 0.18 25);background:oklch(0.8 0.18 25 / 0.08);display:flex;align-items:center;justify-content:space-between;padding:0 10px;font-size:13px">Asphalt<span style="font-family:'JetBrains Mono',monospace;font-size:10px;color:rgba(242,239,232,0.5)">surface material</span></div>
+                  <span style="font-size:12px;color:oklch(0.8 0.18 25);line-height:1.4">A repeating piece or a model is needed here — “Asphalt” is a surface material.</span>
+                </div>
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+                  <sc-for list="{{ layerFields }}" as="f" hint-placeholder-count="4">
+                    <div style="display:flex;flex-direction:column;gap:5px">
+                      <span style="font-family:'Rajdhani',sans-serif;font-weight:600;font-size:11px;letter-spacing:0.14em;text-transform:uppercase;color:rgba(242,239,232,0.55)">{{ f.label }}</span>
+                      <div style="height:32px;border:1px solid rgba(255,255,255,0.18);background:rgba(255,255,255,0.04);display:flex;align-items:center;justify-content:space-between;padding:0 10px;font-size:13px">{{ f.value }}<span style="font-family:'JetBrains Mono',monospace;font-size:10px;color:rgba(242,239,232,0.45)">{{ f.unit }}</span></div>
+                    </div>
+                  </sc-for>
+                </div>
+                <div style="display:flex;flex-direction:column;gap:6px;padding:10px 12px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08)">
+                  <span style="font-family:'Rajdhani',sans-serif;font-weight:600;font-size:11px;letter-spacing:0.14em;text-transform:uppercase;color:rgba(242,239,232,0.55)">Only when</span>
+                  <div style="display:flex;gap:8px;align-items:center;font-size:13px"><div style="height:30px;padding:0 10px;border:1px solid rgba(255,255,255,0.18);display:flex;align-items:center">lit</div><div style="height:30px;padding:0 10px;border:1px solid rgba(255,255,255,0.18);display:flex;align-items:center;font-family:'JetBrains Mono',monospace;font-size:12px">eq</div><div style="height:30px;padding:0 10px;border:1px solid rgba(255,255,255,0.18);display:flex;align-items:center">yes</div></div>
+                  <span style="font-size:11px;color:rgba(242,239,232,0.55)">Numbers may also come from a property: <span style="font-family:'JetBrains Mono',monospace">lanes × 3.0, min 6, else 6</span></span>
+                </div>
+                <div style="margin-top:auto;display:flex;align-items:center;gap:10px">
+                  <span style="height:36px;padding:0 15px;background:oklch(0.78 0.14 200);color:#0b0d10;font-family:'Rajdhani',sans-serif;font-weight:700;font-size:13px;letter-spacing:0.08em;text-transform:uppercase;display:inline-flex;align-items:center;clip-path:polygon(6px 0,100% 0,100% calc(100% - 6px),calc(100% - 6px) 100%,0 100%,0 6px)">Save as version 4</span>
+                  <span style="font-size:12px;color:oklch(0.82 0.16 80)">Saved versions do not reach the world until Apply.</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div style="width:420px;flex:none;display:flex;flex-direction:column;border-left:1px solid rgba(255,255,255,0.1)">
+            <div style="padding:12px 16px 10px;display:flex;justify-content:space-between;align-items:baseline"><span style="font-family:'Rajdhani',sans-serif;font-weight:700;font-size:16px;text-transform:uppercase;letter-spacing:0.08em;line-height:1">Preview</span><span style="font-size:11px;color:rgba(242,239,232,0.5)">sample · 60 m S-curve on a gentle slope</span></div>
+            <div style="position:relative;margin:0 16px;height:230px;flex:none;background:linear-gradient(180deg,#151a20,#0d1014);border:1px solid rgba(255,255,255,0.12);overflow:hidden">
+              <div style="position:absolute;inset:0;background:radial-gradient(ellipse 340px 140px at 55% 120%,rgba(120,140,110,0.35),transparent 70%)"></div>
+              <div style="position:absolute;left:-30px;top:120px;width:480px;height:44px;background:linear-gradient(180deg,#45484c,#2e3134);transform:rotate(-7deg) perspective(300px) rotateX(48deg);box-shadow:0 10px 30px rgba(0,0,0,0.5)"></div>
+              <div style="position:absolute;left:-30px;top:118px;width:480px;height:3px;background:rgba(242,239,232,0.5);transform:rotate(-7deg)"></div>
+              <div style="position:absolute;left:-30px;top:160px;width:480px;height:3px;background:rgba(242,239,232,0.5);transform:rotate(-7deg)"></div>
+              <sc-for list="{{ previewLamps }}" as="p" hint-placeholder-count="4">
+                <div style="position:absolute;left:{{ p.left }};top:{{ p.top }};width:2px;height:{{ p.h }};background:rgba(242,239,232,0.6)"><span style="position:absolute;left:-4px;top:-4px;width:10px;height:5px;background:oklch(0.82 0.16 80);box-shadow:0 0 14px oklch(0.82 0.16 80)"></span></div>
+              </sc-for>
+              <span style="position:absolute;left:10px;top:8px;font-family:'Rajdhani',sans-serif;font-weight:600;font-size:10px;letter-spacing:0.14em;text-transform:uppercase;color:rgba(242,239,232,0.6)">Orbit · drag</span>
+              <span style="position:absolute;right:10px;bottom:8px;font-family:'JetBrains Mono',monospace;font-size:10px;color:rgba(242,239,232,0.6)">compiled here, by gen/</span>
+            </div>
+            <div style="padding:12px 16px;display:flex;flex-direction:column;gap:9px;border-bottom:1px solid rgba(255,255,255,0.1)">
+              <span style="font-family:'Rajdhani',sans-serif;font-weight:600;font-size:11px;letter-spacing:0.14em;text-transform:uppercase;color:rgba(242,239,232,0.55)">Try values on the sample</span>
+              <div style="display:flex;align-items:center;justify-content:space-between;font-size:13px"><span>highway</span><div style="width:150px;height:30px;border:1px solid rgba(255,255,255,0.18);background:rgba(255,255,255,0.04);display:flex;align-items:center;padding:0 9px">secondary</div></div>
+              <div style="display:flex;align-items:center;justify-content:space-between;font-size:13px"><span>lit</span><div style="display:flex;align-items:center;gap:9px"><span style="width:38px;height:20px;background:oklch(0.78 0.14 200);position:relative;flex:none"><span style="position:absolute;right:2px;top:2px;width:14px;height:14px;background:#0b0d10"></span></span><span style="font-family:'JetBrains Mono',monospace;font-size:11px;color:rgba(242,239,232,0.6)">yes</span></div></div>
+              <div style="display:flex;align-items:center;justify-content:space-between;font-size:13px"><span>lanes</span><div style="width:150px;height:30px;border:1px solid rgba(255,255,255,0.18);background:rgba(255,255,255,0.04);display:flex;align-items:center;justify-content:space-between;padding:0 9px;font-family:'JetBrains Mono',monospace;font-size:12px"><span style="color:rgba(242,239,232,0.5)">−</span>2<span style="color:rgba(242,239,232,0.5)">+</span></div></div>
+            </div>
+            <div style="flex:1;display:flex;flex-direction:column;overflow:hidden">
+              <div style="padding:12px 16px 8px;font-family:'Rajdhani',sans-serif;font-weight:600;font-size:11px;letter-spacing:0.14em;text-transform:uppercase;color:rgba(242,239,232,0.55)">History</div>
+              <sc-for list="{{ versions }}" as="v" hint-placeholder-count="4">
+                <div style="display:flex;align-items:center;gap:10px;padding:8px 16px;border-top:1px solid rgba(255,255,255,0.06);font-size:12px;background:{{ v.bg }}">
+                  <span style="font-family:'JetBrains Mono',monospace;font-size:11px;color:{{ v.color }};width:22px;flex:none">v{{ v.n }}</span>
+                  <span style="flex:1;min-width:0;color:rgba(242,239,232,0.75);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ v.who }}</span>
+                  <span style="font-family:'Rajdhani',sans-serif;font-weight:700;font-size:10px;letter-spacing:0.1em;text-transform:uppercase;color:{{ v.color }}">{{ v.tag }}</span>
+                </div>
+              </sc-for>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 7d -->
+  <div id="7d" style="display:flex;flex-direction:column;gap:12px">
+    <div style="display:flex;gap:12px;align-items:baseline;font-size:15px"><a href="#7d" style="font-family:'JetBrains Mono',monospace;font-size:12px;padding:3px 8px;background:oklch(0.78 0.14 200);color:#0b0d10;text-decoration:none">7d</a><span style="font-family:'Rajdhani',sans-serif;font-weight:700;font-size:20px;text-transform:uppercase;letter-spacing:0.08em">Settings · Ground cover</span><span style="color:rgba(242,239,232,0.6)">sources by priority, source value → OSM tag, blend, the style file for GeoServer</span></div>
+    <div style="position:relative;width:1920px;height:1080px;overflow:hidden;background:#0b0d10;font-size:14px">
+      <img src="assets/world.webp" alt="" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover">
+      <dc-import name="Chrome7" app="Build" active="Settings" toast="Mapping saved · version 3 — not in the world yet" toast-action="Apply" toast-kind="warn" toast-age="8 s" toast-progress="60%" hint-size="100%,100%" style="position:absolute;inset:0"></dc-import>
+
+      <div style="position:absolute;left:24px;right:24px;top:80px;bottom:130px;display:flex;flex-direction:column;background:rgba(14,16,20,0.9);backdrop-filter:blur(14px);border:1px solid rgba(255,255,255,0.12);clip-path:polygon(12px 0,100% 0,100% calc(100% - 12px),calc(100% - 12px) 100%,0 100%,0 12px);overflow:hidden">
+        <div style="flex:none;display:flex;align-items:center;gap:18px;padding:16px 20px 0">
+          <span style="font-family:'Rajdhani',sans-serif;font-weight:700;font-size:26px;text-transform:uppercase;letter-spacing:0.08em;line-height:1">Settings</span>
+          <div style="display:flex;gap:2px;font-family:'Rajdhani',sans-serif;font-weight:700;font-size:13px;letter-spacing:0.1em;text-transform:uppercase">
+            <sc-for list="{{ coverTabs }}" as="t" hint-placeholder-count="7">
+              <span style="height:32px;padding:0 13px;display:inline-flex;align-items:center;border-bottom:2px solid {{ t.line }};color:{{ t.fg }}">{{ t.name }}</span>
+            </sc-for>
+          </div>
+          <div style="margin-left:auto;display:flex;align-items:center;gap:14px">
+            <span style="font-size:12px;color:rgba(242,239,232,0.6)">The data is the biome. No source reaches the world until Apply.</span>
+            <span style="font-size:16px;color:rgba(242,239,232,0.5)">✕</span>
+          </div>
+        </div>
+        <div style="flex:1;display:flex;min-height:0;margin-top:14px;border-top:1px solid rgba(255,255,255,0.1)">
+          <div style="width:340px;flex:none;display:flex;flex-direction:column;border-right:1px solid rgba(255,255,255,0.1)">
+            <div style="padding:12px 16px 10px;display:flex;justify-content:space-between;align-items:baseline"><span style="font-family:'Rajdhani',sans-serif;font-weight:700;font-size:16px;text-transform:uppercase;letter-spacing:0.08em;line-height:1">Sources</span><span style="font-family:'Rajdhani',sans-serif;font-weight:700;font-size:11px;letter-spacing:0.1em;text-transform:uppercase;color:oklch(0.78 0.14 200)">Add source</span></div>
+            <sc-for list="{{ sources }}" as="s" hint-placeholder-count="3">
+              <div style="display:flex;gap:10px;padding:11px 16px;border-top:1px solid rgba(255,255,255,0.06);background:{{ s.bg }};border-left:2px solid {{ s.mark }}">
+                <span style="font-family:'JetBrains Mono',monospace;font-size:11px;color:rgba(242,239,232,0.45);width:14px;flex:none">{{ s.prio }}</span>
+                <div style="display:flex;flex-direction:column;gap:3px;flex:1;min-width:0">
+                  <span style="font-family:'Rajdhani',sans-serif;font-weight:700;font-size:14px;letter-spacing:0.04em;text-transform:uppercase;line-height:1.1;color:{{ s.fg }}">{{ s.name }}</span>
+                  <span style="font-size:11px;color:rgba(242,239,232,0.6)">{{ s.meta }}</span>
+                  <span style="font-family:'JetBrains Mono',monospace;font-size:10px;color:{{ s.stateColor }}">{{ s.state }}</span>
+                </div>
+              </div>
+            </sc-for>
+            <div style="margin-top:auto;border-top:1px solid rgba(255,255,255,0.1);padding:12px 16px;display:flex;flex-direction:column;gap:8px">
+              <span style="height:32px;padding:0 12px;border:1px solid rgba(255,255,255,0.25);font-family:'Rajdhani',sans-serif;font-weight:700;font-size:12px;letter-spacing:0.08em;text-transform:uppercase;display:inline-flex;align-items:center;align-self:flex-start">Download style for GeoServer</span>
+              <span style="font-size:11px;color:rgba(242,239,232,0.55);line-height:1.5">Publish the vector source with this SLD, so each class comes through the WMS in its own colour. A raster source already is one.</span>
+              <span style="font-size:11px;color:rgba(242,239,232,0.45);line-height:1.5">Attribution for every source is listed in the page credits.</span>
+            </div>
+          </div>
+
+          <div style="flex:1;min-width:0;display:flex;flex-direction:column;overflow:hidden">
+            <div style="padding:14px 20px 10px;display:flex;justify-content:space-between;align-items:flex-end;border-bottom:1px solid rgba(255,255,255,0.1)">
+              <div style="display:flex;flex-direction:column;gap:4px">
+                <span style="font-family:'Rajdhani',sans-serif;font-weight:700;font-size:18px;text-transform:uppercase;letter-spacing:0.06em;line-height:1">swissTLM3D Bodenbedeckung</span>
+                <span style="font-size:12px;color:rgba(242,239,232,0.6)">9 classes in the layer · 7 mapped · 2 not shown</span>
+              </div>
+              <span style="font-family:'JetBrains Mono',monospace;font-size:11px;color:oklch(0.82 0.16 80)">mapping version 3 · not in the world yet</span>
+            </div>
+            <div style="display:grid;grid-template-columns:260px 1fr 150px 1fr;gap:10px;padding:10px 20px 8px;font-family:'Rajdhani',sans-serif;font-weight:600;font-size:11px;letter-spacing:0.14em;text-transform:uppercase;color:rgba(242,239,232,0.55)">
+              <span>Source value</span><span>Kind</span><span>Key</span><span>Value</span>
+            </div>
+            <div style="flex:1;overflow:hidden;display:flex;flex-direction:column">
+              <sc-for list="{{ mapRows }}" as="m" hint-placeholder-count="9">
+                <div style="display:grid;grid-template-columns:260px 1fr 150px 1fr;gap:10px;align-items:center;padding:8px 20px;border-top:1px solid rgba(255,255,255,0.06);background:{{ m.bg }};font-size:13px">
+                  <span style="display:flex;align-items:center;gap:9px;min-width:0"><span style="width:14px;height:14px;flex:none;background:{{ m.swatch }};border:1px solid rgba(255,255,255,0.25)"></span><span style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:{{ m.fg }}">{{ m.source }}</span></span>
+                  <div style="height:30px;border:1px solid {{ m.border }};background:{{ m.field }};display:flex;align-items:center;justify-content:space-between;padding:0 9px;color:{{ m.valueFg }}">{{ m.kind }}<span style="color:rgba(242,239,232,0.4)">▾</span></div>
+                  <div style="height:30px;border:1px solid {{ m.border }};background:{{ m.field }};display:flex;align-items:center;padding:0 9px;font-family:'JetBrains Mono',monospace;font-size:12px;color:{{ m.valueFg }}">{{ m.key }}</div>
+                  <div style="height:30px;border:1px solid {{ m.border }};background:{{ m.field }};display:flex;align-items:center;justify-content:space-between;padding:0 9px;color:{{ m.valueFg }}">{{ m.value }}<span style="color:rgba(242,239,232,0.4)">{{ m.caret }}</span></div>
+                </div>
+              </sc-for>
+            </div>
+            <div style="border-top:1px solid rgba(255,255,255,0.1);padding:10px 20px;display:flex;justify-content:space-between;align-items:center;font-size:12px;color:rgba(242,239,232,0.6)">
+              <span>An unmapped class is simply not shown. Nothing refuses, nothing breaks.</span>
+              <span style="height:32px;padding:0 13px;background:oklch(0.78 0.14 200);color:#0b0d10;font-family:'Rajdhani',sans-serif;font-weight:700;font-size:12px;letter-spacing:0.08em;text-transform:uppercase;display:inline-flex;align-items:center;clip-path:polygon(5px 0,100% 0,100% calc(100% - 5px),calc(100% - 5px) 100%,0 100%,0 5px)">Save mapping</span>
+            </div>
+          </div>
+
+          <div style="width:440px;flex:none;display:flex;flex-direction:column;border-left:1px solid rgba(255,255,255,0.1)">
+            <div style="padding:12px 16px 10px;display:flex;justify-content:space-between;align-items:baseline"><span style="font-family:'Rajdhani',sans-serif;font-weight:700;font-size:16px;text-transform:uppercase;letter-spacing:0.08em;line-height:1">Class raster</span><span style="font-size:11px;color:rgba(242,239,232,0.5)">Visp · z14 · WMS</span></div>
+            <div style="position:relative;margin:0 16px;height:250px;flex:none;border:1px solid rgba(255,255,255,0.12);overflow:hidden;background:#101318">
+              <div style="position:absolute;inset:0;background:radial-gradient(circle 180px at 25% 35%,oklch(0.55 0.09 145) 0 40%,transparent 62%),radial-gradient(circle 150px at 72% 30%,oklch(0.6 0.02 250) 0 45%,transparent 65%),radial-gradient(circle 120px at 60% 78%,oklch(0.62 0.07 95) 0 45%,transparent 68%),radial-gradient(circle 90px at 18% 82%,oklch(0.5 0.12 230) 0 50%,transparent 70%),#2a2f28"></div>
+              <div style="position:absolute;inset:0;background:repeating-linear-gradient(0deg,rgba(0,0,0,0.18) 0 1px,transparent 1px 50px),repeating-linear-gradient(90deg,rgba(0,0,0,0.18) 0 1px,transparent 1px 50px)"></div>
+              <div style="position:absolute;left:12px;bottom:12px;display:flex;flex-direction:column;gap:4px;padding:8px 10px;background:rgba(10,12,15,0.85);border:1px solid rgba(255,255,255,0.14);font-size:11px">
+                <sc-for list="{{ legend }}" as="g" hint-placeholder-count="4">
+                  <span style="display:flex;align-items:center;gap:8px"><span style="width:10px;height:10px;background:{{ g.color }}"></span>{{ g.name }}</span>
+                </sc-for>
+              </div>
+              <span style="position:absolute;right:10px;top:8px;font-family:'JetBrains Mono',monospace;font-size:10px;color:rgba(242,239,232,0.7)">antialias off · class codes</span>
+            </div>
+            <div style="flex:1;display:flex;flex-direction:column;gap:12px;padding:14px 16px;overflow:hidden">
+              <span style="font-family:'Rajdhani',sans-serif;font-weight:600;font-size:11px;letter-spacing:0.14em;text-transform:uppercase;color:rgba(242,239,232,0.55)">Blend at the borders</span>
+              <sc-for list="{{ blends }}" as="b2" hint-placeholder-count="4">
+                <div style="display:flex;flex-direction:column;gap:5px">
+                  <div style="display:flex;justify-content:space-between;font-size:13px"><span>{{ b2.name }}</span><span style="font-family:'JetBrains Mono',monospace;font-size:12px;color:rgba(242,239,232,0.7)">{{ b2.value }}</span></div>
+                  <div style="height:4px;background:rgba(255,255,255,0.1)"><div style="width:{{ b2.pct }};height:100%;background:oklch(0.78 0.14 200)"></div></div>
+                </div>
+              </sc-for>
+              <div style="display:flex;flex-direction:column;gap:6px;padding:10px 12px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);font-size:12px;color:rgba(242,239,232,0.7);line-height:1.5">
+                Slope and height are adjustments of the class’s own symbol: bare rock shows through above 38°, snow above 2 600 m. The cover map also thins scatter towards an edge, so forests fade out instead of stopping.
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 7e -->
+  <div id="7e" style="display:flex;flex-direction:column;gap:12px">
+    <div style="display:flex;gap:12px;align-items:baseline;font-size:15px"><a href="#7e" style="font-family:'JetBrains Mono',monospace;font-size:12px;padding:3px 8px;background:oklch(0.78 0.14 200);color:#0b0d10;text-decoration:none">7e</a><span style="font-family:'Rajdhani',sans-serif;font-weight:700;font-size:20px;text-transform:uppercase;letter-spacing:0.08em">Land · Shape</span><span style="color:rgba(242,239,232,0.6)">brushes, along a line, the neighbour’s ground locked, the road check</span></div>
+    <div style="position:relative;width:1920px;height:1080px;overflow:hidden;background:#0b0d10;font-size:14px">
+      <img src="assets/world.webp" alt="" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;filter:saturate(0.9) brightness(0.85)">
+      <div style="position:absolute;left:1140px;top:300px;width:760px;height:700px;background:rgba(6,8,10,0.55);border-left:1px dashed rgba(242,239,232,0.35)"></div>
+      <span style="position:absolute;left:1520px;top:360px;font-family:'Rajdhani',sans-serif;font-weight:700;font-size:15px;letter-spacing:0.14em;text-transform:uppercase;color:rgba(242,239,232,0.6);text-shadow:0 1px 8px rgba(0,0,0,0.9)">not yours</span>
+      <div style="position:absolute;left:560px;top:470px;width:640px;height:230px;border:2px solid oklch(0.78 0.14 200 / 0.7);transform:perspective(600px) rotateX(58deg) skewX(-12deg);box-shadow:0 0 40px oklch(0.78 0.14 200 / 0.25)"></div>
+      <div style="position:absolute;left:700px;top:600px;width:220px;height:88px;border:2px dashed oklch(0.78 0.14 200);border-radius:50%;box-shadow:0 0 0 6px oklch(0.78 0.14 200 / 0.12)"></div>
+      <div style="position:absolute;left:1180px;top:640px;width:200px;height:80px;border:2px dashed oklch(0.8 0.18 25);border-radius:50%;box-shadow:0 0 0 6px oklch(0.8 0.18 25 / 0.14)"></div>
+      <div style="position:absolute;left:1150px;top:560px;padding:8px 12px;background:rgba(14,16,20,0.9);border:1px solid oklch(0.8 0.18 25 / 0.7);font-size:12px;color:oklch(0.8 0.18 25)">You can only shape your own land.</div>
+
+      <dc-import name="Chrome7" app="Build" active="Land" toast="Ground saved · 3 tiles changed" toast-action="Submit" toast-age="5 s" toast-progress="45%" hint-size="100%,100%" style="position:absolute;inset:0"></dc-import>
+
+      <div style="position:absolute;left:24px;top:80px;bottom:130px;width:440px;display:flex;flex-direction:column;background:rgba(14,16,20,0.9);backdrop-filter:blur(14px);border:1px solid rgba(255,255,255,0.12);clip-path:polygon(12px 0,100% 0,100% calc(100% - 12px),calc(100% - 12px) 100%,0 100%,0 12px);overflow:hidden">
+        <div style="padding:16px 18px 12px;display:flex;flex-direction:column;gap:6px;border-bottom:1px solid rgba(255,255,255,0.1)">
+          <div style="display:flex;justify-content:space-between;align-items:center"><span style="font-family:'Rajdhani',sans-serif;font-weight:700;font-size:24px;text-transform:uppercase;letter-spacing:0.08em;line-height:1">Land · Shape</span><span style="font-size:16px;color:rgba(242,239,232,0.5)">✕</span></div>
+          <span style="font-size:12px;color:rgba(242,239,232,0.6);line-height:1.45">Bergli · you paint heights in metres over the ground. Roads lie on whatever you paint.</span>
+        </div>
+        <div style="padding:14px 18px;display:flex;flex-direction:column;gap:14px;overflow:hidden">
+          <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:6px">
+            <sc-for list="{{ brushes }}" as="b3" hint-placeholder-count="6">
+              <div style="position:relative;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;height:64px;background:{{ b3.bg }};border:1px solid {{ b3.border }};color:{{ b3.fg }}">
+                <span style="position:absolute;left:5px;top:4px;font-family:'JetBrains Mono',monospace;font-size:9px;color:rgba(242,239,232,0.45)">{{ b3.key }}</span>
+                <svg viewBox="0 0 24 24" style="width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round"><path d="{{ b3.icon }}"></path></svg>
+                <span style="font-family:'Rajdhani',sans-serif;font-weight:700;font-size:11px;letter-spacing:0.08em;text-transform:uppercase;line-height:1">{{ b3.name }}</span>
+              </div>
+            </sc-for>
+          </div>
+          <div style="display:flex;flex-direction:column;gap:10px">
+            <div style="display:flex;flex-direction:column;gap:5px">
+              <div style="display:flex;justify-content:space-between;font-size:13px"><span>Size</span><span style="font-family:'JetBrains Mono',monospace;font-size:12px;color:rgba(242,239,232,0.7)">14 m</span></div>
+              <div style="height:4px;background:rgba(255,255,255,0.1)"><div style="width:38%;height:100%;background:oklch(0.78 0.14 200)"></div></div>
+            </div>
+            <div style="display:flex;flex-direction:column;gap:5px">
+              <div style="display:flex;justify-content:space-between;font-size:13px"><span>Strength</span><span style="font-family:'JetBrains Mono',monospace;font-size:12px;color:rgba(242,239,232,0.7)">60%</span></div>
+              <div style="height:4px;background:rgba(255,255,255,0.1)"><div style="width:60%;height:100%;background:oklch(0.78 0.14 200)"></div></div>
+            </div>
+          </div>
+          <div style="display:flex;flex-direction:column;gap:9px;padding:12px;background:oklch(0.78 0.14 200 / 0.08);border:1px solid oklch(0.78 0.14 200 / 0.5)">
+            <div style="display:flex;justify-content:space-between;align-items:baseline"><span style="font-family:'Rajdhani',sans-serif;font-weight:700;font-size:14px;letter-spacing:0.08em;text-transform:uppercase;color:oklch(0.78 0.14 200)">Along a line</span><span style="font-family:'JetBrains Mono',monospace;font-size:10px;color:rgba(242,239,232,0.5)">writes the bed once</span></div>
+            <div style="height:32px;border:1px solid rgba(255,255,255,0.2);background:rgba(255,255,255,0.05);display:flex;align-items:center;justify-content:space-between;padding:0 10px;font-size:13px">Kantonsstrasse · picked<span style="font-family:'Rajdhani',sans-serif;font-weight:700;font-size:10px;letter-spacing:0.1em;text-transform:uppercase;color:oklch(0.78 0.14 200)">Pick another</span></div>
+            <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px">
+              <sc-for list="{{ lineFields }}" as="f" hint-placeholder-count="3">
+                <div style="display:flex;flex-direction:column;gap:4px">
+                  <span style="font-family:'Rajdhani',sans-serif;font-weight:600;font-size:10px;letter-spacing:0.12em;text-transform:uppercase;color:rgba(242,239,232,0.55)">{{ f.label }}</span>
+                  <div style="height:30px;border:1px solid rgba(255,255,255,0.18);background:rgba(255,255,255,0.04);display:flex;align-items:center;justify-content:space-between;padding:0 8px;font-family:'JetBrains Mono',monospace;font-size:12px">{{ f.value }}<span style="color:rgba(242,239,232,0.45);font-size:10px">{{ f.unit }}</span></div>
+                </div>
+              </sc-for>
+            </div>
+            <div style="display:flex;gap:8px;align-items:center">
+              <span style="height:32px;padding:0 13px;background:oklch(0.78 0.14 200);color:#0b0d10;font-family:'Rajdhani',sans-serif;font-weight:700;font-size:12px;letter-spacing:0.08em;text-transform:uppercase;display:inline-flex;align-items:center;clip-path:polygon(5px 0,100% 0,100% calc(100% - 5px),calc(100% - 5px) 100%,0 100%,0 5px)">Apply along the road</span>
+              <span style="font-size:11px;color:rgba(242,239,232,0.6)">cut 1.4 m · fill 0.6 m</span>
+            </div>
+          </div>
+          <div style="display:flex;align-items:center;justify-content:space-between">
+            <div style="display:flex;gap:6px">
+              <span style="height:30px;padding:0 11px;border:1px solid rgba(255,255,255,0.22);font-family:'Rajdhani',sans-serif;font-weight:700;font-size:12px;letter-spacing:0.08em;text-transform:uppercase;display:inline-flex;align-items:center;gap:7px">Undo<span style="font-family:'JetBrains Mono',monospace;font-size:9px;color:rgba(242,239,232,0.45);text-transform:none;letter-spacing:0">⌘Z</span></span>
+              <span style="height:30px;padding:0 11px;border:1px solid rgba(255,255,255,0.22);font-family:'Rajdhani',sans-serif;font-weight:700;font-size:12px;letter-spacing:0.08em;text-transform:uppercase;display:inline-flex;align-items:center;color:rgba(242,239,232,0.6)">Redo</span>
+            </div>
+            <span style="font-size:12px;color:oklch(0.82 0.16 80)">3 strokes not saved</span>
+          </div>
+          <div style="display:flex;flex-direction:column;gap:7px;padding:11px 12px;background:oklch(0.82 0.16 80 / 0.08);border:1px solid oklch(0.82 0.16 80 / 0.5)">
+            <span style="font-family:'Rajdhani',sans-serif;font-weight:700;font-size:13px;letter-spacing:0.06em;text-transform:uppercase;color:oklch(0.82 0.16 80)">Road too steep across at 3 places</span>
+            <sc-for list="{{ flags }}" as="fl" hint-placeholder-count="3">
+              <div style="display:flex;align-items:center;justify-content:space-between;font-size:12px;color:rgba(242,239,232,0.75)"><span>{{ fl.where }}</span><span style="display:flex;align-items:center;gap:9px"><span style="font-family:'JetBrains Mono',monospace;font-size:11px;color:oklch(0.82 0.16 80)">{{ fl.slope }}</span><span style="font-family:'Rajdhani',sans-serif;font-weight:700;font-size:10px;letter-spacing:0.1em;text-transform:uppercase;color:oklch(0.82 0.16 80)">Go</span></span></div>
+            </sc-for>
+            <span style="font-size:11px;color:rgba(242,239,232,0.6);line-height:1.45">A warning, not a refusal. It is shown again in Submit and to whoever approves.</span>
+          </div>
+        </div>
+        <div style="margin-top:auto;border-top:1px solid rgba(255,255,255,0.1);padding:12px 18px;display:flex;gap:8px;align-items:center">
+          <span style="height:36px;padding:0 15px;background:oklch(0.78 0.14 200);color:#0b0d10;font-family:'Rajdhani',sans-serif;font-weight:700;font-size:13px;letter-spacing:0.08em;text-transform:uppercase;display:inline-flex;align-items:center;clip-path:polygon(6px 0,100% 0,100% calc(100% - 6px),calc(100% - 6px) 100%,0 100%,0 6px)">Save ground</span>
+          <span style="height:36px;padding:0 13px;border:1px solid rgba(255,255,255,0.25);font-family:'Rajdhani',sans-serif;font-weight:700;font-size:13px;letter-spacing:0.08em;text-transform:uppercase;display:inline-flex;align-items:center">Discard</span>
+          <span style="font-size:11px;color:rgba(242,239,232,0.55);line-height:1.4">Saving marks the tiles changed; others see it after Submit and approval.</span>
+        </div>
+      </div>
+
+      <div style="position:absolute;left:50%;bottom:24px;transform:translateX(-50%);width:640px;display:flex;flex-direction:column;gap:8px;padding:12px 16px;background:rgba(14,16,20,0.88);backdrop-filter:blur(14px);border:1px solid rgba(255,255,255,0.12);clip-path:polygon(10px 0,100% 0,100% calc(100% - 10px),calc(100% - 10px) 100%,0 100%,0 10px)">
+        <div style="display:flex;justify-content:space-between;align-items:baseline"><span style="font-family:'Rajdhani',sans-serif;font-weight:600;font-size:11px;letter-spacing:0.14em;text-transform:uppercase;color:rgba(242,239,232,0.55)">Along the road · height probe</span><span style="font-family:'JetBrains Mono',monospace;font-size:11px;color:rgba(242,239,232,0.7)">1 796 → 1 812 m · max grade 7.4%</span></div>
+        <svg viewBox="0 0 608 70" preserveAspectRatio="none" style="width:100%;height:70px;fill:none">
+          <path d="M0 58 L608 22" stroke="rgba(242,239,232,0.25)" stroke-width="1" stroke-dasharray="4 5"></path>
+          <path d="M0 62 C90 56 120 40 190 44 C260 48 300 30 380 34 C450 38 520 24 608 26" stroke="rgba(242,239,232,0.45)" stroke-width="2"></path>
+          <path d="M0 58 C90 52 130 38 200 40 C270 42 310 28 385 31 C455 34 525 22 608 24" stroke="oklch(0.78 0.14 200)" stroke-width="2.5"></path>
+        </svg>
+        <div style="display:flex;justify-content:space-between;font-size:11px;color:rgba(242,239,232,0.6)"><span><span style="display:inline-block;width:18px;height:2px;background:oklch(0.78 0.14 200);vertical-align:middle;margin-right:6px"></span>painted now</span><span><span style="display:inline-block;width:18px;height:2px;background:rgba(242,239,232,0.45);vertical-align:middle;margin-right:6px"></span>ground before</span><span>620 m of road</span></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 7f -->
+  <div id="7f" style="display:flex;flex-direction:column;gap:12px">
+    <div style="display:flex;gap:12px;align-items:baseline;font-size:15px"><a href="#7f" style="font-family:'JetBrains Mono',monospace;font-size:12px;padding:3px 8px;background:oklch(0.78 0.14 200);color:#0b0d10;text-decoration:none">7f</a><span style="font-family:'Rajdhani',sans-serif;font-weight:700;font-size:20px;text-transform:uppercase;letter-spacing:0.08em">Catalog · Register</span><span style="color:rgba(242,239,232,0.6)">what is it · the node tree · parts, ports and openings</span></div>
+    <div style="position:relative;width:1920px;height:1080px;overflow:hidden;background:#0b0d10;font-size:14px">
+      <img src="assets/world.webp" alt="" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;filter:brightness(0.7)">
+      <dc-import name="Chrome7" app="Build" active="Catalog" toast="Marked 2 parts · SAN changes with the markings" toast-action="" toast-age="12 s" toast-progress="0%" hint-size="100%,100%" style="position:absolute;inset:0"></dc-import>
+
+      <div style="position:absolute;left:24px;top:80px;bottom:130px;width:660px;display:flex;flex-direction:column;background:rgba(14,16,20,0.9);backdrop-filter:blur(14px);border:1px solid rgba(255,255,255,0.12);clip-path:polygon(12px 0,100% 0,100% calc(100% - 12px),calc(100% - 12px) 100%,0 100%,0 12px);overflow:hidden">
+        <div style="padding:16px 20px 12px;display:flex;flex-direction:column;gap:12px;border-bottom:1px solid rgba(255,255,255,0.1)">
+          <div style="display:flex;justify-content:space-between;align-items:center"><span style="font-family:'Rajdhani',sans-serif;font-weight:700;font-size:24px;text-transform:uppercase;letter-spacing:0.08em;line-height:1">Register a product</span><span style="font-size:16px;color:rgba(242,239,232,0.5)">✕</span></div>
+          <span style="font-family:'Rajdhani',sans-serif;font-weight:600;font-size:11px;letter-spacing:0.14em;text-transform:uppercase;color:rgba(242,239,232,0.55)">What is it</span>
+          <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:6px">
+            <sc-for list="{{ prodTypes }}" as="t" hint-placeholder-count="5">
+              <div style="display:flex;flex-direction:column;gap:5px;padding:9px 10px;height:88px;background:{{ t.bg }};border:1px solid {{ t.border }};color:{{ t.fg }}">
+                <span style="font-family:'Rajdhani',sans-serif;font-weight:700;font-size:12px;letter-spacing:0.06em;text-transform:uppercase;line-height:1.1">{{ t.name }}</span>
+                <span style="font-size:10px;line-height:1.35;color:rgba(242,239,232,0.6)">{{ t.what }}</span>
+              </div>
+            </sc-for>
+          </div>
+        </div>
+        <div style="flex:1;padding:14px 20px;display:flex;flex-direction:column;gap:14px;overflow:hidden">
+          <div style="display:flex;gap:10px;align-items:center;padding:10px 12px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.1)">
+            <div style="width:40px;height:40px;flex:none;background:repeating-linear-gradient(135deg,#2a2e35 0 5px,#1f232a 5px 10px);border:1px solid rgba(255,255,255,0.18)"></div>
+            <div style="display:flex;flex-direction:column;gap:2px;flex:1;min-width:0"><span style="font-size:13px">strassenlampe.glb</span><span style="font-family:'JetBrains Mono',monospace;font-size:11px;color:rgba(242,239,232,0.55)">1.4 MB · 6 nodes · canon v2 · 4.10 m tall</span></div>
+            <span style="height:30px;padding:0 11px;border:1px solid rgba(255,255,255,0.22);font-family:'Rajdhani',sans-serif;font-weight:700;font-size:12px;letter-spacing:0.08em;text-transform:uppercase;display:inline-flex;align-items:center">Replace</span>
+          </div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+            <sc-for list="{{ regFields }}" as="f" hint-placeholder-count="4">
+              <div style="display:flex;flex-direction:column;gap:5px">
+                <span style="font-family:'Rajdhani',sans-serif;font-weight:600;font-size:11px;letter-spacing:0.14em;text-transform:uppercase;color:rgba(242,239,232,0.55)">{{ f.label }}</span>
+                <div style="height:32px;border:1px solid rgba(255,255,255,0.18);background:rgba(255,255,255,0.04);display:flex;align-items:center;justify-content:space-between;padding:0 10px;font-size:13px">{{ f.value }}<span style="font-family:'JetBrains Mono',monospace;font-size:10px;color:rgba(242,239,232,0.45)">{{ f.unit }}</span></div>
+              </div>
+            </sc-for>
+          </div>
+          <div style="display:flex;flex-direction:column;gap:8px;min-height:0">
+            <div style="display:flex;justify-content:space-between;align-items:baseline"><span style="font-family:'Rajdhani',sans-serif;font-weight:600;font-size:11px;letter-spacing:0.14em;text-transform:uppercase;color:rgba(242,239,232,0.55)">Parts · the model’s nodes</span><span style="font-size:11px;color:rgba(242,239,232,0.5)">click a node to highlight it in the preview</span></div>
+            <div style="display:flex;flex-direction:column;border:1px solid rgba(255,255,255,0.12)">
+              <sc-for list="{{ nodeTree }}" as="n" hint-placeholder-count="6">
+                <div style="display:flex;align-items:center;gap:10px;padding:8px 10px;border-bottom:1px solid rgba(255,255,255,0.06);background:{{ n.bg }};font-size:13px">
+                  <span style="width:{{ n.indent }};flex:none"></span>
+                  <span style="flex:1;min-width:0;font-family:'JetBrains Mono',monospace;font-size:12px;color:{{ n.fg }}">{{ n.node }}</span>
+                  <span style="font-family:'Rajdhani',sans-serif;font-weight:700;font-size:10px;letter-spacing:0.1em;text-transform:uppercase;padding:2px 7px;border:1px solid {{ n.tagBorder }};color:{{ n.tagFg }};display:{{ n.tagDisplay }}">{{ n.role }}</span>
+                  <span style="font-size:11px;color:rgba(242,239,232,0.5);width:96px;text-align:right">{{ n.note }}</span>
+                </div>
+              </sc-for>
+            </div>
+          </div>
+          <div style="display:flex;flex-direction:column;gap:8px">
+            <div style="display:flex;justify-content:space-between;align-items:baseline"><span style="font-family:'Rajdhani',sans-serif;font-weight:600;font-size:11px;letter-spacing:0.14em;text-transform:uppercase;color:rgba(242,239,232,0.55)">Ports</span><span style="font-family:'Rajdhani',sans-serif;font-weight:700;font-size:11px;letter-spacing:0.1em;text-transform:uppercase;color:oklch(0.78 0.14 200)">Add port</span></div>
+            <sc-for list="{{ regPorts }}" as="p" hint-placeholder-count="3">
+              <div style="display:flex;align-items:center;gap:10px;padding:7px 0;border-bottom:1px solid rgba(255,255,255,0.06);font-size:13px">
+                <span style="width:90px;flex:none;font-family:'JetBrains Mono',monospace;font-size:12px">{{ p.name }}</span>
+                <span style="width:80px;flex:none;font-size:11px;color:rgba(242,239,232,0.6)">{{ p.type }}</span>
+                <span style="flex:1;min-width:0;font-size:12px;color:rgba(242,239,232,0.7)">{{ p.drives }}</span>
+                <span style="font-family:'JetBrains Mono',monospace;font-size:11px;color:rgba(242,239,232,0.6)">{{ p.def }}</span>
+              </div>
+            </sc-for>
+          </div>
+          <div style="display:flex;align-items:center;gap:10px;padding:10px 12px;background:oklch(0.82 0.16 80 / 0.08);border:1px solid oklch(0.82 0.16 80 / 0.5);font-size:12px;color:oklch(0.82 0.16 80)">
+            <span style="width:8px;height:8px;flex:none;background:oklch(0.82 0.16 80);transform:rotate(45deg)"></span>
+            The same file with no markings is already “Strassenlampe 4 m (plain)” by C. Fex.
+          </div>
+        </div>
+        <div style="margin-top:auto;border-top:1px solid rgba(255,255,255,0.1);padding:12px 20px;display:flex;gap:8px;align-items:center">
+          <span style="height:36px;padding:0 15px;background:oklch(0.78 0.14 200);color:#0b0d10;font-family:'Rajdhani',sans-serif;font-weight:700;font-size:13px;letter-spacing:0.08em;text-transform:uppercase;display:inline-flex;align-items:center;clip-path:polygon(6px 0,100% 0,100% calc(100% - 6px),calc(100% - 6px) 100%,0 100%,0 6px)">Register</span>
+          <span style="height:36px;padding:0 13px;border:1px solid rgba(255,255,255,0.25);font-family:'Rajdhani',sans-serif;font-weight:700;font-size:13px;letter-spacing:0.08em;text-transform:uppercase;display:inline-flex;align-items:center">Cancel</span>
+          <span style="font-family:'JetBrains Mono',monospace;font-size:11px;color:rgba(242,239,232,0.55);margin-left:auto">SAN = canonical GLB + the markings</span>
+        </div>
+      </div>
+
+      <div style="position:absolute;right:24px;top:80px;width:520px;display:flex;flex-direction:column;background:rgba(14,16,20,0.9);backdrop-filter:blur(14px);border:1px solid rgba(255,255,255,0.12);clip-path:polygon(12px 0,100% 0,100% calc(100% - 12px),calc(100% - 12px) 100%,0 100%,0 12px);overflow:hidden">
+        <div style="padding:14px 18px 10px;display:flex;justify-content:space-between;align-items:baseline"><span style="font-family:'Rajdhani',sans-serif;font-weight:700;font-size:18px;text-transform:uppercase;letter-spacing:0.08em;line-height:1">Preview</span><span style="font-size:11px;color:rgba(242,239,232,0.5)">head · marked as light</span></div>
+        <div style="position:relative;height:420px;margin:0 18px;background:linear-gradient(180deg,#171c22,#0c0f13);border:1px solid rgba(255,255,255,0.12);overflow:hidden">
+          <div style="position:absolute;left:50%;bottom:40px;width:8px;height:300px;background:linear-gradient(90deg,#3a3f46,#22262c);transform:translateX(-50%)"></div>
+          <div style="position:absolute;left:50%;bottom:326px;width:120px;height:10px;background:#3a3f46;transform:translateX(-50%) skewX(-20deg)"></div>
+          <div style="position:absolute;left:calc(50% + 46px);bottom:300px;width:56px;height:22px;background:oklch(0.82 0.16 80);box-shadow:0 0 60px 20px oklch(0.82 0.16 80 / 0.45);border:1px solid oklch(0.9 0.1 90)"></div>
+          <div style="position:absolute;left:calc(50% + 74px);bottom:60px;width:260px;height:240px;background:radial-gradient(ellipse at top,oklch(0.82 0.16 80 / 0.22),transparent 70%);transform:translateX(-50%)"></div>
+          <div style="position:absolute;left:50%;bottom:34px;width:70px;height:12px;background:#2b3036;transform:translateX(-50%)"></div>
+          <div style="position:absolute;left:0;right:0;bottom:0;height:44px;background:repeating-linear-gradient(90deg,rgba(255,255,255,0.05) 0 1px,transparent 1px 32px),#12161a;border-top:1px solid rgba(255,255,255,0.1)"></div>
+          <div style="position:absolute;left:calc(50% + 40px);bottom:294px;width:70px;height:34px;border:1px dashed oklch(0.82 0.16 80)"></div>
+          <span style="position:absolute;left:calc(50% + 116px);bottom:302px;font-family:'JetBrains Mono',monospace;font-size:11px;color:oklch(0.82 0.16 80)">part:head</span>
+        </div>
+        <div style="padding:12px 18px;display:flex;align-items:center;gap:14px;border-top:1px solid rgba(255,255,255,0.1);margin-top:12px">
+          <span style="font-family:'Rajdhani',sans-serif;font-weight:600;font-size:11px;letter-spacing:0.14em;text-transform:uppercase;color:rgba(242,239,232,0.55)">Try the port</span>
+          <div style="display:flex;align-items:center;gap:9px"><span style="width:44px;height:24px;background:oklch(0.82 0.16 80);position:relative;flex:none"><span style="position:absolute;right:2px;top:2px;width:18px;height:18px;background:#0b0d10"></span></span><span style="font-size:13px">on</span></div>
+          <span style="font-size:12px;color:rgba(242,239,232,0.6);line-height:1.4">The body is baked into the splat. Only the glow and a screen’s picture stay live.</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 7g -->
+  <div id="7g" style="display:flex;flex-direction:column;gap:12px">
+    <div style="display:flex;gap:12px;align-items:baseline;font-size:15px"><a href="#7g" style="font-family:'JetBrains Mono',monospace;font-size:12px;padding:3px 8px;background:oklch(0.78 0.14 200);color:#0b0d10;text-decoration:none">7g</a><span style="font-family:'Rajdhani',sans-serif;font-weight:700;font-size:20px;text-transform:uppercase;letter-spacing:0.08em">Place · Ports</span><span style="color:rgba(242,239,232,0.6)">a selected object’s live values · a screen waits for approval · somebody else’s object</span></div>
+    <div style="position:relative;width:1920px;height:1080px;overflow:hidden;background:#0b0d10;font-size:14px">
+      <img src="assets/world.webp" alt="" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;filter:brightness(0.5) saturate(0.85)">
+      <div style="position:absolute;left:760px;top:250px;width:520px;height:600px;background:radial-gradient(ellipse at 50% 20%,oklch(0.82 0.16 80 / 0.3),transparent 65%)"></div>
+      <div style="position:absolute;left:1010px;top:300px;width:6px;height:260px;background:linear-gradient(90deg,#3a3f46,#22262c)"></div>
+      <div style="position:absolute;left:1012px;top:296px;width:60px;height:18px;background:oklch(0.82 0.16 80);box-shadow:0 0 70px 26px oklch(0.82 0.16 80 / 0.5)"></div>
+      <div style="position:absolute;left:944px;top:272px;width:150px;height:310px;border:1px solid oklch(0.78 0.14 200);box-shadow:0 0 0 4px oklch(0.78 0.14 200 / 0.12)"></div>
+      <div style="position:absolute;left:1104px;top:272px;padding:5px 9px;background:rgba(14,16,20,0.9);border:1px solid oklch(0.78 0.14 200 / 0.6);font-family:'JetBrains Mono',monospace;font-size:11px">lamp-2 · on since 14:26</div>
+
+      <dc-import name="Chrome7" app="Build" active="Place" toast="Lamp-2 · on — everybody sees it within seconds" toast-action="" toast-age="3 s" toast-progress="35%" hint-size="100%,100%" style="position:absolute;inset:0"></dc-import>
+
+      <div style="position:absolute;left:24px;top:80px;bottom:130px;width:460px;display:flex;flex-direction:column;background:rgba(14,16,20,0.9);backdrop-filter:blur(14px);border:1px solid rgba(255,255,255,0.12);clip-path:polygon(12px 0,100% 0,100% calc(100% - 12px),calc(100% - 12px) 100%,0 100%,0 12px);overflow:hidden">
+        <div style="padding:16px 18px 14px;display:flex;flex-direction:column;gap:10px;border-bottom:1px solid rgba(255,255,255,0.1)">
+          <div style="display:flex;justify-content:space-between;align-items:center"><span style="font-family:'Rajdhani',sans-serif;font-weight:700;font-size:24px;text-transform:uppercase;letter-spacing:0.08em;line-height:1">Place</span><span style="font-size:16px;color:rgba(242,239,232,0.5)">✕</span></div>
+          <div style="display:flex;gap:11px;align-items:center;padding:10px 12px;background:oklch(0.78 0.14 200 / 0.1);border:1px solid oklch(0.78 0.14 200 / 0.5)">
+            <div style="width:44px;height:44px;flex:none;background:repeating-linear-gradient(135deg,#2a2e35 0 5px,#1f232a 5px 10px);border:1px solid rgba(255,255,255,0.18)"></div>
+            <div style="display:flex;flex-direction:column;gap:3px;flex:1;min-width:0">
+              <span style="font-family:'Rajdhani',sans-serif;font-weight:700;font-size:16px;letter-spacing:0.04em;text-transform:uppercase;line-height:1">Strassenlampe 4 m</span>
+              <span style="font-family:'JetBrains Mono',monospace;font-size:11px;color:rgba(242,239,232,0.6)">lamp-2 · published · by you</span>
+            </div>
+            <span style="font-family:'Rajdhani',sans-serif;font-weight:700;font-size:11px;letter-spacing:0.1em;text-transform:uppercase;color:oklch(0.78 0.14 200)">Selected</span>
+          </div>
+        </div>
+        <div style="padding:14px 18px;display:flex;flex-direction:column;gap:16px;overflow:hidden">
+          <div style="display:flex;flex-direction:column;gap:12px">
+            <div style="display:flex;justify-content:space-between;align-items:baseline"><span style="font-family:'Rajdhani',sans-serif;font-weight:600;font-size:11px;letter-spacing:0.14em;text-transform:uppercase;color:rgba(242,239,232,0.55)">Ports</span><span style="font-size:11px;color:rgba(242,239,232,0.5)">from the product · you set them by hand</span></div>
+            <div style="display:flex;align-items:center;justify-content:space-between"><div style="display:flex;flex-direction:column;gap:2px"><span style="font-size:13px">on</span><span style="font-size:11px;color:rgba(242,239,232,0.55)">drives head.light</span></div><div style="display:flex;align-items:center;gap:10px"><span style="font-family:'JetBrains Mono',monospace;font-size:11px;color:oklch(0.8 0.15 145)">live</span><span style="width:44px;height:24px;background:oklch(0.78 0.14 200);position:relative;flex:none"><span style="position:absolute;right:2px;top:2px;width:18px;height:18px;background:#0b0d10"></span></span></div></div>
+            <div style="display:flex;align-items:center;justify-content:space-between"><div style="display:flex;flex-direction:column;gap:2px"><span style="font-size:13px">colour</span><span style="font-size:11px;color:rgba(242,239,232,0.55)">2 700 K · warm white</span></div><div style="display:flex;gap:5px">
+              <sc-for list="{{ swatches }}" as="s" hint-placeholder-count="4">
+                <span style="width:26px;height:26px;background:{{ s.color }};border:1px solid {{ s.border }};box-shadow:{{ s.glow }}"></span>
+              </sc-for>
+            </div></div>
+            <div style="display:flex;flex-direction:column;gap:6px">
+              <div style="display:flex;justify-content:space-between;align-items:baseline"><span style="font-size:13px">brightness</span><span style="font-family:'JetBrains Mono',monospace;font-size:12px;color:rgba(242,239,232,0.7)">70</span></div>
+              <div style="height:4px;background:rgba(255,255,255,0.1)"><div style="width:70%;height:100%;background:oklch(0.78 0.14 200)"></div></div>
+            </div>
+          </div>
+          <div style="height:1px;background:rgba(255,255,255,0.1)"></div>
+          <div style="display:flex;flex-direction:column;gap:10px">
+            <div style="display:flex;gap:11px;align-items:center">
+              <div style="width:44px;height:44px;flex:none;background:repeating-linear-gradient(135deg,#2a2e35 0 5px,#1f232a 5px 10px);border:1px solid rgba(255,255,255,0.18)"></div>
+              <div style="display:flex;flex-direction:column;gap:3px;flex:1;min-width:0"><span style="font-family:'Rajdhani',sans-serif;font-weight:700;font-size:15px;letter-spacing:0.04em;text-transform:uppercase;line-height:1">Billboard 6 × 3 m</span><span style="font-family:'JetBrains Mono',monospace;font-size:11px;color:rgba(242,239,232,0.6)">board-1 · published · 40 m away</span></div>
+            </div>
+            <div style="display:flex;gap:10px;align-items:stretch">
+              <div style="width:110px;height:58px;flex:none;background:repeating-linear-gradient(135deg,#242a31 0 6px,#1a1f25 6px 12px);border:1px solid oklch(0.82 0.16 80 / 0.6);display:flex;align-items:center;justify-content:center;font-family:'JetBrains Mono',monospace;font-size:9px;color:rgba(242,239,232,0.6)">new image</div>
+              <div style="flex:1;display:flex;flex-direction:column;gap:5px;justify-content:center">
+                <span style="font-size:13px">image</span>
+                <span style="font-size:11px;color:oklch(0.82 0.16 80);line-height:1.4">Shown to others after approval. They see the old picture until then.</span>
+                <div style="display:flex;gap:6px"><span style="height:28px;padding:0 10px;border:1px solid rgba(255,255,255,0.22);font-family:'Rajdhani',sans-serif;font-weight:700;font-size:11px;letter-spacing:0.08em;text-transform:uppercase;display:inline-flex;align-items:center">Choose file</span><span style="height:28px;padding:0 10px;background:oklch(0.82 0.16 80);color:#0b0d10;font-family:'Rajdhani',sans-serif;font-weight:700;font-size:11px;letter-spacing:0.08em;text-transform:uppercase;display:inline-flex;align-items:center">Submit for approval</span></div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div style="margin-top:auto;border-top:1px solid rgba(255,255,255,0.1);padding:12px 18px;display:flex;flex-direction:column;gap:6px;font-size:12px;color:rgba(242,239,232,0.6)">
+          <span style="font-family:'Rajdhani',sans-serif;font-weight:600;font-size:11px;letter-spacing:0.14em;text-transform:uppercase;color:rgba(242,239,232,0.55)">Also on this land</span>
+          <div style="display:flex;justify-content:space-between"><span>Barn door · door-1</span><span style="font-family:'JetBrains Mono',monospace;color:rgba(242,239,232,0.7)">open · false</span></div>
+          <div style="display:flex;justify-content:space-between"><span>Bus 1 · mover</span><span style="font-family:'JetBrains Mono',monospace;color:oklch(0.8 0.15 145)">running · every 5 min</span></div>
+        </div>
+      </div>
+
+      <div style="position:absolute;right:24px;top:80px;width:400px;display:flex;flex-direction:column;background:rgba(14,16,20,0.82);backdrop-filter:blur(14px);border:1px solid rgba(255,255,255,0.1);clip-path:polygon(12px 0,100% 0,100% calc(100% - 12px),calc(100% - 12px) 100%,0 100%,0 12px);overflow:hidden;opacity:0.9">
+        <div style="padding:14px 18px 12px;display:flex;flex-direction:column;gap:8px;border-bottom:1px solid rgba(255,255,255,0.08)">
+          <div style="display:flex;justify-content:space-between;align-items:baseline"><span style="font-family:'Rajdhani',sans-serif;font-weight:700;font-size:16px;text-transform:uppercase;letter-spacing:0.08em;line-height:1;color:rgba(242,239,232,0.75)">Somebody else’s object</span><span style="font-family:'Rajdhani',sans-serif;font-weight:700;font-size:10px;letter-spacing:0.12em;text-transform:uppercase;padding:2px 7px;border:1px solid rgba(242,239,232,0.35);color:rgba(242,239,232,0.6)">read only</span></div>
+          <span style="font-family:'JetBrains Mono',monospace;font-size:11px;color:rgba(242,239,232,0.55)">Brunnen · fountain-3 · M. Ruch</span>
+        </div>
+        <div style="padding:12px 18px;display:flex;flex-direction:column;gap:11px">
+          <div style="display:flex;align-items:center;justify-content:space-between;color:rgba(242,239,232,0.55);font-size:13px"><span>on</span><span style="width:44px;height:24px;background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.16);position:relative;flex:none"><span style="position:absolute;left:2px;top:2px;width:18px;height:18px;background:rgba(242,239,232,0.35)"></span></span></div>
+          <div style="display:flex;align-items:center;justify-content:space-between;color:rgba(242,239,232,0.55);font-size:13px"><span>flow rate</span><span style="font-family:'JetBrains Mono',monospace;font-size:12px">0.4 l/s</span></div>
+          <span style="font-size:12px;color:rgba(242,239,232,0.6);line-height:1.45">You can see its ports, not change them. Ask M. Ruch for a build grant on Brunnen.</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 7h -->
+  <div id="7h" style="display:flex;flex-direction:column;gap:12px">
+    <div style="display:flex;gap:12px;align-items:baseline;font-size:15px"><a href="#7h" style="font-family:'JetBrains Mono',monospace;font-size:12px;padding:3px 8px;background:oklch(0.8 0.15 145);color:#0b0d10;text-decoration:none">7h</a><span style="font-family:'Rajdhani',sans-serif;font-weight:700;font-size:20px;text-transform:uppercase;letter-spacing:0.08em">Survey · the plot manager, refined</span><span style="color:rgba(242,239,232,0.6)">layer tree, plan on paper, identify panel, attribute table docked at the bottom</span></div>
+    <div style="position:relative;width:1920px;height:1080px;overflow:hidden;background:#0b0d10;font-size:14px">
+      <dc-import name="Chrome7" app="Survey" toast="" toast-action="" toast-age="" toast-progress="0%" hint-size="100%,100%" style="position:absolute;inset:0"></dc-import>
+
+      <div style="position:absolute;left:0;right:0;top:44px;height:44px;display:flex;align-items:center;gap:14px;padding:0 14px;background:linear-gradient(180deg,rgba(22,25,30,0.96),rgba(14,16,20,0.96));border-bottom:1px solid rgba(255,255,255,0.12)">
+        <div style="display:flex;gap:4px">
+          <sc-for list="{{ planTools }}" as="t" hint-placeholder-count="8">
+            <span style="position:relative;height:30px;padding:0 11px;display:inline-flex;align-items:center;gap:8px;background:{{ t.bg }};border:1px solid {{ t.border }};color:{{ t.fg }};font-family:'Rajdhani',sans-serif;font-weight:700;font-size:12px;letter-spacing:0.08em;text-transform:uppercase">
+              <svg viewBox="0 0 24 24" style="width:15px;height:15px;fill:none;stroke:currentColor;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round"><path d="{{ t.icon }}"></path></svg>
+              {{ t.name }}<span style="font-family:'JetBrains Mono',monospace;font-size:9px;color:rgba(242,239,232,0.45);letter-spacing:0;text-transform:none">{{ t.key }}</span>
+            </span>
+          </sc-for>
+        </div>
+        <div style="display:flex;align-items:center;gap:9px;padding-left:14px;border-left:1px solid rgba(255,255,255,0.12);font-size:12px;color:rgba(242,239,232,0.7)">
+          <span style="width:38px;height:20px;background:oklch(0.8 0.15 145);position:relative;flex:none"><span style="position:absolute;right:2px;top:2px;width:14px;height:14px;background:#0b0d10"></span></span>Snapping · 0.5 m to vertices and edges
+        </div>
+        <div style="margin-left:auto;display:flex;align-items:center;gap:10px;font-size:12px">
+          <div style="display:flex;border:1px solid rgba(255,255,255,0.2);font-family:'Rajdhani',sans-serif;font-weight:700;font-size:11px;letter-spacing:0.1em;text-transform:uppercase">
+            <span style="height:28px;padding:0 11px;display:inline-flex;align-items:center;background:#efece4;color:#14181c">Paper</span>
+            <span style="height:28px;padding:0 11px;display:inline-flex;align-items:center;border-left:1px solid rgba(255,255,255,0.2);color:rgba(242,239,232,0.7)">Dark</span>
+          </div>
+          <div style="height:28px;padding:0 10px;border:1px solid rgba(255,255,255,0.18);background:rgba(255,255,255,0.04);display:flex;align-items:center;gap:8px;font-family:'JetBrains Mono',monospace;font-size:11px">1 : 2 500<span style="color:rgba(242,239,232,0.45)">▾</span></div>
+          <span style="font-family:'Rajdhani',sans-serif;font-weight:600;font-size:10px;letter-spacing:0.14em;text-transform:uppercase;color:rgba(242,239,232,0.55)">North up · locked</span>
+        </div>
+      </div>
+
+      <div style="position:absolute;left:0;top:88px;bottom:246px;width:320px;display:flex;flex-direction:column;background:rgba(14,16,20,0.95);border-right:1px solid rgba(255,255,255,0.12)">
+        <div style="padding:12px 14px 10px;display:flex;justify-content:space-between;align-items:baseline"><span style="font-family:'Rajdhani',sans-serif;font-weight:700;font-size:16px;text-transform:uppercase;letter-spacing:0.08em;line-height:1">Layers</span><span style="font-size:11px;color:rgba(242,239,232,0.5)">9 of 14 drawn</span></div>
+        <div style="flex:1;overflow:hidden;display:flex;flex-direction:column">
+          <sc-for list="{{ planLayers }}" as="l" hint-placeholder-count="14">
+            <div style="display:flex;align-items:center;gap:8px;padding:{{ l.pad }};border-top:1px solid rgba(255,255,255,0.05);background:{{ l.bg }};border-left:2px solid {{ l.mark }}">
+              <span style="width:9px;flex:none;font-family:'JetBrains Mono',monospace;font-size:9px;color:rgba(242,239,232,0.45)">{{ l.twist }}</span>
+              <span style="width:13px;height:13px;flex:none;border:1px solid {{ l.boxBorder }};background:{{ l.boxBg }};display:{{ l.boxDisplay }}"></span>
+              <span style="flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-family:{{ l.font }};font-weight:{{ l.weight }};font-size:{{ l.size }};letter-spacing:{{ l.tracking }};text-transform:{{ l.transform }};color:{{ l.fg }}">{{ l.name }}</span>
+              <span style="width:22px;height:11px;flex:none;background:{{ l.symFill }};border:{{ l.symBorder }};display:{{ l.symDisplay }}"></span>
+              <span style="font-family:'JetBrains Mono',monospace;font-size:9px;color:rgba(242,239,232,0.4)">{{ l.count }}</span>
+            </div>
+          </sc-for>
+        </div>
+        <div style="border-top:1px solid rgba(255,255,255,0.1);padding:11px 14px;display:flex;flex-direction:column;gap:8px">
+          <div style="display:flex;justify-content:space-between;align-items:baseline"><span style="font-family:'Rajdhani',sans-serif;font-weight:600;font-size:11px;letter-spacing:0.14em;text-transform:uppercase;color:rgba(242,239,232,0.55)">Ownership · symbology</span><span style="font-size:11px;color:rgba(242,239,232,0.5)">categorised</span></div>
+          <div style="display:flex;flex-direction:column;gap:5px;font-size:12px">
+            <span style="display:flex;align-items:center;gap:9px"><span style="width:14px;height:11px;background:oklch(0.8 0.15 145 / 0.3);border:1px solid oklch(0.8 0.15 145)"></span>Yours</span>
+            <span style="display:flex;align-items:center;gap:9px"><span style="width:14px;height:11px;border:1px solid rgba(242,239,232,0.6)"></span>Somebody else’s · you may propose</span>
+            <span style="display:flex;align-items:center;gap:9px"><span style="width:14px;height:11px;border:1px solid oklch(0.8 0.18 25)"></span>Closed to you</span>
+            <span style="display:flex;align-items:center;gap:9px"><span style="width:14px;height:11px;border:1px dashed oklch(0.82 0.16 80)"></span>Candidate footprint</span>
+          </div>
+          <div style="display:flex;align-items:center;gap:10px;padding-top:6px;border-top:1px solid rgba(255,255,255,0.08);font-size:12px"><span style="color:rgba(242,239,232,0.6)">Opacity</span><div style="flex:1;height:4px;background:rgba(255,255,255,0.12)"><div style="width:72%;height:100%;background:oklch(0.8 0.15 145)"></div></div><span style="font-family:'JetBrains Mono',monospace;font-size:11px;color:rgba(242,239,232,0.7)">72%</span></div>
+        </div>
+      </div>
+
+      <div style="position:absolute;left:320px;right:400px;top:88px;bottom:246px;background:#efece4;overflow:hidden">
+        <div style="position:absolute;inset:0;background:repeating-linear-gradient(0deg,rgba(20,24,28,0.06) 0 1px,transparent 1px 100px),repeating-linear-gradient(90deg,rgba(20,24,28,0.06) 0 1px,transparent 1px 100px)"></div>
+        <svg viewBox="0 0 1200 782" preserveAspectRatio="none" style="position:absolute;inset:0;width:100%;height:100%">
+          <g fill="none" stroke="#14181c" stroke-width="1.2">
+            <path d="M360 120 L700 96 L742 372 L398 404 Z" fill="oklch(0.8 0.15 145 / 0.16)" stroke="oklch(0.55 0.13 145)" stroke-width="2.4"></path>
+            <path d="M700 96 L980 110 L1010 366 L742 372 Z" fill="rgba(20,24,28,0.02)"></path>
+            <path d="M398 404 L742 372 L764 610 L432 640 Z" fill="rgba(20,24,28,0.02)"></path>
+            <path d="M742 372 L1010 366 L1030 600 L764 610 Z" fill="rgba(200,60,40,0.05)" stroke="oklch(0.55 0.18 25)"></path>
+            <path d="M140 150 L360 120 L398 404 L170 430 Z" fill="rgba(20,24,28,0.02)"></path>
+            <path d="M170 430 L398 404 L432 640 L200 660 Z" fill="rgba(20,24,28,0.02)"></path>
+            <path d="M470 54 L690 40 L700 96 L478 110 Z" fill="none" stroke="oklch(0.62 0.14 80)" stroke-width="1.6" stroke-dasharray="7 5"></path>
+          </g>
+          <g fill="none" stroke="rgba(20,24,28,0.22)" stroke-width="0.8">
+            <path d="M120 250 C300 232 520 300 760 262 C960 230 1090 268 1180 250"></path>
+            <path d="M120 330 C300 312 520 380 760 342 C960 310 1090 348 1180 330"></path>
+            <path d="M120 410 C300 392 520 460 760 422 C960 390 1090 428 1180 410"></path>
+            <path d="M120 490 C300 472 520 540 760 502 C960 470 1090 508 1180 490"></path>
+          </g>
+          <g fill="none" stroke="#14181c" stroke-width="2.6" stroke-linecap="round">
+            <path d="M150 700 C400 640 520 520 760 500 C940 486 1080 430 1190 402"></path>
+          </g>
+          <g fill="none" stroke="#efece4" stroke-width="0.9" stroke-dasharray="10 12">
+            <path d="M150 700 C400 640 520 520 760 500 C940 486 1080 430 1190 402"></path>
+          </g>
+        </svg>
+        <sc-for list="{{ planLabels }}" as="p" hint-placeholder-count="6">
+          <div style="position:absolute;left:{{ p.left }};top:{{ p.top }};display:flex;flex-direction:column;gap:2px">
+            <span style="font-family:'Rajdhani',sans-serif;font-weight:700;font-size:{{ p.size }};letter-spacing:0.08em;text-transform:uppercase;line-height:1;color:{{ p.color }}">{{ p.name }}</span>
+            <span style="font-family:'JetBrains Mono',monospace;font-size:10px;color:{{ p.metaColor }}">{{ p.meta }}</span>
+          </div>
+        </sc-for>
+        <div style="position:absolute;left:44%;top:46%;width:13px;height:13px;border:2px solid oklch(0.5 0.15 145);border-radius:50%;background:rgba(239,236,228,0.6);transform:translate(-50%,-50%)"></div>
+        <div style="position:absolute;left:44%;top:46%;width:44px;height:1px;background:rgba(20,24,28,0.45);transform:translate(-50%,-50%)"></div>
+        <div style="position:absolute;left:44%;top:46%;width:1px;height:44px;background:rgba(20,24,28,0.45);transform:translate(-50%,-50%)"></div>
+
+        <div style="position:absolute;right:18px;top:16px;display:flex;flex-direction:column;align-items:center;gap:4px;color:#14181c">
+          <svg viewBox="0 0 24 24" style="width:26px;height:26px;fill:#14181c"><path d="M12 2 16 20 12 16 8 20Z"></path></svg>
+          <span style="font-family:'Rajdhani',sans-serif;font-weight:700;font-size:12px;letter-spacing:0.14em">N</span>
+        </div>
+        <div style="position:absolute;left:18px;bottom:16px;display:flex;flex-direction:column;gap:4px;color:#14181c">
+          <div style="display:flex;height:8px;width:180px;border:1px solid #14181c"><span style="flex:1;background:#14181c"></span><span style="flex:1"></span><span style="flex:1;background:#14181c"></span><span style="flex:1"></span></div>
+          <div style="display:flex;justify-content:space-between;width:180px;font-family:'JetBrains Mono',monospace;font-size:9px"><span>0</span><span>50</span><span>100 m</span></div>
+        </div>
+        <div style="position:absolute;right:18px;bottom:16px;display:flex;flex-direction:column;gap:5px;padding:10px 12px;background:rgba(239,236,228,0.94);border:1px solid rgba(20,24,28,0.35);color:#14181c;font-size:11px">
+          <span style="font-family:'Rajdhani',sans-serif;font-weight:700;font-size:11px;letter-spacing:0.14em;text-transform:uppercase">Legend</span>
+          <span style="display:flex;align-items:center;gap:8px"><span style="width:14px;height:10px;background:oklch(0.8 0.15 145 / 0.3);border:1px solid oklch(0.5 0.13 145)"></span>Selected parcel</span>
+          <span style="display:flex;align-items:center;gap:8px"><span style="width:14px;height:10px;border:1px solid #14181c"></span>Parcel boundary</span>
+          <span style="display:flex;align-items:center;gap:8px"><span style="width:14px;height:10px;border:1px dashed oklch(0.62 0.14 80)"></span>Candidate</span>
+          <span style="display:flex;align-items:center;gap:8px"><span style="width:14px;height:2px;background:#14181c"></span>Kantonsstrasse</span>
+          <span style="display:flex;align-items:center;gap:8px"><span style="width:14px;height:1px;background:rgba(20,24,28,0.4)"></span>Contour · 20 m</span>
+        </div>
+        <div style="position:absolute;left:18px;top:16px;display:flex;align-items:center;gap:10px;padding:6px 10px;background:rgba(239,236,228,0.94);border:1px solid rgba(20,24,28,0.3);color:#14181c;font-size:11px">
+          <span style="font-family:'Rajdhani',sans-serif;font-weight:700;font-size:11px;letter-spacing:0.14em;text-transform:uppercase">Identify</span>
+          <span>click a parcel · shift-click adds to the selection</span>
+        </div>
+      </div>
+
+      <div style="position:absolute;right:0;top:88px;bottom:246px;width:400px;display:flex;flex-direction:column;background:rgba(14,16,20,0.95);border-left:1px solid rgba(255,255,255,0.12)">
+        <div style="padding:14px 18px 12px;display:flex;flex-direction:column;gap:5px;border-bottom:1px solid rgba(255,255,255,0.1)">
+          <div style="display:flex;justify-content:space-between;align-items:center"><span style="font-family:'Rajdhani',sans-serif;font-weight:600;font-size:11px;letter-spacing:0.14em;text-transform:uppercase;color:oklch(0.8 0.15 145)">Identified feature</span><span style="font-size:16px;color:rgba(242,239,232,0.5)">✕</span></div>
+          <span style="font-family:'Rajdhani',sans-serif;font-weight:700;font-size:24px;text-transform:uppercase;letter-spacing:0.08em;line-height:1">Maloja Nord</span>
+          <span style="font-family:'JetBrains Mono',monospace;font-size:11px;color:rgba(242,239,232,0.6)">area · 1 of 1 at this point</span>
+        </div>
+        <div style="flex:1;overflow:hidden;display:flex;flex-direction:column">
+          <sc-for list="{{ identifyFields }}" as="f" hint-placeholder-count="10">
+            <div style="display:flex;align-items:center;gap:10px;padding:7px 18px;border-bottom:1px solid rgba(255,255,255,0.055);background:{{ f.bg }};font-size:12px">
+              <span style="width:112px;flex:none;font-family:'JetBrains Mono',monospace;font-size:11px;color:rgba(242,239,232,0.55)">{{ f.key }}</span>
+              <span style="flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:{{ f.fg }}">{{ f.value }}</span>
+            </div>
+          </sc-for>
+          <div style="padding:12px 18px 8px;display:flex;justify-content:space-between;align-items:baseline"><span style="font-family:'Rajdhani',sans-serif;font-weight:600;font-size:11px;letter-spacing:0.14em;text-transform:uppercase;color:rgba(242,239,232,0.55)">Rights · needs 1 approval</span><span style="font-family:'Rajdhani',sans-serif;font-weight:700;font-size:11px;letter-spacing:0.1em;text-transform:uppercase;color:oklch(0.8 0.15 145)">Grant · G</span></div>
+          <sc-for list="{{ rightsRows }}" as="r" hint-placeholder-count="3">
+            <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;padding:8px 18px;border-top:1px solid rgba(255,255,255,0.055);font-size:12px">
+              <div style="display:flex;flex-direction:column;gap:2px;min-width:0"><span style="font-weight:600">{{ r.who }}</span><span style="font-size:11px;color:rgba(242,239,232,0.55)">{{ r.since }}</span></div>
+              <span style="flex:none;font-family:'JetBrains Mono',monospace;font-size:10px;padding:2px 6px;border:1px solid {{ r.color }};color:{{ r.color }}">{{ r.role }}</span>
+            </div>
+          </sc-for>
+        </div>
+        <div style="margin-top:auto;border-top:1px solid rgba(255,255,255,0.1);padding:12px 18px;display:flex;flex-wrap:wrap;gap:7px">
+          <span style="height:34px;padding:0 13px;background:oklch(0.8 0.15 145);color:#0b0d10;font-family:'Rajdhani',sans-serif;font-weight:700;font-size:12px;letter-spacing:0.08em;text-transform:uppercase;display:inline-flex;align-items:center;clip-path:polygon(5px 0,100% 0,100% calc(100% - 5px),calc(100% - 5px) 100%,0 100%,0 5px)">Go there in Build</span>
+          <span style="height:34px;padding:0 12px;border:1px solid rgba(255,255,255,0.25);font-family:'Rajdhani',sans-serif;font-weight:700;font-size:12px;letter-spacing:0.08em;text-transform:uppercase;display:inline-flex;align-items:center">Split · S</span>
+          <span style="height:34px;padding:0 12px;border:1px solid rgba(255,255,255,0.25);font-family:'Rajdhani',sans-serif;font-weight:700;font-size:12px;letter-spacing:0.08em;text-transform:uppercase;display:inline-flex;align-items:center">Transfer</span>
+          <span style="height:34px;padding:0 12px;border:1px solid rgba(255,255,255,0.25);font-family:'Rajdhani',sans-serif;font-weight:700;font-size:12px;letter-spacing:0.08em;text-transform:uppercase;display:inline-flex;align-items:center">Export layer</span>
+        </div>
+      </div>
+
+      <div style="position:absolute;left:0;right:0;bottom:0;height:246px;display:flex;flex-direction:column;background:rgba(12,14,18,0.97);border-top:1px solid rgba(255,255,255,0.14)">
+        <div style="height:36px;flex:none;display:flex;align-items:center;gap:14px;padding:0 16px;border-bottom:1px solid rgba(255,255,255,0.1)">
+          <span style="font-family:'Rajdhani',sans-serif;font-weight:700;font-size:14px;letter-spacing:0.08em;text-transform:uppercase">Parcels · attribute table</span>
+          <span style="font-size:12px;color:rgba(242,239,232,0.6)">6 features · 1 selected</span>
+          <div style="display:flex;gap:6px;font-family:'Rajdhani',sans-serif;font-weight:700;font-size:11px;letter-spacing:0.1em;text-transform:uppercase">
+            <span style="height:26px;padding:0 10px;background:oklch(0.8 0.15 145 / 0.2);border:1px solid oklch(0.8 0.15 145);color:oklch(0.8 0.15 145);display:inline-flex;align-items:center">Show selected only</span>
+            <span style="height:26px;padding:0 10px;border:1px solid rgba(255,255,255,0.2);color:rgba(242,239,232,0.7);display:inline-flex;align-items:center">Zoom to selection</span>
+            <span style="height:26px;padding:0 10px;border:1px solid rgba(255,255,255,0.2);color:rgba(242,239,232,0.7);display:inline-flex;align-items:center">Filter</span>
+          </div>
+          <div style="margin-left:auto;display:flex;align-items:center;gap:16px;font-size:12px;color:rgba(242,239,232,0.7)">
+            <span style="font-family:'JetBrains Mono',monospace;font-size:11px">46.4019 N  9.6908 E · 1 812 m</span>
+            <span style="font-family:'JetBrains Mono',monospace;font-size:11px;color:rgba(242,239,232,0.55)">LV95 2 775 120 / 1 141 880</span>
+            <span style="font-family:'Rajdhani',sans-serif;font-weight:600;font-size:10px;letter-spacing:0.14em;text-transform:uppercase;color:rgba(242,239,232,0.5)">EPSG:2056</span>
+          </div>
+        </div>
+        <div style="display:grid;grid-template-columns:52px 1fr 150px 170px 90px 90px 100px 120px 150px;gap:0;padding:0 16px;height:30px;align-items:center;border-bottom:1px solid rgba(255,255,255,0.1);font-family:'Rajdhani',sans-serif;font-weight:600;font-size:10px;letter-spacing:0.14em;text-transform:uppercase;color:rgba(242,239,232,0.55)">
+          <span>#</span><span>name</span><span>id</span><span>owner</span><span>area_ha</span><span>tiles</span><span>published</span><span>candidates</span><span>your right</span>
+        </div>
+        <div style="flex:1;overflow:hidden;display:flex;flex-direction:column">
+          <sc-for list="{{ attrRows }}" as="a2" hint-placeholder-count="6">
+            <div style="display:grid;grid-template-columns:52px 1fr 150px 170px 90px 90px 100px 120px 150px;gap:0;padding:0 16px;height:28px;align-items:center;border-bottom:1px solid rgba(255,255,255,0.05);background:{{ a2.bg }};font-size:12px;color:{{ a2.fg }}">
+              <span style="font-family:'JetBrains Mono',monospace;font-size:11px;color:rgba(242,239,232,0.45)">{{ a2.n }}</span>
+              <span style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ a2.name }}</span>
+              <span style="font-family:'JetBrains Mono',monospace;font-size:11px;color:rgba(242,239,232,0.6)">{{ a2.id }}</span>
+              <span style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ a2.owner }}</span>
+              <span style="font-family:'JetBrains Mono',monospace;font-size:11px">{{ a2.ha }}</span>
+              <span style="font-family:'JetBrains Mono',monospace;font-size:11px">{{ a2.tiles }}</span>
+              <span style="font-family:'JetBrains Mono',monospace;font-size:11px">{{ a2.published }}</span>
+              <span style="font-family:'JetBrains Mono',monospace;font-size:11px;color:{{ a2.candColor }}">{{ a2.candidates }}</span>
+              <span style="font-family:'Rajdhani',sans-serif;font-weight:700;font-size:11px;letter-spacing:0.1em;text-transform:uppercase;color:{{ a2.rightColor }}">{{ a2.right }}</span>
+            </div>
+          </sc-for>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</section>
+</x-dc>
+<script type="text/x-dc" data-dc-script>
+class Component extends DCLogic {
+  renderVals() {
+    const C = 'oklch(0.78 0.14 200)', A = 'oklch(0.82 0.16 80)', G = 'oklch(0.8 0.15 145)', R = 'oklch(0.8 0.18 25)', P = 'oklch(0.8 0.14 290)';
+    const M = 'rgba(242,239,232,0.6)', RAJ = "'Rajdhani',sans-serif", SORA = "'Sora',sans-serif";
+
+    const flowGroups = [
+      { land: 'Bergli · yours', short: 'Bergli', right: 'owner', rightColor: C, empty: false, flows: [
+        { name: 'lamp at dusk', blocks: '5', on: true },
+        { name: 'barn door at 22:00', blocks: '7' },
+        { name: 'gate when a bus comes', blocks: '11' },
+      ] },
+      { land: 'Maloja Nord', short: 'Maloja Nord', right: 'build grant', rightColor: A, empty: false, flows: [
+        { name: 'snow lamps', blocks: '9' },
+      ] },
+      { land: 'Piz Lunghin', short: 'Piz Lunghin', right: 'approver', rightColor: M, empty: true, flows: [] },
+    ].map(g => ({ ...g, flows: g.flows.map(f => ({ ...f, bg: f.on ? 'oklch(0.8 0.14 290 / 0.16)' : 'transparent', mark: f.on ? P : 'transparent', fg: f.on ? '#f2efe8' : 'rgba(242,239,232,0.8)' })) }));
+
+    const head = (n, g) => ({ pad: g ? '9px 14px 5px' : '8px 14px', bg: 'transparent', size: g ? '11px' : '13px', fg: g ? 'rgba(242,239,232,0.55)' : 'rgba(242,239,232,0.85)', font: g ? RAJ : SORA, weight: g ? 600 : 400, tracking: g ? '0.14em' : '0', transform: g ? 'uppercase' : 'none', dot: g ? 'transparent' : 'rgba(242,239,232,0.35)' });
+    const palette = [
+      { name: 'Strings', group: true, plugin: '' },
+      { name: 'from string', plugin: 'strings' },
+      { name: 'contains', plugin: 'strings', on: true },
+      { name: 'join', plugin: 'strings' },
+      { name: 'Json', group: true, plugin: '' },
+      { name: 'get', plugin: 'json' },
+      { name: 'make object', plugin: 'json' },
+      { name: 'Http', group: true, plugin: '' },
+      { name: 'make-request-simple', plugin: 'http' },
+      { name: 'World', group: true, plugin: '' },
+      { name: 'Read port', plugin: 'world' },
+      { name: 'Write port', plugin: 'world' },
+    ].map(p => {
+      const base = head(p.name, !!p.group);
+      return { ...p, ...base, bg: p.on ? 'oklch(0.8 0.14 290 / 0.14)' : base.bg, fg: p.on ? P : base.fg, dot: p.plugin === 'world' ? P : base.dot };
+    });
+
+    const node = (o) => {
+      const on = !!o.on, col = o.world ? P : 'rgba(255,255,255,0.16)';
+      return {
+        left: o.left + 'px', top: o.top + 'px', w: o.w + 'px', title: o.title, plugin: o.plugin,
+        border: on ? P : col, glow: on ? 'inset 0 0 0 1px ' + P + ', 0 0 26px oklch(0.8 0.14 290 / 0.45)' : '0 8px 24px rgba(0,0,0,0.45)',
+        head: o.world ? 'oklch(0.8 0.14 290 / 0.22)' : 'rgba(255,255,255,0.06)', body: 'transparent', fg: o.world ? P : '#f2efe8',
+        rows: (o.rows || []).map(r => ({ in: r[0], val: r[1] ?? '', inDot: r[2] === 0 ? 'rgba(242,239,232,0.3)' : (o.world ? P : 'rgba(242,239,232,0.7)'), outDot: r[3] ? (o.world ? P : 'rgba(242,239,232,0.7)') : 'transparent', valColor: r[1] ? 'rgba(242,239,232,0.6)' : 'transparent' })),
+      };
+    };
+    const nodes = [
+      node({ left: 60, top: 120, w: 180, title: 'World clock', plugin: 'world/clock.now', world: true, rows: [['world', '', 0], ['now', 's', 1, 1]] }),
+      node({ left: 320, top: 150, w: 190, title: 'contains', plugin: 'strings', on: true, rows: [['input', '', 1], ['pattern', '"dusk"', 0], ['found', 'bool', 0, 1]] }),
+      node({ left: 60, top: 300, w: 180, title: 'Read port · on', plugin: 'world/port.read', world: true, rows: [['object', 'lamp-2', 0], ['value', '', 0, 1]] }),
+      node({ left: 320, top: 330, w: 190, title: 'If', plugin: 'flow', rows: [['condition', '', 1], ['then', '', 0, 1], ['else', '', 0, 1]] }),
+      node({ left: 600, top: 240, w: 200, title: 'Write port', plugin: 'world/port.write', world: true, rows: [['object', 'lamp-2', 0], ['port', '"on"', 0], ['value', 'true', 1], ['ok', 'bool', 0, 1]] }),
+    ];
+
+    const canvasTools = [
+      { name: 'Undo', key: '⌘Z', fg: '#f2efe8' },
+      { name: 'Redo', key: '⇧⌘Z', fg: 'rgba(242,239,232,0.55)' },
+      { name: 'Auto-layout', key: 'L', fg: '#f2efe8' },
+      { name: 'Nets', key: 'N', fg: P },
+    ];
+    const flowIO = [
+      { dir: 'in', name: 'world', type: 'url · bound by the job', color: P },
+      { dir: 'in', name: 'world_key', type: 'string · per run', color: P },
+      { dir: 'in', name: 'Target', type: 'string', color: C },
+      { dir: 'out', name: 'Found', type: 'boolean', color: A },
+    ];
+
+    const worldBlocks = [
+      { name: 'Read port', what: 'one port of one object', on: false },
+      { name: 'Write port', what: 'set a port · needs the run’s key', on: true },
+      { name: 'Move a mover', what: 'route, speed, schedule', on: false },
+      { name: 'Events since', what: 'clicks, enter, leave, port changes', on: false },
+      { name: 'World clock', what: 'server seconds', on: false },
+    ].map(w => ({ ...w, bg: w.on ? 'oklch(0.8 0.14 290 / 0.14)' : 'transparent', fg: w.on ? P : 'rgba(242,239,232,0.85)' }));
+
+    const nodes2 = [
+      node({ left: 100, top: 150, w: 180, title: 'World clock', plugin: 'world/clock.now', world: true, rows: [['world', '', 0], ['now', 's', 0, 1]] }),
+      node({ left: 370, top: 180, w: 190, title: 'Is after', plugin: 'math', rows: [['value', '', 1], ['than', '21:00', 0], ['yes', 'bool', 0, 1]] }),
+      node({ left: 660, top: 270, w: 210, title: 'Write port', plugin: 'world/port.write', world: true, on: true, rows: [['object', 'lamp-2', 0], ['port', '"on"', 0], ['value', 'true', 1], ['ok', 'bool', 0, 1]] }),
+    ];
+    const checks = [
+      { what: 'Every net has exactly one source', verdict: 'pass', color: G },
+      { what: 'Every wired pair passes the connection rule', verdict: 'pass', color: G },
+      { what: 'Names unique in each scope', verdict: 'pass', color: G },
+      { what: 'Round-trip byte-identical', verdict: 'pass', color: G },
+    ];
+    const objects = [
+      { name: 'Street lamp · lamp-2', ports: 'on, colour, brightness', on: true },
+      { name: 'Street lamp · lamp-3', ports: 'on, colour, brightness' },
+      { name: 'Billboard 6 × 3 m · board-1', ports: 'image' },
+      { name: 'Barn door · door-1', ports: 'open' },
+    ].map(o => ({ ...o, bg: o.on ? 'oklch(0.8 0.14 290 / 0.14)' : 'transparent', fg: o.on ? P : 'rgba(242,239,232,0.85)' }));
+    const portChoices = [
+      { name: 'on', type: 'boolean', on: true },
+      { name: 'colour', type: 'colour' },
+      { name: 'brightness', type: 'number 0–100' },
+    ].map(p => ({ ...p, border: p.on ? P : 'rgba(255,255,255,0.18)', bg: p.on ? 'oklch(0.8 0.14 290 / 0.1)' : 'rgba(255,255,255,0.04)', fg: p.on ? P : 'rgba(242,239,232,0.85)' }));
+
+    const tabs = (active) => ['World', 'Vocabulary', 'Symbols', 'Ground cover', 'Land', 'Setup', 'Admin'].map(n => ({ name: n, line: n === active ? C : 'rgba(255,255,255,0.12)', fg: n === active ? C : 'rgba(242,239,232,0.6)' }));
+
+    const symbols = [
+      { name: 'highway', group: true },
+      { name: 'motorway', layers: '4 layers', enabled: true },
+      { name: 'trunk', layers: '4 layers', enabled: true },
+      { name: 'Kantonsstrasse · secondary', layers: '4 layers', enabled: true, on: true },
+      { name: 'residential', layers: '2 layers', enabled: true },
+      { name: 'track', layers: '1 layer', enabled: false },
+      { name: 'barrier', group: true },
+      { name: 'wall · dry stone', layers: '1 layer', enabled: true },
+      { name: 'fence', layers: '1 layer', enabled: true },
+      { name: 'natural', group: true },
+      { name: 'wood · broadleaved', layers: '2 layers', enabled: true },
+      { name: 'bare_rock', layers: '1 layer', enabled: true },
+    ].map(s => s.group
+      ? { ...s, pad: '10px 16px 5px', bg: 'transparent', mark: 'transparent', size: '11px', font: RAJ, weight: 600, tracking: '0.14em', transform: 'uppercase', fg: 'rgba(242,239,232,0.55)', grip: '', layers: '', swDisplay: 'none', swBg: 'transparent', swBorder: 'transparent', swKnob: 'transparent', swSide: 'left' }
+      : { ...s, pad: '9px 16px', bg: s.on ? 'oklch(0.78 0.14 200 / 0.14)' : 'transparent', mark: s.on ? C : 'transparent', size: '13px', font: SORA, weight: 400, tracking: '0', transform: 'none', fg: s.on ? C : (s.enabled ? '#f2efe8' : M), grip: '⠿', swDisplay: 'block', swBg: s.enabled ? 'oklch(0.78 0.14 200 / 0.5)' : 'rgba(255,255,255,0.08)', swBorder: s.enabled ? C : 'rgba(255,255,255,0.2)', swKnob: s.enabled ? '#0b0d10' : 'rgba(242,239,232,0.5)', swSide: s.enabled ? 'right' : 'left' });
+
+    const symLayers = [
+      { kind: 'Surface', what: 'profile “Strasse 6 m” · lift 0.04 m' },
+      { kind: 'Repeat', what: 'kerb stone 1 m · both sides' },
+      { kind: 'Repeat · lamps', what: 'every 30 m · right side · when lit = yes', on: true },
+      { kind: 'Check', what: 'max cross-slope 8% · flags only' },
+    ].map(l => ({ ...l, bg: l.on ? 'oklch(0.78 0.14 200 / 0.14)' : 'transparent', mark: l.on ? C : 'transparent', fg: l.on ? C : '#f2efe8', eye: l.on ? C : 'rgba(242,239,232,0.5)' }));
+    const layerFields = [
+      { label: 'Spacing', value: '30.0', unit: 'm' },
+      { label: 'Side', value: 'right of the line', unit: '' },
+      { label: 'Offset from centre', value: '3.40', unit: 'm' },
+      { label: 'Follow the ground', value: 'yes', unit: '' },
+    ];
+    const previewLamps = [
+      { left: '90px', top: '96px', h: '38px' },
+      { left: '190px', top: '86px', h: '38px' },
+      { left: '290px', top: '76px', h: '38px' },
+      { left: '386px', top: '66px', h: '38px' },
+    ];
+    const versions = [
+      { n: 4, who: 'you · just now', tag: 'draft', color: A, bg: 'oklch(0.82 0.16 80 / 0.08)' },
+      { n: 3, who: 'you · 12 Sep · applied to the world', tag: 'in world', color: C, bg: 'transparent' },
+      { n: 2, who: 'L. Fasser · 3 Sep', tag: 'open', color: M, bg: 'transparent' },
+      { n: 1, who: 'migrated from build_rule · 28 Aug', tag: 'open', color: M, bg: 'transparent' },
+    ];
+
+    const sources = [
+      { prio: '1', name: 'swissTLM3D Bodenbedeckung', meta: 'styled vector · WMS · CH / FL', state: '9 classes · 7 mapped', stateColor: C, on: true },
+      { prio: '2', name: 'ESA WorldCover 2021', meta: 'raster · WMS · Europe', state: '11 classes · 4 mapped', stateColor: M },
+      { prio: '3', name: 'CORINE 2018', meta: 'raster · fallback', state: 'off · nothing mapped', stateColor: M },
+    ].map(s => ({ ...s, bg: s.on ? 'oklch(0.78 0.14 200 / 0.12)' : 'transparent', mark: s.on ? C : 'transparent', fg: s.on ? C : '#f2efe8' }));
+    const row = (source, swatch, kind, key, value, un) => ({
+      source, swatch, kind: un ? 'not shown' : kind, key: un ? '—' : key, value: un ? '—' : value,
+      bg: un ? 'rgba(255,255,255,0.03)' : 'transparent', fg: un ? M : '#f2efe8',
+      border: un ? 'rgba(255,255,255,0.1)' : 'rgba(255,255,255,0.18)', field: un ? 'transparent' : 'rgba(255,255,255,0.04)',
+      valueFg: un ? 'rgba(242,239,232,0.45)' : '#f2efe8', caret: un ? '' : '▾',
+    });
+    const mapRows = [
+      row('Feuchtgebiet', 'oklch(0.55 0.06 200)', '', '', '', true),
+      row('Reben', 'oklch(0.6 0.09 120)', '', '', '', true),
+      row('Wald', 'oklch(0.52 0.1 145)', 'landuse', 'landuse', 'forest'),
+      row('Wald offen', 'oklch(0.6 0.09 145)', 'landuse', 'landuse', 'forest · wood:density=sparse'),
+      row('Gebueschwald', 'oklch(0.62 0.08 130)', 'natural', 'natural', 'scrub'),
+      row('Fels', 'oklch(0.66 0.02 80)', 'natural', 'natural', 'bare_rock'),
+      row('Geroell', 'oklch(0.72 0.02 80)', 'natural', 'natural', 'scree'),
+      row('Gletscher', 'oklch(0.9 0.03 220)', 'natural', 'natural', 'glacier'),
+      row('Stehende Gewaesser', 'oklch(0.5 0.12 230)', 'natural', 'natural', 'water'),
+    ];
+    const legend = [
+      { name: 'landuse = forest', color: 'oklch(0.52 0.1 145)' },
+      { name: 'natural = bare_rock', color: 'oklch(0.66 0.02 80)' },
+      { name: 'natural = glacier', color: 'oklch(0.9 0.03 220)' },
+      { name: 'natural = water', color: 'oklch(0.5 0.12 230)' },
+    ];
+    const blends = [
+      { name: 'Forest edge', value: '6.0 m', pct: '60%' },
+      { name: 'Rock · scree', value: '2.5 m', pct: '25%' },
+      { name: 'Water line', value: '1.0 m', pct: '10%' },
+      { name: 'Edge noise', value: '0.35', pct: '35%' },
+    ];
+
+    const brushes = [
+      { name: 'Raise', key: 'R', icon: 'M12 19V5M6 11l6-6 6 6' },
+      { name: 'Lower', key: 'F', icon: 'M12 5v14M6 13l6 6 6-6' },
+      { name: 'Smooth', key: 'S', icon: 'M3 16c4 0 5-8 9-8s5 8 9 8' },
+      { name: 'Flatten', key: 'T', icon: 'M4 14h16M8 10l4-4 4 4' },
+      { name: 'Level', key: 'L', icon: 'M4 12h16M4 8h4M16 16h4' },
+      { name: 'Along line', key: 'A', icon: 'M3 18l7-7 4 4 7-7M3 21h18', on: true },
+    ].map(b => ({ ...b, bg: b.on ? 'oklch(0.78 0.14 200 / 0.18)' : 'rgba(255,255,255,0.04)', border: b.on ? C : 'rgba(255,255,255,0.14)', fg: b.on ? C : 'rgba(242,239,232,0.85)' }));
+    const lineFields = [
+      { label: 'Width', value: '7.0', unit: 'm' },
+      { label: 'Shoulder', value: '1.0', unit: 'm' },
+      { label: 'Max gradient', value: '8', unit: '%' },
+    ];
+    const flags = [
+      { where: 'at 120 m · south side', slope: '11%' },
+      { where: 'at 310 m · bend', slope: '13%' },
+      { where: 'at 505 m · north side', slope: '9%' },
+    ];
+
+    const prodTypes = [
+      { name: 'Model', what: 'one thing, placed as it is', on: true },
+      { name: 'Repeating piece', what: 'repeats along a line' },
+      { name: 'Road cross-section', what: 'strips, typed in' },
+      { name: 'Collection', what: 'models with weights' },
+      { name: 'Surface material', what: 'a tiling picture' },
+    ].map(t => ({ ...t, bg: t.on ? 'oklch(0.78 0.14 200 / 0.16)' : 'rgba(255,255,255,0.04)', border: t.on ? C : 'rgba(255,255,255,0.14)', fg: t.on ? C : '#f2efe8' }));
+    const regFields = [
+      { label: 'Name', value: 'Strassenlampe 4 m', unit: '' },
+      { label: 'Price', value: '1.20', unit: 'cr' },
+      { label: 'Licence', value: 'CC0', unit: '' },
+      { label: 'Tags', value: 'highway · lit · street furniture', unit: '' },
+    ];
+    const tree = (node, indent, role, note, marked, sel) => ({
+      node, indent: indent + 'px', role: role || '', note: note || '',
+      bg: sel ? 'oklch(0.82 0.16 80 / 0.12)' : 'transparent', fg: marked ? '#f2efe8' : 'rgba(242,239,232,0.7)',
+      tagDisplay: role ? 'inline-flex' : 'none', tagBorder: role === 'opening' ? G : A, tagFg: role === 'opening' ? G : A,
+    });
+    const nodeTree = [
+      tree('lamp_root', 0, '', '6 nodes', true),
+      tree('mast', 14, '', 'baked'),
+      tree('head', 14, 'light', 'live glow', true, true),
+      tree('head_glass', 28, '', 'part of head'),
+      tree('base', 14, '', 'baked'),
+      tree('cable', 14, '', 'baked'),
+    ];
+    const regPorts = [
+      { name: 'on', type: 'boolean', drives: 'head · light on or off', def: 'off' },
+      { name: 'colour', type: 'colour', drives: 'head · light colour', def: '#ffd9a0' },
+      { name: 'brightness', type: 'number', drives: 'head · light intensity', def: '70' },
+    ];
+
+    const swatches = [
+      { color: '#ffd9a0', on: true },
+      { color: '#fff4e2' },
+      { color: '#cfe3ff' },
+      { color: '#ffb36b' },
+    ].map(s => ({ ...s, border: s.on ? C : 'rgba(255,255,255,0.25)', glow: s.on ? '0 0 0 2px ' + C : 'none' }));
+
+    const planTools = [
+      { name: 'Pan', key: 'H', icon: 'M12 3v9M12 12l-3-2M12 12l3-2M5 12v4a7 7 0 0 0 14 0v-4' },
+      { name: 'Select', key: 'V', icon: 'M4 4l7 17 2.5-6.5L20 12z', on: true },
+      { name: 'Identify', key: 'I', icon: 'M12 8h.01M11 12h1v5h1M12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18z' },
+      { name: 'Measure', key: 'M', icon: 'M3 17l14-14 4 4L7 21zM9 11l2 2M12 8l2 2M15 5l2 2' },
+      { name: 'Vertices', key: 'E', icon: 'M4 18l6-9 5 4 5-8M4 18h.01M20 5h.01M10 9h.01M15 13h.01' },
+      { name: 'Split', key: 'S', icon: 'M4 4h16v16H4zM12 4v16' },
+      { name: 'Grant', key: 'G', icon: 'M8 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8zM2 21v-1a6 6 0 0 1 12 0v1M17 8h5M19.5 5.5v5' },
+    ].map(t => ({ ...t, bg: t.on ? 'oklch(0.8 0.15 145 / 0.2)' : 'rgba(255,255,255,0.04)', border: t.on ? G : 'rgba(255,255,255,0.14)', fg: t.on ? G : 'rgba(242,239,232,0.8)' }));
+
+    const lay = (o) => o.group
+      ? { ...o, pad: '9px 14px 5px', bg: 'transparent', mark: 'transparent', twist: '▾', boxDisplay: 'none', boxBorder: 'transparent', boxBg: 'transparent', font: RAJ, weight: 600, size: '11px', tracking: '0.14em', transform: 'uppercase', fg: 'rgba(242,239,232,0.55)', symDisplay: 'none', symFill: 'transparent', symBorder: 'none', count: '' }
+      : { ...o, pad: '7px 14px 7px 22px', bg: o.sel ? 'oklch(0.8 0.15 145 / 0.14)' : 'transparent', mark: o.sel ? G : 'transparent', twist: '', boxDisplay: 'block', boxBorder: o.on ? G : 'rgba(255,255,255,0.3)', boxBg: o.on ? G : 'transparent', font: SORA, weight: 400, size: '12.5px', tracking: '0', transform: 'none', fg: o.on ? (o.sel ? G : '#f2efe8') : M, symDisplay: o.sym ? 'block' : 'none', symFill: o.symFill || 'transparent', symBorder: o.symBorder || '1px solid rgba(242,239,232,0.5)', count: o.count || '' };
+    const planLayers = [
+      lay({ name: 'Cadastre', group: true }),
+      lay({ name: 'Parcels', on: true, sel: true, sym: true, symFill: 'oklch(0.8 0.15 145 / 0.25)', symBorder: '1px solid ' + G, count: '6' }),
+      lay({ name: 'Parcel numbers', on: true, sym: true, symFill: 'transparent', symBorder: '1px dotted rgba(242,239,232,0.6)', count: '6' }),
+      lay({ name: 'Candidate footprints', on: true, sym: true, symFill: 'transparent', symBorder: '1px dashed oklch(0.82 0.16 80)', count: '2' }),
+      lay({ name: 'Rights', group: true }),
+      lay({ name: 'Ownership', on: true, sym: true, symFill: 'oklch(0.78 0.14 200 / 0.3)', symBorder: '1px solid oklch(0.78 0.14 200)', count: '3' }),
+      lay({ name: 'Grants', on: true, sym: true, symFill: 'transparent', symBorder: '1px solid rgba(242,239,232,0.5)', count: '4' }),
+      lay({ name: 'Approvals open', on: false, sym: true, symFill: 'oklch(0.82 0.16 80 / 0.4)', symBorder: 'none', count: '2' }),
+      lay({ name: 'Terrain', group: true }),
+      lay({ name: 'Contours · 20 m', on: true, sym: true, symFill: 'transparent', symBorder: '1px solid rgba(242,239,232,0.35)' }),
+      lay({ name: 'Ground shaping (m)', on: false, sym: true, symFill: 'linear-gradient(90deg,oklch(0.5 0.15 260),#efece4,oklch(0.6 0.16 30))', symBorder: 'none' }),
+      lay({ name: 'Slope · above 38°', on: false, sym: true, symFill: 'oklch(0.66 0.02 80)', symBorder: 'none' }),
+      lay({ name: 'Base', group: true }),
+      lay({ name: 'Roads & paths', on: true, sym: true, symFill: '#f2efe8', symBorder: 'none' }),
+      lay({ name: 'Rendered ground', on: true, sym: true, symFill: 'oklch(0.52 0.1 145)', symBorder: 'none' }),
+      lay({ name: 'Orthophoto', on: false, sym: true, symFill: 'repeating-linear-gradient(135deg,#3a3f46 0 3px,#22262c 3px 6px)', symBorder: 'none' }),
+      lay({ name: 'Splat density', on: false, sym: true, symFill: 'oklch(0.8 0.16 50 / 0.5)', symBorder: 'none' }),
+    ];
+    const planLabels = [
+      { left: '39%', top: '26%', name: 'Maloja Nord', meta: '1284 · 4.2 ha · yours', size: '17px', color: 'oklch(0.42 0.12 145)', metaColor: 'rgba(20,24,28,0.6)' },
+      { left: '66%', top: '25%', name: 'Piz Lunghin', meta: '1288 · 6.0 ha · A. Giacometti', size: '14px', color: '#14181c', metaColor: 'rgba(20,24,28,0.55)' },
+      { left: '36%', top: '62%', name: 'Grevasalvas', meta: '1291 · 3.4 ha · L. Fasser', size: '14px', color: '#14181c', metaColor: 'rgba(20,24,28,0.55)' },
+      { left: '64%', top: '60%', name: 'Val Fex', meta: '1295 · closed to you', size: '14px', color: 'oklch(0.48 0.16 25)', metaColor: 'rgba(20,24,28,0.55)' },
+      { left: '15%', top: '28%', name: 'Bergli', meta: '1279 · 2.1 ha · yours', size: '14px', color: '#14181c', metaColor: 'rgba(20,24,28,0.55)' },
+      { left: '41%', top: '7%', name: 'C-2291', meta: 'candidate · M. Ruch', size: '12px', color: 'oklch(0.5 0.14 80)', metaColor: 'rgba(20,24,28,0.5)' },
+    ];
+    const identifyFields = [
+      { key: 'id', value: '77F6E0BE', mono: true },
+      { key: 'parcel_no', value: '1284' },
+      { key: 'detail_level', value: '16 · 22 tiles' },
+      { key: 'area_ha', value: '4.2' },
+      { key: 'owner', value: 'Tobias · you · since Mar 2026' },
+      { key: 'published', value: '38 objects' },
+      { key: 'candidates', value: '2 open · 1 needs you' },
+      { key: 'rendered', value: '18 of 22 tiles' },
+      { key: 'centre', value: '46.4021 N 9.6912 E' },
+      { key: 'lv95', value: '2 775 120 / 1 141 880' },
+      { key: 'elevation', value: '1 796 – 1 842 m' },
+      { key: 'ground_cover', value: 'forest 61% · meadow 28% · rock 11%' },
+    ].map((f, i) => ({ ...f, bg: i % 2 ? 'rgba(255,255,255,0.025)' : 'transparent', fg: '#f2efe8' }));
+    const rightsRows = [
+      { who: 'L. Fasser', since: 'granted today · by you', role: 'direct_edit', color: C },
+      { who: 'M. Ruch', since: 'since Jul · 1 candidate open', role: 'propose', color: A },
+      { who: 'Everyone else', since: 'default for this parcel', role: 'view', color: M },
+    ];
+    const attr = (n, name, id, owner, ha, tiles, published, candidates, right, sel) => ({
+      n, name, id, owner, ha, tiles, published, candidates, right,
+      bg: sel ? 'oklch(0.8 0.15 145 / 0.16)' : (n % 2 ? 'rgba(255,255,255,0.02)' : 'transparent'),
+      fg: sel ? '#f2efe8' : 'rgba(242,239,232,0.85)',
+      candColor: candidates === '0' ? 'rgba(242,239,232,0.45)' : A,
+      rightColor: right === 'owner' ? C : right === 'none' ? R : G,
+    });
+    const attrRows = [
+      attr(1, 'Maloja Nord', '77F6E0BE', 'Tobias · you', '4.2', '22', '38', '2', 'owner', true),
+      attr(2, 'Bergli', '2C41A9D0', 'Tobias · you', '2.1', '9', '11', '0', 'owner'),
+      attr(3, 'Piz Lunghin', '5B0EF712', 'A. Giacometti', '6.0', '31', '11', '1', 'propose'),
+      attr(4, 'Grevasalvas', '9AD3C158', 'L. Fasser', '3.4', '16', '24', '0', 'direct_edit'),
+      attr(5, 'Silsersee Ost', 'E1720B44', 'K. Prevost', '5.8', '28', '52', '0', 'propose'),
+      attr(6, 'Val Fex', 'B84C90AA', 'Holzbau Fex', '2.9', '14', '9', '0', 'none'),
+    ];
+
+    return {
+      planTools, planLayers, planLabels, identifyFields, rightsRows, attrRows,
+      flowGroups, palette, nodes, canvasTools, flowIO,
+      worldBlocks, nodes2, checks, objects, portChoices,
+      settingsTabs: tabs('Symbols'), coverTabs: tabs('Ground cover'),
+      symbols, symLayers, layerFields, previewLamps, versions,
+      sources, mapRows, legend, blends,
+      brushes, lineFields, flags,
+      prodTypes, regFields, nodeTree, regPorts, swatches,
+    };
+  }
+}
+</script>
+</body>
+</html>

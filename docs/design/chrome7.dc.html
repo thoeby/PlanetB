@@ -1,0 +1,333 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<div style="position:absolute;inset:0;pointer-events:none;font-family:'Sora',sans-serif;color:#f2efe8;font-size:14px">
+  <div style="position:absolute;inset:0;background:radial-gradient(ellipse at center,transparent 50%,rgba(0,0,0,0.5)),linear-gradient(180deg,rgba(0,0,0,0.35),transparent 20%,transparent 80%,rgba(0,0,0,0.45))"></div>
+  <sc-if value="{{ dim }}" hint-placeholder-val="{{ false }}"><div style="position:absolute;inset:0;background:rgba(6,8,10,0.45);z-index:2"></div></sc-if>
+  <div style="position:absolute;left:50%;top:50%;width:22px;height:22px;transform:translate(-50%,-50%)">
+    <div style="position:absolute;left:10px;top:0;width:2px;height:6px;background:#f2efe8"></div>
+    <div style="position:absolute;left:10px;bottom:0;width:2px;height:6px;background:#f2efe8"></div>
+    <div style="position:absolute;top:10px;left:0;height:2px;width:6px;background:#f2efe8"></div>
+    <div style="position:absolute;top:10px;right:0;height:2px;width:6px;background:#f2efe8"></div>
+  </div>
+
+  <!-- top bar: one strip. Apps · wordmark · current app | compass | snackbar · clock · credits · notifications -->
+  <div style="position:absolute;top:0;left:0;right:0;height:44px;z-index:3;display:flex;align-items:stretch;background:linear-gradient(180deg,rgba(10,12,15,0.97),rgba(20,23,28,0.9));backdrop-filter:blur(16px);border-bottom:1px solid rgba(255,255,255,0.14);box-shadow:0 10px 40px rgba(0,0,0,0.4)">
+    <div style="display:flex;align-items:stretch">
+      <div style="position:relative;width:52px;display:flex;align-items:center;justify-content:center;background:{{ drawerBg }};border-right:1px solid rgba(255,255,255,0.1);color:{{ drawerFg }}">
+        <div style="display:grid;grid-template-columns:repeat(3,4px);gap:3px">
+          <span style="width:4px;height:4px;background:currentColor"></span><span style="width:4px;height:4px;background:currentColor"></span><span style="width:4px;height:4px;background:currentColor"></span>
+          <span style="width:4px;height:4px;background:currentColor"></span><span style="width:4px;height:4px;background:currentColor"></span><span style="width:4px;height:4px;background:currentColor"></span>
+          <span style="width:4px;height:4px;background:currentColor"></span><span style="width:4px;height:4px;background:currentColor"></span><span style="width:4px;height:4px;background:currentColor"></span>
+        </div>
+        <span style="position:absolute;right:4px;bottom:3px;font-family:'JetBrains Mono',monospace;font-size:8px;color:rgba(242,239,232,0.4)">Tab</span>
+        <span style="position:absolute;left:0;bottom:-1px;width:100%;height:2px;background:{{ drawerLine }}"></span>
+      </div>
+      <div style="display:flex;align-items:center;padding:0 16px;border-right:1px solid rgba(255,255,255,0.1)"><span style="font-family:'Rajdhani',sans-serif;font-weight:700;font-size:18px;letter-spacing:0.14em;text-transform:uppercase">splatworld</span></div>
+      <sc-for list="{{ apps }}" as="a" hint-placeholder-count="6">
+        <div style="position:relative;display:flex;align-items:center;gap:9px;padding:{{ a.tabPad }};border-right:1px solid rgba(255,255,255,0.08);background:{{ a.tabBg }};opacity:{{ a.tabOpacity }}">
+          <svg viewBox="0 0 24 24" style="width:17px;height:17px;fill:none;stroke:{{ a.tabFg }};stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round"><path d="{{ a.icon }}"></path></svg>
+          <span style="display:{{ a.nameDisplay }};font-family:'Rajdhani',sans-serif;font-weight:700;font-size:15px;letter-spacing:0.12em;text-transform:uppercase;line-height:1;color:{{ a.tabFg }}">{{ a.name }}</span>
+          <span style="display:{{ a.nameDisplay }};font-family:'JetBrains Mono',monospace;font-size:10px;color:rgba(242,239,232,0.45)">{{ a.key }}</span>
+          <span style="position:absolute;left:0;bottom:-1px;width:100%;height:2px;background:{{ a.line }}"></span>
+        </div>
+      </sc-for>
+    </div>
+
+    <div style="position:absolute;left:50%;top:8px;transform:translateX(-50%);width:440px;height:28px;border:1px solid rgba(255,255,255,0.12);background:rgba(255,255,255,0.03);clip-path:polygon(6px 0,100% 0,100% calc(100% - 6px),calc(100% - 6px) 100%,0 100%,0 6px);font-family:'Rajdhani',sans-serif;font-weight:700;font-size:13px;letter-spacing:0.1em">
+      <span style="position:absolute;left:8%;top:5px;color:rgba(242,239,232,0.5)">W</span>
+      <span style="position:absolute;left:23%;top:5px;color:rgba(242,239,232,0.5)">NW</span>
+      <span style="position:absolute;left:39%;top:5px">N</span>
+      <span style="position:absolute;left:54%;top:5px;color:{{ appColor }}">NE</span>
+      <span style="position:absolute;left:70%;top:5px;color:rgba(242,239,232,0.5)">E</span>
+      <span style="position:absolute;left:85%;top:5px;color:rgba(242,239,232,0.5)">SE</span>
+      <span style="position:absolute;left:50%;top:0;width:2px;height:100%;background:{{ appColor }};transform:translateX(-50%)"></span>
+    </div>
+
+    <div style="margin-left:auto;display:flex;align-items:stretch">
+      <sc-if value="{{ isBuild }}" hint-placeholder-val="{{ true }}">
+        <div style="display:flex;align-items:center;gap:7px;padding:0 14px;border-left:1px solid rgba(255,255,255,0.1)">
+          <span style="font-family:'Rajdhani',sans-serif;font-weight:700;font-size:17px;line-height:1;color:oklch(0.78 0.14 200)">{{ rendered }}</span>
+          <span style="font-family:'Rajdhani',sans-serif;font-weight:600;font-size:10px;letter-spacing:0.12em;text-transform:uppercase;color:rgba(242,239,232,0.5)">rendered</span>
+        </div>
+        <div style="display:flex;align-items:center;gap:7px;padding:0 14px;border-left:1px solid rgba(255,255,255,0.1);background:oklch(0.82 0.16 80 / 0.08)">
+          <span style="font-family:'Rajdhani',sans-serif;font-weight:700;font-size:17px;line-height:1;color:oklch(0.82 0.16 80)">{{ awaiting }}</span>
+          <span style="font-family:'Rajdhani',sans-serif;font-weight:600;font-size:10px;letter-spacing:0.12em;text-transform:uppercase;color:rgba(242,239,232,0.5)">to decide</span>
+        </div>
+      </sc-if>
+      <div style="display:flex;align-items:center;gap:6px;padding:0 14px;border-left:1px solid rgba(255,255,255,0.1)">
+        <span style="font-family:'JetBrains Mono',monospace;font-size:15px;font-weight:500">{{ clock }}</span>
+        <span style="font-family:'Rajdhani',sans-serif;font-weight:600;font-size:10px;letter-spacing:0.12em;text-transform:uppercase;color:rgba(242,239,232,0.5)">{{ tz }}</span>
+      </div>
+      <div style="position:relative;display:flex;align-items:center;gap:8px;padding:0 14px;border-left:1px solid rgba(255,255,255,0.1);background:{{ b.Wallet.tabBg }}">
+        <svg viewBox="0 0 24 24" style="width:15px;height:15px;fill:none;stroke:oklch(0.78 0.14 200);stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round"><path d="M21 12V7H5a2 2 0 0 1 0-4h14v4"></path><path d="M3 5v14a2 2 0 0 0 2 2h16v-5"></path><path d="M18 12a2 2 0 0 0 0 4h4v-4Z"></path></svg>
+        <span style="font-family:'Rajdhani',sans-serif;font-weight:700;font-size:17px;line-height:1;color:oklch(0.78 0.14 200)">{{ credits }}<span style="font-size:10px;letter-spacing:0.1em;margin-left:3px;color:rgba(242,239,232,0.55)">CR</span></span>
+        <span style="position:absolute;left:0;bottom:-1px;width:100%;height:2px;background:{{ b.Wallet.line }}"></span>
+      </div>
+      <div style="position:relative;width:52px;display:flex;align-items:center;justify-content:center;border-left:1px solid rgba(255,255,255,0.1);background:{{ trayBg }};color:{{ trayFg }}">
+        <svg viewBox="0 0 24 24" style="width:17px;height:17px;fill:none;stroke:currentColor;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9M10.3 21a1.9 1.9 0 0 0 3.4 0"></path></svg>
+        <span style="position:absolute;right:8px;top:7px;min-width:16px;height:16px;padding:0 4px;background:oklch(0.82 0.16 80);color:#0b0d10;font-family:'Rajdhani',sans-serif;font-weight:700;font-size:11px;display:inline-flex;align-items:center;justify-content:center;clip-path:polygon(3px 0,100% 0,100% calc(100% - 3px),calc(100% - 3px) 100%,0 100%,0 3px)">{{ notifCount }}</span>
+        <span style="position:absolute;left:0;bottom:-1px;width:100%;height:2px;background:{{ trayLine }}"></span>
+      </div>
+      <div style="position:relative;display:flex;align-items:center;gap:9px;padding:0 14px 0 8px;border-left:1px solid rgba(255,255,255,0.1);background:{{ b.Profile.tabBg }}">
+        <div style="position:relative;width:28px;height:28px;background:repeating-linear-gradient(135deg,#2a2e35 0 4px,#1f232a 4px 8px);border:1px solid rgba(255,255,255,0.18);display:flex;align-items:center;justify-content:center;font-family:'Rajdhani',sans-serif;font-weight:700;font-size:11px;letter-spacing:0.06em;color:rgba(242,239,232,0.8)">TW<span style="position:absolute;right:-3px;bottom:-3px;width:7px;height:7px;background:oklch(0.8 0.15 145);border:2px solid #0b0d10"></span></div>
+        <span style="font-family:'Rajdhani',sans-serif;font-weight:700;font-size:14px;letter-spacing:0.08em;text-transform:uppercase;line-height:1;color:{{ b.Profile.fg }}">{{ name }}</span>
+        <span style="position:absolute;left:0;bottom:-1px;width:100%;height:2px;background:{{ b.Profile.line }}"></span>
+      </div>
+      <div style="position:relative;width:48px;display:flex;align-items:center;justify-content:center;border-left:1px solid rgba(255,255,255,0.1);background:{{ b.Settings.tabBg }};color:{{ b.Settings.dim }}">
+        <svg viewBox="0 0 24 24" style="width:17px;height:17px;fill:none;stroke:currentColor;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round"><path d="M21 4h-7M10 4H3M21 12h-9M8 12H3M21 20h-5M12 20H3M14 2v4M8 10v4M16 18v4"></path></svg>
+        <span style="position:absolute;left:0;bottom:-1px;width:100%;height:2px;background:{{ b.Settings.line }}"></span>
+      </div>
+    </div>
+  </div>
+
+  <!-- notifications land here, under the bell, for 8 s -->
+  <sc-if value="{{ toastVisible }}" hint-placeholder-val="{{ true }}">
+    <div style="position:absolute;top:56px;right:24px;z-index:1;display:flex;flex-direction:column;gap:6px;align-items:flex-end">
+      <div style="position:relative;display:flex;align-items:center;gap:12px;height:40px;padding:0 14px 0 12px;max-width:520px;background:rgba(14,16,20,0.9);backdrop-filter:blur(14px);border:1px solid {{ toastBorder }};clip-path:polygon(0 0,100% 0,100% calc(100% - 8px),calc(100% - 8px) 100%,0 100%);overflow:hidden">
+        <span style="width:8px;height:8px;flex:none;background:{{ toastColor }};transform:rotate(45deg)"></span>
+        <span style="font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:rgba(242,239,232,0.9)">{{ toast }}</span>
+        <span style="flex:none;font-family:'Rajdhani',sans-serif;font-weight:700;font-size:12px;letter-spacing:0.1em;text-transform:uppercase;color:{{ toastColor }}">{{ toastAction }}</span>
+        <span style="flex:none;font-family:'JetBrains Mono',monospace;font-size:10px;color:rgba(242,239,232,0.4)">{{ toastAge }}</span>
+        <span style="position:absolute;left:0;bottom:0;height:2px;width:{{ toastProgress }};background:{{ toastColor }}"></span>
+      </div>
+      <sc-if value="{{ toast2Visible }}" hint-placeholder-val="{{ false }}">
+        <div style="display:flex;align-items:center;gap:12px;height:32px;padding:0 14px 0 12px;background:rgba(14,16,20,0.7);border:1px solid rgba(255,255,255,0.1);clip-path:polygon(0 0,100% 0,100% calc(100% - 8px),calc(100% - 8px) 100%,0 100%);opacity:0.75">
+          <span style="width:8px;height:8px;flex:none;background:oklch(0.82 0.16 80);transform:rotate(45deg)"></span>
+          <span style="font-size:12px;color:rgba(242,239,232,0.8)">{{ toast2 }}</span>
+          <span style="font-family:'JetBrains Mono',monospace;font-size:10px;color:rgba(242,239,232,0.4)">{{ toast2Age }}</span>
+        </div>
+      </sc-if>
+    </div>
+  </sc-if>
+
+  <!-- apps drawer -->
+  <sc-if value="{{ drawerOpen }}" hint-placeholder-val="{{ false }}">
+    <div style="position:absolute;top:44px;left:0;width:1280px;z-index:3;display:flex;flex-direction:column;gap:14px;padding:16px 20px 16px;background:rgba(12,14,18,0.985);backdrop-filter:blur(18px);border:1px solid rgba(255,255,255,0.14);border-top:none;clip-path:polygon(0 0,100% 0,100% calc(100% - 16px),calc(100% - 16px) 100%,0 100%);box-shadow:0 24px 60px rgba(0,0,0,0.55)">
+      <div style="display:flex;justify-content:space-between;align-items:flex-end">
+        <div style="display:flex;flex-direction:column;gap:4px"><span style="font-family:'Rajdhani',sans-serif;font-weight:700;font-size:22px;text-transform:uppercase;letter-spacing:0.08em;line-height:1">Apps</span><span style="font-size:12px;color:rgba(242,239,232,0.6)">Same world, a different set of tools. Panels, bar and instruments change; where you stand does not.</span></div>
+        <span style="font-size:11px;color:rgba(242,239,232,0.5)"><b style="color:rgba(242,239,232,0.8);font-weight:600">F1–F7</b> switch directly · <b style="color:rgba(242,239,232,0.8);font-weight:600">Esc</b> close</span>
+      </div>
+      <div style="display:flex;gap:8px">
+        <sc-for list="{{ apps }}" as="a" hint-placeholder-count="6">
+          <div style="position:relative;width:168px;height:176px;padding:16px 12px 12px;display:flex;flex-direction:column;gap:8px;background:{{ a.bg }};border:1px solid {{ a.border }};box-shadow:{{ a.glow }}">
+            <span style="position:absolute;left:0;top:0;width:100%;height:3px;background:{{ a.color }}"></span>
+            <div style="display:flex;justify-content:space-between;align-items:center">
+              <svg viewBox="0 0 24 24" style="width:26px;height:26px;fill:none;stroke:{{ a.color }};stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round"><path d="{{ a.icon }}"></path></svg>
+              <span style="font-family:'JetBrains Mono',monospace;font-size:10px;color:rgba(242,239,232,0.45)">{{ a.key }}</span>
+            </div>
+            <span style="font-family:'Rajdhani',sans-serif;font-weight:700;font-size:17px;letter-spacing:0.08em;text-transform:uppercase;line-height:1;color:{{ a.fg }}">{{ a.name }}</span>
+            <span style="font-size:11px;line-height:1.45;color:rgba(242,239,232,0.6);flex:1">{{ a.desc }}</span>
+            <div style="display:flex;justify-content:space-between;align-items:center;font-family:'Rajdhani',sans-serif;font-weight:700;font-size:11px;letter-spacing:0.1em;text-transform:uppercase"><span style="color:{{ a.statusColor }};white-space:nowrap">{{ a.status }}</span><span style="font-size:10px;color:rgba(242,239,232,0.4);white-space:nowrap">{{ a.by }}</span></div>
+          </div>
+        </sc-for>
+      </div>
+      <div style="display:flex;justify-content:space-between;align-items:center;padding-top:12px;border-top:1px solid rgba(255,255,255,0.1);font-size:12px">
+        <div style="display:flex;align-items:center;gap:10px;color:rgba(242,239,232,0.6)"><span style="font-family:'Rajdhani',sans-serif;font-weight:600;font-size:11px;letter-spacing:0.14em;text-transform:uppercase;color:rgba(242,239,232,0.5)">From others</span><span style="padding:3px 8px;border:1px solid rgba(255,255,255,0.18);font-size:11px">Holzbau Fex · Timber kit</span><span style="padding:3px 8px;border:1px solid rgba(255,255,255,0.18);font-size:11px">Engadin Tourism · Trails</span><span style="font-size:11px">add tools to any app</span></div>
+        <div style="display:flex;gap:8px"><span style="height:28px;padding:0 12px;border:1px solid rgba(255,255,255,0.2);font-family:'Rajdhani',sans-serif;font-weight:700;font-size:12px;letter-spacing:0.1em;text-transform:uppercase;display:inline-flex;align-items:center">Manage</span><span style="height:28px;padding:0 12px;background:oklch(0.78 0.14 200);color:#0b0d10;font-family:'Rajdhani',sans-serif;font-weight:700;font-size:12px;letter-spacing:0.1em;text-transform:uppercase;display:inline-flex;align-items:center;clip-path:polygon(5px 0,100% 0,100% calc(100% - 5px),calc(100% - 5px) 100%,0 100%,0 5px)">Shop</span></div>
+      </div>
+    </div>
+  </sc-if>
+
+  <!-- notifications tray -->
+  <sc-if value="{{ trayOpen }}" hint-placeholder-val="{{ false }}">
+    <div style="position:absolute;top:44px;right:0;width:440px;z-index:3;display:flex;flex-direction:column;background:rgba(12,14,18,0.985);backdrop-filter:blur(18px);border:1px solid rgba(255,255,255,0.14);border-top:none;clip-path:polygon(0 0,100% 0,100% 100%,16px 100%,0 calc(100% - 16px));box-shadow:0 24px 60px rgba(0,0,0,0.55)">
+      <div style="display:flex;justify-content:space-between;align-items:center;padding:14px 18px 10px"><span style="font-family:'Rajdhani',sans-serif;font-weight:700;font-size:20px;text-transform:uppercase;letter-spacing:0.08em;line-height:1">Notifications <span style="color:oklch(0.82 0.16 80)">3 new</span></span><span style="font-family:'Rajdhani',sans-serif;font-weight:700;font-size:12px;letter-spacing:0.1em;text-transform:uppercase;color:rgba(242,239,232,0.6)">Mark all read</span></div>
+      <sc-for list="{{ notifs }}" as="n" hint-placeholder-count="5">
+        <div style="display:flex;gap:12px;padding:10px 18px;border-top:1px solid rgba(255,255,255,0.08);background:{{ n.bg }};font-size:13px">
+          <span style="width:8px;height:8px;margin-top:5px;flex:none;background:{{ n.color }};transform:rotate(45deg)"></span>
+          <div style="display:flex;flex-direction:column;gap:2px;flex:1;min-width:0"><span style="font-weight:600">{{ n.title }}</span><span style="font-size:12px;color:rgba(242,239,232,0.6)">{{ n.meta }}</span></div>
+          <div style="display:flex;flex-direction:column;align-items:flex-end;gap:4px;flex:none"><span style="font-family:'JetBrains Mono',monospace;font-size:10px;color:rgba(242,239,232,0.45)">{{ n.when }}</span><span style="font-family:'Rajdhani',sans-serif;font-weight:700;font-size:11px;letter-spacing:0.1em;text-transform:uppercase;color:{{ n.color }}">{{ n.action }}</span></div>
+        </div>
+      </sc-for>
+      <div style="display:flex;justify-content:space-between;align-items:center;padding:10px 18px 14px;border-top:1px solid rgba(255,255,255,0.1);font-size:12px;color:rgba(242,239,232,0.6)"><span>New ones show in the bar for 8 s first.</span><span style="font-family:'Rajdhani',sans-serif;font-weight:700;font-size:12px;letter-spacing:0.1em;text-transform:uppercase;color:rgba(242,239,232,0.7)">Settings</span></div>
+    </div>
+  </sc-if>
+
+  <sc-if value="{{ isBuild }}" hint-placeholder-val="{{ true }}">
+  <div style="position:absolute;top:58px;left:50%;transform:translateX(-50%);display:flex;flex-direction:column;align-items:center;gap:6px">
+    <div style="font-family:'Rajdhani',sans-serif;font-weight:700;font-size:30px;text-transform:uppercase;letter-spacing:0.12em;text-shadow:0 2px 12px rgba(0,0,0,0.6)">{{ land }}</div>
+    <div style="display:flex;gap:10px;align-items:center;font-size:12px;text-shadow:0 1px 8px rgba(0,0,0,0.7)">
+      <span style="color:rgba(242,239,232,0.75)">Owner <b style="color:#f2efe8;font-weight:600">{{ owner }}</b></span>
+      <span style="width:4px;height:4px;background:rgba(242,239,232,0.5);transform:rotate(45deg)"></span>
+      <span style="padding:3px 10px;font-family:'Rajdhani',sans-serif;font-weight:700;font-size:12px;letter-spacing:0.1em;text-transform:uppercase;background:{{ rightBg }};color:#0b0d10;clip-path:polygon(5px 0,100% 0,100% calc(100% - 5px),calc(100% - 5px) 100%,0 100%,0 5px)">{{ right }}</span>
+      <span style="width:4px;height:4px;background:rgba(242,239,232,0.5);transform:rotate(45deg)"></span>
+      <span style="font-family:'JetBrains Mono',monospace;font-size:11px;color:rgba(242,239,232,0.75)">46.4021N 9.6912E</span>
+    </div>
+  </div>
+  <div style="position:absolute;right:24px;top:50%;transform:translateY(-50%);display:flex;align-items:center;gap:6px">
+    <span style="font-family:'Rajdhani',sans-serif;font-weight:600;font-size:11px;letter-spacing:0.14em;text-transform:uppercase;color:rgba(242,239,232,0.55);text-shadow:0 1px 6px rgba(0,0,0,0.8)">Alt</span>
+    <div style="position:relative;width:44px;height:300px;background:rgba(14,16,20,0.84);backdrop-filter:blur(14px);border:1px solid rgba(255,255,255,0.12);clip-path:polygon(0 8px,8px 0,100% 0,100% 100%,8px 100%,0 calc(100% - 8px));overflow:hidden">
+      <div style="position:absolute;inset:0;background:repeating-linear-gradient(180deg,rgba(255,255,255,0.22) 0 1px,transparent 1px 30px);background-position:0 5px"></div>
+      <span style="position:absolute;left:5px;top:22px;font-family:'JetBrains Mono',monospace;font-size:9px;color:rgba(242,239,232,0.5)">1900</span>
+      <span style="position:absolute;left:5px;top:82px;font-family:'JetBrains Mono',monospace;font-size:9px;color:rgba(242,239,232,0.5)">1850</span>
+      <span style="position:absolute;left:5px;top:202px;font-family:'JetBrains Mono',monospace;font-size:9px;color:rgba(242,239,232,0.5)">1750</span>
+      <span style="position:absolute;left:5px;top:262px;font-family:'JetBrains Mono',monospace;font-size:9px;color:rgba(242,239,232,0.5)">1700</span>
+      <div style="position:absolute;left:0;top:178px;width:100%;height:1px;background:oklch(0.82 0.16 80)"></div>
+      <span style="position:absolute;left:5px;top:181px;font-family:'Rajdhani',sans-serif;font-weight:700;font-size:9px;letter-spacing:0.12em;text-transform:uppercase;color:oklch(0.82 0.16 80)">Gnd</span>
+      <div style="position:absolute;left:0;top:150px;width:100%;height:2px;background:oklch(0.78 0.14 200);transform:translateY(-50%)"></div>
+      <div style="position:absolute;right:0;top:0;width:10px;height:100%;border-left:1px solid rgba(255,255,255,0.1);background:rgba(255,255,255,0.03)"></div>
+      <div style="position:absolute;right:1px;top:{{ pitchTop }};width:0;height:0;border-top:5px solid transparent;border-bottom:5px solid transparent;border-right:8px solid oklch(0.78 0.14 200);transform:translateY(-50%)"></div>
+    </div>
+    <div style="position:relative;width:30px;height:300px;font-family:'JetBrains Mono',monospace;font-size:9px;color:rgba(242,239,232,0.45);text-shadow:0 1px 6px rgba(0,0,0,0.8)">
+      <span style="position:absolute;left:0;top:2px">+90°</span>
+      <span style="position:absolute;left:0;top:{{ pitchLabelTop }};transform:translateY(-50%);color:oklch(0.78 0.14 200);white-space:nowrap">{{ pitch }}</span>
+      <span style="position:absolute;left:0;bottom:2px">−90°</span>
+    </div>
+  </div>
+  <div style="position:absolute;right:24px;top:50%;transform:translate(0,-206px);display:flex;flex-direction:column;align-items:flex-end;gap:2px;text-shadow:0 2px 12px rgba(0,0,0,0.7)">
+    <span style="font-family:'Rajdhani',sans-serif;font-weight:700;font-size:26px;line-height:1;color:oklch(0.78 0.14 200)">{{ altitude }}<span style="font-size:13px;letter-spacing:0.08em;margin-left:3px">m</span></span>
+    <span style="font-size:11px;color:rgba(242,239,232,0.6)">{{ agl }} above ground</span>
+  </div>
+
+  <div style="position:absolute;right:24px;bottom:20px;display:flex;flex-direction:column;gap:8px;align-items:flex-end">
+    <div style="width:240px;display:flex;flex-direction:column;background:rgba(14,16,20,0.84);backdrop-filter:blur(14px);border:1px solid rgba(255,255,255,0.12);clip-path:polygon(8px 0,100% 0,100% 100%,0 100%,0 8px)">
+      <div style="display:flex;align-items:center;justify-content:space-between;height:30px;padding:0 10px;border-bottom:1px solid rgba(255,255,255,0.1)">
+        <span style="display:flex;align-items:center;gap:7px;font-family:'Rajdhani',sans-serif;font-weight:700;font-size:13px;letter-spacing:0.1em;text-transform:uppercase;color:{{ moveColor }}"><span style="width:7px;height:7px;border-radius:50%;background:{{ moveColor }};box-shadow:0 0 8px {{ moveColor }}"></span>{{ moveMode }}</span>
+        <span style="display:flex;align-items:center;gap:5px;font-size:10px;color:rgba(242,239,232,0.5)">{{ moveOther }}<span style="min-width:18px;height:18px;padding:0 5px;display:inline-flex;align-items:center;justify-content:center;border:1px solid rgba(255,255,255,0.25);background:rgba(255,255,255,0.05);font-family:'JetBrains Mono',monospace;font-size:10px;color:rgba(242,239,232,0.85)">F</span></span>
+      </div>
+      <div style="display:grid;grid-template-columns:auto 1fr;column-gap:10px;row-gap:5px;align-items:center;padding:8px 10px;font-size:11px;color:rgba(242,239,232,0.7)">
+        <sc-for list="{{ keys }}" as="k" hint-placeholder-count="6">
+          <div style="display:flex;gap:2px;justify-content:flex-end">
+            <sc-for list="{{ k.caps }}" as="cap" hint-placeholder-count="1">
+              <span style="min-width:18px;height:18px;padding:0 5px;display:inline-flex;align-items:center;justify-content:center;border:1px solid rgba(255,255,255,0.25);background:rgba(255,255,255,0.05);font-family:'JetBrains Mono',monospace;font-size:10px;color:rgba(242,239,232,0.85)">{{ cap }}</span>
+            </sc-for>
+          </div>
+          <span>{{ k.does }}</span>
+        </sc-for>
+      </div>
+    </div>
+    <div style="position:relative;width:240px;height:240px;background:rgba(14,16,20,0.88);border:1px solid rgba(255,255,255,0.12);clip-path:polygon(12px 0,100% 0,100% calc(100% - 12px),calc(100% - 12px) 100%,0 100%,0 12px);overflow:hidden">
+      <div style="position:absolute;inset:0;background:repeating-linear-gradient(0deg,rgba(255,255,255,0.05) 0 1px,transparent 1px 30px),repeating-linear-gradient(90deg,rgba(255,255,255,0.05) 0 1px,transparent 1px 30px)"></div>
+      <div style="position:absolute;left:40px;top:60px;width:120px;height:90px;background:oklch(0.78 0.14 200 / 0.22);border:1px solid oklch(0.78 0.14 200);transform:rotate(-12deg)"></div>
+      <div style="position:absolute;left:150px;top:40px;width:80px;height:130px;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.25);transform:rotate(8deg)"></div>
+      <div style="position:absolute;left:10px;top:150px;width:70px;height:70px;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.25);transform:rotate(20deg)"></div>
+      <div style="position:absolute;left:96px;top:110px;width:10px;height:10px;background:oklch(0.82 0.16 80);border:2px solid #0b0d10;transform:rotate(45deg)"></div>
+      <div style="position:absolute;left:114px;top:70px;width:0;height:0;border-left:22px solid transparent;border-right:22px solid transparent;border-bottom:44px solid oklch(0.78 0.14 200 / 0.25);transform:translate(-50%,-100%) rotate(45deg);transform-origin:50% 100%"></div>
+      <div style="position:absolute;left:114px;top:70px;width:10px;height:10px;border-radius:50%;background:#f2efe8;border:2px solid #0b0d10;transform:translate(-50%,-50%)"></div>
+      <div style="position:absolute;left:10px;top:8px;font-family:'Rajdhani',sans-serif;font-weight:600;font-size:11px;letter-spacing:0.14em;text-transform:uppercase;color:rgba(242,239,232,0.55)">Map · 500 m · M</div>
+      <div style="position:absolute;right:10px;bottom:8px;font-family:'Rajdhani',sans-serif;font-weight:600;font-size:11px;letter-spacing:0.14em;text-transform:uppercase;color:oklch(0.78 0.14 200)">Your land</div>
+    </div>
+  </div>
+
+  <div style="position:absolute;left:50%;bottom:0;transform:translateX(-50%);display:flex;align-items:flex-end;gap:16px;padding:12px 18px 10px;background:linear-gradient(180deg,rgba(20,23,28,0.92),rgba(10,12,15,0.96));backdrop-filter:blur(16px);border:1px solid rgba(255,255,255,0.14);border-bottom:none;clip-path:polygon(18px 0,calc(100% - 18px) 0,100% 18px,100% 100%,0 100%,0 18px);box-shadow:inset 0 1px 0 rgba(255,255,255,0.1),0 -10px 40px rgba(0,0,0,0.45)">
+    <div style="display:flex;gap:6px;align-items:flex-end">
+      <div style="position:relative;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:7px;width:88px;height:72px;background:{{ b.Place.bg }};border:1px solid {{ b.Place.border }};box-shadow:{{ b.Place.glow }};color:{{ b.Place.fg }}">
+        <span style="position:absolute;left:0;top:0;width:100%;height:3px;background:{{ b.Place.top }}"></span>
+        <span style="position:absolute;left:5px;top:5px;font-family:'JetBrains Mono',monospace;font-size:10px;color:rgba(242,239,232,0.45)">1</span>
+        <svg viewBox="0 0 24 24" style="width:28px;height:28px;fill:none;stroke:currentColor;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round"><path d="m15 12-8.5 8.5a2.12 2.12 0 1 1-3-3L12 9"></path><path d="M17.6 15 22 10.6"></path><path d="m20.9 11.7-1.3-1.3a3 3 0 0 1-.9-2.2v-.9L16 4.6A5.6 5.6 0 0 0 12 3H9l.9.8A6.2 6.2 0 0 1 12 8.4V10l2 2h2.5l2.3 1.9"></path></svg>
+        <span style="font-family:'Rajdhani',sans-serif;font-weight:700;font-size:13px;letter-spacing:0.1em;text-transform:uppercase;line-height:1">Place</span>
+      </div>
+      <div style="position:relative;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:7px;width:88px;height:72px;background:{{ b.Catalog.bg }};border:1px solid {{ b.Catalog.border }};box-shadow:{{ b.Catalog.glow }};color:{{ b.Catalog.fg }}">
+        <span style="position:absolute;left:0;top:0;width:100%;height:3px;background:{{ b.Catalog.top }}"></span>
+        <span style="position:absolute;left:5px;top:5px;font-family:'JetBrains Mono',monospace;font-size:10px;color:rgba(242,239,232,0.45)">2</span>
+        <svg viewBox="0 0 24 24" style="width:28px;height:28px;fill:none;stroke:currentColor;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round"><path d="M21 8a2 2 0 0 0-1-1.7l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.7l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z"></path><path d="m3.3 7 8.7 5 8.7-5"></path><path d="M12 22V12"></path></svg>
+        <span style="font-family:'Rajdhani',sans-serif;font-weight:700;font-size:13px;letter-spacing:0.1em;text-transform:uppercase;line-height:1">Catalog</span>
+      </div>
+      <div style="position:relative;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:7px;width:88px;height:72px;background:{{ b.Land.bg }};border:1px solid {{ b.Land.border }};box-shadow:{{ b.Land.glow }};color:{{ b.Land.fg }}">
+        <span style="position:absolute;left:0;top:0;width:100%;height:3px;background:{{ b.Land.top }}"></span>
+        <span style="position:absolute;left:5px;top:5px;font-family:'JetBrains Mono',monospace;font-size:10px;color:rgba(242,239,232,0.45)">3</span>
+        <svg viewBox="0 0 24 24" style="width:28px;height:28px;fill:none;stroke:currentColor;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round"><path d="M3 6l6-3 6 3 6-3v15l-6 3-6-3-6 3z"></path><path d="M9 3v15"></path><path d="M15 6v15"></path></svg>
+        <span style="font-family:'Rajdhani',sans-serif;font-weight:700;font-size:13px;letter-spacing:0.1em;text-transform:uppercase;line-height:1">Land</span>
+      </div>
+      <div style="position:relative;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:7px;width:88px;height:72px;background:{{ b.Publish.bg }};border:1px solid {{ b.Publish.border }};box-shadow:{{ b.Publish.glow }};color:{{ b.Publish.fg }}">
+        <span style="position:absolute;left:0;top:0;width:100%;height:3px;background:{{ b.Publish.top }}"></span>
+        <span style="position:absolute;left:5px;top:5px;font-family:'JetBrains Mono',monospace;font-size:10px;color:rgba(242,239,232,0.45)">4</span>
+        <span style="position:absolute;right:-6px;top:-7px;min-width:20px;height:20px;padding:0 6px;background:oklch(0.82 0.16 80);color:#0b0d10;font-family:'Rajdhani',sans-serif;font-weight:700;font-size:12px;display:inline-flex;align-items:center;justify-content:center;clip-path:polygon(4px 0,100% 0,100% calc(100% - 4px),calc(100% - 4px) 100%,0 100%,0 4px)">{{ publishBadge }}</span>
+        <svg viewBox="0 0 24 24" style="width:28px;height:28px;fill:none;stroke:currentColor;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round"><path d="m22 2-7 20-4-9-9-4Z"></path><path d="M22 2 11 13"></path></svg>
+        <span style="font-family:'Rajdhani',sans-serif;font-weight:700;font-size:13px;letter-spacing:0.1em;text-transform:uppercase;line-height:1">Publish</span>
+      </div>
+      <div style="position:relative;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:7px;width:88px;height:72px;background:{{ b.Work.bg }};border:1px solid {{ b.Work.border }};box-shadow:{{ b.Work.glow }};color:{{ b.Work.fg }}">
+        <span style="position:absolute;left:0;top:0;width:100%;height:3px;background:{{ b.Work.top }}"></span>
+        <span style="position:absolute;left:5px;top:5px;font-family:'JetBrains Mono',monospace;font-size:10px;color:rgba(242,239,232,0.45)">5</span>
+        <span style="position:absolute;right:7px;top:7px;width:7px;height:7px;border-radius:50%;background:oklch(0.78 0.14 200);box-shadow:0 0 8px oklch(0.78 0.14 200)"></span>
+        <svg viewBox="0 0 24 24" style="width:28px;height:28px;fill:none;stroke:currentColor;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round"><rect x="2" y="7" width="20" height="14" rx="2"></rect><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"></path><path d="M2 13h20"></path></svg>
+        <span style="font-family:'Rajdhani',sans-serif;font-weight:700;font-size:13px;letter-spacing:0.1em;text-transform:uppercase;line-height:1">Work</span>
+      </div>
+    </div>
+  </div>
+
+  <div style="position:absolute;left:24px;bottom:20px;display:flex;flex-direction:column;gap:6px;padding:10px 14px;background:rgba(14,16,20,0.84);backdrop-filter:blur(14px);border:1px solid rgba(255,255,255,0.12);clip-path:polygon(8px 0,100% 0,100% calc(100% - 8px),calc(100% - 8px) 100%,0 100%,0 8px);font-size:12px">
+    <span style="display:flex;align-items:center;gap:8px"><span style="width:10px;height:10px;background:oklch(0.78 0.14 200)"></span>Published</span>
+    <span style="display:flex;align-items:center;gap:8px"><span style="width:10px;height:10px;border:2px dashed oklch(0.82 0.16 80);box-sizing:border-box"></span>Candidate · awaiting approval</span>
+    <span style="display:flex;align-items:center;gap:8px"><span style="width:10px;height:10px;border:2px solid rgba(242,239,232,0.7);box-sizing:border-box"></span>Yours · not yet submitted</span>
+    <span style="display:flex;align-items:center;gap:8px"><span style="width:10px;height:10px;border:1px solid oklch(0.8 0.18 25);box-sizing:border-box"></span>No build rights</span>
+  </div>
+  </sc-if>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;app&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;default&quot;:&quot;Build&quot;,&quot;options&quot;:[&quot;Build&quot;,&quot;Drive&quot;,&quot;Survey&quot;,&quot;Photo&quot;,&quot;Render&quot;,&quot;Tour&quot;,&quot;Flows&quot;],&quot;tsType&quot;:&quot;string&quot;,&quot;section&quot;:&quot;App&quot;},&quot;drawer&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:false,&quot;tsType&quot;:&quot;boolean&quot;,&quot;section&quot;:&quot;App&quot;},&quot;tray&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:false,&quot;tsType&quot;:&quot;boolean&quot;,&quot;section&quot;:&quot;App&quot;},&quot;flying&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:true,&quot;tsType&quot;:&quot;boolean&quot;,&quot;section&quot;:&quot;App&quot;},&quot;active&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;default&quot;:&quot;World&quot;,&quot;options&quot;:[&quot;World&quot;,&quot;Profile&quot;,&quot;Wallet&quot;,&quot;Place&quot;,&quot;Catalog&quot;,&quot;Land&quot;,&quot;Publish&quot;,&quot;Work&quot;,&quot;Settings&quot;,&quot;Share&quot;,&quot;Admin&quot;],&quot;tsType&quot;:&quot;string&quot;,&quot;section&quot;:&quot;Build&quot;},&quot;toast&quot;:{&quot;editor&quot;:&quot;text&quot;,&quot;default&quot;:&quot;Render #4812 finished · 2 tiles on Maloja Nord&quot;,&quot;tsType&quot;:&quot;string&quot;,&quot;section&quot;:&quot;Notifications&quot;},&quot;toastAction&quot;:{&quot;editor&quot;:&quot;text&quot;,&quot;default&quot;:&quot;View&quot;,&quot;tsType&quot;:&quot;string&quot;,&quot;section&quot;:&quot;Notifications&quot;},&quot;toastKind&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;default&quot;:&quot;ok&quot;,&quot;options&quot;:[&quot;ok&quot;,&quot;warn&quot;,&quot;error&quot;],&quot;tsType&quot;:&quot;string&quot;,&quot;section&quot;:&quot;Notifications&quot;},&quot;toastProgress&quot;:{&quot;editor&quot;:&quot;text&quot;,&quot;default&quot;:&quot;55%&quot;,&quot;tsType&quot;:&quot;string&quot;,&quot;section&quot;:&quot;Notifications&quot;},&quot;toast2&quot;:{&quot;editor&quot;:&quot;text&quot;,&quot;default&quot;:&quot;&quot;,&quot;tsType&quot;:&quot;string&quot;,&quot;section&quot;:&quot;Notifications&quot;},&quot;clock&quot;:{&quot;editor&quot;:&quot;text&quot;,&quot;default&quot;:&quot;14:32&quot;,&quot;tsType&quot;:&quot;string&quot;,&quot;section&quot;:&quot;Top bar&quot;},&quot;credits&quot;:{&quot;editor&quot;:&quot;text&quot;,&quot;default&quot;:&quot;248.40&quot;,&quot;tsType&quot;:&quot;string&quot;,&quot;section&quot;:&quot;Top bar&quot;},&quot;notifCount&quot;:{&quot;editor&quot;:&quot;text&quot;,&quot;default&quot;:&quot;3&quot;,&quot;tsType&quot;:&quot;string&quot;,&quot;section&quot;:&quot;Top bar&quot;},&quot;land&quot;:{&quot;editor&quot;:&quot;text&quot;,&quot;default&quot;:&quot;Maloja Nord&quot;,&quot;tsType&quot;:&quot;string&quot;,&quot;section&quot;:&quot;Build&quot;},&quot;owner&quot;:{&quot;editor&quot;:&quot;text&quot;,&quot;default&quot;:&quot;A. Giacometti&quot;,&quot;tsType&quot;:&quot;string&quot;,&quot;section&quot;:&quot;Build&quot;},&quot;right&quot;:{&quot;editor&quot;:&quot;text&quot;,&quot;default&quot;:&quot;You may build here&quot;,&quot;tsType&quot;:&quot;string&quot;,&quot;section&quot;:&quot;Build&quot;},&quot;name&quot;:{&quot;editor&quot;:&quot;text&quot;,&quot;default&quot;:&quot;Tobias&quot;,&quot;tsType&quot;:&quot;string&quot;,&quot;section&quot;:&quot;Build&quot;},&quot;publishBadge&quot;:{&quot;editor&quot;:&quot;text&quot;,&quot;default&quot;:&quot;7&quot;,&quot;tsType&quot;:&quot;string&quot;,&quot;section&quot;:&quot;Build&quot;},&quot;altitude&quot;:{&quot;editor&quot;:&quot;int&quot;,&quot;default&quot;:1812,&quot;unit&quot;:&quot;m&quot;,&quot;tsType&quot;:&quot;number&quot;,&quot;section&quot;:&quot;Build&quot;},&quot;ground&quot;:{&quot;editor&quot;:&quot;int&quot;,&quot;default&quot;:1796,&quot;unit&quot;:&quot;m&quot;,&quot;tsType&quot;:&quot;number&quot;,&quot;section&quot;:&quot;Build&quot;},&quot;pitch&quot;:{&quot;editor&quot;:&quot;range&quot;,&quot;default&quot;:-12,&quot;min&quot;:-90,&quot;max&quot;:90,&quot;step&quot;:1,&quot;unit&quot;:&quot;°&quot;,&quot;tsType&quot;:&quot;number&quot;,&quot;section&quot;:&quot;Build&quot;}}">
+class Component extends DCLogic {
+  renderVals() {
+    const p = this.props;
+    const active = p.active ?? 'World';
+    const app = p.app ?? 'Build';
+    const drawerOpen = !!(p.drawer ?? false), trayOpen = !!(p.tray ?? false), flying = !!(p.flying ?? true);
+    const C = 'oklch(0.78 0.14 200)', A = 'oklch(0.82 0.16 80)', G = 'oklch(0.8 0.15 145)', O = 'oklch(0.8 0.16 50)', V = 'oklch(0.78 0.13 320)', B = 'oklch(0.78 0.12 260)', R = 'oklch(0.8 0.18 25)', P = 'oklch(0.8 0.14 290)';
+    const M = 'rgba(242,239,232,0.6)';
+    const APPS = [
+      { name: 'Build', key: 'F1', color: C, icon: 'm15 12-8.5 8.5a2.12 2.12 0 1 1-3-3L12 9M17.6 15 22 10.6m-1.1 1.1-1.3-1.3a3 3 0 0 1-.9-2.2v-.9L16 4.6A5.6 5.6 0 0 0 12 3H9l.9.8A6.2 6.2 0 0 1 12 8.4V10l2 2h2.5l2.3 1.9', desc: 'Place things, buy from the catalog, publish and approve. The default.', status: 'Installed', by: 'Splatworld' },
+      { name: 'Drive', key: 'F2', color: O, icon: 'M3 15a9 9 0 0 1 18 0M12 15l3.5-4.5M6 15h.01M18 15h.01M4 20h16', desc: 'Vehicles on the real roads. Speed, gear, route, segment times.', status: 'Installed', by: 'Splatworld' },
+      { name: 'Survey', key: 'F3', color: G, icon: 'm12 3 9 5-9 5-9-5 9-5zM3 13l9 5 9-5M3 17l9 5 9-5', desc: 'Top-down. Parcels, ownership, rights, approvals and coverage as layers.', status: 'Installed', by: 'Splatworld' },
+      { name: 'Photo', key: 'F4', color: V, icon: 'M4 8h3l2-3h6l2 3h3v11H4zM12 17a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7z', desc: 'Camera with real lenses. Exposure, focal length, time of day, capture.', status: 'Installed', by: 'Splatworld' },
+      { name: 'Render', key: 'F5', color: A, icon: 'M6 6h12v12H6zM9 9h6v6H9zM9 2v4M15 2v4M9 18v4M15 18v4M2 9h4M2 15h4M18 9h4M18 15h4', desc: 'Your machine as a renderer. Queue, throughput, earnings, thermals.', status: 'Installed', by: 'Splatworld' },
+      { name: 'Tour', key: 'F6', color: B, icon: 'M6 19a3 3 0 1 0 0-6 3 3 0 0 0 0 6zM18 11a3 3 0 1 0 0-6 3 3 0 0 0 0 6zM9 16h6a3 3 0 0 0 0-6h-6a3 3 0 0 1 0-6h3', desc: 'Guided fly-throughs and spectating. Follow a player or a saved path.', status: 'Get · free', by: 'Engadin Tour.' },
+      { name: 'Flows', key: 'F7', color: P, icon: 'M2 4h7v6H2zM15 14h7v6h-7zM9 7h3a3 3 0 0 1 3 3v7', desc: 'Logic for your land: flows the process servers run.', status: 'Installed', by: 'Splatworld' },
+    ];
+    const cur = APPS.find(a => a.name === app) || APPS[0];
+    const apps = APPS.map(a => {
+      const on = a.name === app, get = /Get/.test(a.status);
+      return { ...a, tabPad: on ? '0 16px 0 14px' : '0 13px', tabBg: on ? a.color.replace(')', ' / 0.14)') : 'transparent', tabFg: on ? a.color : 'rgba(242,239,232,0.75)', tabOpacity: get ? 0.4 : 1, nameDisplay: on ? 'inline' : 'none', line: on ? a.color : 'transparent', bg: on ? `linear-gradient(180deg,${a.color.replace(')', ' / 0.22)')},${a.color.replace(')', ' / 0.08)')})` : 'linear-gradient(180deg,rgba(255,255,255,0.07),rgba(255,255,255,0.02))', border: on ? a.color : 'rgba(255,255,255,0.12)', glow: on ? `inset 0 0 0 1px ${a.color}, 0 0 22px ${a.color.replace(')', ' / 0.35)')}` : 'inset 0 1px 0 rgba(255,255,255,0.06)', fg: on ? a.color : '#f2efe8', status: on ? 'Running' : a.status, statusColor: on ? a.color : get ? A : M };
+    });
+    const b = {};
+    for (const k of ['Profile', 'Wallet', 'Place', 'Catalog', 'Land', 'Publish', 'Work', 'Settings', 'Share', 'Admin']) {
+      const on = k === active || (k === 'Settings' && active === 'Admin');
+      b[k] = { tabBg: on ? 'oklch(0.78 0.14 200 / 0.14)' : 'transparent', line: on ? C : 'transparent', bg: on ? 'linear-gradient(180deg,oklch(0.78 0.14 200 / 0.22),oklch(0.78 0.14 200 / 0.08))' : 'linear-gradient(180deg,rgba(255,255,255,0.07),rgba(255,255,255,0.02))', border: on ? C : 'rgba(255,255,255,0.12)', glow: on ? 'inset 0 0 0 1px ' + C + ', 0 0 22px oklch(0.78 0.14 200 / 0.4)' : 'inset 0 1px 0 rgba(255,255,255,0.06)', top: on ? C : 'transparent', fg: on ? C : 'rgba(242,239,232,0.85)', dim: on ? C : 'rgba(242,239,232,0.55)' };
+    }
+    const stages = [
+      { label: 'Placed', value: p.placed ?? '4', color: '#f2efe8' },
+      { label: 'In pool', value: p.inPool ?? '6', color: '#f2efe8' },
+      { label: 'Rendered', value: p.rendered ?? '2 / 6', color: C },
+      { label: 'Awaiting', value: p.awaiting ?? '2', color: A },
+      { label: 'Published', value: p.published ?? '38', color: C },
+    ];
+    const kind = p.toastKind ?? 'ok';
+    const toastColor = kind === 'warn' ? A : kind === 'error' ? R : C;
+    const right = p.right ?? 'You may build here';
+    const ok = /may build|You own/.test(right);
+    const pitchDeg = Number(p.pitch ?? -12);
+    const pct = (50 - pitchDeg / 90 * 50).toFixed(1) + '%';
+    const altitude = Number(p.altitude ?? 1812), ground = Number(p.ground ?? 1796);
+    const notifs = [
+      { title: 'Render #4812 finished', meta: '2 tiles on Maloja Nord are rendered · now awaiting L. Fasser', when: '14:31', action: 'View', color: C, bg: 'oklch(0.78 0.14 200 / 0.06)' },
+      { title: 'C-2291 needs your decision', meta: 'M. Ruch · 3 benches, 1 shelter · Maloja Nord', when: '14:18', action: 'Decide', color: A, bg: 'oklch(0.82 0.16 80 / 0.06)' },
+      { title: 'You earned 0.70 cr', meta: 'Rendered 14/8551/5810 for R. Keller', when: '13:52', action: 'Wallet', color: C, bg: 'oklch(0.78 0.14 200 / 0.06)' },
+      { title: 'K. Prevost posted a task near you', meta: 'Plant 40 birches along the lake path · 6.00 cr · 1.8 km', when: '11:40', action: 'Work', color: G, bg: 'transparent' },
+      { title: 'Elevation service back', meta: 'Ground heights are answering again.', when: 'yesterday', action: '', color: M, bg: 'transparent' },
+    ];
+    return {
+      b, stages, apps, app, rendered: p.rendered ?? '2 / 6', awaiting: p.awaiting ?? '2', appKey: cur.key, appColor: cur.color, appIcon: cur.icon, appBg: cur.color.replace(')', ' / 0.12)'),
+      isBuild: app === 'Build', drawerOpen, trayOpen, dim: drawerOpen || trayOpen,
+      drawerBg: drawerOpen ? 'oklch(0.78 0.14 200 / 0.18)' : 'transparent', drawerFg: drawerOpen ? C : 'rgba(242,239,232,0.85)', drawerLine: drawerOpen ? C : 'transparent',
+      trayBg: trayOpen ? 'oklch(0.82 0.16 80 / 0.16)' : 'transparent', trayFg: trayOpen ? A : 'rgba(242,239,232,0.85)', trayLine: trayOpen ? A : 'transparent',
+      toast: p.toast ?? 'Render #4812 finished · 2 tiles on Maloja Nord', toastAction: p.toastAction ?? 'View', toastAge: p.toastAge ?? '4 s', toastColor, toastBorder: toastColor.replace(')', ' / 0.6)'), toastProgress: p.toastProgress ?? '55%',
+      toastVisible: !trayOpen && (p.toast ?? 'x') !== '', toast2Visible: !!(p.toast2 ?? false), toast2: p.toast2 ?? '', toast2Age: p.toast2Age ?? '',
+      moveMode: flying ? 'Flying' : 'Walking', moveOther: flying ? 'walk' : 'fly', moveColor: flying ? C : G,
+      keys: flying
+        ? [{ caps: ['W', 'A', 'S', 'D'], does: 'Fly where you look' }, { caps: ['drag'], does: 'Look' }, { caps: ['Space'], does: 'Up' }, { caps: ['Shift'], does: 'Down' }, { caps: ['scroll'], does: 'Speed' }, { caps: ['Tab'], does: 'Apps' }, { caps: ['Esc'], does: 'Close panel' }]
+        : [{ caps: ['W', 'A', 'S', 'D'], does: 'Walk' }, { caps: ['drag'], does: 'Look' }, { caps: ['Space'], does: 'Jump' }, { caps: ['Shift'], does: 'Run' }, { caps: ['Tab'], does: 'Apps' }, { caps: ['Esc'], does: 'Close panel' }],
+      clock: p.clock ?? '14:32', tz: p.tz ?? 'CEST', credits: p.credits ?? '248.40', notifCount: p.notifCount ?? '3', notifs,
+      land: p.land ?? 'Maloja Nord', owner: p.owner ?? 'A. Giacometti', right, rightBg: ok ? C : 'oklch(0.7 0.2 25)', name: p.name ?? 'Tobias', publishBadge: p.publishBadge ?? '7',
+      pitch: (pitchDeg > 0 ? '+' : pitchDeg < 0 ? '−' : '') + Math.abs(pitchDeg) + '°', pitchTop: pct, pitchLabelTop: pct, altitude, agl: (altitude - ground) + ' m',
+    };
+  }
+}
+</script>
+</body>
+</html>

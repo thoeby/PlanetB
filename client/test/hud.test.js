@@ -122,12 +122,15 @@ test('every surface but the world itself says how wide its panel is', () => {
     }
 });
 
-// Work is a surface with queues behind it rather than one list: the machine
-// strip is its own head (hud.js panelHead), because what this tab can do is
-// the same answer whichever queue is open, and Render jobs is the only queue
-// so far.
-test('Work is a surface of queues, and Render jobs is the first', () => {
-    assert.deepEqual(surfaceOf('Work'), { tab: 'Work', part: 'Render jobs' });
-    assert.ok(LEAVES.includes('Render jobs'), 'the queue has a body of its own');
+// Work is a surface with queues behind it rather than one list (design 8):
+// the machine strip is its own head (hud.js panelHead), because what this tab
+// can do is the same answer whichever queue is open, and the queues are the
+// kinds of work the pool sorts into — plus what this machine does with itself.
+test('Work is a surface of queues, and every job is the first', () => {
+    assert.deepEqual(surfaceOf('Work'), { tab: 'Work', part: 'Every job' });
+    for (const part of ['Every job', 'Render jobs', 'Training', 'Publishing',
+        'Machine']) {
+        assert.ok(LEAVES.includes(part), `${part} has a body of its own`);
+    }
     assert.ok(!LEAVES.includes('Work'), 'and the surface is not a leaf');
 });
