@@ -37,8 +37,13 @@ fi
 
 if ! curl -sf -o /dev/null "$FILES_URL/healthz"; then
     command -v nginx > /dev/null || { echo "not ok - no file store and no nginx binary"; exit 1; }
-    # nginx workers run as www-data; the store has to be writable by them.
-    mkdir -p "$FILES_ROOT"; chmod 1777 "$FILES_ROOT"; ROOT=$(cd "$FILES_ROOT" && pwd)
+    # nginx workers run as www-data; the store has to be writable by them —
+    # all of it, not just the top. `make player-run` writes the same store
+    # through the Python server, which runs as whoever started it, and leaves
+    # tile directories that www-data may read and not write: every PUT into one
+    # is then a 500 that reads like a broken file store.
+    mkdir -p "$FILES_ROOT"; ROOT=$(cd "$FILES_ROOT" && pwd)
+    find "$ROOT" -type d -exec chmod 1777 {} + 2> /dev/null || true
     NGINX_CONF=$(mktemp --suffix=.conf)
     sed -e "s|server postgrest:3000;|server 127.0.0.1:${API_URL##*:};|" \
         -e "s|listen 80;|listen ${FILES_URL##*:};|" \

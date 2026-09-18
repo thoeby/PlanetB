@@ -1551,6 +1551,44 @@ is one whole number over most of the tile (`ground.py` judges the survey
 without the fill); and a cut that failed was asked for again every frame
 (`floor.js` waits ten seconds).
 
+## The player-run is green again, all fifteen stories
+
+`make player-run` was red at story 2 — at `b943ce3` and at every commit before
+it this session could reach — and could not have got past story 8 at all:
+since the sampler was removed every tile is trained, and a z14 tile at the
+operator's own numbers is about eight hours on a software adapter. All sixteen
+specs now pass in one run from an empty database, in about twenty-three
+minutes.
+
+- **`db/0131` makes the size a choice**, the way `db/0107` made the renderer
+  one: `splatworld.budget_scale`, `splatworld.iters`, `splatworld.frame_px`,
+  read where the job is built and pinned into its atoms (Invariant 2). The run
+  turns them down to a twentieth and a z14 tile compiles in seven minutes,
+  through the page, by a tab that took it out of the pool. Unset, the world is
+  the size it always was.
+- **`db/0132` makes the pool tell the truth about what is in hand.** A tab
+  that goes away says so; when that goodbye is lost, the lease is the
+  backstop — and `expire_claims` only ever ran inside `claim_atom`, so a pool
+  nobody was claiming from went on saying "1 in hand" about a tab that had
+  gone. `render_pool` takes the dead ones back before it counts, and the lease
+  is a number the operator can set (the run: two and a half minutes, above the
+  minute a tab beats at). PostgREST reads the wrapper's volatility, so
+  `api.render_pool` says out loud that it may write.
+- **The elevation service failing is said where the player is standing
+  again** (SPEC §3.12). The DEM fetch had been swallowing what the store said;
+  `floor.js` keeps the sentence until a tile arrives, and the page shows it
+  over the hint about having no land yet, with "trying again" after it.
+- **What the stories had been left behind by**: a freshly handed-over land has
+  one unsubmitted tile, its own ground; the pool row for a leaf says
+  "trained"; the approval says "render job(s) in the pool"; the pool is read
+  when it is opened, not on a timer; a tab that walks away has to be holding
+  something first, and not the job the next story needs; and asking for ground
+  to be built again, in a world whose recipe has not moved, republishes the
+  bytes it already has (db/0100) rather than opening work.
+- **This machine gives two 3D pages a context, not three.** The third draws
+  its chrome and never gets an engine, which is why B closes their tab before
+  A arrives in story 8. HANDOFF §2.
+
 ## FND.0: the groundwork for the foundation work
 
 `TASKS-foundation.md` is the task list after `PLAYER-RUN.md`, and

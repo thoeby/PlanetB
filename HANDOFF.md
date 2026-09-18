@@ -620,6 +620,28 @@ the groundwork:
   Play · Survey (F1–F6), the operator's naming; only Build is wired, the rest
   say so on their cards. SPEC §2.1.
 
+**This machine gives two 3D pages a WebGL context, and not three.** A third
+`play.html` draws its chrome, says "nowhere yet" and never gets an engine —
+`window.splatworld` is never assigned, so every assertion about the world line
+times out. Closing one of the other two lets it boot. `--max-active-webgl-contexts`
+does not help; it is memory, not the context count. A story with three players
+in it closes one tab before opening the next (client/test/run/08-rendering.spec.js).
+
+**`make player-run` is green through all fifteen stories**, about twenty-three
+minutes, and the tiles are built small: `db/0131`'s `splatworld.budget_scale`,
+`splatworld.iters` and `splatworld.frame_px`, set on the database by
+`client/test/run/world.js` after every reset. `RUN_FULL_SIZE=1` renders at the
+operator's own numbers, which is hours a tile without a GPU. The claim lease is
+turned down the same way (`db/0132`, `splatworld.lease`), and it must stay
+above the minute a tab beats at (`client/js/work.js`).
+
+**Run `make gate` from a reset, not straight after `make player-run`.** The
+run leaves a whole world behind — land, published tiles, leaf jobs — and
+`tools/test-tiles.sh` then meets tiles that are already somebody's job and
+cannot publish its fixture into them ("no verified sog of yours"). `make gate`
+starts with `db-test`, which resets; running `client-test` on its own after a
+player-run does not. `rm -rf infra/files && make db-reset` first.
+
 **`make gate` is green end to end again**, from an empty database, in about
 twenty-five minutes; the browser suite is nine of them. Six browser tests do
 not run here and say why: three need a GPU (a tile is trained at every zoom
