@@ -12,6 +12,9 @@ import { loadDem, sampleHeight } from '../lib/geo.js';
 import * as tm from '../lib/tilemath.js';
 
 const Z = 14;
+// Every level the store cuts, coarsest first (server/splatworld/ground.py
+// parse_request, client/lib/geo.js MIN_Z).
+const LEVELS = [6, 8, 10, 12, 14];
 const RETRY_MS = 10_000;
 
 export class DemFloor {
@@ -27,20 +30,52 @@ export class DemFloor {
     }
 
     heightAt(lon, lat) {
-        const x = tm.tileX(lon, Z);
-        const y = tm.tileY(lat, Z);
-        const k = `${x}/${y}`;
+        return this.at(Z, lon, lat);
+    }
+
+    // The height at a point for something drawing a map rather than standing
+    // on the ground: the finest level already in hand, and when none is, the
+    // coarsest one is what gets asked for.
+    //
+    // `heightAt` asks at z14 and only z14, one cut per 1.7 km. A map twenty
+    // kilometres across probes a hundred and forty of them in a tick, every
+    // one a separate request, and answers null for all of them until they
+    // land — so the map drew the one tile it already had and black
+    // everywhere else. A single z6 cut covers the whole of it, and the finer
+    // levels sharpen it as they arrive.
+    heightNear(lon, lat) {
+        let best = null;
+        let ask = null;
+        for (const z of LEVELS) {
+            const x = tm.tileX(lon, z);
+            const y = tm.tileY(lat, z);
+            const k = `${z}/${x}/${y}`;
+            const dem = this.tiles.get(k);
+            if (dem === undefined) { ask = ask ?? [k, z, x, y]; continue; }
+            if (dem === null) continue;
+            const { u, v } = inTile(z, x, y, lon, lat);
+            const h = sampleHeight(dem, u, v);
+            if (h !== null && h !== undefined) best = h;
+        }
+        if (best === null && ask) this.request(...ask);
+        return best;
+    }
+
+    at(z, lon, lat) {
+        const x = tm.tileX(lon, z);
+        const y = tm.tileY(lat, z);
+        const k = `${z}/${x}/${y}`;
         const dem = this.tiles.get(k);
-        if (dem === undefined) { this.request(k, x, y); return null; }
+        if (dem === undefined) { this.request(k, z, x, y); return null; }
         if (dem === null) return null;
-        const { u, v } = inTile(Z, x, y, lon, lat);
+        const { u, v } = inTile(z, x, y, lon, lat);
         return sampleHeight(dem, u, v);
     }
 
-    request(k, x, y) {
+    request(k, z, x, y) {
         if (this.pending.has(k)) return;
         this.pending.add(k);
-        loadDem(Z, x, y, { filesUrl: this.filesUrl, fetchFn: this.fetchFn })
+        loadDem(z, x, y, { filesUrl: this.filesUrl, fetchFn: this.fetchFn })
             .then((dem) => { this.tiles.set(k, dem); this.trouble = ''; })
             // A tile the store could not cut is asked for again, but not on
             // the next frame: a ground that answers 502 met a request storm.

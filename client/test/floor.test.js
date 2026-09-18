@@ -25,3 +25,33 @@ test('outside the coverage there is no floor, and it is not asked for again', as
     assert.equal(floor.heightAt(7.85, 46.29), null);
     assert.equal(asked, 5, 'each zoom up to z6 asked once, then remembered');
 });
+
+test('a wide map is one coarse cut, not a hundred and forty fine ones', async () => {
+    // What the minimap does: probe a grid twenty kilometres across in one
+    // tick. heightAt asks z14 per 1.7 km and answers null until every one of
+    // them lands; heightNear asks for the coarsest level first, and one cut
+    // of it covers the lot (client/js/hudmap.js terrain).
+    const size = 8;
+    const data = new Float32Array(size * size).fill(900);
+    const urls = [];
+    const fetchFn = async (url) => {
+        urls.push(String(url));
+        return new Response(data.buffer, { status: 200 });
+    };
+    const floor = new DemFloor({ fetchFn });
+    const probe = (fn) => {
+        for (let i = -6; i <= 6; i++) {
+            for (let j = -6; j <= 6; j++) fn.call(floor, 7.85 + i * 0.022, 46.29 + j * 0.015);
+        }
+    };
+    probe(floor.heightNear);
+    assert.equal(urls.length, 1, `asked for ${urls.length} cuts, not one`);
+    assert.match(urls[0], /\/geo\/dem\/6\//, 'and the one it asked for is the coarsest');
+
+    await tick(); await tick();
+    let answered = 0;
+    probe(function counted(lon, lat) {
+        if (this.heightNear(lon, lat) !== null) answered++;
+    });
+    assert.equal(answered, 169, 'and then the whole map has ground');
+});
