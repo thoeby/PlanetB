@@ -122,6 +122,8 @@ INSERT INTO property (kind, name, label, type, choices, required, ordering) VALU
 ('natural', 'species', 'Species', 'text', '{}', false, 40),
 ('natural', 'density', 'Trees per hectare', 'number', '{}', false, 50),
 ('natural_point', 'genus', 'Genus', 'text', '{}', false, 20),
+('natural_point', 'leaf_type', 'Leaves', 'choice',
+ ARRAY['broadleaved', 'needleleaved', 'mixed'], false, 40),
 ('natural_point', 'circumference', 'Circumference (m)', 'number', '{}', false, 50);
 
 -- The old kind's properties that moved with their rows. `forest` carried

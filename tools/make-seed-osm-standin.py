@@ -50,9 +50,12 @@ LINES = [
     ({'highway': 'track', 'surface': 'gravel'},
      line([(-420, -40), (-500, 300), (-380, 640)])),
     # A value the seeded choices do not have, so that the refusal that names
-    # the allowed values has something to refuse (story 19, step 4).
+    # the allowed values has something to refuse (story 19, step 4). It runs
+    # through the middle, because a land drawn on the page is a small box
+    # around the tower and a bridleway out at the edge is one nobody can try
+    # to paste onto their own land at all.
     ({'highway': 'bridleway', 'surface': 'ground'},
-     line([(420, 60), (700, 300), (760, 700)])),
+     line([(-150, -80), (40, 60), (220, 180)])),
     ({'railway': 'rail', 'electrified': 'contact_line', 'gauge': 1435},
      line([(-1000, -400), (0, -320), (1000, -360)])),
     ({'waterway': 'stream', 'name': 'Chelchbach', 'width': 2.0},

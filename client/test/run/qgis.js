@@ -69,10 +69,13 @@ export function drawInQgis(projectPath, edits) {
  * @param {?string} filter     a QGIS expression over the source, or null
  * @param {Object<string,string>} into  target field ← source field (a name
  *                             that is not a source field is used as a value)
+ * @param {?string} clip       WKT to cut what is pasted to — QGIS's Clip, for
+ *                             a road that runs off the end of the land
  * @returns {{ok: boolean, pasted?: number, count?: number, error?: string}}
  */
-export function importFromFile(project, layer, gpkg, sourceLayer, filter, into) {
+export function importFromFile(project, layer, gpkg, sourceLayer, filter, into,
+    clip = null) {
     const path = gpkg.startsWith('/') ? gpkg : join(REPO, gpkg);
     return inQgis('import.py', project,
-        { layer, gpkg: path, source_layer: sourceLayer, filter, into })[0];
+        { layer, gpkg: path, source_layer: sourceLayer, filter, into, clip })[0];
 }

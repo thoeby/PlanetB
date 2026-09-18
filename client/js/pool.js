@@ -144,14 +144,24 @@ export function toSubmit(p) {
     return p ? Math.max(0, Number(p.to_submit ?? 0)) : 0;
 }
 
-// "3 tiles · 2 objects · 1 drawn" — what the approver is about to be shown.
+// "3 tiles · 2 objects · 5 drawn (3 highway · 2 building)" — what the approver
+// is about to be shown. The kinds are named because since db/0135 there are
+// nine of them, and somebody who has just pasted an extract into six layers
+// wants to see the six counts rather than one number for all of it.
+function kindWords(kinds) {
+    const rows = Object.entries(kinds ?? {}).filter(([, n]) => n > 0);
+    if (!rows.length) return '';
+    rows.sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]));
+    return ` (${rows.map(([kind, n]) => `${n} ${kind}`).join(' \u00b7 ')})`;
+}
+
 function changeWords(n, changes) {
     const bits = [`${n} tile${n === 1 ? '' : 's'}`];
     if (changes?.objects) {
         bits.push(`${changes.objects} object${changes.objects === 1 ? '' : 's'}`);
     }
     if (changes?.moved) bits.push(`${changes.moved} moved`);
-    if (changes?.features) bits.push(`${changes.features} drawn`);
+    if (changes?.features) bits.push(`${changes.features} drawn${kindWords(changes.kinds)}`);
     return bits.join(' \u00b7 ');
 }
 

@@ -13,6 +13,7 @@ where <json> is
      "gpkg": "infra/seed/osm-visp.gpkg",  the file being copied from
      "source_layer": "lines",             the layer inside it
      "filter": "highway IS NOT NULL",     a QGIS expression, or null for all
+     "clip": "POLYGON((...))",            optional: cut what is pasted to this
      "into": {"highway": "highway", "lit": "lit"}}
                                           target field ← source field
 
@@ -24,7 +25,8 @@ from __future__ import annotations
 import json
 import sys
 
-from qgis.core import (QgsApplication, QgsFeature, QgsProject, QgsVectorLayer)
+from qgis.core import (QgsApplication, QgsFeature, QgsGeometry, QgsProject,
+                       QgsVectorLayer)
 
 from draw import layer_named
 
@@ -56,20 +58,40 @@ def paste(project: QgsProject, ask: dict) -> dict:
     if not target.startEditing():
         return {"ok": False, "error": f"{ask['layer']} is not editable"}
 
+    # QGIS's Clip, which is what a surveyor reaches for when a road runs off
+    # the end of their land: the part that is theirs is kept and the rest is
+    # left where it was. Without it the whole road is pasted, and whether that
+    # is allowed depends on where its middle happens to fall (gis.area_at).
+    clip = QgsGeometry.fromWkt(ask["clip"]) if ask.get("clip") else None
+    if clip is not None and clip.isEmpty():
+        return {"ok": False, "error": f'clip is not a geometry: {ask["clip"]}'}
+
     mapping = ask.get("into") or {}
     made = []
     for feature in picked:
         new = QgsFeature(target.fields())
         geometry = feature.geometry()
+        if clip is not None:
+            geometry = geometry.intersection(clip)
+            if geometry.isEmpty():
+                continue
         if target.wkbType() in MULTI and not geometry.isMultipart():
             geometry.convertToMultiType()
         new.setGeometry(geometry)
         for to, frm in mapping.items():
+            # A field the target layer has not got is not an error: QGIS's own
+            # paste drops what the destination cannot hold, and a mapping
+            # written for six layers names a few fields only some of them have.
+            if to not in target.fields().names():
+                continue
             value = feature[frm] if frm in feature.fields().names() else frm
             if value is not None and str(value) != 'NULL':
                 new.setAttribute(to, value)
         made.append(new)
 
+    if not made:
+        return {"ok": False, "error": "nothing was left after the clip",
+                "selected": len(picked)}
     if not target.addFeatures(made):
         target.rollBack()
         return {"ok": False, "error": "QGIS would not take those features",
@@ -78,8 +100,19 @@ def paste(project: QgsProject, ask: dict) -> dict:
         said = "; ".join(target.commitErrors())
         target.rollBack()
         return {"ok": False, "error": said, "selected": len(picked)}
+    # Where what was pasted ended up, so a story can see that a clip cut
+    # something: [west, south, east, north] of everything in this paste.
+    box = None
+    for feature in made:
+        here = feature.geometry().boundingBox()
+        if box is None:
+            box = here
+        else:
+            box.combineExtentWith(here)
     return {"ok": True, "layer": ask["layer"], "pasted": len(made),
-            "count": target.featureCount()}
+            "count": target.featureCount(),
+            "extent": None if box is None else
+                      [box.xMinimum(), box.yMinimum(), box.xMaximum(), box.yMaximum()]}
 
 
 def main(argv: list[str]) -> int:

@@ -263,7 +263,9 @@ may build on, otherwise the button says why.
 ### 2.7 Submit dialog (for approval)
 Opened per land by the owner. Shows before anything is sent:
 - the changed tiles and what changed on each (objects added / moved /
-  removed, features changed) — this is what the approver will see;
+  removed, features changed, and how many of each kind — "12 drawn (5 highway
+  · 3 natural_point · 2 building · 2 landuse)") — this is what the approver
+  will see;
 - an optional note to the approver.
 Submit → tiles `awaiting approval`; the land's approver is notified. When
 the owner is his own approver, the dialog says so and offers "Submit and

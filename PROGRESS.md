@@ -1813,3 +1813,32 @@ where nothing is loading and the set still holds a tile that is about to go; it
 waits five frames now. And stories 16 and 17 left a window open, which is a
 WebGL context nobody gave back: the story after them opens two of its own, and
 this container gives only two pages a context at a time.
+
+## FND.4: an OSM extract onto a land, through QGIS
+
+Story 19: B opens `infra/seed/osm-visp.gpkg` beside his project, selects what
+is inside his boundary, and pastes it into Highway, Building, Landuse, Natural,
+Barrier and Tree points with the obvious mapping — an OSM key is a property of
+the same name, which is what FND.3 was for. Nothing new was needed in the world
+for that; three things were needed around it.
+
+**A clip.** `client/test/run/qgis/import.py` takes a `clip` now: QGIS's own
+Clip, which is what a surveyor reaches for when a road runs off the end of their
+land. Without it the whole road is pasted, and whether that is allowed turns on
+where its middle happens to fall (`gis.area_at` uses `st_pointonsurface`). The
+story pastes a road that is nowhere near the land — refused, in the world's own
+words — and then the road that crosses it, clipped, and checks that what landed
+is inside the boundary, which is the whole of what a clip is for.
+
+**Counts per kind** — `db/0136`. `submission_changes` says how many of each kind
+the land holds, and the Submit panel reads it: "3 tiles · 12 drawn (5 highway ·
+3 natural_point · 2 building · 2 landuse)". With nine kinds where there were
+five, one number for all of them is no longer an answer.
+
+**Two fixture gaps**: `natural_point` had no `leaf_type` (PLAN-foundation.md §5
+lists one), and the stand-in's bridleway — the feature whose whole purpose is to
+be refused for a value the vocabulary has not got — ran out at the edge of the
+extract, where no land drawn on the page reaches. It runs through the middle
+now. `import.py` also drops a mapped field the target layer has not got, which
+is what QGIS's own paste does: one mapping written for six layers names fields
+only some of them have.
