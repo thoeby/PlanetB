@@ -20,7 +20,7 @@ SELECT ensure_job(14, tile_x(7.7, 14), tile_y(46.7, 14)) AS jid;
 GRANT SELECT ON jobs TO player;
 
 SELECT is((SELECT (params ->> 'iters')::int FROM atom
-           WHERE job_id = (SELECT jid FROM jobs) AND op = 'train'), 1200,
+           WHERE job_id = (SELECT jid FROM jobs) AND op = 'train'), 2400,
     'a tile trains for 1200 steps (db/0122)');
 SELECT ok(drop_job((SELECT jid FROM jobs)), 'an open job of yours can be dropped');
 SELECT is((SELECT state FROM job WHERE id = (SELECT jid FROM jobs)), 'cancelled',

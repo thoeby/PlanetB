@@ -38,8 +38,8 @@ SELECT is((SELECT min(algo_version) FROM atom
            WHERE job_id = (SELECT j18 FROM jobs) AND op = 'frame'), 'frame-v10',
     'and the frames draw it as it is');
 SELECT is((SELECT (params ->> 'iters')::int FROM atom
-           WHERE job_id = (SELECT j18 FROM jobs) AND op = 'train'), 1200,
-    'z18: 1200 iterations');
+           WHERE job_id = (SELECT j18 FROM jobs) AND op = 'train'), 2400,
+    'z18: 2400 iterations');
 -- z16 and z14 both have finer tiles under them on this land, so they are
 -- merged from what is there rather than rendering the same ground again
 -- (db/0135). The look they carry is their children's.
