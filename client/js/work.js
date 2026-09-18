@@ -22,7 +22,7 @@ import { InputCache, resolveInputs } from './inputs.js';
 
 export const ALGO = {
     assemble: 'assemble-v5', frame: 'frame-v10', train: 'train-v8',
-    merge: 'merge-v1', sog: 'sog-v2', verify: 'verify-v1',
+    merge: 'merge-v1', sog: 'sog-v3', verify: 'verify-v1',
 };
 
 const HEARTBEAT_MS = 60_000;

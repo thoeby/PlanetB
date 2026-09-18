@@ -31,6 +31,12 @@ export function permute(f, order) {
     return out;
 }
 
+// The first `n` splats, copied. A LOD level is a prefix of an ordered tile
+// (client/lib/lodorder.js), and each level is written as its own file.
+export function prefixOf(f, n) {
+    return permute(f, Uint32Array.from({ length: Math.min(n, f.count) }, (_, i) => i));
+}
+
 // [minx, miny, minz, maxx, maxy, maxz] in the tile's own frame — what
 // submit_atom's bbox rule checks against the tile (db/0015_structural.sql).
 export function bboxOf(f) {

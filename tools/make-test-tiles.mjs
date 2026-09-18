@@ -16,9 +16,9 @@ import { createHash } from 'node:crypto';
 
 import * as api from '../client/js/api.js';
 import * as tm from '../client/lib/tilemath.js';
-import { bboxOf, permute } from '../client/lib/ply.js';
+import { bboxOf, permute, prefixOf } from '../client/lib/ply.js';
 import { packSog, unpackSog } from './sogwrite.mjs';
-import { lodOrder } from '../client/lib/lodorder.js';
+import { cover, lodOrder } from '../client/lib/lodorder.js';
 import { lodMeta } from '../client/atoms/sog.js';
 import { geometricErrorM, makeColliders, makeHeight, makeSplats, writePly }
     from './testterrain.mjs';
@@ -43,7 +43,6 @@ const psql = (sql) => execFileSync('psql',
     { encoding: 'utf8', env: process.env }).trim();
 
 const sha256 = (buf) => createHash('sha256').update(buf).digest('hex');
-
 
 // ------------------------------------------------------------------- the world
 //
@@ -188,7 +187,11 @@ async function claimFor(job) {
     return atom?.id ? atom : null;
 }
 
-async function upload(path, bytes, sha, kind, algo = 'sog-v2') {
+// sog-v3: a file per level, widened to the voxel it speaks for.
+const levelFiles = (splats, finest, levels) => levels.map((lvl, i) => (i === 0 ? finest
+    : packSog(cover(prefixOf(splats, lvl.count), lvl.cell / 2)).bytes));
+
+async function upload(path, bytes, sha, kind, algo = 'sog-v3') {
     if (await known(sha)) return sha;
     await putFile(path, bytes, sha);
     return api.rpc('register_artifact', {
@@ -240,7 +243,9 @@ async function runAtom(atom, t, art) {
         const base = `/tiles/${t.z}/${t.x}/${t.y}`;
         // The tile's splats, its ground and its colliders, all under the
         // authority of this one sog atom (db/0011_tilefiles.sql).
-        await upload(`${base}/${art.sogSha}.sog`, art.sog, art.sogSha, 'sog');
+        for (const [i, part] of art.parts.entries()) {
+            await upload(`${base}/${art.partShas[i]}.sog`, part, art.partShas[i], 'sog');
+        }
         await upload(`${base}/${art.heightSha}.r16`, art.height, art.heightSha, 'height');
         await upload(`${base}/${art.collidersSha}.json`, art.colliders,
             art.collidersSha, 'colliders');
@@ -310,20 +315,21 @@ async function compileTile(t) {
     }
 
     const { splats: raw, origin } = makeSplats(t.z, t.x, t.y);
-    // sog-v2: the order is the levels (client/lib/lodorder.js).
-    const { order, levels } = lodOrder(raw);
+    const { order, levels } = lodOrder(raw);      // the order is the levels
     const splats = permute(raw, order);
     const ply = writePly(splats);
     const sog = packSog(splats);
     checkRoundTrip(name, splats, sog.bytes);
     const height = makeHeight(t.z, t.x, t.y);
     const colliders = makeColliders(t.z, t.x, t.y);
-    const sogSha = sha256(sog.bytes);
+    const parts = levelFiles(splats, sog.bytes, levels);
+    const partShas = parts.map((b) => sha256(b));
+    const sogSha = partShas[0];
     const lod = new TextEncoder().encode(
-        JSON.stringify(lodMeta(sogSha, bboxOf(splats), levels)));
+        JSON.stringify(lodMeta(partShas, bboxOf(splats), levels)));
     const art = {
         ply, sog: sog.bytes, count: splats.count, bbox: bboxOf(splats),
-        height: height.bytes, heightMeta: height.meta, colliders, lod, levels,
+        height: height.bytes, heightMeta: height.meta, colliders, lod, levels, parts, partShas,
         plySha: sha256(ply), sogSha,
         heightSha: sha256(height.bytes), collidersSha: sha256(colliders),
         lodSha: sha256(lod),
@@ -343,7 +349,8 @@ async function compileTile(t) {
             bytes: art.sog.length,
             geometric_error_m: geometricErrorM(t.z, t.x, t.y),
             algo_version: 'sog-v2',
-            lod: { sha256: art.lodSha, levels: art.levels },
+            lod: { sha256: art.lodSha, files: art.partShas,
+                levels: art.levels.map((l) => l.count) },
             height: { sha256: art.heightSha, ...art.heightMeta },
             colliders: { sha256: art.collidersSha,
                 count: JSON.parse(art.colliders).boxes.length },

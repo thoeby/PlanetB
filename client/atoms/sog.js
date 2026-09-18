@@ -1,4 +1,4 @@
-// sog.js — `sog-v2`. The gaussians as the viewer streams them.
+// sog.js — `sog-v3`. The gaussians as the viewer streams them.
 //
 // The ply that comes out of `merge` or `train` is what a worker computed; the
 // .sog is what a browser downloads: quantised, packed into five lossless WebP
@@ -10,16 +10,27 @@
 // the origin comes from the atom that made the ply.
 
 import { fetchJson } from '../js/api.js';
-import { bboxOf, permute, readPly } from '../lib/ply.js';
-import { lodOrder } from '../lib/lodorder.js';
+import { bboxOf, permute, prefixOf, readPly } from '../lib/ply.js';
+import { cover, lodOrder } from '../lib/lodorder.js';
 import { encodeSog } from '../lib/sogenc.js';
 import { readTar } from '../lib/tar.js';
 import { sha256 } from '../lib/hash.js';
 import { localFromLonLat, tileBbox, tileCenter } from '../lib/tilemath.js';
 
-export const ALGO = 'sog-v2';
-// v2 orders the splats so that every prefix of them is a fair sample of the
-// tile (client/lib/lodorder.js) and writes a second, tiny file saying where
+export const ALGO = 'sog-v3';
+// v3 writes one file per level rather than one file with prefixes in it. A
+// level is a file, so a tile seen from far away fetches the coarse one — a
+// fortieth of the bytes — instead of the whole tile to draw a fortieth of it.
+// It costs about a third more storage, because a coarse level's splats are
+// also in the fine level's file, and buys the thing prefixes could not: the
+// levels bound what is *downloaded* and not only what is drawn.
+//
+// Each coarse level is also widened to the voxel its splats speak for
+// (client/lib/lodorder.js cover): a quarter as many splats at the same size is
+// a sieve, not a coarser tile.
+//
+// v2 ordered the splats so that every prefix of them is a fair sample of the
+// tile (client/lib/lodorder.js) and wrote a second, tiny file saying where
 // the useful prefixes end. The viewer hands that file to PlayCanvas's octree,
 // which then draws as much of each tile as the whole scene's budget affords
 // rather than all of every tile or none of it (PLAN-lod.md).
@@ -78,13 +89,15 @@ function manifestOf(tile, origin, splats, bytes) {
 // float-derived and this file is content-addressed, so rounding onto an
 // integer grid means no argument about float formatting can give one tile two
 // shas (Invariant 1).
-export function lodMeta(sogSha, bbox, levels) {
+export function lodMeta(shas, bbox, levels) {
     const cm = (v) => Math.round(v * 100) / 100;
     const lods = {};
-    levels.forEach((count, i) => { lods[String(i)] = { file: 0, offset: 0, count }; });
+    levels.forEach((level, i) => {
+        lods[String(i)] = { file: i, offset: 0, count: level.count };
+    });
     return {
         lodLevels: levels.length,
-        filenames: [`${sogSha}.sog`],
+        filenames: shas.map((sha) => `${sha}.sog`),
         tree: {
             bound: { min: bbox.slice(0, 3).map(cm), max: bbox.slice(3).map(cm) },
             lods,
@@ -107,20 +120,29 @@ export async function run({ atom, inputs, canvas, log, apiUrl }) {
     const src = await sourceResult(apiUrl, atom.inputs?.ply);
     const origin = src.origin ?? { ...tileCenter(tile.z, tile.x, tile.y), h: 0 };
 
-    // The order is the levels: a prefix of the splats is a prefix of the
-    // texture planes, because the encoder writes splat i to texel i
-    // (client/lib/sogenc.js fillPlanes).
+    // The order is the levels: level i is the first n splats of it, and the
+    // encoder writes splat i to texel i (client/lib/sogenc.js fillPlanes), so
+    // a level is a file that holds exactly its own splats.
     const { order, levels } = lodOrder(f);
     const s = permute(f, order);
-    const { bytes } = await encodeSog(s, canvas);
-    log?.({ event: 'sogged', tile, splats: s.count, bytes: bytes.length, levels });
     const dir = `/tiles/${tile.z}/${tile.x}/${tile.y}`;
+    const files = [];
+    const shas = [];
+    let bytes = null;
+    for (const [i, level] of levels.entries()) {
+        const part = i === 0 ? s : cover(prefixOf(s, level.count), level.cell / 2);
+        const out = await encodeSog(part, canvas);
+        if (i === 0) bytes = out.bytes;
+        shas.push(await sha256(out.bytes));
+        files.push({ ext: 'sog', kind: 'sog', algo_version: ALGO, bytes: out.bytes, dir });
+    }
+    log?.({ event: 'sogged', tile, splats: s.count, bytes: bytes.length,
+        levels: levels.map((l) => l.count) });
     const manifest = manifestOf(tile, origin, s.count, bytes.length);
-    const files = [{ ext: 'sog', kind: 'sog', algo_version: ALGO, bytes, dir }];
-    const meta = new TextEncoder().encode(
-        JSON.stringify(lodMeta(await sha256(bytes), bboxOf(s), levels)));
+    const meta = new TextEncoder().encode(JSON.stringify(lodMeta(shas, bboxOf(s), levels)));
     files.push({ ext: 'json', kind: 'lod', algo_version: ALGO, bytes: meta, dir });
-    manifest.lod = { sha256: await sha256(meta), levels };
+    manifest.lod = { sha256: await sha256(meta), levels: levels.map((l) => l.count),
+        files: shas };
     const ground = extra.get('height.r16');
     const boxes = extra.get('colliders.json');
     if (ground && boxes) {

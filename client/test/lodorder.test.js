@@ -39,12 +39,13 @@ test('the order is a permutation of the splats, nothing lost or repeated', () =>
 
 test('the levels nest, finest first, and stop before they are meaningless', () => {
     const { levels } = lodOrder(sheet(20000));
-    assert.equal(levels[0], 20000, 'level 0 is the whole tile (the engine sums it)');
+    assert.equal(levels[0].count, 20000, 'level 0 is the whole tile (the engine sums it)');
     assert.ok(levels.length > 1, 'and there is a ladder under it');
     assert.ok(levels.length <= MAX_LEVELS);
     for (let i = 1; i < levels.length; i++) {
-        assert.ok(levels[i] < levels[i - 1], `level ${i} is coarser than ${i - 1}`);
-        assert.ok(levels[i] >= MIN_LEVEL, 'and still enough splats to be a picture');
+        assert.ok(levels[i].count < levels[i - 1].count, `level ${i} is coarser`);
+        assert.ok(levels[i].count >= MIN_LEVEL, 'and still enough splats to be a picture');
+        assert.ok(levels[i].cell > 0, 'and says how far its splats have to reach');
     }
 });
 
@@ -53,8 +54,8 @@ test('a coarser level is a literal prefix of every finer one', () => {
     const f = sheet(20000);
     const { order, levels } = lodOrder(f);
     for (let i = 1; i < levels.length; i++) {
-        const coarse = [...order.slice(0, levels[i])];
-        const finer = [...order.slice(0, levels[i - 1])].slice(0, levels[i]);
+        const coarse = [...order.slice(0, levels[i].count)];
+        const finer = [...order.slice(0, levels[i - 1].count)].slice(0, levels[i].count);
         assert.deepEqual(coarse, finer);
     }
 });
@@ -67,10 +68,10 @@ test('the ranking is the geometry, not the order the splats arrived in', () => {
     const g = shuffled(f, rng(11));
     const b = lodOrder(g);
     assert.deepEqual(a.levels, b.levels);
-    for (const n of a.levels) {
-        const one = [...a.order.slice(0, n)].map((i) => at(f, i)).sort();
-        const two = [...b.order.slice(0, n)].map((i) => at(g, i)).sort();
-        assert.deepEqual(one, two, `the same ${n} splats either way`);
+    for (const { count } of a.levels) {
+        const one = [...a.order.slice(0, count)].map((i) => at(f, i)).sort();
+        const two = [...b.order.slice(0, count)].map((i) => at(g, i)).sort();
+        assert.deepEqual(one, two, `the same ${count} splats either way`);
     }
 });
 
@@ -84,7 +85,7 @@ test('a coarse prefix covers the tile, where a shuffled one leaves holes', () =>
     const SPAN = 100;
     const f = sheet(10000, SPAN);
     const { order, levels } = lodOrder(f);
-    const n = levels[levels.length - 1];
+    const n = levels[levels.length - 1].count;
 
     // How far a lattice of query points is from the nearest splat of a prefix,
     // squared, so nothing transcendental decides the answer.
@@ -141,7 +142,7 @@ test('a tile that is degenerate is still a permutation', () => {
     for (const f of [emptySplats(0), emptySplats(1)]) {
         const { order, levels } = lodOrder(f);
         assert.equal(order.length, f.count);
-        assert.deepEqual(levels, [f.count]);
+        assert.deepEqual(levels, [{ count: f.count, cell: 0 }]);
     }
     const flat = emptySplats(8);                    // every splat in one place
     flat.a.fill(1); flat.qw.fill(1); flat.sx.fill(1); flat.sz.fill(1);
@@ -167,10 +168,10 @@ test('permute moves every field and nothing else', () => {
 test('the ladder is the grids that earned a place', () => {
     // A tile whose cells fill up slowly gets fewer levels, not three nominal
     // ones: a boundary is taken only if it is a quarter of the last.
-    assert.deepEqual(lodLevelCounts([300, 320, 340, 360], 400), [400]);
+    assert.deepEqual(lodLevelCounts([300, 320, 340, 360], 400), [{ count: 400, cell: 0 }]);
     const even = [];
     for (let l = 0; l < LEVELS; l++) even.push(Math.min(4 ** (l + 1), 400000));
-    const levels = lodLevelCounts(even, 400000);
-    assert.equal(levels[0], 400000);
+    const levels = lodLevelCounts(even, 400000, 0.5);
+    assert.equal(levels[0].count, 400000);
     assert.ok(levels.length > 1 && levels.length <= MAX_LEVELS);
 });

@@ -29,6 +29,8 @@
 
 import { bboxOf } from './ply.js';
 
+const range = (n) => Uint32Array.from({ length: n }, (_, i) => i);
+
 // Grids, coarsest first. Level l has 2**(l+1) cells an axis: 2, 4 … 512.
 export const LEVELS = 9;
 // Cells an axis at the finest grid, and the packing radix.
@@ -95,11 +97,11 @@ const keyAt = (ix, iy, iz, i, shift) =>
 // holds down to and including level l.
 export function lodOrder(f) {
     const n = f.count;
-    if (n < 2) return { order: Uint32Array.from({ length: n }, (_, i) => i), levels: [n] };
+    if (n < 2) return { order: range(n), levels: [{ count: n, cell: 0 }] };
     const box = bboxOf(f);
     const lo = [box[0], box[1], box[2]];
     const span = Math.max(box[3] - lo[0], Math.max(box[4] - lo[1], box[5] - lo[2]));
-    if (!(span > 0)) return { order: Uint32Array.from({ length: n }, (_, i) => i), levels: [n] };
+    if (!(span > 0)) return { order: range(n), levels: [{ count: n, cell: 0 }] };
 
     const cell = span / AXIS;
     const { ix, iy, iz } = cellsOf(f, lo, cell);
@@ -149,20 +151,41 @@ export function lodOrder(f) {
     for (const i of rest) order[at++] = i;
     cum.push(at);
 
-    return { order, levels: lodLevelCounts(cum, n) };
+    return { order, levels: lodLevelCounts(cum, n, cell) };
 }
 
-// Which of the ladder's boundaries are worth publishing, finest first. The
-// finest is always the whole tile; a coarser one is taken when it is at most a
-// quarter of the last one taken and still has splats enough to be a picture.
-// All integer arithmetic, so two tabs agree.
-export function lodLevelCounts(cum, n) {
-    const levels = [n];
+// Which of the ladder's boundaries are worth publishing, finest first, and the
+// voxel each one stands for. The finest is always the whole tile; a coarser one
+// is taken when it is at most a quarter of the last one taken and still has
+// splats enough to be a picture. All integer arithmetic, so two tabs agree.
+//
+// `cell` is what a level's splats have to cover: at level l a splat speaks for
+// its whole cell, and a level's file widens them to it (client/atoms/sog.js),
+// because a quarter as many splats at the same size is a sieve and not a
+// coarser tile. The finest level covers nothing it did not already cover, so
+// its cell is 0.
+export function lodLevelCounts(cum, n, cell = 0) {
+    const levels = [{ count: n, cell: 0 }];
     for (let l = cum.length - 1; l >= 0; l--) {
         const c = cum[l];
-        if (c < MIN_LEVEL || c * RATIO > levels[levels.length - 1]) continue;
-        levels.push(c);
+        if (c < MIN_LEVEL || c * RATIO > levels[levels.length - 1].count) continue;
+        levels.push({ count: c, cell: cell * 2 ** (LEVELS - 1 - Math.min(l, LEVELS - 1)) });
         if (levels.length >= MAX_LEVELS) break;
     }
     return levels;
+}
+
+// Every splat of `f` made at least `across` wide in the two directions it is
+// wide, so that a level with a quarter of the splats still covers the ground.
+// The smallest of the three extents is the one through the surface and is left
+// alone (client/atoms/train.js widen says why).
+export function cover(f, across) {
+    if (!(across > 0)) return f;
+    for (let i = 0; i < f.count; i++) {
+        const thin = Math.min(f.sx[i], Math.min(f.sy[i], f.sz[i]));
+        if (f.sx[i] !== thin) f.sx[i] = Math.max(f.sx[i], across);
+        if (f.sy[i] !== thin) f.sy[i] = Math.max(f.sy[i], across);
+        if (f.sz[i] !== thin) f.sz[i] = Math.max(f.sz[i], across);
+    }
+    return f;
 }

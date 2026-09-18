@@ -23,19 +23,19 @@ SELECT ensure_job(18, tile_x(7.805, 18), tile_y(46.295, 18)) AS j18,
        ensure_job(14, tile_x(7.805, 14), tile_y(46.295, 14)) AS j14;
 
 SELECT is((SELECT algo_version FROM atom
-           WHERE job_id = (SELECT j18 FROM jobs) AND op = 'sog'), 'sog-v2',
-    'a trained tile is encoded by sog-v2');
+           WHERE job_id = (SELECT j18 FROM jobs) AND op = 'sog'), 'sog-v3',
+    'a trained tile is encoded by sog-v3');
 SELECT is((SELECT algo_version FROM atom
-           WHERE job_id = (SELECT j14 FROM jobs) AND op = 'sog'), 'sog-v2',
+           WHERE job_id = (SELECT j14 FROM jobs) AND op = 'sog'), 'sog-v3',
     'and so is the z14 under it');
 
 -- The levels a tile publishes are a file like any other: content-addressed,
 -- written once, and named in the store by their own sha (db/0051_sharedbytes).
 SELECT lives_ok(
-    $$ SELECT register_artifact(repeat('d', 64), 'lod', 512, 'sog-v2') $$,
+    $$ SELECT register_artifact(repeat('d', 64), 'lod', 512, 'sog-v3') $$,
     'a tile''s levels are a kind the store knows');
 SELECT throws_ok(
-    $$ SELECT register_artifact(repeat('e', 64), 'levels', 512, 'sog-v2') $$,
+    $$ SELECT register_artifact(repeat('e', 64), 'levels', 512, 'sog-v3') $$,
     '23514', NULL,
     'and a kind nobody declared is still refused');
 

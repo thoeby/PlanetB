@@ -1,4 +1,4 @@
-// WP2.6 — everything sog-v2 decides before an image codec is involved: the
+// WP2.6 — everything sog-v3 decides before an image codec is involved: the
 // quantisation, the ranges it writes into meta.json, and the zip around them.
 // client/test/e2e/sog.spec.js is the rest — the browser's WebP encoder, and
 // PlayCanvas reading back what it wrote.
@@ -9,7 +9,7 @@ import assert from 'node:assert/strict';
 import { emptySplats } from '../lib/ply.js';
 import { planeDims, quantise, splatsFrom, unzip, zipStore } from '../lib/sogenc.js';
 import { lodMeta } from '../atoms/sog.js';
-import { lodOrder } from '../lib/lodorder.js';
+import { cover, lodOrder } from '../lib/lodorder.js';
 
 // A spread of splats: positions over a tile, a range of sizes, colours and
 // opacities, and one rotation per quaternion mode.
@@ -114,44 +114,68 @@ test('the zip stores its entries and reads them back', () => {
 
 // ---------------------------------------------------------------- the levels
 
-const SHA = 'a'.repeat(64);
+const SHA = (c) => c.repeat(64);
 
-test('the meta names one file and one leaf, and level 0 is the whole tile', () => {
-    const f = splats(5000);
-    const { levels } = lodOrder(f);
-    const m = lodMeta(SHA, [-1, -2, -3, 4, 5, 6], levels);
-    assert.deepEqual(m.filenames, [`${SHA}.sog`]);
-    assert.equal(m.lodLevels, levels.length);
-    assert.equal(Object.keys(m.tree.lods).length, levels.length);
+test('every level is its own file, so a far tile fetches only the coarse one', () => {
+    // A level names its own file (framework/parsers/gsplat-octree.js), which is
+    // what makes the ladder bound the download and not only the draw.
+    const levels = [{ count: 20000, cell: 0 }, { count: 5000, cell: 4 },
+        { count: 1200, cell: 16 }];
+    const m = lodMeta([SHA('a'), SHA('b'), SHA('c')], [0, 0, 0, 1, 1, 1], levels);
+    assert.equal(m.lodLevels, 3);
+    assert.deepEqual(m.filenames, [`${SHA('a')}.sog`, `${SHA('b')}.sog`, `${SHA('c')}.sog`]);
+    for (let i = 0; i < 3; i++) {
+        assert.equal(m.tree.lods[String(i)].file, i, 'level i is file i');
+        assert.equal(m.tree.lods[String(i)].offset, 0, 'each file holds its level whole');
+        assert.equal(m.tree.lods[String(i)].count, levels[i].count);
+    }
     assert.equal(m.tree.children, undefined, 'a root that is itself a leaf');
-    assert.equal(m.tree.lods['0'].count, levels[0], 'the engine sums level 0 as the total');
 });
 
-test('every level is a prefix of the same file', () => {
-    // PlayCanvas reads a level as the interval [offset, offset + count - 1]
-    // (gsplat-octree-instance.js), so `offset 0` is the prefix property said
-    // in its own vocabulary.
-    const m = lodMeta(SHA, [0, 0, 0, 1, 1, 1], [20000, 5000, 1200, 300]);
-    const counts = [];
-    for (let i = 0; i < m.lodLevels; i++) {
-        const lod = m.tree.lods[String(i)];
-        assert.equal(lod.file, 0);
-        assert.equal(lod.offset, 0);
-        counts.push(lod.count);
-    }
-    assert.deepEqual(counts, [20000, 5000, 1200, 300], 'finest first, coarser after');
+test('level 0 is the finest: the engine sums it as the tile', () => {
+    const m = lodMeta([SHA('a'), SHA('b')], [0, 0, 0, 1, 1, 1],
+        [{ count: 600000, cell: 0 }, { count: 150000, cell: 3 }]);
+    assert.equal(m.tree.lods['0'].count, 600000);
+    assert.ok(m.tree.lods['1'].count < m.tree.lods['0'].count);
 });
 
 test('the bound is the tile, on a grid two browsers agree about', () => {
-    const m = lodMeta(SHA, [-845.123456, -1.5, -837.987654, 845.1, 193.777, 837.4], [10, 5]);
+    const box = [-845.123456, -1.5, -837.987654, 845.1, 193.777, 837.4];
+    const m = lodMeta([SHA('a')], box, [{ count: 10, cell: 0 }]);
     assert.deepEqual(m.tree.bound.min, [-845.12, -1.5, -837.99]);
     assert.deepEqual(m.tree.bound.max, [845.1, 193.78, 837.4]);
-    assert.equal(JSON.stringify(m), JSON.stringify(lodMeta(SHA, [-845.123456, -1.5,
-        -837.987654, 845.1, 193.777, 837.4], [10, 5])), 'and the same bytes twice');
+    assert.equal(JSON.stringify(m),
+        JSON.stringify(lodMeta([SHA('a')], box, [{ count: 10, cell: 0 }])),
+        'and the same bytes twice');
 });
 
 test('no errors are written: the engine derives them from the counts', () => {
-    const m = lodMeta(SHA, [0, 0, 0, 1, 1, 1], [100, 25]);
+    const m = lodMeta([SHA('a')], [0, 0, 0, 1, 1, 1], [{ count: 100, cell: 0 }]);
     assert.equal(m.tree.errors, undefined);
     assert.equal(m.lodErrors, undefined);
+});
+
+test('a coarse level is widened to the ground it has to cover', () => {
+    // A quarter as many splats at the same size is a sieve, not a coarser
+    // tile. The thin axis is through the surface and is left alone.
+    const f = emptySplats(2);
+    f.sx.set([0.5, 3]); f.sy.set([0.0625, 0.125]); f.sz.set([0.5, 3]);
+    cover(f, 2);
+    assert.deepEqual([...f.sx], [2, 3], 'widened to the voxel, never shrunk');
+    assert.deepEqual([...f.sz], [2, 3]);
+    assert.deepEqual([...f.sy], [0.0625, 0.125], 'and never through the surface');
+
+    const g = emptySplats(1);
+    g.sx.set([0.5]); g.sy.set([0.0625]); g.sz.set([0.5]);
+    cover(g, 0);
+    assert.deepEqual([...g.sx], [0.5], 'the finest level covers nothing new');
+});
+
+test('the levels a tile publishes carry the voxel they speak for', () => {
+    const { levels } = lodOrder(splats(20000));
+    assert.equal(levels[0].cell, 0, 'the finest widens nothing');
+    for (let i = 1; i < levels.length; i++) {
+        assert.ok(levels[i].count < levels[i - 1].count, 'coarser as the index rises');
+        assert.ok(levels[i].cell > 0, 'and each says how far its splats must reach');
+    }
 });
