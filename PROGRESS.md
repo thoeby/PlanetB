@@ -1880,3 +1880,44 @@ and the 3000 px one the refusal is about — deterministic PNGs, written here
 because every CC0 texture host is outside this container's egress policy — and
 `make-fixture-models.mjs` gained five centimetres of kerb, which is too short
 to be a repeat.
+
+## FND.6: a model can have parts, and a part can be told things
+
+Story 21: C registers a street lamp whose head lights up, a billboard whose
+screen is left live, and a tunnel portal whose mouth opens the ground; B places
+the lamp and the Place panel says what it can be told. None of that is in the
+GLB, because no two exporters agree on how to put it there — the maker says it
+in a Parts step, and it travels in the register call as `asset.parts`.
+
+**canon-v2** (`client/lib/canon.js`): a marked node and everything under it
+stays a mesh of its own, named `part:<name>`, in the order of the names;
+everything else flattens as canon-v1 flattened all of it. One mesh became many,
+so `buildGroups` gained a global material slot and `assemble` writes a node per
+mesh — and a model nobody marked comes out byte for byte what it always was.
+`client/test/canonparts.test.js` pins all seventeen fixtures' canon-v1 numbers,
+because if those bytes moved every SAN in every world would move with them.
+
+**The number is the file and the markings.** The same lamp with the head marked
+as a light and with nothing marked are two products; so are one with an `on`
+port and one without, and those two have identical GLB bytes. So the SAN is
+derived from the canonical GLB's digest *and* the canonical text of the
+markings — and that text is written in SQL, in `marks_text()` (db/0138), and
+nowhere else. The tab does not name a marked product at all: it asks
+`asset_name_for()` what the number would be, which is also how the form can say
+"this is already Strassenlampe by Cara" before anything is uploaded
+(Invariant 6). A second implementation of a canonical form is a second answer
+waiting to happen, and there is exactly one here.
+
+**Baked and live.** The compiler bakes a light's geometry but not its glow, and
+a screen's frame but not its surface: `assemble-v5c` is handed each instance's
+markings through `tile_world` and leaves a screen part's triangles out.
+`door`/`rotor` parts are baked where the maker left them.
+
+**The preview draws the model rather than the thumbnail** once anything is
+marked (`client/js/modelpreview.js`): the same shading as the catalog's
+picture, redrawn whenever a port is flipped, with a placeholder over a screen.
+The node being marked is picked out in orange — half of it, mixed with whatever
+the part looks like, because a light that is on and one that is off have to
+stay different while the maker is looking at them. `Renderer` gained
+`dispose()`: a browser gives a tab about sixteen WebGL contexts and this form
+draws again and again.

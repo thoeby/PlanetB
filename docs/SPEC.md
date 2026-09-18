@@ -256,7 +256,10 @@ may build on, otherwise the button says why.
 - **Parts and ports** (Model): after the preview, the GLB's node tree. Click
   a node to highlight it; give it a role (light, screen, door, rotor); add
   the ports that role offers; mark a node as a terrain opening. The product
-  page then says what it can do ("Ports: on (on/off), colour").
+  page then says what it can do ("Ports: on (on/off), colour"), and so does
+  the row in the Place panel. The markings are part of what the product is:
+  the same file marked differently is a different product, with its own
+  catalogue number, and marked the same way it is the one already there.
 - **My products**: list with times placed, Withdraw, Edit name/properties
   (model is immutable; a new model is a new product).
 

@@ -44,7 +44,9 @@ const HTML = `
         <input id="file" type="file" accept=".glb,model/gltf-binary">
         <canvas class="preview" id="preview" width="256" height="256"></canvas>
         <div id="canon" class="muted mono"></div>
+        <div id="already" class="muted"></div>
         <div id="near"></div>
+        <div id="form-parts" hidden></div>
         <div class="note">The GLB is canonicalised in this tab — flattened,
           re-centred, sorted, its extensions dropped — and the catalogue number
           comes from what comes out. Upload the same model twice, from two

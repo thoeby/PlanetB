@@ -10,6 +10,9 @@
 
 import * as api from './api.js';
 import { CANON_VERSION, canonicalise } from '../lib/canon.js';
+import { nodeNames } from '../lib/canonmesh.js';
+import { parseGlb } from '../lib/glb.js';
+import { isMarked, partNodes } from '../lib/marks.js';
 import { sha256 } from '../lib/hash.js';
 import { renderThumb, ALGO as THUMB_ALGO } from '../lib/thumb.js';
 import { canonCollection, canonProfile, describe } from '../lib/product.js';
@@ -105,14 +108,24 @@ async function decodeImage(bytes, info) {
     return { width: bitmap.width, height: bitmap.height, data };
 }
 
-// What canon-v1 makes of a file, before anything is uploaded: the caller shows
-// it, asks about near-duplicates, and only then commits.
-export async function prepare(bytes, { canvas, decodeDraco } = {}) {
-    const canon = await canonicalise(bytes, { decodeDraco, decodeImage });
+// What the canon makes of a file, before anything is uploaded: the caller
+// shows it, asks about near-duplicates, and only then commits. `marks` is the
+// maker's markings (FND.6) — with any, the file is canon-v2 and the number is
+// the database's to derive, because the same GLB marked differently is a
+// different product (Invariant 6).
+export async function prepare(bytes, { canvas, decodeDraco, marks = null } = {}) {
+    const canon = await canonicalise(bytes,
+        { decodeDraco, decodeImage, parts: partNodes(marks) });
     const thumb = canvas ? await renderThumb(canon.glb, canvas) : null;
     const near = await api.rpc('similar_assets',
         { name: '', tris: canon.meta.tris, bbox: canon.meta.bbox });
-    return { ...canon, thumb, near };
+    // Any marking at all is part of what the product is, openings included —
+    // and an opening changes no bytes, so only the database can tell the two
+    // apart. It names both (db/0138).
+    const san = isMarked(marks)
+        ? await api.rpc('asset_name_for', { sha256: canon.sha256, parts: marks })
+        : canon.san;
+    return { ...canon, san, marks, nodes: nodeNames(parseGlb(bytes).json), thumb, near };
 }
 
 export async function duplicatesOf(name, canon) {
@@ -124,18 +137,20 @@ export async function duplicatesOf(name, canon) {
 // name an artifact the store has never seen.
 export async function publishAsset(canon, meta) {
     const { sha256: sha, san } = canon;
+    const version = canon.canon_version ?? CANON_VERSION;
     let thumbSha = null;
     if (canon.thumb) {
         thumbSha = await sha256(canon.thumb);
         await store(canon.thumb, 'webp', thumbSha, 'thumb', THUMB_ALGO);
     }
-    await store(canon.glb, 'glb', sha, 'glb', `canon-v${CANON_VERSION}`);
+    await store(canon.glb, 'glb', sha, 'glb', `canon-v${version}`);
     const registered = await api.rpc('register_asset', {
-        sha256: sha, canon_version: CANON_VERSION,
-        meta: { ...meta, ...canon.meta, thumb_sha256: thumbSha },
+        sha256: sha, canon_version: version,
+        meta: { ...meta, ...canon.meta, thumb_sha256: thumbSha,
+            parts: isMarked(canon.marks) ? canon.marks : undefined },
     });
     if (registered !== san) {
-        throw new Error(`the database derived ${registered}, canon-v1 derived ${san}`);
+        throw new Error(`the database derived ${registered}, canon-v${version} derived ${san}`);
     }
     return registered;
 }

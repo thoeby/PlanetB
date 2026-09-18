@@ -1,4 +1,4 @@
-// assemble.js — `assemble-v5b`. The world, as geometry, in one tile's own frame.
+// assemble.js — `assemble-v5c`. The world, as geometry, in one tile's own frame.
 //
 // Terrain from the seeded DEM, cut by terrainmods and roads; footprints
 // extruded; forests scattered; water laid flat; the ground coloured by its own
@@ -33,7 +33,7 @@ import { localFromLonLat, tileBbox, tileFrame } from '../lib/tilemath.js';
 // v4 writes each surface's own colour and leaves the light to the one
 // renderer (client/lib/raster.js); v3 had baked it for a sampled baseline
 // that is gone. The cut elevation is read whole (terrain.js GRID).
-export const ALGO = 'assemble-v5b';
+export const ALGO = 'assemble-v5c';
 
 // What assemble and sample both use to turn surfaces into splats; re-exported
 // because both atoms have always reached for them here.
@@ -127,6 +127,13 @@ function clip(meshes, sw, ne) {
 
 // canon-v1 re-centred every asset on the bottom centre of its bounding box, so
 // an instance's position is where it stands, and its box is that box moved.
+// FND.6: a screen's content is not the compiler's to bake — the frame around it
+// is geometry like any other, the surface it carries is live. Everything else a
+// marked part may do (a light's glow, a door's pose) is either not baked at all
+// or baked where the maker left it.
+const liveSurfaces = (parts) => new Set((parts?.parts ?? [])
+    .filter((p) => p.role === 'screen').map((p) => p.name));
+
 function placeInstances(instances, assets, frame) {
     const meshes = [];
     const boxes = [];
@@ -137,7 +144,8 @@ function placeInstances(instances, assets, frame) {
         const p = localFromLonLat(frame, i.lon, i.lat, i.h ?? 0);
         const at = [p.x, p.y, p.z];
         const placed = placeMeshes(glb, { at, yaw: i.yaw ?? 0, pitch: i.pitch ?? 0,
-            roll: i.roll ?? 0, scale: i.scale ?? 1, material: 'asset' });
+            roll: i.roll ?? 0, scale: i.scale ?? 1, material: 'asset',
+            skip: liveSurfaces(i.parts) });
         meshes.push(...placed);
         boxes.push(colliderOf(placed, at));
     }

@@ -31,6 +31,13 @@ import { sha256 } from './hash.js';
 export const CANON_VERSION = 1;
 export const ALGO = 'canon-v1';
 
+// canon-v2 (FND.6) is canon-v1 with the maker's marked nodes left standing as
+// meshes of their own, named `part:<name>`, in the order of their names. A GLB
+// with no markings is canon-v1 and keeps the number it always had.
+export const CANON_V2 = 2;
+export const ALGO_V2 = 'canon-v2';
+export const PART_PREFIX = 'part:';
+
 const B32 = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ234567';
 
 // The catalog number: 60 bits of the digest, RFC 4648 base32, so it can be read
@@ -105,7 +112,10 @@ function writeGroup(blob, accessors, group) {
     return { attributes, indices };
 }
 
-function buildGroups(prims, materials) {
+// One mesh's triangles, grouped by material. `slot` maps a material's index in
+// the canonical list to its index in the GLB's material array, which is shared
+// by every mesh of the file — under canon-v1 there is only one.
+function buildGroups(prims, materials, slot) {
     const byMaterial = new Map();
     const fallback = materials.remap[materials.remap.length - 1];
     for (const p of prims) {
@@ -114,27 +124,56 @@ function buildGroups(prims, materials) {
         byMaterial.get(m).push(p);
     }
     const kept = [...byMaterial.keys()].sort((a, b) => a - b);
-    return kept.map((m, i) => ({
-        material: i,
+    return kept.map((m) => ({
+        material: slot(m),
         source: materials.list[m],
         group: normaliseGroup(byMaterial.get(m), usesTexture(materials.list[m])),
     }));
 }
 
-function assemble(groups, textures, images) {
+// The body first, then one mesh per part in the order of their names — which
+// is the order `parts` is already in (client/lib/marks.js).
+function buildMeshes(prims, materials, parts) {
+    const used = new Set();
+    const fallback = materials.remap[materials.remap.length - 1];
+    for (const p of prims) {
+        used.add(p.material === null ? fallback : materials.remap[p.material]);
+    }
+    const order = [...used].sort((a, b) => a - b);
+    const slot = (m) => order.indexOf(m);
+    const named = [...new Set(prims.map((p) => p.part).filter(Boolean))]
+        .sort((a, b) => a.localeCompare(b));
+    const body = prims.filter((p) => !p.part);
+    const meshes = body.length
+        ? [{ name: null, groups: buildGroups(body, materials, slot) }] : [];
+    for (const name of named) {
+        meshes.push({ name: PART_PREFIX + name,
+            groups: buildGroups(prims.filter((p) => p.part === name), materials, slot) });
+    }
+    if (parts) {
+        for (const p of parts.values()) {
+            if (!named.includes(p)) throw new Error(`the part ${p} has no geometry`);
+        }
+    }
+    return { meshes, materials: order.map((m) => materials.list[m]) };
+}
+
+function assemble(built, textures, images, version) {
     const blob = new Buffers();
     const accessors = [];
-    const primitives = groups.map((g) =>
-        ({ ...writeGroup(blob, accessors, g.group), material: g.material }));
+    const meshes = built.meshes.map((m) => ({
+        primitives: m.groups.map((g) =>
+            ({ ...writeGroup(blob, accessors, g.group), material: g.material })),
+    }));
     const imageEntries = images.list.map((img) =>
         ({ mimeType: img.mime, bufferView: blob.view(img.bytes) }));
     const gltf = {
-        asset: { generator: ALGO, version: '2.0' },
+        asset: { generator: version === CANON_V2 ? ALGO_V2 : ALGO, version: '2.0' },
         scene: 0,
-        scenes: [{ nodes: [0] }],
-        nodes: [{ mesh: 0 }],
-        meshes: [{ primitives }],
-        materials: groups.map((g) => g.source),
+        scenes: [{ nodes: built.meshes.map((_, i) => i) }],
+        nodes: built.meshes.map((m, i) => (m.name ? { mesh: i, name: m.name } : { mesh: i })),
+        meshes,
+        materials: built.materials,
         accessors,
         bufferViews: blob.views,
     };
@@ -156,25 +195,31 @@ function assemble(groups, textures, images) {
 // an oversized non-PNG texture; `decodeDraco` only for a compressed mesh.
 // Neither is reachable from node without a vendored decoder, and a GLB that
 // needs one says so rather than producing a second, wrong canonical form.
-export async function canonicalise(bytes, { decodeImage, decodeDraco } = {}) {
+export async function canonicalise(bytes, { decodeImage, decodeDraco, parts } = {}) {
     const { json, bin } = parseGlb(bytes);
     const buffers = resolveBuffers(json, bin);
     await inflateDraco(json, buffers, decodeDraco);
-    const prims = flattenPrimitives(json, buffers);
+    const marked = parts?.size ? parts : null;
+    const version = marked ? CANON_V2 : CANON_VERSION;
+    const prims = flattenPrimitives(json, buffers, marked);
     const bbox = recentre(prims);
     const images = await canonImages(json, buffers, decodeImage);
     const textures = canonTextures(json, images);
     const materials = canonMaterials(json, textures);
-    const groups = buildGroups(prims, materials);
-    const live = prune(groups.map((g) => g.source), textures, images);
-    const { gltf, bin: out, texBytes } = assemble(groups, live.textures, live.images);
+    const built = buildMeshes(prims, materials, marked);
+    const live = prune(built.materials, textures, images);
+    const { gltf, bin: out, texBytes } = assemble(built, live.textures, live.images, version);
     const glb = buildGlb(sortKeys(gltf), out);
     const hex = await sha256(glb);
+    const groups = built.meshes.flatMap((m) => m.groups);
     return {
         glb,
         sha256: hex,
-        san: sanOf(hex),
-        canon_version: CANON_VERSION,
+        // canon-v2's number is not the GLB's alone: the same file with
+        // different markings is a different product, so db/0138 derives it
+        // from both and this tab does not name it (Invariant 6).
+        san: marked ? null : sanOf(hex),
+        canon_version: version,
         meta: {
             bbox,
             tris: groups.reduce((n, g) => n + g.group.indices.length / 3, 0),

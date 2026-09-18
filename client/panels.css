@@ -205,3 +205,21 @@
 #panel .cl-found li { display: inline-block; margin: 2px 4px 2px 0; }
 #panel .cl-found button { font-size: 11px; padding: 3px 8px; }
 #panel .pf-preview, #panel .preview { background: rgba(0, 0, 0, 0.35); max-width: 100%; }
+
+/* FND.6: the Parts step. The model's nodes on the left, what the one being
+ * looked at does on the right, and the ports under both — the preview beside
+ * them is the same canvas the thumbnail was painted on. */
+#panel .mk-nodes { margin: 6px 0; padding: 0; list-style: none; }
+#panel .mk-nodes li { display: flex; gap: 6px; align-items: baseline; margin: 2px 0; }
+#panel .mk-node {
+  flex: 0 0 auto; padding: 3px 8px; font-family: var(--mono); font-size: 11px;
+}
+#panel .mk-node.picked { border-color: var(--accent); color: var(--accent); }
+#panel .mk-does { font-size: 11px; }
+#panel .mk-role-form, #panel .mk-ports, #panel .mk-live {
+  display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin: 4px 0;
+}
+#panel .mk-live { border-top: 1px solid var(--edge); padding-top: 6px; }
+#panel .mk-live input[type="text"] { flex: 0 1 8rem; min-width: 0; }
+#panel .mk-said { font-size: 11px; margin-top: 4px; }
+#panel .build-ports { font-size: 11px; }
