@@ -33,15 +33,17 @@ SELECT is((SELECT (params ->> 'iters')::int FROM atom
 SELECT is((SELECT (params ->> 'size')::int FROM atom
            WHERE job_id = (SELECT j18 FROM jobs) AND op = 'train'), 1024,
     'z18 trains at the frames'' own 1024 px (db/0116)');
-SELECT is((SELECT algo_version FROM atom
-           WHERE job_id = (SELECT j16 FROM jobs) AND op = 'train'), 'train-v8',
-    'a z16 job trains with train-v8');
-SELECT is((SELECT (params ->> 'iters')::int FROM atom
-           WHERE job_id = (SELECT j16 FROM jobs) AND op = 'train'), 1200,
-    'z16: 1200 iterations (db/0122)');
-SELECT is((SELECT (params ->> 'size')::int FROM atom
-           WHERE job_id = (SELECT j16 FROM jobs) AND op = 'train'), 1024,
-    'z16 trains at the frames'' own 1024 px (db/0116)');
+-- The z16 over that same ground has the z18 under it, so it is merged from
+-- what is there rather than rendered a second time (db/0135).
+SELECT is((SELECT count(*)::int FROM atom
+           WHERE job_id = (SELECT j16 FROM jobs) AND op = 'merge'), 1,
+    'the z16 above it is merged from its children');
+SELECT is((SELECT count(*)::int FROM atom
+           WHERE job_id = (SELECT j16 FROM jobs) AND op = 'train'), 0,
+    'and does not train the same hillside twice');
+SELECT is((SELECT count(*)::int FROM atom
+           WHERE job_id = (SELECT j16 FROM jobs) AND op = 'sog'), 1,
+    'one sog over the merge, as for any tile with children');
 
 SELECT * FROM finish();
 ROLLBACK;

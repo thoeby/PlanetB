@@ -38,17 +38,16 @@ SELECT is((SELECT target_version FROM job WHERE id = (SELECT j14 FROM jobs)),
           'job targets the tile expected_version');
 
 -- DAG shape -------------------------------------------------------------
--- A z14 tile is the baseline every compiled area reaches, and since the
--- sampler was removed it reaches it the way z16 and z18 do: assembled, framed
--- from the stations of z16-v2 (45 views, 20 to a frame atom) and trained at
--- its whole budget, rather than merged from children it does not have.
+-- On land drawn at detail 18 the z14 has z16 under it, so it is merged from
+-- what is there rather than rendering the same ground a second time
+-- (db/0135). Only the finest tile on a patch of ground is ever rendered.
 SELECT is((SELECT count(*)::int FROM atom WHERE job_id = (SELECT j14 FROM jobs)),
-          6, 'z14 job has 6 atoms');
+          2, 'z14 job has 2 atoms');
 SELECT results_eq(
     $$SELECT op, count(*)::int FROM atom
       WHERE job_id = (SELECT j14 FROM jobs) GROUP BY op ORDER BY op$$,
-    $$VALUES ('assemble', 1), ('frame', 3), ('sog', 1), ('train', 1)$$,
-    'z14 DAG = 1 assemble, 3 frame, 1 train, 1 sog');
+    $$VALUES ('merge', 1), ('sog', 1)$$,
+    'z14 DAG = 1 merge, 1 sog: its children carry the ground');
 SELECT results_eq(
     $$SELECT op, count(*)::int FROM atom
       WHERE job_id = (SELECT j18 FROM jobs) GROUP BY op ORDER BY op$$,
@@ -63,16 +62,16 @@ SELECT is((SELECT count(*)::int FROM atom
            WHERE job_id = (SELECT j18 FROM jobs) AND op = 'frame'
              AND (params ->> 'to')::int - (params ->> 'from')::int = 20),
     6, 'frame atoms cover 20 views each');
--- 45 views do not divide by 20, so z14's last frame atom is the short one.
+-- 120 views do not divide by 20 evenly at the end, so the last one is short.
 SELECT is((SELECT max((params ->> 'to')::int) FROM atom
-           WHERE job_id = (SELECT j14 FROM jobs) AND op = 'frame'),
-    45, 'and between them they cover every view of the tile');
+           WHERE job_id = (SELECT j18 FROM jobs) AND op = 'frame'),
+    120, 'and between them they cover every view of the tile');
 SELECT is((SELECT (params ->> 'budget')::bigint FROM atom
            WHERE op = 'train' AND job_id = (SELECT j18 FROM jobs)),
     2000000::bigint, 'z18 train budget is 2 M');
 SELECT is((SELECT (params ->> 'budget')::bigint FROM atom
-           WHERE op = 'train' AND job_id = (SELECT j14 FROM jobs)),
-    800000::bigint, 'and z14 trains at its own, smaller one');
+           WHERE op = 'merge' AND job_id = (SELECT j14 FROM jobs)),
+    800000::bigint, 'and the z14 merges to its own, smaller one');
 SELECT ok((SELECT bool_and((params ->> 'needs_webgpu')::boolean) FROM atom
            WHERE op = 'train'), 'train declares its GPU requirement');
 SELECT ok((SELECT count(DISTINCT atom_hash) = count(*) FROM atom),
@@ -101,7 +100,8 @@ SELECT lives_ok(
     format($$SELECT ensure_job(12, %s, %s, 5)$$,
            (SELECT tile_x(7.5, 12)), (SELECT tile_y(46.5, 12))),
     'a stranger with a bounty can');
-SELECT is((SELECT jsonb_array_length(inputs -> 'children') FROM atom WHERE op = 'merge'),
+SELECT is((SELECT jsonb_array_length(inputs -> 'children') FROM atom
+           WHERE op = 'merge' AND (params ->> 'z')::int = 12),
     16, 'the z12 merge pins all 16 grandchildren');
 SELECT set_config('request.jwt.claims',
     json_build_object('sub', owner_id, 'role', 'player')::text, true) FROM ids;

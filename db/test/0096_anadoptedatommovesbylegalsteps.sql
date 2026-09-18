@@ -49,11 +49,13 @@ SELECT is((SELECT worker_id FROM atom WHERE id = (SELECT id FROM asm)), null, 'n
 SELECT is((SELECT min((params ->> 'size')::int) FROM atom
            WHERE job_id = (SELECT jid FROM second) AND op = 'frame'), 1024,
     'z18 frames are 1024 px');
+-- The z16 over the same ground has the z18 under it, so it asks for no frames
+-- at all: it is merged from what is there (db/0135).
 CREATE TEMP TABLE j16 AS
 SELECT ensure_job(16, tile_x(7.805, 16), tile_y(46.295, 16)) AS jid;
-SELECT is((SELECT min((params ->> 'size')::int) FROM atom
-           WHERE job_id = (SELECT jid FROM j16) AND op = 'frame'), 1024,
-    'z16 frames were 512 px then; db/0099 raises them');
+SELECT is((SELECT count(*)::int FROM atom
+           WHERE job_id = (SELECT jid FROM j16) AND op = 'frame'), 0,
+    'a tile with children asks for no frames of its own');
 
 SELECT * FROM finish();
 ROLLBACK;
