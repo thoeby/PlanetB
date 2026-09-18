@@ -1,4 +1,4 @@
-// sog.js — `sog-v1`. The gaussians as the viewer streams them.
+// sog.js — `sog-v2`. The gaussians as the viewer streams them.
 //
 // The ply that comes out of `merge` or `train` is what a worker computed; the
 // .sog is what a browser downloads: quantised, packed into five lossless WebP
@@ -10,13 +10,24 @@
 // the origin comes from the atom that made the ply.
 
 import { fetchJson } from '../js/api.js';
-import { bboxOf, readPly } from '../lib/ply.js';
+import { bboxOf, permute, readPly } from '../lib/ply.js';
+import { lodOrder } from '../lib/lodorder.js';
 import { encodeSog } from '../lib/sogenc.js';
 import { readTar } from '../lib/tar.js';
 import { sha256 } from '../lib/hash.js';
 import { localFromLonLat, tileBbox, tileCenter } from '../lib/tilemath.js';
 
-export const ALGO = 'sog-v1';
+export const ALGO = 'sog-v2';
+// v2 orders the splats so that every prefix of them is a fair sample of the
+// tile (client/lib/lodorder.js) and writes a second, tiny file saying where
+// the useful prefixes end. The viewer hands that file to PlayCanvas's octree,
+// which then draws as much of each tile as the whole scene's budget affords
+// rather than all of every tile or none of it (PLAN-lod.md).
+//
+// It is done here and not in `train` because a merged tile never passes
+// through the trainer: it comes out of `merge` in voxel-scan order, and a
+// prefix of a scan order is a stripe of ground. Both producers pass through
+// here, and re-sogging a tile costs seconds where retraining costs GPU-minutes.
 
 // `merge` hands over a bare ply; `sample` hands over a tar, because a baseline
 // tile also carries the ground the player walks on and the boxes they bump
@@ -57,6 +68,30 @@ function manifestOf(tile, origin, splats, bytes) {
     };
 }
 
+// What PlayCanvas's octree parser reads (framework/parsers/gsplat-octree.js):
+// one file, one leaf, and a level per prefix. Level 0 is the finest — the
+// engine sums it as the tile's splat count — and every level is `offset 0`,
+// which is the prefix property in its vocabulary. No `errors`: with none given
+// the engine derives them from the counts, `log(finest / count)`.
+//
+// The bound is rounded to centimetres before it is stringified. It is
+// float-derived and this file is content-addressed, so rounding onto an
+// integer grid means no argument about float formatting can give one tile two
+// shas (Invariant 1).
+export function lodMeta(sogSha, bbox, levels) {
+    const cm = (v) => Math.round(v * 100) / 100;
+    const lods = {};
+    levels.forEach((count, i) => { lods[String(i)] = { file: 0, offset: 0, count }; });
+    return {
+        lodLevels: levels.length,
+        filenames: [`${sogSha}.sog`],
+        tree: {
+            bound: { min: bbox.slice(0, 3).map(cm), max: bbox.slice(3).map(cm) },
+            lods,
+        },
+    };
+}
+
 export async function run({ atom, inputs, canvas, log, apiUrl }) {
     if (!inputs?.ply) throw new Error('sog needs a ply');
     const { splats: f, extra } = unpack(inputs.ply);
@@ -72,11 +107,20 @@ export async function run({ atom, inputs, canvas, log, apiUrl }) {
     const src = await sourceResult(apiUrl, atom.inputs?.ply);
     const origin = src.origin ?? { ...tileCenter(tile.z, tile.x, tile.y), h: 0 };
 
-    const { bytes } = await encodeSog(f, canvas);
-    log?.({ event: 'sogged', tile, splats: f.count, bytes: bytes.length });
+    // The order is the levels: a prefix of the splats is a prefix of the
+    // texture planes, because the encoder writes splat i to texel i
+    // (client/lib/sogenc.js fillPlanes).
+    const { order, levels } = lodOrder(f);
+    const s = permute(f, order);
+    const { bytes } = await encodeSog(s, canvas);
+    log?.({ event: 'sogged', tile, splats: s.count, bytes: bytes.length, levels });
     const dir = `/tiles/${tile.z}/${tile.x}/${tile.y}`;
-    const manifest = manifestOf(tile, origin, f.count, bytes.length);
+    const manifest = manifestOf(tile, origin, s.count, bytes.length);
     const files = [{ ext: 'sog', kind: 'sog', algo_version: ALGO, bytes, dir }];
+    const meta = new TextEncoder().encode(
+        JSON.stringify(lodMeta(await sha256(bytes), bboxOf(s), levels)));
+    files.push({ ext: 'json', kind: 'lod', algo_version: ALGO, bytes: meta, dir });
+    manifest.lod = { sha256: await sha256(meta), levels };
     const ground = extra.get('height.r16');
     const boxes = extra.get('colliders.json');
     if (ground && boxes) {
@@ -95,7 +139,7 @@ export async function run({ atom, inputs, canvas, log, apiUrl }) {
         files,
         output: 'sog',
         result: {
-            bytes: bytes.length, splat_count: f.count, finite: true, bbox: bboxOf(f),
+            bytes: bytes.length, splat_count: s.count, finite: true, bbox: bboxOf(s),
             tile, manifest, target_version: tile.target_version,
         },
     };

@@ -16,8 +16,10 @@ import { createHash } from 'node:crypto';
 
 import * as api from '../client/js/api.js';
 import * as tm from '../client/lib/tilemath.js';
-import { bboxOf } from '../client/lib/ply.js';
+import { bboxOf, permute } from '../client/lib/ply.js';
 import { packSog, unpackSog } from './sogwrite.mjs';
+import { lodOrder } from '../client/lib/lodorder.js';
+import { lodMeta } from '../client/atoms/sog.js';
 import { geometricErrorM, makeColliders, makeHeight, makeSplats, writePly }
     from './testterrain.mjs';
 
@@ -186,7 +188,7 @@ async function claimFor(job) {
     return atom?.id ? atom : null;
 }
 
-async function upload(path, bytes, sha, kind, algo = 'sog-v1') {
+async function upload(path, bytes, sha, kind, algo = 'sog-v2') {
     if (await known(sha)) return sha;
     await putFile(path, bytes, sha);
     return api.rpc('register_artifact', {
@@ -242,6 +244,7 @@ async function runAtom(atom, t, art) {
         await upload(`${base}/${art.heightSha}.r16`, art.height, art.heightSha, 'height');
         await upload(`${base}/${art.collidersSha}.json`, art.colliders,
             art.collidersSha, 'colliders');
+        await upload(`${base}/${art.lodSha}.json`, art.lod, art.lodSha, 'lod', 'sog-v2');
         return api.rpc('submit_atom', {
             atom_id: atom.id, output_sha256: art.sogSha,
             result: { ...shape(art), bytes: art.sog.length },
@@ -306,17 +309,24 @@ async function compileTile(t) {
         return;
     }
 
-    const { splats, origin } = makeSplats(t.z, t.x, t.y);
+    const { splats: raw, origin } = makeSplats(t.z, t.x, t.y);
+    // sog-v2: the order is the levels (client/lib/lodorder.js).
+    const { order, levels } = lodOrder(raw);
+    const splats = permute(raw, order);
     const ply = writePly(splats);
     const sog = packSog(splats);
     checkRoundTrip(name, splats, sog.bytes);
     const height = makeHeight(t.z, t.x, t.y);
     const colliders = makeColliders(t.z, t.x, t.y);
+    const sogSha = sha256(sog.bytes);
+    const lod = new TextEncoder().encode(
+        JSON.stringify(lodMeta(sogSha, bboxOf(splats), levels)));
     const art = {
         ply, sog: sog.bytes, count: splats.count, bbox: bboxOf(splats),
-        height: height.bytes, heightMeta: height.meta, colliders,
-        plySha: sha256(ply), sogSha: sha256(sog.bytes),
+        height: height.bytes, heightMeta: height.meta, colliders, lod, levels,
+        plySha: sha256(ply), sogSha,
         heightSha: sha256(height.bytes), collidersSha: sha256(colliders),
+        lodSha: sha256(lod),
     };
 
     const want = await buildFor(t, name, art);
@@ -332,7 +342,8 @@ async function compileTile(t) {
             splats: art.count,
             bytes: art.sog.length,
             geometric_error_m: geometricErrorM(t.z, t.x, t.y),
-            algo_version: 'sog-v1',
+            algo_version: 'sog-v2',
+            lod: { sha256: art.lodSha, levels: art.levels },
             height: { sha256: art.heightSha, ...art.heightMeta },
             colliders: { sha256: art.collidersSha,
                 count: JSON.parse(art.colliders).boxes.length },
