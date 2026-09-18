@@ -68,10 +68,10 @@ SELECT is((SELECT max((params ->> 'to')::int) FROM atom
     120, 'and between them they cover every view of the tile');
 SELECT is((SELECT (params ->> 'budget')::bigint FROM atom
            WHERE op = 'train' AND job_id = (SELECT j18 FROM jobs)),
-    2000000::bigint, 'z18 train budget is 2 M');
+    600000::bigint, 'z18 train budget is the one every tile has (db/0136)');
 SELECT is((SELECT (params ->> 'budget')::bigint FROM atom
            WHERE op = 'merge' AND job_id = (SELECT j14 FROM jobs)),
-    800000::bigint, 'and the z14 merges to its own, smaller one');
+    600000::bigint, 'and the z14 merges to the same one');
 SELECT ok((SELECT bool_and((params ->> 'needs_webgpu')::boolean) FROM atom
            WHERE op = 'train'), 'train declares its GPU requirement');
 SELECT ok((SELECT count(DISTINCT atom_hash) = count(*) FROM atom),

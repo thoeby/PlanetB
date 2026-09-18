@@ -27,6 +27,7 @@ const FINE = [
     { detail: 14, words: '14 — 1.7 km tiles, the baseline' },
     { detail: 16, words: '16 — 430 m where something stands (needs a GPU)' },
     { detail: 18, words: '18 — 107 m where something has walls (needs a GPU)' },
+    { detail: 20, words: '20 — 26 m where people walk, 3 cm splats (needs a GPU)' },
 ];
 
 export function howFine(area, ctx) {

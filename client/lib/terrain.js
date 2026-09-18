@@ -15,7 +15,7 @@ import { styleFor } from './rules.js';
 // z18, 0.8 m at z16, 3.3 m at z14. At 257 over 256 a z14 cell was 6.6 m, and
 // with one colour and one normal a vertex, every cell edge drew as a line: a
 // grid across every frame the trainer was given (assemble-v5).
-export const GRID = { 18: 513, 16: 513, 14: 513, 12: 97, 10: 65, 8: 49, 6: 33 };
+export const GRID = { 20: 513, 18: 513, 16: 513, 14: 513, 12: 97, 10: 65, 8: 49, 6: 33 };
 
 // Bilinear height over a row-major grid, in metres, for anything that has to
 // stand on the ground. `null` outside the grid, where nothing is known.

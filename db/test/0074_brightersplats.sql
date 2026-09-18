@@ -6,9 +6,9 @@ SELECT plan(5);
 
 -- Cut in db/0111 and db/0115, and put back in db/0116: the numbers the
 -- trainer ran with.
-SELECT is(tile_budget(14), 800000::bigint, 'what a z14 tile holds (db/0116)');
-SELECT is(tile_budget(16), 600000::bigint, 'what a trained z16 tile holds');
-SELECT is(tile_budget(18), 2000000::bigint, 'and a z18 one');
+SELECT is(tile_budget(14), 600000::bigint, 'what a z14 tile holds (db/0136)');
+SELECT is(tile_budget(16), 600000::bigint, 'the same as a z16 one');
+SELECT is(tile_budget(18), 600000::bigint, 'and a z18 one: the ladder is even');
 
 CREATE TEMP TABLE who AS SELECT register('splat74@example.com', 'password12') AS uid;
 SELECT set_config('request.jwt.claims',
@@ -31,7 +31,7 @@ SELECT ok((SELECT algo_version FROM atom
           'a z14 tile is trained');
 SELECT is((SELECT (params ->> 'budget')::bigint FROM atom
            WHERE job_id = (SELECT id FROM j) AND op = 'train'),
-          800000::bigint, 'and it is told how many to make');
+          600000::bigint, 'and it is told how many to make');
 
 SELECT * FROM finish();
 ROLLBACK;

@@ -46,12 +46,14 @@ test('tile_bbox matches SQL at every probe', () => {
     }
 });
 
-test('the ladder is even zooms 6..18', () => {
-    assert.deepEqual(tm.ZOOMS, [6, 8, 10, 12, 14, 16, 18]);
+test('the ladder is even zooms 6..20', () => {
+    // z20 is the rung for where people walk: 26 m tiles, 3 cm splats (db/0136).
+    assert.deepEqual(tm.ZOOMS, [6, 8, 10, 12, 14, 16, 18, 20]);
     assert.equal(tm.parent(6, 33, 22), null);
     assert.deepEqual(tm.parent(18, 137165, 92795), { z: 16, x: 34291, y: 23198 });
     assert.deepEqual(tm.ancestors(12, 2135, 1442).map((t) => t.z), [10, 8, 6]);
-    assert.deepEqual(tm.children(18, 1, 1), []);
+    assert.equal(tm.children(18, 1, 1).length, 16, 'a z18 refines into z20 now');
+    assert.deepEqual(tm.children(20, 1, 1), [], 'and z20 is the floor');
 });
 
 test('children are the 16 grandchildren, in child_sogs order', () => {

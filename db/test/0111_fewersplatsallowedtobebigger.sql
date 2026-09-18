@@ -5,9 +5,9 @@ SELECT plan(6);
 
 SET client_min_messages = warning;
 
-SELECT is(tile_budget(14), 800000::bigint, 'a z14 tile holds what it ran with (db/0116)');
+SELECT is(tile_budget(14), 600000::bigint, 'a z14 tile holds what every tile does (db/0136)');
 SELECT is(tile_budget(16), 600000::bigint, 'and a z16 tile too');
-SELECT is(tile_budget(12), 900000::bigint, 'a merged tile is what it was');
+SELECT is(tile_budget(12), 600000::bigint, 'and a merged tile the same again (db/0136)');
 
 CREATE TEMP TABLE ids AS
 SELECT register('land111@example.com', 'password12') AS owner_id;

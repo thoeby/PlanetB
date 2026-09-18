@@ -483,7 +483,7 @@ def parse_request(path: str) -> tuple[int, int, int, str] | None:
     if EXT[kind] != ext:
         return None
     z, x, y = (int(v) for v in m.groups()[1:4])
-    if z % 2 or z < 6 or z > 18 or x >= 2 ** z or y >= 2 ** z:
+    if z % 2 or z < 6 or z > 20 or x >= 2 ** z or y >= 2 ** z:
         return None
     return z, x, y, kind
 

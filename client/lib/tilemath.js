@@ -13,8 +13,8 @@ export const MAX_LAT = 85.0511287798066;
 
 // Invariant: tiles exist on even zooms only, 6…18 (ARCHITECTURE §2).
 export const MIN_ZOOM = 6;
-export const MAX_ZOOM = 18;
-export const ZOOMS = [6, 8, 10, 12, 14, 16, 18];
+export const MAX_ZOOM = 20;
+export const ZOOMS = [6, 8, 10, 12, 14, 16, 18, 20];
 
 const clamp = (v, lo, hi) => Math.min(Math.max(v, lo), hi);
 

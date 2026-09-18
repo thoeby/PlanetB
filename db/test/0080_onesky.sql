@@ -27,7 +27,7 @@ SELECT is((SELECT algo_version FROM atom
           'train-v8', 'and trained by the trainer the client runs');
 SELECT is((SELECT (params ->> 'budget')::bigint FROM atom
            WHERE job_id = (SELECT id FROM j) AND op = 'train'),
-          800000::bigint, 'with the budget it already had: what moved is where they go');
+          600000::bigint, 'with the budget every tile has: what moved is where they go');
 
 -- A z16 tile is trained, and the trainer still knows which cameras it was shown
 -- (db/0075_trainknowsitscameras.sql): a later build_dag must not drop that.
