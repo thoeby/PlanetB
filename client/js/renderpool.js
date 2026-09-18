@@ -6,22 +6,22 @@
 import * as api from './api.js';
 import { setBounty } from './wallet.js';
 import { DOING, cr, drawnWhen, el, what } from './poolui.js';
-import { phaseTabs, pager, poolCard } from './poolcard.js';
+import { pager, phaseTabs, poolCard, sortTabs } from './poolcard.js';
 import { empty } from './empty.js';
 
 const said = (err) => String(err?.body?.message ?? err?.message ?? err);
 
 // Cards on a page. Enough to scroll through, few enough that the page after
 // this one is a press away rather than a scroll to the bottom of everything.
-const PAGE = 12;
+const PAGE = 24;
 
 export function mountPool(host, { loop, where = () => ({}) } = {}) {
     const ui = poolParts(host);
     // A page of one kind of work at a time (db/0146 pool_page). `page` is
     // what the server answered: its rows, how many there are of this kind,
     // and how many of each kind there are altogether.
-    const state = { page: null, rows: [], held: [], phase: 'render',
-        offset: 0, caps: null, picked: null };
+    const state = { page: null, rows: [], held: [], phase: 'all',
+        sort: 'near', offset: 0, caps: null, picked: null };
     const say = (msg, bad = false) => {
         ui.status.textContent = msg;
         ui.status.dataset.bad = bad ? '1' : '';
@@ -35,12 +35,14 @@ export function mountPool(host, { loop, where = () => ({}) } = {}) {
         redo: (entry, button) => redo(entry, button),
         look: (phase) => look(phase),
         turn: (offset) => turn(offset),
+        by: (sort) => by(sort),
     };
 
     // Which kind of work, and which page of it. Both reset the other: a page
     // number means nothing across two different lists.
     const look = (phase) => { state.phase = phase; state.offset = 0; refresh(); };
     const turn = (offset) => { state.offset = offset; refresh(); };
+    const by = (sort) => { state.sort = sort; state.offset = 0; refresh(); };
 
     const draw = () => {
         try {
@@ -85,8 +87,9 @@ export function mountPool(host, { loop, where = () => ({}) } = {}) {
     async function refresh() {
         const { lon, lat } = where() ?? {};
         state.page = await api.rpc('pool_page',
-            { lon: lon ?? null, lat: lat ?? null, phase: state.phase,
-                limit: PAGE, offset: state.offset })
+            { lon: lon ?? null, lat: lat ?? null,
+                phase: state.phase === 'all' ? null : state.phase,
+                limit: PAGE, offset: state.offset, sort: state.sort })
             .catch((err) => { say(`could not read the pool: ${said(err)}`, true); return null; });
         state.rows = state.page?.rows ?? [];
         // A page past the end of a list that shrank while it was being looked
@@ -251,7 +254,9 @@ function nothingWaiting(held) {
 function drawPool(ui, state, acts, draw) {
     ui.head.replaceChildren(
         phaseTabs(state.page, state.phase, acts.look),
+        sortTabs(state.page, acts.by),
         pager(state.page, PAGE, acts.turn));
+    ui.list.classList.add('po-grid');
     ui.list.replaceChildren(
         ...state.rows.map((r) => poolCard(r, acts, state.caps,
             state.shots?.get(`${r.z}/${r.x}/${r.y}`) ?? null)));

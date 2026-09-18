@@ -275,3 +275,19 @@
 #panel .po-shot-box { margin: 0 0 6px; display: flex; flex-direction: column; gap: 3px; }
 #panel .po-shot { width: 100%; max-width: 220px; height: auto; display: block;
   border: 1px solid var(--line); background: #0b0e12; image-rendering: auto; }
+
+/* The pool is a wall of cards, not a list: as many across as the panel is
+   wide, each one a tile with its own picture. */
+#panel .rows.po-grid { display: grid; gap: 8px; grid-template-columns: 1fr; }
+@media (min-width: 560px) { #panel .rows.po-grid { grid-template-columns: repeat(2, 1fr); } }
+@media (min-width: 860px) { #panel .rows.po-grid { grid-template-columns: repeat(3, 1fr); } }
+@media (min-width: 1180px) { #panel .rows.po-grid { grid-template-columns: repeat(4, 1fr); } }
+@media (min-width: 1500px) { #panel .rows.po-grid { grid-template-columns: repeat(5, 1fr); } }
+#panel .rows.po-grid > li { display: flex; flex-direction: column; gap: 6px;
+  border: 1px solid var(--line); border-radius: 6px; padding: 8px; }
+#panel .rows.po-grid > li:first-child { border-top: 1px solid var(--line); }
+#panel .po-grid .end { flex-direction: row; flex-wrap: wrap; align-items: center;
+  justify-content: flex-start; gap: 6px; text-align: left; }
+#panel .po-grid .po-shot { max-width: none; }
+#panel .po-tabs { flex-wrap: wrap; gap: 4px; }
+#panel .po-sort { gap: 4px; margin-top: 4px; }

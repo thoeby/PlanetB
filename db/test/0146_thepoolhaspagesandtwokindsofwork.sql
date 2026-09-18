@@ -12,12 +12,12 @@ SELECT set_config('request.jwt.claims',
 SELECT set_ground('http://gs.example/geoserver', 'dev:dem', 7.86, 46.28, 7.92, 46.33);
 SELECT compile_ground();
 
-CREATE TEMP TABLE all_ AS SELECT pool_page(7.89, 46.30, NULL, 4, 0) AS p;
+CREATE TEMP TABLE all_ AS SELECT pool_page(7.89, 46.30, NULL, 4, 0, 'near') AS p;
 SELECT ok(((SELECT p FROM all_) ->> 'total')::int > 4, 'there is more than one page');
 SELECT is(jsonb_array_length((SELECT p FROM all_) -> 'rows'), 4, 'and a page holds four');
 
 -- The second page is four more, and none of them is on the first.
-CREATE TEMP TABLE two AS SELECT pool_page(7.89, 46.30, NULL, 4, 4) AS p;
+CREATE TEMP TABLE two AS SELECT pool_page(7.89, 46.30, NULL, 4, 4, 'near') AS p;
 SELECT is(jsonb_array_length((SELECT p FROM two) -> 'rows'), 4, 'the next page too');
 SELECT is((SELECT count(*) FROM
     jsonb_array_elements((SELECT p FROM all_) -> 'rows') a,

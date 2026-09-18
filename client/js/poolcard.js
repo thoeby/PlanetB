@@ -109,13 +109,33 @@ export function poolCard(e, acts, caps, shot = null) {
         end);
 }
 
-// Render jobs or training jobs, with how many of each there are.
+// The kinds of work, across the top: what there is, what needs a GPU, what
+// needs nothing but a moment, and what is the player's own ground. Counts are
+// of the whole pool and not of the page, so a tab that says 0 is empty.
+const TABS = [['all', 'All'], ['render', 'Render'], ['train', 'Training'],
+    ['publish', 'Publish'], ['mine', 'My land']];
+
 export function phaseTabs(page, phase, pick) {
     return el('div', { className: 'row po-tabs' },
-        ...[['render', 'Render jobs'], ['train', 'Training jobs']].map(([key, text]) => {
-            const b = el('button', { type: 'button',
-                textContent: `${text} (${Number(page?.[key] ?? 0)})` });
-            if (key === phase) b.dataset.on = '1';
+        ...TABS.map(([key, text]) => {
+            const n = Number(page?.[key] ?? 0);
+            const b = el('button', { type: 'button', textContent: `${text} (${n})` });
+            if (key === (phase ?? 'all')) b.dataset.on = '1';
+            b.onclick = () => pick(key);
+            return b;
+        }));
+}
+
+// Nearest is what somebody is waiting to walk on; best pay is what a
+// stranger's tab is looking for. Both have to cut the list, not just sort the
+// page that was already cut the other way (db/0142, db/0152).
+export function sortTabs(page, pick) {
+    const now = page?.sort ?? 'near';
+    return el('div', { className: 'row po-sort' },
+        el('span', { className: 'sub', textContent: 'Sort' }),
+        ...[['near', 'Nearest'], ['pay', 'Best pay']].map(([key, text]) => {
+            const b = el('button', { type: 'button', textContent: text });
+            if (key === now) b.dataset.on = '1';
             b.onclick = () => pick(key);
             return b;
         }));
@@ -135,9 +155,9 @@ export function pager(page, size, go) {
         return b;
     };
     return el('div', { className: 'row po-pager' },
-        step({ text: '‹ back', off: at > 0 ? Math.max(0, at - size) : null }),
+        step({ text: '\u2039 back', off: at > 0 ? Math.max(0, at - size) : null }),
         el('span', { className: 'sub',
-            textContent: total ? `page ${now} of ${pages} · ${total} tile(s)`
+            textContent: total ? `page ${now} of ${pages} \u00b7 ${total} tile(s)`
                 : 'nothing waiting' }),
-        step({ text: 'next ›', off: at + size < total ? at + size : null }));
+        step({ text: 'next \u203a', off: at + size < total ? at + size : null }));
 }
