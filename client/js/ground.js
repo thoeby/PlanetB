@@ -23,12 +23,21 @@ const RING = 3;
 // light of its own, and the splats carry their own.
 const SUN = [-0.45, 0.8, -0.4];
 
-// A published tile at this key, or any published tile above it, covers it.
-export function covered(tiles, z, x, y) {
+// A published tile at this key, or any published tile above it, covers it —
+// but only once that tile is actually drawing. `drawn(key)` answers that.
+//
+// Publishing is not the same moment as showing: a tile is published in the
+// database, and its splats arrive in this tab some seconds later. Taking the
+// ground away on the first of those leaves the player standing over nothing
+// until the second, which is a hole in the world for as long as the download
+// takes. It gets wider, not narrower, when a tile is more than one file
+// (PLAN-lod.md), because then an entity exists before it has anything in it.
+export function covered(tiles, z, x, y, drawn = () => true) {
     for (let az = z; az >= tm.MIN_ZOOM; az -= 2) {
         const f = 2 ** (z - az);
-        const row = tiles.get(key(az, Math.floor(x / f), Math.floor(y / f)));
-        if (row && row.published_version > 0) return true;
+        const k = key(az, Math.floor(x / f), Math.floor(y / f));
+        const row = tiles.get(k);
+        if (row && row.published_version > 0 && drawn(k)) return true;
     }
     return false;
 }
@@ -107,12 +116,16 @@ export function ringAround(x, y, ring = RING) {
 }
 
 export class DemGround {
-    constructor(app, pc, { origin, floor, tiles }) {
+    constructor(app, pc, { origin, floor, streamer }) {
         this.app = app;
         this.pc = pc;
         this.origin = origin;
         this.floor = floor;         // DemFloor: the rasters, fetched once each
-        this.tiles = tiles;         // the streamer's rows, by key
+        this.streamer = streamer;   // who knows which tiles are drawing
+        this.tiles = streamer.tiles;   // the streamer's rows, by key
+        // A tile covers the ground when its splats are on screen, not when the
+        // world says it exists (`covered` above).
+        this.drawn = (k) => this.streamer.entries.get(k)?.resident === true;
         this.entities = new Map();
         this.material = null;
     }
@@ -128,7 +141,7 @@ export class DemGround {
         let built = false;
         for (const { x, y } of ringAround(cx, cy)) {
             const k = `${x}/${y}`;
-            if (covered(this.tiles, Z, x, y)) continue;
+            if (covered(this.tiles, Z, x, y, this.drawn)) continue;
             want.add(k);
             if (this.entities.has(k) || built) continue;
             const dem = this.floor.tiles.get(k);

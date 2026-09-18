@@ -118,4 +118,4 @@ export class SpotChecker {
 const keyOf = (row) => `${row.z}/${row.x}/${row.y}`;
 
 export const loaded = (streamer) => [...(streamer?.entries?.values() ?? [])]
-    .filter((e) => e.entity && e.row?.sog_sha256).map((e) => e.row);
+    .filter((e) => e.resident && e.row?.sog_sha256).map((e) => e.row);

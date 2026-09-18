@@ -16,6 +16,24 @@ test('a published tile, or a published tile above it, covers the ground', () => 
     assert.ok(!covered(tiles, 14, 8548, 5804), 'an unpublished z12 covers nothing');
 });
 
+test('the ground stays under a tile that is published but not yet drawing', () => {
+    // Publishing is a row in the database; drawing is bytes in this tab, some
+    // seconds later. Taking the ground away on the first leaves the player
+    // over nothing until the second.
+    const tiles = new Map([row(14, 8550, 5809, 1)]);
+    const never = () => false;
+    assert.ok(!covered(tiles, 14, 8550, 5809, never), 'published, nothing on screen yet');
+    assert.ok(covered(tiles, 14, 8550, 5809, () => true), 'and covered once it draws');
+});
+
+test('a published ancestor that is not drawing does not take the ground either', () => {
+    const tiles = new Map([row(10, 533, 363, 2)]);
+    const here = { x: 533 * 16 + 3, y: 363 * 16 + 5 };
+    assert.ok(!covered(tiles, 14, here.x, here.y, () => false), 'the z10 is not on screen');
+    assert.ok(covered(tiles, 14, here.x, here.y, (k) => k === key(10, 533, 363)),
+        'and it is once it is');
+});
+
 test('the ring is the tiles around the camera, nearest first', () => {
     const ring = ringAround(10, 20, 1);
     assert.equal(ring.length, 9);

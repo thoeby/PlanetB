@@ -64,7 +64,9 @@ function step(w, cam, ms = 5000) {
     }
     for (const k of sel.unload) w.loaded.delete(k);
     for (const c of sel.load) {
-        w.loaded.set(c.key, { usedAt: w.loaded.size + 1, seenAt: w.now });
+        // Loaded and drawing in the same pass, which is what a single-file
+        // tile does today (client/js/tiles.js placeNext).
+        w.loaded.set(c.key, { usedAt: w.loaded.size + 1, seenAt: w.now, resident: true });
     }
     return sel;
 }
@@ -209,34 +211,54 @@ test('a tile stays until every tile taking its place is in the scene', () => {
     const w = world();
     settle(w, camera(5e6));
     assert.deepEqual(sorted(w.loaded.keys()), ['8/133/90', '8/134/90']);
-    // Refining: the z10 children exist as entries but have no entity yet.
+    // Refining: the z10 children exist as entries but are not drawing yet.
     let sel = selectTiles(w, camera(1e6));
     for (const c of sel.load) {
-        w.loaded.set(c.key, { usedAt: 9, entity: null, seenAt: w.now });
+        w.loaded.set(c.key, { usedAt: 9, entity: null, resident: false, seenAt: w.now });
     }
     w.now += 60_000;
     sel = selectTiles(w, camera(1e6));
     assert.deepEqual(sel.unload, [], 'both parents stay while their children load');
-    w.loaded.get('10/535/361').entity = {};
-    w.loaded.get('10/535/362').entity = {};
+    w.loaded.get('10/535/361').resident = true;
+    w.loaded.get('10/535/362').resident = true;
     sel = selectTiles(w, camera(1e6));
     assert.deepEqual(sel.unload, ['8/133/90'], 'the parent whose children are all in goes');
     for (const k of sel.unload) w.loaded.delete(k);
-    w.loaded.get('10/536/361').entity = {};
-    w.loaded.get('10/536/362').entity = {};
+    w.loaded.get('10/536/361').resident = true;
+    w.loaded.get('10/536/362').resident = true;
     sel = selectTiles(w, camera(1e6));
     assert.deepEqual(sel.unload, ['8/134/90'], 'then the other');
     for (const k of sel.unload) w.loaded.delete(k);
     // Coarsening: the z8 parents come back but are not in the scene yet.
     sel = selectTiles(w, camera(4e6));
     assert.deepEqual(sorted(sel.want), ['8/133/90', '8/134/90']);
-    for (const c of sel.load) w.loaded.set(c.key, { usedAt: 10, entity: null });
+    for (const c of sel.load) {
+        w.loaded.set(c.key, { usedAt: 10, entity: null, resident: false });
+    }
     sel = selectTiles(w, camera(4e6));
     assert.deepEqual(sel.unload, [], 'the children stay while the parent loads');
-    w.loaded.get('8/133/90').entity = {};
-    w.loaded.get('8/134/90').entity = {};
+    w.loaded.get('8/133/90').resident = true;
+    w.loaded.get('8/134/90').resident = true;
     sel = selectTiles(w, camera(4e6));
     assert.equal(sel.unload.length, 4, 'and go once it is in');
+});
+
+test('an entity with no splats in it does not count as taking a tile\'s place', () => {
+    // An entity is made when the bytes arrive. For a tile that is more than one
+    // file that is before it has anything to draw (PLAN-lod.md), so the tile it
+    // replaces must not go on the strength of the entity alone.
+    const w = world();
+    settle(w, camera(5e6));
+    let sel = selectTiles(w, camera(1e6));
+    for (const c of sel.load) {
+        w.loaded.set(c.key, { usedAt: 9, entity: {}, resident: false, seenAt: w.now });
+    }
+    w.now += 60_000;
+    sel = selectTiles(w, camera(1e6));
+    assert.deepEqual(sel.unload, [], 'an entity is not pixels; the parents stay');
+    for (const e of w.loaded.values()) e.resident = true;
+    sel = selectTiles(w, camera(1e6));
+    assert.ok(sel.unload.length > 0, 'and go once the children are really drawing');
 });
 
 test('a tile that failed to load is left alone until its retry time', () => {

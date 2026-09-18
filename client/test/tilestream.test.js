@@ -183,6 +183,25 @@ test('arrivals are placed one per update, and count as in flight until then', ()
     assert.equal(s.pending, 0);
     assert.equal(placed(), 4);
     assert.equal(s.placeNext(), null, 'nothing left to place');
+    assert.ok([...s.entries.values()].every((e) => e.resident && e.placedAt > 0),
+        'a placed tile says its splats are on screen');
+});
+
+test('a swapped-in tile says its splats are on screen', async () => {
+    // Today placing and drawing are the same moment; `resident` is the field
+    // that says so, and is what the ground and the traversal read
+    // (client/js/ground.js, client/js/traverse.js).
+    const rows = COORDS.map((c) => row(...c));
+    const fresh = swapRow(rows[0], 'd'.repeat(64));
+    const s = streamerWith(rows, async () => [fresh, ...rows.slice(1)]);
+    const entry = { row: rows[0], usedAt: 1, resident: true, placedAt: 1,
+        entity: { destroy() {} }, asset: { unload() {} } };
+    s.entries.set('10/535/361', entry);
+
+    assert.equal(await s.poll(), 1);
+    assert.equal(s.swaps, 1, 'the swap completed');
+    assert.equal(entry.resident, true, 'and the tile it landed on is drawing');
+    assert.ok(entry.placedAt > 1, 'placed just now, not when the old one was');
 });
 
 test('an arrival unloaded before its frame is never placed', async () => {

@@ -210,16 +210,20 @@ function overlaps(a, b) {
     return Math.floor(lo.x / f) === hi.x && Math.floor(lo.y / f) === hi.y;
 }
 
-// A tile on its way out stays until every tile taking its place is in the
-// scene (an entry with `entity: null` is still loading): no frame with a hole.
+// A tile on its way out stays until every tile taking its place is drawing:
+// no frame with a hole. It asks `resident` and not `entity`, because having an
+// entity is not the same as having splats in it — an entity is made when the
+// bytes arrive, and a tile that is more than one file has an entity before it
+// has anything to show (client/js/tiles.js, PLAN-lod.md).
 function replaced(world, keep, k) {
     const t = parseKey(k);
     return keep.filter((c) => overlaps(t, c))
-        .every((c) => world.loaded.has(c.key) && world.loaded.get(c.key).entity !== null);
+        .every((c) => world.loaded.get(c.key)?.resident === true);
 }
 
 // world: { tiles: Map(key -> row), roots: [{z,x,y}], origin, loaded: Map(key ->
-// {usedAt, entity?}), inflight: number, failed?: Map(key -> retryAt), now? }.
+// {usedAt, entity?, resident?}), inflight: number, failed?: Map(key -> retryAt),
+// now? }.
 // camera: { position, planes, screenH, fovY }.
 export function selectTiles(world, camera, limits = LIMITS) {
     const ordered = prioritise(world, camera, traverse(world, camera));

@@ -294,7 +294,7 @@
   const terrain = new Terrain(streamer, { ground: floor });
   // SPEC §0.1: ground is always drawn. Where no published tile covers it,
   // the same elevation is drawn as plain terrain (client/js/ground.js).
-  const groundMesh = floor ? new DemGround(app, pc, { origin, floor, tiles: streamer.tiles }) : null;
+  const groundMesh = floor ? new DemGround(app, pc, { origin, floor, streamer }) : null;
   const player = new Player(terrain, { mode: WALK });
   // The corner says which way you are moving and what the keys do about it:
   // Shift runs on the ground and goes down in the air, and forward follows

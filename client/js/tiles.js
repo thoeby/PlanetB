@@ -134,8 +134,15 @@ export class TileStreamer {
         const asset = new this.pc.Asset(c.key, 'gsplat', {
             url: this.url(c), filename: `${c.row.sog_sha256}.sog`,
         });
+        // `resident` is whether this tile's splats are on screen, which is not
+        // the same question as whether it has an entity: an entity is made
+        // when the bytes arrive, and today those happen together. They stop
+        // happening together the moment a tile is more than one file
+        // (PLAN-lod.md), and the ground and the traversal both ask the first
+        // question while reading the second. So it gets its own field now,
+        // answered the same way, and the answer moves later on its own.
         const entry = { usedAt: ++this.clock, seenAt: Date.now(), row: c.row,
-            asset, entity: null };
+            asset, entity: null, resident: false, placedAt: 0 };
         this.entries.set(c.key, entry);
         this.pending++;
         // The in-flight count must fall exactly once per load, whichever way it
@@ -178,6 +185,8 @@ export class TileStreamer {
             this.place(entity, entry.row);
             this.app.root.addChild(entity);
             entry.entity = entity;
+            entry.resident = true;
+            entry.placedAt = Date.now();
             return entry;
         }
         return null;
@@ -297,6 +306,8 @@ export class TileStreamer {
         this.app.root.addChild(entity);
         const oldEntity = e.entity, oldAsset = e.asset;
         e.entity = entity;
+        e.resident = true;
+        e.placedAt = Date.now();
         e.asset = asset;
         e.row = row;
         e.swapping = null;
