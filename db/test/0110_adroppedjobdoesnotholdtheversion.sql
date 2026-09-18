@@ -27,9 +27,9 @@ CREATE TEMP TABLE first AS
 SELECT ensure_job((SELECT z FROM tt), (SELECT x FROM tt), (SELECT y FROM tt)) AS jid;
 
 SELECT ok(drop_job((SELECT jid FROM first)), 'the job is dropped from the pool');
-SELECT is((SELECT expected_version FROM tile
+SELECT is((SELECT dirty FROM tile
            WHERE z = (SELECT z FROM tt) AND x = (SELECT x FROM tt) AND y = (SELECT y FROM tt)),
-    0::bigint, 'and the tile is back at what is published (db/0105)');
+    false, 'and the tile is not asking for anything (db/0150)');
 
 -- The ground changes again, as many times as it takes to come back to the
 -- version the dropped job was opened at.
@@ -41,10 +41,9 @@ BEGIN
         PERFORM recompile_land('00000000-0000-0000-0000-000000000111');
     END LOOP;
 END $$;
-SELECT is((SELECT expected_version FROM tile
+SELECT is((SELECT dirty FROM tile
            WHERE z = (SELECT z FROM tt) AND x = (SELECT x FROM tt) AND y = (SELECT y FROM tt)),
-    (SELECT target_version FROM job WHERE id = (SELECT jid FROM first)),
-    'the tile is at the version the dropped job was opened at');
+    false, 'the tile stops asking, and keeps the version it is at (db/0150)');
 
 CREATE TEMP TABLE second AS
 SELECT ensure_job((SELECT z FROM tt), (SELECT x FROM tt), (SELECT y FROM tt)) AS jid;

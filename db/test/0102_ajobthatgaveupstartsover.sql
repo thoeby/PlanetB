@@ -51,8 +51,8 @@ SELECT throws_ok(format('SELECT drop_job(%s)', (SELECT jid FROM jobs)), '42501',
 SELECT set_config('request.jwt.claims',
     json_build_object('sub', owner_id, 'role', 'player')::text, true) FROM ids;
 SELECT ok(drop_job((SELECT jid FROM jobs)), 'its owner may');
-SELECT is((SELECT state FROM job WHERE id = (SELECT jid FROM jobs)), 'cancelled',
-    'and the job is gone from the pool');
+SELECT is((SELECT count(*) FROM job WHERE id = (SELECT jid FROM jobs)), 0::bigint,
+    'and the job is gone from the pool, pieces and all (db/0150)');
 
 SELECT * FROM finish();
 ROLLBACK;

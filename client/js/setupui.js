@@ -53,6 +53,7 @@ const HTML = `
     <div class="row">
       <button type="button" class="gs-done" disabled>Use this ground</button>
       <button type="button" class="gs-again">Render the whole ground again</button>
+      <button type="button" class="gs-frames">Draw every frame again</button>
     </div>
     <p class="gs-ground status"></p>
     <div class="note">More of the ground: another elevation over or under
@@ -158,6 +159,26 @@ function markSteps(q, g) {
     }
 }
 
+// Every open job there is, drawing its views again and training on the new
+// ones (db/0149). The elevation changed under tiles that were already framed
+// — a layer added, a cut that has since been fixed — and their frames are of
+// the old ground. Nothing is compiled from scratch and no version moves.
+async function frames(q, say) {
+    q('.gs-frames').disabled = true;
+    say('.gs-ground', 'asking every open tile for its frames again\u2026');
+    try {
+        const n = await api.rpc('redo_ground_renders', {});
+        say('.gs-ground', n
+            ? `${n} tile(s) will draw their views again, and train on them`
+            : 'no open tile has frames of its own to draw again');
+    } catch (err) {
+        say('.gs-ground', `could not: ${String(err.body?.message ?? err.message ?? err)}`, true);
+        console.error(err);
+    } finally {
+        q('.gs-frames').disabled = false;
+    }
+}
+
 // Every z14 tile of the ground, built again from what is on it now
 // (db/0104_thewholeground.sql): what to press when the recipe changed.
 async function again(q, say) {
@@ -254,6 +275,7 @@ export function mountSetup(host, { onGround = () => {} } = {}) {
     q('.gs-ladd').onclick = () => addLayer(q, say, found, show);
     q('.gs-done').onclick = () => done();
     q('.gs-again').onclick = () => again(q, say);
+    q('.gs-frames').onclick = () => frames(q, say);
 
     show();
     // Where client/play.html mounts the sign-in form, so step 1 is a step

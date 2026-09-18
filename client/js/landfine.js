@@ -61,7 +61,20 @@ function again(area, ctx) {
     const go = el('button', { type: 'button', className: 'land-again',
         textContent: 'Compile it all again' });
     go.onclick = () => compileAgain(area, go, status, ctx);
+    // The smaller hammer, and the one that is usually meant: the tiles stay,
+    // their frames are drawn again and the training with them (db/0149). A
+    // mesh built from a cut that has since been fixed is exactly this case,
+    // and it does not open a new version of anything.
+    const frames = el('button', { type: 'button', className: 'land-again',
+        textContent: 'Draw its frames again' });
+    frames.onclick = () => redoFrames(area, frames, status, ctx);
     return el('div', { className: 'land-again-box' },
+        frames,
+        el('div', { className: 'note' },
+            'Every tile of this land that is still open draws its views again'
+            + ' and trains on the new ones. Nothing is compiled from scratch'
+            + ' and no version moves: use this when the frames were wrong, not'
+            + ' when the land is.'),
         go,
         el('div', { className: 'note' },
             'Builds every tile of this land from what is on it now, even the'
@@ -69,6 +82,24 @@ function again(area, ctx) {
             + ' from how it was compiled. Jobs open on the old version are'
             + ' cancelled first, and their escrow comes back.'),
         status);
+}
+
+async function redoFrames(area, go, status, ctx) {
+    go.disabled = true;
+    status.dataset.bad = '';
+    status.textContent = 'asking for the frames again\u2026';
+    try {
+        const n = await ctx.api.rpc('redo_land_renders', { area_id: area.id });
+        status.textContent = n
+            ? `${n} tile(s) will draw their views again, and train on them`
+            : 'no open tile of this land has frames of its own to draw again';
+        await ctx.refresh?.();
+    } catch (err) {
+        status.textContent = String(err.body?.message ?? err.message ?? err);
+        status.dataset.bad = '1';
+    } finally {
+        go.disabled = false;
+    }
 }
 
 async function compileAgain(area, go, status, ctx) {

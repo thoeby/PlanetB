@@ -23,15 +23,13 @@ SELECT is((SELECT (params ->> 'iters')::int FROM atom
            WHERE job_id = (SELECT jid FROM jobs) AND op = 'train'), 2400,
     'a tile trains for 1200 steps (db/0122)');
 SELECT ok(drop_job((SELECT jid FROM jobs)), 'an open job of yours can be dropped');
-SELECT is((SELECT state FROM job WHERE id = (SELECT jid FROM jobs)), 'cancelled',
-    'the job is cancelled');
+SELECT is((SELECT count(*) FROM job WHERE id = (SELECT jid FROM jobs)), 0::bigint,
+    'the job is deleted, not cancelled (db/0150)');
 SELECT is((SELECT count(*)::int FROM atom
-           WHERE job_id = (SELECT jid FROM jobs) AND state IN ('ready', 'waiting')), 0,
-    'none of its pieces is left for a tab');
-SELECT is((SELECT expected_version FROM tile
-           WHERE z = 14 AND x = tile_x(7.7, 14) AND y = tile_y(46.7, 14)),
-    (SELECT published_version FROM tile
-           WHERE z = 14 AND x = tile_x(7.7, 14) AND y = tile_y(46.7, 14)),
+           WHERE job_id = (SELECT jid FROM jobs)), 0,
+    'and none of its pieces is left for anything to adopt');
+SELECT is((SELECT dirty FROM tile
+           WHERE z = 14 AND x = tile_x(7.7, 14) AND y = tile_y(46.7, 14)), false,
     'and the tile no longer asks for anything');
 SELECT is((SELECT count(*)::int FROM jsonb_array_elements(render_pool()) j
            WHERE (j ->> 'job')::bigint = (SELECT jid FROM jobs)), 0,
