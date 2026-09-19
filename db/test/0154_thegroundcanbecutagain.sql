@@ -18,6 +18,11 @@ VALUES (repeat('a', 64), 'dem', 1024, 'dem-v1'),
        (repeat('b', 64), 'dem', 1024, 'dem-v1');
 INSERT INTO geo_tile (z, x, y, sha256)
 VALUES (14, 8557, 5736, repeat('a', 64)), (12, 2139, 1434, repeat('b', 64));
+-- Aged by an hour first: `set_ground` above and `recut_ground` below both
+-- write `now()`, which is the transaction's own timestamp and does not move
+-- inside one. What is being tested is that the recut writes the mark, so the
+-- mark it is compared against has to be older than this transaction.
+UPDATE ground SET set_at = now() - interval '1 hour';
 CREATE TEMP TABLE before AS SELECT set_at, (SELECT count(*) FROM job) AS jobs FROM ground;
 
 CREATE TEMP TABLE said AS SELECT recut_ground() AS out;

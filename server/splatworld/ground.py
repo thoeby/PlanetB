@@ -38,13 +38,20 @@ def _lock(key: tuple) -> threading.Lock:
 
 
 # What each kind of ground is served as: elevation as dem-v2 samples, an
-# albedo or a shade as the PNG the WMS drew, which the browser decodes.
-EXT = {"dem": "r16", "albedo": "png", "shade": "png"}
+# albedo, a shade or a cover as the PNG the WMS drew, which the browser
+# decodes. A cover is a class raster (FND.12) — a colour per class, and
+# transparent where the source says nothing.
+EXT = {"dem": "r16", "albedo": "png", "shade": "png", "cover": "png"}
 IMAGE_SIZE = 512
 
 
+def ext_of(kind: str) -> str:
+    """What a kind is served as. `cover-7` is one cover source on its own."""
+    return EXT[kind.split("-", 1)[0] if kind.startswith("cover-") else kind]
+
+
 def tile_path(cfg: Config, z: int, x: int, y: int, kind: str = "dem") -> Path:
-    return cfg.files / "geo" / kind / str(z) / str(x) / f"{y}.{EXT[kind]}"
+    return cfg.files / "geo" / kind / str(z) / str(x) / f"{y}.{ext_of(kind)}"
 
 
 def ground_of(conn) -> dict | None:
@@ -67,6 +74,16 @@ def layers_of(conn, kind: str) -> list[dict]:
         world = ground_of(conn)
         if world:
             out.append(world)
+    # FND.12: `cover-7` is cover source 7 by itself, which is what the Ground
+    # cover panel reads to list the classes it has to map. The composed
+    # `cover` is what the compiler reads.
+    if kind.startswith("cover-"):
+        rows = conn.execute(
+            "SELECT geoserver_url, layer, st_xmin(extent), st_ymin(extent),"
+            " st_xmax(extent), st_ymax(extent) FROM ground_layer"
+            " WHERE kind = 'cover' AND id = %s", (int(kind[6:]),)).fetchall()
+        return [{"url": r[0], "coverage": r[1], "extent": (r[2], r[3], r[4], r[5])}
+                for r in rows]
     rows = conn.execute(
         "SELECT geoserver_url, layer, st_xmin(extent), st_ymin(extent),"
         " st_xmax(extent), st_ymax(extent) FROM ground_layer"
@@ -435,9 +452,17 @@ def cut(cfg: Config, z: int, x: int, y: int, kind: str = "dem") -> Path | None:
             for layer in layers_of(conn, kind):
                 if not covers(layer["extent"], z, x, y):
                     continue
-                body = (_cut_dem(layer, z, x, y, auth) if kind == "dem"
-                        else _cut_image(layer, z, x, y, auth))
-                if body:
+                got = (_cut_dem(layer, z, x, y, auth) if kind == "dem"
+                       else _cut_image(layer, z, x, y, auth,
+                                       kind.startswith("cover")))
+                if not got:
+                    continue
+                # FND.12: a cover source with a lower claim fills only where
+                # the one before it said nothing. A pixel copy, not a blend —
+                # half of one class and half of another is a class nobody
+                # mapped (server/splatworld/png.py).
+                body = got if body is None else _cover_under(body, got)
+                if kind != "cover" or not _has_holes(body):
                     break
             if not body:
                 return None
@@ -483,12 +508,38 @@ def _cut_dem(world: dict, z: int, x: int, y: int, auth: dict) -> bytes | None:
     return body
 
 
-def _cut_image(layer: dict, z: int, x: int, y: int, auth: dict) -> bytes | None:
+def _has_holes(body: bytes) -> bool:
+    """Whether this cover tile still has pixels no source has claimed."""
+    from . import png as pngmod
+
+    try:
+        _, _, rgba = pngmod.decode(body)
+    except pngmod.NotAPng:
+        return False
+    return any(rgba[i] == 0 for i in range(3, len(rgba), 4))
+
+
+def _cover_under(top: bytes, lower: bytes) -> bytes:
+    """`lower` showing through wherever `top` is transparent."""
+    from . import png as pngmod
+
+    try:
+        w, h, over = pngmod.decode(top)
+        w2, h2, under = pngmod.decode(lower)
+    except pngmod.NotAPng:
+        return top
+    if (w, h) != (w2, h2):
+        return top
+    return pngmod.encode(w, h, bytes(pngmod.under(over, under)))
+
+
+def _cut_image(layer: dict, z: int, x: int, y: int, auth: dict,
+               exact: bool = False) -> bytes | None:
     """One tile of a WMS layer as a PNG, drawn straight in the tile projection."""
     from . import geoserver
 
     url = geoserver.map_tile_url(layer["url"], layer["coverage"], crs.tile_bounds(z, x, y),
-                                 IMAGE_SIZE)
+                                 IMAGE_SIZE, exact)
     raw = fetch(url, auth, what=f"{layer['coverage']} for {z}/{x}/{y}")
     if not raw.startswith(b"\x89PNG"):
         raise CutFailed(f"{layer['coverage']} did not come back as a PNG: "
@@ -519,11 +570,13 @@ def parse_request(path: str) -> tuple[int, int, int, str] | None:
     """/geo/{kind}/{z}/{x}/{y}.{ext} -> (z, x, y, kind), or None otherwise."""
     import re
 
-    m = re.fullmatch(r"/geo/(dem|albedo|shade)/(\d+)/(\d+)/(\d+)\.(r16|png)", path)
+    m = re.fullmatch(
+        r"/geo/(dem|albedo|shade|cover|cover-\d{1,9})/(\d+)/(\d+)/(\d+)\.(r16|png)",
+        path)
     if not m:
         return None
     kind, ext = m.group(1), m.group(5)
-    if EXT[kind] != ext:
+    if ext_of(kind) != ext:
         return None
     z, x, y = (int(v) for v in m.groups()[1:4])
     if z % 2 or z < 6 or z > 20 or x >= 2 ** z or y >= 2 ** z:

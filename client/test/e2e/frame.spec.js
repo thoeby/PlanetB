@@ -78,7 +78,7 @@ test('two tabs render the same range of a camera set to the same frames',
     async ({ page }) => {
         const snapshot = psql(`SELECT world_snapshot(${TILE.z}, ${TILE.x}, ${TILE.y})`);
         const assemble = readyAtom({
-            ...TILE, op: 'assemble', algo: 'assemble-v9', inputs: { snapshot },
+            ...TILE, op: 'assemble', algo: 'assemble-v10', inputs: { snapshot },
             params: { ...TILE, budget: 600000 },
         });
         const errors = [];

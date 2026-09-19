@@ -236,6 +236,10 @@ export function scatterOne(f, terrain, random, radius, style, trunks, canopies) 
     const colour = Array.isArray(style.color) ? style.color : TREE.color;
     const grown = maturity((f.props ?? {})[style.age_prop ?? 'age'], style.mature);
     for (const [x, z] of scatter(f.rings, radius, random)) {
+        // FND.12: a point is kept as often as the class holds the ground
+        // there. The draw is taken only where there is a share to read, so a
+        // world with no cover takes the same numbers it always did.
+        if (f.thin && random() >= f.thin(x, z)) continue;
         const tall = (low + random() * (high - low)) * grown;
         const lean = [(random() - 0.5) * 0.08, (random() - 0.5) * 0.08];
         const tint = [0.8 + random() * 0.4, 0.85 + random() * 0.3];

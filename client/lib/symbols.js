@@ -51,11 +51,18 @@ export const LAYERS = [
             { name: 'scale', kind: 'number', label: 'Scale', value: 1 },
         ] },
     { id: 'paint', words: 'Paint', on: 'area · line',
-        note: 'A material over the ground rather than a thing standing on it.',
+        note: 'A material over the ground rather than a thing standing on it.'
+            + ' This is also what a class of the ground cover looks like.',
         fields: [
             { name: 'material', kind: 'product', type: 'material', label: 'Material' },
             { name: 'width', kind: 'number', label: 'Width (m)', value: 0 },
             { name: 'blend', kind: 'number', label: 'Soft border (m)', value: 1 },
+            { name: 'tiling', kind: 'number', label: 'Material is (m) across', value: 4 },
+            { name: 'noise', kind: 'number', label: 'Edge noise', value: 0 },
+            // FND.12: rock shows through where it is steep, snow lies where it
+            // is high. Two numbers on the class itself, not a biome system.
+            { name: 'above_slope', kind: 'number', label: 'Only above slope (%)' },
+            { name: 'above_height', kind: 'number', label: 'Only above (m)' },
         ] },
     { id: 'check', words: 'Check', on: 'line',
         note: 'Builds nothing; flags what cannot be built.',

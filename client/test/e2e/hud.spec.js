@@ -168,9 +168,9 @@ test('every panel has something in it', async ({ page }) => {
             .flatMap((n) => n.dataset.parts?.split(',').filter(Boolean) ?? [n.dataset.tab]));
     // The strip comes first in the page, then the plinth.
     expect(tabs).toEqual(['Wallet', 'Profile', 'Share', 'Setup', 'Land',
-        'Vocabulary', 'Symbols', 'Place', 'Catalog', 'Your land', 'Shape',
-        'Submit', 'Permission', 'Every job', 'Render jobs', 'Training',
-        'Publishing', 'Machine']);
+        'Vocabulary', 'Symbols', 'Ground cover', 'Place', 'Catalog',
+        'Your land', 'Shape', 'Submit', 'Permission', 'Every job',
+        'Render jobs', 'Training', 'Publishing', 'Machine']);
     // A world with no ground opens on Setup by itself, so close whatever is
     // docked before opening them one at a time.
     await page.evaluate(() => window.splatworld.hud.show('World'));

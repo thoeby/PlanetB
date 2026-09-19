@@ -267,3 +267,19 @@
   font-size: 12px; margin: 2px 0;
 }
 #panel .su-go { padding: 2px 10px; }
+
+/* Settings → Ground cover (FND.12): the sources on the left, the mapping on
+   the right. A class nobody has said anything about is dimmed and says so. */
+#panel .cv-cols {
+  display: grid; grid-template-columns: 1fr 1.6fr; gap: 14px; align-items: start;
+}
+#panel .cv-sources { margin: 6px 0; padding: 0; }
+#panel .cv-sources li { display: flex; gap: 6px; align-items: baseline; margin: 2px 0; }
+#panel .cv-map { width: 100%; border-collapse: collapse; margin: 8px 0; }
+#panel .cv-map td { padding: 2px 4px; vertical-align: middle; }
+#panel .cv-map input, #panel .cv-map select { width: 100%; min-width: 70px; }
+#panel .cv-swatch {
+  display: inline-block; width: 16px; height: 16px; border-radius: 3px;
+  border: 1px solid var(--line);
+}
+#panel .cv-unmapped { opacity: 0.65; }

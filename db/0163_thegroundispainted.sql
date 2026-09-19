@@ -268,7 +268,7 @@ BEGIN
 END
 $$;
 
--- db/0151's build_dag, with assemble at `assemble-v9`: everything db/0151 pins
+-- db/0151's build_dag, with assemble at `assemble-v10`: everything db/0151 pins
 -- (train-v13, sog-v3, the seed share, the refine interval, merge from finer
 -- children) with the atom this branch's migrations moved on top of it —
 -- symbols (db/0161), marked parts (db/0160), openings and the shaped ground.
@@ -297,7 +297,7 @@ BEGIN
     IF leaf THEN
         base := jsonb_build_object('snapshot', snap,
             'glb', instance_glbs(a_z, a_x, a_y)) || geo_inputs(a_z, a_x, a_y);
-        asm := new_atom(a_job, 'assemble', 'assemble-v9', base,
+        asm := new_atom(a_job, 'assemble', 'assemble-v10', base,
             jsonb_build_object('z', a_z, 'x', a_x, 'y', a_y,
                                'budget', budget), 0, '{}');
         i := 0;

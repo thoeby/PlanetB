@@ -167,4 +167,4 @@ ALTER TABLE build_rule ADD CONSTRAINT build_rule_kind_check CHECK (kind IN (
 -- build_dag is not redefined here. On the branch this came from, this
 -- migration moved assemble to `assemble-v5b`; merged onto db/0151, which had moved it
 -- to `assemble-v6` (with train-v13 and sog-v3), the one definition that holds
--- both is db/0163's, at `assemble-v9`.
+-- both is db/0163's, at `assemble-v10`.

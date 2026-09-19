@@ -1,4 +1,4 @@
-// assemble.js — `assemble-v9`. The world, as geometry, in one tile's own frame.
+// assemble.js — `assemble-v10`. The world, as geometry, in one tile's own frame.
 //
 // Terrain from the seeded DEM, cut by terrainmods and roads; footprints
 // extruded; forests scattered; water laid flat; the ground coloured by its own
@@ -23,6 +23,9 @@ import { bboxOf, writePly } from '../lib/ply.js';
 import { contains } from '../lib/poly.js';
 import { MATERIALS } from '../lib/props.js';
 import { context, runAll } from '../lib/gen/index.js';
+import {
+    coverColour, coverFeatures, coverOne, loadMaterials, paintOf, readCover,
+} from '../lib/gen/cover.js';
 import { rngOf, sampleSurfaces } from '../lib/sampling.js';
 import { writeTar } from '../lib/tar.js';
 import {
@@ -35,7 +38,7 @@ import { localFromLonLat, lonLatFromLocal, tileBbox, tileFrame } from '../lib/ti
 // v4 writes each surface's own colour and leaves the light to the one
 // renderer (client/lib/raster.js); v3 had baked it for a sampled baseline
 // that is gone. The cut elevation is read whole (terrain.js GRID).
-export const ALGO = 'assemble-v9';
+export const ALGO = 'assemble-v10';
 
 // What assemble and sample both use to turn surfaces into splats; re-exported
 // because both atoms have always reached for them here.
@@ -182,7 +185,7 @@ async function groundColour(z, x, y, filesUrl) {
 // feature is put through the first symbol that matches it, and that symbol's
 // layers draw it (client/lib/gen/).
 function build({ z, sw, ne, dem, frame, world, random, assets, products,
-    ground = [], colourAt = null }) {
+    ground = [], colourAt = null, coverImg = null, materials = null }) {
     const symbols = world.symbols ?? [];
     const feats = (world.features ?? []).map((f) => toLocal(frame, f));
     const terrain = new Terrain({ sw, ne, size: GRID[z] ?? 65, dem });
@@ -195,6 +198,16 @@ function build({ z, sw, ne, dem, frame, world, random, assets, products,
     applyHeightEdits(terrain, ground, (x, z0) => lonLatFromLocal(frame, { x, y: 0, z: z0 }));
 
     const edge = Math.hypot(ne.x - sw.x, sw.z - ne.z);
+    // PLAN-foundation.md §3, step 3: the cover, after the ground is shaped and
+    // before anything is drawn on it. The seed is the tile's own, so the same
+    // tile wobbles the same edges in every tab (Invariant 2).
+    const cover = readCover(coverImg, world.cover, {
+        seed: (z * 73856093) ^ Math.round(frame.lon * 1e5)
+            ^ Math.round(frame.lat * 1e5),
+        metres: Math.abs(ne.x - sw.x) || 1,
+        blendOf: (c) => paintOf(symbols, coverOne(c))?.blend,
+    });
+    const coverFeats = coverFeatures(cover, sw, ne);
     const ctx = context({ terrain, random, radius: Math.max(6, edge / 140),
         asset: (san) => products?.get(san)?.bytes ?? null,
         product: (san) => products?.get(san)?.json ?? null,
@@ -204,15 +217,25 @@ function build({ z, sw, ne, dem, frame, world, random, assets, products,
     // The models are placed before the ground is built: where one of them
     // opens the terrain, the terrain is not built there at all (FND.11).
     const placed = placeInstances(world.instances, assets ?? new Map(), frame);
-    const drawn = runAll(symbols, feats, ctx);
-    const meshes = clip([terrainMesh(terrain, 'terrain', colourAt, placed.openings),
+    const drawn = runAll(symbols, [...coverFeats, ...feats], ctx);
+    // The operator's orthophoto still wins where there is one (db/0106); the
+    // cover answers where there is not, and the height-and-slope ramp where
+    // neither reaches.
+    const painted = colourAt ?? coverColour(cover, {
+        paintOf: (c) => paintOf(symbols, coverOne(c)),
+        material: (san) => materials?.get(san) ?? null,
+        terrain,
+        xOf: (u) => sw.x + (ne.x - sw.x) * u,
+        zOf: (v) => ne.z + (sw.z - ne.z) * v,
+    });
+    const meshes = clip([terrainMesh(terrain, 'terrain', painted, placed.openings),
         ...drawn.meshes, ...placed.meshes], sw, ne);
     const boxes = [...drawn.boxes, ...placed.boxes]
         .filter((b) => b.center[0] >= sw.x - CLIP_M
             && b.center[0] <= ne.x + CLIP_M && b.center[2] <= sw.z + CLIP_M
             && b.center[2] >= ne.z - CLIP_M);
     return { terrain, meshes, boxes, trees: ctx.trees, flags: drawn.flags,
-        paints: ctx.paints, roads: ctx.roads, placed,
+        paints: ctx.paints, roads: ctx.roads, placed, cover,
         openings: placed.openings };
 }
 
@@ -253,7 +276,7 @@ async function loadGround(edits, frame, filesUrl) {
 
 // Everything about where this tile is and what the ground under it looks
 // like, before a single feature is read.
-async function theGround(z, x, y, filesUrl) {
+async function theGround(z, x, y, filesUrl, wantCover = false) {
     // This tile's own cut, never an ancestor's (client/lib/geo.js loadDemExact).
     // A z14 read from z10 holds sixteen of this tile's samples, stretched over
     // a 513-vertex mesh: the quilt of bilinear triangles a player saw in the
@@ -274,10 +297,16 @@ async function theGround(z, x, y, filesUrl) {
     // fillVoids).
     fillVoids(dem);
     const colourAt = await groundColour(z, x, y, filesUrl);
+    // FND.12: the class raster, composed from the operator's cover sources by
+    // the store (server/splatworld/ground.py). Only asked for when the applied
+    // style has a mapping to read it with — a world with no cover keeps the
+    // ramp it always had, and asks the store nothing.
+    const coverImg = wantCover
+        ? await loadImage('cover', z, x, y, { filesUrl }) : null;
     const b = tileBbox(z, x, y);
     const flat = tileFrame(z, x, y, 0);
     const frame = tileFrame(z, x, y, sampleGround(dem));
-    return { b, dem, colourAt, flat, frame,
+    return { b, dem, colourAt, coverImg, flat, frame,
         centre: { lon: (b.west + b.east) / 2, lat: (b.south + b.north) / 2 },
         sw: localFromLonLat(frame, b.west, b.south),
         ne: localFromLonLat(frame, b.east, b.north) };
@@ -298,15 +327,18 @@ export async function run({ atom, log, apiUrl, filesUrl }) {
         throw new Error(`the world moved: ${world.snapshot} is not ${atom.inputs.snapshot}`);
     }
 
-    const { centre, flat, frame, sw, ne, dem, colourAt } = await theGround(z, x, y, filesUrl);
+    const { centre, flat, frame, sw, ne, dem, colourAt, coverImg } =
+        await theGround(z, x, y, filesUrl, Boolean(world.cover?.length));
 
     const assets = await loadAssets(world.instances, { filesUrl });
     const products = await loadProducts(world.symbol_files, filesUrl);
+    const materials = await loadMaterials(products);
     const ground = await loadGround(world.height_edits, frame, filesUrl);
-    const { terrain, meshes, boxes, trees, flags, roads, placed, openings } =
+    const { terrain, meshes, boxes, trees, flags, roads, placed, openings, cover } =
         build({ z, sw, ne, dem, frame, world, random: rngOf(atom, z, x, y),
-            assets, products, ground, colourAt });
+            assets, products, ground, colourAt, coverImg, materials });
     log?.({ event: 'assembled', z, x, y, meshes: meshes.length, trees,
+        cover: cover?.classes?.length ?? 0, unmapped: cover?.unmapped?.length ?? 0,
         buildings: boxes.length, roads: roads.length,
         instances: placed.meshes.length, missing: placed.missing });
 

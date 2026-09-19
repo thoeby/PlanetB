@@ -76,7 +76,7 @@ CREATE TEMP TABLE a1 AS SELECT * FROM claim_for((SELECT id FROM job
     WHERE z = 14 AND x = (SELECT x FROM tt) AND y = (SELECT y FROM tt)), '{}'::jsonb);
 SELECT is((SELECT op FROM a1), 'assemble', 'the tile is assembled first');
 SELECT is(submit_atom((SELECT id FROM a1),
-    register_artifact(repeat('a', 64), 'init_ply', 4096, 'assemble-v9'),
+    register_artifact(repeat('a', 64), 'init_ply', 4096, 'assemble-v10'),
     '{"splat_count": 1000, "finite": true, "gpu_seconds": 1,
       "bbox": [-1, -1, -1, 1, 1, 1]}'::jsonb), 'verified', 'and it verifies');
 

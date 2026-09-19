@@ -87,6 +87,7 @@
   import { mountSetup } from './js/setupui.js';
   import { mountAdmin } from './js/adminui.js';
   import { mountSymbols } from './js/symbolsui.js';
+  import { mountCover } from './js/coverui.js';
   import { mountCatalogPanel } from './js/catalogpanel.js';
   import { drawAreas, labelAreas, labelObjects, mountLand, ringsOf } from './js/land.js';
   import { mountGetLand } from './js/getland.js';
@@ -185,6 +186,7 @@
   // of the Vocabulary part until FND.7 made a rule a stack of layers, which
   // needs a part of its own.
   const symbols = mountSymbols(hud.panel('Symbols'));
+  const cover = mountCover(hud.panel('Ground cover'));
   // Who you are, in the corner, from the moment the page knows.
   const showWho = () => hud.signedIn(api.claims()?.email
       ?? (api.userId() ? 'signed in' : null));
@@ -648,6 +650,7 @@
         asked = { lon: 0, lat: 0, at: 0 };
         build.refresh(); areas.refresh(); showCredits();
         catalog.refresh(); admin.refresh(); symbols.list(); setup.refresh();
+        cover.refresh();
         land.refresh(); assignLand.refresh(); attention.refresh();
         submit.refresh(); pool.refresh(); permission.refresh(); sculpt.refresh();
         showWho();

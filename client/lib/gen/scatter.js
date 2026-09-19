@@ -9,6 +9,11 @@
 // `height` ([low, high]), `sides`, `taper`, `colour`, `mature`, `age_prop`,
 // `max_slope` (refused above it), and the exclusions earlier features left.
 //
+// A cover class is scattered over the whole tile and thinned to where the
+// class actually is (FND.12), so a forest thins out towards its edge instead
+// of stopping at a raster pixel. `feature.thin` is that share; a drawn feature
+// has none and every point of it is the feature.
+//
 // Deterministic (Invariant 2): the draws come from the atom's own seed, in
 // the order the features arrive in.
 

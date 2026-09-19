@@ -133,6 +133,15 @@ function paint(ui) {
     }
 }
 
+// FND.12: the ground cover is one more thing that is saved and not applied,
+// and it is not a symbol, so it is not counted as one.
+function saidOf(rows) {
+    const cover = (rows ?? []).some((c) => c.kind === 'cover');
+    const n = (rows ?? []).length - (cover ? 1 : 0);
+    const symbols = n ? `${n} symbol${n === 1 ? '' : 's'}` : '';
+    return [symbols, cover ? 'the ground cover' : ''].filter(Boolean).join(' and ');
+}
+
 // What is saved but not built with, and how much of the world it would
 // rebuild. The numbers are the database's (db/0162), not a count made here.
 async function changes(ui) {
@@ -140,9 +149,8 @@ async function changes(ui) {
     ui.state.changed = rows ?? [];
     const tiles = (rows ?? []).reduce((n, c) => Math.max(n, c.tiles ?? 0), 0);
     ui.q('.sy-changed').textContent = rows?.length
-        ? `${rows.length} symbol${rows.length === 1 ? '' : 's'} changed since the last`
-            + ` apply \u00b7 ${tiles} published tile${tiles === 1 ? '' : 's'}`
-            + ' would be rebuilt'
+        ? `${saidOf(rows)} changed since the last apply \u00b7 ${tiles} published`
+            + ` tile${tiles === 1 ? '' : 's'} would be rebuilt`
         : 'the world is built with every symbol as it stands';
     ui.q('.sy-apply').disabled = !rows?.length;
     return rows;
@@ -310,7 +318,7 @@ function wire(ui) {
     q('.sy-apply').onclick = () => {
         const tiles = ui.state.changed.reduce((n, c) => Math.max(n, c.tiles ?? 0), 0);
         q('.sy-confirm-said').textContent =
-            `${ui.state.changed.length} symbol(s) would go into the world, and`
+            `${saidOf(ui.state.changed)} would go into the world, and`
             + ` ${tiles} published tile(s) would be rendered again.`;
         q('.sy-confirm').hidden = false;
     };

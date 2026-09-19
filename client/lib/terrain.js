@@ -78,6 +78,15 @@ export class Terrain {
         return out;
     }
 
+    // The same slope, asked for in metres rather than in grid steps: what the
+    // ground cover reads when a class only shows above one (FND.12).
+    slopeAt(x, z) {
+        const i = Math.round((x - this.west) / this.stepX);
+        const j = Math.round((z - this.north) / this.stepZ);
+        return this.slope(Math.min(Math.max(i, 0), this.size - 1),
+            Math.min(Math.max(j, 0), this.size - 1));
+    }
+
     slope(i, j) {
         const n = this.size;
         const l = this.h[j * n + Math.max(i - 1, 0)];

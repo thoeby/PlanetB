@@ -2249,3 +2249,71 @@ Not proven here: `make player-run` and the browser lane (no GPU, no PostgREST
 in this container), and `make api-test`. Two things were red before the merge
 and are still red: `db/test/0154` test 3 compares two `now()` of one
 transaction, and `client/js/work.js` is over the four-hundred-line rule.
+
+## FND.12: the ground is made of something
+
+Story 27: A adds swissTLM3D and ESA WorldCover as cover sources, reads the
+classes out of the ground the world cut for them, says which of the world's
+own words each class is, gives those words a `paint` layer and the wood a
+`scatter`, and applies it. The ground stops being a ramp.
+
+**A cover source is a class raster over WMS**, exactly as the albedo is. A
+raster of classes already is one; a vector is one the operator paints with the
+style the panel writes for them (`client/js/coversld.js` — the colour of a
+class is computed from its code, injective, the same three lines as
+`tools/geoserver_cover.py`). The store cuts it per tile like every other kind
+of ground, with antialiasing off, because a colour halfway between two classes
+is a class nobody mapped. Where the source with the first claim on a tile says
+nothing, the next one shows through: a pixel copy in
+`server/splatworld/png.py`, which is PNG in and PNG out in `zlib` and `struct`
+and reads nothing into it (Invariant 10).
+
+**What a class means is rows, and what it looks like is a symbol.** The mapping
+is colour → `{kind, key, value}` on the source (db/0166), so the cover adds no
+vocabulary of its own: it says which of the world's words each patch of ground
+is, and the symbol for that word says the rest. Giving `landuse=forest` a
+`paint` layer is the same thing a drawn forest uses.
+
+**It reaches the world the way a symbol does.** A mapping is saved and then
+applied; `cover_version` holds what was applied, `style_version.cover_mapping`
+pins it, and a tile built against version 3 can be rebuilt against version 3
+(Invariant 2 — and the header says "the ground cover" apart from the symbols,
+because it is not one). A changed mapping is every published tile, which is
+the truth: the ground under all of them is what it is about.
+
+**An edge is not where the raster steps.** Each class gets an exact Euclidean
+distance field (Felzenszwalb, two passes, no iteration count and no
+approximation), and a point near two classes is partly both over the width the
+class's own symbol asks for, wobbled by value noise seeded from the tile. That
+one number is both the ground's colour there and how thickly the class is
+scattered, so a forest thins out towards its edge instead of stopping at a
+pixel. `client/test/cover.test.js` holds it to the ruler.
+
+**A class nobody mapped is listed, is not shown, and breaks nothing** — the
+same answer db/0040 gave about an unknown property key.
+
+### The gate this was built on was red
+
+The merge that brought the LOD work in (`4882e87`) left `make gate` failing
+before any of this started, and the failures are not FND.12's:
+
+- `db/test/0154` compared `now()` with `now()` inside one transaction and
+  could never pass. Fixed here, in the test, by ageing the mark it compares
+  against — the behaviour is right, the assertion was not.
+- `client/js/work.js` was 416 lines against a 400-line rule. Split: what the
+  tab can do and how it runs an atom are `client/js/workcaps.js` now, and
+  `work.js` is the loop.
+- **Seven `client/test/e2e` specs fail on the merge and are left alone**
+  (hotswap, sog, spot, stream ×2, train, work). Measured: the same seven fail
+  with every change of this task stashed and only the `0154` fix applied.
+- **`make player-run` cannot get past story 8 on the merge.** The `sog` atom
+  is claimed and then nothing: its `heartbeat_at` never moves off
+  `claimed_at`, the tab says nothing more, and the story times out at fifteen
+  minutes. Measured the same way — stories 0–8 on the merge with every change
+  of this task stashed fail identically (`8 passed, 1 failed`, 34.8 min).
+  `sog-v3` (`c4ca185`) is where a sog became five files instead of one; that
+  is the place to look, and it is the LOD work's to look at.
+
+So story 27 is written and unrun, and so is story 26 against the merge.
+`make db-test`, `make api-test`, `make lint` and the node tests are green
+here; the player-run is not a gate anybody can pass right now.

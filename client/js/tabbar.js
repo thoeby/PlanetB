@@ -79,7 +79,8 @@ export const TABS = [
         parts: [{ name: 'Setup', label: 'Setup' },
             { name: 'Land', label: 'Land', key: '0', wide: true },
             { name: 'Vocabulary', label: 'Vocabulary', wide: true },
-            { name: 'Symbols', label: 'Symbols', wide: true }] },
+            { name: 'Symbols', label: 'Symbols', wide: true },
+            { name: 'Ground cover', label: 'Ground cover', wide: true }] },
 ];
 
 // Every part there is, with the surface that holds it.
@@ -102,6 +103,7 @@ export const PART_LEDE = {
         + ' piece of it there is.',
     Vocabulary: 'What things may say about themselves.',
     Symbols: 'What the compiler lays down where a thing is drawn.',
+    'Ground cover': 'What the ground between the drawn things is made of.',
     'Your land': 'The ground you own, and what stands on it.',
     Shape: 'The ground itself: pull it up, push it down, lay a road bed.',
 };

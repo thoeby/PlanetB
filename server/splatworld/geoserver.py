@@ -165,6 +165,19 @@ def bbox_of(node) -> list[float] | None:
                 found = _lonlat(_pair(corners[0], corners[1]))
                 if found:
                     return found
+        # WMS 1.3.0's own spelling of the same thing (FND.12: a cover is a
+        # WMS layer, and this is where its extent is).
+        if tag == "EX_GeographicBoundingBox":
+            corners = {local(c.tag): c.text for c in child}
+            try:
+                found = _lonlat([float(corners["westBoundLongitude"]),
+                                 float(corners["southBoundLatitude"]),
+                                 float(corners["eastBoundLongitude"]),
+                                 float(corners["northBoundLatitude"])])
+            except (KeyError, TypeError, ValueError):
+                found = None
+            if found:
+                return found
         if tag == "LatLongBoundingBox":
             try:
                 found = _lonlat([float(child.get(k))
@@ -370,6 +383,30 @@ def coverage_tile_url(base: str, coverage_id: str, bbox: tuple, size: int,
 
 
 
+def wms_layers(base: str, auth: dict) -> list[dict]:
+    """Every layer this GeoServer draws, as {name, title, bbox}.
+
+    A ground cover reaches the world over WMS (FND.12) — a raster of classes
+    or a vector painted as one — so what the Ground cover panel may offer is
+    what WMS lists, not what WFS or WCS do.
+    """
+    tried: list[tuple[str, str, bytes]] = []
+    for version in ("1.3.0", "1.1.1"):
+        root, raw, url = capabilities(base, "WMS", version, auth)
+        out = []
+        for node in find_all(root, "Layer"):
+            name = first_text(node, "Name")
+            if not name:
+                continue
+            out.append({"name": name, "title": first_text(node, "Title") or name,
+                        "bbox": bbox_of(node)})
+        found = [layer for layer in out if layer["bbox"]]
+        if found:
+            return sorted(found, key=lambda f: f["name"])
+        tried.append((version, url, raw))
+    raise _nothing_listed("WMS", tried)
+
+
 def probe(base: str, user: str | None, password: str | None) -> dict:
     """What this GeoServer has: its rasters, and its vector layers if any.
 
@@ -379,31 +416,41 @@ def probe(base: str, user: str | None, password: str | None) -> dict:
     layers at all, which is not an error and must not read like one.
     """
     auth = _auth_header(user, password)
-    result: dict = {"wfs": service_url(base, "wfs"), "layers": [], "coverages": []}
-    for key, fetch in (("layers", feature_types), ("coverages", coverages)):
+    result: dict = {"wfs": service_url(base, "wfs"), "layers": [], "coverages": [],
+                    "drawn": []}
+    for key, fetch in (("layers", feature_types), ("coverages", coverages),
+                       ("drawn", wms_layers)):
         try:
             result[key] = fetch(base, auth)
         except SystemExit as err:
             result[f"{key}_error"] = str(err)
-    if not result["layers"] and not result["coverages"]:
+    if not any(result[k] for k in ("layers", "coverages", "drawn")):
         return {"error": result.get("coverages_error") or result.get("layers_error")
                 or "connected, but this GeoServer publishes nothing"}
     return result
 
 
-def map_tile_url(base: str, layer: str, bbox: tuple, size: int) -> str:
+def map_tile_url(base: str, layer: str, bbox: tuple, size: int,
+                 exact: bool = False) -> str:
     """One tile of a layer as a picture: WMS 1.1.1 GetMap in the tile projection.
 
     An albedo or a shade (db/0106) is a picture, not a measurement, so the WMS
     draws it straight in the tile projection (crs.TILE, the one place the code
     is written) and nothing is warped here. Outside the layer's data the
     picture is transparent, which client/lib/geo.js reads as "no albedo here".
+
+    `exact` is for a cover (FND.12), which is not a picture but a class per
+    pixel: antialiasing a class boundary invents a colour halfway between two
+    classes, which is a class nobody mapped, so it is turned off.
     """
     west, south, east, north = bbox
-    query = urllib.parse.urlencode({
+    asked = {
         "service": "WMS", "version": "1.1.1", "request": "GetMap",
         "layers": wcs10_name(layer), "styles": "", "srs": TILE,
         "bbox": f"{west},{south},{east},{north}",
         "width": size, "height": size, "format": "image/png", "transparent": "true",
-    }, quote_via=urllib.parse.quote)
+    }
+    if exact:
+        asked["format_options"] = "antialias:none"
+    query = urllib.parse.urlencode(asked, quote_via=urllib.parse.quote)
     return f"{service_url(base, 'wms')}?{query}"
