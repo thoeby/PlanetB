@@ -2311,8 +2311,18 @@ before any of this started, and the failures are not FND.12's:
   `claimed_at`, the tab says nothing more, and the story times out at fifteen
   minutes. Measured the same way — stories 0–8 on the merge with every change
   of this task stashed fail identically (`8 passed, 1 failed`, 34.8 min).
-  `sog-v3` (`c4ca185`) is where a sog became five files instead of one; that
-  is the place to look, and it is the LOD work's to look at.
+  What the tab's own log says, read out of the trace: the sog atom *finishes*
+  — `sogged … splats 3002, bytes 28226, levels [3002, 750]`, 0.65 s after it
+  was claimed — and then the tab stops. The first level's PUT completes
+  (`201`), `POST /rpc/register_artifact` is issued and never answered, and
+  nothing is logged or requested again, heartbeat included.
+
+  It is not the world's end of it. Caught in the act, twelve minutes into the
+  hang: no blocked backend (`pg_blocking_pids` empty), PostgREST's whole pool
+  idle on `COMMIT`, and both servers answering a probe in under a tenth of a
+  second. The tab is what stops, on the handover from the WebGPU trainer to
+  the sog, and `sog-v3` (`c4ca185`) — where a sog became one file per level —
+  is where to start. It is the LOD work's to look at.
 
 So story 27 is written and unrun, and so is story 26 against the merge.
 `make db-test`, `make api-test`, `make lint` and the node tests are green
