@@ -17,15 +17,20 @@ SELECT ok(world_clock() > 1700000000, 'the world says what time it is');
 SELECT ok(abs(world_clock() - extract(epoch FROM now())) < 1,
           'and it is this world''s own clock, not a guess');
 
--- The other three exist, with the shape they will keep, and refuse in one
--- sentence until F10 gives them a runner. A block wired to an address that
--- 404s cannot be validated; one wired to an address that says no can.
+-- The other three existed here with the shape they will keep, refusing every
+-- caller in one sentence: a block wired to an address that 404s cannot be
+-- validated; one wired to an address that says no can.
+--
+-- Two of them have since been given their real answer — `port_write` by FND.15
+-- (db/0169) and `mover_set` by FND.16 (db/0172) — so what they say now is what
+-- is wrong with the call, which is the better sentence and the point of having
+-- written them. `world_events` is still F10's, and still says so.
 SELECT throws_like($$SELECT port_write(gen_random_uuid(), 'on', 'true'::jsonb)$$,
-    '%flows do not run yet%', 'writing a port says flows do not run yet');
+    '%standing anywhere%', 'writing a port answers a player now (FND.15)');
 SELECT throws_like($$SELECT mover_set(gen_random_uuid(), '{}'::jsonb)$$,
-    '%flows do not run yet%', 'so does setting a mover');
+    '%no such mover%', 'and so does setting a mover (FND.16)');
 SELECT throws_like($$SELECT world_events(0)$$,
-    '%flows do not run yet%', 'and so does asking what has happened');
+    '%flows do not run yet%', 'what has happened is still the runner''s, in F10');
 
 SELECT has_function('api'::name, 'world_clock'::name,
                     'and every one of them is reachable over the API');

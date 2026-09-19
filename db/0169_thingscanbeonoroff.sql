@@ -187,7 +187,7 @@ FROM live_state l
 JOIN instance i ON i.id = l.instance_id AND i.deleted_at IS null
 WHERE l.rev > p_since
   AND st_dwithin(i.geom::geography,
-                 st_setsrid(st_makepoint(p_lon, p_lat), 4326)::geography,
+                 st_setsrid(st_makepoint(p_lon, p_lat), world_srid())::geography,
                  p_metres);
 $$;
 

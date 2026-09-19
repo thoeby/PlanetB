@@ -616,6 +616,10 @@
       hud.whenShown(queue, () => pool.look(queue));
   }
   hud.whenShown('Machine', () => work.progress());
+  // FND.16: opening Place is looking at where you are — what you may do here,
+  // what is waiting to be submitted, and what runs over this ground. A panel
+  // that shows what was true when the tab loaded is a panel nobody can read.
+  hud.whenShown('Place', () => build.refresh());
   hud.whenShown('Your land', () => land.refresh());
   hud.whenShown('Submit', () => submit.refresh());
 

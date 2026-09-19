@@ -265,6 +265,12 @@ test('story 30 — a lamp is switched on, and everybody sees it',
         await test.step('3 — the approver says yes, and then A sees it',
             () => approves(b, a, seen));
 
+        // A and B have seen what they came to see. Four windows on one
+        // machine is four 3D views competing for it, and the next player needs
+        // theirs to be steady enough to press a button on.
+        await a.close();
+        await b.close();
+
         const d = await open(browser, world, 'D', testInfo);
         await test.step('a fourth player joins the world',
             () => signUp(d, 'dora@visp.example', 'Dora'));
@@ -272,6 +278,4 @@ test('story 30 — a lamp is switched on, and everybody sees it',
             () => strangerLooks(d, byTheLamp, lamp));
 
         await d.close();
-        await a.close();
-        await b.close();
     });

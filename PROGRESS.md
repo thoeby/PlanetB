@@ -2543,3 +2543,16 @@ corners, press it again — and the Movers list shows what runs on whichever
 land is under you, whether or not you may build on it, with a countdown that
 counts down. A bus everybody can see is a bus everybody can read the timetable
 of.
+
+Story 31 is **green**, against the same replay world as 29, 16 and 30. Two
+things it made me change and one it made me write down:
+
+- **The Place panel refreshes when it is shown.** It did not: it showed what
+  was true when the tab loaded until you toggled something. A and C standing
+  at the stop could not read the timetable, which is how it was found.
+- **A click that finds no ground says so.** A corner the ray missed was
+  silently not a corner, and the next click was counted as it.
+- **The story asks both tabs about one named second**, rather than reading
+  them a moment apart and hoping. `Movers.where(t)` takes the time, so "the
+  same bus at the same second" is asserted as exactly that — and it is also
+  what takes the run's own timing out of the test.

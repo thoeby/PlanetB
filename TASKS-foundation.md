@@ -975,3 +975,13 @@ minute"). Open points for it are in `PLAN-foundation.md` §10.
   before it. Story 29 and story 16 are green, but run against a world built
   from the stories that do not render (`tools/replay.sh`) rather than through
   the whole run in order, which story 8 still stops.
+- **FND.15 and FND.16 are green the same way.** Stories 30 and 31 were run
+  against a world built from the stories that do not render — 0, 1, 2, 4, 5,
+  10, 20 and 21, all green from an empty database — and then saved and
+  replayed. Their migrations are `db/0169`–`db/0172`, not this file's `0137`
+  and `0138`. Three departures are written down in PROGRESS.md: a screen is
+  the marked part's own surface rather than a quad over it, what a screen
+  shows is asserted as the sha256 the tab draws with rather than as pixels
+  (a canonical GLB carries no texture coordinates), and the stranger in story
+  30 step 4 is a fourth player, because C was given a build grant on that land
+  in story 10.

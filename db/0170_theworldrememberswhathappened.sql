@@ -163,23 +163,33 @@ $$;
 GRANT EXECUTE ON FUNCTION refuse_screen(uuid, text) TO player, admin;
 
 -- Submit lists it with everything else a land has changed, because to the
--- person sending it that is what it is: a change other people will see.
+-- person sending it that is what it is: a change other people will see. Every
+-- other count here is db/0163's, unchanged — a screen is one more line on the
+-- same list, not a reason to rewrite it.
 CREATE OR REPLACE FUNCTION submission_changes(p_area uuid) RETURNS jsonb
 LANGUAGE sql STABLE SET search_path = public AS $$
 SELECT jsonb_build_object(
     'tiles', (SELECT count(*) FROM tile t
               WHERE t.dirty AND t.expected_version > 0
+                AND is_leaf_tile(t.z, t.x, t.y)
                 AND st_intersects((SELECT geom FROM area WHERE id = p_area),
                                   tile_bbox(t.z, t.x, t.y))),
     'objects', (SELECT count(*) FROM instance i
                 WHERE i.area_id = p_area AND i.deleted_at IS null),
     'moved', (SELECT count(*) FROM instance i
               WHERE i.area_id = p_area AND i.deleted_at IS null AND i.rev > 1),
+    -- FND.15: a screen waiting for the land's approver (db/0169).
     'screens', (SELECT count(*) FROM live_state l
                 JOIN instance i ON i.id = l.instance_id AND i.deleted_at IS null
                 WHERE i.area_id = p_area AND l.pending IS NOT NULL),
     'features', (SELECT count(*) FROM feature f
-                 WHERE f.area_id = p_area AND f.deleted_at IS null));
+                 WHERE f.area_id = p_area AND f.deleted_at IS null),
+    'ground', coalesce((SELECT rev FROM current_height_edit(p_area)), 0),
+    'kinds', coalesce((
+        SELECT jsonb_object_agg(k.kind, k.n) FROM (
+            SELECT f.kind, count(*) AS n FROM feature f
+            WHERE f.area_id = p_area AND f.deleted_at IS null
+            GROUP BY f.kind) k), '{}'::jsonb));
 $$;
 
 CREATE VIEW api.world_event WITH (security_invoker = true)
