@@ -2276,3 +2276,16 @@ Two rough edges of the job management, both met by one tile that said
   old bytes already there (409, accepted), registers them, and a wipe of the
   store afterwards leaves the row. Empty the store *before* the reset, or
   both before any tab reconnects.
+
+## A person is one worker
+
+`worker.user_id` had an index and no uniqueness (db/0001), and `my_worker`
+was a SELECT and then an INSERT. The first page load after an empty database
+fires `claim_atom`, `heartbeat` and `submit_atom` close together, every one
+asks `my_worker`, two find nothing and both insert. From then on the claim
+went under one worker id and the heartbeat under the other — "atom 11 is not
+claimed by you" — the thirty-minute lease ran out, the training went back to
+the pool, and the same tab claimed it again. `db/0167` folds the doubled
+rows into the oldest one (atoms, verifications and op stats follow), makes
+`user_id` unique, and `my_worker` one `INSERT … ON CONFLICT` that the
+constraint decides.
