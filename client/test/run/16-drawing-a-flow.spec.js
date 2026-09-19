@@ -112,19 +112,27 @@ async function clickEmpty(player) {
 const names = (player) => player.page.evaluate(() =>
     (window.splatworld.flows.canvas().graph._nodes ?? []).map((n) => n._irName));
 
+// FND.14: every flow is made with these two, because a World block put into it
+// later has nothing to reach the world with otherwise. They are inputs like any
+// other until one is there to use them.
+const WORLD = ['world', 'world_key'];
+
 // 3 — two blocks, the flow's own input and output, and the wires between them.
 async function draws(a) {
     await dragIn(a, 'bytes from string', 'From String', [0.35, 0.3]);
     await dragIn(a, 'strings contains', 'Contains', [0.65, 0.6]);
-    expect(await names(a)).toEqual(['From String', 'Contains']);
+    expect(await names(a)).toEqual([...WORLD, 'From String', 'Contains']);
 
     // What somebody calling this flow passes in and gets back. They are added
     // with nothing selected, which is when the inspector is about the flow.
     await clickEmpty(a);
     await a.page.locator('#flows .fl-add-input').click();
-    await a.page.locator('#flows .fl-inputs input').fill('Target');
-    await a.page.locator('#flows .fl-inputs input').blur();
-    await a.page.locator('#flows .fl-inputs select').selectOption('string');
+    // The one just added, which is the last of the three: the other two are
+    // the world's, and they came with the flow.
+    const added = a.page.locator('#flows .fl-inputs li').last();
+    await added.locator('input').fill('Target');
+    await added.locator('input').blur();
+    await added.locator('select').selectOption('string');
     await a.page.locator('#flows .fl-add-output').click();
     await a.page.locator('#flows .fl-outputs input').fill('Found');
     await a.page.locator('#flows .fl-outputs input').blur();
@@ -293,7 +301,7 @@ test('story 16 — a flow is drawn on a land, saved, and found again',
             await expect(a.page.locator('#flows .fl-top .name'))
                 .toHaveText('lamp at dusk', { timeout: UI });
             await expect(a.page.locator('#flows .fl-list li[data-flow]')).toHaveCount(1);
-            expect(await names(a)).toEqual([]);
+            expect(await names(a)).toEqual(WORLD);
         });
 
         await test.step('3 — blocks, ports and wires', () => draws(a));

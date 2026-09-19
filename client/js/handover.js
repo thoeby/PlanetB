@@ -10,9 +10,10 @@ import { copyCoverTo } from './covertrace.js';
 import { ringOf } from './assignland.js';
 
 // The cover inside a new land, copied onto it. A world with no cover mapped
-// has nothing to copy and says nothing; a failure here is said and is not
-// allowed to unmake the assignment, which has already happened.
-async function handOverCover(areaId, name, say) {
+// has nothing to copy and says so by leaving the assignment's own sentence
+// standing; a failure here is said and is not allowed to unmake the
+// assignment, which has already happened.
+async function handOverCover(areaId, name, say, settled) {
     if (!areaId) return;
     try {
         const area = await api.rpc('one_land', { id: areaId });
@@ -21,7 +22,10 @@ async function handOverCover(areaId, name, say) {
         const got = await copyCoverTo(area, {
             onStep: (what) => say(`${name} assigned — tracing ${what.value}\u2026`),
         });
-        if (got.copied) say(`${name} assigned. Cover copied: ${got.copied} shape(s).`);
+        // A world with nothing mapped copies nothing, and then the last thing
+        // the panel said must not be "reading the ground…": the assignment is
+        // done, and the sentence has to say so.
+        say(got.copied ? `${name} assigned. Cover copied: ${got.copied} shape(s).` : settled);
     } catch (err) {
         say(`${name} assigned, but its cover could not be copied:`
             + ` ${String(err.body?.message ?? err.message ?? err)}`, true);
@@ -44,7 +48,8 @@ export async function handOver(state, boundary, nameField, say, refresh) {
         // FND.13: the ground goes with the land. What the operator's cover
         // says is on it becomes the landholder's own shapes, traced here
         // (Invariant 9) — nothing is rendered, which is still story 2's rule.
-        await handOverCover(done.area_id, done.name, say);
+        await handOverCover(done.area_id, done.name, say,
+            `${done.name} assigned to ${done.who}.`);
         state.corners = [];
         boundary.value = '';
         await refresh();

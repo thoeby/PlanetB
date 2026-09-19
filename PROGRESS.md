@@ -2393,3 +2393,63 @@ A world that maps nothing has no cover and a land on it is unaffected.
 - **`/tiles/cover/{z}/{x}/{y}.png` is a manifest lookup**, as the task asks —
   the store follows the published tile's own pointer and serves the file. It
   computes nothing (Invariant 10).
+
+## FND.14: the world is something a flow can reach
+
+Five blocks — **Write Port**, **Read Port**, **Set Mover**, **Events Since**,
+**World Clock** — in a plugin of the world's own, `client/flow/world/`, with a
+composite ELX per block under `assets/nodes/` built only from blocks the
+bundled palette already has (`http`, `json`, `strings`, `builtin`,
+`mathematics`). `client/test/world-plugin.test.js` reads them as the files they
+are and holds them to that: the five blocks with their declared ports, and not
+one inner block the palette has not got. It caught two composites naming blocks
+that do not exist (`mathematics.comparison.less`, a half-nested
+`insert-or-assign`) before any of it was run.
+
+**Which branch we are on: neither, and why is written down.** PLAN-foundation
+§8 says the check is one question to a process server — does it load a plugin
+that is only XML? There is no process server in this container and none is
+reachable, the same blocker FND.2 already records. `docs/flow.md` carries the
+outcome, the one-line recipe that answers it (`cp -r client/flow/world …` then
+`grep '"world"'` in `/api/v1/system/plugins/available`), and branch B's naming
+written down in advance so both halves agree if it is ever needed. The blocks
+are `plugin="world"` nodes as they stand, which is branch A's shape.
+
+**The four addresses exist now** (`db/0168`), with the shape they will keep.
+`world_clock` answers — there is nothing to withhold about what the time is.
+`port_write`, `mover_set` and `world_events` refuse every caller with "flows do
+not run yet" until F10 gives them a runner. A block wired to an address that
+404s is a block nobody can validate; one wired to an address that says no is a
+block that is right and early.
+
+**Nobody types a uuid.** A World block names an object by its id, so the
+inspector's World section offers the land's objects by the product's name
+(`flows.objectsOn`), the chosen object's ports by the product's own port list
+(FND.6, db/0160), and a widget for whatever kind the port is — a switch for
+`on`, a colour well for `colour`. "Pick in world" is the other way round:
+Automate hides itself, the world is drawn again with the cursor free, the page
+says *click an object on <land>*, and build mode's own ray
+(`client/js/pickworld.js`) says what was clicked.
+
+**Every flow is made with `world` and `world_key`**, because a World block put
+into it later has nothing to reach the world with otherwise. While one is
+there the two cannot be removed: the button is disabled and the row says "used
+by World blocks". Story 16 was updated to expect them — what a new flow is has
+changed, and a story that says otherwise is out of date rather than right.
+
+Story 29: B plants the lamp on their land and saves it; C, who may build
+there, draws Write Port, picks the lamp out of the world, chooses `on`, sets it
+true, validates, saves, exports and imports the file as a copy — and the copy
+holds the same one World block, not the blocks a composite of it would be made
+of. It is **green**, and so is story 16 under it. The whole player-run still
+stops at story 8, so these were run the way `tools/replay.sh` is for: stories
+0–2, 4, 5, 10 and 21 from an empty database (none of them renders), saved, and
+then 16 and 29 against that world. That is not the gate — the gate is the whole
+run in order — but it is the code actually exercised rather than only read.
+
+**One defect found by running it.** `handOverCover` (FND.13) said "<land>
+assigned — reading the ground…" and, when a world had no cover mapped and so
+nothing to copy, never said anything else: the last word on the screen was that
+it was still reading, for an assignment that had finished. It now puts the
+assignment's own sentence back. Story 16, which assigns a land before it draws
+anything, is what caught it.

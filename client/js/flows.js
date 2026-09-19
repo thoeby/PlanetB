@@ -102,6 +102,33 @@ export const duplicateFlow = (flow, name) => saveFlow({
     areaId: flow.area_id, name, sha: flow.elx_sha256, layout: flow.layout, rev: 0,
 });
 
+// ------------------------------------------------------------- what is there
+
+// Everything placed on a land, with what its product can be told (FND.6,
+// db/0160). A World block names an object by its id; this is how the inspector
+// can offer it by name instead. Two lamps of the same product are told apart by
+// a number, because that is all the world knows them by.
+export async function objectsOn(areaId) {
+    const rows = await api.select('instance', {
+        select: 'id,san', area_id: `eq.${areaId}`, deleted_at: 'is.null',
+        order: 'san.asc,id.asc', limit: '200',
+    });
+    if (!rows.length) return [];
+    const sans = [...new Set(rows.map((r) => r.san))];
+    const assets = await api.select('asset',
+        { select: 'san,name,parts', san: `in.(${sans.join(',')})` });
+    const by = new Map(assets.map((a) => [a.san, a]));
+    const seen = new Map();
+    return rows.map((r) => {
+        const asset = by.get(r.san);
+        const base = asset?.name ?? r.san;
+        const n = (seen.get(base) ?? 0) + 1;
+        seen.set(base, n);
+        return { id: r.id, san: r.san, name: n === 1 ? base : `${base} ${n}`,
+            ports: asset?.parts?.ports ?? [] };
+    });
+}
+
 // --------------------------------------------------------------- the palette
 
 // What there is to draw with. The bundled set is static files under

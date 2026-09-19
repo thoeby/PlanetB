@@ -107,3 +107,14 @@
   background: rgba(0, 0, 0, 0.6); z-index: 8; }
 #flows .fl-ask > div { background: var(--panel-solid); border: 1px solid var(--edge);
   padding: 16px; width: 360px; }
+
+/* FND.14: a World block's own rows — which object, which port, what to set it
+ * to — above the constants the block's other inputs are given. */
+#flows .fl-world { margin: 6px 0; padding: 0; list-style: none; }
+#flows .fl-world li { display: flex; gap: 6px; align-items: baseline;
+  padding: 3px 0; font-size: 12px; }
+#flows .fl-world li > span:first-child { flex: 0 0 56px; color: var(--ink-3); }
+#flows .fl-world select { flex: 1; min-width: 0; }
+#flows .fl-world .fl-value { flex: 1; min-width: 0; }
+#flows .fl-world .fl-pick { flex: 0 0 auto; font-size: 10px; }
+#flows .fl-held { font-size: 10px; }

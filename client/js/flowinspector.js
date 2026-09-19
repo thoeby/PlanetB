@@ -9,6 +9,8 @@ import { el } from './poolui.js';
 import { addPort, removePort } from '../flow/graph/portgroup.js';
 import { getBlock } from '../flow/plugins/registry.js';
 import { markGraphDirty } from '../flow/graph/history.js';
+import { isWorldBlock, usesWorld, worldFields, WORLD_INPUTS, WORLD_PORTS }
+    from './flowworld.js';
 
 const TRUE = new Set(['true', '1', 'yes']);
 
@@ -74,9 +76,10 @@ function parameters(node, changed) {
 
 // A value typed straight onto an input that no wire reaches. Wired inputs take
 // what the wire brings, so they are not offered one.
-function constants(node, changed) {
+function constants(node, changed, held = new Set()) {
     const rows = (node.inputs ?? []).map((slot, i) => ({ slot, i }))
-        .filter(({ slot }) => slot.link === null || slot.link === undefined);
+        .filter(({ slot }) => (slot.link === null || slot.link === undefined)
+            && !held.has(slot.name));
     if (!rows.length) return [];
     const list = el('ul', { className: 'fl-consts' });
     for (const { slot } of rows) {
@@ -152,13 +155,20 @@ function pseudos(canvas, changed) {
                 markGraphDirty(canvas.graph);
                 changed();
             };
-            const del = el('button', { type: 'button', textContent: 'Remove' });
+            // FND.14: the two a World block reaches the world through stay
+            // while one is there to reach it.
+            const locked = kind === 'input' && WORLD_INPUTS.includes(n._irName)
+                && usesWorld(canvas.graph);
+            const del = el('button', { type: 'button', textContent: 'Remove',
+                disabled: locked, title: locked ? 'used by World blocks' : '' });
             del.onclick = () => {
                 canvas.graph.remove(n);
                 markGraphDirty(canvas.graph);
                 changed();
             };
-            const row = el('li', {}, name, type, del);
+            const row = el('li', {}, name, type, del, locked
+                ? el('span', { className: 'muted fl-held', textContent: 'used by World blocks' })
+                : null);
             row.dataset.port = n._irName;
             list.append(row);
         }
@@ -242,7 +252,8 @@ export function mountInspector(host, canvas, on) {
                     textContent: `unknown block ${what} \u2014 kept exactly as it came` })
                 : null,
             ...parameters(node, on.changed),
-            ...constants(node, on.changed),
+            ...(isWorldBlock(node) ? worldFields(node, on.world, on.changed) : []),
+            ...constants(node, on.changed, isWorldBlock(node) ? WORLD_PORTS : new Set()),
             ...portGroups(node, on.changed));
     }
 

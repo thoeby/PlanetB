@@ -1,0 +1,81 @@
+<elx>
+    <engine type="flow"/>
+    <input name="World"/>
+    <input name="World Key"/>
+    <input name="Object"/>
+    <input name="Port"/>
+    <output name="Value"/>
+    <output name="Error"/>
+    <net name="N000">
+        <connection node="World"/>
+        <connection node="Where" port="in"/>
+    </net>
+    <net name="N001">
+        <connection node="Where" port="out"/>
+        <connection node="Of Object" port="in"/>
+    </net>
+    <net name="N002">
+        <connection node="Object"/>
+        <connection node="Of Object" port="append"/>
+    </net>
+    <net name="N003">
+        <connection node="Of Object" port="out"/>
+        <connection node="And Port" port="in"/>
+    </net>
+    <net name="N004">
+        <connection node="Port"/>
+        <connection node="And Port" port="append"/>
+    </net>
+    <net name="N005">
+        <connection node="And Port" port="out"/>
+        <connection node="Request" port="Request URL"/>
+    </net>
+    <net name="N006">
+        <connection node="World Key"/>
+        <connection node="Bearer" port="in"/>
+    </net>
+    <net name="N007">
+        <connection node="Bearer" port="out"/>
+        <connection node="Headers" port="value"/>
+    </net>
+    <net name="N008">
+        <connection node="Headers" port="out"/>
+        <connection node="Request" port="Request Headers"/>
+    </net>
+    <net name="N009">
+        <connection node="Request" port="Response Body"/>
+        <connection node="Rows" port="string"/>
+    </net>
+    <net name="N010">
+        <connection node="Rows" port="json"/>
+        <connection node="First" port="json"/>
+    </net>
+    <net name="N011">
+        <connection node="First" port="out"/>
+        <connection node="Value"/>
+    </net>
+    <net name="N012">
+        <connection node="Request" port="Error"/>
+        <connection node="Error"/>
+    </net>
+    <node id="append" name="Where" plugin="strings">
+        <parameter id="append"><value id="string">/live_state?select=value&amp;instance_id=eq.</value></parameter>
+    </node>
+    <node id="append" name="Of Object" plugin="strings"/>
+    <node id="append" name="And Port" plugin="strings">
+        <parameter id="append"><value id="string">&amp;port=eq.</value></parameter>
+    </node>
+    <node id="prepend" name="Bearer" plugin="strings">
+        <parameter id="prepend"><value id="string">Bearer </value></parameter>
+    </node>
+    <node id="structures.map.insert-or-assign" name="Headers" plugin="builtin">
+        <parameter id="key"><value id="string">Authorization</value></parameter>
+    </node>
+    <node id="client.make-request-simple" name="Request" plugin="http">
+        <parameter id="Request Method"><value id="string">GET</value></parameter>
+    </node>
+    <node id="from-string" name="Rows" plugin="json"/>
+    <node id="get" name="First" plugin="json">
+        <parameter id="pointer"><value id="string">0.value</value></parameter>
+    </node>
+</elx>

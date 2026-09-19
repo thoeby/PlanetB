@@ -97,6 +97,7 @@
   import { mountPlaces, sameSpot } from './js/places.js';
   import { mountPool, mountSubmit } from './js/pool.js';
   import { mountFlows } from './js/flowsui.js';
+  import { mountPickWorld } from './js/pickworld.js';
   import { mountPermission } from './js/permission.js';
   import { mountShare, nearestGround, parseVisit, visitHash } from './js/visit.js';
   import { mountSky } from './js/sky.js';
@@ -458,8 +459,29 @@
   // SPEC §2.16: Automate is a workspace of its own rather than a panel, so it
   // takes the window and the world stops being drawn under it. litegraph is
   // fetched the first time it is opened, not now (client/flow/boot.js).
+  // FND.14: "Pick in world". Automate hides itself, the world is drawn again
+  // with the cursor free, and build mode's own ray says what was clicked.
+  const pickWorld = mountPickWorld(document.getElementById('hud') ?? document.body, {
+      canvas: view,
+      pick: (screen) => build.pick(screen),
+      before: () => {
+          paused = false;
+          app.autoRender = true;
+          player.detach();
+          document.exitPointerLock?.();
+      },
+      after: () => {
+          paused = true;
+          app.autoRender = false;
+          // Build mode has the pointer of its own while it is on; otherwise the
+          // world takes it back, or nothing moves once Automate is closed.
+          if (!build.state.on) player.attach(view);
+      },
+  });
+
   const flows = mountFlows(document, {
       lands: () => api.rpc('my_areas').catch(() => []),
+      pickObject: (where) => pickWorld.ask(where),
       onOpen: () => { paused = true; app.autoRender = false; },
       onClose: () => {
           paused = false;

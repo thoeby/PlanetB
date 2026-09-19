@@ -964,3 +964,14 @@ minute"). Open points for it are in `PLAN-foundation.md` §10.
   `server/test_crs*.py` tests find bare CRS codes in code that predates the
   rule. `make lint` is fixed and the linters are pinned; the rest is the
   commit after FND.0, before FND.1 starts. See PROGRESS.md.
+- **FND.14's branch check is unanswered, for the same reason.** The plugin is
+  written, tested as files (`client/test/world-plugin.test.js`) and in the
+  bundled palette, but nothing here can ask a process server whether it loads
+  an XML-only plugin. `docs/flow.md` records that we are on neither branch,
+  the one-line recipe that settles it, and branch B's naming written down in
+  advance so both halves agree if it is ever built. The blocks are
+  `plugin="world"` nodes as they stand, which is branch A's shape. The
+  migration is `db/0168`, not this file's `db/0136`: the numbers moved up long
+  before it. Story 29 and story 16 are green, but run against a world built
+  from the stories that do not render (`tools/replay.sh`) rather than through
+  the whole run in order, which story 8 still stops.

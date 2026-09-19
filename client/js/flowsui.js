@@ -57,7 +57,8 @@ async function building(ctx) {
         trouble: (text) => ctx.say(text),
         files: (files) => importFiles(ctx, files),
     });
-    ctx.inspector = mountInspector(ctx.right, ctx.canvas, { changed: () => ctx.mark(true) });
+    ctx.inspector = mountInspector(ctx.right, ctx.canvas,
+        { changed: () => ctx.mark(true), world: ctx.world });
     ctx.bar.wire(ctx.canvas, ctx.acts);
     bindKeys(ctx.root, ctx.canvas, ctx.acts.save);
     return ctx.canvas;
@@ -94,8 +95,34 @@ function filePicker(ctx) {
     return picker;
 }
 
+// What the World blocks in a flow are offered: the objects on the flow's own
+// land, asked for once per land, and the 3D view's own picker (FND.14).
+function worldBag(ctx, pickObject) {
+    let cache = { area: null, rows: null };
+    return {
+        objects() {
+            const area = ctx.state.open?.area_id ?? null;
+            if (!area) return Promise.resolve([]);
+            if (cache.area !== area) cache = { area, rows: flows.objectsOn(area) };
+            return cache.rows;
+        },
+        // Automate steps aside while the world is asked, and comes back with
+        // whatever was clicked — or with nothing, if the player thought better.
+        async pick() {
+            const area = ctx.state.open?.area_id ?? null;
+            if (!area || !pickObject) return null;
+            const land = (await ctx.lands()).find((l) => l.id === area);
+            ctx.root.hidden = true;
+            try {
+                const row = await pickObject(land?.name ?? 'this land');
+                return row?.id ? { id: row.id } : null;
+            } finally { ctx.root.hidden = false; }
+        },
+    };
+}
+
 // Everything the view holds, in one bag the actions in flowsdo.js are handed.
-function context(parts, { onClose, onStay, lands }) {
+function context(parts, { onClose, onStay, lands, pickObject }) {
     const { root, mid, right, bar } = parts;
     const ctx = {
         root, mid, right, bar, lands, canvas: null, inspector: null,
@@ -121,6 +148,7 @@ function context(parts, { onClose, onStay, lands }) {
         // chrome may already have been dressed for another one.
         stay: () => { root.hidden = false; onStay?.(); },
     };
+    ctx.world = worldBag(ctx, pickObject);
     return ctx;
 }
 

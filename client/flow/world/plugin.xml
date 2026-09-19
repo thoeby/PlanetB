@@ -1,0 +1,174 @@
+<plugin format="1" id="world">
+    <name>World</name>
+    <icon type="simicons">file::http</icon>
+
+    <group id="port">
+        <name>Port</name>
+
+        <node id="write">
+            <name>Write Port</name>
+            <description type="short">Set a port on an object in the world</description>
+            <description type="long">Writes one port of one placed object — a lamp's
+                `on`, a billboard's `image` — as the player the world key belongs
+                to. What a port is and what it may be set to is the product's
+                (FND.6).</description>
+            <input name="World">
+                <structure id="droplet"/>
+                <value id="url"/>
+            </input>
+            <input name="World Key">
+                <structure id="droplet"/>
+                <value id="string"/>
+            </input>
+            <input name="Object">
+                <structure id="droplet"/>
+                <value id="string"/>
+            </input>
+            <input name="Port">
+                <structure id="droplet"/>
+                <value id="string"/>
+            </input>
+            <input name="Value">
+                <structure id="droplet"/>
+                <value id="string"/>
+            </input>
+            <output name="OK">
+                <structure id="droplet"/>
+                <value id="boolean"/>
+            </output>
+            <output name="Error">
+                <structure id="droplet"/>
+                <value id="error-code"/>
+            </output>
+        </node>
+
+        <node id="read">
+            <name>Read Port</name>
+            <description type="short">What a port on an object in the world says</description>
+            <description type="long">Reads one port of one placed object. The world
+                answers what it last had written, whoever wrote it.</description>
+            <input name="World">
+                <structure id="droplet"/>
+                <value id="url"/>
+            </input>
+            <input name="World Key">
+                <structure id="droplet"/>
+                <value id="string"/>
+            </input>
+            <input name="Object">
+                <structure id="droplet"/>
+                <value id="string"/>
+            </input>
+            <input name="Port">
+                <structure id="droplet"/>
+                <value id="string"/>
+            </input>
+            <output name="Value">
+                <structure id="droplet"/>
+                <value id="string"/>
+            </output>
+            <output name="Error">
+                <structure id="droplet"/>
+                <value id="error-code"/>
+            </output>
+        </node>
+    </group>
+
+    <group id="mover">
+        <name>Mover</name>
+
+        <node id="set">
+            <name>Set Mover</name>
+            <description type="short">Change a thing that moves by the clock</description>
+            <description type="long">Sets a mover's speed, its timetable or whether
+                it is paused (FND.16). The route itself is drawn on the land, not
+                here.</description>
+            <input name="World">
+                <structure id="droplet"/>
+                <value id="url"/>
+            </input>
+            <input name="World Key">
+                <structure id="droplet"/>
+                <value id="string"/>
+            </input>
+            <input name="Mover">
+                <structure id="droplet"/>
+                <value id="string"/>
+            </input>
+            <input name="Fields">
+                <structure id="droplet"/>
+                <value id="json"/>
+            </input>
+            <output name="OK">
+                <structure id="droplet"/>
+                <value id="boolean"/>
+            </output>
+            <output name="Error">
+                <structure id="droplet"/>
+                <value id="error-code"/>
+            </output>
+        </node>
+    </group>
+
+    <group id="events">
+        <name>Events</name>
+
+        <node id="since">
+            <name>Events Since</name>
+            <description type="short">What has happened in the world since an event</description>
+            <description type="long">Everything the world recorded after the event
+                whose number is given: a port changed, somebody clicked something,
+                somebody arrived or left (FND.15).</description>
+            <input name="World">
+                <structure id="droplet"/>
+                <value id="url"/>
+            </input>
+            <input name="World Key">
+                <structure id="droplet"/>
+                <value id="string"/>
+            </input>
+            <input name="After">
+                <structure id="droplet" default="true">
+                    <value id="integer">0</value>
+                </structure>
+                <value id="integer"/>
+            </input>
+            <output name="Events">
+                <structure id="droplet"/>
+                <value id="json"/>
+            </output>
+            <output name="Last ID">
+                <structure id="droplet"/>
+                <value id="integer"/>
+            </output>
+            <output name="Error">
+                <structure id="droplet"/>
+                <value id="error-code"/>
+            </output>
+        </node>
+    </group>
+
+    <group id="clock">
+        <name>Clock</name>
+
+        <node id="now">
+            <name>World Clock</name>
+            <description type="short">The world's own time, in seconds</description>
+            <description type="long">Everything that moves by the clock moves by
+                this one, so two players standing at the same stop see the same bus
+                at the same second (FND.16).</description>
+            <input name="World">
+                <structure id="droplet"/>
+                <value id="url"/>
+            </input>
+            <output name="Seconds">
+                <structure id="droplet"/>
+                <value id="real"/>
+            </output>
+            <output name="Error">
+                <structure id="droplet"/>
+                <value id="error-code"/>
+            </output>
+        </node>
+    </group>
+</plugin>

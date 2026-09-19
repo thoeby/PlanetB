@@ -66,3 +66,64 @@ The two things to watch for on that first run are the envelope's shape (this
 code expects `<elx_api_msg><error><code>0`) and CORS: the page is an origin the
 process server has to allow, and the sentence it shows when it does not says
 exactly that.
+
+## World blocks, and which branch we are on
+
+FND.14 asks the world to be something a flow can reach: five blocks —
+**Write Port**, **Read Port**, **Set Mover**, **Events Since**, **World
+Clock** — in a plugin of its own, `client/flow/world/`, with one composite
+ELX per block under `assets/nodes/`, built only from blocks the bundled
+palette already has (`http`, `json`, `strings`, `builtin`, `mathematics`).
+
+The task says to try them on a process server and record which of two
+branches we are on:
+
+| | |
+|---|---|
+| **Branch A** | the process server lists `world` in `/api/v1/system/plugins/available`; World blocks are ordinary `plugin="world"` nodes |
+| **Branch B** | it does not; a World block is expanded on export into the composite's own blocks, and the editor regroups them on import |
+
+**We are on neither, because nobody has been able to ask.** There is no
+process server in this container and none is reachable — the same blocker
+`TASKS-foundation.md` records against FND.2, where `make flow-test` skips
+the half that needs one. The plugin is written so that branch A is a copy
+and a restart:
+
+```
+cp -r client/flow/world <the process server's plugin folder>
+# restart it, then:
+curl -s <server>/api/v1/system/plugins/available | grep '"world"'
+```
+
+If that prints, we are on branch A and nothing further is needed: the
+blocks are already `plugin="world"` nodes and the export carries them as
+they are. If it does not, branch B's expansion is what to build, and the
+naming it needs is written down here first so that both halves agree:
+`World <Block> <n> · <inner name>`, with the group in `flow.layout`.
+
+The four addresses the blocks call exist in the database now
+(`db/0168_theworldanswersflows.sql`) with the shape they will keep.
+`world_clock` answers; `port_write`, `mover_set` and `world_events` refuse
+every caller with **"flows do not run yet"** until F10 gives them a
+runner. That is deliberate: a block wired to an address that 404s is a
+block nobody can validate, and a block wired to one that says no is a
+block that is right and early.
+
+### What the editor does with them
+
+The world plugin is in the bundled palette (`client/flow/palette/manifest.json`
+lists it at `../world/plugin.xml`; `tools/palette.sh` writes that line), so the
+five blocks are searched for and dragged in like any others and are drawn in
+the view's own hue like any others.
+
+A World block's inspector has a **World** section above its constants: the
+land's objects by the product's name, that object's ports by the product's own
+port list (FND.6), and a value widget per port type — a switch for a boolean,
+a colour well for a colour. **Pick in world** closes Automate, draws the world
+again with the cursor free, says *click an object on <land>*, and takes what
+was clicked. All three are written back as plain string constants, which is
+what the ELX carries.
+
+Every flow is made with the inputs `world` and `world_key`. While a World block
+is in the flow neither can be removed — the row says "used by World blocks" —
+because that is the address it writes to and the login it writes as.

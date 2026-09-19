@@ -12,11 +12,17 @@ const ROOT = new URL('../flow/palette/', import.meta.url).pathname;
 
 const manifest = () => JSON.parse(readFileSync(join(ROOT, 'manifest.json'), 'utf8'));
 
+// The world's own blocks (FND.14) are in the bundled set but not in plugins/:
+// they are not the reference editor's, and they live whole in
+// client/flow/world so that directory can be copied into a process server's
+// plugin folder as it is.
+const OURS = ['world'];
+
 test('the manifest lists every plugin that is there, and nothing that is not', () => {
     const onDisk = readdirSync(join(ROOT, 'plugins'))
         .filter((d) => existsSync(join(ROOT, 'plugins', d, 'plugin.xml'))).sort();
     const listed = manifest().plugins.map((p) => p.id).sort();
-    assert.deepEqual(listed, onDisk, 'run `bash tools/palette.sh`');
+    assert.deepEqual(listed, [...onDisk, ...OURS].sort(), 'run `bash tools/palette.sh`');
     assert.ok(onDisk.length >= 20, 'the seed set is the reference editor\'s twenty-two');
 });
 

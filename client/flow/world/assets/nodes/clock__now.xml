@@ -1,0 +1,28 @@
+<elx>
+    <engine type="flow"/>
+    <input name="World"/>
+    <output name="Seconds"/>
+    <output name="Error"/>
+    <net name="N000">
+        <connection node="World"/>
+        <connection node="Where" port="in"/>
+    </net>
+    <net name="N001">
+        <connection node="Where" port="out"/>
+        <connection node="Request" port="Request URL"/>
+    </net>
+    <net name="N002">
+        <connection node="Request" port="Response Body"/>
+        <connection node="Seconds"/>
+    </net>
+    <net name="N003">
+        <connection node="Request" port="Error"/>
+        <connection node="Error"/>
+    </net>
+    <node id="append" name="Where" plugin="strings">
+        <parameter id="append"><value id="string">/rpc/world_clock</value></parameter>
+    </node>
+    <node id="client.make-request-simple" name="Request" plugin="http">
+        <parameter id="Request Method"><value id="string">POST</value></parameter>
+    </node>
+</elx>

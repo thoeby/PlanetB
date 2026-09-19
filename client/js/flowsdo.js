@@ -8,6 +8,7 @@
 import * as flows from './flows.js';
 import { importElx, download } from './flowfiles.js';
 import { localProblems, askServer, checkingServer } from './flowcheck.js';
+import { addWorldInputs } from './flowworld.js';
 
 // Keys belong to the view while it is open: Ctrl-Z and Ctrl-Shift-Z are undo
 // and redo, Delete takes the selection away, and nothing fires while somebody
@@ -43,6 +44,9 @@ export async function refresh(ctx) {
 export async function create(ctx, areaId, name) {
     const canvas = await ctx.boot();
     canvas.open(ctx.empty(), {});
+    // FND.14: `world` and `world_key` come with every flow, because a World
+    // block put in later has nothing to reach the world with otherwise.
+    addWorldInputs(canvas);
     const res = await flows.saveFlow({ areaId, name, elx: canvas.elx(), layout: {} });
     ctx.state.open = { id: res.id, area_id: areaId, name, rev: res.rev,
         elx_sha256: res.elx_sha256 };

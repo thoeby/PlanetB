@@ -29,6 +29,13 @@ cd "$root"
             echo "      \"xml\": \"plugins/$id/plugin.xml\""
         fi
     done
+    echo '    },'
+    # The world's own blocks (FND.14). They are not the reference editor's and
+    # they are not in plugins/: client/flow/world is a plugin folder whole, so
+    # it can be copied into a process server's as it is.
+    echo '    {'
+    echo '      "id": "world",'
+    echo '      "xml": "../world/plugin.xml"'
     echo '    }'
     echo '  ]'
     echo '}'

@@ -205,3 +205,13 @@ body {
  * what is rendered and what is waiting for a person — are cells of the top
  * strip (client/top.css), and the rest are read in the panel they belong to.
  */
+
+/* "Pick in world" (FND.14): Automate is gone, the world is back, and this is
+ * the only thing over it — the sentence that says what the click is for. */
+#pick-ask {
+  position: fixed; left: 50%; transform: translateX(-50%); bottom: 96px;
+  z-index: 9; padding: 10px 16px; display: flex; gap: 12px; align-items: center;
+}
+#pick-ask[hidden] { display: none; }
+#pick-ask .pick-line { margin: 0; font-size: 13px; }
+#pick-ask .pick-stop { font-size: 10px; }

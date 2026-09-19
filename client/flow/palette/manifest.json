@@ -96,6 +96,10 @@
     {
       "id": "xlsx",
       "xml": "plugins/xlsx/plugin.xml"
+    },
+    {
+      "id": "world",
+      "xml": "../world/plugin.xml"
     }
   ]
 }
