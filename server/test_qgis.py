@@ -13,14 +13,14 @@ import xml.etree.ElementTree as ET
 from splatworld import qgis
 
 LAYERS = [
-    {"layer": "f_forest", "kind": "forest", "label": "Wood", "geometry": "polygon",
+    {"layer": "f_landuse", "kind": "landuse", "label": "Land use", "geometry": "polygon",
      "fields": [
          {"name": "leaf_type", "label": "Leaves", "type": "choice",
           "choices": ["broadleaved", "needleleaved"], "required": False},
          {"name": "density", "label": "Trees per hectare", "type": "number",
           "choices": [], "required": True},
      ]},
-    {"layer": "f_road", "kind": "road", "label": "Road", "geometry": "line",
+    {"layer": "f_highway", "kind": "highway", "label": "Road", "geometry": "line",
      "fields": []},
 ]
 

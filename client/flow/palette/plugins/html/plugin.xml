@@ -1,0 +1,524 @@
+<plugin format="1" id="html">
+    <name>HTML</name>
+    <icon type="simicons">file::html</icon>
+
+    <value id="document">
+        <description type="short">An HTML document</description>
+    </value>
+
+    <node id="entity-name-encode">
+        <name>Entity Encode</name>
+        <description type="short">Encode HTML entities</description>
+        <description type="long"><![CDATA[Replaces HTML entities (eg. "<" becomes "&lt;").]]></description>
+        <input name="in">
+            <value id="string"/>
+        </input>
+        <output name="out">
+            <value id="string"/>
+        </output>
+    </node>
+
+    <group id="document">
+        <name>Document</name>
+        <icon type="simicons">file::document.blank</icon>
+
+        <node id="from-string">
+            <name>From String</name>
+            <icon type="simicons">file::document.import</icon>
+            <description type="short">HTML document from string</description>
+            <description type="long">Parses an HTML document from a string.</description>
+            <input name="string">
+                <structure id="droplet"/>
+                <value id="string"/>
+            </input>
+            <output name="document">
+                <structure id="droplet"/>
+                <value plugin="html" id="document"/>
+            </output>
+            <output name="error">
+                <structure id="droplet"/>
+                <value id="error-code"/>
+            </output>
+        </node>
+
+        <node id="nodes">
+            <name>Nodes</name>
+            <description type="short">Document DOM nodes</description>
+            <description type="long">Gets the root, head and body DOM nodes from an HTML document.</description>
+            <input name="document">
+                <constant>false</constant>
+                <structure id="droplet"/>
+                <value plugin="html" id="document"/>
+            </input>
+            <output name="root node">
+                <structure id="droplet"/>
+                <value plugin="html" id="dom.node"/>
+            </output>
+            <output name="head node">
+                <structure id="droplet"/>
+                <value plugin="html" id="dom.node"/>
+            </output>
+            <output name="body node">
+                <structure id="droplet"/>
+                <value plugin="html" id="dom.node"/>
+            </output>
+        </node>
+
+        <node id="to-string">
+            <name>To String</name>
+            <icon type="simicons">file::document.export</icon>
+            <description type="short">HTML DOM to string</description>
+            <description type="long">Serializes an HTML DOM to a string.</description>
+            <input name="document">
+                <constant>false</constant>
+                <structure id="droplet"/>
+                <value plugin="html" id="document"/>
+            </input>
+            <output name="string">
+                <structure id="droplet"/>
+                <value id="string"/>
+            </output>
+        </node>
+    </group>
+
+    <group id="dom">
+        <name>DOM</name>
+        <icon type="simicons">data::tree-view</icon>
+
+        <value id="element">
+            <description type="short">HTML DOM element</description>
+        </value>
+        <value id="node">
+            <description type="short">HTML DOM node</description>
+        </value>
+
+        <node id="create-child-element">
+            <name>Create Child Element</name>
+            <description type="short">Create a child element</description>
+            <description type="long">Creates a DOM element and inserts it into a parent.</description>
+            <input name="parent">
+                <constant>false</constant>
+                <structure id="droplet"/>
+                <value plugin="html" id="dom.element"/>
+            </input>
+            <input name="tag name">
+                <structure id="droplet"/>
+                <value id="string"/>
+            </input>
+            <output name="child">
+                <structure id="droplet"/>
+                <value plugin="html" id="dom.element"/>
+            </output>
+        </node>
+
+        <node id="create-element">
+            <name>Create Element</name>
+            <description type="short">Create an element</description>
+            <description type="long">Creates a DOM element.</description>
+            <input name="document">
+                <constant>false</constant>
+                <structure id="droplet"/>
+                <value plugin="html" id="document"/>
+            </input>
+            <input name="tag name">
+                <structure id="droplet"/>
+                <value id="string"/>
+            </input>
+            <output name="element">
+                <structure id="droplet"/>
+                <value plugin="html" id="dom.element"/>
+            </output>
+        </node>
+
+        <node id="create-text-node">
+            <name>Create Text Node</name>
+            <description type="short">Create a text node</description>
+            <description type="long">Creates a DOM text node.</description>
+            <input name="document">
+                <constant>false</constant>
+                <structure id="droplet"/>
+                <value plugin="html" id="document"/>
+            </input>
+            <input name="text">
+                <structure id="droplet"/>
+                <value id="string"/>
+            </input>
+            <output name="node">
+                <structure id="droplet"/>
+                <value plugin="html" id="dom.node"/>
+            </output>
+        </node>
+        <node id="element-get-attribute">
+            <name>Element Attribute</name>
+            <description type="short">Get element attribute</description>
+            <description type="long">Get the attribute of an element.</description>
+            <input name="element">
+                <constant>false</constant>
+                <structure id="droplet"/>
+                <structure id="list"/>
+                <value plugin="html" id="dom.element"/>
+            </input>
+            <input name="attribute name">
+                <structure id="droplet"/>
+                <value id="string"/>
+            </input>
+            <output name="attribute">
+                <structure id="droplet"/>
+                <structure id="list"/>
+                <value id="string"/>
+            </output>
+        </node>
+
+        <node id="element-get-tagname">
+            <name>Element Tag Name</name>
+            <description type="short">Get element tag name</description>
+            <description type="long">Get the tag name of an element.</description>
+            <input name="element">
+                <constant>false</constant>
+                <structure id="droplet"/>
+                <structure id="list"/>
+                <structure id="table"/>
+                <value plugin="html" id="dom.element"/>
+            </input>
+            <output name="tag name">
+                <structure id="droplet"/>
+                <structure id="list"/>
+                <structure id="table"/>
+                <value id="string"/>
+            </output>
+        </node>
+
+        <node id="element-get-text">
+            <name>Element Text</name>
+            <description type="short">Get element text</description>
+            <description type="long">Get the text of an element.</description>
+            <input name="element">
+                <constant>false</constant>
+                <structure id="droplet"/>
+                <structure id="list"/>
+                <structure id="table"/>
+                <value plugin="html" id="dom.element"/>
+            </input>
+            <output name="text">
+                <structure id="droplet"/>
+                <structure id="list"/>
+                <structure id="table"/>
+                <value id="string"/>
+            </output>
+        </node>
+
+        <node id="element-set-text">
+            <name>Element Set Text</name>
+            <description type="short">Set element text</description>
+            <description type="long">Set the text of an element.</description>
+            <input name="element">
+                <constant>false</constant>
+                <structure id="droplet"/>
+                <value plugin="html" id="dom.element"/>
+            </input>
+            <input name="text">
+                <structure id="droplet"/>
+                <value id="string"/>
+            </input>
+            <output name="element out">
+                <structure id="droplet"/>
+                <value plugin="html" id="dom.element"/>
+            </output>
+        </node>
+
+        <node id="element-set-attribute">
+            <name>Element Set Attribute</name>
+            <description type="short">Set element attribute</description>
+            <description type="long">Set an attribute of an element.</description>
+            <input name="element">
+                <constant>false</constant>
+                <structure id="droplet"/>
+                <structure id="list"/>
+                <structure id="table"/>
+                <structure id="map"/>
+                <value plugin="html" id="dom.element"/>
+            </input>
+            <input name="name">
+                <structure id="droplet"/>
+                <value id="string"/>
+            </input>
+            <input name="value">
+                <structure id="droplet"/>
+                <value id="string"/>
+            </input>
+            <output name="element out">
+                <structure id="droplet"/>
+                <structure id="list"/>
+                <structure id="table"/>
+                <structure id="map"/>
+                <value plugin="html" id="dom.element"/>
+            </output>
+        </node>
+
+        <node id="elements-by-attribute">
+            <name>Elements By Attribute</name>
+            <description type="short">Get elements by attribute</description>
+            <description type="long">Get DOM elements by attribute name as a list.</description>
+            <input name="document">
+                <constant>false</constant>
+                <structure id="droplet"/>
+                <value plugin="html" id="document"/>
+            </input>
+            <input name="attribute name">
+                <structure id="droplet"/>
+                <value id="string"/>
+            </input>
+            <input name="attribute value">
+                <structure id="droplet"/>
+                <value id="string"/>
+            </input>
+            <output name="elements">
+                <structure id="list"/>
+                <value plugin="html" id="dom.element"/>
+            </output>
+        </node>
+
+        <node id="elements-by-class">
+            <name>Elements By Class</name>
+            <description type="short">Get elements by class</description>
+            <description type="long">Get DOM elements by class name as a list.</description>
+            <input name="document">
+                <constant>false</constant>
+                <structure id="droplet"/>
+                <value plugin="html" id="document"/>
+            </input>
+            <input name="class name">
+                <structure id="droplet"/>
+                <value id="string"/>
+            </input>
+            <output name="elements">
+                <structure id="list"/>
+                <value plugin="html" id="dom.element"/>
+            </output>
+        </node>
+
+        <node id="elements-by-tag">
+            <name>Elements By Tag</name>
+            <description type="short">Get elements by tag</description>
+            <description type="long">Get DOM elements by tag name as a list.</description>
+            <input name="document">
+                <constant>false</constant>
+                <structure id="droplet"/>
+                <value plugin="html" id="document"/>
+            </input>
+            <input name="tag name">
+                <structure id="droplet"/>
+                <value id="string"/>
+            </input>
+            <output name="elements">
+                <structure id="list"/>
+                <value plugin="html" id="dom.element"/>
+            </output>
+        </node>
+
+        <node id="get-document">
+            <name>Get Document</name>
+            <description type="short">Get DOM document</description>
+            <description type="long">Get the DOM document associated with the given input.</description>
+            <input name="in">
+                <constant>false</constant>
+                <structure id="droplet"/>
+                <value plugin="html" id="document"/>
+                <value plugin="html" id="dom.element"/>
+                <value plugin="html" id="dom.node"/>
+            </input>
+            <output name="document">
+                <structure id="droplet"/>
+                <value plugin="html" id="document"/>
+            </output>
+        </node>
+
+        <node id="insert">
+            <name>Insert</name>
+            <description type="short">Insert into DOM</description>
+            <description type="long">Insert a node into a DOM.</description>
+            <input name="parent">
+                <constant>false</constant>
+                <structure id="droplet"/>
+                <value plugin="html" id="dom.element"/>
+                <value plugin="html" id="dom.node"/>
+            </input>
+            <input name="child">
+                <structure id="droplet"/>
+                <constant>false</constant>
+                <value plugin="html" id="dom.element"/>
+                <value plugin="html" id="dom.node"/>
+            </input>
+            <output name="parent out">
+                <structure id="droplet"/>
+                <value plugin="html" id="dom.node"/>
+            </output>
+        </node>
+
+        <node id="node-get-text">
+            <name>Node Text</name>
+            <description type="short">Get node text</description>
+            <description type="long">Get the text of a node.</description>
+            <input name="node">
+                <constant>false</constant>
+                <structure id="droplet"/>
+                <structure id="list"/>
+                <structure id="table"/>
+                <value plugin="html" id="dom.node"/>
+            </input>
+            <output name="text">
+                <structure id="droplet"/>
+                <structure id="list"/>
+                <structure id="table"/>
+                <value id="string"/>
+            </output>
+        </node>
+
+        <node id="node-serialize">
+            <name>Node Serialize</name>
+            <description type="short">Serialize to string</description>
+            <description type="long">Serializes the node's HTML code to a string.</description>
+            <input name="node">
+                <constant>false</constant>
+                <structure id="droplet"/>
+                <structure id="list"/>
+                <structure id="table"/>
+                <value plugin="html" id="dom.node"/>
+            </input>
+            <output name="string">
+                <structure id="droplet"/>
+                <structure id="list"/>
+                <structure id="table"/>
+                <value id="string"/>
+            </output>
+        </node>
+
+        <node id="node-to-element">
+            <name>Node To Element</name>
+            <description type="short">Get element from node</description>
+            <description type="long">Get DOM element from DOM node. This might fail in various crazy ways. Enjoy!</description>
+            <input name="node">
+                <constant>false</constant>
+                <structure id="droplet"/>
+                <structure id="list"/>
+                <structure id="table"/>
+                <value plugin="html" id="dom.node"/>
+                <value plugin="html" id="dom.element"/>
+            </input>
+            <output name="element">
+                <structure id="droplet"/>
+                <structure id="list"/>
+                <structure id="table"/>
+                <value plugin="html" id="dom.element"/>
+            </output>
+        </node>
+
+        <node id="nodes-by-selector">
+            <name>Nodes By Selector</name>
+            <description type="short">Get nodes by selector</description>
+            <description type="long">Get DOM nodes from a CSS selector.</description>
+            <input name="node">
+                <constant>false</constant>
+                <structure id="droplet"/>
+                <value plugin="html" id="dom.node"/>
+            </input>
+            <input name="selector">
+                <structure id="droplet"/>
+                <value id="string"/>
+            </input>
+            <output name="nodes">
+                <structure id="list"/>
+                <value id="dom.node" plugin="html"/>
+            </output>
+        </node>
+    </group>
+
+    <group id="render">
+        <name>Render</name>
+
+        <node id="to-pdf">
+            <name>HTML to PDF</name>
+            <icon type="simicons">file::document.pdf</icon>
+            <description type="short">Render HTML to PDF</description>
+            <description type="long">Generates a PDF from HTML and CSS input.</description>
+            <parameter id="page-size">
+                <name>Page size</name>
+                <description type="short">Page size</description>
+                <description type="long">Page size</description>
+                <value_choices require="1" default-label="A4">
+                    <value id="string" label="A3">a3</value>
+                    <value id="string" label="A4">a4</value>
+                    <value id="string" label="A5">a5</value>
+                    <value id="string" label="B4">b4</value>
+                    <value id="string" label="B5">b5</value>
+                    <value id="string" label="Letter">letter</value>
+                    <value id="string" label="Legal">legal</value>
+                    <value id="string" label="Ledger">ledger</value>
+                </value_choices>
+            </parameter>
+            <input name="html">
+                <structure id="droplet"/>
+                <value id="string"/>
+                <value id="filesystem path"/>
+            </input>
+            <input name="css">
+                <structure id="droplet" default="true">
+                    <value id="string"/>
+                </structure>
+                <value id="string"/>
+                <value id="filesystem path"/>
+            </input>
+            <output name="pdf">
+                <structure id="droplet"/>
+                <value id="bytes"/>
+            </output>
+            <output name="error">
+                <structure id="droplet"/>
+                <value id="error-code"/>
+            </output>
+        </node>
+
+        <node id="to-png">
+            <name>HTML to PNG</name>
+            <icon type="simicons">file::document.png</icon>
+            <description type="short">Render HTML to PNG</description>
+            <description type="long">Generates a PNG image from HTML and CSS input.</description>
+            <parameter id="page-size">
+                <name>Page size</name>
+                <description type="short">Page size</description>
+                <description type="long">Page size</description>
+                <value_choices require="1" default-label="A4">
+                    <value id="string" label="A3">a3</value>
+                    <value id="string" label="A4">a4</value>
+                    <value id="string" label="A5">a5</value>
+                    <value id="string" label="B4">b4</value>
+                    <value id="string" label="B5">b5</value>
+                    <value id="string" label="Letter">letter</value>
+                    <value id="string" label="Legal">legal</value>
+                    <value id="string" label="Ledger">ledger</value>
+                </value_choices>
+            </parameter>
+            <input name="html">
+                <structure id="droplet"/>
+                <value id="string"/>
+                <value id="filesystem path"/>
+            </input>
+            <input name="css">
+                <structure id="droplet" default="true">
+                    <value id="string"/>
+                </structure>
+                <value id="string"/>
+                <value id="filesystem path"/>
+            </input>
+            <output name="png">
+                <structure id="droplet"/>
+                <value id="bytes"/>
+            </output>
+            <output name="error">
+                <structure id="droplet"/>
+                <value id="error-code"/>
+            </output>
+        </node>
+    </group>
+
+</plugin>

@@ -90,7 +90,8 @@ async function refuseBranch(b, world) {
         const path = `${world.filesUrl.replace(/[^a-z]/g, '')}-project.qgs`;
         await file.saveAs(`/tmp/${path}`);
         const [out] = drawInQgis(`/tmp/${path}`, [{
-            layer: 'Water', geometry: squareAt({ lon: at.lon + 0.001, lat: at.lat }),
+            layer: 'Natural', attributes: { natural: 'water' },
+            geometry: squareAt({ lon: at.lon + 0.001, lat: at.lat }),
         }]);
         expect(out.error ?? '', 'the pond saved').toBe('');
         return at;

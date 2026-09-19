@@ -1,0 +1,346 @@
+<plugin format="1" id="datetime">
+    <name>Date/Time</name>
+    <icon type="simicons">data::calendar.heat-map</icon>
+
+    <group id="calendar">
+        <name>Calendar</name>
+
+        <group id="gregorian">
+            <name>Gregorian</name>
+
+            <node id="is-leap-year">
+                <name>Is Leap Year</name>
+                <description type="short">Check whether year is leap year</description>
+                <description type="long">Checks wether a specified year is a leap year in the gregorian calendar.</description>
+                <input name="year">
+                    <value id="integer"/>
+                </input>
+                <output name="is leap">
+                    <value id="boolean"/>
+                </output>
+            </node>
+        </group>
+    </group>
+
+    <group id="duration">
+        <name>Duration</name>
+        <icon type="simicons">time::timer</icon>
+
+        <node id="years">
+            <name>Years</name>
+            <description type="short">Years between two timepoints</description>
+            <description type="long">Calculates the number of years between two timepoints.</description>
+            <input name="timepoint 1">
+                <structure id="droplet"/>
+                <structure id="list"/>
+                <structure id="map"/>
+                <structure id="table"/>
+                <value id="timepoint"/>
+            </input>
+            <input name="timepoint 2">
+                <structure id="droplet"/>
+                <structure id="list"/>
+                <structure id="map"/>
+                <structure id="table"/>
+                <value id="timepoint"/>
+            </input>
+            <output name="count">
+                <structure id="droplet"/>
+                <structure id="list"/>
+                <structure id="map"/>
+                <structure id="table"/>
+                <value id="real"/>
+            </output>
+        </node>
+
+        <node id="months">
+            <name>Months</name>
+            <description type="short">Months between two timepoints</description>
+            <description type="long">Calculates the number of months between two timepoints.</description>
+            <input name="timepoint 1">
+                <structure id="droplet"/>
+                <structure id="list"/>
+                <structure id="map"/>
+                <structure id="table"/>
+                <value id="timepoint"/>
+            </input>
+            <input name="timepoint 2">
+                <structure id="droplet"/>
+                <structure id="list"/>
+                <structure id="map"/>
+                <structure id="table"/>
+                <value id="timepoint"/>
+            </input>
+            <output name="count">
+                <structure id="droplet"/>
+                <structure id="list"/>
+                <structure id="map"/>
+                <structure id="table"/>
+                <value id="real"/>
+            </output>
+        </node>
+
+        <node id="days">
+            <name>Days</name>
+            <description type="short">Days between two timepoints</description>
+            <description type="long">Calculates the number of days between two timepoints.</description>
+            <input name="timepoint 1">
+                <structure id="droplet"/>
+                <structure id="list"/>
+                <structure id="map"/>
+                <structure id="table"/>
+                <value id="timepoint"/>
+            </input>
+            <input name="timepoint 2">
+                <structure id="droplet"/>
+                <structure id="list"/>
+                <structure id="map"/>
+                <structure id="table"/>
+                <value id="timepoint"/>
+            </input>
+            <output name="count">
+                <structure id="droplet"/>
+                <structure id="list"/>
+                <structure id="map"/>
+                <structure id="table"/>
+                <value id="real"/>
+            </output>
+        </node>
+
+        <node id="hours">
+            <name>Hours</name>
+            <description type="short">Hours between two timepoints</description>
+            <description type="long">Calculates the number of hours between two timepoints.</description>
+            <input name="timepoint 1">
+                <structure id="droplet"/>
+                <structure id="list"/>
+                <structure id="map"/>
+                <structure id="table"/>
+                <value id="timepoint"/>
+            </input>
+            <input name="timepoint 2">
+                <structure id="droplet"/>
+                <structure id="list"/>
+                <structure id="map"/>
+                <structure id="table"/>
+                <value id="timepoint"/>
+            </input>
+            <output name="count">
+                <structure id="droplet"/>
+                <structure id="list"/>
+                <structure id="map"/>
+                <structure id="table"/>
+                <value id="real"/>
+            </output>
+        </node>
+
+        <node id="minuts">
+            <name>Minutes</name>
+            <description type="short">Minutes between two timepoints</description>
+            <description type="long">Calculates the number of minutes between two timepoints.</description>
+            <input name="timepoint 1">
+                <structure id="droplet"/>
+                <structure id="list"/>
+                <structure id="map"/>
+                <structure id="table"/>
+                <value id="timepoint"/>
+            </input>
+            <input name="timepoint 2">
+                <structure id="droplet"/>
+                <structure id="list"/>
+                <structure id="map"/>
+                <structure id="table"/>
+                <value id="timepoint"/>
+            </input>
+            <output name="count">
+                <structure id="droplet"/>
+                <structure id="list"/>
+                <structure id="map"/>
+                <structure id="table"/>
+                <value id="real"/>
+            </output>
+        </node>
+
+        <node id="seconds">
+            <name>Seconds</name>
+            <description type="short">Seconds between two timepoints</description>
+            <description type="long">Calculates the number of seconds between two timepoints.</description>
+            <input name="timepoint 1">
+                <structure id="droplet"/>
+                <structure id="list"/>
+                <structure id="map"/>
+                <structure id="table"/>
+                <value id="timepoint"/>
+            </input>
+            <input name="timepoint 2">
+                <structure id="droplet"/>
+                <structure id="list"/>
+                <structure id="map"/>
+                <structure id="table"/>
+                <value id="timepoint"/>
+            </input>
+            <output name="count">
+                <structure id="droplet"/>
+                <structure id="list"/>
+                <structure id="map"/>
+                <structure id="table"/>
+                <value id="real"/>
+            </output>
+        </node>
+
+        <node id="milliseconds">
+            <name>Seconds</name>
+            <description type="short">Milliseconds between two timepoints</description>
+            <description type="long">Calculates the number of milliseconds between two timepoints.</description>
+            <input name="timepoint 1">
+                <structure id="droplet"/>
+                <structure id="list"/>
+                <structure id="map"/>
+                <structure id="table"/>
+                <value id="timepoint"/>
+            </input>
+            <input name="timepoint 2">
+                <structure id="droplet"/>
+                <structure id="list"/>
+                <structure id="map"/>
+                <structure id="table"/>
+                <value id="timepoint"/>
+            </input>
+            <output name="count">
+                <structure id="droplet"/>
+                <structure id="list"/>
+                <structure id="map"/>
+                <structure id="table"/>
+                <value id="real"/>
+            </output>
+        </node>
+
+    </group>
+
+    <group id="timepoint">
+        <name>Timepoint</name>
+
+        <group id="source">
+            <name>Source</name>
+
+            <node id="systemclock">
+                <name>System Clock</name>
+                <icon type="simicons">systems::server.time</icon>
+                <description type="short">Get system time</description>
+                <description type="long">Get the wall clock time from the system-wide realtime clock.</description>
+                <output name="timepoint">
+                    <structure id="droplet"/>
+                    <value id="timepoint"/>
+                </output>
+            </node>
+
+        </group>
+
+        <node id="decompose">
+            <name>Decompose</name>
+            <description type="short">Decompose timepoint</description>
+            <description type="long">Decomposes a timepoint into its individual parts such as the year, month, day, hours and so on.</description>
+            <input name="timepoint">
+                <structure id="droplet"/>
+                <value id="timepoint"/>
+            </input>
+            <output name="year">
+                <structure id="droplet"/>
+                <value id="integer"/>
+            </output>
+            <output name="month">
+                <structure id="droplet"/>
+                <value id="integer"/>
+            </output>
+            <output name="day">
+                <structure id="droplet"/>
+                <value id="integer"/>
+            </output>
+            <output name="hours">
+                <structure id="droplet"/>
+                <value id="integer"/>
+            </output>
+            <output name="minutes">
+                <structure id="droplet"/>
+                <value id="integer"/>
+            </output>
+            <output name="seconds">
+                <structure id="droplet"/>
+                <value id="integer"/>
+            </output>
+            <output name="milliseconds">
+                <structure id="droplet"/>
+                <value id="integer"/>
+            </output>
+        </node>
+
+        <node id="to-iso8601-date">
+            <name>To ISO-8601 Date</name>
+            <icon type="simicons">data::string-text</icon>
+            <description type="short">Convert timepoint to string</description>
+            <description type="long">Formats a timepoint to a string using the ISO-8601 date format.</description>
+            <input name="timepoint">
+                <structure id="droplet"/>
+                <structure id="list"/>
+                <structure id="table"/>
+                <structure id="map"/>
+                <value id="timepoint"/>
+            </input>
+            <output name="string">
+                <structure id="droplet"/>
+                <structure id="list"/>
+                <structure id="table"/>
+                <structure id="map"/>
+                <value id="string"/>
+            </output>
+        </node>
+
+        <node id="to-iso8601-time">
+            <name>To ISO-8601 Time</name>
+            <icon type="simicons">data::string-text</icon>
+            <description type="short">Convert timepoint to string</description>
+            <description type="long">Formats a timepoint to a string using the ISO-8601 time format.</description>
+            <input name="timepoint">
+                <structure id="droplet"/>
+                <structure id="list"/>
+                <structure id="table"/>
+                <structure id="map"/>
+                <value id="timepoint"/>
+            </input>
+            <output name="string">
+                <structure id="droplet"/>
+                <structure id="list"/>
+                <structure id="table"/>
+                <structure id="map"/>
+                <value id="string"/>
+            </output>
+        </node>
+
+        <node id="to-string">
+            <name>To String</name>
+            <icon type="simicons">data::string-text</icon>
+            <description type="short">Convert timepoint to string</description>
+            <description type="long">Formats a timepoint to a string using a specified format.</description>
+            <input name="timepoint">
+                <structure id="droplet"/>
+                <structure id="list"/>
+                <structure id="table"/>
+                <structure id="map"/>
+                <value id="timepoint"/>
+            </input>
+            <input name="format">
+                <structure id="droplet"/>
+                <value id="string"/>
+            </input>
+            <output name="string">
+                <structure id="droplet"/>
+                <structure id="list"/>
+                <structure id="table"/>
+                <structure id="map"/>
+                <value id="string"/>
+            </output>
+        </node>
+
+    </group>
+
+</plugin>

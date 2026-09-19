@@ -1,0 +1,16 @@
+The bundled block set.
+
+Every plugin.xml here is copied byte for byte from the reference editor's
+docs/blocks/<id>/plugin.xml at wireon-process-editor ab525305d8ddd7dba7a5592e5cb79d3dbb159e8b,
+together with the composite node XMLs under each plugin's assets/. They
+describe the blocks the process server already has; the world only needs to
+draw them and to say which it saw (elx_plugin, db/0155).
+
+Not copied: opencv's assets/res10_300x300_ssd_iter_140000_fp16.caffemodel and
+assets/deploy.prototxt — 5.2 MB of trained face-detection model that no part of
+drawing a flow reads. The opencv plugin.xml itself is here, so its blocks are in
+the palette; a flow that uses them runs against a process server that has the
+model of its own.
+
+manifest.json is written by tools/palette.sh: a directory cannot be listed over
+HTTP, so the page is told what is in this one.

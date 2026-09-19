@@ -31,11 +31,12 @@ SELECT columns_are('public', 'proposal', ARRAY[
     'id', 'area_id', 'author_id', 'state', 'diff', 'created_at']);
 SELECT columns_are('public', 'approval', ARRAY['proposal_id', 'reviewer_id', 'at']);
 -- thumb_sha256 was added by db/0020_assets.sql (WP4.1): the catalog renders a
--- thumbnail client-side and nothing pointed at it.
+-- thumbnail client-side and nothing pointed at it. `type` and `parts` are
+-- db/0137_productshaveatype.sql's (FND.5): a product says what it is.
 SELECT columns_are('public', 'asset', ARRAY[
     'san', 'sha256', 'canon_version', 'name', 'category', 'bbox', 'tris',
     'tex_bytes', 'license', 'price', 'editions', 'issued', 'creator_id',
-    'created_at', 'thumb_sha256']);
+    'created_at', 'thumb_sha256', 'type', 'parts']);
 SELECT columns_are('public', 'asset_right', ARRAY[
     'san', 'holder_id', 'acquired_at', 'ref']);
 -- `suspect` is WP3.3's (db/0018_spot.sql): a failed spot check flags the tile
@@ -47,8 +48,11 @@ SELECT columns_are('public', 'tile', ARRAY[
     'sog_sha256', 'manifest', 'published_at', 'published_by', 'suspect',
     'candidate_version', 'candidate_sha256', 'candidate_manifest',
     'candidate_by', 'candidate_at', 'refused_note']);
+-- `reason` is db/0162's (FND.8): a rebuild nobody asked for by name says
+-- where it came from.
 SELECT columns_are('public', 'job', ARRAY[
-    'id', 'z', 'x', 'y', 'target_version', 'bounty', 'state', 'created_at']);
+    'id', 'z', 'x', 'y', 'target_version', 'bounty', 'state', 'created_at',
+    'reason']);
 SELECT columns_are('public', 'atom', ARRAY[
     'id', 'job_id', 'atom_hash', 'op', 'algo_version', 'deps', 'inputs',
     'params', 'seed', 'state', 'worker_id', 'claimed_at', 'heartbeat_at',

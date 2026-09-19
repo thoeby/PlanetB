@@ -1,0 +1,101 @@
+{
+  "plugins": [
+    {
+      "id": "builtin",
+      "xml": "plugins/builtin/plugin.xml"
+    },
+    {
+      "id": "crypto",
+      "xml": "plugins/crypto/plugin.xml"
+    },
+    {
+      "id": "csv",
+      "xml": "plugins/csv/plugin.xml"
+    },
+    {
+      "id": "datetime",
+      "xml": "plugins/datetime/plugin.xml"
+    },
+    {
+      "id": "email",
+      "xml": "plugins/email/plugin.xml"
+    },
+    {
+      "id": "filesystem",
+      "xml": "plugins/filesystem/plugin.xml"
+    },
+    {
+      "id": "firefox",
+      "xml": "plugins/firefox/plugin.xml"
+    },
+    {
+      "id": "ftp",
+      "xml": "plugins/ftp/plugin.xml"
+    },
+    {
+      "id": "html",
+      "xml": "plugins/html/plugin.xml"
+    },
+    {
+      "id": "http",
+      "xml": "plugins/http/plugin.xml",
+      "assets": [
+        "assets/nodes/client__make_request__simple.xml",
+        "assets/nodes/response__301.xml",
+        "assets/nodes/response__302.xml",
+        "assets/nodes/response__303.xml"
+      ]
+    },
+    {
+      "id": "json",
+      "xml": "plugins/json/plugin.xml"
+    },
+    {
+      "id": "logging",
+      "xml": "plugins/logging/plugin.xml"
+    },
+    {
+      "id": "mathematics",
+      "xml": "plugins/mathematics/plugin.xml"
+    },
+    {
+      "id": "mqtt",
+      "xml": "plugins/mqtt/plugin.xml"
+    },
+    {
+      "id": "opencv",
+      "xml": "plugins/opencv/plugin.xml"
+    },
+    {
+      "id": "opticalcodes",
+      "xml": "plugins/opticalcodes/plugin.xml"
+    },
+    {
+      "id": "sql",
+      "xml": "plugins/sql/plugin.xml"
+    },
+    {
+      "id": "strings",
+      "xml": "plugins/strings/plugin.xml"
+    },
+    {
+      "id": "svg",
+      "xml": "plugins/svg/plugin.xml",
+      "assets": [
+        "assets/nodes/svg__to__bitmap.xml"
+      ]
+    },
+    {
+      "id": "system",
+      "xml": "plugins/system/plugin.xml"
+    },
+    {
+      "id": "url",
+      "xml": "plugins/url/plugin.xml"
+    },
+    {
+      "id": "xlsx",
+      "xml": "plugins/xlsx/plugin.xml"
+    }
+  ]
+}

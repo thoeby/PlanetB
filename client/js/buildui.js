@@ -15,6 +15,7 @@ import { placementDiff, propose } from './areas.js';
 import { Edits, SNAP, areasAt, raycastGround, snapTo, stepWords, tilesAt }
     from './build.js';
 import { searchAssets } from './catalog.js';
+import { assetRow, tileRow } from './buildrows.js';
 
 const AXES = ['x', 'y', 'z'];
 const MODES = { move: 'move', turn: 'turn', size: 'size' };
@@ -158,33 +159,6 @@ class Session {
     }
 }
 
-// --------------------------------------------------------------------- rows
-
-function assetRow(asset, onPick) {
-    const li = document.createElement('li');
-    li.className = 'build-asset';
-    const b = document.createElement('button');
-    b.type = 'button';
-    b.textContent = `${asset.name} · ${asset.san}`;
-    b.onclick = () => onPick(asset);
-    li.append(b);
-    return li;
-}
-
-function tileRow(t, onRender) {
-    const li = document.createElement('li');
-    li.className = 'build-tile';
-    li.textContent = `${t.z}/${t.x}/${t.y} v${t.expected_version}${t.dirty ? ' dirty' : ''} `;
-    if (t.dirty) {
-        const b = document.createElement('button');
-        b.type = 'button';
-        b.textContent = t.job_id ? `job ${t.job_id}` : 'render now';
-        b.onclick = () => onRender(t, b);
-        li.append(b);
-    }
-    return li;
-}
-
 // ------------------------------------------------------------------- mount
 
 // A three-line axis cross on the selection: no picking, just somewhere to look
@@ -274,7 +248,11 @@ function toggler(host, ctx, state, { acts, onKey, onClick, say }) {
 }
 
 async function fillCatalog(host, state, say, search) {
-    const rows = await searchAssets({ search, limit: 12 }).catch(() => []);
+    // Models only (FND.5): the other four types are used by symbols — a
+    // repeating piece runs along a wall, a cross-section is a road's profile, a
+    // collection is what a forest is scattered from, a material covers ground.
+    // None of them is a thing anybody puts down one of.
+    const rows = await searchAssets({ search, type: 'model', limit: 12 }).catch(() => []);
     host.querySelector('.build-assets').replaceChildren(...rows.map((a) => assetRow(a, (asset) => {
         state.brush = asset;
         state.selected = null;

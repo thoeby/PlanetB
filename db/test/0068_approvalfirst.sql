@@ -34,7 +34,7 @@ SELECT throws_like($$SELECT submit_area('00000000-0000-0000-0000-0000000000c8')$
     '%nothing to submit%', 'empty land has nothing to submit');
 
 INSERT INTO feature (area_id, kind, geom)
-SELECT '00000000-0000-0000-0000-0000000000c8', 'forest',
+SELECT '00000000-0000-0000-0000-0000000000c8', 'landuse',
        st_force3d(st_geomfromtext(
            'POLYGON((8.45 47.45,8.46 47.45,8.46 47.46,8.45 47.46,8.45 47.45))',
            world_srid()))
@@ -95,7 +95,7 @@ SELECT throws_like(format($$SELECT approve_submission(%L)$$,
 
 -- refuse, on a second submission -------------------------------------------
 INSERT INTO feature (area_id, kind, geom)
-SELECT '00000000-0000-0000-0000-0000000000c8', 'water',
+SELECT '00000000-0000-0000-0000-0000000000c8', 'natural',
        st_force3d(st_geomfromtext(
            'POLYGON((8.55 47.55,8.56 47.55,8.56 47.56,8.55 47.56,8.55 47.55))',
            world_srid()))

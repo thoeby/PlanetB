@@ -47,7 +47,7 @@ FROM torture_user WHERE n = 0;
 -- One feature per z14 tile: ${TILES} distinct tiles, each with its own job.
 INSERT INTO feature (area_id, kind, geom)
 SELECT '00000000-0000-0000-0000-0000000000a1',
-       'footprint',
+       'building',
        st_force3d(st_centroid(tile_bbox(14, x, y)))
 FROM generate_series(tile_x(7.05, 14), tile_x(7.05, 14) + 24) AS x,
      generate_series(tile_y(46.85, 14), tile_y(46.85, 14) + 19) AS y;

@@ -525,6 +525,25 @@ Commit message `WPx.y: <task title>`. If you deviate from `TASKS.md`, say so in
 the commit body and add a row to `PROGRESS.md` — every deviation so far is
 recorded there, and that record is the reason this handoff is short.
 
+### Writing the last story of a run without paying for the whole run
+
+`make player-run` is the gate and it is an hour and a half from an empty
+database. Iterating on its last story that way is not a loop anybody can
+work in, so:
+
+```
+bash tools/replay.sh save after-25          # a run that got that far
+bash tools/replay.sh load after-25
+RUN_KEEP_WORLD=1 make player-run RUN_ARGS=client/test/run/26-*.spec.js
+```
+
+`replay.sh` saves the database, the file store and the `ALTER DATABASE`
+settings a dump never carries (the JWT secret and the run's small render
+numbers, without which nobody can sign in), and puts all three back.
+`RUN_KEEP_WORLD=1` is the only thing that stops the fixture emptying the
+world; nothing but a developer's own shell ever sets it, and the gate is
+still the whole run from empty. A story is green when that is green.
+
 ### What is left, and what it needs
 
 Nothing in `TASKS.md` is unticked. Four things are unrun rather than undone, and
@@ -656,3 +675,79 @@ plus two linter upgrades. All of it is fixed in the two commits after FND.0, and
 were the world's rather than the tests': a leaf tile below z14 was being
 merged out of children that do not exist (db/0128), and a bounty could pay out
 a shade more than it held (db/0129).
+
+## 8. The flow editor (FND.1)
+
+**`client/flow/` is a copy, not a fork.** Every file there says in its header
+which file of `wireon-process-editor` it came from, at which commit, and what
+changed. Keep it that way: when one of those modules has to change, change it
+and extend the header's `changes:` list rather than quietly editing a copy. The
+copies keep the reference repository's formatting (two spaces, double quotes),
+so `eslint.config.js` turns style off for `client/flow/**` and leaves every
+rule that catches a mistake on — including the 400-line rule, which is why
+`theme.js` is three files here.
+
+**The copies are held honest by their own tests.** `client/test/e2e/flow/` is
+that repository's suite, with the imports pointed at `/flow/` and the fixtures
+at `/flow/palette` and `/flow/samples`; `client/test/e2e/flow-modules.spec.js`
+opens the page and fails if any of them does. Three of them were red at the
+source and carry the correction in their header — do not "fix" them back.
+
+**litegraph is a classic script.** It attaches `LiteGraph`, `LGraph` and
+`LGraphCanvas` to `window`, there is no module build of it, and this repository
+has no bundler. `client/flow/boot.js` loads it (and `flow.css`, and litegraph's
+own stylesheet) the first time somebody opens Automate, and never at page load.
+Nothing may `import` it.
+
+**The palette is static files and a list of them.** A browser cannot read a
+directory, so `client/flow/palette/manifest.json` says what is in
+`client/flow/palette/plugins/`. Add or remove a plugin and run
+`bash tools/palette.sh`; `client/test/palette.test.js` is the gate that notices
+if you forget. opencv's trained model is deliberately absent — see its NOTICE.
+
+**Layout is never in the ELX, and no longer in localStorage.** The reference
+editor kept node positions in the browser; here they are `flow.layout` in the
+world, so a flow looks the same on the next machine. That is the whole of what
+`client/flow/graph/layoutstore.js` changes about the file it was copied from,
+and `client/test/run/16-drawing-a-flow.spec.js` asserts the ELX has no
+coordinates in it.
+
+**While Automate is open the world is not drawn.** `client/play.html` sets a
+`paused` flag and `app.autoRender = false`; the update handler returns at once.
+A story that opens Automate and then expects the position line to move has to
+close it first.
+
+**Validate's local half reads the file, not the canvas** (FND.2). litegraph
+vetoes an invalid connection as it is made and `importFlow` drops one it cannot
+make, so a canvas is always locally valid and checking it would find nothing
+ever. `client/js/flowsdo.js` hands `localProblems` the bytes that would be run —
+the canvas's when something is unsaved, the saved file's otherwise. A test that
+wants a local problem has to import a file that has one; it cannot draw one.
+
+**An export is the saved bytes.** Do not "simplify" it to `canvas.elx()`: the
+serializer's element order is not the process server's, and story 17 compares
+the exported file to the imported one byte for byte. The same reason is why
+`importFiles` saves the arriving file and then only the layout.
+
+**The vocabulary is OSM's** (FND.3, db/0157). A kind is a key — `highway`,
+`landuse`, `natural`, `building`, `natural_point`, `railway`, `aerialway`,
+`barrier`, `waterway` — and which one it is is a property of the same name. When
+you write a fixture, a seed or a test that inserts a feature, give it both: a
+`landuse` with no `landuse` is drawn as nothing, on purpose.
+
+**A migration that seeds data has to be idempotent.** `migrate.apply` replays
+every file against a database that already has them whenever the ledger is
+missing, and forgives only "already there" errors. A bare `INSERT` is neither:
+it either duplicates itself or fails on a constraint a later migration added.
+Guard it with `WHERE NOT EXISTS`, as db/0037 now does.
+
+**A view over a table does not grow with it.** `api.asset` was
+`SELECT * FROM public.asset`, and `*` is expanded once — when the view is
+created. FND.5 added two columns to `asset` and the page's read came back 400
+until db/0159 replaced the view. Any migration that adds a column to a table the
+API exposes has to replace that table's view in the same file.
+
+**Do not edit client/ while a player-run is going.** The page is served from
+disk on every navigation, so a spec that started before the edit meets the code
+after it — and a story that had nothing to do with the change fails in a way
+that reads like a real bug. Wait for the run, or run the affected stories only.

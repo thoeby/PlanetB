@@ -11,14 +11,17 @@
 // db/0068_approvalfirst.sql, db/0043_pool.sql and the migrations under them.
 
 import * as api from './api.js';
+import { steepRoads, steepWords } from './roadcheck.js';
 import { el, progressTiles } from './poolui.js';
 export { mountPool } from './renderpool.js';
 
 // ------------------------------------------------------------------ submit
 
-export function mountSubmit(host, { onSubmitted = () => {}, onCount = () => {} } = {}) {
+export function mountSubmit(host, { onSubmitted = () => {}, onCount = () => {},
+    onGo = null, ground = null } = {}) {
     const ui = submitParts();
-    const state = { areas: [], progress: null, changes: null, mine: false };
+    const state = { areas: [], progress: null, changes: null, mine: false,
+        flags: [], onGo };
     const say = (msg, bad = false) => {
         ui.status.textContent = msg;
         ui.status.dataset.bad = bad ? '1' : '';
@@ -39,6 +42,11 @@ export function mountSubmit(host, { onSubmitted = () => {}, onCount = () => {} }
             ? await api.rpc('submission_changes', { area_id: chosen.id })
                 .catch(() => null)
             : null;
+        // The same measurement the compiler makes, made here so the owner
+        // sees it before the approver does (client/js/roadcheck.js).
+        state.flags = chosen && ground
+            ? await steepRoads(chosen, ground).catch(() => [])
+            : [];
         if (state.progress) onCount(state.progress);
         draw();
     }
@@ -119,6 +127,10 @@ function submitParts() {
         // SPEC §2.7: what the approver will see, before anything is sent, and
         // a note to them.
         changes: el('div', { className: 'note su-changes' }),
+        // FND.11: roads laid across a slope steeper than their symbol allows.
+        // A warning, never a refusal — with one button per place to go and
+        // look at it.
+        flags: el('div', { className: 'su-flags' }),
         note: el('input', { className: 'su-note', type: 'text',
             placeholder: 'anything the approver should know' }),
         send: el('button', {
@@ -144,22 +156,53 @@ export function toSubmit(p) {
     return p ? Math.max(0, Number(p.to_submit ?? 0)) : 0;
 }
 
-// "3 tiles · 2 objects · 1 drawn" — what the approver is about to be shown.
+// One line per place a road crosses a slope it should not, and a button that
+// goes and looks at it. Nothing here refuses anything.
+export function flagRows(state) {
+    if (!state.flags?.length) return [];
+    const rows = state.flags.slice(0, 12).map((f) => {
+        const go = el('button', { type: 'button', className: 'su-go',
+            textContent: 'Go' });
+        go.onclick = () => state.onGo?.({ lon: f.lon, lat: f.lat, h: 0 });
+        return el('div', { className: 'su-flag' },
+            el('span', { textContent: `${f.name} \u00b7 ${(f.slope * 100).toFixed(0)} %` }),
+            go);
+    });
+    return [el('div', { className: 'note', 'data-tone': 'warn',
+        textContent: `${steepWords(state.flags)} \u2014 it can be sent anyway.` }),
+    ...rows];
+}
+
+// "3 tiles · 2 objects · 5 drawn (3 highway · 2 building)" — what the approver
+// is about to be shown. The kinds are named because since db/0157 there are
+// nine of them, and somebody who has just pasted an extract into six layers
+// wants to see the six counts rather than one number for all of it.
+function kindWords(kinds) {
+    const rows = Object.entries(kinds ?? {}).filter(([, n]) => n > 0);
+    if (!rows.length) return '';
+    rows.sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]));
+    return ` (${rows.map(([kind, n]) => `${n} ${kind}`).join(' \u00b7 ')})`;
+}
+
 function changeWords(n, changes) {
     const bits = [`${n} tile${n === 1 ? '' : 's'}`];
     if (changes?.objects) {
         bits.push(`${changes.objects} object${changes.objects === 1 ? '' : 's'}`);
     }
     if (changes?.moved) bits.push(`${changes.moved} moved`);
-    if (changes?.features) bits.push(`${changes.features} drawn`);
+    if (changes?.features) bits.push(`${changes.features} drawn${kindWords(changes.kinds)}`);
+    // FND.9: a submission can be nothing but the ground, and an approver
+    // looking at one was being shown nothing at all.
+    if (changes?.ground) bits.push(`ground shaped (revision ${changes.ground})`);
     return bits.join(' \u00b7 ');
 }
 
 function drawSubmit(ui, state) {
     ui.tiles.replaceChildren(...progressTiles(state.progress));
+    ui.flags.replaceChildren(...flagRows(state));
     const n = toSubmit(state.progress);
     const drawn = Number(state.changes?.features ?? 0)
-        + Number(state.changes?.objects ?? 0);
+        + Number(state.changes?.objects ?? 0) + Number(state.changes?.ground ?? 0);
     ui.changes.textContent = n
         ? `${changeWords(n, state.changes)} — this is what the approver sees.`
         : drawn
@@ -184,7 +227,7 @@ function layoutSubmit(host, ui) {
             el('span', { className: 'label', textContent: 'Tiles on it' }), ui.tiles),
         el('div', { className: 'section' },
             el('span', { className: 'label', textContent: 'What is being sent' }),
-            ui.changes, ui.note),
+            ui.changes, ui.flags, ui.note),
         el('div', { className: 'row' }, ui.send, ui.mine, ui.bare),
         el('div', { className: 'note',
             textContent: 'Approving is what opens the render jobs. A price can'

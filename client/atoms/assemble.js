@@ -1,4 +1,4 @@
-// assemble.js — `assemble-v6`. The world, as geometry, in one tile's own frame.
+// assemble.js — `assemble-v9`. The world, as geometry, in one tile's own frame.
 //
 // Terrain from the seeded DEM, cut by terrainmods and roads; footprints
 // extruded; forests scattered; water laid flat; the ground coloured by its own
@@ -21,19 +21,21 @@ import { boundsOf, placeMeshes } from '../lib/glbmesh.js';
 import { packMeshes } from '../lib/mesh.js';
 import { bboxOf, writePly } from '../lib/ply.js';
 import { contains } from '../lib/poly.js';
-import { styleFor } from '../lib/rules.js';
-import { MATERIALS, buildings, roadMesh, trees, waterMesh } from '../lib/props.js';
+import { MATERIALS } from '../lib/props.js';
+import { context, runAll } from '../lib/gen/index.js';
 import { rngOf, sampleSurfaces } from '../lib/sampling.js';
 import { writeTar } from '../lib/tar.js';
 import {
-    GRID, Terrain, applyTerrainmods, cutRoads, heightRaster, terrainMesh,
+    GRID, Terrain, applyHeightEdits, cutRoads, heightRaster, openHeights,
+    terrainMesh,
 } from '../lib/terrain.js';
-import { localFromLonLat, tileBbox, tileFrame } from '../lib/tilemath.js';
+import { readR32 } from '../lib/r32.js';
+import { localFromLonLat, lonLatFromLocal, tileBbox, tileFrame } from '../lib/tilemath.js';
 
 // v4 writes each surface's own colour and leaves the light to the one
 // renderer (client/lib/raster.js); v3 had baked it for a sampled baseline
 // that is gone. The cut elevation is read whole (terrain.js GRID).
-export const ALGO = 'assemble-v6';
+export const ALGO = 'assemble-v9';
 
 // What assemble and sample both use to turn surfaces into splats; re-exported
 // because both atoms have always reached for them here.
@@ -75,28 +77,6 @@ function toLocal(frame, feature) {
     };
 }
 
-// A road's height follows its centreline, smoothed: the ground under a road is
-// not as bumpy as a 30 m DEM says it is.
-function roadsOf(features, terrain, rules = []) {
-    const out = [];
-    for (const f of features) {
-        const width = Number(styleFor(rules, f).width) || 5;
-        for (const line of f.lines) {
-            if (line.length < 2) continue;
-            const raw = line.map(([x, z]) => terrain.at(x, z));
-            const h = raw.map((_, i) => (raw[Math.max(i - 1, 0)] + raw[i]
-                + raw[Math.min(i + 1, raw.length - 1)]) / 3);
-            const segments = [];
-            for (let i = 0; i + 1 < line.length; i++) {
-                segments.push({ a: line[i], b: line[i + 1], ha: h[i], hb: h[i + 1] });
-            }
-            out.push({ width, segments });
-        }
-    }
-    return out;
-}
-
-
 // A feature that crosses the tile's edge arrives whole — a road runs for
 // kilometres, a forest spills into the next tile — and a tile shows its own
 // ground and nothing else. A triangle is kept only if all of it is inside, so
@@ -127,9 +107,35 @@ function clip(meshes, sw, ne) {
 
 // canon-v1 re-centred every asset on the bottom centre of its bounding box, so
 // an instance's position is where it stands, and its box is that box moved.
+// FND.6: a screen's content is not the compiler's to bake — the frame around it
+// is geometry like any other, the surface it carries is live. Everything else a
+// marked part may do (a light's glow, a door's pose) is either not baked at all
+// or baked where the maker left it.
+const liveSurfaces = (parts) => new Set((parts?.parts ?? [])
+    .filter((p) => p.role === 'screen').map((p) => p.name));
+
+// FND.11: where a placed model takes the ground away — the box its opening's
+// own triangles cover, in the tile's frame.
+function openingsOf(placed) {
+    const out = [];
+    for (const m of placed) {
+        if (!m.opening) continue;
+        let [x0, z0, x1, z1] = [Infinity, Infinity, -Infinity, -Infinity];
+        for (let i = 0; i < m.positions.length; i += 3) {
+            x0 = Math.min(x0, m.positions[i]);
+            x1 = Math.max(x1, m.positions[i]);
+            z0 = Math.min(z0, m.positions[i + 2]);
+            z1 = Math.max(z1, m.positions[i + 2]);
+        }
+        if (Number.isFinite(x0)) out.push([x0, z0, x1, z1]);
+    }
+    return out;
+}
+
 function placeInstances(instances, assets, frame) {
     const meshes = [];
     const boxes = [];
+    const openings = [];
     let missing = 0;
     for (const i of instances ?? []) {
         const glb = assets.get(i.sha256);
@@ -137,11 +143,13 @@ function placeInstances(instances, assets, frame) {
         const p = localFromLonLat(frame, i.lon, i.lat, i.h ?? 0);
         const at = [p.x, p.y, p.z];
         const placed = placeMeshes(glb, { at, yaw: i.yaw ?? 0, pitch: i.pitch ?? 0,
-            roll: i.roll ?? 0, scale: i.scale ?? 1, material: 'asset' });
+            roll: i.roll ?? 0, scale: i.scale ?? 1, material: 'asset',
+            skip: liveSurfaces(i.parts) });
+        openings.push(...openingsOf(placed));
         meshes.push(...placed);
         boxes.push(colliderOf(placed, at));
     }
-    return { meshes, boxes, missing };
+    return { meshes, boxes, openings, missing };
 }
 
 function colliderOf(meshes, at) {
@@ -169,49 +177,83 @@ async function groundColour(z, x, y, filesUrl) {
     };
 }
 
-function build({ z, sw, ne, dem, frame, world, random, assets, colourAt = null }) {
-    // What a feature becomes is decided by the world's rules, which travel with
-    // it (db/0036_rules.sql): nothing here knows a species or a column name.
-    const rules = world.rules ?? [];
+// What a feature becomes is decided by the world's symbols, which travel with
+// it (db/0161): nothing here knows what a road, a wood or a roof is. Each
+// feature is put through the first symbol that matches it, and that symbol's
+// layers draw it (client/lib/gen/).
+function build({ z, sw, ne, dem, frame, world, random, assets, products,
+    ground = [], colourAt = null }) {
+    const symbols = world.symbols ?? [];
     const feats = (world.features ?? []).map((f) => toLocal(frame, f));
-    const by = (kind) => feats.filter((f) => f.kind === kind);
     const terrain = new Terrain({ sw, ne, size: GRID[z] ?? 65, dem });
     // The frame's origin is the ground under the tile centre, so heights are
     // measured from there, not from the ellipsoid.
     for (let i = 0; i < terrain.h.length; i++) terrain.h[i] -= frame.h;
     terrain.datum = frame.h;
-    applyTerrainmods(terrain, by('terrainmod'), rules);
-    const roads = roadsOf(by('road'), terrain, rules);
-    cutRoads(terrain, roads);
+    // FND.9: what the lands here were shaped into, before anything stands on
+    // it. PLAN-foundation.md §3's first step.
+    applyHeightEdits(terrain, ground, (x, z0) => lonLatFromLocal(frame, { x, y: 0, z: z0 }));
 
     const edge = Math.hypot(ne.x - sw.x, sw.z - ne.z);
-    const built = buildings(by('footprint'), terrain, rules);
-    const wood = trees(by('forest'), terrain, random, Math.max(6, edge / 140), rules);
+    const ctx = context({ terrain, random, radius: Math.max(6, edge / 140),
+        asset: (san) => products?.get(san)?.bytes ?? null,
+        product: (san) => products?.get(san)?.json ?? null,
+        // The roads every `surface` layer gathered, cut into the hill before
+        // anything is drawn on it.
+        cut: () => cutRoads(terrain, ctx.roads) });
+    // The models are placed before the ground is built: where one of them
+    // opens the terrain, the terrain is not built there at all (FND.11).
     const placed = placeInstances(world.instances, assets ?? new Map(), frame);
-    const meshes = clip([terrainMesh(terrain, 'terrain', colourAt), roadMesh(roads, terrain),
-        built.walls, built.roofs, waterMesh(by('water'), terrain),
-        wood.trunks, wood.canopies, ...placed.meshes], sw, ne);
-    built.boxes = [...built.boxes, ...placed.boxes].filter((b) => b.center[0] >= sw.x - CLIP_M
-        && b.center[0] <= ne.x + CLIP_M && b.center[2] <= sw.z + CLIP_M
-        && b.center[2] >= ne.z - CLIP_M);
-    return { terrain, meshes, built, wood, roads, placed };
+    const drawn = runAll(symbols, feats, ctx);
+    const meshes = clip([terrainMesh(terrain, 'terrain', colourAt, placed.openings),
+        ...drawn.meshes, ...placed.meshes], sw, ne);
+    const boxes = [...drawn.boxes, ...placed.boxes]
+        .filter((b) => b.center[0] >= sw.x - CLIP_M
+            && b.center[0] <= ne.x + CLIP_M && b.center[2] <= sw.z + CLIP_M
+            && b.center[2] >= ne.z - CLIP_M);
+    return { terrain, meshes, boxes, trees: ctx.trees, flags: drawn.flags,
+        paints: ctx.paints, roads: ctx.roads, placed,
+        openings: placed.openings };
 }
 
-// -------------------------------------------------------------------- atom
+// The files the pinned symbols name (db/0161): a segment's or a model's GLB,
+// a cross-section's or a collection's JSON, a material's PNG. Fetched by
+// digest like an instance's GLB, once each, and a missing one is skipped
+// rather than fatal — one lost product must not make a tile uncompilable.
+const EXT = { model: 'glb', segment: 'glb', material: 'png',
+    profile: 'json', collection: 'json' };
 
-export async function run({ atom, log, apiUrl, filesUrl }) {
-    const { z, x, y, budget } = atom.params;
-    const world = await fetchJson(`${apiUrl}/rpc/tile_world`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
-        body: JSON.stringify({ z, x, y }),
-    });
-    // Invariant 2: this atom was built from one snapshot of the world. If the
-    // world has moved, the job is already cancelled and this work is waste.
-    if (atom.inputs?.snapshot && world.snapshot !== atom.inputs.snapshot) {
-        throw new Error(`the world moved: ${world.snapshot} is not ${atom.inputs.snapshot}`);
+async function loadProducts(files, filesUrl) {
+    const out = new Map();
+    for (const [san, what] of Object.entries(files ?? {})) {
+        const ext = EXT[what.type] ?? 'glb';
+        const res = await fetch(`${filesUrl}/assets/${what.sha256}.${ext}`).catch(() => null);
+        if (!res?.ok) continue;
+        const bytes = new Uint8Array(await res.arrayBuffer());
+        out.set(san, { type: what.type, bytes,
+            json: ext === 'json' ? JSON.parse(new TextDecoder().decode(bytes)) : null });
     }
+    return out;
+}
 
+// The lands here that somebody has shaped: the grid each one saved and its own
+// outline, in this tile's frame. A file that will not load is skipped, as a
+// missing GLB is — one lost file must not make a tile uncompilable.
+async function loadGround(edits, frame, filesUrl) {
+    const out = [];
+    for (const e of edits ?? []) {
+        const res = await fetch(`${filesUrl}/assets/${e.sha256}.r32`).catch(() => null);
+        if (!res?.ok) continue;
+        const local = toLocal(frame, { id: e.area_id, kind: 'area', geom: e.geom });
+        out.push({ grid: readR32(new Uint8Array(await res.arrayBuffer())),
+            contains: local.contains });
+    }
+    return out;
+}
+
+// Everything about where this tile is and what the ground under it looks
+// like, before a single feature is read.
+async function theGround(z, x, y, filesUrl) {
     // This tile's own cut, never an ancestor's (client/lib/geo.js loadDemExact).
     // A z14 read from z10 holds sixteen of this tile's samples, stretched over
     // a 513-vertex mesh: the quilt of bilinear triangles a player saw in the
@@ -232,30 +274,52 @@ export async function run({ atom, log, apiUrl, filesUrl }) {
     // fillVoids).
     fillVoids(dem);
     const colourAt = await groundColour(z, x, y, filesUrl);
-
     const b = tileBbox(z, x, y);
-    const centre = { lon: (b.west + b.east) / 2, lat: (b.south + b.north) / 2 };
     const flat = tileFrame(z, x, y, 0);
     const frame = tileFrame(z, x, y, sampleGround(dem));
-    const sw = localFromLonLat(frame, b.west, b.south);
-    const ne = localFromLonLat(frame, b.east, b.north);
+    return { b, dem, colourAt, flat, frame,
+        centre: { lon: (b.west + b.east) / 2, lat: (b.south + b.north) / 2 },
+        sw: localFromLonLat(frame, b.west, b.south),
+        ne: localFromLonLat(frame, b.east, b.north) };
+}
+
+// -------------------------------------------------------------------- atom
+
+export async function run({ atom, log, apiUrl, filesUrl }) {
+    const { z, x, y, budget } = atom.params;
+    const world = await fetchJson(`${apiUrl}/rpc/tile_world`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+        body: JSON.stringify({ z, x, y }),
+    });
+    // Invariant 2: this atom was built from one snapshot of the world. If the
+    // world has moved, the job is already cancelled and this work is waste.
+    if (atom.inputs?.snapshot && world.snapshot !== atom.inputs.snapshot) {
+        throw new Error(`the world moved: ${world.snapshot} is not ${atom.inputs.snapshot}`);
+    }
+
+    const { centre, flat, frame, sw, ne, dem, colourAt } = await theGround(z, x, y, filesUrl);
 
     const assets = await loadAssets(world.instances, { filesUrl });
-    const { terrain, meshes, built, wood, roads, placed } =
-        build({ z, sw, ne, dem, frame, world, random: rngOf(atom, z, x, y), assets, colourAt });
-    log?.({ event: 'assembled', z, x, y, meshes: meshes.length, trees: wood.count,
-        buildings: built.boxes.length, roads: roads.length,
+    const products = await loadProducts(world.symbol_files, filesUrl);
+    const ground = await loadGround(world.height_edits, frame, filesUrl);
+    const { terrain, meshes, boxes, trees, flags, roads, placed, openings } =
+        build({ z, sw, ne, dem, frame, world, random: rngOf(atom, z, x, y),
+            assets, products, ground, colourAt });
+    log?.({ event: 'assembled', z, x, y, meshes: meshes.length, trees,
+        buildings: boxes.length, roads: roads.length,
         instances: placed.meshes.length, missing: placed.missing });
 
     const random = rngOf(atom, z, x, y);
     const splats = sampleSurfaces(meshes, Math.round(budget * INIT_SHARE), random);
-    const height = heightRaster(terrain);
+    // What the player walks on has the same holes in it.
+    const height = heightRaster(openHeights(terrain, openings));
     const { bin, specs } = packMeshes(meshes);
     const scene = {
         algo: ALGO, tile: { z, x, y }, origin: { ...centre, h: frame.h },
         budget, materials: MATERIALS, meshes: specs, height: height.meta,
         instances: world.instances ?? [], snapshot: world.snapshot,
-        counts: { trees: wood.count, buildings: built.boxes.length, splats: splats.count },
+        counts: { trees, buildings: boxes.length, splats: splats.count },
         // The frame at ground level; the flat one is what tilemath gives for h=0.
         frame: { lon: frame.lon, lat: frame.lat, h: frame.h, flat_h: flat.h },
     };
@@ -265,7 +329,7 @@ export async function run({ atom, log, apiUrl, filesUrl }) {
         { name: 'init.ply', bytes: writePly(splats) },
         { name: 'height.r16', bytes: height.bytes },
         { name: 'colliders.json',
-            bytes: new TextEncoder().encode(JSON.stringify({ boxes: built.boxes })) },
+            bytes: new TextEncoder().encode(JSON.stringify({ boxes })) },
     ]);
     return {
         files: [{ ext: 'tar', kind: 'init_ply', algo_version: ALGO, bytes: tar }],
@@ -273,8 +337,11 @@ export async function run({ atom, log, apiUrl, filesUrl }) {
         result: {
             bytes: tar.length, splat_count: splats.count, finite: true,
             bbox: bboxOf(splats),
-            trees: wood.count, buildings: built.boxes.length, snapshot: world.snapshot,
+            trees, buildings: boxes.length, snapshot: world.snapshot,
             instances: (world.instances ?? []).length - placed.missing,
+            // FND.11 reads these in the Submit dialog: where a road is laid
+            // across a slope steeper than its symbol allows.
+            flags,
         },
     };
 }

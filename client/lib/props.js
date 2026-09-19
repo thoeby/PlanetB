@@ -130,31 +130,38 @@ function hip(m, o, top, colour) {
     }
 }
 
+// One footprint, into the meshes it is drawn in. FND.7's `extrude` layer is
+// this function and nothing else, so what a symbol builds and what the rules
+// built are the same triangles in the same order.
+export function extrudeOne(f, terrain, style, walls, roofs) {
+    const ring = f.rings[0];
+    if (!ring || ring.length < 3) return null;
+    const heights = ring.map((p) => terrain.at(p[0], p[1]));
+    const base = Math.min(...heights) - 0.5;
+    const tall = pick(style.height, 6);
+    const top = base + tall;
+    wallsOf(walls, ring, base, top);
+    const o = orient(ring);
+    const shape = roofShape(style.roof);
+    const roofColour = Array.isArray(style.roof_color)
+        ? style.roof_color : MATERIALS.roof.color;
+    if (shape === 'gable') gable(roofs, o, top, roofColour);
+    else if (shape === 'hip') hip(roofs, o, top, roofColour);
+    else flatRoof(roofs, ring, top);
+    return {
+        center: [o.centre[0], (base + top) / 2, o.centre[1]],
+        half: [o.half[0], (top - base) / 2, o.half[1]],
+        yaw: -o.yaw,
+    };
+}
+
 export function buildings(footprints, terrain, rules = []) {
     const walls = new Mesh('wall');
     const roofs = new Mesh('roof');
     const boxes = [];
     for (const f of footprints) {
-        const ring = f.rings[0];
-        if (!ring || ring.length < 3) continue;
-        const heights = ring.map((p) => terrain.at(p[0], p[1]));
-        const base = Math.min(...heights) - 0.5;
-        const style = styleFor(rules, f);
-        const tall = pick(style.height, 6);
-        const top = base + tall;
-        wallsOf(walls, ring, base, top);
-        const o = orient(ring);
-        const shape = roofShape(style.roof);
-        const roofColour = Array.isArray(style.roof_color)
-            ? style.roof_color : MATERIALS.roof.color;
-        if (shape === 'gable') gable(roofs, o, top, roofColour);
-        else if (shape === 'hip') hip(roofs, o, top, roofColour);
-        else flatRoof(roofs, ring, top);
-        boxes.push({
-            center: [o.centre[0], (base + top) / 2, o.centre[1]],
-            half: [o.half[0], (top - base) / 2, o.half[1]],
-            yaw: -o.yaw,
-        });
+        const box = extrudeOne(f, terrain, styleFor(rules, f), walls, roofs);
+        if (box) boxes.push(box);
     }
     return { walls, roofs, boxes };
 }
@@ -212,27 +219,34 @@ export function trees(forests, terrain, random, radius, rules = []) {
     const canopies = new Mesh('canopy');
     let count = 0;
     for (const f of forests) {
-        const style = styleFor(rules, f);
-        const range = Array.isArray(style.height) ? style.height : TREE.height;
-        const low = pick(style.height_min ?? range[0], TREE.height[0]);
-        const high = pick(style.height_max ?? range[1], TREE.height[1]);
-        const sides = Math.max(3, Math.round(pick(style.sides, TREE.sides)));
-        const taper = pick(style.taper, TREE.taper);
-        const colour = Array.isArray(style.color) ? style.color : TREE.color;
-        const grown = maturity((f.props ?? {})[style.age_prop ?? 'age'], style.mature);
-        for (const [x, z] of scatter(f.rings, radius, random)) {
-            const tall = (low + random() * (high - low)) * grown;
-            const lean = [(random() - 0.5) * 0.08, (random() - 0.5) * 0.08];
-            const tint = [0.8 + random() * 0.4, 0.85 + random() * 0.3];
-            const ground = terrain.at(x, z);
-            const own = [colour[0] * tint[0] * tint[1], colour[1] * tint[1],
-                colour[2] * tint[0]];
-            tree(canopies, [x, ground, z], tall, tall * taper, sides, lean, own);
-            trunk(trunks, x, z, ground, tall * 0.4, tall * taper * 0.06);
-            count += 1;
-        }
+        count += scatterOne(f, terrain, random, radius, styleFor(rules, f),
+            trunks, canopies);
     }
     return { trunks, canopies, count };
+}
+
+// One stand, into the meshes it is drawn in — FND.7's `scatter` layer.
+export function scatterOne(f, terrain, random, radius, style, trunks, canopies) {
+    let count = 0;
+    const range = Array.isArray(style.height) ? style.height : TREE.height;
+    const low = pick(style.height_min ?? range[0], TREE.height[0]);
+    const high = pick(style.height_max ?? range[1], TREE.height[1]);
+    const sides = Math.max(3, Math.round(pick(style.sides, TREE.sides)));
+    const taper = pick(style.taper, TREE.taper);
+    const colour = Array.isArray(style.color) ? style.color : TREE.color;
+    const grown = maturity((f.props ?? {})[style.age_prop ?? 'age'], style.mature);
+    for (const [x, z] of scatter(f.rings, radius, random)) {
+        const tall = (low + random() * (high - low)) * grown;
+        const lean = [(random() - 0.5) * 0.08, (random() - 0.5) * 0.08];
+        const tint = [0.8 + random() * 0.4, 0.85 + random() * 0.3];
+        const ground = terrain.at(x, z);
+        const own = [colour[0] * tint[0] * tint[1], colour[1] * tint[1],
+            colour[2] * tint[0]];
+        tree(canopies, [x, ground, z], tall, tall * taper, sides, lean, own);
+        trunk(trunks, x, z, ground, tall * 0.4, tall * taper * 0.06);
+        count += 1;
+    }
+    return count;
 }
 
 // Three tiers: the lowest starts a third of the way up and is the widest,

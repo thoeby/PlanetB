@@ -1,0 +1,83 @@
+<plugin format="1" id="opticalcodes">
+    <name>Optical-Codes</name>
+    <icon type="simicons">technology::qr-code</icon>
+
+    <value id="barcode">
+        <description type="short">Barcode</description>
+    </value>
+
+    <node id="encode">
+        <name>Encode</name>
+        <input name="data">
+            <structure id="droplet"/>
+            <value id="string"/>
+        </input>
+        <input name="format">
+            <structure id="droplet" default="true">
+                <value id="string">QRCode</value>
+            </structure>
+            <value id="string"/>
+        </input>
+        <input name="ec level">
+            <structure id="droplet" default="true">
+                <value id="integer">0</value>
+            </structure>
+            <value id="integer"/>
+        </input>
+        <output name="barcode">
+            <structure id="droplet"/>
+            <value plugin="opticalcodes" id="barcode"/>
+        </output>
+    </node>
+
+    <node id="write-image-memory">
+        <name>Write Image Memory</name>
+        <icon type="simicons">formatting::image.save</icon>
+        <description type="short">Write optical code as image to memory</description>
+        <description type="long">Writes an optical code that was previously encoded as an image to memory.</description>
+        <parameter id="image-format">
+            <name>Image Format</name>
+            <description type="short">Image format</description>
+            <description type="long">The image format to use such as PNG, JPG or BMP.</description>
+            <value_choices default-label="PNG" required="1">
+                <value id="string" label="PNG">PNG</value>
+                <value id="string" label="BMP">BMP</value>
+                <value id="string" label="JPG">JPG</value>
+            </value_choices>
+        </parameter>
+        <input name="barcode">
+            <structure id="droplet"/>
+            <value plugin="opticalcodes" id="barcode"/>
+        </input>
+        <input name="size">
+            <structure id="droplet" default="true">
+                <value id="integer">256</value>
+            </structure>
+            <value id="integer"/>
+        </input>
+        <output name="image">
+            <structure id="droplet"/>
+            <value id="bytes"/>
+        </output>
+        <output name="error">
+            <structure id="droplet"/>
+            <value id="error-code"/>
+        </output>
+    </node>
+
+    <node id="write-svg">
+        <name>Write SVG</name>
+        <icon type="simicons">file::svg</icon>
+        <description type="short">Write optical code as SVG to string</description>
+        <description type="long">Writes an optical code that was previously encoded as an SVG to a string.</description>
+        <input name="barcode">
+            <structure id="droplet"/>
+            <value plugin="opticalcodes" id="barcode"/>
+        </input>
+        <output name="svg">
+            <structure id="droplet"/>
+            <value id="string"/>
+        </output>
+    </node>
+
+</plugin>

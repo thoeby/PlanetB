@@ -15,7 +15,7 @@ INSERT INTO area (id, geom, owner_id, detail) VALUES
  st_makeenvelope(30.0, 30.0, 30.2, 30.2, 4326),
  '00000000-0000-0000-0000-0000000b1001', 10);
 INSERT INTO feature (area_id, kind, geom) VALUES
-('00000000-0000-0000-0000-0000000b1003', 'forest',
+('00000000-0000-0000-0000-0000000b1003', 'landuse',
  st_force3d(st_makeenvelope(30.01, 30.01, 30.02, 30.02, 4326)));
 
 -- ensure_job authorises against the caller, so the owner has to be the caller.

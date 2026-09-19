@@ -15,10 +15,10 @@ INSERT INTO area (id, geom, owner_id, detail) VALUES
  '00000000-0000-0000-0000-0000000d3001', 14);
 INSERT INTO feature (id, area_id, kind, geom, props) VALUES
 ('00000000-0000-0000-0000-0000000d3003', '00000000-0000-0000-0000-0000000d3002',
- 'footprint', st_force3d(st_makeenvelope(50.01, 50.01, 50.011, 50.011, 4326)),
+ 'building', st_force3d(st_makeenvelope(50.01, 50.01, 50.011, 50.011, 4326)),
  '{"height": 12}'::jsonb),
 ('00000000-0000-0000-0000-0000000d3004', '00000000-0000-0000-0000-0000000d3002',
- 'forest', st_force3d(st_makeenvelope(50.3, 50.3, 50.31, 50.31, 4326)), '{}'::jsonb);
+ 'landuse', st_force3d(st_makeenvelope(50.3, 50.3, 50.31, 50.31, 4326)), '{}'::jsonb);
 
 CREATE TEMP TABLE spot AS
 SELECT tile_x(50.0105, 14) AS x, tile_y(50.0105, 14) AS y;
@@ -28,7 +28,7 @@ SELECT is(jsonb_array_length(
     'only the feature that touches the tile comes back');
 SELECT is(
     (SELECT tile_world(14, x, y) -> 'features' -> 0 ->> 'kind' FROM spot),
-    'footprint', 'with its kind');
+    'building', 'with its kind');
 SELECT is(
     (SELECT tile_world(14, x, y) -> 'features' -> 0 -> 'props' ->> 'height' FROM spot),
     '12', 'and its props');

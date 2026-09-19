@@ -18,7 +18,7 @@ SELECT '00000000-0000-0000-0000-0000000000e1'::uuid,
 FROM who;
 INSERT INTO feature (area_id, kind, geom)
 VALUES ('00000000-0000-0000-0000-0000000000e1',
-        'forest',
+        'landuse',
         st_force3d(st_makeenvelope(7.602, 46.602, 7.606, 46.606, 4326)));
 
 -- One of its tiles is published, so "returns to ground" has something to undo.

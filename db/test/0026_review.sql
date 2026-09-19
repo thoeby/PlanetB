@@ -72,7 +72,7 @@ SELECT is((SELECT bounty FROM job WHERE id = (SELECT jid FROM j1)), 15::numeric,
 
 -- The world moves on: the old job is cancelled and its escrow comes back.
 INSERT INTO feature (area_id, kind, geom)
-VALUES ('00000000-0000-0000-0000-0000000000b1', 'footprint',
+VALUES ('00000000-0000-0000-0000-0000000000b1', 'building',
         st_geomfromtext('POINTZ(7.5 46.5 500)', 4326));
 CREATE TEMP TABLE j2 AS
 SELECT ensure_job(12, (SELECT x FROM tt), (SELECT y FROM tt)) AS jid;

@@ -45,7 +45,7 @@ FROM ids;
 -- one edit -------------------------------------------------------------
 INSERT INTO feature (id, area_id, kind, geom)
 SELECT '00000000-0000-0000-0000-0000000000f1',
-       '00000000-0000-0000-0000-0000000000a1', 'footprint',
+       '00000000-0000-0000-0000-0000000000a1', 'building',
        st_force3d(st_centroid(a.geom))
 FROM area a WHERE a.id = '00000000-0000-0000-0000-0000000000a1';
 
@@ -86,7 +86,7 @@ SELECT '00000000-0000-0000-0000-0000000000a2'::uuid,
        ids.owner_id, 18
 FROM ids;
 INSERT INTO feature (area_id, kind, geom)
-SELECT '00000000-0000-0000-0000-0000000000a2', 'water', st_force3d(st_centroid(a.geom))
+SELECT '00000000-0000-0000-0000-0000000000a2', 'natural', st_force3d(st_centroid(a.geom))
 FROM area a WHERE a.id = '00000000-0000-0000-0000-0000000000a2';
 -- db/0089: detail is a ceiling and the depth is earned. Water is a shape on
 -- the ground, so it earns the first trained rung and not the last — the whole
@@ -101,7 +101,7 @@ SELECT is((SELECT count(*)::int FROM tile), 10,
 
 -- A footprint does have walls, and earns the rung water does not.
 INSERT INTO feature (area_id, kind, geom)
-SELECT '00000000-0000-0000-0000-0000000000a2', 'footprint', st_force3d(st_centroid(a.geom))
+SELECT '00000000-0000-0000-0000-0000000000a2', 'building', st_force3d(st_centroid(a.geom))
 FROM area a WHERE a.id = '00000000-0000-0000-0000-0000000000a2';
 SELECT cmp_ok((SELECT count(*)::int FROM tile WHERE z = 18), '>', 0,
     'a building on the same ground earns z18');
@@ -121,7 +121,7 @@ SELECT is((SELECT count(*)::int FROM tile WHERE z = 18),
 
 -- outside any area -----------------------------------------------------
 SELECT throws_ok($$INSERT INTO feature (area_id, kind, geom)
-    VALUES ('00000000-0000-0000-0000-0000000000a1', 'forest',
+    VALUES ('00000000-0000-0000-0000-0000000000a1', 'landuse',
             st_geomfromtext('POINTZ(0 0 0)', 4326))$$,
     null, 'an edit outside its area raises');
 

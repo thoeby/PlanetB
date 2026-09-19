@@ -17,7 +17,7 @@ SELECT '00000000-0000-0000-0000-000000000083'::uuid,
        ids.owner_id, 18
 FROM ids;
 INSERT INTO feature (area_id, kind, geom)
-VALUES ('00000000-0000-0000-0000-000000000083', 'footprint',
+VALUES ('00000000-0000-0000-0000-000000000083', 'building',
         st_geomfromtext('POINTZ(7.805 46.295 650)', 4326));
 
 CREATE TEMP TABLE tt AS SELECT 18 AS z, tile_x(7.805, 18) AS x, tile_y(46.295, 18) AS y;

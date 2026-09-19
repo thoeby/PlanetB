@@ -24,7 +24,7 @@ SELECT '00000000-0000-0000-0000-000000000110'::uuid,
                        4326),
        uid, 14 FROM race_user;
 INSERT INTO feature (area_id, kind, geom)
-VALUES ('00000000-0000-0000-0000-000000000110', 'footprint',
+VALUES ('00000000-0000-0000-0000-000000000110', 'building',
         st_geomfromtext('POINTZ(7.805 46.295 650)', 4326));
 SELECT set_config('request.jwt.claims',
     json_build_object('sub', uid, 'role', 'player')::text, false) FROM race_user;

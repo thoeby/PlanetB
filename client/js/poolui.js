@@ -188,7 +188,9 @@ export function poolRow(e, acts, caps, picked = null) {
                 // What this job makes is the job's own answer: a tile with
                 // nothing under it is assembled whatever its zoom
                 // (db/0045_coarseleaf.sql).
-                textContent: [far(e.metres), what(e), e.made, needs(e, caps),
+                // `why` is FND.8's: a rebuild nobody asked for by name says
+                // where it came from.
+                textContent: [far(e.metres), e.why, what(e), e.made, needs(e, caps),
                     drawnWhen(e)].filter(Boolean).join(' · ') })),
         end);
     // Picking a row is how a price goes on that tile (client/js/renderpool.js).

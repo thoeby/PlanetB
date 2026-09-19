@@ -6,7 +6,7 @@ import { test, expect } from '@playwright/test';
 import { existsSync } from 'node:fs';
 import { join } from 'node:path';
 
-import { install, tileRows, FILES_ROOT, CLIENT } from './serve.js';
+import { install, testTileRows, FILES_ROOT, CLIENT } from './serve.js';
 import { republish } from './publish.js';
 
 test.describe.configure({ timeout: 180000 });
@@ -18,7 +18,7 @@ test.beforeAll(() => {
         test.skip(true, 'no vendored engine — run `make vendor`');
     }
     try {
-        rows = tileRows();
+        rows = testTileRows();
     } catch (err) {
         test.skip(true, `no database to read tiles from: ${err.message}`);
     }
@@ -28,9 +28,12 @@ test.beforeAll(() => {
 
 test('a republished tile is swapped in within 35 s, with no empty frame',
     async ({ page }) => {
-        // No snapshot: the routes read the tile rows fresh, so the republish
-        // below is visible to the page's next poll.
-        await install(page, null);
+        // A function rather than a snapshot: the routes read the rows fresh on
+        // every request, so the republish below is visible to the page's next
+        // poll. It is still this suite's seven tiles (serve.js TEST_TILES) —
+        // anything else the database happens to hold is another test's world,
+        // and the camera below is aimed at this one.
+        await install(page, testTileRows);
         const errors = [];
         page.on('pageerror', (e) => errors.push(String(e)));
         await page.goto('/play.html');

@@ -13,7 +13,7 @@ SELECT '00000000-0000-0000-0000-0000000000a1'::uuid,
        ids.owner_id, 18
 FROM ids;
 INSERT INTO feature (area_id, kind, geom)
-VALUES ('00000000-0000-0000-0000-0000000000a1', 'footprint',
+VALUES ('00000000-0000-0000-0000-0000000000a1', 'building',
         st_geomfromtext('POINTZ(7.5 46.5 500)', 4326));
 
 SELECT set_config('request.jwt.claims',

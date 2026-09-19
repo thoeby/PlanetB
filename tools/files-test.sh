@@ -91,7 +91,7 @@ INSERT INTO area (id, geom, owner_id, detail) VALUES (gen_random_uuid(),
     st_makeenvelope($LON - 0.02, $LAT - 0.02, $LON + 0.02, $LAT + 0.02, world_srid()),
     '$UID_', 14);
 INSERT INTO feature (area_id, kind, geom)
-VALUES ((SELECT id FROM area WHERE owner_id = '$UID_'), 'footprint',
+VALUES ((SELECT id FROM area WHERE owner_id = '$UID_'), 'building',
         st_setsrid(st_makepoint($LON, $LAT, 500), world_srid()));
 DO \$\$
 BEGIN
@@ -116,6 +116,18 @@ is "PUT to a reserved job path is 201" 201 "$(put "/jobs/$ATOM/$SHA" "$SHA" "$JW
 is "a second PUT to the same path is 409" 409 "$(put "/jobs/$ATOM/$SHA" "$SHA" "$JWT")"
 is "PUT of an asset by any authenticated user is 201" 201 \
     "$(put "/assets/$SHA.glb" "$SHA" "$JWT")"
+# db/0155: a flow's ELX is an asset like a model is. The extension is in the
+# store's contract because the database's can_write names it.
+ELX=$(mktemp); printf '<elx version="1"><engine type="flow"/></elx>' > "$ELX"
+ELX_SHA=$(sha256sum "$ELX" | cut -d' ' -f1)
+is "PUT of a flow's ELX is 201" 201 \
+    "$(curl -s -o /dev/null -w '%{http_code}' -X PUT "$FILES_URL/assets/$ELX_SHA.elx" \
+        -H "X-Sha256: $ELX_SHA" -H "Authorization: Bearer $JWT" --data-binary "@$ELX")"
+is "PUT of an asset with an extension nobody allowed is 403" 403 \
+    "$(put "/assets/$SHA2.zip" "$SHA2" "$JWT")"
+grep -qi 'content-type: application/xml' \
+    <<< "$(curl -s -D - -o /dev/null "$FILES_URL/assets/$ELX_SHA.elx")" \
+    && ok "an ELX is served as XML" || no "an ELX is served as XML"
 
 HDRS=$(curl -s -D - -o /dev/null "$FILES_URL/jobs/$ATOM/$SHA")
 is "GET returns the bytes" 200 "$(curl -s -o "$body" -w '%{http_code}' "$FILES_URL/jobs/$ATOM/$SHA")"

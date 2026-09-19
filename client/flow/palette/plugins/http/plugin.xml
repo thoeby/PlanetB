@@ -1,0 +1,459 @@
+<plugin format="1" id="http">
+    <name>HTTP</name>
+    <icon type="simicons">file::http</icon>
+
+    <value id="request">
+        <description type="short">An HTTP request.</description>
+    </value>
+    <value id="form-data">
+        <description type="short">Form data.</description>
+    </value>
+    <value id="response">
+        <description type="short">An HTTP response.</description>
+    </value>
+
+    <service id="server">
+        <name>HTTP Server</name>
+        <description type="short">HTTP server configuration</description>
+        <description type="long">Required configuration to spawn an HTTP server.</description>
+        <parameter id="interface">
+            <name>Interface</name>
+            <description type="short">The interface to use</description>
+            <description type="long">The interface to listen for incoming HTTP requests (IPv4 or IPv6 address).</description>
+            <value id="string">127.0.0.1</value>
+        </parameter>
+        <parameter id="port">
+            <name>Port</name>
+            <description type="short">Port to listen on</description>
+            <description type="long">The port on which the server should be listening to.</description>
+            <value id="integer">8081</value>
+        </parameter>
+        <parameter id="num-threads">
+            <name>Number of threads</name>
+            <description type="short">Number of threads to spawn</description>
+            <description type="long">How many threads should be spawned to handle incoming requests.</description>
+            <value id="integer">5</value>
+        </parameter>
+    </service>
+
+    <group id="client">
+        <name>Client</name>
+
+        <node id="download-file">
+            <name>Download File</name>
+            <icon type="simicons"></icon>
+            <description type="short">HTTP(S) file download</description>
+            <description type="long">Downloads a file via HTTP(S) and stores it in a directory on the filesystem.</description>
+            <input name="url">
+                <structure id="droplet"/>
+                <value id="url"/>
+            </input>
+            <input name="directory">
+                <structure id="droplet"/>
+                <value id="filesystem path"/>
+            </input>
+            <output name="status">
+                <structure id="droplet"/>
+                <value id="integer"/>
+            </output>
+        </node>
+
+        <node id="make-request">
+            <name>HTTP Request</name>
+            <description type="short">Make HTTP request</description>
+            <description type="long">Make an HTTP request and get the HTTP response.</description>
+            <input name="request">
+                <structure id="droplet"/>
+                <value plugin="http" id="request"/>
+            </input>
+            <output name="response">
+                <structure id="droplet"/>
+                <value plugin="http" id="response"/>
+            </output>
+            <output name="error">
+                <structure id="droplet"/>
+                <value id="error-code"/>
+            </output>
+        </node>
+
+        <node id="make-request-simple">
+            <name>HTTP Request (Simple)</name>
+            <description type="short">Make HTTP request</description>
+            <description type="long">Make an HTTP request and get the HTTP response.</description>
+            <input name="Request URL">
+                <structure id="droplet"/>
+                <value id="url"/>
+            </input>
+            <input name="Request Method">
+                <structure id="droplet" default="true">
+                    <value id="string">GET</value>
+                </structure>
+                <value id="string"/>
+            </input>
+            <input name="Request Headers">
+                <structure id="map"/>
+                <value id="string"/>
+            </input>
+            <input name="Request Body">
+                <structure id="droplet" default="true">
+                    <value id="string"/>
+                </structure>
+                <value id="string"/>
+            </input>
+            <output name="Error">
+                <structure id="droplet"/>
+                <value id="error-core"/>
+            </output>
+            <output name="Response Status">
+                <structure id="droplet"/>
+                <value id="integer"/>
+            </output>
+            <output name="Response Headers">
+                <structure id="map"/>
+                <value id="string"/>
+            </output>
+            <output name="Response Body">
+                <structure id="droplet"/>
+                <value id="string"/>
+            </output>
+        </node>
+    </group>
+
+    <group id="form">
+        <name>Form</name>
+
+        <node id="field-data">
+            <name>Field Data</name>
+            <description type="short">Get form field data</description>
+            <description type="long">Decomposes form field into its various components.</description>
+            <input name="form data">
+                <structure id="droplet"/>
+                <value plugin="http" id="form-data"/>
+            </input>
+            <input name="field name">
+                <structure id="droplet"/>
+                <value id="string"/>
+            </input>
+            <output name="has data">
+                <structure id="droplet"/>
+                <value id="boolean"/>
+            </output>
+            <output name="content">
+                <structure id="droplet"/>
+                <value id="string"/>
+            </output>
+            <output name="dispositions">
+                <structure id="droplet"/>
+                <value id="string"/>
+            </output>
+            <output name="type">
+                <structure id="droplet"/>
+                <value id="string"/>
+            </output>
+            <output name="filename">
+                <structure id="droplet"/>
+                <value id="string"/>
+            </output>
+        </node>
+
+        <node id="to-json">
+            <name>To JSON</name>
+            <description type="short">Convert to JSON</description>
+            <description type="long">Represent form field data as a JSON array.</description>
+            <input name="form data">
+                <structure id="droplet"/>
+                <structure id="list"/>
+                <structure id="table"/>
+                <structure id="map"/>
+                <value plugin="http" id="form-data"/>
+            </input>
+            <output name="json">
+                <structure id="droplet"/>
+                <structure id="list"/>
+                <structure id="table"/>
+                <structure id="map"/>
+                <value id="json"/>
+            </output>
+        </node>
+
+        <node id="to-string">
+            <name>To String</name>
+            <icon type="simicons">data::string-text</icon>
+            <description type="short">Convert to string</description>
+            <description type="long">Convert input to string.</description>
+            <input name="form data">
+                <structure id="droplet"/>
+                <structure id="list"/>
+                <structure id="table"/>
+                <structure id="map"/>
+                <value plugin="http" id="form-data"/>
+            </input>
+            <output name="string">
+                <structure id="droplet"/>
+                <structure id="list"/>
+                <structure id="table"/>
+                <structure id="map"/>
+                <value id="string"/>
+            </output>
+        </node>
+    </group>
+
+    <group id="request">
+        <name>Request</name>
+
+        <node id="compose">
+            <name>Compose</name>
+            <description type="short">Compose an HTTP request</description>
+            <description type="long">Compose an HTTP request from its individual parts.</description>
+            <input name="url">
+                <structure id="droplet"/>
+                <value id="url"/>
+            </input>
+            <input name="method">
+                <structure id="droplet"/>
+                <value id="string"/>
+            </input>
+            <input name="headers">
+                <structure id="map"/>
+                <value id="string"/>
+            </input>
+            <input name="body">
+                <structure id="droplet" default="true">
+                    <value id="string"/>
+                </structure>
+                <value id="string"/>
+            </input>
+            <output name="request">
+                <structure id="droplet"/>
+                <value plugin="http" id="request"/>
+            </output>
+        </node>
+
+        <node id="decompose">
+            <name>Decompose</name>
+            <description type="short">Decompose an HTTP request</description>
+            <description type="long">Decompose an HTTP request into its individual parts.</description>
+            <input name="request">
+                <structure id="droplet"/>
+                <value plugin="http" id="request"/>
+            </input>
+            <output name="target">
+                <structure id="droplet"/>
+                <value id="string"/>
+            </output>
+            <output name="method">
+                <structure id="droplet"/>
+                <value id="string"/>
+            </output>
+            <output name="headers">
+                <structure id="map"/>
+                <value id="string"/>
+            </output>
+            <output name="body">
+                <structure id="droplet"/>
+                <value id="string"/>
+            </output>
+        </node>
+
+        <node id="parse_form">
+            <name>Parse Form</name>
+            <description type="short">Parse form data</description>
+            <description type="long">Parses from data from an HTTP request.</description>
+            <input name="request">
+                <structure id="droplet"/>
+                <value plugin="http" id="request"/>
+            </input>
+            <output name="form data">
+                <structure id="droplet"/>
+                <value plugin="http" id="from-data"/>
+            </output>
+        </node>
+    </group>
+
+    <group id="response">
+        <name>Response</name>
+
+        <node id="build-string">
+            <name>HTTP String Response</name>
+            <description type="short">Build an HTTP response.</description>
+            <description type="long">Build an HTTP response.</description>
+            <input name="status">
+                <structure id="droplet" default="true">
+                    <value id="integer">200</value>
+                </structure>
+                <value id="integer"/>
+            </input>
+            <input name="headers">
+                <structure id="map"/>
+                <value id="string"/>
+            </input>
+            <input name="body">
+                <structure id="droplet"/>
+                <value id="string"/>
+            </input>
+            <output name="response">
+                <structure id="droplet"/>
+                <value plugin="http" id="response"/>
+            </output>
+        </node>
+
+        <node id="build-file">
+            <name>HTTP File Response</name>
+            <description type="short">HTTP file response.</description>
+            <description type="long">Builds an HTTP response containing a file.</description>
+            <input name="filepath">
+                <structure id="droplet"/>
+                <value id="filesystem path"/>
+            </input>
+            <input name="cache control">
+                <structure id="droplet" default="true">
+                    <value id="string"/>
+                </structure>
+                <value id="string"/>
+            </input>
+            <output name="response">
+                <structure id="droplet"/>
+                <value plugin="http" id="response"/>
+            </output>
+        </node>
+
+        <node id="301">
+            <name>HTTP Response (301)</name>
+            <description type="short">Create a 301 (Moved-Permanently) response</description>
+            <description type="long">Creates an HTTP response with status code 301 ("Moved-Permanently") from a location input.</description>
+            <input name="location">
+                <structure id="droplet"/>
+                <value id="string"/>
+            </input>
+            <output name="response">
+                <structure id="droplet"/>
+                <value plugin="http" id="response"/>
+            </output>
+        </node>
+
+        <node id="302">
+            <name>HTTP Response (302)</name>
+            <description type="short">Create a 302 (Found) response</description>
+            <description type="long">Creates an HTTP response with status code 302 ("Found") from a location input.</description>
+            <input name="location">
+                <structure id="droplet"/>
+                <value id="string"/>
+            </input>
+            <output name="response">
+                <structure id="droplet"/>
+                <value plugin="http" id="response"/>
+            </output>
+        </node>
+
+        <node id="303">
+            <name>HTTP Response (303)</name>
+            <description type="short">Create a 303 (See-Other) response</description>
+            <description type="long">Creates an HTTP response with status code 303 ("See Other") from a location input.</description>
+            <input name="location">
+                <structure id="droplet"/>
+                <value id="string"/>
+            </input>
+            <output name="response">
+                <structure id="droplet"/>
+                <value plugin="http" id="response"/>
+            </output>
+        </node>
+
+        <node id="decompose">
+            <name>Decompose</name>
+            <description type="short">Decompose HTTP response</description>
+            <description type="long">Decompose an HTTP response into its individual parts.</description>
+            <input name="response">
+                <structure id="droplet"/>
+                <value plugin="http" id="response"/>
+            </input>
+            <output name="status">
+                <structure id="droplet"/>
+                <value id="integer"/>
+            </output>
+            <output name="headers">
+                <structure id="map"/>
+                <value id="string"/>
+            </output>
+            <output name="body">
+                <structure id="droplet"/>
+                <value id="string"/>
+            </output>
+        </node>
+    </group>
+
+    <group id="status">
+        <name>Status</name>
+
+        <node id="is-1xx">
+            <name>Is 1xx</name>
+            <description type="short">Check if status is informational response</description>
+            <description type="long">Checks whether a provided status code is of the 'informational response' category (1xx).</description>
+            <input name="status">
+                <structure id="droplet"/>
+                <value id="integer"/>
+            </input>
+            <output name="out">
+                <structure id="droplet"/>
+                <structure id="boolean"/>
+            </output>
+        </node>
+
+        <node id="is-2xx">
+            <name>Is 2xx</name>
+            <description type="short">Check if status is success</description>
+            <description type="long">Checks whether a provided status code is of the 'success' category (2xx).</description>
+            <input name="status">
+                <structure id="droplet"/>
+                <value id="integer"/>
+            </input>
+            <output name="out">
+                <structure id="droplet"/>
+                <structure id="boolean"/>
+            </output>
+        </node>
+
+        <node id="is-3xx">
+            <name>Is 3xx</name>
+            <description type="short">Check if status is redirection</description>
+            <description type="long">Checks whether a provided status code is of the 'redirection' category (3xx).</description>
+            <input name="status">
+                <structure id="droplet"/>
+                <value id="integer"/>
+            </input>
+            <output name="out">
+                <structure id="droplet"/>
+                <structure id="boolean"/>
+            </output>
+        </node>
+
+        <node id="is-4xx">
+            <name>Is 4xx</name>
+            <description type="short">Check if status is client error</description>
+            <description type="long">Checks whether a provided status code is of the 'client errors' category (4xx).</description>
+            <input name="status">
+                <structure id="droplet"/>
+                <value id="integer"/>
+            </input>
+            <output name="out">
+                <structure id="droplet"/>
+                <structure id="boolean"/>
+            </output>
+        </node>
+
+        <node id="is-5xx">
+            <name>Is 5xx</name>
+            <description type="short">Check if status is server error</description>
+            <description type="long">Checks whether a provided status code is of the 'server errors' category (5xx).</description>
+            <input name="status">
+                <structure id="droplet"/>
+                <value id="integer"/>
+            </input>
+            <output name="out">
+                <structure id="droplet"/>
+                <structure id="boolean"/>
+            </output>
+        </node>
+    </group>
+
+</plugin>

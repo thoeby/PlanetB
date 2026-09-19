@@ -10,7 +10,10 @@ const browser = {
     Request: 'readonly', Response: 'readonly', Headers: 'readonly',
     requestAnimationFrame: 'readonly', cancelAnimationFrame: 'readonly',
     URL: 'readonly', crypto: 'readonly', navigator: 'readonly',
-    ResizeObserver: 'readonly',
+    ResizeObserver: 'readonly', getComputedStyle: 'readonly', CustomEvent: 'readonly',
+    location: 'readonly',
+    // The flow editor reads and writes XML in the page (client/flow/elx).
+    DOMParser: 'readonly', XMLSerializer: 'readonly',
     TextEncoder: 'readonly', TextDecoder: 'readonly', Worker: 'readonly',
     // The atom worker's own globals (client/js/atomworker.js).
     self: 'readonly', OffscreenCanvas: 'readonly', ImageData: 'readonly',
@@ -57,6 +60,28 @@ export default [
             'playwright.config.js'],
         languageOptions: { ecmaVersion: 2023, sourceType: 'module', globals: node },
         rules,
+    },
+    {
+        // client/flow/ is copied from the reference editor, file by file, with
+        // a header saying from where and what changed. Its formatting is that
+        // repository's — two spaces, double quotes — and reformatting it would
+        // make every copy undiffable against its source, which is the one
+        // thing the header exists to allow. So style is off here and the rules
+        // that catch mistakes are not; the 400-line rule stays, because
+        // splitting to it is part of what FND.1 asks for.
+        // client/test/e2e/flow/ is that repository's own test suite, copied the
+        // same way and for the same reason.
+        files: ['client/flow/**/*.js', 'client/test/e2e/flow/**/*.js'],
+        rules: {
+            indent: 'off', quotes: 'off', 'comma-dangle': 'off',
+            'max-len': 'off', 'max-lines-per-function': 'off',
+            'no-implicit-coercion': 'off',
+            // `catch (_e)` and an import the file lists but does not call are
+            // the reference repository's style; they are said out loud rather
+            // than made an error, because the fix belongs in that repository.
+            'no-unused-vars': ['warn', { args: 'none', caughtErrors: 'none' }],
+        },
+        languageOptions: { ecmaVersion: 2023, sourceType: 'module', globals: browser },
     },
     {
         // page.evaluate() bodies run in the browser, not in node.

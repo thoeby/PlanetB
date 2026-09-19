@@ -1,0 +1,558 @@
+<plugin format="1" id="strings">
+    <name>Strings</name>
+    <icon type="simicons">data::string-text</icon>
+
+    <node id="append">
+        <name>Append</name>
+        <icon type="simicons">navigation::add</icon>
+        <description type="short">Append string</description>
+        <description type="long">Appends a specified string to each input string.</description>
+        <parameter id="only-if-not-endswith">
+            <name>Only if not ends-with</name>
+            <description type="short">Only if not ends with</description>
+            <description type="long">If set to `true`, only append if the string does not already end with it.</description>
+            <value id="boolean">false</value>
+        </parameter>
+        <input name="in">
+            <structure id="droplet"/>
+            <structure id="list"/>
+            <structure id="table"/>
+            <structure id="map"/>
+            <value id="string"/>
+        </input>
+        <input name="append">
+            <structure id="droplet"/>
+            <value id="string"/>
+        </input>
+        <output name="out">
+            <structure id="droplet"/>
+            <structure id="list"/>
+            <structure id="table"/>
+            <structure id="map"/>
+            <value id="string"/>
+        </output>
+    </node>
+    <node id="concatenate">
+        <name>Concatenate</name>
+        <icon type="simicons">operations::concatenate</icon>
+        <description type="short">Concatenate strings</description>
+        <description type="long">Concatenate strings.</description>
+        <parameter id="separator">
+            <name>Separator</name>
+            <description type="short">Separator</description>
+            <description type="long">A string that will be inserted between the concatenated strings.</description>
+            <value id="string"/>
+        </parameter>
+        <input name="in" type="group" min="2">
+            <structure id="droplet"/>
+        </input>
+        <output name="out">
+            <structure id="droplet"/>
+            <value id="string"/>
+        </output>
+    </node>
+    <node id="contains">
+        <name>Contains</name>
+        <icon type="simicons"></icon>
+        <description type="short">Check for substring</description>
+        <description type="long">Checks whether a string contains a particular substring</description>
+        <input name="string">
+            <value id="string"/>
+        </input>
+        <input name="substring">
+            <structure id="droplet"/>
+            <value id="string"/>
+        </input>
+        <output name="contains">
+            <value id="boolean"/>
+        </output>
+    </node>
+    <node id="empty">
+        <name>Empty</name>
+        <icon type="simicons">status::information</icon>
+        <description type="short">Check for empty-ness</description>
+        <description type="long">Checks whether a string is empty.</description>
+        <input name="in">
+            <value id="string"/>
+        </input>
+        <output name="empty">
+            <value id="boolean"/>
+        </output>
+    </node>
+    <node id="ends-with">
+        <name>Ends with</name>
+        <icon type="simicons"></icon>
+        <description type="short">Ends with string</description>
+        <description type="long">Checks whether a string ends with a particular string.</description>
+        <input name="string">
+            <value id="string"/>
+        </input>
+        <input name="end">
+            <structure id="droplet"/>
+            <value id="string"/>
+        </input>
+        <output name="out">
+            <value id="boolean"/>
+        </output>
+    </node>
+    <node id="join">
+        <name>Join</name>
+        <icon type="simicons">formatting::link</icon>
+        <description type="short">Join strings</description>
+        <description type="long">Accepts a list of strings and joints them together in a droplet.</description>
+        <input name="strings">
+            <structure id="list"/>
+            <value id="string"/>
+        </input>
+        <input name="separator">
+            <structure id="droplet"/>
+            <value id="string"/>
+        </input>
+        <output name="out">
+            <structure id="droplet"/>
+            <value id="string"/>
+        </output>
+    </node>
+    <node id="length">
+        <name>Length</name>
+        <icon type="simicons">status::information</icon>
+        <description type="short">String length</description>
+        <description type="long">Retrieve the length of the string.</description>
+        <input name="in">
+            <value id="string"/>
+        </input>
+        <output name="length">
+            <value id="integer"/>
+        </output>
+    </node>
+    <node id="prepend">
+        <name>Prepend</name>
+        <icon type="simicons">navigation::add</icon>
+        <description type="short">Prepend string</description>
+        <description type="long">Prepends a specified string to each input string.</description>
+        <parameter id="only-if-not-startswith">
+            <name>Only if not starts-with</name>
+            <description type="short">Only if not starts with</description>
+            <description type="long">If set to `true`, only prepend if the string does not already start with it.</description>
+            <value id="boolean">false</value>
+        </parameter>
+        <input name="in">
+            <structure id="droplet"/>
+            <structure id="list"/>
+            <structure id="table"/>
+            <structure id="map"/>
+            <value id="string"/>
+        </input>
+        <input name="prepend">
+            <structure id="droplet"/>
+            <value id="string"/>
+        </input>
+        <output name="out">
+            <structure id="droplet"/>
+            <structure id="list"/>
+            <structure id="table"/>
+            <structure id="map"/>
+            <value id="string"/>
+        </output>
+    </node>
+    <node id="quoted">
+        <name>Quoted</name>
+        <input name="in">
+            <structure id="droplet"/>
+            <structure id="list"/>
+            <structure id="table"/>
+            <structure id="map"/>
+            <value id="string"/>
+        </input>
+        <input name="delimiter">
+            <structure id="droplet" default="true">
+                <value id="string"><![CDATA["]]></value>
+            </structure>
+            <value id="string"/>
+        </input>
+        <input name="escape">
+            <structure id="droplet" default="true">
+                <value id="string"><![CDATA[\]]></value>
+            </structure>
+            <value id="string"/>
+        </input>
+        <output name="out">
+            <structure id="droplet"/>
+            <structure id="list"/>
+            <structure id="table"/>
+            <structure id="map"/>
+            <value id="string"/>
+        </output>
+    </node>
+    <node id="replace">
+        <name>Replace</name>
+        <description type="short">Replaces parts of a string with another string</description>
+        <description type="long">Replaces either the first, last or all occurances of the string 'search' with the string 'replace'.</description>
+        <parameter id="occurrences">
+            <name>Occurrences</name>
+            <description type="short"></description>
+            <description type="long">Controls whether only the first, only the last or all occurences of the search string shall be replaced.</description>
+            <value_choices require="1" default-label="All">
+                <value id="string" label="All">all</value>
+                <value id="string" label="First">first</value>
+                <value id="string" label="Last">last</value>
+            </value_choices>
+        </parameter>
+        <input name="in">
+            <value id="string"/>
+        </input>
+        <input name="search">
+            <structure id="droplet"/>
+            <value id="string"/>
+        </input>
+        <input name="replace">
+            <structure id="droplet"/>
+            <value id="string"/>
+        </input>
+        <output name="out">
+            <value id="string"/>
+        </output>
+    </node>
+    <node id="reverse">
+        <name>Reverse</name>
+        <description type="short">Reverse string</description>
+        <description type="long">Reverse the direction of a string.</description>
+        <input name="in">
+            <value id="string"/>
+        </input>
+        <output name="out">
+            <value id="string"/>
+        </output>
+    </node>
+    <node id="split">
+        <name>Split</name>
+        <icon type="simicons">operations::split</icon>
+        <description type="short">Split a string.</description>
+        <description type="long">Split a string into zero or more sub-strings based on a separator string.</description>
+        <input name="string">
+            <structure id="droplet" plugin=""/>
+            <value id="string" plugin=""/>
+        </input>
+        <input name="separator">
+            <structure id="droplet" plugin=""/>
+            <value id="string" plugin=""/>
+        </input>
+        <output name="substrings">
+            <structure id="list" plugin=""/>
+            <value id="string" plugin=""/>
+        </output>
+    </node>
+    <node id="starts-with">
+        <name>Starts With</name>
+        <icon type="simicons"></icon>
+        <description type="short">Starts with string</description>
+        <description type="long">Checks whether a string starts with a particular string.</description>
+        <input name="string">
+            <value id="string"/>
+        </input>
+        <input name="start">
+            <structure id="droplet"/>
+            <value id="string"/>
+        </input>
+        <output name="out">
+            <value id="boolean"/>
+        </output>
+    </node>
+    <node id="substring">
+        <name>Substring</name>
+        <icon type="simicons">operations::substring</icon>
+        <description type="short">Extract portion of a string</description>
+        <description type="long">Make a string containing only a portion of the input string.</description>
+        <input name="in">
+            <value id="string"/>
+        </input>
+        <input name="offset">
+            <structure id="droplet"/>
+            <value id="integer"/>
+        </input>
+        <input name="count">
+            <structure id="droplet"/>
+            <value id="integer"/>
+        </input>
+        <output name="out">
+            <value id="string"/>
+        </output>
+    </node>
+    <node id="to-lower">
+        <name>To Lower</name>
+        <icon type="simicons">formatting::text.case.lowercase</icon>
+        <description type="short">To lower case</description>
+        <description type="long">Convert all characters to lower case.</description>
+        <input name="in">
+            <value id="string"/>
+        </input>
+        <output name="out">
+            <value id="string"/>
+        </output>
+    </node>
+    <node id="to-upper">
+        <name>To Upper</name>
+        <icon type="simicons">formatting::text.case.uppercase</icon>
+        <description type="short">To upper case</description>
+        <description type="long">Convert all characters to upper case.</description>
+        <input name="in">
+            <value id="string"/>
+        </input>
+        <output name="out">
+            <value id="string"/>
+        </output>
+    </node>
+    <node id="unquoted">
+        <name>Unquoted</name>
+        <input name="in">
+            <structure id="droplet"/>
+            <structure id="list"/>
+            <structure id="table"/>
+            <structure id="map"/>
+            <value id="string"/>
+        </input>
+        <input name="delimiter">
+            <structure id="droplet" default="true">
+                <value id="string"><![CDATA["]]></value>
+            </structure>
+            <value id="string"/>
+        </input>
+        <input name="escape">
+            <structure id="droplet" default="true">
+                <value id="string"><![CDATA[\]]></value>
+            </structure>
+            <value id="string"/>
+        </input>
+        <output name="out">
+            <structure id="droplet"/>
+            <structure id="list"/>
+            <structure id="table"/>
+            <structure id="map"/>
+            <value id="string"/>
+        </output>
+    </node>
+
+    <group id="analysis">
+        <name>Analysis</name>
+
+        <node id="levenshtein-distance">
+            <name>Levenshtein Distance</name>
+            <description type="short">Calculate Levenshtein distance</description>
+            <description type="long">Calculates the Levensthein distance.</description>
+            <input name="source">
+                <structure id="droplet"/>
+                <value id="string"/>
+            </input>
+            <input name="target">
+                <structure id="droplet"/>
+                <value id="string"/>
+            </input>
+            <input name="insertion cost">
+                <structure id="droplet" default="true">
+                    <value id="integer">1</value>
+                </structure>
+            </input>
+            <input name="deletion cost">
+                <structure id="droplet" default="true">
+                    <value id="integer">1</value>
+                </structure>
+            </input>
+            <input name="replacement cost">
+                <structure id="droplet" default="true">
+                    <value id="integer">1</value>
+                </structure>
+            </input>
+            <output name="distance">
+                <structure id="droplet"/>
+                <value id="integer"/>
+            </output>
+        </node>
+
+    </group>
+
+    <group id="locale">
+        <name>Locale</name>
+        <node id="to-utf8">
+            <name>To UTF-8</name>
+            <description type="short">Convert to UTF-8</description>
+            <description type="long">Converts a string from known character set to UTF-8. The character set input is a string such as "Latin1".</description>
+            <input name="in">
+                <value id="string"/>
+            </input>
+            <input name="character set">
+                <structure id="droplet"/>
+                <value id="string"/>
+            </input>
+            <output name="out">
+                <value id="string"/>
+            </output>
+        </node>
+    </group>
+
+    <group id="constants">
+        <name>Constants</name>
+
+        <node id="carriagereturn">
+            <name>Carriage Return</name>
+            <description type="short">Carriage-return constant</description>
+            <description type="long">Provides a carriage-return ("\r") character.</description>
+            <output name="constant">
+                <structure id="droplet"/>
+                <value id="string"/>
+            </output>
+        </node>
+
+        <node id="linefeed">
+            <name>Linefeed</name>
+            <description type="short">Linefeed constant</description>
+            <description type="long">Provides a linefeed ("\n") character.</description>
+            <output name="constant">
+                <structure id="droplet"/>
+                <value id="string"/>
+            </output>
+        </node>
+
+        <node id="tabulator">
+            <name>Tabulator</name>
+            <description type="short">Tabulator constant</description>
+            <description type="long">Provides a tabulator ("\t") character.</description>
+            <output name="constant">
+                <structure id="droplet"/>
+                <value id="string"/>
+            </output>
+        </node>
+
+    </group>
+
+    <group id="text">
+        <name>Text</name>
+        <node id="categorize">
+            <name>Categorize</name>
+            <icon type="simicons">operations::search.locate</icon>
+            <description type="short">Categorize text.</description>
+            <description type="long">Categorize text based on a look-up table.</description>
+            <input name="text">
+                <structure id="droplet"/>
+                <value id="string"/>
+            </input>
+            <input name="categories">
+                <structure id="table"/>
+                <value id="string"/>
+            </input>
+            <output name="categorized">
+                <structure id="map"/>
+            </output>
+        </node>
+        <node id="cleanup">
+            <name>Text Cleanup</name>
+            <description type="short">Cleanup Text</description>
+            <description type="long">Clean up text by removing unnecessary whitespaces</description>
+            <input name="in">
+                <structure id="droplet"/>
+                <structure id="list"/>
+                <structure id="table"/>
+                <value id="string"/>
+            </input>
+            <output name="out">
+                <structure id="droplet"/>
+                <structure id="list"/>
+                <structure id="table"/>
+                <value id="string"/>
+            </output>
+        </node>
+        <node id="split-sentences">
+            <name>Split Sentences</name>
+            <description type="short">Split sentences</description>
+            <description type="long">Split text between sentences.</description>
+            <input name="text">
+                <structure id="droplet"/>
+                <value id="string"/>
+            </input>
+            <output name="sentences">
+                <structure id="list"/>
+                <value id="string"/>
+            </output>
+        </node>
+        <node id="split-words">
+            <name>Split Words</name>
+            <description type="short">Split words</description>
+            <description type="long">Split text between words.</description>
+            <input name="text">
+                <structure id="droplet"/>
+                <value id="string"/>
+            </input>>
+            <output name="words">
+                <structure id="list"/>
+                <value id="string"/>
+            </output>
+        </node>
+    </group>
+
+    <group id="regex">
+        <name>Regex</name>
+        <icon type="simicons">data::regex</icon>
+
+        <node id="filter-list">
+            <name>Regex Filter List</name>
+            <icon type="simicons">data::regex</icon>
+            <description type="short">Filter a list with regex.</description>
+            <description type="long">Removes all strings from a list that do not match a regex.</description>
+            <input name="strings">
+                <structure id="list"/>
+                <value id="string"/>
+            </input>
+            <input name="regex">
+                <structure id="droplet"/>
+                <value id="string"/>
+            </input>
+            <output name="out">
+                <structure id="list"/>
+                <value id="string"/>
+            </output>
+        </node>
+        <node id="replace">
+            <name>Regex Replace</name>
+            <icon type="simicons">data::regex</icon>
+            <description type="short">Regex replace</description>
+            <description type="long">Regex based string replacement.</description>
+            <input name="string">
+                <structure id="droplet"/>
+                <structure id="list"/>
+                <structure id="table"/>
+                <value id="string"/>
+            </input>
+            <input name="regex">
+                <structure id="droplet"/>
+                <value id="string"/>
+            </input>
+            <input name="replacement">
+                <structure id="droplet"/>
+                <value id="string"/>
+            </input>
+            <output name="out">
+                <structure id="droplet"/>
+                <structure id="list"/>
+                <structure id="table"/>
+                <value id="string"/>
+            </output>
+        </node>
+        <node id="search">
+            <name>Regex Search</name>
+            <icon type="simicons">data::regex</icon>
+            <description type="short">Regex search</description>
+            <description type="long">Regex based search. Returns a list of strings matching a regex.</description>
+            <input name="string">
+                <structure id="droplet"/>
+                <value id="string"/>
+            </input>
+            <input name="regex">
+                <structure id="droplet"/>
+                <value id="string"/>
+            </input>
+            <output name="matches">
+                <structure id="list"/>
+                <value id="string"/>
+            </output>
+        </node>
+    </group>
+</plugin>

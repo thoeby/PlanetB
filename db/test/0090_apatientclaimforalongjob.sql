@@ -23,7 +23,7 @@ SELECT '00000000-0000-0000-0000-000000000090'::uuid,
        ids.owner_id, 18
 FROM ids;
 INSERT INTO feature (area_id, kind, geom)
-VALUES ('00000000-0000-0000-0000-000000000090', 'footprint',
+VALUES ('00000000-0000-0000-0000-000000000090', 'building',
         st_force3d(st_geomfromtext('POLYGON((7.8770 46.2915,7.8772 46.2915,'
                                    '7.8772 46.2917,7.8770 46.2917,'
                                    '7.8770 46.2915))', 4326)));

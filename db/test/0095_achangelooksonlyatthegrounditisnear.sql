@@ -15,7 +15,7 @@ FROM ids;
 
 -- A building in one corner of it.
 INSERT INTO feature (area_id, kind, geom)
-VALUES ('00000000-0000-0000-0000-000000000091', 'footprint',
+VALUES ('00000000-0000-0000-0000-000000000091', 'building',
         st_force3d(st_geomfromtext('POLYGON((7.8700 46.2900,7.8704 46.2900,'
                                    '7.8704 46.2904,7.8700 46.2904,'
                                    '7.8700 46.2900))', 4326)));

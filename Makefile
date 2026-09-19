@@ -28,10 +28,10 @@ DB_TEST_SCRIPTS := $(sort $(wildcard db/test/[0-9]*.sh))
 # the repo, where every tool and .env.example root them too.
 COMPOSE := docker compose -f infra/compose.yml --project-directory . --env-file .env
 
-.PHONY: help up down logs db-reset db-migrate db-test api-test client-test lint gate vendor player-run
+.PHONY: help up down logs db-reset db-migrate db-test api-test client-test flow-test lint gate vendor player-run
 
 help:
-	@echo 'targets: up down logs vendor db-reset db-migrate db-test api-test client-test lint gate player-run'
+	@echo 'targets: up down logs vendor db-reset db-migrate db-test api-test client-test flow-test lint gate player-run'
 
 # Third-party code client/ loads from a CDN, copied locally so the browser tests
 # can run offline. Gitignored; tools/vendor.sh holds the pinned versions.
@@ -68,6 +68,17 @@ api-test:
 	@if [ -x tools/files-test.sh ]; then bash tools/files-test.sh; else echo 'api-test: files-test not implemented yet (WP0.10)'; fi
 	@if [ -x tools/ops-test.sh ]; then bash tools/ops-test.sh; else echo 'api-test: ops-test not implemented yet (WP5.5)'; fi
 	@python3 -m unittest discover -q -s server -p 'test_*.py'
+
+# FND.2: the flow editor's own two specs, by name — the copied modules' suite
+# (which round-trips every file in client/flow/samples/) and the validation
+# against a real process server, which needs ELX_URL and says so when it is not
+# set. `client-test` runs the whole browser suite, these included; this target
+# is for running only them.
+flow-test:
+	@if [ -d node_modules/@playwright ]; then \
+		npx playwright test client/test/e2e/flow-modules.spec.js \
+			client/test/e2e/flow-validate.spec.js; \
+	else echo 'flow-test: playwright not installed, skipped'; fi
 
 client-test:
 	@if compgen -G 'client/test/*.test.js' > /dev/null; then node --test client/test/*.test.js; else echo 'client-test: no tests yet (WP1)'; fi

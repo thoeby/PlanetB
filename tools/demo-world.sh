@@ -68,12 +68,14 @@ BEGIN
 
     -- Something drawn, as QGIS draws it: multi-part, through the same views.
     DELETE FROM feature WHERE area_id = aid;
-    INSERT INTO feature (area_id, kind, geom) VALUES
-        (aid, 'water', st_force3d(st_geomfromtext(
+    -- The vocabulary is OSM's (db/0157): the kind is the key, and which one it
+    -- is is a property.
+    INSERT INTO feature (area_id, kind, props, geom) VALUES
+        (aid, 'natural', '{"natural": "water"}'::jsonb, st_force3d(st_geomfromtext(
             'MULTIPOLYGON((($W2 $S2, $W3 $S2, $W3 $S3, $W2 $S2)))', world_srid()))),
-        (aid, 'forest', st_force3d(st_geomfromtext(
+        (aid, 'landuse', '{"landuse": "forest"}'::jsonb, st_force3d(st_geomfromtext(
             'MULTIPOLYGON((($W4 $S1, $W5 $S1, $W5 $S2, $W4 $S1)))', world_srid()))),
-        (aid, 'road', st_force3d(st_geomfromtext(
+        (aid, 'highway', '{"highway": "residential"}'::jsonb, st_force3d(st_geomfromtext(
             'MULTILINESTRING(($W1 $S05, $W5 $S35))', world_srid())));
 
     -- Credits, so the wallet and the pool have something to say.

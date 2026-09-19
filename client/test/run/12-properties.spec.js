@@ -1,6 +1,6 @@
 // Story 12 — an admin defines a property (docs/SPEC.md §3.10).
 //
-// A adds `leaf_type` to the kind "forest" with two choices, and makes it
+// A adds `leaf_type` to the kind "landuse" with two choices, and makes it
 // required. B, who downloaded a project before that, is told theirs is out of
 // date; the next download has the dropdown, with exactly those two values in
 // it; a wood drawn without the property is refused in words, and one drawn
@@ -28,7 +28,7 @@ const squareAt = ({ lon, lat }, size = 0.0004) =>
 
 async function definesIt(a) {
     await panel(a, 'Vocabulary');
-    await a.page.locator('.ad-kind').selectOption('forest');
+    await a.page.locator('.ad-kind').selectOption('landuse');
     await a.page.locator('.ad-name').fill('leaf_type');
     await a.page.locator('.ad-type').selectOption('choice');
     await a.page.locator('.ad-choices').fill('broadleaved, needleleaved');
@@ -62,7 +62,7 @@ async function downloadsAgain(b) {
 
 function showsTheDropdown(project) {
     const [field] = drawInQgis(project,
-        [{ ask: 'widget', layer: 'Wood', field: 'leaf_type' }]);
+        [{ ask: 'widget', layer: 'Landuse', field: 'leaf_type' }]);
     expect(field.error ?? '', 'QGIS read the field').toBe('');
     expect(field.widget, 'the form offers a dropdown').toBe('ValueMap');
     expect(field.values.sort()).toEqual(['broadleaved', 'needleleaved']);
@@ -70,10 +70,12 @@ function showsTheDropdown(project) {
 
 function drawsWithIt(project, here) {
     const [missing, wrong, drawn] = drawInQgis(project, [
-        { layer: 'Wood', geometry: squareAt(here) },
-        { layer: 'Wood', geometry: squareAt(here), attributes: { leaf_type: 'mixed' } },
-        { layer: 'Wood', geometry: squareAt(here),
-            attributes: { leaf_type: 'needleleaved' } },
+        { layer: 'Landuse', geometry: squareAt(here),
+            attributes: { landuse: 'forest' } },
+        { layer: 'Landuse', geometry: squareAt(here),
+            attributes: { landuse: 'forest', leaf_type: 'mixed' } },
+        { layer: 'Landuse', geometry: squareAt(here),
+            attributes: { landuse: 'forest', leaf_type: 'needleleaved' } },
     ]);
     expect(missing.ok, 'a wood with no leaf type is not saved').toBe(false);
     expect(missing.error).toContain('needs');
@@ -120,7 +122,7 @@ test('story 12 — A defines a property, and the world is held to it',
         await test.step('B signs in', () => signIn(b, 'ben@visp.example', 'Ben'));
         await test.step('C signs in', () => signIn(c, 'cara@visp.example', 'Cara'));
 
-        await test.step('A adds leaf_type to forest, with two choices',
+        await test.step('A adds leaf_type to landuse, with two choices',
             () => definesIt(a));
 
         const here = await test.step('B goes to their land', () => standOnMyLand(b));
@@ -145,7 +147,7 @@ test('story 12 — A defines a property, and the world is held to it',
             await looking(b);
             await panel(b, 'Your land');
             await expect(b.page.locator('.land-drawn'))
-                .toContainText('forest', { timeout: UI });
+                .toContainText('landuse', { timeout: UI });
             await expect(b.page.locator('.land-changed'))
                 .toContainText(/\d+ tiles? changed/, { timeout: UI });
         });

@@ -175,3 +175,95 @@
 #panel .picked-land .land-drop[data-arm="1"] {
   color: var(--bad); border-color: var(--bad);
 }
+
+/* FND.5: the four products that are not a model. A cross-section is a list of
+ * strips and a drawing of them; a collection is a list of models and their
+ * weights. Both are rows of small fields, which is all they need to be. */
+#panel .strips, #panel .members, #panel .cl-found {
+  margin: 6px 0; padding: 0; list-style: none;
+}
+#panel .strips li, #panel .members li {
+  display: flex; gap: 4px; align-items: center; margin: 3px 0;
+}
+#panel .strips li input { flex: 1 1 4rem; min-width: 0; }
+#panel .strips li input.st-material { flex: 2 1 8rem; }
+#panel .members li span { flex: 1; font-size: 12px; }
+#panel .members li input { flex: 0 0 4rem; }
+#panel .strips li button, #panel .members li button { flex: 0 0 auto; padding: 3px 8px; }
+#panel .cl-found li { display: inline-block; margin: 2px 4px 2px 0; }
+#panel .cl-found button { font-size: 11px; padding: 3px 8px; }
+#panel .pf-preview, #panel .preview { background: rgba(0, 0, 0, 0.35); max-width: 100%; }
+
+/* FND.6: the Parts step. The model's nodes on the left, what the one being
+ * looked at does on the right, and the ports under both — the preview beside
+ * them is the same canvas the thumbnail was painted on. */
+#panel .mk-nodes { margin: 6px 0; padding: 0; list-style: none; }
+#panel .mk-nodes li { display: flex; gap: 6px; align-items: baseline; margin: 2px 0; }
+#panel .mk-node {
+  flex: 0 0 auto; padding: 3px 8px; font-family: var(--mono); font-size: 11px;
+}
+#panel .mk-node.picked { border-color: var(--accent); color: var(--accent); }
+#panel .mk-does { font-size: 11px; }
+#panel .mk-role-form, #panel .mk-ports, #panel .mk-live {
+  display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin: 4px 0;
+}
+#panel .mk-live { border-top: 1px solid var(--edge); padding-top: 6px; }
+#panel .mk-live input[type="text"] { flex: 0 1 8rem; min-width: 0; }
+#panel .mk-said { font-size: 11px; margin-top: 4px; }
+#panel .build-ports { font-size: 11px; }
+
+/* FND.7: Symbols. Three columns in a wide part — the symbols on the left, the
+ * one being edited in the middle, the sample it builds on the right. */
+#panel .sy-cols {
+  display: grid; grid-template-columns: 1fr 1.4fr 1fr; gap: 14px; align-items: start;
+}
+#panel .sy-list, #panel .sy-stack, #panel .sy-versions { margin: 6px 0; padding: 0; }
+#panel .sy-list li, #panel .sy-stack li, #panel .sy-versions li {
+  display: flex; gap: 6px; align-items: baseline; margin: 2px 0;
+}
+#panel .sy-symbol, #panel .sy-layer { flex: 1 1 auto; text-align: left; padding: 4px 8px; }
+#panel .sy-symbol.picked, #panel .sy-layer.picked {
+  border-color: var(--accent); color: var(--accent);
+}
+#panel .sy-up, #panel .sy-down, #panel .sy-drop { flex: 0 0 auto; padding: 2px 6px; }
+#panel .sy-cond, #panel .sy-lcond, #panel .sy-prop {
+  display: flex; gap: 4px; align-items: center; margin: 3px 0;
+}
+#panel .sy-cond input, #panel .sy-lcond input, #panel .sy-prop input {
+  flex: 1 1 4rem; min-width: 0;
+}
+#panel .sy-layer-form label { display: flex; gap: 6px; align-items: center; margin: 3px 0; }
+#panel .sy-layer-form label input, #panel .sy-layer-form label select {
+  flex: 1 1 6rem; min-width: 0;
+}
+#panel .sy-preview { cursor: grab; touch-action: none; }
+#panel .sy-preview:active { cursor: grabbing; }
+#panel button.link {
+  background: none; border: none; padding: 0; color: var(--accent);
+  text-decoration: underline; cursor: pointer; font: inherit;
+}
+
+/* FND.8: what is saved and not yet built with, and the button that changes
+ * that. It sits under the list, because it is about all of them. */
+#panel .sy-apply-box {
+  margin: 8px 0; padding-top: 8px; border-top: 1px solid var(--edge);
+}
+#panel .sy-changed { font-size: 12px; margin: 0 0 6px; }
+#panel .sy-confirm { margin-top: 8px; }
+#panel .sy-confirm-said { font-size: 12px; }
+
+/* FND.9: Shape. The brushes are a row of buttons with their keys on them, and
+ * the one in hand is the one picked out. */
+#panel .sc-brushes { flex-wrap: wrap; gap: 6px; }
+#panel .sc-brush { padding: 4px 10px; }
+#panel .sc-brush.picked { border-color: var(--accent); color: var(--accent); }
+#panel .sc-on-box { display: flex; gap: 6px; align-items: center; }
+#panel .sc-said { font-size: 11px; }
+
+/* FND.11: the places a road crosses a slope it should not. A warning with a
+ * way to go and look at each one, never a refusal. */
+#panel .su-flag {
+  display: flex; gap: 8px; align-items: center; justify-content: space-between;
+  font-size: 12px; margin: 2px 0;
+}
+#panel .su-go { padding: 2px 10px; }

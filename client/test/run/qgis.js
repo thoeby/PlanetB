@@ -69,10 +69,25 @@ export function drawInQgis(projectPath, edits) {
  * @param {?string} filter     a QGIS expression over the source, or null
  * @param {Object<string,string>} into  target field ← source field (a name
  *                             that is not a source field is used as a value)
+ * @param {?string} clip       WKT to cut what is pasted to — QGIS's Clip, for
+ *                             a road that runs off the end of the land
  * @returns {{ok: boolean, pasted?: number, count?: number, error?: string}}
  */
-export function importFromFile(project, layer, gpkg, sourceLayer, filter, into) {
+export function importFromFile(project, layer, gpkg, sourceLayer, filter, into,
+    clip = null) {
     const path = gpkg.startsWith('/') ? gpkg : join(REPO, gpkg);
     return inQgis('import.py', project,
-        { layer, gpkg: path, source_layer: sourceLayer, filter, into })[0];
+        { layer, gpkg: path, source_layer: sourceLayer, filter, into, clip })[0];
+}
+
+/**
+ * Shape a land's ground in QGIS and send it back with the script the project
+ * ships (TASKS-foundation.md FND.10).
+ *
+ * @param {string} project path to the player's downloaded .qgs
+ * @param {Object} how {area, world, email, password, add, block}
+ * @returns {{ok: boolean, rev?: number, tiles?: number, error?: string}}
+ */
+export function shapeInQgis(project, how) {
+    return inQgis('shape.py', project, how)[0];
 }

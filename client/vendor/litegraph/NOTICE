@@ -1,0 +1,20 @@
+litegraph.js — MIT, © 2013 Javi Agenjo
+
+    https://github.com/jagenjo/litegraph.js
+
+`litegraph.js` is upstream's `build/litegraph.js` and `litegraph.css` its
+`css/litegraph.css`, both at commit
+`0555a2f2a3df5d4657593c6d45eb192359888195`, verbatim.
+
+TASKS-foundation.md FND.1 pins that commit. `raw.githubusercontent.com` is not
+reachable from the container this was vendored in, so the two files were taken
+from the copy the reference repo (`wireon-process-editor`) vendored from
+upstream at the same commit, byte for byte. `tools/vendor.sh` fetches them
+from upstream on a machine that can reach it and says so if it cannot.
+
+The library is a classic script: it attaches `LiteGraph`, `LGraph`,
+`LGraphCanvas` and friends to `window`. Our own code is ES modules and reads
+them off `window`; the Flows app loads the script the first time it is opened,
+not at page load.
+
+The MIT licence text is in the upstream repository's LICENSE.

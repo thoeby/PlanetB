@@ -15,7 +15,7 @@ INSERT INTO area (id, geom, owner_id, detail) VALUES
  st_envelope(st_buffer(tile_bbox(10, tile_x(40.1, 10), tile_y(40.1, 10)), -0.002)),
  '00000000-0000-0000-0000-0000000c2001', 10);
 INSERT INTO feature (area_id, kind, geom) VALUES
-('00000000-0000-0000-0000-0000000c2003', 'forest',
+('00000000-0000-0000-0000-0000000c2003', 'landuse',
  st_force3d(st_envelope(st_buffer(tile_bbox(10, tile_x(40.1, 10), tile_y(40.1, 10)), -0.05))));
 
 SET LOCAL request.jwt.claims = '{"sub":"00000000-0000-0000-0000-0000000c2001","role":"player"}';

@@ -22,7 +22,7 @@ SELECT '00000000-0000-0000-0000-0000000000a7'::uuid,
        ids.owner_id, 14
 FROM ids;
 INSERT INTO feature (area_id, kind, geom)
-VALUES ('00000000-0000-0000-0000-0000000000a7', 'footprint',
+VALUES ('00000000-0000-0000-0000-0000000000a7', 'building',
         st_geomfromtext('POINTZ(9.5 48.5 400)', 4326));
 
 -- A leaf, not a merge: a merge with nothing published under it is not handed

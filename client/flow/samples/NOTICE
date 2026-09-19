@@ -1,0 +1,9 @@
+Two flows as the process server exports them, copied byte for byte from
+wireon-process-editor samples/ at ab525305d8ddd7dba7a5592e5cb79d3dbb159e8b.
+
+They are here for the round-trip canary: parse -> serialize -> parse gives the
+same IR, and serialize -> parse -> serialize gives the same bytes
+(client/test/e2e/flow/elx-roundtrip.test.js). manifest.json lists them, because
+a browser cannot read a directory.
+
+Nothing in the world points at these; they are fixtures, not flows on a land.

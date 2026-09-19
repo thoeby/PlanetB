@@ -21,7 +21,7 @@ import { sha256 } from '../lib/hash.js';
 import { InputCache, resolveInputs } from './inputs.js';
 
 export const ALGO = {
-    assemble: 'assemble-v6', frame: 'frame-v10', train: 'train-v13',
+    assemble: 'assemble-v9', frame: 'frame-v10', train: 'train-v13',
     merge: 'merge-v1', sog: 'sog-v3', verify: 'verify-v1',
 };
 

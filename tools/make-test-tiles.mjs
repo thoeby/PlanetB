@@ -96,8 +96,8 @@ function seedWorld() {
             END IF;
 
             IF NOT EXISTS (SELECT 1 FROM feature WHERE area_id = aid) THEN
-                INSERT INTO feature (area_id, kind, geom)
-                VALUES (aid, 'forest',
+                INSERT INTO feature (area_id, kind, props, geom)
+                VALUES (aid, 'landuse', '{"landuse": "forest"}'::jsonb,
                         st_geomfromtext('POLYGON Z ((${ring}))', 4326));
             END IF;
         END $$;`);

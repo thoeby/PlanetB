@@ -1,6 +1,6 @@
 -- 0046_gisgrants.sql — the drawing role may read the world's vocabulary.
 --
--- Drawing a road in QGIS goes through gis.f_road, whose INSTEAD OF trigger asks
+-- Drawing a road in QGIS goes through gis.f_highway (gis.f_road until db/0157), whose INSTEAD OF trigger asks
 -- `property` which of the row's columns are properties of a road
 -- (db/0041_gisforms.sql). That trigger runs as whoever is writing — the
 -- `geoserver` login — and db/0008_admin.sql granted it the tables that existed

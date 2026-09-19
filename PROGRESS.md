@@ -1766,3 +1766,486 @@ year-long immutable cache. Setup has the button ("Cut the ground again"); the
 page answers by forgetting the floor, dropping the ground meshes so they are
 built again, redrawing the corner map and refreshing the admin's map, whose
 hillshade follows the same mark by itself.
+
+## FND.1: flows are files on the land
+
+The Automate view is live (SPEC §2.16). A player who builds on a land draws a
+flow out of the standard blocks, saves it, and finds it again — on any machine,
+because what is saved is in the world and not in a browser.
+
+**What the world holds** — `db/0133_flowsarefilesontheland.sql`. `flow` is a
+pointer: which land, what it is called, the sha256 of the ELX, and `layout`.
+`save_flow` is a compare-and-swap on `rev` ("this flow was changed in another
+tab — reload it") and refuses a sha that is not a registered artifact of kind
+`flow`; `delete_flow` takes it off the land for everybody and leaves the file
+where it is, because something else may point at it (Invariant 1). Reading and
+writing are the land's rights, not the caller's word for them: `is_area_proposer`
+writes, and an approver for that land reads, because a flow is part of what they
+are being asked to say yes to (Invariant 6). `elx_plugin` records which block
+set the world saw, under which hash; `bundle_plugins()` is the admin RPC that
+says so, and Setup's step 4 calls it.
+
+**The save path**, in this order and no other (`client/js/flows.js`): serialize
+the graph to ELX → sha256 → PUT `/assets/{sha}.elx` → `register_artifact` →
+`save_flow`. Renaming and duplicating do not write a file at all — they point at
+the one that is already there. **Layout never enters the ELX.** The reference
+editor kept it in `localStorage`; here it is `flow.layout` in the world, which is
+the one change `client/flow/graph/layoutstore.js` makes to the file it was
+copied from.
+
+**The editor** is copied, file by file, from `wireon-process-editor` at
+`ab52530`: `client/flow/{elx,plugins,graph}/` — parse, serialize, nets, plugin
+parse and registry, register, import, export, named nets, subflows, port groups,
+history, layout, hidden outputs and the theme. Every file's header says where it
+came from and what changed. Two files changed at all: `graph/import.js` (the
+layout store it reads) and `graph/theme.js`, which was 518 lines and is now
+three — `themetokens.js`, `theme.js`, `themedraw.js` — with every colour read
+from `hud.css` instead of the reference's black on white, so a node's title bar
+is the view's own hue. litegraph itself is vendored and loaded as a classic
+script the first time Automate is opened, never at page load.
+
+**Their tests run here too**, in the browser lane:
+`client/test/e2e/flow-modules.spec.js` opens a page that loads the fifteen test
+files the reference repo has for those modules and reads the summary. 198 of
+them pass there; three were already red at the source and are corrected in the
+copy, with the correction in the header: two look for the `OR` node, which the
+sample moved inside `<filter name="Filter List">`, and one for a node called
+`Source`, which `file-response.elx` has not had for some time.
+
+**Deviations recorded.** The artifact kinds gained `plugin` in 0155: a plugin
+description is a file in the store and it is not a flow, and `elx_plugin` points
+at it. Story 16 wires the ports the bundled plugins actually declare — `Contains`
+takes `string` and `substring` — rather than FND.1's shorthand "pattern".
+`opencv`'s `plugin.xml` is in the palette; its 5.2 MB of trained weights and the
+prototxt beside them are not, and `client/test/palette.test.js` says so.
+
+## FND.2: a flow is a file, in and out
+
+Import, export and Validate (SPEC §2.16). A `.elx` a process server wrote is
+dropped on the canvas or picked with Import; it becomes a flow of its own on the
+land, laid out, named after the file. Export gives the saved bytes back exactly.
+
+**Exactly is the point.** This editor's serializer writes a flow in its own
+order — nodes before nets — and a file from a process server is usually the
+other way round, so re-serializing on export would be the editor rewriting
+somebody else's file. So an import saves the file as it arrived and then saves
+only the layout beside it, and an export of a flow nobody has changed is byte
+for byte the file that came in. A flow with unsaved changes is told "save
+first" rather than exported as something it is not.
+
+**Validate has two halves and shows both.** The process server is the
+authority, and its address is the operator's (`app_setting`, db/0156, Settings →
+Setup); the page POSTs the ELX and reads the `<elx_api_msg>` envelope with
+`client/flow/validate.js` — `parseEnvelope` and its two DOM helpers, copied from
+the reference editor's `rest.js`, and nothing else of that file. No server
+configured, or one that does not answer, is a sentence and nothing else breaks.
+Alongside it, always, the page's own check: one source per net, every wired pair
+allowed by the ports' rule, names unique per scope.
+
+**The local check reads the bytes that would be run, not the canvas.** A canvas
+cannot hold a wire the ports refuse — litegraph vetoes the connection as it is
+made, and import drops it — so checking the canvas would only ever find nothing.
+The file is where such a flow exists, and the file is what the server is handed:
+the canvas's bytes when something is unsaved, the saved file's otherwise.
+
+**What is unrun**: there is no process server in this container. `make flow-test`
+says so and skips that half; `docs/flow.md` holds the two commands and the table
+to fill in where one exists.
+
+Two older things fixed on the way, both found by the story: `saveFlow` did not
+give the sha back, so a flow could be exported only after being reopened; and
+the view's boot was not memoised, so two callers racing at open built two
+canvases and the palette appeared twice.
+
+## FND.3: the vocabulary is OSM's
+
+The five words the world started with — road, forest, water, footprint, tree —
+were this world's own. Everybody who surveys anything already knows OSM's, so
+`db/0157` makes the kind an OSM key and what used to be the kind the value of
+that key: a road is `highway=secondary`, a wood is `landuse=forest`, a pond is
+`natural=water`, a tree is `natural_point=tree`. `railway`, `aerialway`,
+`barrier` and `waterway` are new kinds beside them, with the properties
+PLAN-foundation.md §5 lists.
+
+**Nothing that is drawn changed.** `feature.kind` is a foreign key with
+ON UPDATE CASCADE, so the three renames carried every row; the two splits moved
+their rows by hand and kept every property they had. The QGIS layers and their
+forms are generated from the `kind` table (db/0041), so the project has a layer
+per key on the next download without anything being written for it.
+
+**The compiler was told in the same commit.** `by(kind)` in
+`client/atoms/assemble.js` is `by(kind, key, values)`, and its version is
+`assemble-v5b` — the atom's code changed, so Invariant 2 says its version must,
+and a worker running the old code against this world would find no roads at all.
+The picture is the same to the byte: `client/test/assemble.test.js` holds the
+`mesh.bin` and `init.ply` hashes `assemble-v5` produced from the same fixture in
+the old vocabulary, and the new compiler has to match them exactly. It does.
+
+**What the key property is not.** FND.3 asks for it to be `required`. It is not,
+and db/0157 says why beside the rows: a required key refuses every feature that
+does not carry one — the rows already in the world, an import that has not
+classified everything yet, a boundary drawn before what is inside it is known.
+db/0040 settled the same question when it wrote that refusing an unknown key
+would make every import a migration. A blank key costs what it should: the
+compiler draws nothing for it.
+
+**An older thing fixed on the way**: `db/0037`'s rule seed was not idempotent.
+Replaying the migrations against a database that already has them — which is
+what happens when the ledger is missing (`server/splatworld/migrate.py`) — wrote
+a second copy of every rule, and once db/0157 renamed the kinds those rows name
+it stopped the replay outright. The seed is guarded now, and
+`server/test_migrate.py` is what noticed.
+
+Two test-side races fixed with it: the browser ladder (`stream.spec.js`) broke
+out of its settle loop on a single unchanged frame, and a coarse parent is kept
+in the scene until the pass after its children are all in — so there is a frame
+where nothing is loading and the set still holds a tile that is about to go; it
+waits five frames now. And stories 16 and 17 left a window open, which is a
+WebGL context nobody gave back: the story after them opens two of its own, and
+this container gives only two pages a context at a time.
+
+## FND.4: an OSM extract onto a land, through QGIS
+
+Story 19: B opens `infra/seed/osm-visp.gpkg` beside his project, selects what
+is inside his boundary, and pastes it into Highway, Building, Landuse, Natural,
+Barrier and Tree points with the obvious mapping — an OSM key is a property of
+the same name, which is what FND.3 was for. Nothing new was needed in the world
+for that; three things were needed around it.
+
+**A clip.** `client/test/run/qgis/import.py` takes a `clip` now: QGIS's own
+Clip, which is what a surveyor reaches for when a road runs off the end of their
+land. Without it the whole road is pasted, and whether that is allowed turns on
+where its middle happens to fall (`gis.area_at` uses `st_pointonsurface`). The
+story pastes a road that is nowhere near the land — refused, in the world's own
+words — and then the road that crosses it, clipped, and checks that what landed
+is inside the boundary, which is the whole of what a clip is for.
+
+**Counts per kind** — `db/0158`. `submission_changes` says how many of each kind
+the land holds, and the Submit panel reads it: "3 tiles · 12 drawn (5 highway ·
+3 natural_point · 2 building · 2 landuse)". With nine kinds where there were
+five, one number for all of them is no longer an answer.
+
+**Two fixture gaps**: `natural_point` had no `leaf_type` (PLAN-foundation.md §5
+lists one), and the stand-in's bridleway — the feature whose whole purpose is to
+be refused for a value the vocabulary has not got — ran out at the edge of the
+extract, where no land drawn on the page reaches. It runs through the middle
+now. `import.py` also drops a mapped field the target layer has not got, which
+is what QGIS's own paste does: one mapping written for six layers names fields
+only some of them have.
+
+## FND.5: a product is not always a model
+
+`db/0159` gives `asset` a `type` and a `parts`, and the catalog five kinds of
+thing: a **model** somebody places, a **segment** that repeats along a line, a
+**profile** that is a road's cross-section, a **collection** that is "trees like
+these, in these proportions", and a **material** that is a surface. Four of them
+are never placed at all — they are what a symbol reaches for — but they are
+made, named, licensed and paid for exactly as a model is, so they are in the
+catalog.
+
+**Each still has a file behind it**, because a SAN is the sha256 of what the
+thing is (Invariant 1). A model and a segment are GLBs, a material is a PNG, and
+a profile and a collection are the canonical JSON that describes them
+(`client/lib/product.js`) — written once, immutable, and two identical
+cross-sections are one file and one catalog entry. The artifact kinds gained
+`profile` and `collection`; `can_write` gained `.png` and `.json`.
+
+**The rules are in one place and checked twice.** `check_asset_type` says what
+each type needs — a repeating piece at least 0.10 m long, a material square, a
+power of two, at most 2048 px and with a tiling size, a cross-section with at
+least one strip — and the page checks the same thing before it uploads so the
+refusal arrives before the bytes do (Invariant 6). A collection holds models,
+which `collection_item`'s own trigger says.
+
+**The Place panel lists models only.** A wall segment is not a thing anybody
+puts one of down.
+
+**A trap worth writing down**: `api.asset` was created in db/0007 as
+`SELECT * FROM public.asset`, and a view expands `*` once, when it is created.
+Adding two columns to the table added nothing to the view, and the page's read
+came back 400. db/0159 replaces the view.
+
+Fixtures: `tools/make-fixture-materials.mjs` writes the two surface materials
+and the 3000 px one the refusal is about — deterministic PNGs, written here
+because every CC0 texture host is outside this container's egress policy — and
+`make-fixture-models.mjs` gained five centimetres of kerb, which is too short
+to be a repeat.
+
+## FND.6: a model can have parts, and a part can be told things
+
+Story 21: C registers a street lamp whose head lights up, a billboard whose
+screen is left live, and a tunnel portal whose mouth opens the ground; B places
+the lamp and the Place panel says what it can be told. None of that is in the
+GLB, because no two exporters agree on how to put it there — the maker says it
+in a Parts step, and it travels in the register call as `asset.parts`.
+
+**canon-v2** (`client/lib/canon.js`): a marked node and everything under it
+stays a mesh of its own, named `part:<name>`, in the order of the names;
+everything else flattens as canon-v1 flattened all of it. One mesh became many,
+so `buildGroups` gained a global material slot and `assemble` writes a node per
+mesh — and a model nobody marked comes out byte for byte what it always was.
+`client/test/canonparts.test.js` pins all seventeen fixtures' canon-v1 numbers,
+because if those bytes moved every SAN in every world would move with them.
+
+**The number is the file and the markings.** The same lamp with the head marked
+as a light and with nothing marked are two products; so are one with an `on`
+port and one without, and those two have identical GLB bytes. So the SAN is
+derived from the canonical GLB's digest *and* the canonical text of the
+markings — and that text is written in SQL, in `marks_text()` (db/0160), and
+nowhere else. The tab does not name a marked product at all: it asks
+`asset_name_for()` what the number would be, which is also how the form can say
+"this is already Strassenlampe by Cara" before anything is uploaded
+(Invariant 6). A second implementation of a canonical form is a second answer
+waiting to happen, and there is exactly one here.
+
+**Baked and live.** The compiler bakes a light's geometry but not its glow, and
+a screen's frame but not its surface: `assemble-v5c` is handed each instance's
+markings through `tile_world` and leaves a screen part's triangles out.
+`door`/`rotor` parts are baked where the maker left them.
+
+**The preview draws the model rather than the thumbnail** once anything is
+marked (`client/js/modelpreview.js`): the same shading as the catalog's
+picture, redrawn whenever a port is flipped, with a placeholder over a screen.
+The node being marked is picked out in orange — half of it, mixed with whatever
+the part looks like, because a light that is on and one that is off have to
+stay different while the maker is looking at them. `Renderer` gained
+`dispose()`: a browser gives a tab about sixteen WebGL contexts and this form
+draws again and again.
+
+## FND.7: a rule is a symbol, and a symbol is layers
+
+Story 22: A builds "Kantonsstrasse" — when `highway = secondary`: a surface
+with the cross-section of story 20, a kerb repeated either side, a lamp every
+thirty metres on the right where the road is `lit` — sees it on a sample of its
+own kind, and saves it. Saving changes nothing anybody has published: the world
+is built with the applied style until somebody applies this one, which is
+FND.8's.
+
+**The compiler stops knowing what a road is.** `client/lib/gen/` is seven
+layers and the eighth on its way out: `surface`, `repeat`, `scatter`,
+`extrude`, `place`, `paint`, `check`, and `terrainmod` until FND.11 retires it.
+`runAll` makes three passes over the features — `shape` moves the ground,
+`prepare` gathers the roads that are cut into it, `run` draws — which is
+PLAN-foundation.md §3's order, and the reason the old compiler's two phases
+(terrainmods, then roads, then everything) come out the same way.
+
+**The same bytes.** `assemble-v6` is `assemble-v5c`'s output exactly:
+`client/test/assemble.test.js` still holds the hashes `assemble-v5` produced
+from the same fixture in the old vocabulary, and they did not move. Two things
+made that possible. `extrudeOne` and `scatterOne` were lifted out of
+`client/lib/props.js` so a layer draws one feature with the code that used to
+draw all of them at once; and the meshes are written in one fixed order
+(`gen/index.js`'s `MATERIALS`) whatever order the features filled them, because
+a feature-major walk fills them in a different order than a kind-major one did.
+
+**Where it can still differ**, and this is written down rather than hidden: the
+old compiler scattered every `landuse=forest` and then every `natural=wood`,
+while the new one takes features in id order. A world with both, interleaved,
+gets the same trees in a different order — which is a different scatter, not a
+worse one. Nothing published is rebuilt for it (the snapshot is unchanged), and
+the fixture the hashes are pinned on has one stand.
+
+**db/0161** turns every `build_rule` row into a symbol with the one layer that
+reproduces it — which layer is read off what the rule produced, because that is
+all a rule ever said about itself — and drops `build_rule`, `rules_digest()`
+and `rulesui.js` behind it. Water, which was written into the compiler rather
+than into a rule, is a symbol now like everything else. A tile's snapshot pins
+the applied `style_version` where it pinned the rules' digest (Invariant 2).
+
+**Settings → Symbols** is a part of its own: the symbols on the left, the one
+being edited in the middle (the rules editor's filter builder, and a layer
+stack whose forms are built from `client/lib/symbols.js`), and on the right a
+sample of the symbol's own kind — a 60 m S-curve, a 40 × 30 m polygon or a
+point, on a gentle slope — compiled in the tab by the same `gen/` the atom
+runs. Deviation from the task: it is drawn with `client/lib/render.js`, the
+renderer the tile's own frames are traced with, rather than with a second
+PlayCanvas view. It is the world's shading, it needs no engine in a panel, and
+it costs one WebGL context instead of two.
+
+**One description of a layer, not two.** `client/lib/symbols.js` says what
+fields a layer has and which of them name a product of which type; the editor
+builds its forms from it, and the refusal it says before saving is the sentence
+db/0161's `check_layers` says again (Invariant 6).
+
+## FND.8: a style reaches the world when somebody says so
+
+Story 23: B's road from story 19 is submitted, approved and rendered — and
+comes out as the migrated symbol draws it, a plain surface, because that is the
+style the world is built with. A applies the symbols story 22 saved; the tiles
+holding a road go stale, their rebuilds are in the pool saying "style update",
+and the same ground looks different afterwards. Then A edits the symbol again
+and saves: the counter says one symbol is waiting, nothing is queued, and the
+picture does not move.
+
+`apply_styles` (db/0162) is one transaction: pin a `style_version` over every
+enabled symbol, mark the published tiles a changed symbol is in, and ask
+`ensure_job` for each (Invariant 4 — it marks and asks, it computes nothing).
+The rebuilds carry no bounty, and `render_pool` sorts by bounty first, so
+"at the back of the pool" needed no new mechanism — only `job.reason`, so a
+rebuild nobody asked for by name can say where it came from.
+
+**"Is in" is read by kind, not by filter**, and this is a deliberate
+over-count. Whether a symbol's conditions hold for a feature is
+`client/lib/rules.js`'s question, and it is answered in a tab (Invariant 9):
+a tile with any `highway` in it is counted for every changed highway symbol.
+The number is what the operator is told before they apply, and nobody is
+charged for it. What it must never do is under-count — leave a tile built with
+a symbol nobody applies again — and it does not.
+
+## FND.9: the ground itself
+
+Story 24: B lays a road bed along the road he imported in story 19, raises a
+plateau beside it and smooths its edge, undoes the stroke he did not want and
+redoes it, finds that the brush does nothing outside his own land, saves,
+sends, and the tile that comes out of the compiler is ground that was shaped.
+
+**What a land carries is a grid of relative metres.** `.r32`, written down in
+`docs/rendering.md` §6: a small JSON header and one float32 per cell, at the
+z18 cell size, covering the land's own bounding box. Relative to the DEM,
+never absolute, so the operator can replace the elevation with a better one and
+everybody's shaping still means what it meant. It is a file like any other —
+immutable, content-addressed, written once (Invariant 1) — and `height_edit`
+(db/0163) is the pointer to the current one, saved by a compare-and-swap on the
+revision so two tabs cannot overwrite each other silently.
+
+**The compiler shapes the ground before anything stands on it.**
+`applyHeightEdits` is the first thing `assemble-v7` does, which is
+PLAN-foundation.md §3's order: the roads are cut into the shaped ground, the
+buildings stand on it, the trees are scattered over it. Cells outside the
+land's own outline are ignored — row-level security refuses the save and the
+page turns the brush red, and this is the third guard, the one that holds even
+for a file that got past both.
+
+**A tile's snapshot names the ground it was built on.** A land shaped after an
+atom was made moves the snapshot, so that atom cannot publish over it
+(Invariant 2), and the save marks only the tiles the changed box touches
+(Invariant 4 — it marks, it builds nothing).
+
+**Shaping is a mode the 3D view is in**, the way Place is: `Land → Shape`, six
+brushes with their keys on them, size and strength, undo and redo per stroke.
+Along line writes the whole bed as one stroke, holding the gradient the player
+asked for forwards and back, so one undo takes it all back. While it is on, the
+ground mesh is drawn over the land **even where a published tile covers it** —
+you cannot shape ground you cannot see — with what is being shaped in it
+(`DemGround.reshape`), because the file is not saved and no tile has been
+compiled with it yet.
+
+## FND.10: the shaped ground is a layer in the project
+
+Story 25: B downloads the project, QGIS opens **Ground shaping (m) · Ben's
+field** with story 24's shaping in it, a plugin adds three metres to a block of
+cells, the script the project ships sends it back, and the page says the ground
+moved without being reloaded. Sent to a land that is not his, the world refuses
+it in words.
+
+**A format conversion, and nothing else.** The world stores `.r32`; QGIS opens
+rasters. `server/splatworld/geotiff.py` writes one immutable file's numbers as a
+single-strip float32 GeoTIFF — no GDAL, no numpy, the standard library and
+`struct` (Invariant 10) — served at `/geo/height_edit/{area}.tif`. The same
+bytes in, the same bytes out; nothing about the world is decided or computed
+there (Invariant 9). The layer reads it through GDAL's `/vsicurl_streaming/`,
+because this file server answers a whole GET and not a range of one.
+
+**Saving a project does not save a raster**, so the shaping is sent back by
+`gis/save-ground.py`: it reads the layer through the provider, writes the
+`.r32`, PUTs it and calls `save_height_edit` — exactly what the Shape panel
+does, as the player, under the same row-level security. It finds the API the
+way the page does, by reading the world's own `splatworld:api` meta tag. A
+plain script rather than a Processing algorithm, because headless QGIS runs a
+plain script and the choice was left open; `docs/manual.md` records it.
+
+## FND.11: what cannot be driven, what takes the ground away, and the shapes that are gone
+
+Story 26: B's road across the hillside is flagged on Submit and sent anyway; B
+puts the tunnel portal of story 21 against the slope and the compiler builds no
+ground where its mouth is; the operator turns the last `terrainmod` shapes into
+the grid that moves the ground now, and QGIS stops offering the kind.
+
+**A road across a slope is said, never refused.** `client/lib/gen/check.js`
+samples the ground across every line every five metres; over the symbol's
+`max_cross_slope` it is a flag. The same function runs in the page
+(`client/js/roadcheck.js`) over the land's own lines, so the owner reads on
+Submit what the approver is about to be shown, with a Go button to each place.
+It is a warning: a road across a slope is a road somebody may mean to build.
+
+**An opening is a part that takes the ground away.** A product marked with an
+`opening` (FND.6) keeps that node as a mesh of its own in canon-v2, named
+`open:<name>`, and `assemble-v8` places the instances **before** it builds the
+ground so the footprints of those meshes can be cut out of it: no terrain
+triangle whose middle falls in one, and no height in the collider there. The
+player walks into the portal's mouth.
+
+**The old shapes are the grid, said twice.** A `terrainmod` flattened, raised,
+lowered or smoothed whatever fell inside it, every time the tile was built. The
+land's grid says the same thing and says it once, so the operator converts them
+(Settings → Setup) and the world only counts what is left (db/0164). The
+conversion runs in a tab like everything else (Invariant 9) and reads the
+**operator's elevation** — the cut DEM tiles, not the ground the page is
+standing on, which already has both the grid and the shapes in it.
+`client/test/terrainmod.test.js` proves the two grounds are the same to the
+centimetre rather than by looking at two pictures.
+
+**The kind is retired, not dropped** (db/0165). The shapes that were are still
+rows pointing at it and this world removes nothing (Invariant 1), so it loses
+its geometry instead — "null for things that are not drawn at all" (db/0040) —
+and every project downloaded after that has no Terrain edit layer in it. Its
+symbol goes with it the one way a symbol ever reaches the world: pinned into a
+new `style_version`, with the jobs in flight moved, exactly as `apply_styles`
+does. Turning it off without pinning would move every tile's snapshot behind
+the operator's back (Invariant 2).
+
+**Two traps paid for.** A function PostgREST calls resolves `area` and
+`feature` to the **views** in `api`, not the tables in `public`: `old_shapes`
+needed `SET search_path = public` and `public.area_view`, and it passed pgTAP
+until the test was made to set the same path PostgREST does. And the
+conversion is the operator's, on every land at once, which no landholder rule
+allows — `may_shape` is `is_area_proposer(...) OR admin`, and for a player
+nothing changes, including the sentence they are refused with.
+
+**`RUN_KEEP_WORLD=1` and `tools/replay.sh`.** The gate is the whole run from an
+empty database, an hour and a half of it, and writing its last story cannot
+cost that per attempt. The tool saves the database, the store and the
+`ALTER DATABASE` settings a dump never carries, puts them back, and the fixture
+skips emptying the world when asked. It proves nothing: a story is green when
+the whole run is.
+
+## The foundation is merged onto the LOD work
+
+`claude/new-session-m31aol` (FND.1–FND.11) merged onto `main` after
+`claude/wp2-continuation-xs94a7` (the LOD ladder, the work window, the ground
+cut again). Both had started from the same commit and both had numbered their
+migrations from 0133, so the merge is not a merge of files but of two lines of
+schema; what was decided:
+
+- **The foundation's migrations are `db/0155`–`db/0165`**, applied after the
+  LOD branch's `0133`–`0154`, and their tests moved with them. Every
+  `db/01xx` written on that branch — in comments, docs and the migrations
+  themselves — says the new number. The plan documents keep the numbers they
+  were written with.
+- **`assemble-v9`.** The two branches had each moved the atom — `assemble-v6`
+  on one is the tile's own cut with its voids filled, `assemble-v8` on the
+  other is symbols, marked parts, openings and the shaped ground — and the
+  merged code is neither, so its version is neither (Invariant 2).
+  `theGround` in `client/atoms/assemble.js` holds the one branch's read and
+  the rest of the atom the other's. `build_dag` is defined once for both, in
+  `db/0163`: `db/0151`'s (train-v13, sog-v3, the seed share, merge from finer
+  children) at `assemble-v9`; the foundation's three earlier redefinitions say
+  so and define nothing.
+- **`render_pool`** is `db/0142`'s, cutting on distance, plus `db/0162`'s
+  `why`. The artifact kinds hold both branches' additions: `lod` beside
+  `plugin`, `profile` and `collection`.
+- **Setup** keeps the foundation's layout (blocks, the checking server, old
+  shapes) with the LOD branch's two ground buttons on it, moved to
+  `client/js/setupground.js` for length. **Work** is the LOD branch's window;
+  the strip the foundation had mounted above it is gone, the Automate view's
+  `paused` stays.
+- The pinned `init.ply` hash in `client/test/assemble.test.js` moved with
+  `db/0151`'s sampler and was re-derived by running that branch's compiler
+  over the old-vocabulary fixture: the mesh hash did not move, and the ply the
+  merged compiler writes is the ply that compiler wrote. `db/test/0134` drew a
+  `footprint`, which is a `building` now.
+
+Not proven here: `make player-run` and the browser lane (no GPU, no PostgREST
+in this container), and `make api-test`. Two things were red before the merge
+and are still red: `db/test/0154` test 3 compares two `now()` of one
+transaction, and `client/js/work.js` is over the four-hundred-line rule.

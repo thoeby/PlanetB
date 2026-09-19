@@ -110,22 +110,45 @@ function unit(v) {
 
 // Every triangle of the default scene, in world space. A node outside the
 // scene is not part of the asset and is dropped with the rest of the graph.
-export function flattenPrimitives(gltf, buffers) {
+//
+// `parts` is canon-v2's (FND.6): node name -> part name. A marked node and
+// everything under it is tagged with that part's name and stays a mesh of its
+// own; everything else flattens into the body, as canon-v1 flattened all of it.
+export function flattenPrimitives(gltf, buffers, parts = null) {
     const out = [];
     const roots = gltf.scenes?.[gltf.scene ?? 0]?.nodes
         ?? (gltf.nodes ?? []).map((_, i) => i);
-    const walk = (index, parent) => {
+    const walk = (index, parent, part) => {
         const node = gltf.nodes[index];
         const m = mul(parent, nodeMatrix(node));
+        const mine = parts?.get(node.name) ?? part;
         if (node.mesh !== undefined) {
             for (const prim of gltf.meshes[node.mesh].primitives) {
-                out.push(primitiveIn(gltf, buffers, prim, m));
+                out.push({ ...primitiveIn(gltf, buffers, prim, m), part: mine ?? null });
             }
         }
-        for (const child of node.children ?? []) walk(child, m);
+        for (const child of node.children ?? []) walk(child, m, mine);
     };
-    for (const root of roots) walk(root, IDENTITY);
+    for (const root of roots) walk(root, IDENTITY, null);
     return out;
+}
+
+// The names of the nodes a maker can mark: every named node of the default
+// scene with geometry under it. A node with nothing to draw would leave an
+// empty mesh behind, so it is not offered.
+export function nodeNames(gltf) {
+    const out = [];
+    const roots = gltf.scenes?.[gltf.scene ?? 0]?.nodes
+        ?? (gltf.nodes ?? []).map((_, i) => i);
+    const walk = (index) => {
+        const node = gltf.nodes[index];
+        let has = node.mesh !== undefined;
+        for (const child of node.children ?? []) has = walk(child) || has;
+        if (has && node.name && !out.includes(node.name)) out.push(node.name);
+        return has;
+    };
+    for (const root of roots) walk(root);
+    return out.sort((a, b) => a.localeCompare(b));
 }
 
 // The origin is the bottom centre of the bounding box: an asset dropped on the

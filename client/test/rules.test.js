@@ -5,14 +5,14 @@ import test from 'node:test';
 
 import { matches, resolve, styleFor } from '../lib/rules.js';
 
-const forest = (props) => ({ kind: 'forest', props });
+const forest = (props) => ({ kind: 'landuse', props });
 
 const RULES = [
-    { name: 'spruce', kind: 'forest', filter: [{ prop: 'species', op: 'in',
+    { name: 'spruce', kind: 'landuse', filter: [{ prop: 'species', op: 'in',
         value: ['picea', 'fichte', 'spruce'] }], style: { height: [18, 30], mature: 70 } },
-    { name: 'young', kind: 'forest', filter: [{ prop: 'alter', op: 'lt', value: 20 }],
+    { name: 'young', kind: 'landuse', filter: [{ prop: 'alter', op: 'lt', value: 20 }],
         style: { height: [2, 5] } },
-    { name: 'any forest', kind: 'forest', filter: [], style: { height: [12, 22] } },
+    { name: 'any forest', kind: 'landuse', filter: [], style: { height: [12, 22] } },
 ];
 
 test('a condition compares words case- and language-blind', () => {
@@ -34,7 +34,7 @@ test('first match wins, and no conditions is the else-rule', () => {
 });
 
 test('a rule for another kind never matches', () => {
-    assert.deepEqual(styleFor(RULES, { kind: 'road', props: {} }), {});
+    assert.deepEqual(styleFor(RULES, { kind: 'highway', props: {} }), {});
 });
 
 test('a disabled rule is skipped', () => {

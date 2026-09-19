@@ -52,7 +52,7 @@ SELECT is(jsonb_array_length(area_at(0.0, 0.0)), 0, 'open sea has no area');
 
 SET LOCAL request.jwt.claims = '{"sub":"00000000-0000-0000-0000-0000000d1001","role":"player"}';
 INSERT INTO feature (area_id, kind, geom) VALUES
-('00000000-0000-0000-0000-0000000d2001', 'footprint',
+('00000000-0000-0000-0000-0000000d2001', 'building',
  st_setsrid(st_makepoint(20.1, 20.1, 300), 4326));
 
 SELECT is(jsonb_array_length(tiles_at(20.1, 20.1, 14)), 5,

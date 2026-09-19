@@ -1,7 +1,13 @@
-// WP2.3 — assemble-v2 without a browser: the same inputs and the same seed
+// WP2.3 — assemble without a browser: the same inputs and the same seed
 // produce the same bytes, and what comes out is the five files the rest of the
 // pipeline reads. The world and the DEM are served from memory, so this test
 // needs neither a database nor a seeded store.
+//
+// FND.3 moved the vocabulary to OSM's — a road is `highway=secondary`, a wood
+// is `landuse=forest` — and the fixture below is written in it. Nothing the
+// compiler draws changed, and the last test in this file is what says so: it
+// holds the hashes `assemble-v5` produced from the same world in the old
+// vocabulary, and the new compiler has to match them exactly.
 
 import test from 'node:test';
 import assert from 'node:assert/strict';
@@ -12,6 +18,7 @@ import { run } from '../atoms/assemble.js';
 import { readTar } from '../lib/tar.js';
 import { readPly } from '../lib/ply.js';
 import { earcut, ringArea, scatter, rng } from '../lib/poly.js';
+import { gridFor, writeR32 } from '../lib/r32.js';
 import { tileBbox } from '../lib/tilemath.js';
 
 const Z = 16;
@@ -41,43 +48,66 @@ const box = (u, v, w, h) => [[at(u, v), at(u + w, v), at(u + w, v + h),
 const WORLD = {
     z: Z, x: X, y: Y, snapshot: 'a'.repeat(64), instances: [],
     features: [
-        { id: '1', kind: 'footprint', rev: 1, props: { height: 14, roof: 'gabled' },
-            geom: { type: 'Polygon', coordinates: box(0.30, 0.30, 0.004, 0.004) } },
-        { id: '2', kind: 'footprint', rev: 1, props: { levels: 2 },
+        { id: '1', kind: 'building', rev: 1, props: { building: 'house', height: 14,
+            roof: 'gabled' },
+        geom: { type: 'Polygon', coordinates: box(0.30, 0.30, 0.004, 0.004) } },
+        { id: '2', kind: 'building', rev: 1, props: { building: 'house', levels: 2 },
             geom: { type: 'Polygon', coordinates: box(0.40, 0.30, 0.003, 0.003) } },
-        { id: '3', kind: 'forest', rev: 1, props: { leaf_type: 'broadleaved' },
-            geom: { type: 'Polygon', coordinates: box(0.55, 0.55, 0.2, 0.2) } },
-        { id: '4', kind: 'water', rev: 1, props: {},
+        { id: '3', kind: 'landuse', rev: 1, props: { landuse: 'forest',
+            leaf_type: 'broadleaved' },
+        geom: { type: 'Polygon', coordinates: box(0.55, 0.55, 0.2, 0.2) } },
+        { id: '4', kind: 'natural', rev: 1, props: { natural: 'water' },
             geom: { type: 'Polygon', coordinates: box(0.1, 0.6, 0.15, 0.1) } },
-        { id: '5', kind: 'road', rev: 1, props: { width: 9, class: 'secondary' },
+        { id: '5', kind: 'highway', rev: 1, props: { highway: 'secondary', width: 9 },
             geom: { type: 'LineString',
                 coordinates: [at(0.05, 0.2), at(0.5, 0.25), at(0.95, 0.4)] } },
         { id: '6', kind: 'terrainmod', rev: 1, props: { op: 'flatten', amount: 0 },
             geom: { type: 'Polygon', coordinates: box(0.7, 0.1, 0.1, 0.1) } },
     ],
-    // The rules travel with the world (db/0036_rules.sql). These are the
-    // seeded ones this fixture needs: a building's height off its own column,
-    // a road's width off its own, a flattening terrainmod.
-    rules: [
-        { name: 'any building', kind: 'footprint', ordering: 999, enabled: true, filter: [],
-            style: { roof: 'flat',
-                height: { prop: 'height', else: { prop: 'levels', times: 3, else: 6 } } } },
-        { name: 'any road', kind: 'road', ordering: 999, enabled: true, filter: [],
-            style: { width: { prop: 'width', min: 2, max: 40, else: 5 } } },
+    // The symbols travel with the world (db/0161). These are the migrated
+    // ones this fixture needs — each the single layer that reproduces the
+    // rule it came from: a building's height off its own column, a road's
+    // width off its own, a flattening terrainmod, a stand of trees, a lake.
+    symbols: [
+        { name: 'any building', kind: 'building', ordering: 999, enabled: true, filter: [],
+            layers: [{ layer: 'extrude', params: { roof: 'flat',
+                height: { prop: 'height', else: { prop: 'levels', times: 3, else: 6 } } } }] },
+        { name: 'any road', kind: 'highway', ordering: 999, enabled: true, filter: [],
+            layers: [{ layer: 'surface',
+                params: { width: { prop: 'width', min: 2, max: 40, else: 5 } } }] },
         { name: 'any terrainmod', kind: 'terrainmod', ordering: 999, enabled: true, filter: [],
-            style: { amount: { prop: 'amount', else: 0 },
-                op: { prop: 'op', text: true, else: 'flatten' } } },
-        { name: 'any forest', kind: 'forest', ordering: 999, enabled: true, filter: [],
-            style: { height: [12, 22], sides: 6, taper: 0.28, mature: 70, age_prop: 'age' } },
+            layers: [{ layer: 'terrainmod', params: { amount: { prop: 'amount', else: 0 },
+                op: { prop: 'op', text: true, else: 'flatten' } } }] },
+        { name: 'any forest', kind: 'landuse', ordering: 999, enabled: true,
+            filter: [{ op: 'in', prop: 'landuse', value: ['forest'] }],
+            layers: [{ layer: 'scatter', params: { height: [12, 22], sides: 6,
+                taper: 0.28, mature: 70, age_prop: 'age' } }] },
+        { name: 'water', kind: 'natural', ordering: 999, enabled: true,
+            filter: [{ op: 'in', prop: 'natural', value: ['water'] }],
+            layers: [{ layer: 'surface', params: {} }] },
     ],
 };
+
+// FND.9: a land over the west half of the tile, shaped two metres up.
+const LAND = { type: 'Polygon', coordinates: box(0.0, 0.0, 0.5, 1.0) };
+const GROUND = (() => {
+    const g = gridFor([B.west, B.south, B.west + (B.east - B.west) / 2, B.north], 4);
+    g.data.fill(2);
+    return writeR32(g);
+})();
+
+// The world the stub serves: the fixture, unless a test has pushed another.
+const WORLDS = [];
 
 async function serve() {
     const dem = demTile();
     const server = createServer((req, res) => {
         if (req.url.startsWith('/rpc/tile_world')) {
             res.writeHead(200, { 'Content-Type': 'application/json' });
-            res.end(JSON.stringify(WORLD));
+            res.end(JSON.stringify(WORLDS.at(-1) ?? WORLD));
+        } else if (req.url.endsWith('.r32')) {
+            res.writeHead(200, { 'Content-Type': 'application/octet-stream' });
+            res.end(Buffer.from(GROUND));
         } else if (req.url.startsWith('/geo/dem/')) {
             res.writeHead(200, { 'Content-Type': 'application/octet-stream' });
             res.end(dem);
@@ -91,7 +121,7 @@ async function serve() {
 }
 
 const ATOM = {
-    id: 1, op: 'assemble', algo_version: 'assemble-v6', seed: 7,
+    id: 1, op: 'assemble', algo_version: 'assemble-v9', seed: 7,
     inputs: { snapshot: WORLD.snapshot }, params: { z: Z, x: X, y: Y, budget: BUDGET },
 };
 
@@ -106,7 +136,7 @@ test('assemble produces the five files the rest of the pipeline reads', async ()
             ['scene.json', 'mesh.bin', 'init.ply', 'height.r16', 'colliders.json']);
 
         const scene = JSON.parse(new TextDecoder().decode(files.get('scene.json')));
-        assert.equal(scene.algo, 'assemble-v6');
+        assert.equal(scene.algo, 'assemble-v9');
         assert.deepEqual(scene.tile, { z: Z, x: X, y: Y });
         assert.ok(scene.origin.h > 350 && scene.origin.h < 460, 'the origin sits on the ground');
         assert.ok(scene.meshes.length >= 6, 'terrain, road, walls, roofs, water, trees');
@@ -121,6 +151,40 @@ test('assemble produces the five files the rest of the pipeline reads', async ()
         assert.equal(colliders.boxes.length, 2, 'one box per footprint');
         assert.ok(colliders.boxes[0].half[1] > 6, 'a 14 m building is 14 m tall');
         assert.ok(out.result.trees > 10, `trees were scattered, got ${out.result.trees}`);
+    } finally { s.stop(); }
+});
+
+// The ground a player shaped is what everything else stands on: the heights
+// the tile lands with are two metres higher over the land and unchanged
+// outside it (FND.9).
+test('a shaped land raises the ground under it and nothing else', async () => {
+    const s = await serve();
+    try {
+        // height.r16 is normalised over the tile's own range, so it is read
+        // back into metres before the two are compared.
+        const metres = async () => {
+            const out = await run({ atom: ATOM, apiUrl: s.url, filesUrl: s.url });
+            const files = readTar(out.files[0].bytes);
+            const scene = JSON.parse(new TextDecoder().decode(files.get('scene.json')));
+            const raw = files.get('height.r16');
+            const counts = new Uint16Array(raw.buffer, raw.byteOffset, raw.length / 2);
+            const span = scene.height.max - scene.height.min;
+            return { n: scene.height.size,
+                at: (i, j) => scene.height.min + counts[j * scene.height.size + i]
+                    / 65535 * span };
+        };
+        const plain = await metres();
+        WORLDS.push({ ...WORLD, height_edits: [
+            { area_id: 'a1', sha256: 'c'.repeat(64), rev: 1, geom: LAND }] });
+        const after = await metres();
+        WORLDS.pop();
+        const mid = Math.floor(plain.n / 2);
+        const west = Math.floor(plain.n * 0.15);
+        const east = Math.floor(plain.n * 0.85);
+        assert.ok(Math.abs(after.at(west, mid) - plain.at(west, mid) - 2) < 0.05,
+            'the shaped half came up two metres');
+        assert.ok(Math.abs(after.at(east, mid) - plain.at(east, mid)) < 0.05,
+            'and the rest of the tile did not move');
     } finally { s.stop(); }
 });
 
@@ -165,3 +229,35 @@ test('a ring is triangulated, wound and scattered the same way every time', () =
     assert.deepEqual(scatter(holed, 4, rng(1)), pts, 'same seed, same trees');
 });
 
+
+// The same world, drawn the same way. These two hashes were produced by
+// `assemble-v5` — the compiler as it stood at bbf9e77, before FND.3 — over
+// this same fixture written in the old vocabulary: road, forest, water,
+// footprint, with rules keyed on those kinds. db/0157 renames the kinds and
+// moves what used to be the kind into a property; `by(kind, key, values)` in
+// assemble.js reads the new shape. If a single triangle or splat moves, this
+// is what notices.
+//
+// The ply moved once since, and not for the vocabulary: db/0151's sampler
+// (`assemble-v6` on the LOD branch — a splat is the size it claims) writes
+// every seed differently. The hash here is what that compiler wrote over the
+// old-vocabulary fixture at 826809a, and the merged compiler over this one
+// matches it; the mesh never moved at all.
+const BEFORE_FND3 = {
+    mesh: 'f7d2a23134b5c7b3d336c73f8e1a4bfd6250422ffbd6dc4fc18f7356dd3cf6e1',
+    ply: 'c249822acfa4e3335d94bdc8fc093008b34b75a199ec70286816d259128e6147',
+    trees: 118,
+};
+
+test('the OSM vocabulary draws what the old one drew, to the byte', async () => {
+    const s = await serve();
+    try {
+        const out = await run({ atom: ATOM, apiUrl: s.url, filesUrl: s.url });
+        const files = readTar(out.files[0].bytes);
+        assert.equal(sha(files.get('mesh.bin')), BEFORE_FND3.mesh,
+            'the geometry is the same geometry');
+        assert.equal(sha(files.get('init.ply')), BEFORE_FND3.ply,
+            'and so is what the trainer starts from');
+        assert.equal(out.result.trees, BEFORE_FND3.trees, 'the same trees, in the same places');
+    } finally { s.stop(); }
+});

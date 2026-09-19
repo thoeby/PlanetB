@@ -8,6 +8,9 @@ client/vendor/*/
 !client/vendor/three/
 # brush's wasm is a Rust build (tools/build-brush.sh): checked in for the same reason.
 !client/vendor/brush/
+# litegraph is the flow editor's canvas (TASKS-foundation.md FND.1), pinned to
+# one upstream commit and unreachable from some networks: checked in too.
+!client/vendor/litegraph/
 docs/*.local.*
 *.log
 test-results/

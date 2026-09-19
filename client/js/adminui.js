@@ -14,9 +14,9 @@ import * as api from './api.js';
 const TYPES = ['text', 'number', 'boolean', 'choice'];
 const GEOMETRIES = ['', 'polygon', 'line', 'point'];
 
-// Design 3j, left half: Kinds — what a thing may say about itself. The right
-// half is client/js/rulesui.js, mounted into the same tab under its own
-// heading, because the chrome docks one panel at a time.
+// Design 3j, left half: Kinds — what a thing may say about itself. What the
+// compiler makes of one is Settings → Symbols since FND.7, because a stack of
+// layers and a live preview do not fit beside this.
 const HTML = `
 <div class="section">
   <div class="spread">
@@ -28,7 +28,7 @@ const HTML = `
 <div class="section">
   <span class="label">Properties of this kind</span>
   <div class="note">These appear in the QGIS form for anything of this kind,
-    and in the rules below, which match on them.</div>
+    and in the symbols that match on them.</div>
   <ul class="ad-props rows"></ul>
 </div>
 <div class="ad-add section">
@@ -42,6 +42,13 @@ const HTML = `
   <div class="row">
     <label class="ad-req"><input class="ad-required" type="checkbox"> required</label>
     <button type="button" class="ad-save primary">Add</button>
+  </div>
+</div>
+<div class="section">
+  <span class="label">What is built from them</span>
+  <div class="note">What the compiler lays down where a thing is drawn is a
+    symbol, and symbols are in
+    <button type="button" class="ad-to-symbols link">Settings → Symbols</button>.
   </div>
 </div>
 <p class="ad-status status"></p>`;
@@ -68,11 +75,12 @@ function propRow(p, onDrop) {
         drop);
 }
 
-export function mountAdmin(host, { onChange = () => {} } = {}) {
+export function mountAdmin(host, { onChange = () => {}, openPart = null } = {}) {
     const box = el('div');
     box.innerHTML = HTML;
     host.append(box);
     const q = (sel) => box.querySelector(sel);
+    q('.ad-to-symbols').onclick = () => openPart?.('Symbols');
     const say = (msg, bad = false) => {
         q('.ad-status').textContent = msg;
         q('.ad-status').dataset.bad = bad ? '1' : '';

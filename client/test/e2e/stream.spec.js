@@ -57,6 +57,12 @@ async function boot(page) {
 // Puts the camera at an altitude over the anchor and waits for the streamer to
 // stop changing its mind: four loads start per frame, so a big jump settles
 // over several.
+//
+// "Stopped" is several frames unchanged, not one. A coarse parent is kept in
+// the scene until the pass after its children are all in — the whole point of
+// the swap — so there is a frame where nothing is loading and the set still
+// holds a tile that is about to go, and breaking on it read the ladder one
+// rung late.
 async function flyTo(page, altitude) {
     return page.evaluate(async (y) => {
         const { camera, streamer } = window.splatworld;
@@ -64,11 +70,13 @@ async function flyTo(page, altitude) {
         camera.setEulerAngles(-90, 0, 0);        // straight down at the region
         const frame = () => new Promise((r) => requestAnimationFrame(r));
         let last = '';
+        let still = 0;
         for (let i = 0; i < 400; i++) {
             await frame();
             const now = [...streamer.entries.keys()].sort().join(' ');
-            if (now === last && streamer.pending === 0 && i > 8) break;
+            still = now === last && streamer.pending === 0 ? still + 1 : 0;
             last = now;
+            if (still >= 5 && i > 8) break;
         }
         return {
             loaded: [...streamer.entries.keys()].sort(),

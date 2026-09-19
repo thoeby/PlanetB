@@ -16,7 +16,7 @@ INSERT INTO area (id, geom, owner_id, detail) VALUES
 -- Drawn in Web Mercator and sent as such: converted, not refused.
 INSERT INTO feature (id, area_id, kind, geom) VALUES
 ('00000000-0000-0000-0000-0000000e1003',
- '00000000-0000-0000-0000-0000000e1002', 'forest',
+ '00000000-0000-0000-0000-0000000e1002', 'landuse',
  st_setsrid(st_makeenvelope(875662, 5826336, 878108, 5828782, 3857), 3857));
 
 SELECT ok((SELECT st_xmax(geom) < 180 AND st_ymax(geom) < 90 FROM feature
@@ -33,14 +33,14 @@ SELECT ok((SELECT abs(st_xmin(geom) - 7.87) < 0.1 FROM feature
 -- is what made a whole layer unopenable.
 SELECT throws_ok(
     $$INSERT INTO feature (area_id, kind, geom) VALUES
-      ('00000000-0000-0000-0000-0000000e1002', 'forest',
+      ('00000000-0000-0000-0000-0000000e1002', 'landuse',
        st_setsrid(st_makeenvelope(875662, 5826336, 878108, 5828782, 4326), 4326))$$,
     '22023', null, 'Mercator metres labelled 4326 are refused, not stored');
 
 -- A geometry with no SRID at all is lon/lat by declaration, as it always was.
 INSERT INTO feature (id, area_id, kind, geom) VALUES
 ('00000000-0000-0000-0000-0000000e1004',
- '00000000-0000-0000-0000-0000000e1002', 'forest',
+ '00000000-0000-0000-0000-0000000e1002', 'landuse',
  st_makeenvelope(7.85, 46.25, 7.86, 46.26));
 SELECT is((SELECT st_srid(geom)::int FROM feature
            WHERE id = '00000000-0000-0000-0000-0000000e1004'), 4326,

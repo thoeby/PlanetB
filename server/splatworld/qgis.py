@@ -172,8 +172,46 @@ def raster_layer(parent, wms_url: str, coverage: str) -> str:
     return ident
 
 
+def ground_shaping(parent, app_url: str,
+                   areas: list[tuple[str, str]]) -> list[tuple[str, str]]:
+    """FND.10: what somebody shaped, as a raster to edit.
+
+    One layer per land the player may touch, read from the file server's
+    GeoTIFF view of the land's own `.r32` (server/splatworld/geotiff.py).
+    Styled as a diverging ramp so that up is warm and down is cool and nothing
+    shaped is nothing at all.
+    """
+    base = app_url.split("/app/")[0]
+    out = []
+    for i, (area, name) in enumerate(areas):
+        ident = f"ground_shaping_{i}"
+        node = _sub(parent, "maplayer", type="raster",
+                    hasScaleBasedVisibilityFlag="0")
+        _sub(node, "id", ident)
+        # `_streaming` because this file server answers a whole GET and not a
+        # range of one, and GDAL's plain /vsicurl/ asks for ranges.
+        _sub(node, "datasource",
+             f"/vsicurl_streaming/{base}/geo/height_edit/{area}.tif")
+        _sub(node, "layername", f"Ground shaping (m) \u00b7 {name}")
+        crs(node)
+        _sub(node, "provider", "gdal")
+        pipe = _sub(node, "pipe")
+        renderer = _sub(pipe, "rasterrenderer", type="singlebandpseudocolor",
+                        band="1", opacity="0.7")
+        shader = _sub(renderer, "rastershader")
+        ramp = _sub(shader, "colorrampshader", colorRampType="INTERPOLATED",
+                    classificationMode="1")
+        for value, colour, label in (("-5", "#2166ac", "-5 m"),
+                                     ("0", "#f7f7f7", "0"),
+                                     ("5", "#b2182b", "+5 m")):
+            _sub(ramp, "item", value=value, color=colour, alpha="255", label=label)
+        out.append((ident, f"Ground shaping (m) \u00b7 {name}"))
+    return out
+
+
 def project_xml(layers: list[dict], conn: dict, wms_url: str,
-                coverage: str | None, app_url: str = "") -> bytes:
+                coverage: str | None, app_url: str = "",
+                areas: list[tuple[str, str]] | None = None) -> bytes:
     root = ET.Element("qgis", {"projectname": "splatworld", "version": QGIS_VERSION})
     _sub(root, "homePath", path="")
     _sub(root, "title", "splatworld")
@@ -200,6 +238,8 @@ def project_xml(layers: list[dict], conn: dict, wms_url: str,
         ident = map_layer(project_layers, spec, conn,
                           app_url if layer_name == "area" else "")
         entries.append((ident, name, pg_source(conn, spec)))
+    for ident, name in ground_shaping(project_layers, app_url, areas or []):
+        entries.append((ident, name, ""))
     if coverage:
         ident = raster_layer(project_layers, wms_url, coverage)
         entries.append((ident, f"Ground ({wcs10_name(coverage)})", ""))
@@ -207,7 +247,9 @@ def project_xml(layers: list[dict], conn: dict, wms_url: str,
     # Drawing order is the order they are listed: the ground underneath.
     for ident, name, source in entries:
         _sub(tree, "layer-tree-layer", id=ident, name=name, source=source,
-             providerKey="postgres" if source else "wms", checked="Qt::Checked",
+             providerKey=("postgres" if source
+                     else "gdal" if ident.startswith("ground_shaping")
+                     else "wms"), checked="Qt::Checked",
              expanded="1")
         _sub(order, "layer", id=ident)
 
@@ -236,13 +278,18 @@ def build(cfg: Config, conn: dict, app_url: str | None = None) -> bytes:
     with psycopg.connect(cfg.dsn(), autocommit=True) as db:
         layers = db.execute("SELECT gis_layers()").fetchone()[0]
         row = db.execute("SELECT geoserver_url, coverage FROM ground").fetchone()
+        # Every land there is: the project is one player's, and RLS decides
+        # which of them they may save over (db/0163).
+        areas = [(str(r[0]), r[1]) for r in db.execute(
+            "SELECT id, coalesce(nullif(rules ->> 'name', ''), 'unnamed land')"
+            " FROM area ORDER BY created_at").fetchall()]
     base = (row[0] if row else cfg.geoserver_url) or "http://localhost:8080/geoserver"
     base = base.rstrip("/")
     if not base.startswith("http"):
         base = f"http://{base}"
     host = "127.0.0.1" if cfg.host in ("0.0.0.0", "::") else cfg.host
     return project_xml(layers, conn, f"{base}/wms", row[1] if row else None,
-                       app_url or f"http://{host}:{cfg.port}/app/play.html")
+                       app_url or f"http://{host}:{cfg.port}/app/play.html", areas)
 
 
 def write(cfg: Config, out: Path | None = None) -> Path:

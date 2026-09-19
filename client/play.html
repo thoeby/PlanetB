@@ -86,14 +86,16 @@
   import { drawMinimap } from './js/hudmap.js';
   import { mountSetup } from './js/setupui.js';
   import { mountAdmin } from './js/adminui.js';
-  import { mountRules } from './js/rulesui.js';
+  import { mountSymbols } from './js/symbolsui.js';
   import { mountCatalogPanel } from './js/catalogpanel.js';
   import { drawAreas, labelAreas, labelObjects, mountLand, ringsOf } from './js/land.js';
   import { mountGetLand } from './js/getland.js';
+  import { mountSculpt } from './js/sculptui.js';
   import { mountAssignLand } from './js/assignland.js';
   import { mountAttention } from './js/attention.js';
   import { mountPlaces, sameSpot } from './js/places.js';
   import { mountPool, mountSubmit } from './js/pool.js';
+  import { mountFlows } from './js/flowsui.js';
   import { mountPermission } from './js/permission.js';
   import { mountShare, nearestGround, parseVisit, visitHash } from './js/visit.js';
   import { mountSky } from './js/sky.js';
@@ -131,6 +133,8 @@
   // What this machine is doing goes on the strip along the top, where a thing
   // that is happening belongs; what it does with itself is the Settings tab of
   // Work (design 8e). The panel itself is nothing but its queues.
+  // Set by the Automate view: while it is open the world is not drawn at all.
+  let paused = false;
   const work = mountWork({
     frames: () => frame.ms,
     settings: hud.panel('Machine'),
@@ -176,10 +180,11 @@
   // First in the panel, because it is the only thing in it that somebody else
   // is waiting for.
   const assignLand = mountAssignLand(hud.panel('Land'), { filesUrl: api.endpoints().files });
-  const admin = mountAdmin(hud.panel('Vocabulary'));
-  // The other half of the vocabulary: what the compiler makes of a thing that
-  // carries those properties. It was a page of its own until T9.
-  const rules = mountRules(hud.panel('Vocabulary'));
+  const admin = mountAdmin(hud.panel('Vocabulary'), { openPart: (name) => hud.show(name) });
+  // What the compiler lays down where a thing is drawn. It was the other half
+  // of the Vocabulary part until FND.7 made a rule a stack of layers, which
+  // needs a part of its own.
+  const symbols = mountSymbols(hud.panel('Symbols'));
   // Who you are, in the corner, from the moment the page knows.
   const showWho = () => hud.signedIn(api.claims()?.email
       ?? (api.userId() ? 'signed in' : null));
@@ -424,6 +429,45 @@
           .then(() => build.refresh()),
   });
 
+  // FND.9: the ground itself, shaped in the page. It is a mode the 3D view is
+  // in while the panel is open, the way Place is, and what it changes is the
+  // land's own grid of relative metres (client/js/sculpt.js).
+  const sculpt = mountSculpt(hud.panel('Shape'), {
+      canvas, camera, pc, origin, terrain, player,
+      groundAt: (lon, lat) => terrain.heightAt(origin.localOf({ lon, lat, h: 0 })) ?? 0,
+      onShaped: () => groundMesh?.reshape(
+          (lon, lat) => sculpt.shaping()?.at(lon, lat) ?? 0, tilesOfShaping()),
+      onSaved: () => { build.refresh(); submit.refresh(); },
+  }, { lands: () => api.rpc('my_areas').catch(() => []) });
+
+  // The z14 tiles the land being shaped falls in: they are drawn as ground
+  // while Shape is on even where a published tile covers them, because you
+  // cannot shape ground you cannot see.
+  function tilesOfShaping() {
+      const b = sculpt.shaping()?.area?.bbox;
+      if (!b) return [];
+      const out = [];
+      for (let x = tm.tileX(b.west, 14); x <= tm.tileX(b.east, 14); x++) {
+          for (let y = tm.tileY(b.north, 14); y <= tm.tileY(b.south, 14); y++) out.push(`${x}/${y}`);
+      }
+      return out;
+  }
+
+  // SPEC §2.16: Automate is a workspace of its own rather than a panel, so it
+  // takes the window and the world stops being drawn under it. litegraph is
+  // fetched the first time it is opened, not now (client/flow/boot.js).
+  const flows = mountFlows(document, {
+      lands: () => api.rpc('my_areas').catch(() => []),
+      onOpen: () => { paused = true; app.autoRender = false; },
+      onClose: () => {
+          paused = false;
+          app.autoRender = true;
+          if (hud.app() === 'Automate') hud.app('Build');
+      },
+      onStay: () => { if (hud.app() !== 'Automate') hud.app('Automate'); },
+  });
+  hud.onApp((name) => { if (name === 'Automate') flows.show(); else flows.close(); });
+
   // Design 5e: who you are in the world, and what that comes to. It reads what
   // the other panels already know, so it holds no state of its own.
   profile = mountProfile(hud.panel('Profile'), {
@@ -459,6 +503,13 @@
       // Something was sent for a decision: the person who decides may be this
       // same player, and the panel that shows it is one tab away.
       onSubmitted: () => { pool.refresh(); land.refresh(); permission.refresh(); },
+      // FND.11: the roads that cannot be driven across, measured here with the
+      // compiler's own code before the approver is shown them.
+      ground: (lon, lat) => terrain.heightAt(origin.localOf({ lon, lat, h: 0 })) ?? 0,
+      onGo: (at) => {
+          const p = origin.localOf({ lon: at.lon, lat: at.lat, h: at.h ?? 0 });
+          player.position = { x: p.x, y: p.y + 2, z: p.z + 8 };
+      },
       onCount: (p) => {
           // The route through the app, as the chrome shows it. Every number
           // is one area_progress already reports; none is invented here.
@@ -596,9 +647,9 @@
         // cached until you walk somewhere else — so forget it.
         asked = { lon: 0, lat: 0, at: 0 };
         build.refresh(); areas.refresh(); showCredits();
-        catalog.refresh(); admin.refresh(); rules.refresh(); setup.refresh();
+        catalog.refresh(); admin.refresh(); symbols.list(); setup.refresh();
         land.refresh(); assignLand.refresh(); attention.refresh();
-        submit.refresh(); pool.refresh(); permission.refresh();
+        submit.refresh(); pool.refresh(); permission.refresh(); sculpt.refresh();
         showWho();
     },
   });
@@ -829,6 +880,8 @@
   // has arrived. Camera pose is compared as a string: cheap, and exact.
   let lastPose = '', lastPending = -1, lastHud = '', tick = 0;
   app.on('update', (dt) => {
+    // Automate takes the window; nothing is drawn or streamed under it.
+    if (paused) return;
     // A smoothed frame time, so one slow frame does not stall background work
     // and one fast one does not let it back in too early.
     frame.ms = frame.ms ? frame.ms * 0.9 + dt * 1000 * 0.1 : dt * 1000;
@@ -896,8 +949,8 @@
   // The handle the browser tests fly.
   window.splatworld = {
     app, pc, api, origin, streamer, camera, rows, terrain, player, setDriving, work, groundMesh,
-    hud, setup, admin, rules, catalog, land, submit, pool, permission, ground,
+    hud, setup, admin, symbols, catalog, land, submit, pool, permission, ground,
     share, goTo,
-    spot, build, preview, nearby, areas, wallet, xr: { wants: wantsXr, rig: () => rig },
+    spot, build, preview, nearby, areas, wallet, flows, sculpt, xr: { wants: wantsXr, rig: () => rig },
   };
 </script>

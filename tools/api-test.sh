@@ -93,7 +93,7 @@ is "anon can read areas" 200 "$(code GET /area)"
 # ------------------------------------------------------------------- writes
 GEOM=$($PSQL -c "SELECT encode(st_asewkb(st_force3d(st_buffer(
     st_setsrid(st_makepoint($LON, $LAT), world_srid()), 0.004))), 'hex')")
-FEATURE="{\"area_id\":\"$AREA\",\"kind\":\"forest\",\"geom\":\"$GEOM\"}"
+FEATURE="{\"area_id\":\"$AREA\",\"kind\":\"landuse\",\"props\":{\"landuse\":\"forest\"},\"geom\":\"$GEOM\"}"
 is "anon cannot write a feature" 401 "$(code POST /feature "$FEATURE")"
 is "a stranger cannot write in my area" 403 "$(code POST /feature "$FEATURE" "$OTHER_JWT")"
 is "the owner can write in their area" 201 "$(code POST /feature "$FEATURE" "$OWNER_JWT")"

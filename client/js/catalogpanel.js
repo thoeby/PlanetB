@@ -24,6 +24,7 @@ const HTML = `
   <div class="row">
     <label>Kind of thing<select id="category"></select></label>
     <label>Licence<select id="license"></select></label>
+    <label>What it is<select id="type"></select></label>
   </div>
 </div>
 <ul id="results" class="cards"></ul>
@@ -33,15 +34,33 @@ const HTML = `
   <div class="step" data-now="1">
     <span class="n">1</span>
     <div class="t">
-      <span class="head">Model</span>
-      <input id="file" type="file" accept=".glb,model/gltf-binary">
-      <canvas class="preview" id="preview" width="256" height="256"></canvas>
-      <div id="canon" class="muted mono"></div>
-      <div id="near"></div>
-      <div class="note">The GLB is canonicalised in this tab — flattened,
-        re-centred, sorted, its extensions dropped — and the catalogue number
-        comes from what comes out. Upload the same model twice, from two tools,
-        and it is one entry.</div>
+      <span class="head">What is it</span>
+      <select id="upload-type"></select>
+      <div class="note">A model is placed on the land. The other four are used
+        by symbols: a repeating piece runs along a wall or a rail, a
+        cross-section is a road's profile, a collection is "trees like these in
+        these proportions", and a surface material covers ground.</div>
+      <div id="form-model">
+        <input id="file" type="file" accept=".glb,model/gltf-binary">
+        <canvas class="preview" id="preview" width="256" height="256"></canvas>
+        <div id="canon" class="muted mono"></div>
+        <div id="already" class="muted"></div>
+        <div id="near"></div>
+        <div id="form-parts" hidden></div>
+        <div class="note">The GLB is canonicalised in this tab — flattened,
+          re-centred, sorted, its extensions dropped — and the catalogue number
+          comes from what comes out. Upload the same model twice, from two
+          tools, and it is one entry.</div>
+      </div>
+      <div id="form-material" hidden>
+        <input id="material-file" type="file" accept=".png,image/png">
+        <label for="material-tiling">Tiling — metres of ground per tile</label>
+        <input id="material-tiling" type="number" min="0.05" step="0.05" value="4">
+        <canvas class="preview" id="material-preview" width="256" height="256"></canvas>
+        <div id="material-said" class="muted mono"></div>
+      </div>
+      <div id="form-profile" hidden></div>
+      <div id="form-collection" hidden></div>
     </div>
   </div>
   <div class="step">

@@ -1,0 +1,68 @@
+<plugin format="1" id="url">
+    <name>URL</name>
+
+    <node id="decompose">
+        <name>Decompose</name>
+        <description type="short">Decompose URL</description>
+        <description type="long">Decomposes an URL into its individual components.</description>
+        <input name="url">
+            <structure id="droplet"/>
+            <value id="url"/>
+        </input>
+        <output name="scheme">
+            <structure id="droplet"/>
+            <value id="string"/>
+        </output>
+        <output name="host">
+            <structure id="droplet"/>
+            <value id="string"/>
+        </output>
+        <output name="port">
+            <structure id="droplet"/>
+            <value id="integer"/>
+        </output>
+        <output name="target">
+            <structure id="droplet"/>
+            <value id="string"/>
+        </output>
+        <output name="resource">
+            <structure id="droplet"/>
+            <value id="string"/>
+        </output>
+        <output name="path">
+            <structure id="droplet"/>
+            <value id="string"/>
+        </output>
+        <output name="query">
+            <structure id="map"/>
+            <value id="string"/>
+        </output>
+        <output name="fragment">
+            <structure id="droplet"/>
+            <value id="string"/>
+        </output>
+    </node>
+    <node id="normalize">
+        <name>Normalize</name>
+        <description type="short">Normalize URL</description>
+        <description type="long">Normalizes an URL according to RFC3986</description>
+        <input name="in">
+            <value id="url"/>
+        </input>
+        <output name="out">
+            <value id="url"/>
+        </output>
+    </node>
+    <node id="parse">
+        <name>Parse</name>
+        <description type="short">Parse URL</description>
+        <description type="long">Parses an URL from a string into an internal representation for further processing.</description>
+        <input name="in">
+            <value id="string"/>
+        </input>
+        <output name="url">
+            <value id="url"/>
+        </output>
+    </node>
+
+</plugin>

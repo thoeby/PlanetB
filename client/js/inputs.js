@@ -77,6 +77,9 @@ function path(artifact, tile, inputs) {
         return tile.path ?? `/tiles/${tile.z}/${tile.x}/${tile.y}/${sha}.sog`;
     }
     if (kind === 'glb') return `/assets/${sha}.glb`;
+    // FND.9: a land's shaped ground, pinned in the atom's inputs so the atom
+    // names every file it read (Invariant 2).
+    if (kind === 'height_edit') return `/assets/${sha}.r32`;
     if (kind === 'thumb') return `/assets/${sha}.webp`;
     throw new Error(`artifact ${sha} of kind ${kind} has no addressable path`);
 }

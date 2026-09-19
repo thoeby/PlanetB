@@ -1,0 +1,80 @@
+<plugin format="1" id="email">
+    <name>E-Mail</name>
+    <icon type="simicons">technology::email</icon>
+
+    <service id="smtp">
+        <name>SMTP</name>
+        <description type="short">SMTP configuration</description>
+        <description type="long">Required configuration to talk to an SMTP server. Currently only STARTTLS is supported.</description>
+        <parameter id="host">
+            <name>Host</name>
+            <description type="short">SMTP Host</description>
+            <description type="long">The SMTP server host</description>
+            <value id="string">smtp.gmail.com</value>
+        </parameter>
+        <parameter id="port">
+            <name>Port</name>
+            <description type="short">SMTP Port</description>
+            <description type="long">The SMTP server port.</description>
+            <value id="integer">587</value>
+        </parameter>
+        <parameter id="username">
+            <name>Username</name>
+            <description type="short">Account username</description>
+            <description type="long">The SMTP account username (usually the e-mail address).</description>
+            <value id="string">foo@gmail.com</value>
+        </parameter>
+        <parameter id="password">
+            <name>Password</name>
+            <description type="short">Account password</description>
+            <description type="long">The SMPT account password.</description>
+            <value id="string"></value>
+        </parameter>
+    </service>
+
+    <node id="smtp-send-simple">
+        <name>SMTP Send Simple</name>
+        <icon type="simicons">technology::email</icon>
+        <description type="short">Send simple SMTP message</description>
+        <description type="long">Send a simple message over SMTP.</description>
+        <service plugin="email" id="smtp"/>
+        <input name="from">
+            <name>From</name>
+            <structure id="droplet"/>
+            <value id="string"/>
+        </input>
+        <input name="to">
+            <name>To</name>
+            <structure id="droplet"/>
+            <structure id="list"/>
+            <value id="string"/>
+        </input>
+        <input name="cc">
+            <name>Cc</name>
+            <structure id="droplet"/>
+            <structure id="list" default="true"/>
+            <value id="string"/>
+        </input>
+        <input name="bcc">
+            <name>Bcc</name>
+            <structure id="droplet"/>
+            <structure id="list" default="true"/>
+            <value id="string"/>
+        </input>
+        <input name="subject">
+            <name>Subject</name>
+            <structure id="droplet"/>
+            <value id="string"/>
+        </input>
+        <input name="content">
+            <name>Content</name>
+            <structure id="droplet"/>
+            <value id="string"/>
+        </input>
+        <output name="error">
+            <structure id="droplet"/>
+            <value id="error-code"/>
+        </output>
+    </node>
+
+</plugin>

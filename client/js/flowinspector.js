@@ -1,0 +1,273 @@
+// flowinspector.js — the right column of the Automate view.
+//
+// With a block selected: what it is called, what its parameters are set to,
+// what is typed into its unwired inputs, and how many slots a repeatable port
+// has. With nothing selected: the flow's own inputs and outputs, which are what
+// somebody calling this flow passes in and gets back (SPEC §2.16).
+
+import { el } from './poolui.js';
+import { addPort, removePort } from '../flow/graph/portgroup.js';
+import { getBlock } from '../flow/plugins/registry.js';
+import { markGraphDirty } from '../flow/graph/history.js';
+
+const TRUE = new Set(['true', '1', 'yes']);
+
+// What a flow's own input or output carries. The vocabulary is the plugins':
+// a literal's `id` in the ELX. "anything" is a pseudo-node with no baked-in
+// structure at all, which is what the format means by leaving it out.
+const PORT_TYPES = ['anything', 'string', 'boolean', 'integer', 'json'];
+
+// A parameter's widget is chosen by what the block says it holds: a boolean is
+// a switch, an integer a number, anything else a line of text.
+export function widgetKind(def) {
+    const type = (def?.default?.type ?? def?.type ?? '').toLowerCase();
+    if (type === 'boolean' || type === 'bool') return 'boolean';
+    if (type === 'integer' || type === 'int' || type === 'number') return 'number';
+    if (def?.choices?.length) return 'choice';
+    return 'text';
+}
+
+function field(def, value, onSet) {
+    const kind = widgetKind(def);
+    if (kind === 'boolean') {
+        const box = el('input', { type: 'checkbox', checked: TRUE.has(String(value)) });
+        box.onchange = () => onSet(box.checked ? 'true' : 'false');
+        return box;
+    }
+    if (kind === 'choice') {
+        const sel = el('select');
+        for (const c of def.choices) {
+            sel.append(el('option', { value: c.data, textContent: c.label ?? c.data }));
+        }
+        sel.value = String(value ?? '');
+        sel.onchange = () => onSet(sel.value);
+        return sel;
+    }
+    const input = el('input', { type: kind === 'number' ? 'number' : 'text',
+        value: value ?? '' });
+    input.onchange = () => onSet(input.value);
+    return input;
+}
+
+const paramValue = (node, id) => node.properties?.[id]
+    ?? node._irParameters?.find((p) => p.id === id)?.value?.value ?? '';
+
+// A block's parameters, as the plugin declares them.
+function parameters(node, changed) {
+    const block = getBlock(node._irPlugin, node._irNodeId);
+    if (!block?.parameters?.length) return [];
+    const list = el('ul', { className: 'fl-params' });
+    for (const def of block.parameters) {
+        const row = el('li', {});
+        row.dataset.param = def.id;
+        row.append(el('span', { textContent: def.name || def.id }),
+            field(def, paramValue(node, def.id), (v) => {
+                node.properties = node.properties ?? {};
+                node.properties[def.id] = v;
+                markGraphDirty(node.graph);
+                changed();
+            }));
+        list.append(row);
+    }
+    return [el('h3', { textContent: 'Parameters' }), list];
+}
+
+// A value typed straight onto an input that no wire reaches. Wired inputs take
+// what the wire brings, so they are not offered one.
+function constants(node, changed) {
+    const rows = (node.inputs ?? []).map((slot, i) => ({ slot, i }))
+        .filter(({ slot }) => slot.link === null || slot.link === undefined);
+    if (!rows.length) return [];
+    const list = el('ul', { className: 'fl-consts' });
+    for (const { slot } of rows) {
+        const was = node._irConstants?.find((c) => c.port === slot.name);
+        const row = el('li', {});
+        row.dataset.port = slot.name;
+        row.append(el('span', { textContent: slot.label ?? slot.name }),
+            field({}, was?.value?.value?.data ?? '', (v) => {
+                node._irConstants = (node._irConstants ?? [])
+                    .filter((c) => c.port !== slot.name);
+                // The ELX shape: `<constant port="…"><structure id="droplet">
+                // <value id="string">…</value></structure></constant>`. An
+                // empty one is a port deliberately left unconnected, which is
+                // a different thing from no constant at all, so it keeps its
+                // row with no `<structure>` inside.
+                node._irConstants.push(v === ''
+                    ? { port: slot.name }
+                    : { port: slot.name,
+                        value: { structure: 'droplet', value: { id: 'string', data: v } } });
+                markGraphDirty(node.graph);
+                changed();
+            }));
+        list.append(row);
+    }
+    return [el('h3', { textContent: 'Constants' }), list];
+}
+
+// How many slots a repeatable port has. The block says how few it may have;
+// a slot with a wire in it is not taken away underneath the wire.
+function portGroups(node, changed) {
+    if (!node._portGroups?.length) return [];
+    const list = el('ul', { className: 'fl-groups' });
+    for (const state of node._portGroups) {
+        const count = el('span', { className: 'mono', textContent: String(state.size) });
+        const plus = el('button', { type: 'button', textContent: '+' });
+        const minus = el('button', { type: 'button', textContent: '−' });
+        const after = (n) => {
+            if (n < 0) return;
+            count.textContent = String(state.size);
+            markGraphDirty(node.graph);
+            changed();
+        };
+        plus.onclick = () => after(addPort(node, state.id));
+        minus.onclick = () => after(removePort(node, state.id));
+        const row = el('li', {}, el('span', { textContent: state.id }), count, plus, minus);
+        row.dataset.group = state.id;
+        list.append(row);
+    }
+    return [el('h3', { textContent: 'Ports' }), list];
+}
+
+// The flow's own inputs and outputs, when no block is selected.
+function pseudos(canvas, changed) {
+    const out = [];
+    for (const kind of ['input', 'output']) {
+        const list = el('ul', { className: `fl-ports fl-${kind}s` });
+        const mine = (canvas.graph._nodes ?? [])
+            .filter((n) => n._irKind === `pseudo-${kind}`);
+        for (const n of mine) {
+            const name = el('input', { type: 'text', value: n._irName });
+            name.onchange = () => {
+                n._irName = name.value.trim() || n._irName;
+                n.title = n._irName;
+                markGraphDirty(canvas.graph);
+                changed();
+            };
+            const type = el('select', { className: 'fl-type' });
+            for (const t of PORT_TYPES) type.append(el('option', { value: t, textContent: t }));
+            type.value = n._irStructure?.value?.id ?? 'anything';
+            type.onchange = () => {
+                if (type.value === 'anything') delete n._irStructure;
+                else n._irStructure = { structure: 'droplet', value: { id: type.value, data: '' } };
+                markGraphDirty(canvas.graph);
+                changed();
+            };
+            const del = el('button', { type: 'button', textContent: 'Remove' });
+            del.onclick = () => {
+                canvas.graph.remove(n);
+                markGraphDirty(canvas.graph);
+                changed();
+            };
+            const row = el('li', {}, name, type, del);
+            row.dataset.port = n._irName;
+            list.append(row);
+        }
+        const add = el('button', { type: 'button', className: `fl-add-${kind}`,
+            textContent: `Add ${kind}` });
+        add.onclick = () => { canvas.addPseudo(kind); changed(); };
+        out.push(el('h3', { textContent: kind === 'input' ? 'Flow inputs' : 'Flow outputs' }),
+            list, el('div', { className: 'fl-acts' }, add));
+    }
+    return out;
+}
+
+// A block's name, which has to be unique in its scope: that is how the nets
+// reach it, so a clash is refused in a sentence rather than renamed quietly.
+function nameField(node, canvas, err, on) {
+    const name = el('input', { type: 'text', value: node._irName ?? node.title,
+        className: 'fl-name' });
+    name.onchange = () => {
+        const wanted = name.value.trim();
+        const clash = (canvas.graph._nodes ?? [])
+            .some((n) => n !== node && n._irName === wanted);
+        if (!wanted || clash) {
+            err.textContent = `${wanted} is already used in this flow`;
+            err.hidden = false;
+            name.value = node._irName;
+            return;
+        }
+        err.hidden = true;
+        node._irName = wanted;
+        node.title = wanted;
+        markGraphDirty(canvas.graph);
+        on.changed();
+    };
+    return name;
+}
+
+// What Validate found, listed under the inspector. `goTo` takes the player to
+// the block a problem names; a problem about the flow as a whole names none.
+function drawProblems(found, list, goTo) {
+    found.replaceChildren(el('h3', { textContent: 'Check' }));
+    found.hidden = false;
+    if (!list.length) {
+        found.append(el('p', { className: 'muted',
+            textContent: 'Nothing wrong that this page can see.' }));
+        return;
+    }
+    const rows = el('ul', { className: 'fl-problem-list' });
+    for (const p of list) {
+        const li = el('li', {});
+        li.dataset.block = p.block ?? '';
+        const b = el('button', { type: 'button',
+            textContent: p.where ? `${p.where} \u203a ${p.words}` : p.words });
+        b.onclick = () => p.block && goTo?.(p.block);
+        li.append(b);
+        rows.append(li);
+    }
+    found.append(rows);
+}
+
+export function mountInspector(host, canvas, on) {
+    const body = el('div', { className: 'fl-inspect' });
+    // What Validate found, under the inspector rather than inside it: it is
+    // about the flow, and it stays there while blocks are selected and
+    // deselected (FND.2).
+    const found = el('div', { className: 'fl-problems' });
+    found.hidden = true;
+    host.append(body, found);
+
+    function drawBlock(node) {
+        const err = el('p', { className: 'fl-err', hidden: true });
+        const name = nameField(node, canvas, err, on);
+        const what = `${node._irPlugin ?? '?'}/${node._irNodeId ?? '?'}`;
+        body.replaceChildren(
+            el('h3', { textContent: 'Name' }), name, err,
+            el('p', { className: 'muted mono', textContent: what }),
+            // Invariant: what this world cannot draw, it still keeps. A block
+            // whose plugin is not in the palette is hatched on the canvas and
+            // says so here, and is saved back exactly as it arrived.
+            node._irPlaceholder
+                ? el('p', { className: 'fl-unknown',
+                    textContent: `unknown block ${what} \u2014 kept exactly as it came` })
+                : null,
+            ...parameters(node, on.changed),
+            ...constants(node, on.changed),
+            ...portGroups(node, on.changed));
+    }
+
+    function drawFlow() {
+        const nets = canvas.nets();
+        const netList = el('ul', { className: 'fl-nets' });
+        for (const n of nets) {
+            const b = el('button', { type: 'button',
+                textContent: n.mode === 'wires' ? 'as labels' : 'as wires' });
+            b.onclick = () => { canvas.toggleNet(n.name); on.changed(); };
+            const li = el('li', {}, el('span', { textContent: n.name }), b);
+            li.dataset.net = n.name;
+            netList.append(li);
+        }
+        body.replaceChildren(
+            el('p', { className: 'muted',
+                textContent: 'Nothing selected. These are what the flow takes in and'
+                    + ' gives back.' }),
+            ...pseudos(canvas, on.changed),
+            ...(nets.length ? [el('h3', { textContent: 'Named nets' }), netList] : []));
+    }
+
+    return {
+        node: host,
+        show(node) { if (node && node._irKind === 'node') drawBlock(node); else drawFlow(); },
+        problems: (list, goTo) => drawProblems(found, list, goTo),
+    };
+}

@@ -9,6 +9,7 @@
 import { sampleHeight } from './geo.js';
 import { Mesh } from './mesh.js';
 import { styleFor } from './rules.js';
+import { sampleR32 } from './r32.js';
 
 // Vertices across a tile. The store cuts elevation at 512² a tile
 // (server/splatworld/importer.py DEM_SIZE), so 513 reads all of it: 0.2 m at
@@ -84,6 +85,30 @@ export class Terrain {
         const u = this.h[Math.max(j - 1, 0) * n + i];
         const d = this.h[Math.min(j + 1, n - 1) * n + i];
         return Math.hypot((r - l) / (2 * this.stepX), (d - u) / (2 * this.stepZ));
+    }
+}
+
+// FND.9: the ground a player shaped, in metres relative to the DEM's.
+//
+// Each edit is one land's grid (client/lib/r32.js) and the land's own outline.
+// A cell outside that outline is ignored — the page turns the brush red there
+// and the database refuses the save, and this is the compile-side guard, so a
+// file that got past both still cannot lift somebody else's ground.
+//
+// Runs before everything else in `assemble`: roads are cut into the shaped
+// ground, buildings stand on it, trees are scattered over it.
+export function applyHeightEdits(terrain, edits, toLonLat) {
+    for (const edit of edits ?? []) {
+        if (!edit?.grid) continue;
+        for (let j = 0; j < terrain.size; j++) {
+            for (let i = 0; i < terrain.size; i++) {
+                const x = terrain.x(i);
+                const z = terrain.z(j);
+                if (edit.contains && !edit.contains(x, z)) continue;
+                const { lon, lat } = toLonLat(x, z);
+                terrain.h[j * terrain.size + i] += sampleR32(edit.grid, lon, lat);
+            }
+        }
     }
 }
 
@@ -226,7 +251,15 @@ export function openAt(h, size, i, j, stepX, stepZ, radius = 3) {
 // (client/lib/raster.js). `colourAt(u, v)` — 0..1 across the tile — is what
 // the operator's albedo says the ground is there, or null where it says
 // nothing (db/0106); the ramp by height and slope is the answer without it.
-export function terrainMesh(terrain, material = 'terrain', colourAt = null) {
+// FND.11: a tunnel portal's mouth takes the ground away. `openings` are boxes
+// in the tile's own frame — [minX, minZ, maxX, maxZ] — and a triangle whose
+// middle falls in one is not built, so the player looks into the mouth rather
+// than at a hillside behind it.
+const inAnOpening = (openings, x, z) => (openings ?? []).some(
+    (o) => x >= o[0] && x <= o[2] && z >= o[1] && z <= o[3]);
+
+export function terrainMesh(terrain, material = 'terrain', colourAt = null,
+    openings = null) {
     const m = new Mesh(material);
     const n = terrain.size;
     for (let j = 0; j < n; j++) {
@@ -243,11 +276,31 @@ export function terrainMesh(terrain, material = 'terrain', colourAt = null) {
     for (let j = 0; j < n - 1; j++) {
         for (let i = 0; i < n - 1; i++) {
             const a = j * n + i;
+            const x = terrain.x(i + 0.5);
+            const z = terrain.z(j + 0.5);
+            if (openings?.length && inAnOpening(openings, x, z)) continue;
             m.tri(a, a + n, a + 1);
             m.tri(a + 1, a + n, a + n + 1);
         }
     }
     return m;
+}
+
+// The same holes in the ground the player walks on: a heightfield cell with no
+// ground over it is written as the lowest the tile has, so somebody walking
+// into the mouth goes in rather than over.
+export function openHeights(terrain, openings) {
+    if (!openings?.length) return terrain;
+    let low = Infinity;
+    for (const v of terrain.h) low = Math.min(low, v);
+    for (let j = 0; j < terrain.size; j++) {
+        for (let i = 0; i < terrain.size; i++) {
+            if (inAnOpening(openings, terrain.x(i), terrain.z(j))) {
+                terrain.h[j * terrain.size + i] = low - 3;
+            }
+        }
+    }
+    return terrain;
 }
 
 function normalAt(t, i, j) {

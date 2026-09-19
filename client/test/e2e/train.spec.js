@@ -78,7 +78,7 @@ function buildDag() {
                                  WHERE state <> 'cancelled'
                              DO UPDATE SET state = 'open' RETURNING id`));
     resetJob(job);
-    const asm = insert(job, 'assemble', 'assemble-v6', { snapshot },
+    const asm = insert(job, 'assemble', 'assemble-v9', { snapshot },
         { ...TILE, budget: BUDGET }, []);
     // z16-v2 is 45 views, not v1's 56: three chunks of the real count,
     // the way build_dag chunks them (db/0125).

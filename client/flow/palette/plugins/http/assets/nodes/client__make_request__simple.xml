@@ -1,0 +1,54 @@
+<elx>
+    <engine type="flow"/>
+    <input name="Request URL"/>
+    <input name="Request Method"/>
+    <input name="Request Headers"/>
+    <input name="Request Body"/>
+    <output name="Error"/>
+    <output name="Response Status"/>
+    <output name="Response Headers"/>
+    <output name="Response Body"/>
+    <net name="N000">
+        <connection node="HTTP Request" port="request"/>
+        <connection node="Compose" port="request"/>
+    </net>
+    <net name="N001">
+        <connection node="Request URL"/>
+        <connection node="Compose" port="url"/>
+    </net>
+    <net name="N002">
+        <connection node="HTTP Request" port="error"/>
+        <connection node="Error"/>
+    </net>
+    <net name="N003">
+        <connection node="HTTP Request" port="response"/>
+        <connection node="Decompose" port="response"/>
+    </net>
+    <net name="N004">
+        <connection node="Decompose" port="body"/>
+        <connection node="Response Body"/>
+    </net>
+    <net name="N005">
+        <connection node="Decompose" port="headers"/>
+        <connection node="Response Headers"/>
+    </net>
+    <net name="N006">
+        <connection node="Response Status"/>
+        <connection node="Decompose" port="status"/>
+    </net>
+    <net name="N007">
+        <connection node="Compose" port="body"/>
+        <connection node="Request Body"/>
+    </net>
+    <net name="N008">
+        <connection node="Compose" port="headers"/>
+        <connection node="Request Headers"/>
+    </net>
+    <net name="N009">
+        <connection node="Compose" port="method"/>
+        <connection node="Request Method"/>
+    </net>
+    <node id="client.make-request" name="HTTP Request" plugin="http"/>
+    <node id="request.compose" name="Compose" plugin="http"/>
+    <node id="response.decompose" name="Decompose" plugin="http"/>
+</elx>

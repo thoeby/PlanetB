@@ -11,7 +11,11 @@
 // PostgREST like every other write and the database decides who may (T0, §6).
 
 import * as api from './api.js';
+import { frames, recut } from './setupground.js';
+import { convertAll, oldShapes } from './oldshapes.js';
 import { el } from './chrome.js';
+import { bundledPlugins, bundlePlugins } from './flows.js';
+import { checkingServer, setCheckingServer } from './flowcheck.js';
 
 // Design 3k: three numbered steps, in the order they have to happen. Step 1
 // is the account, and client/js/auth.js mounts its form into the slot below —
@@ -69,7 +73,33 @@ const HTML = `
       <button type="button" class="gs-ladd">Add layer</button>
     </div>
     <ul class="gs-layers"></ul>
+    <!-- FND.11: the shapes that used to move the ground, while any are left.
+         Converting them is a tab's work, not the world's (Invariant 9). -->
+    <div class="gs-old" hidden>
+      <p class="gs-old-said status"></p>
+      <button type="button" class="gs-old-go">Convert</button>
+    </div>
     <p class="gs-drawer note"></p>
+  </div>
+</div>
+<div class="step gs-step4">
+  <span class="n">4</span>
+  <div class="t">
+    <span class="head">Blocks</span>
+    <div class="note">The blocks flows are drawn with (Automate). They ship
+      with the page; this tells the world which set it saw, so a flow drawn
+      against one can still be read against another.</div>
+    <button type="button" class="gs-blocks">Register the bundled blocks</button>
+    <p class="gs-blocks-status status"></p>
+    <div class="note">A process server can be asked whether a flow is one it
+      would run (Automate → Validate). Leave this empty and the page still
+      checks what it can see for itself.</div>
+    <div class="row">
+      <input class="gs-elx" type="text" placeholder="http://localhost:8088"
+        autocomplete="off">
+      <button type="button" class="gs-elx-save">Use this server</button>
+    </div>
+    <p class="gs-elx-status status"></p>
   </div>
 </div>`;
 
@@ -161,25 +191,6 @@ function markSteps(q, g) {
     }
 }
 
-// Every open job there is, drawing its views again and training on the new
-// ones (db/0149). The elevation changed under tiles that were already framed
-// — a layer added, a cut that has since been fixed — and their frames are of
-// the old ground. Nothing is compiled from scratch and no version moves.
-async function frames(q, say) {
-    q('.gs-frames').disabled = true;
-    say('.gs-ground', 'asking every open tile for its frames again\u2026');
-    try {
-        const n = await api.rpc('redo_ground_renders', {});
-        say('.gs-ground', n
-            ? `${n} tile(s) will draw their views again, and train on them`
-            : 'no open tile has frames of its own to draw again');
-    } catch (err) {
-        say('.gs-ground', `could not: ${String(err.body?.message ?? err.message ?? err)}`, true);
-        console.error(err);
-    } finally {
-        q('.gs-frames').disabled = false;
-    }
-}
 
 // Every z14 tile of the ground, built again from what is on it now
 // (db/0104_thewholeground.sql): what to press when the recipe changed.
@@ -197,27 +208,47 @@ async function again(q, say) {
     }
 }
 
-// The same coverage, a new survey behind it (db/0154 recut_ground): every cut
-// the store has is of the old one and every tab is holding copies it was told
-// to keep for a year. This forgets them all; the maps ask again as they are
-// drawn. What is already compiled is left alone — that is the button beside
-// this one.
-async function recut(q, say, onRecut) {
-    q('.gs-recut').disabled = true;
-    say('.gs-ground', 'forgetting every cut of the ground\u2026');
+
+// FND.11: how many old terrain-edit shapes are left, and the button that
+// turns them into the grid that moves the ground now (client/js/oldshapes.js).
+async function showOldShapes(q, say) {
+    const said = await oldShapes();
+    const n = Number(said?.shapes ?? 0);
+    q('.gs-old').hidden = !n;
+    if (!n) return;
+    const lands = (said.lands ?? []).length;
+    say('.gs-old-said', `Old terrain edits: ${n} on ${lands}`
+        + ` land${lands === 1 ? '' : 's'} \u2014 convert`);
+}
+
+// Every button of the panel, once.
+function wireSetup(q, say, { show, done, layers, onRecut }) {
+    q('.gs-connect').onclick = () => connect(q, say).then((c) => {
+        layers.found = c;
+        q('.gs-llayer').replaceChildren(...c.map((l) => new Option(l.title, l.id)));
+    }).catch((err) => say('.gs-status', String(err.message ?? err), true));
+    q('.gs-ladd').onclick = () => addLayer(q, say, layers.found, show);
+    q('.gs-blocks').onclick = () => registerBlocks(q, say);
+    wireCheckingServer(q, say);
+    q('.gs-recut').onclick = () => recut(q, say, onRecut);
+    q('.gs-done').onclick = () => done();
+    q('.gs-again').onclick = () => again(q, say);
+    q('.gs-frames').onclick = () => frames(q, say);
+    q('.gs-old-go').onclick = () => convertOld(q, say, show);
+}
+
+async function convertOld(q, say, show) {
+    q('.gs-old-go').disabled = true;
+    say('.gs-old-said', 'converting\u2026');
     try {
-        const out = await api.rpc('recut_ground', {});
-        const g = await api.rpc('ground').catch(() => null);
-        say('.gs-ground', `${out?.forgotten ?? 0} cut tile(s) forgotten \u2014 the`
-            + ' ground is cut again as it is asked for');
-        // The mark the RPC answered with, not whatever a second read happens
-        // to see: it is what every cut is now asked for under.
-        onRecut({ ...(g ?? {}), set_at: out?.cut_at ?? g?.set_at ?? '' });
+        const got = await convertAll();
+        say('.gs-old-said', `converted ${got.shapes} shape(s) on ${got.lands}`
+            + ` land${got.lands === 1 ? '' : 's'}`);
+        await show();
     } catch (err) {
-        say('.gs-ground', `could not: ${String(err.body?.message ?? err.message ?? err)}`,
-            true);
+        say('.gs-old-said', String(err.body?.message ?? err.message ?? err), true);
     } finally {
-        q('.gs-recut').disabled = false;
+        q('.gs-old-go').disabled = false;
     }
 }
 
@@ -247,6 +278,40 @@ async function addLayer(q, say, found, refresh) {
     }
 }
 
+// db/0155 elx_plugin: the bundled XMLs, stored and named. Run once, and again
+// when one of them has changed — the hashes decide, so running it twice over
+// the same set writes the same rows.
+async function registerBlocks(q, say) {
+    q('.gs-blocks').disabled = true;
+    say('.gs-blocks-status', 'reading the bundled blocks\u2026');
+    try {
+        const n = await bundlePlugins(await bundledPlugins());
+        say('.gs-blocks-status', `${n} plugin(s) registered`);
+    } catch (err) {
+        say('.gs-blocks-status', String(err.body?.message ?? err.message ?? err), true);
+    } finally {
+        q('.gs-blocks').disabled = false;
+    }
+}
+
+// Where a flow may be checked (db/0156). Empty is a choice, not a gap: the
+// page still checks what it can see for itself.
+function wireCheckingServer(q, say) {
+    const words = (url) => (url ? `flows are checked against ${url}`
+        : 'no process server \u2014 flows are checked here only');
+    q('.gs-elx-save').onclick = async () => {
+        try {
+            say('.gs-elx-status', words(await setCheckingServer(q('.gs-elx').value.trim())));
+        } catch (err) {
+            say('.gs-elx-status', String(err.body?.message ?? err.message ?? err), true);
+        }
+    };
+    checkingServer().then((url) => {
+        q('.gs-elx').value = url;
+        say('.gs-elx-status', words(url));
+    });
+}
+
 export function mountSetup(host, { onGround = () => {}, onRecut = () => {} } = {}) {
     const box = document.createElement('div');
     box.innerHTML = HTML;
@@ -258,11 +323,13 @@ export function mountSetup(host, { onGround = () => {}, onRecut = () => {} } = {
         node.dataset.bad = bad ? '1' : '';
     };
 
-    let found = [];
+    // What the GeoServer said it publishes, once it has been asked.
+    const layers = { found: [] };
 
     async function show() {
         const g = await api.rpc('ground').catch(() => null);
         say('.gs-ground', describe(g));
+        await showOldShapes(q, say);
         listLayers(q, g, show);
         markSteps(q, g);
         if (g?.geoserver_url && !q('.gs-url').value) q('.gs-url').value = g.geoserver_url;
@@ -273,7 +340,7 @@ export function mountSetup(host, { onGround = () => {}, onRecut = () => {} } = {
     // The world's ground. set_ground is an RPC, so an install with somebody
     // else's world already on it refuses this unless you are an admin.
     async function done() {
-        const chosen = found.find((c) => c.id === q('.gs-coverage').value);
+        const chosen = layers.found.find((c) => c.id === q('.gs-coverage').value);
         if (!chosen) return;
         const [west, south, east, north] = bbox(chosen);
         q('.gs-done').disabled = true;
@@ -294,19 +361,12 @@ export function mountSetup(host, { onGround = () => {}, onRecut = () => {} } = {
         }
     }
 
-    q('.gs-connect').onclick = () => connect(q, say).then((c) => {
-        found = c;
-        q('.gs-llayer').replaceChildren(...c.map((l) => new Option(l.title, l.id)));
-    }).catch((err) => say('.gs-status', String(err.message ?? err), true));
-    q('.gs-recut').onclick = () => recut(q, say, onRecut);
-    q('.gs-ladd').onclick = () => addLayer(q, say, found, show);
-    q('.gs-done').onclick = () => done();
-    q('.gs-again').onclick = () => again(q, say);
-    q('.gs-frames').onclick = () => frames(q, say);
+    wireSetup(q, say, { show, done, layers, onRecut });
 
     show();
     // Where client/play.html mounts the sign-in form, so step 1 is a step
     // rather than a form at the bottom of the panel.
     return { refresh: show, done, account: q('.gs-account'),
-        connect: () => connect(q, say).then((c) => { found = c; }) };
+        blocks: () => registerBlocks(q, say),
+        connect: () => connect(q, say).then((c) => { layers.found = c; }) };
 }

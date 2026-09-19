@@ -1,0 +1,43 @@
+<elx>
+    <engine type="flow"/>
+    <input name="SVG"/>
+    <input name="Width"/>
+    <input name="Height"/>
+    <input name="StyleSheet"/>
+    <output name="Bitmap"/>
+    <node id="document.load" name="Load SVG Document" plugin="svg"/>
+    <node id="document.apply-stylesheet" name="Apply StyleSheet" plugin="svg"/>
+    <node id="document.render-to-bitmap" name="Render To Bitmap" plugin="svg"/>
+    <net name="N000">
+        <connection node="SVG"/>
+        <connection node="Load SVG Document" port="file"/>
+    </net>
+    <net name="N001">
+        <connection node="Load SVG Document" port="document"/>
+        <connection node="Apply StyleSheet" port="document in"/>
+    </net>
+    <net name="N002">
+        <connection node="Load SVG Document" port="document"/>
+        <connection node="Apply StyleSheet" port="document in"/>
+    </net>
+    <net name="N003">
+        <connection node="StyleSheet"/>
+        <connection node="Apply StyleSheet" port="stylesheet"/>
+    </net>
+    <net name="N004">
+        <connection node="Apply StyleSheet" port="document out"/>
+        <connection node="Render To Bitmap" port="document"/>
+    </net>
+    <net name="N005">
+        <connection node="Width"/>
+        <connection node="Render To Bitmap" port="width"/>
+    </net>
+    <net name="N006">
+        <connection node="Height"/>
+        <connection node="Render To Bitmap" port="height"/>
+    </net>
+    <net name="N007">
+        <connection node="Render To Bitmap" port="bitmap"/>
+        <connection node="Bitmap"/>
+    </net>
+</elx>

@@ -1,0 +1,147 @@
+<plugin format="1" id="ftp">
+    <name>FTP</name>
+    <icon type="simicons">technology::ftp</icon>
+
+    <service id="ftp">
+        <name>FTP</name>
+        <description type="short">FTP configuration</description>
+        <description type="long">Required configuration to talk to an FTP server. Currently only SFTP is supported.</description>
+        <parameter id="protocol">
+            <name>Protocol</name>
+            <description type="short">Protocol</description>
+            <description type="long">The protocol to use. For example "ftp" or "sftp".</description>
+            <value_choices default-label="FTP" required="1">
+                <value id="string" label="FTP">ftp</value>
+                <value id="string" label="SFTP">sftp</value>
+            </value_choices>
+        </parameter>
+        <parameter id="host">
+            <name>Host</name>
+            <description type="short">FTP Host</description>
+            <description type="long">The FTP server host</description>
+            <value id="string">ftp.company.com</value>
+        </parameter>
+        <parameter id="port">
+            <name>Port</name>
+            <description type="short">SMTP Port</description>
+            <description type="long">The FTP server port.</description>
+            <value id="integer">22</value>
+        </parameter>
+        <parameter id="username">
+            <name>Username</name>
+            <description type="short">Account username</description>
+            <description type="long">The FTP account username (usually the e-mail address).</description>
+            <value id="string"></value>
+        </parameter>
+        <parameter id="password">
+            <name>Password</name>
+            <description type="short">Account password</description>
+            <description type="long">The FTP account password.</description>
+            <value id="string"></value>
+        </parameter>
+        <parameter id="private-key">
+            <name>Private Key</name>
+            <description type="short">Private key</description>
+            <description type="long">The private key to use.</description>
+            <value id="filesystem path"></value>
+        </parameter>
+    </service>
+
+    <node id="directory-list">
+        <name>FTP Directory List</name>
+        <icon type="simicons">technology::ftp</icon>
+        <description type="short">FTP directory list</description>
+        <description type="long">Get a list of files in a remote FTP directory.</description>
+        <service plugin="ftp" id="ftp"/>
+        <input name="remote path">
+            <structure id="droplet"/>
+            <value id="filesystem path"/>
+        </input>
+        <output name="list">
+            <structure id="list"/>
+            <value id="filesystem path"/>
+        </output>
+        <output name="error">
+            <structure id="droplet"/>
+            <value id="error-code"/>
+        </output>
+    </node>
+
+    <node id="file-delete">
+        <name>FTP Delete File</name>
+        <icon type="simicons">technology::ftp</icon>
+        <description type="short">FTP delete file</description>
+        <description type="long">Deletes one file from an FTP server.</description>
+        <service plugin="ftp" id="ftp"/>
+        <input name="remote path">
+            <structure id="droplet"/>
+            <value id="filesystem path"/>
+        </input>
+        <output name="error">
+            <structure id="droplet"/>
+            <value id="error-code"/>
+        </output>
+    </node>
+
+    <node id="file-download-filesystem">
+        <name>FTP Download (FS)</name>
+        <icon type="simicons">technology::ftp</icon>
+        <description type="short">FTP download file</description>
+        <description type="long">Download a file from an FTP server to a local filesystem.</description>
+        <service plugin="ftp" id="ftp"/>
+        <input name="remote path">
+            <structure id="droplet"/>
+            <value id="filesystem path"/>
+        </input>
+        <input name="local path">
+            <structure id="droplet"/>
+            <value id="filesystem path"/>
+        </input>
+        <output name="error">
+            <structure id="droplet"/>
+            <value id="error-code"/>
+        </output>
+    </node>
+
+    <node id="file-download-memory">
+        <name>FTP Download (Memory)</name>
+        <icon type="simicons">technology::ftp</icon>
+        <description type="short">FTP download file</description>
+        <description type="long">Download a file from an FTP server to memory.</description>
+        <service plugin="ftp" id="ftp"/>
+        <input name="remote path">
+            <structure id="droplet"/>
+            <value id="filesystem path"/>
+        </input>
+        <output name="file">
+            <structure id="droplet"/>
+            <value id="bytes"/>
+        </output>
+        <output name="error">
+            <structure id="droplet"/>
+            <value id="error-code"/>
+        </output>
+    </node>
+
+    <node id="file-upload">
+        <name>FTP Upload</name>
+        <icon type="simicons">technology::ftp</icon>
+        <description type="short">FTP upload file</description>
+        <description type="long">Upload a file to an FTP server.</description>
+        <service plugin="ftp" id="ftp"/>
+        <input name="remote path">
+            <structure id="droplet"/>
+            <value id="filesystem path"/>
+        </input>
+        <input name="file">
+            <structure id="droplet"/>
+            <value id="filesystem path"/>
+            <value id="bytes"/>
+        </input>
+        <output name="error">
+            <structure id="droplet"/>
+            <value id="error-code"/>
+        </output>
+    </node>
+
+</plugin>

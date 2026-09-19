@@ -930,6 +930,34 @@ minute"). Open points for it are in `PLAN-foundation.md` §10.
   shape and keys, deterministically, and both scripts say which they produced
   on every run. FND.4's and FND.12's stories therefore pass against a
   stand-in here and must be re-run where the real sources are reachable.
+- **FND.3's key properties are not `required`.** The task asks for the property
+  named after the kind to be required. It is seeded with its choices and is not,
+  because a required key refuses every row that does not carry it — the rows
+  already in the world, a bulk import that has not classified everything, and a
+  surveyor drawing a boundary before they know what is inside it. db/0040
+  settled the same question once already ("refusing an unknown key would make
+  every import a migration"). A blank key costs exactly what it should: the
+  compiler draws nothing for it. The reason is written into db/0157 beside the
+  rows.
+- **FND.2's process-server half is unrun.** There is no process server in this
+  container and none is reachable, so `make flow-test` skips the validation
+  against one with the sentence this file asks for, and story 17 asserts what
+  the page says when nobody was asked. `docs/flow.md` has the two commands to
+  run where one exists, and the table to record it in.
+- **FND.2's local check is about the file, not the canvas.** The task asks for
+  "a string wired into a boolean-only port" to be caught locally. No canvas can
+  hold that wire — litegraph vetoes the connection as it is made and import
+  drops it — so the check reads the bytes that would be run: the canvas's when
+  something is unsaved, the saved file's otherwise. That is where such a flow
+  can actually exist, and it is what the server would be sent.
+- **FND.1's three small departures from this file**, each with its reason in
+  `PROGRESS.md`: the migration is `db/0155` (0128–0132 were spent making the
+  gate green, see PROGRESS), and it adds the artifact kind `plugin`, because
+  `elx_plugin` points at a file that is not a flow; story 16 wires the ports
+  the bundled plugins actually declare (`Contains` takes `string` and
+  `substring`) rather than this file's shorthand "pattern"; and three of the
+  reference editor's own tests were red at the source, so the copies carry the
+  correction and say so in their headers.
 - **The gate was red before this work started** (`b943ce3`), in ways FND.0
   does not touch: fifteen `db/test/*.sql` files and `tools/test-tiles.sh`
   assert the atom DAG as it stood before `db/0121`–`0126`, and three

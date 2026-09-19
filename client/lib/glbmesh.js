@@ -20,33 +20,47 @@ function colourOf(material) {
     return f ? [f[0], f[1], f[2]] : WHITE;
 }
 
-// canon-v1 emits exactly one scene, one node with no transform, and one mesh
-// (canon.js), which is why nothing here walks a node tree. Handed anything else
-// — a raw export straight from a tool — it would silently drop that file's root
-// rotation and answer with a model lying on its side, so it refuses instead.
-function canonicalMesh(json) {
-    const node = json.nodes?.length === 1 ? json.nodes[0] : null;
-    const plain = node && node.mesh === 0 && !node.matrix && !node.rotation
-        && !node.scale && !node.translation && !node.children;
-    if (!plain || json.meshes?.length !== 1) {
+// canon-v1 emits exactly one scene and one node with no transform; canon-v2
+// emits one more for each part the maker marked, named `part:<name>` and with
+// no transform either (canon.js). Nothing here walks a node tree, so anything
+// else — a raw export straight from a tool — would silently lose that file's
+// root rotation and answer with a model lying on its side. It refuses instead.
+function canonicalMeshes(json) {
+    const nodes = json.nodes ?? [];
+    const plain = nodes.length && nodes.every((n, i) => n.mesh === i && !n.matrix
+        && !n.rotation && !n.scale && !n.translation && !n.children);
+    if (!plain || json.meshes?.length !== nodes.length) {
         throw new Error('a canonical GLB is expected here: run canon-v1 over it first');
     }
-    return json.meshes[0];
+    return nodes.map((n, i) => ({
+        part: n.name?.startsWith('part:') ? n.name.slice(5) : null,
+        // FND.11: where this model takes the ground away, if it does.
+        opening: n.name?.startsWith('open:') ? n.name.slice(5) : null,
+        mesh: json.meshes[i],
+    }));
 }
 
-// One entry per primitive, in lib/mesh.js's unpacked shape.
-export function meshesOf(glb) {
+// One entry per primitive, in lib/mesh.js's unpacked shape. A primitive of a
+// canon-v2 part carries that part's name, so a caller that treats a part
+// differently — the compiler leaves a screen's surface unbaked (FND.6) — can
+// tell which triangles are whose.
+export function meshesOf(glb, { skip = null } = {}) {
     const { json, bin } = parseGlb(glb);
     const buffers = resolveBuffers(json, bin);
-    return canonicalMesh(json).primitives.map((prim) => {
-        const positions = Float32Array.from(readAccessor(json, buffers, prim.attributes.POSITION));
-        const normals = Float32Array.from(readAccessor(json, buffers, prim.attributes.NORMAL));
-        const colour = colourOf(json.materials?.[prim.material]);
-        const colors = new Float32Array(positions.length);
-        for (let i = 0; i < colors.length; i += 3) colors.set(colour, i);
-        return { positions, normals, colors,
-            indices: Uint32Array.from(readAccessor(json, buffers, prim.indices)) };
-    });
+    return canonicalMeshes(json)
+        .filter((m) => !(skip && m.part && skip.has(m.part)))
+        .flatMap((m) => m.mesh.primitives.map(
+            (prim) => partMesh(json, buffers, prim, m.part, m.opening)));
+}
+
+function partMesh(json, buffers, prim, part, opening = null) {
+    const positions = Float32Array.from(readAccessor(json, buffers, prim.attributes.POSITION));
+    const normals = Float32Array.from(readAccessor(json, buffers, prim.attributes.NORMAL));
+    const colour = colourOf(json.materials?.[prim.material]);
+    const colors = new Float32Array(positions.length);
+    for (let i = 0; i < colors.length; i += 3) colors.set(colour, i);
+    return { positions, normals, colors, part, opening,
+        indices: Uint32Array.from(readAccessor(json, buffers, prim.indices)) };
 }
 
 export function boundsOf(meshes) {
@@ -97,9 +111,9 @@ const unit = (v) => {
 // The asset, placed: `at` is the position in the destination frame, metres.
 // Returns lib/mesh.js Mesh objects, ready to go into `assemble`'s mesh list.
 export function placeMeshes(glb, { at, yaw = 0, pitch = 0, roll = 0, scale = 1,
-    material = 'asset' } = {}) {
+    material = 'asset', skip = null } = {}) {
     const basis = basisOf(yaw, pitch, roll, scale);
-    return meshesOf(glb).map((src) => {
+    return meshesOf(glb, { skip }).map((src) => {
         const mesh = new Mesh(material);
         for (let i = 0; i < src.positions.length; i += 3) {
             const p = apply(basis, src.positions[i], src.positions[i + 1], src.positions[i + 2]);

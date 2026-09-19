@@ -17,6 +17,10 @@ JETBRAINS_VERSION=${JETBRAINS_VERSION:-5.2.6}
 THREE_VERSION=${THREE_VERSION:-0.186.0}
 BVH_VERSION=${BVH_VERSION:-0.9.15}
 PATHTRACER_VERSION=${PATHTRACER_VERSION:-0.0.24}
+# The flow editor's canvas, pinned to one upstream commit (TASKS-foundation.md
+# FND.1). litegraph publishes no build to npm that matches it, so this is the
+# raw file at that commit.
+LITEGRAPH_COMMIT=${LITEGRAPH_COMMIT:-0555a2f2a3df5d4657593c6d45eb192359888195}
 
 # Google's Draco codec (Apache-2.0), for the GLBs canon-v1 is handed compressed.
 # npm only: there is no CDN copy this repo pins. Without it a Draco GLB is
@@ -107,6 +111,24 @@ vendor_fonts () {
 # other by bare specifier and a Web Worker has no import map, so the specifiers
 # are rewritten to the flat layout under client/vendor/three/. `frame` imports
 # these paths directly — this is not a CDN mirror, it is the copy that runs.
+# litegraph.js (MIT): the canvas the Flows app draws a flow on. A classic
+# script that attaches LiteGraph to window; client/flow/ reads it off there.
+# Checked in like three and brush, because a checkout has to be able to open
+# the app without a network — this only refreshes it.
+vendor_litegraph () {
+    local dest=client/vendor/litegraph
+    local raw="https://raw.githubusercontent.com/jagenjo/litegraph.js/${LITEGRAPH_COMMIT}"
+    [ -f "$dest/litegraph.js" ] && [ "${FORCE:-}" != "1" ] && {
+        echo "vendor: $dest is already here (FORCE=1 to refetch)"; return 0; }
+    mkdir -p "$dest"
+    if curl -sSf -o "$dest/litegraph.js" "$raw/build/litegraph.js" \
+        && curl -sSf -o "$dest/litegraph.css" "$raw/css/litegraph.css"; then
+        echo "vendor: litegraph at ${LITEGRAPH_COMMIT:0:7} from $raw"
+    else
+        echo "vendor: $raw unreachable; the checked-in copy stays (client/vendor/litegraph/NOTICE)"
+    fi
+}
+
 vendor_three () {
     local dest=client/vendor/three tmp
     [ -f "$dest/three-gpu-pathtracer.js" ] && [ "${FORCE:-}" != "1" ] && {
@@ -142,6 +164,7 @@ vendor_draco
 vendor_ol
 vendor_fonts
 vendor_three
+vendor_litegraph
 
 mkdir -p "$DEST"
 if [ -f "$DEST/playcanvas.js" ] && [ "${FORCE:-}" != "1" ]; then

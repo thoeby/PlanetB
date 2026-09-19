@@ -1,0 +1,54 @@
+<plugin format="1" id="mqtt">
+    <name>MQTT</name>
+    <icon type="simicons">iot--platform</icon>
+
+    <service id="client">
+        <name>Client</name>
+        <description type="short">MQTT client configuration</description>
+        <description type="long">Required configuration to talk to an MQTT broker.</description>
+        <parameter id="broker">
+            <name>Broker</name>
+            <description type="short">MQTT Broker address</description>
+            <description type="long">The MQTT broker address. For example "mqtt.broker.example.com:1883". Multiple brokers can be separated by comma.</description>
+            <value id="string">mqtt.example.com:1883</value>
+        </parameter>
+        <parameter id="client-id">
+            <name>Client ID</name>
+            <description type="short">MQTT client ID</description>
+            <description type="long">The MQTT client identifier.</description>
+            <value id="string">elx</value>
+        </parameter>
+        <parameter id="username">
+            <name>Username</name>
+            <description type="short">Username</description>
+            <description type="long">Username for broker credentials.</description>
+            <value id="string"></value>
+        </parameter>
+        <parameter id="password">
+            <name>Password</name>
+            <description type="short">Password</description>
+            <description type="long">Password for broker credentials.</description>
+            <value id="string"></value>
+        </parameter>
+    </service>
+
+    <node id="publish">
+        <name>Publish</name>
+        <icon type="simicons"></icon>
+        <description type="short">MQTT publish</description>
+        <description type="long">Publish an MQTT message</description>
+        <service plugin="mqtt" id="client"/>
+        <input name="payload">
+            <structure id="droplet"/>
+            <value id="string"/>
+        </input>
+        <input name="topic">
+            <structure id="droplet"/>
+            <value id="string"/>
+        </input>
+        <output name="error">
+            <structure id="droplet"/>
+            <value id="error-code"/>
+        </output>
+    </node>
+</plugin>

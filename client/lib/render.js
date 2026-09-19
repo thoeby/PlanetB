@@ -123,6 +123,14 @@ export class Renderer {
         gl.readPixels(0, 0, n, n, gl.RGBA, gl.UNSIGNED_BYTE, pixels);
         return flip(pixels, n);
     }
+
+    // A browser gives a tab about sixteen contexts and then starts taking the
+    // oldest one back. A caller that draws again and again — the Register
+    // form redraws whenever a port is flipped (FND.6) — gives each one back.
+    dispose() {
+        this.gl.getExtension('WEBGL_lose_context')?.loseContext();
+        this.batches = [];
+    }
 }
 
 // readPixels counts rows from the bottom; every image format counts from the top.

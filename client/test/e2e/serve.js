@@ -115,12 +115,12 @@ export function seedWorld(z, x, y) {
                                                 'required_approvals', 1))
                 RETURNING id INTO aid;
                 INSERT INTO feature (area_id, kind, geom, props) VALUES
-                    (aid, 'forest',
+                    (aid, 'landuse',
                      st_force3d(st_geomfromtext('${wood}', 4326)),
-                     '{"leaf_type": "broadleaved"}'),
-                    (aid, 'footprint',
+                     '{"landuse": "forest", "leaf_type": "broadleaved"}'),
+                    (aid, 'building',
                      st_force3d(st_geomfromtext('${house}', 4326)),
-                     '{"height": 9, "roof": "gabled"}');
+                     '{"building": "house", "height": 9, "roof": "gabled"}');
             END IF;
         END $$`);
 }
@@ -141,9 +141,11 @@ export function demSeeded(z, x, y) {
     return false;
 }
 
+// `rows` is a snapshot, or a function called on every request — so a republish
+// made during a test is visible to the page's next poll — or null for every
+// published tile in the database.
 export async function install(page, rows) {
-    // Tile rows are read fresh on every request when no snapshot is given, so a
-    // republish made during a test is visible to the page's next poll.
+    const tiles = () => (typeof rows === 'function' ? rows() : rows ?? tileRows());
     await page.route('https://code.playcanvas.com/**', (route) => {
         const local = join(CLIENT, 'vendor/playcanvas/playcanvas.js');
         route.fulfill({ contentType: 'text/javascript', body: readFileSync(local) });
@@ -153,7 +155,7 @@ export async function install(page, rows) {
         if (url.pathname !== '/tile') return route.fulfill({ status: 404, body: '[]' });
         return route.fulfill({
             contentType: 'application/json',
-            body: JSON.stringify(rows ?? tileRows()),
+            body: JSON.stringify(tiles()),
         });
     });
     await page.route('http://localhost:8080/**', (route) => {

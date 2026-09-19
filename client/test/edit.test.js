@@ -11,9 +11,11 @@ import { KINDS, KIND_NAMES, MAX_TILES, ewkt, geometryOf, permissionOf, propsFrom
     tileSpan, tilesFor, valuesOf } from '../js/edit.js';
 import { tileX, tileY } from '../lib/tilemath.js';
 
-// db/0001_schema.sql's CHECK constraint, in its own order. A kind the editor
-// offers that the database refuses is a 400 nobody can act on.
-const SCHEMA_KINDS = ['road', 'forest', 'water', 'footprint', 'terrainmod'];
+// The `kind` table, in its own order (db/0040, db/0157). A kind the editor
+// offers that the database refuses is a 400 nobody can act on. The editor draws
+// the five that have a shape somebody points at with a mouse; the rest of the
+// OSM vocabulary is drawn in QGIS, which reads the table itself.
+const SCHEMA_KINDS = ['highway', 'landuse', 'natural', 'building', 'terrainmod'];
 
 test('the editor offers exactly the kinds the schema allows', () => {
     assert.deepEqual(KIND_NAMES, SCHEMA_KINDS);
@@ -21,8 +23,8 @@ test('the editor offers exactly the kinds the schema allows', () => {
         assert.ok(['Polygon', 'LineString'].includes(geometryOf(kind)),
             `${kind} draws something OpenLayers can make`);
     }
-    assert.equal(geometryOf('road'), 'LineString', 'a road is a centreline');
-    assert.equal(geometryOf('forest'), 'Polygon');
+    assert.equal(geometryOf('highway'), 'LineString', 'a road is a centreline');
+    assert.equal(geometryOf('landuse'), 'Polygon');
 });
 
 // ------------------------------------------------------------------- props
@@ -34,33 +36,35 @@ test('the form only produces props the compiler reads', () => {
             if (f.type === 'select') assert.ok(f.options.length > 1);
         }
     }
-    // client/lib/props.js reads these two off a footprint and nothing else.
-    assert.deepEqual(KINDS.footprint.fields.map((f) => f.key).sort(),
-        ['height', 'levels', 'roof']);
+    // client/lib/props.js reads these off a building and nothing else, and the
+    // key the kind is named for comes first.
+    assert.deepEqual(KINDS.building.fields.map((f) => f.key).sort(),
+        ['building', 'height', 'levels', 'roof']);
     assert.deepEqual(KINDS.terrainmod.fields.map((f) => f.key), ['op', 'amount']);
 });
 
 test('a number typed into a box comes out a number', () => {
-    assert.deepEqual(propsFrom('road', { width: '7.5' }), { width: 7.5 });
+    assert.deepEqual(propsFrom('highway', { width: '7.5' }), { width: 7.5 });
     assert.deepEqual(propsFrom('terrainmod', { op: 'raise', amount: '3' }),
         { op: 'raise', amount: 3 });
 });
 
 test('a box nobody filled in leaves no prop behind', () => {
-    // A footprint with no height is six metres tall (client/lib/props.js); an
+    // A building with no height is six metres tall (client/lib/props.js); an
     // empty box must not overwrite that with a zero or a NaN.
-    assert.deepEqual(propsFrom('footprint', { height: '', levels: '', roof: 'gabled' }),
+    assert.deepEqual(propsFrom('building', { height: '', levels: '', roof: 'gabled' }),
         { roof: 'gabled' });
-    assert.deepEqual(propsFrom('footprint', { height: 'tall' }), {});
-    assert.deepEqual(propsFrom('water', { width: '3' }), {},
+    assert.deepEqual(propsFrom('building', { height: 'tall' }), {});
+    assert.deepEqual(propsFrom('natural', { width: '3' }), {},
         'a prop no field names is not written');
 });
 
 test('an existing row fills the form, and the defaults fill the rest', () => {
-    assert.deepEqual(valuesOf('forest', { leaf_type: 'broadleaved' }),
-        { leaf_type: 'broadleaved' });
-    assert.deepEqual(valuesOf('forest', {}), { leaf_type: 'needleleaved' });
-    assert.deepEqual(valuesOf('road', null), { width: 5 });
+    assert.deepEqual(valuesOf('landuse', { landuse: 'forest', leaf_type: 'broadleaved' }),
+        { landuse: 'forest', leaf_type: 'broadleaved' });
+    assert.deepEqual(valuesOf('landuse', {}),
+        { landuse: 'forest', leaf_type: 'needleleaved' });
+    assert.deepEqual(valuesOf('highway', null), { highway: 'residential', width: 5 });
 });
 
 // --------------------------------------------------------------------- wkt

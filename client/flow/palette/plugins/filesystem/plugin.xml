@@ -1,0 +1,479 @@
+<plugin format="1" id="filesystem">
+    <name>Filesystem</name>
+    <icon type="simicons">file::folder.details</icon>
+
+    <node id="activity-decompose">
+        <name>Decompose Activity</name>
+        <icon type="simicons">data::activity</icon>
+        <description type="short">Decompose filesystem activity</description>
+        <description type="long">Decompose a filesystem activity into its individual components.</description>
+        <input name="action">
+            <structure id="droplet"/>
+            <value id="fs-action"/>
+        </input>
+        <output name="type">
+            <structure id="droplet"/>
+            <value id="string"/>
+        </output>
+        <output name="directory">
+            <structure id="droplet"/>
+            <value id="filesystem path"/>
+        </output>
+        <output name="filename">
+            <structure id="droplet"/>
+            <value id="filesystem path"/>
+        </output>
+    </node>
+
+    <node id="create-symlink">
+        <name>Create Link</name>
+        <icon type="simicons"></icon>
+        <description type="short">Create link</description>
+        <description type="long">Creates a symbolic link on the filesystem from target to destination.</description>
+        <input name="target">
+            <structure id="droplet"/>
+            <value id="filesystem path"/>
+        </input>
+        <input name="destination">
+            <structure id="droplet"/>
+            <value id="filesystem path"/>
+        </input>
+        <output name="error">
+            <structure id="droplet"/>
+            <value id="error-code"/>
+        </output>
+    </node>
+
+    <node id="move">
+        <name>Move</name>
+        <icon type="simicons"></icon>
+        <description type="short">Move files or directories to a different directory</description>
+        <description type="long">Moves zero or more files or directories to a different destination directory.</description>
+        <input name="from">
+            <structure id="droplet"/>
+            <structure id="list"/>
+            <value id="filesystem path"/>
+        </input>
+        <input name="to">
+            <structure id="droplet"/>
+            <value id="filesystem path"/>
+        </input>
+        <output name="error">
+            <structure id="droplet"/>
+            <value id="error-code"/>
+        </output>
+    </node>
+
+    <group id="directory">
+        <name>Directory</name>
+        <icon type="simicons">file::folder</icon>
+
+        <node id="create">
+            <name>Create Directory</name>
+            <icon type="simicons">file::folder.add</icon>
+            <description type="short">Create directory.</description>
+            <description type="long">Create a directory on the filesystem. This will also create parent directories as needed.</description>
+            <input name="path">
+                <structure id="droplet"/>
+                <value id="filesystem path"/>
+            </input>
+            <output name="error">
+                <structure id="droplet"/>
+                <value id="error-code"/>
+            </output>
+        </node>
+
+        <node id="entries">
+            <name>Entries</name>
+            <icon type="simicons">toggle::list</icon>
+            <description type="short">Get directory entries</description>
+            <description type="long">Get entries (files, directories, ...) from a filesystem directory.</description>
+            <parameter id="recursive">
+                <name>Recursive</name>
+                <description type="short">Whether to recurse.</description>
+                <description type="long">Controls whether directories are recursed into (i.e. include sub-directories).</description>
+                <value id="boolean">false</value>
+            </parameter>
+            <input name="path">
+                <structure id="droplet"/>
+                <value id="filesystem path"/>
+            </input>
+            <output name="entries">
+                <structure id="list"/>
+                <value id="filesystem path"/>
+            </output>
+        </node>
+
+    </group>
+
+    <group id="file">
+        <name>File</name>
+        <icon type="simicons">file::document</icon>
+
+        <node id="last-write-time">
+            <name>Last Write Time</name>
+            <icon type="simicons">time::timer</icon>
+            <description type="short">Get last modification time</description>
+            <description type="long">Get the timepoint of when a specified file was last modified.</description>
+            <input name="path">
+                <structure id="droplet"/>
+                <value id="filesystem path"/>
+            </input>
+            <output name="timepoint">
+                <structure id="droplet"/>
+                <value id="timepoint"/>
+            </output>
+            <output name="error">
+                <structure id="droplet"/>
+                <value id="error-code"/>
+            </output>
+        </node>
+
+        <node id="read">
+            <name>Read</name>
+            <icon type="simicons">file::document.export</icon>
+            <description type="short">Read from file.</description>
+            <description type="long">Read the contents from a file (in binary form).</description>
+            <input name="path">
+                <structure id="droplet"/>
+                <value id="filesystem path"/>
+            </input>
+            <output name="content">
+                <structure id="droplet"/>
+                <value id="bytes"/>
+            </output>
+            <output name="error">
+                <structure id="droplet"/>
+                <value id="error-code"/>
+            </output>
+        </node>
+
+        <node id="size">
+            <name>File Size</name>
+            <icon type="simicons">instruments::ruler</icon>
+            <description type="short">Get size of file</description>
+            <description type="long">Get the size of a file on the filesystem. Path must point to a regular file.</description>
+            <input name="path">
+                <structure id="droplet"/>
+                <value id="filesystem path"/>
+            </input>
+            <output name="size">
+                <structure id="droplet"/>
+                <value id="integer"/>
+            </output>
+            <output name="error">
+                <structure id="droplet"/>
+                <value id="error-code"/>
+            </output>
+        </node>
+
+        <node id="write">
+            <name>Write</name>
+            <icon type="simicons">file::document.import</icon>
+            <description type="short">Write to file.</description>
+            <description type="long">Write contents to a file (in binary form).</description>
+            <input name="content">
+                <structure id="droplet"/>
+                <value id="bytes"/>
+            </input>
+            <input name="path">
+                <structure id="droplet"/>
+                <value id="filesystem path"/>
+            </input>
+            <input name="truncate">
+                <structure id="droplet" default="true">
+                    <value id="boolean">true</value>
+                </structure>
+                <value id="boolean"/>
+            </input>
+            <output name="error">
+                <structure id="droplet"/>
+                <value id="error-code"/>
+            </output>
+        </node>
+
+    </group>
+
+    <group id="path">
+        <name>Path</name>
+        <icon type="simicons"></icon>
+
+        <node id="append">
+            <name>Append</name>
+            <icon type="simicons"></icon>
+            <description type="short">Append.</description>
+            <description type="long">Append to a filesystem path using the native directory separator.</description>
+            <input name="in" type="group" min="2">
+                <structure id="droplet"/>
+                <!-- ToDo: This can do everything to_string() works on -->
+                <value id="string"/>
+                <value id="filesystem path"/>
+            </input>
+            <output name="out"/>
+        </node>
+
+        <node id="equivalent">
+            <name>Equivalent</name>
+            <icon type="simicons">instruments::scales</icon>
+            <description type="short">Equivalent paths</description>
+            <description long="long">Checks whether two paths are equivalent (resolve to the same filesystem entity).</description>
+            <input name="in 1">
+                <value id="filesystem path"/>
+            </input>
+            <input name="in 2">
+                <value id="filesystem path"/>
+            </input>
+            <output name="equivalent">
+                <value id="boolean"/>
+            </output>
+        </node>
+
+        <node id="exists">
+            <name>Exists</name>
+            <icon type="simicons">systems::filesystem.exist</icon>
+            <description type="short">Exists</description>
+            <description type="long">Check whether a filesystem path exists.</description>
+            <input name="path"/>
+            <output name="exists"/>
+        </node>
+
+        <node id="extension">
+            <name>Extension</name>
+            <icon type="simicons"></icon>
+            <description type="short">Get extension.</description>
+            <description type="long">Gets the extension of a filesystem file path.</description>
+            <input name="path"/>
+            <output name="extension"/>
+        </node>
+
+        <node id="filename">
+            <name>Filename</name>
+            <icon type="simicons"></icon>
+            <description type="short">Get filename.</description>
+            <description type="long">Gets the filename of a filesystem file path.</description>
+            <input name="path"/>
+            <output name="filename"/>
+        </node>
+
+        <node id="filter-extensions">
+            <name>Filter Extensions</name>
+            <icon type="simicons">operations::filter</icon>
+            <description type="short">Filter file extensions</description>
+            <description type="long">Filters file extensions. Paths with extensions not listed will be removed.</description>
+            <input name="paths">
+                <structure id="list"/>
+                <value id="filesystem path"/>
+            </input>
+            <input name="extensions">
+                <structure id="list"/>
+                <value id="filesystem path"/>
+            </input>
+            <output name="filtered">
+                <structure id="list"/>
+                <value id="filesystem path"/>
+            </output>
+        </node>
+
+        <node id="from-string">
+            <name>From String</name>
+            <icon type="simicons"></icon>
+            <description type="short">Path from string.</description>
+            <description type="long">Create a filesystem path from a string.</description>
+            <input name="string">
+                <value id="string"/>
+            </input>
+            <output name="path">
+                <value id="filesystem path"/>
+            </output>
+        </node>
+
+        <node id="has-extension">
+            <name>Has Extension</name>
+            <icon type="simicons"></icon>
+            <description type="short">Path has a file extension?</description>
+            <description type="long">Checks whether a given filesystem path has an extension.</description>
+            <input name="path">
+                <value id="filesystem path"/>
+            </input>
+            <output name="has extension">
+                <value id="boolean"/>
+            </output>
+        </node>
+
+        <node id="is-absolute">
+            <name>Is Absolute</name>
+            <icon type="simicons"></icon>
+            <description type="short">Is absolute?</description>
+            <description type="long">Checks whether the provided path is an absolute path.</description>
+            <input name="path">
+                <value id="filesystem path" plugin=""/>
+            </input>
+            <output name="is absolute">
+                <value id="boolean" plugin=""/>
+            </output>
+        </node>
+
+        <node id="is-directory">
+            <name>Is Directory</name>
+            <icon type="simicons">file::folder</icon>
+            <description type="short">Is directory?</description>
+            <description type="long">Checks whether the provided path is a directory.</description>
+            <input name="path">
+                <value id="filesystem path" plugin=""/>
+            </input>
+            <output name="is directory">
+                <value id="boolean" plugin=""/>
+            </output>
+        </node>
+
+        <node id="is-file">
+            <name>Is File</name>
+            <icon type="simicons">file::document.blank</icon>
+            <description type="short">Is file?</description>
+            <description type="long">Checks whether the provided path is a regular file.</description>
+            <input name="path">
+                <value id="filesystem path" plugin=""/>
+            </input>
+            <output name="is file">
+                <value id="boolean" plugin=""/>
+            </output>
+        </node>
+
+        <node id="is-relative">
+            <name>Is Relative</name>
+            <icon type="simicons"></icon>
+            <description type="short">Is relative?</description>
+            <description type="long">Checks whether the provided path is a relative path.</description>
+            <input name="path">
+                <value id="filesystem path" plugin=""/>
+            </input>
+            <output name="is relative">
+                <value id="boolean" plugin=""/>
+            </output>
+        </node>
+
+        <node id="parent-path">
+            <name>Parent Path</name>
+            <icon type="simicons"></icon>
+            <description type="short">Get parent path.</description>
+            <description type="long">Gets the parent path of a filesystem file path.</description>
+            <input name="path"/>
+            <output name="parent path"/>
+        </node>
+
+        <node id="remove">
+            <name>Remove</name>
+            <icon type="simicons">file::folder.off</icon>
+            <description type="short">Remove file or directory.</description>
+            <description type="long">Removes a file or directory on the filesystem.</description>
+            <input name="path">
+                <structure id="droplet"/>
+                <value id="filesystem path"/>
+            </input>
+            <output name="error">
+                <structure id="droplet"/>
+                <value id="error-code"/>
+            </output>
+        </node>
+
+        <node id="rename">
+            <name>Rename</name>
+            <icon type="simicons">formatting::edit</icon>
+            <description type="short">Rename file or folder</description>
+            <description type="long">Renames or moves a file or folder on the filesystem.</description>
+            <input name="from">
+                <structure id="droplet"/>
+                <value id="filesystem path"/>
+            </input>
+            <input name="to">
+                <structure id="droplet"/>
+                <value id="filesystem path"/>
+            </input>
+            <output name="error">
+                <structure id="droplet"/>
+                <value id="error-code"/>
+            </output>
+        </node>
+
+        <node id="replace-extension">
+            <name>Replace Extension</name>
+            <icon type="simicons"></icon>
+            <description type="short">Replace extension.</description>
+            <description type="long">Replace the file extension of a filesystem file path.</description>
+            <input name="path">
+                <value id="filesystem path"/>
+            </input>
+            <input name="extension">
+                <structure id="droplet"/>
+                <value id="string"/>
+            </input>
+            <output name="out">
+                <value id="filesystem path"/>
+            </output>
+        </node>
+
+        <node id="replace-filename">
+            <name>Replace Filename</name>
+            <icon type="simicons"></icon>
+            <description type="short">Replace filename.</description>
+            <description type="long">Replace the filename of a filesystem file path.</description>
+            <input name="path">
+                <value id="filesystem path"/>
+            </input>
+            <input name="filename">
+            </input>
+            <output name="out">
+                <value id="filesystem path"/>
+            </output>
+        </node>
+
+        <node id="replace-stem">
+            <name>Replace Stem</name>
+            <icon type="simicons"></icon>
+            <description type="short">Replace stem.</description>
+            <description type="long">Replace the stem of a filesystem file path.</description>
+            <input name="path">
+                <value id="filesystem path"/>
+            </input>
+            <input name="replacement">
+                <structure id="droplet"/>
+                <value id="string"/>
+            </input>
+            <output name="out"/>
+        </node>
+
+        <node id="stem">
+            <name>Stem</name>
+            <icon type="simicons"></icon>
+            <description type="short">Get stem.</description>
+            <description type="long">Gets the stem of a filesystem file path.</description>
+            <input name="path">
+                <value id="filesystem path"/>
+            </input>
+            <output name="stem"/>
+        </node>
+
+        <node id="temp-path">
+            <name>TMP path</name>
+            <icon type="simicons">file::tmp</icon>
+            <description type="short">Temp directory path</description>
+            <description type="long">Get the path to the system's temporary directory.</description>
+            <output name="path"/>
+        </node>
+
+        <node id="to-string">
+            <name>To String</name>
+            <icon type="simicons"></icon>
+            <description type="short">path to string.</description>
+            <description type="long">Create a string from a filesystem path.</description>
+            <input name="path">
+                <value id="filesystem path"/>
+            </input>
+            <output name="string">
+                <value id="string"/>
+            </output>
+        </node>
+
+    </group>
+
+</plugin>

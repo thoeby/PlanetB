@@ -33,20 +33,20 @@ SELECT set_config('request.jwt.claims',
                   json_build_object('sub', (SELECT owner_id FROM ids),
                                     'role', 'player')::text, true);
 SELECT lives_ok($$
-    INSERT INTO gis.f_road (geom)
+    INSERT INTO gis.f_highway (geom)
     VALUES (st_geomfromtext('LINESTRING(7.01 46.01, 7.02 46.02)', 4326))
 $$, 'a road drawn in QGIS is saved');
 SELECT lives_ok($$
-    INSERT INTO gis.f_forest (geom, leaf_type)
+    INSERT INTO gis.f_landuse (geom, leaf_type)
     VALUES (st_geomfromtext(
         'POLYGON((7.02 46.02,7.03 46.02,7.03 46.03,7.02 46.03,7.02 46.02))', 4326),
         'broadleaved')
 $$, 'and so is a wood with a property filled in');
 RESET ROLE;
 
-SELECT is((SELECT array_agg(kind ORDER BY kind) FROM feature), ARRAY['forest', 'road'],
+SELECT is((SELECT array_agg(kind ORDER BY kind) FROM feature), ARRAY['highway', 'landuse'],
     'both landed on the right kind');
-SELECT is((SELECT props ->> 'leaf_type' FROM feature WHERE kind = 'forest'),
+SELECT is((SELECT props ->> 'leaf_type' FROM feature WHERE kind = 'landuse'),
     'broadleaved', 'with what the form said');
 
 SELECT * FROM finish();

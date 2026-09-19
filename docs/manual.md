@@ -134,6 +134,57 @@ dirty. That is the work queue.
   area you may write, and you have not checked it for a week, it renders two
   poses and reports the result. A failure marks the tile `suspect`.
 
+### The vocabulary
+
+Since db/0157 the world describes what is drawn in OSM's words. The kind of a
+feature is an OSM key — `highway`, `railway`, `aerialway`, `barrier`,
+`waterway`, `building`, `landuse`, `natural`, `natural_point` — and which one it
+is is a property of the same name: a road is `highway=secondary`, a wood is
+`landuse=forest` or `natural=wood`, a pond is `natural=water`, a tree is
+`natural_point=tree`. QGIS has one layer per key, and Admin → Vocabulary adds
+values and properties to them without a migration.
+
+Nothing that was drawn before changed: db/0157 renamed the kinds (the rows
+followed) and moved what used to be the kind into a property. The compiler reads
+the new shape and draws the same geometry, to the byte
+(`client/test/assemble.test.js`).
+
+### Automate (the flow editor, same page)
+
+- **Tab** opens the views; **Automate** (F2) is the flow editor. It takes the
+  window, and the 3D view stops being drawn until it is closed.
+- A flow belongs to a **land**: you see the flows of every land you own or may
+  build on, and so does everybody else who builds there. Approvers for a land
+  can read its flows.
+- **New** asks for a name and a land. The canvas is litegraph; the palette is a
+  searchable strip above it — type part of a block's name or its group ("strings
+  contains") and drag the line onto the canvas. Wire by dragging port to port,
+  Delete removes the selection, Ctrl-Z and Ctrl-Shift-Z undo and redo,
+  **Auto-layout** lays the blocks out again.
+- Double-clicking a filter or a transformation opens its inner flow, with a
+  breadcrumb back.
+- The **inspector** on the right is about the selected block — its name (unique
+  in the flow), its parameters, constants on the inputs no wire reaches, and how
+  many slots a repeatable port has. With nothing selected it is about the flow:
+  its own inputs and outputs, and how each named net is drawn.
+- **Save** writes the ELX into the file store under the sha256 of its bytes and
+  moves the land's pointer at it. Two tabs cannot overwrite each other: the
+  second is told "this flow was changed in another tab — reload it". Where the
+  blocks sit is stored beside the flow, never inside the ELX.
+- **Import** takes `.elx` files — the button, or dropping them on the canvas.
+  Each becomes a flow of its own on the land, laid out, named after the file.
+  **Export** gives back the saved bytes exactly; a flow with unsaved changes is
+  told "save first" rather than exported as something else.
+- **Validate** asks two things and shows both: the process server, if the
+  operator set one in Setup, and what the page can see for itself — one source
+  per net, every wired pair allowed, names unique. Each problem is a line under
+  the inspector, and pressing it goes to the block. `docs/flow.md` has the
+  detail, including what is still unproven.
+- **Setup → step 4** registers the bundled block set with the world. Run it once
+  per install, and again after `bash tools/palette.sh` has changed the set. The
+  same step holds the address of the process server flows are checked against;
+  leaving it empty is a choice, and the page still checks what it can.
+
 ### Work panel (same page)
 
 - Shows the GPU this tab has (WebGPU or WebGL2). Training needs WebGPU.
@@ -260,3 +311,34 @@ against a live world.
   to one job (`PROGRESS.md` deviation 55).
 - `assemble` fetches `/geo` tiles by path, not by hash (Invariant 2 is not
   pinned for terrain and imagery); a `/geo` path is therefore write-once.
+
+## Shaping the ground in QGIS
+
+The project the Land panel hands you carries a **Ground shaping (m)** raster
+for every land there is: one float per cell, metres above or below what the
+operator's elevation says is there, read from the world's own file
+(`docs/rendering.md` §6) through a GeoTIFF view of it. It is a raster like any
+other — open it, edit it with whatever raster-editing plugin you use.
+
+Saving the project does not save a raster, so the shaping is sent back by a
+script instead:
+
+1. Download it from the world at `/qgis/save-ground.py` (the Land panel says
+   where).
+2. In the QGIS Python console:
+
+   ```python
+   from save_ground import save
+   save(iface.activeLayer(), "<the land's id>", "http://<the world>",
+        "you@example.com", "<your password>")
+   ```
+
+It writes one immutable `.r32`, registers it, and calls `save_height_edit` —
+exactly what the page's Shape panel does, as you. The world refuses a land that
+is not yours in words, and the script prints what it said.
+
+**Why a plain script and not a Processing algorithm**: headless QGIS runs a
+plain script, which is what the player-run needs to prove this story
+(`client/test/run/25-shape-in-qgis.spec.js`), and an algorithm would have been
+a second thing to keep working for no gain. FND.10 left the choice open; this
+is the choice.

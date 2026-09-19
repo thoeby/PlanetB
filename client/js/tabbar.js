@@ -46,7 +46,8 @@ export const TABS = [
     { name: 'Catalog', group: 'bar', key: '2', width: 666,
         lede: 'Products anyone may build with. Register your own.' },
     { name: 'Your land', group: 'bar', key: '3', label: 'Land', width: 500,
-        lede: 'The ground you own, and what stands on it.' },
+        parts: [{ name: 'Your land', label: 'Land' },
+            { name: 'Shape', label: 'Shape' }] },
     { name: 'Publish', group: 'bar', key: '4', width: 500,
         parts: [{ name: 'Submit', label: 'Submit' },
             { name: 'Permission', label: 'Approve' }] },
@@ -77,7 +78,8 @@ export const TABS = [
     { name: 'Settings', group: 'top', key: '`', width: 470,
         parts: [{ name: 'Setup', label: 'Setup' },
             { name: 'Land', label: 'Land', key: '0', wide: true },
-            { name: 'Vocabulary', label: 'Vocabulary', wide: true }] },
+            { name: 'Vocabulary', label: 'Vocabulary', wide: true },
+            { name: 'Symbols', label: 'Symbols', wide: true }] },
 ];
 
 // Every part there is, with the surface that holds it.
@@ -98,8 +100,10 @@ export const PART_LEDE = {
     Machine: 'What this machine gives the world, and how much of it.',
     Land: 'Who is waiting for land, the ground it would be drawn on, and every'
         + ' piece of it there is.',
-    Vocabulary: 'What things may say about themselves, and what the compiler'
-        + ' makes of them.',
+    Vocabulary: 'What things may say about themselves.',
+    Symbols: 'What the compiler lays down where a thing is drawn.',
+    'Your land': 'The ground you own, and what stands on it.',
+    Shape: 'The ground itself: pull it up, push it down, lay a road bed.',
 };
 
 // Every panel body there is: a surface without parts is its own leaf.

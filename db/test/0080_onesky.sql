@@ -13,7 +13,7 @@ SELECT '00000000-0000-0000-0000-0000000000c1'::uuid,
        st_makeenvelope(7.40, 46.40, 7.41, 46.41, 4326), uid, 14
 FROM who;
 INSERT INTO feature (area_id, kind, geom)
-VALUES ('00000000-0000-0000-0000-0000000000c1', 'footprint',
+VALUES ('00000000-0000-0000-0000-0000000000c1', 'building',
         st_geomfromtext('POINTZ(7.405 46.405 500)', 4326));
 
 CREATE TEMP TABLE j AS
@@ -21,7 +21,7 @@ SELECT ensure_job(14, tile_x(7.405, 14), tile_y(46.405, 14), 0) AS id;
 
 SELECT is((SELECT algo_version FROM atom
            WHERE job_id = (SELECT id FROM j) AND op = 'assemble'),
-          'assemble-v6', 'the geometry is assembled under the new sky');
+          'assemble-v9', 'the geometry is assembled under the new sky');
 SELECT is((SELECT algo_version FROM atom
            WHERE job_id = (SELECT id FROM j) AND op = 'train'),
           'train-v13', 'and trained by the trainer the client runs');

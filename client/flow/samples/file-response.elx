@@ -1,0 +1,53 @@
+<elx>
+    <engine type="flow">
+        <max_steps>0</max_steps>
+        <record_history>false</record_history>
+    </engine>
+    <input name="Target">
+        <structure id="droplet" plugin="">
+            <value id="string" plugin=""><![CDATA[css/cover.css]]></value>
+        </structure>
+    </input>
+    <input name="Base Path">
+        <structure id="droplet" plugin="">
+            <value id="filesystem path" plugin="">C:/Users/portablimaschina/Documents/valaisplus/assets/</value>
+        </structure>
+    </input>
+    <net name="N001">
+        <connection node="Output 1" port="port"/>
+        <connection node="HTTP File Response" port="response"/>
+    </net>
+    <net name="N002">
+        <connection node="Append" port="in [1]"/>
+        <connection node="From String 2" port="path"/>
+    </net>
+    <net name="N003">
+        <connection node="Append" port="in [0]"/>
+        <connection node="Base Path" port="port"/>
+    </net>
+    <net name="N004">
+        <connection node="HTTP File Response" port="filepath"/>
+        <connection node="Append" port="out"/>
+    </net>
+    <net name="N005">
+        <connection node="Get First" port="droplet"/>
+        <connection node="From String 2" port="string"/>
+    </net>
+    <net name="N006">
+        <connection node="Get First" port="list"/>
+        <connection node="Target" port="port"/>
+    </net>
+    <node id="response.build-file" name="HTTP File Response" plugin="http">
+        <constant port="cache control">
+            <structure id="droplet" plugin="">
+                <value id="string" plugin=""><![CDATA[]]></value>
+            </structure>
+        </constant>
+    </node>
+    <node id="path.append" name="Append" plugin="filesystem">
+        <port_group id="in" size="2"></port_group>
+    </node>
+    <node id="path.from-string" name="From String 2" plugin="filesystem"/>
+    <node id="structures.list.get-first" name="Get First" plugin="builtin"/>
+    <output name="Output 1"/>
+</elx>
