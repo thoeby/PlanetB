@@ -3,7 +3,8 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 
-import { covered, ringAround, tileGeometry } from '../js/ground.js';
+import { DemGround, covered, ringAround, tileGeometry } from '../js/ground.js';
+import { tileX, tileY } from '../lib/tilemath.js';
 import { key } from '../js/traverse.js';
 
 const row = (z, x, y, published_version) => [key(z, x, y), { z, x, y, published_version }];
@@ -63,4 +64,21 @@ test('a tile becomes a grid of heights in its own frame, lit and coloured', () =
         assert.ok(Math.abs(len - 1) < 1e-5);
     }
     assert.ok(g.colors.every((c) => c >= 0 && c <= 1), 'colours are 0..1');
+});
+
+// The ground mesh asks the floor for its rasters, and the floor keys them by
+// zoom (client/js/floor.js). This asked for `x/y` and got undefined for every
+// tile in the world, so no ground was ever built: the whole DEM was invisible
+// until something published over it.
+test('the ground asks the floor for the tile it means, at the level it means', () => {
+    const asked = [];
+    const floor = { raster: (...a) => { asked.push(a); return undefined; } };
+    const origin = { geodeticOf: () => ({ lon: 7.86, lat: 46.29, h: 0 }) };
+    const streamer = { tiles: new Map(), entries: new Map() };
+    const mesh = new DemGround(null, null, { origin, floor, streamer });
+    mesh.update({ x: 0, y: 0, z: 0 });
+    assert.ok(asked.length > 0, 'the floor is asked for the ring around the camera');
+    assert.deepEqual(asked[0], [14, tileX(7.86, 14), tileY(46.29, 14)],
+        'z14, the tile the camera stands on, first');
+    assert.equal(mesh.entities.size, 0, 'and nothing is built until a raster lands');
 });

@@ -61,8 +61,9 @@ function drawDetail(state, ctx, parts) {
     if (!e) { parts.detail.replaceChildren(); return; }
     parts.detail.replaceChildren(jobDetail(e, {
         rows: state.rows, atoms: state.atoms, acts: ctx.acts, caps: state.caps,
-        onGo: ctx.onGo, close: ctx.acts.close, where: ctx.where, say: ctx.say,
-        refresh: ctx.refresh, doing: ctx.doing(e),
+        onGo: ctx.onGo, close: ctx.acts.close, where: ctx.where,
+        ground: ctx.ground(), say: ctx.say, refresh: ctx.refresh,
+        doing: ctx.doing(e),
     }));
 }
 
@@ -191,7 +192,7 @@ function moveWithKeys(state, ui, acts) {
 }
 
 export function mountPool(hosts, { loop, where = () => ({}), onGo, count = () => {},
-    statusHost = null } = {}) {
+    statusHost = null, ground = () => null } = {}) {
     const ui = new Map();
     for (const [name, host] of Object.entries(hosts)) {
         const parts = queueParts(name);
@@ -212,7 +213,7 @@ export function mountPool(hosts, { loop, where = () => ({}), onGo, count = () =>
         status.dataset.bad = bad ? '1' : '';
     };
 
-    const ctx = { where, onGo, say,
+    const ctx = { where, onGo, say, ground,
         // What this tab is doing to this job, if it is doing anything to it.
         doing: (e) => (state.work?.atom?.job_id === e.job
             ? DOING[state.work.atom.op] ?? state.work.atom.op : '') };

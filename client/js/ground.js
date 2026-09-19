@@ -144,9 +144,8 @@ export class DemGround {
             if (covered(this.tiles, Z, x, y, this.drawn)) continue;
             want.add(k);
             if (this.entities.has(k) || built) continue;
-            const dem = this.floor.tiles.get(k);
-            if (dem === undefined) { this.floor.request(k, x, y); continue; }
-            if (dem === null) continue;
+            const dem = this.floor.raster(Z, x, y);
+            if (dem === undefined || dem === null) continue;
             this.add(k, x, y, dem);
             built = true;
         }

@@ -36,7 +36,7 @@ function bbox(a) {
 // Without it the map was a grid with a triangle in the middle — nothing about
 // where you are, which is the one thing a map is for.
 export function drawMinimap(canvas,
-    { areas = [], things = [], at, heading = 0, ground = null }) {
+    { areas = [], things = [], at, heading = 0, ground = null, working = null }) {
     const ctx = canvas?.getContext?.('2d');
     if (!ctx || !at) return null;
     const { width: w, height: h } = canvas;
@@ -49,11 +49,36 @@ export function drawMinimap(canvas,
     ];
 
     ctx.clearRect(0, 0, w, h);
-    if (!terrain(ctx, w, h, at, span, cos, ground)) grid(ctx, w, h);
+    if (!hillshade(ctx, { w, h, at, span, cos, ground })) grid(ctx, w, h);
     for (const a of areas) boundary(ctx, a, xy);
     for (const t of things) thing(ctx, xy(Number(t.lon), Number(t.lat)));
+    // The tile this machine is computing, where it is (SPEC §3.7): a compile
+    // is minutes of somebody's GPU on a piece of ground, and the map is where
+    // that ground is. Drawn over the land and under you.
+    if (working) tileBox(ctx, working, xy, { word: working.word ?? '', w, h });
     you(ctx, w / 2, h / 2, heading);
     return span;
+}
+
+// A tile's footprint, named. `t` is west/south/east/north in degrees, and
+// `w`/`h` the canvas it is drawn on — a context does not always know.
+export function tileBox(ctx, t, xy, { word = '', w = 0, h = 0 } = {}) {
+    const [x0, y0] = xy(t.west, t.north);
+    const [x1, y1] = xy(t.east, t.south);
+    ctx.fillStyle = 'oklch(0.82 0.16 80 / 0.18)';
+    ctx.strokeStyle = 'oklch(0.82 0.16 80)';
+    ctx.lineWidth = 1.5;
+    ctx.fillRect(x0, y0, x1 - x0, y1 - y0);
+    ctx.strokeRect(x0, y0, x1 - x0, y1 - y0);
+    if (!word) return;
+    ctx.font = '10px ui-monospace, monospace';
+    const wide = ctx.measureText(word).width + 8;
+    const left = Math.min(Math.max(x0, 2), Math.max(w - wide - 2, 2));
+    const top = Math.max(Math.min(y0 - 14, h - 15), 2);
+    ctx.fillStyle = 'rgba(10,12,15,0.85)';
+    ctx.fillRect(left, top, wide, 13);
+    ctx.fillStyle = 'oklch(0.82 0.16 80)';
+    ctx.fillText(word, left + 4, top + 10);
 }
 
 // How coarse the shading is, in pixels of the 240 px map. Fine enough to read
@@ -64,8 +89,10 @@ const CELL = 6;
 // The land itself, as a hillshade: the same fixed sun everything else in this
 // world is lit by, applied to the slope between one cell and the next. It is
 // the ground the player is standing on, so what the map says and what they see
-// out of the window are the same hill.
-function terrain(ctx, w, h, at, span, cos, ground) {
+// out of the window are the same hill. Exported because every map of this
+// world is the same map — the corner one and the one under an open job
+// (client/js/jobdetail.js) — and two pictures of one hill is one too many.
+export function hillshade(ctx, { w, h, at, span, cos, ground }) {
     // Whatever has the point.
     // The map is up to twenty kilometres across and the fine ground reaches
     // two and a half, so asking only the level a player stands on drew land in

@@ -77,6 +77,53 @@ def layers_of(conn, kind: str) -> list[dict]:
     return out
 
 
+# When the ground of one kind was last chosen, and when that was last asked.
+# A cut is a file on disk; changing the coverage clears the rows that say what
+# is cut (db/0106 set_ground, add_ground_layer) but cannot reach the files, so
+# a world whose DEM was replaced went on serving the old elevation for every
+# tile anybody had already walked onto. A cut older than the choice is cut
+# again. Asked at most every few seconds: a tile that is already there is the
+# common case and must stay one file open, not one query.
+_sources: dict[str, tuple[float, float]] = {}
+_SOURCES_TTL = 5.0
+
+
+def sources_changed_at(cfg: Config, kind: str) -> float:
+    """The newest `set_at` among the sources of this kind, as a unix time."""
+    import time
+
+    now = time.monotonic()
+    seen = _sources.get(kind)
+    if seen and now - seen[0] < _SOURCES_TTL:
+        return seen[1]
+    try:
+        with psycopg.connect(cfg.dsn(), autocommit=True) as conn:
+            row = conn.execute(
+                "SELECT extract(epoch FROM greatest("
+                "  coalesce((SELECT max(set_at) FROM ground_layer WHERE kind = %s),"
+                "           to_timestamp(0)),"
+                "  CASE WHEN %s = 'dem'"
+                "       THEN coalesce((SELECT max(set_at) FROM ground), to_timestamp(0))"
+                "       ELSE to_timestamp(0) END))", (kind, kind)).fetchone()
+        at = float(row[0]) if row and row[0] is not None else 0.0
+    except Exception:  # noqa: BLE001 - no database here is not a stale cut
+        at = 0.0
+    _sources[kind] = (now, at)
+    return at
+
+
+def stale(cfg: Config, target: Path, kind: str) -> bool:
+    """Whether a cut that is already on disk has to be made again.
+
+    Two reasons: it was cut at an earlier size — dem-v1's uint16, or float32 at
+    the 256 of before, which is the stepping or the grid a player sees on every
+    hillside — or it was cut before the ground it is of was chosen.
+    """
+    if kind == "dem" and target.stat().st_size != DEM_SIZE * DEM_SIZE * 4:
+        return True
+    return target.stat().st_mtime < sources_changed_at(cfg, kind)
+
+
 def covers(extent: tuple, z: int, x: int, y: int) -> bool:
     """Whether the coverage reaches this tile at all, in lon/lat."""
     from math import atan, degrees, pi, sinh
@@ -380,11 +427,7 @@ def cut(cfg: Config, z: int, x: int, y: int, kind: str = "dem") -> Path | None:
     """
     target = tile_path(cfg, z, x, y, kind)
     with _lock((kind, z, x, y)):
-        # A tile cut at any earlier size — dem-v1's uint16, or float32 at the
-        # 256 of before — is the stepping or the grid a player sees on every
-        # hillside: it is cut again, the once.
-        if target.is_file() and not (kind == "dem"
-                                     and target.stat().st_size != DEM_SIZE * DEM_SIZE * 4):
+        if target.is_file() and not stale(cfg, target, kind):
             return target
         with psycopg.connect(cfg.dsn(), autocommit=True) as conn:
             auth = _auth_header(cfg.geoserver_user, cfg.geoserver_admin_password)

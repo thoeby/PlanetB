@@ -77,14 +77,18 @@ Where each part of the design lives:
 | the map in the corner | `client/js/hudmap.js` |
 | the panels themselves | `client/js/{land,build,pool,permission,wallet,…}ui.js` |
 | the Work window's look (v8) | `client/work.css` |
-| the machine strip, and the loop behind it | `client/js/workui.js` |
+| what this machine is doing, and the loop behind it | `client/js/workui.js` |
 | Work's Settings tab | `client/js/worksettings.js` |
 | the four queues, one per kind of work | `client/js/renderpool.js` |
 | one job as a card, and the chips over the cards | `client/js/poolcard.js` |
 | a card opened | `client/js/jobdetail.js` |
 
-Two places where the Work window differs from v8, because the build has no
-such thing to show: its Publish tab holds finished work waiting on the machine
+Three places where the Work window differs from v8. What this machine is doing
+is the strip along the top of the page rather than a strip inside the panel: it
+is true wherever you are looking, so it is a chip beside the bell (`#machine`
+in `client/top.css`), and the panel is nothing but its queues. The preview went
+with it — a picture of a tile belongs on that tile's card. And, because the
+build has no such thing to show: its Publish tab holds finished work waiting on the machine
 for a person to review and then upload, and nothing is held back here — a
 piece's bytes are uploaded and registered as it is computed, and the tile
 publishes when its last one lands (Invariant 3) — so that tab is the pool's own

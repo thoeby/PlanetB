@@ -7,16 +7,19 @@
 // retry_job, drop_job, redo_renders — and setBounty.
 
 import { tileBbox, tileCenter } from '../lib/tilemath.js';
+import { hillshade, tileBox } from './hudmap.js';
 import { cr, el, far } from './poolui.js';
 import { setBounty } from './wallet.js';
-import { jobButtons, logRows, pieces, statusOf } from './poolcard.js';
+import { jobButtons, logRows, pieces, statusOf, stepLine } from './poolcard.js';
 
 const M_PER_DEG = 111320;
 
-// The tile on a square of ground, and you on it. Not a slippy map: the one
-// thing this answers is "where is this, from here", which is a rectangle and
-// an arrow (design 8f's Map · 2 km).
-export function drawWhere(canvas, { z, x, y }, at) {
+// Where the tile is, on the same hillshade the corner map draws (hudmap.js):
+// the ground this job is about, the tile's own footprint on it, and you. Not
+// a slippy map — the one question it answers is "where is this, from here",
+// which is a rectangle, an arrow and a distance. A grid with a box on it was
+// a picture of nothing in particular, which is why this reads the ground.
+export function drawWhere(canvas, { z, x, y }, { at = null, ground = null } = {}) {
     const ctx = canvas?.getContext?.('2d');
     if (!ctx) return 0;
     const b = tileBbox(z, x, y);
@@ -34,30 +37,27 @@ export function drawWhere(canvas, { z, x, y }, at) {
     ctx.clearRect(0, 0, w, h);
     ctx.fillStyle = '#12151a';
     ctx.fillRect(0, 0, w, h);
-    ctx.strokeStyle = 'rgba(255,255,255,0.05)';
-    ctx.lineWidth = 1;
-    for (let i = 0; i <= w; i += 30) {
-        ctx.beginPath(); ctx.moveTo(i, 0); ctx.lineTo(i, h); ctx.stroke();
-        ctx.beginPath(); ctx.moveTo(0, i); ctx.lineTo(w, i); ctx.stroke();
-    }
-    const [x0, y0] = px(b.west, b.north);
-    const [x1, y1] = px(b.east, b.south);
-    // Canvas does not read CSS variables: the accent, written out.
-    ctx.fillStyle = 'rgba(106, 209, 231, 0.22)';
-    ctx.strokeStyle = 'rgba(106, 209, 231, 0.9)';
-    ctx.fillRect(x0, y0, x1 - x0, y1 - y0);
-    ctx.strokeRect(x0, y0, x1 - x0, y1 - y0);
-    if (at) {
-        const [ax, ay] = px(at.lon, at.lat);
-        const mx = Math.min(Math.max(ax, 6), w - 6);
-        const my = Math.min(Math.max(ay, 6), h - 6);
-        ctx.fillStyle = '#e8b64c';
-        ctx.beginPath();
-        ctx.moveTo(mx, my - 5); ctx.lineTo(mx + 5, my);
-        ctx.lineTo(mx, my + 5); ctx.lineTo(mx - 5, my);
-        ctx.fill();
-    }
+    hillshade(ctx, { w, h, at: c, span, cos, ground });
+    tileBox(ctx, b, px, { word: `${z}/${x}/${y}`, w, h });
+    if (at) marker(ctx, px(at.lon, at.lat), w, h);
     return Math.round(span);
+}
+
+// You, kept inside the map: a player standing off the edge of it is drawn on
+// the edge, because "which way is it" is worth more than the true position of
+// a dot that is not on the canvas at all.
+function marker(ctx, [ax, ay], w, h) {
+    const mx = Math.min(Math.max(ax, 6), w - 6);
+    const my = Math.min(Math.max(ay, 6), h - 6);
+    ctx.fillStyle = '#f2efe8';
+    ctx.strokeStyle = '#0b0d10';
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(mx, my - 5); ctx.lineTo(mx + 5, my);
+    ctx.lineTo(mx, my + 5); ctx.lineTo(mx - 5, my);
+    ctx.closePath();
+    ctx.fill();
+    ctx.stroke();
 }
 
 const when = (t) => (t ? new Date(t).toLocaleTimeString() : '—');
@@ -145,15 +145,19 @@ function header(e, { acts, caps, onGo, close, doing }) {
         textContent: '×', title: 'back to the cards' });
     shut.onclick = close;
     return el('div', { className: 'jd-head' },
-        el('span', { className: 'name', textContent: `${e.z}/${e.x}/${e.y}` }),
-        el('span', { className: 'jd-status', textContent: statusOf(e, doing) }),
-        el('div', { className: 'jd-acts' }, ...jobButtons(e, acts, caps), go, shut));
+        el('div', { className: 'jd-head-row' },
+            el('span', { className: 'name', textContent: `${e.z}/${e.x}/${e.y}` }),
+            el('span', { className: 'jd-status', textContent: statusOf(e, doing) }),
+            el('div', { className: 'jd-acts' }, ...jobButtons(e, acts, caps), go, shut)),
+        // The chain, where the job is opened as well as on its card: this is
+        // the thing four people may work on one after another (db/0153).
+        stepLine(e));
 }
 
 // One job, whole. `rows` is the page of the queue it was opened from, and
 // `atoms` its pieces, read once for the job that is open.
 export function jobDetail(e, { rows, atoms, acts, caps, onGo, close, where,
-    say, refresh, doing = '' }) {
+    ground = null, say, refresh, doing = '' }) {
     const canvas = el('canvas', { className: 'jd-map', width: 380, height: 220 });
     const node = el('div', { className: 'jd' },
         sideList(rows, e.job, acts.open),
@@ -178,7 +182,7 @@ export function jobDetail(e, { rows, atoms, acts, caps, onGo, close, where,
                     ...(e.log?.length ? logRows(e, 6)
                         : [el('p', { className: 'note',
                             textContent: 'Nothing has happened to this tile yet.' })])))));
-    const span = drawWhere(canvas, e, where?.());
+    const span = drawWhere(canvas, e, { at: where?.(), ground });
     node.querySelector('.jd-facts').replaceChildren(...placeRows(e, span));
     return node;
 }

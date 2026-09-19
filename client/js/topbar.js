@@ -94,6 +94,20 @@ function appTabs(onApp) {
     return { node, buttons };
 }
 
+// What this machine is computing for the world, where a thing that is
+// happening belongs: beside the bell, lit while the tab is busy and gone when
+// it is idle. Pressing it opens the queue it is working out of. The panel used
+// to carry this as a strip over its own cards (design 8a); a state that is
+// true of the whole page does not belong inside one panel.
+function machineChip(show) {
+    const what = el('span', { className: 'what' });
+    const b = el('button', { type: 'button', id: 'machine',
+        title: 'What this machine is computing' }, el('i', { className: 'pip' }), what);
+    b.hidden = true;
+    b.onclick = () => show('Every job');
+    return { b, what };
+}
+
 export function topBar(show, { onApps, onTray }) {
     const buttons = new Map();
     const apps = appTabs((name) => onApps(name));
@@ -122,13 +136,15 @@ export function topBar(show, { onApps, onTray }) {
     // says what they were. js/attention.js fills it.
     const waiting = el('div', { id: 'waiting' });
 
+    const machine = machineChip(show);
     const node = el('div', { id: 'top' },
         strip('top-left', appsBtn,
             el('span', { className: 'mark', textContent: 'splatworld' }), apps.node),
-        strip('top-right', waiting, stats.node, clock, money.b, bell, you.b, settings));
+        strip('top-right', machine.b, waiting, stats.node, clock, money.b, bell,
+            you.b, settings));
     setInterval(() => {
         clock.firstChild.textContent = clockText();
     }, CLOCK_MS);
     return { node, buttons, you, money, stats: stats.cells, apps: apps.buttons,
-        appsBtn, bell, waiting };
+        appsBtn, bell, waiting, machine };
 }

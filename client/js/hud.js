@@ -252,6 +252,15 @@ function state(f) {
                 b.append(el('span', { className: 'count', textContent: String(n) }));
             }
         },
+        // What this machine is computing, on the strip along the top rather
+        // than inside the panel that is about it (client/js/topbar.js). Empty
+        // text takes the chip away, which is what idle looks like.
+        machine(text, tone = '') {
+            const chip = f.strip.machine;
+            chip.b.hidden = !text;
+            chip.b.dataset.doing = tone;
+            chip.what.textContent = text ?? '';
+        },
         // Who you are, on the chip that is you: initials on the face, the name
         // beside it, and a lit pip when somebody is signed in at all.
         signedIn(label) {

@@ -38,6 +38,21 @@ export function pieces(e) {
     return bits.join(' · ');
 }
 
+// The steps a job is made of, and how far each has got (db/0153 job_steps).
+// A compile is four things in a row that four different people may do, and
+// the card said none of that: it had a button and a count of pieces.
+const STEP_WORD = { assemble: 'ground', frame: 'frames', train: 'training',
+    sog: 'packing', merge: 'merge', verify: 'checks' };
+
+export function stepsOf(e) {
+    const steps = Array.isArray(e.steps) ? e.steps : [];
+    return steps.map((s) => ({
+        word: STEP_WORD[s.op] ?? s.op,
+        count: Number(s.total) > 1 ? `${s.done}/${s.total}` : '',
+        state: s.state,
+    }));
+}
+
 // How far through its frames a tile is. A job with no frames of its own — a
 // merge, a pack — has no bar: a bar at nought that never moves says less than
 // no bar at all.
@@ -71,6 +86,12 @@ export function logRows(e, limit = 3) {
         el('span', { className: 'po-log-when', textContent: AGO(r.at) }))))];
 }
 
+// What the picture is of, in the words the log uses for it.
+const shotLine = (rec, p) => `${p.width ?? '?'}\u00d7${p.height ?? '?'} \u00b7 `
+    + (rec.event === 'trained' ? 'as it finished'
+        : rec.event === 'frame' ? `frame ${rec.done ?? '?'} of ${rec.of ?? '?'}`
+            : `at step ${rec.iter ?? '?'}`);
+
 // The last picture this tab drew of the tile, if it drew one: a canvas the
 // card owns, painted from the record the work loop kept (client/js/work.js
 // pictures). A tile nobody here has worked on has none, and says so rather
@@ -82,18 +103,41 @@ function shot(e, rec, live) {
             textContent: Number(e.bounty) > 0 ? `${cr(e.bounty)} cr` : 'free' }),
         el('span', { className: 'jc-over mono', textContent: e.made }));
     const p = rec?.picture;
-    if (!p?.rgba) {
+    if (!p?.rgba && !p?.webp) {
         box.append(el('span', { className: 'jc-thumb mono',
             textContent: live ? 'working on it now' : 'nothing drawn here yet' }));
         return box;
     }
-    const canvas = el('canvas', { className: 'po-shot', width: p.width, height: p.height });
-    canvas.getContext('2d').putImageData(
-        new ImageData(new Uint8ClampedArray(p.rgba), p.width, p.height), 0, 0);
+    const canvas = el('canvas', { className: 'po-shot',
+        width: p.width ?? 256, height: p.height ?? 256 });
+    if (p.rgba) {
+        canvas.getContext('2d').putImageData(
+            new ImageData(new Uint8ClampedArray(p.rgba), p.width, p.height), 0, 0);
+    } else {
+        paint(canvas, p.webp);
+    }
     box.append(canvas, el('span', { className: 'jc-thumb jc-shotline mono',
-        textContent: `${p.width}×${p.height} · ${rec.event === 'trained'
-            ? 'as it finished' : `at step ${rec.iter ?? '?'}`}` }));
+        textContent: shotLine(rec, p) }));
     return box;
+}
+
+// A traced frame arrives as webp bytes: drawn when the decode lands, and a
+// click opens the one that is showing at full size. A frame is on screen for
+// as long as the next one takes to draw, which is milliseconds, and nobody can
+// judge a picture from that.
+function paint(canvas, webp) {
+    const blob = new Blob([webp], { type: 'image/webp' });
+    canvas.title = 'click for the full-size frame';
+    canvas.onclick = (event) => {
+        event.stopPropagation();
+        globalThis.open?.(URL.createObjectURL(blob), '_blank');
+    };
+    createImageBitmap(blob).then((bitmap) => {
+        canvas.width = bitmap.width;
+        canvas.height = bitmap.height;
+        canvas.getContext('2d').drawImage(bitmap, 0, 0);
+        bitmap.close();
+    }).catch(() => {});
 }
 
 // What may be done to a job: Render only where there is something a tab could
@@ -132,6 +176,21 @@ function actions(e, acts, caps) {
     return el('div', { className: 'jc-foot' }, ...jobButtons(e, acts, caps), open);
 }
 
+// The chain, as one line: ground · frames 2/3 · training · packing, with the
+// step it has got to lit and the ones behind it done. Anybody may take any of
+// them that is ready — the steps do not belong to whoever started the tile.
+export function stepLine(e) {
+    const steps = stepsOf(e);
+    if (!steps.length) return el('div', { className: 'jc-steps' });
+    return el('div', { className: 'jc-steps' }, ...steps.map((s) => {
+        const node = el('span', { className: 'jc-step' },
+            el('b', { textContent: s.word }),
+            s.count ? el('i', { className: 'mono', textContent: s.count }) : null);
+        node.dataset.state = s.state;
+        return node;
+    }));
+}
+
 export function poolCard(e, acts, caps, rec = null, doing = '') {
     const bar = share(e);
     const li = el('li', { className: 'po-card', 'data-phase': e.phase },
@@ -145,6 +204,7 @@ export function poolCard(e, acts, caps, rec = null, doing = '') {
             el('span', { className: 'sub mono', textContent: needs(e, caps) }),
             ...(bar === null ? [] : [el('div', { className: 'jc-bar' },
                 el('i', { style: `width: ${bar}%` }))]),
+            stepLine(e),
             el('span', { className: 'mono jc-count', textContent: pieces(e) })),
         actions(e, acts, caps),
         ...logRows(e));

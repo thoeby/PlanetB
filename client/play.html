@@ -114,14 +114,6 @@
       hud.panel(tab).append(host);
       return host;
   };
-  // The same, into what a surface says above its parts rather than into one
-  // of them: Work's machine strip is true of every queue behind it.
-  const headFor = (tab, id) => {
-      const host = document.createElement('div');
-      host.id = id;
-      hud.panelHead(tab).append(host);
-      return host;
-  };
   try {
       await window.__pcReady;
   } catch {
@@ -136,11 +128,13 @@
   // taking, so background work can stand aside while the tab is being played,
   // and where the player is, so the nearest unfinished tile is claimed first.
   const frame = { ms: 0 };
-  // The strip above every Work tab, and the Settings tab under it (design 8e):
-  // the machine is one thing, said once, wherever you are looking at it from.
-  const work = mountWork(headFor('Work', 'work'), {
+  // What this machine is doing goes on the strip along the top, where a thing
+  // that is happening belongs; what it does with itself is the Settings tab of
+  // Work (design 8e). The panel itself is nothing but its queues.
+  const work = mountWork({
     frames: () => frame.ms,
     settings: hud.panel('Machine'),
+    onState: (text, tone) => hud.machine(text, tone),
     where: () => {
       const p = camera.getPosition();
       const g = origin.geodeticOf({ x: p.x, y: p.y, z: p.z });
@@ -478,10 +472,13 @@
       Publishing: hud.panel('Publishing'),
   }, {
       loop: () => work.ready(),
-      // What just happened to a job is said beside what the machine is doing,
-      // not four times over in four tabs (design 8: the machine's own strip).
+      // What just happened to a job is said once, above the queues, rather
+      // than four times over in four tabs.
       statusHost: hud.panelHead('Work'),
       count: (name, n) => hud.partCount(name, n),
+      // The same hillshade the corner map draws, under the tile a job is
+      // about (client/js/jobdetail.js).
+      ground: () => floor,
       where: () => {
           const p = camera.getPosition();
           return origin.geodeticOf({ x: p.x, y: p.y, z: p.z });
@@ -763,6 +760,15 @@
   setInterval(sayWhatIsMissing, 5000);
   sayWhatIsMissing();
 
+  // The tile this tab is computing, as a box on the map: where the minutes of
+  // GPU are being spent, on the ground they are being spent on. Build is the
+  // view the world is made in; the others are not about this.
+  function workingTile() {
+      const t = hud.app() === 'Build' ? work.tile() : null;
+      if (!t) return null;
+      return { ...tm.tileBbox(t.z, t.x, t.y), word: `${t.z}/${t.x}/${t.y}` };
+  }
+
   // The map in the corner, on a slow tick: it is a canvas, and nothing on it
   // changes between frames. Your land is drawn from the same outlines the Your
   // land panel lists, so the two cannot disagree.
@@ -775,14 +781,15 @@
           things: land.things?.() ?? [],
           at: origin.geodeticOf({ x: p.x, y: p.y, z: p.z }),
           heading: player.heading,
-          // The same floor the player is standing on, so the map and the
-          // window agree about which way the hill goes.
-          ground: {
-              heightAt: (lon, lat) => {
-                  const y = terrain.heightAt(origin.localOf({ lon, lat, h: 0 }));
-                  return y === null ? null : origin.geodeticOf({ x: 0, y, z: 0 }).h;
-              },
-          },
+          // The same ground the player is standing on, so the map and the
+          // window agree about which way the hill goes. The floor itself, not
+          // a wrapper around its z14 answer: a map twenty kilometres across
+          // needs the level that can cover it, and heightNear is that
+          // (client/js/floor.js).
+          ground: floor,
+          // Where this machine is working, while it is working there, and only
+          // in the view that is about building the world (SPEC §3.7).
+          working: workingTile(),
       });
       if (span) hud.mapScale(`Map · ${span} m · M`);
   }

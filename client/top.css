@@ -122,6 +122,36 @@
    behind it would keep its count. */
 #bell .count[hidden] { display: none; }
 
+/* What this machine is computing for the world (client/js/topbar.js): a chip
+   that is there while the tab is busy and gone when it is idle, lit the way
+   the panel used to light its own strip. Pressing it opens the queue.
+   A notification rather than a panel heading: it is true wherever you are. */
+#top #machine {
+  display: inline-flex; align-items: center; gap: 8px; padding: 0 12px;
+  background: none; border: 0; border-left: 1px solid var(--edge-2);
+  color: var(--ink-2); font-family: var(--head); font-weight: 700;
+  font-size: 12px; letter-spacing: 0.08em; text-transform: uppercase;
+  cursor: pointer; max-width: 22rem; overflow: hidden; white-space: nowrap;
+}
+#top #machine[hidden] { display: none; }
+#top #machine:hover { background: rgba(255, 255, 255, 0.06); color: var(--ink); }
+#top #machine .what { overflow: hidden; text-overflow: ellipsis; }
+#top #machine .pip {
+  width: 8px; height: 8px; flex: 0 0 auto; border-radius: 50%;
+  background: var(--ink-3); font-style: normal;
+}
+#top #machine[data-doing="wait"] { color: var(--warn); }
+#top #machine[data-doing="wait"] .pip { background: var(--warn); }
+#top #machine[data-doing="run"] { color: var(--accent); }
+#top #machine[data-doing="run"] .pip {
+  background: var(--accent); box-shadow: 0 0 10px var(--accent);
+  animation: machine-beat 1.6s ease-in-out infinite;
+}
+@keyframes machine-beat {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.45; }
+}
+
 /* The attention chip (SPEC §2.1) keeps its place beside the bell: how many
    things are waiting for you, with the list of them under it. */
 #top #waiting { position: relative; display: flex; align-items: center;

@@ -92,7 +92,9 @@ test('the chrome says where you are and what the world is doing', async ({ page 
     // Work is a surface with queues behind it: the machine strip above them,
     // and the five tabs of design 8 under it.
     await page.locator('#tabs .tab[data-tab="Work"]').click();
-    await expect(page.locator('#panel .head #work .work-state')).toBeVisible();
+    // What this machine is computing is on the strip along the top now, as a
+    // chip that is there while it is busy; the panel is its queues.
+    await expect(page.locator('#top #machine')).toHaveCount(1);
     await expect(page.locator('#panel .parts .part:not([hidden])'))
         .toHaveText([/^All/, /^Render jobs/, /^Training/, /^Publish/, /^Settings/]);
     await page.locator('#panel .close').click();

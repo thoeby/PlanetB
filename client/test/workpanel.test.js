@@ -5,7 +5,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 
-import { pieces, share, statusOf } from '../js/poolcard.js';
+import { pieces, share, statusOf, stepsOf } from '../js/poolcard.js';
 
 const job = (over = {}) => ({
     job: 1, z: 14, x: 8548, y: 5801, phase: 'render', made: 'assembled',
@@ -36,6 +36,22 @@ test('the counts leave out the zeroes, and the frames come first', () => {
     assert.equal(pieces(job({ ready: 0, blocked: 0, claimed: 2 })), '2 in hand');
     assert.equal(pieces(job({ ready: 0, blocked: 0, failed: 1, handed_back: 3 })),
         '1 failed · handed back 3×');
+});
+
+test('the steps are the chain, in the words the panel uses for them', () => {
+    const steps = stepsOf(job({ steps: [
+        { op: 'assemble', done: 1, total: 1, state: 'done' },
+        { op: 'frame', done: 2, total: 3, state: 'to do' },
+        { op: 'train', done: 0, total: 1, state: 'waiting' },
+        { op: 'sog', done: 0, total: 1, state: 'waiting' },
+    ] }));
+    assert.deepEqual(steps.map((s) => s.word),
+        ['ground', 'frames', 'training', 'packing']);
+    // Only a step that is more than one piece carries a count: "ground 1/1"
+    // is noise on every card in the pool.
+    assert.deepEqual(steps.map((s) => s.count), ['', '2/3', '', '']);
+    assert.equal(steps[1].state, 'to do');
+    assert.deepEqual(stepsOf(job()), [], 'a row from before the steps says nothing');
 });
 
 test('the bar is the frames, and a tile without frames has none', () => {

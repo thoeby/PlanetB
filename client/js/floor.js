@@ -73,13 +73,24 @@ export class DemFloor {
     at(z, lon, lat) {
         const x = tm.tileX(lon, z);
         const y = tm.tileY(lat, z);
-        const k = `${z}/${x}/${y}`;
-        const dem = this.tiles.get(k);
-        if (dem === undefined) { this.request(k, z, x, y); return null; }
-        if (dem === null) return null;
+        const dem = this.raster(z, x, y);
+        if (dem === undefined || dem === null) return null;
         const { u, v } = inTile(z, x, y, lon, lat);
         const h = sampleHeight(dem, u, v);
         return h === NODATA_ELEVATION_M ? null : h;
+    }
+
+    // One tile's raster: the samples when they are in hand, null where the
+    // store has no ground there, and undefined while it is on its way — asked
+    // for on the first miss. Everything that wants a tile goes through this,
+    // so nothing else has to know how the cache is keyed: client/js/ground.js
+    // kept its own spelling of the key and got undefined for every tile of
+    // the world, which is a world with no ground mesh in it at all.
+    raster(z, x, y) {
+        const k = `${z}/${x}/${y}`;
+        const dem = this.tiles.get(k);
+        if (dem === undefined) this.request(k, z, x, y);
+        return dem;
     }
 
     request(k, z, x, y) {

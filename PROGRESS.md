@@ -1708,3 +1708,41 @@ where the tile is, what its pieces are and what has happened to it.
 - Incidentally fixed on the way through: `renderpool.js` used `beyond()`
   without importing it, so a job that did not publish threw instead of saying
   why.
+
+## A job is at the step it has got to, and the machine says so along the top
+
+Six things the Work window was asked for after the v8 build.
+
+- **A job's kind is now which step it has got to** (`db/0153`), not what
+  happens to be free. `pool_open.phase` read `EXISTS (atom ready AND op =
+  'train')`, so the moment a tab claimed the training the job fell back to
+  `render`: a tile this machine trained for a quarter of an hour sat in Render
+  jobs, the one tab it was not in. Submitted counts as done, and the row now
+  carries `job_steps` — ground · frames 2/3 · training · packing, each with how
+  far it has got — which the card and the opened card draw as the chain it is.
+  Any of them may be taken by anybody; the steps belong to the job.
+- **What this machine is doing moved to the strip along the top**
+  (`client/js/topbar.js`, `#machine`): a chip beside the bell, lit while the
+  tab is busy and gone when it is idle, which opens the queue. The panel's own
+  strip is gone with it, and the preview that was in it: a picture of a tile
+  belongs on that tile's card, which now draws a traced frame as well as a
+  training step and opens it full size on a click. The Settings tab still says
+  what the machine is and what it is doing, because that is the tab somebody
+  opens to ask.
+- **The opened card's list has room**, and its map is the same hillshade the
+  corner map draws (`hudmap.js hillshade`, exported) with the tile's own
+  footprint on it, rather than a grid with a box.
+- **The tile this machine is working on is drawn on the minimap** while it is
+  working on it, in the Build view.
+- **The ground was invisible, twice over.** `client/js/floor.js` changed its
+  cache keys to `z/x/y` and `client/js/ground.js` kept asking for `x/y` and
+  calling `request(k, x, y)` against `request(k, z, x, y)` — so every lookup
+  missed, no ground mesh was ever built, and the bogus requests kept the
+  elevation "not answering". Everything now asks `floor.raster(z, x, y)`. And
+  the minimap was handed a hand-made ground with only `heightAt`, so the
+  `heightNear` written for it was never called: it probed z14 alone, 169 cuts
+  per tick, and drew the one tile it had. It is handed the floor itself.
+- **A cut older than the ground it is of is cut again** (`server/.../ground.py`
+  `stale`). Changing the coverage clears the rows that say what is cut
+  (db/0106) and cannot reach the files, so a world whose DEM was replaced went
+  on serving the old elevation to everybody who had already walked there.

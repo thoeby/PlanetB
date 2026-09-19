@@ -74,3 +74,22 @@ test('fill is not ground: a coarse cut does not pave what the survey missed', as
         'the middle of the cut is fill, so there is no ground there');
     assert.equal(floor.heightAt(7.85, 46.29), null, 'and none under the player either');
 });
+
+test('a tile is asked for by the level and tile it is, whoever asks', async () => {
+    // Everything that wants a raster goes through raster(): the ground mesh
+    // kept its own spelling of the cache key and got undefined for every tile
+    // there is, so a world with an elevation had no ground mesh in it.
+    const size = 8;
+    const data = new Float32Array(size * size).fill(1500);
+    const urls = [];
+    const fetchFn = async (url) => {
+        urls.push(String(url));
+        return new Response(data.buffer, { status: 200 });
+    };
+    const floor = new DemFloor({ filesUrl: 'http://files', fetchFn });
+    assert.equal(floor.raster(14, 8557, 5736), undefined, 'on its way');
+    await tick(); await tick();
+    assert.ok(floor.raster(14, 8557, 5736), 'and in hand afterwards');
+    assert.equal(urls.length, 1, 'asked once');
+    assert.ok(urls[0].endsWith('/geo/dem/14/8557/5736.r16'), urls[0]);
+});

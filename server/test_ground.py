@@ -529,3 +529,37 @@ def test_nothing_is_remembered_until_something_answers():
     finally:
         srv.shutdown()
     assert ground._worked == {}
+
+
+def test_a_cut_older_than_the_ground_it_is_of_is_cut_again(wcs, tmp_path: Path,
+                                                           monkeypatch):
+    """The DEM was replaced, so what is on disk is the old hill.
+
+    Changing the coverage clears the rows that say which tile is cut from what
+    (db/0106), and cannot reach the files: without this, a world whose
+    elevation was swapped went on serving the elevation before it, for ever,
+    to everybody who had already walked there.
+    """
+    cfg = Config(files_root=tmp_path)
+    monkeypatch.setattr(ground, "layers_of", lambda conn, kind: [{
+        "url": wcs, "coverage": "ch:alti", "extent": SWISS}])
+    monkeypatch.setattr(ground, "remember", lambda *a, **k: None)
+
+    class NoDatabase:
+        def __enter__(self): return self
+        def __exit__(self, *a): return False
+
+    monkeypatch.setattr(ground.psycopg, "connect", lambda *a, **k: NoDatabase())
+    chosen = [0.0]
+    monkeypatch.setattr(ground, "sources_changed_at", lambda cfg_, kind: chosen[0])
+
+    first = ground.cut(cfg, 14, 8557, 5736)
+    assert first and first.is_file()
+    asked = len(Stub.asked)
+    assert ground.cut(cfg, 14, 8557, 5736) == first
+    assert len(Stub.asked) == asked, "nothing changed, so nothing is asked again"
+
+    # Somebody points the world at a new survey: the tile is cut from it.
+    chosen[0] = first.stat().st_mtime + 1
+    assert ground.cut(cfg, 14, 8557, 5736) == first
+    assert len(Stub.asked) > asked, "the ground changed, so the tile is cut again"

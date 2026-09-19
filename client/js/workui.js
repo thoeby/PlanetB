@@ -1,10 +1,10 @@
 // workui.js — what this machine is doing, and what it does with itself.
 //
-// Two places, since design 8: the strip along the top of every Work tab — how
-// far the world has got, what this machine can compute, and what it is doing
-// right now — and the Settings tab under it, which holds the two switches, the
-// machine's own facts, the world's progress by zoom and the log
-// (client/js/worksettings.js draws those).
+// What it is doing is said on the strip along the top of the page
+// (client/js/topbar.js), because it is true wherever you are looking: the Work
+// panel is then nothing but its queues. What it does with itself — the two
+// switches, the machine's own facts, the world's progress by zoom and the log
+// — is the Settings tab of Work (client/js/worksettings.js draws those).
 //
 // It owns no policy. ensure_job decides whether a job may be opened, claim_atom
 // decides what this tab is given, and both live in the database.
@@ -13,37 +13,6 @@ import * as api from './api.js';
 import { WorkLoop, probeCaps } from './work.js';
 import { el, logBlock, machineRows, settingsLayout, shortCaps, switches, worldLine,
     zoomRows } from './worksettings.js';
-
-// The strip (design 8a): one line above every queue, said the same way
-// whichever one is open. What the tab is doing is on the right and lit,
-// because "is my tab rendering?" is the only question this is ever opened to
-// answer.
-function strip() {
-    const node = el('div', { className: 'section machine wk-strip' },
-        el('span', { className: 'label', textContent: 'This machine' }),
-        el('span', { className: 'work-progress mono' }),
-        el('span', { className: 'work-gpu mono', textContent: 'probing…' }),
-        el('div', { className: 'work-now' },
-            el('i', { className: 'pip' }),
-            el('span', { className: 'work-state', textContent: 'idle' })));
-    return { node, gpu: node.querySelector('.work-gpu'),
-        world: node.querySelector('.work-progress'),
-        now: node.querySelector('.work-now'),
-        state: node.querySelector('.work-state') };
-}
-
-// What an atom is drawing, while it draws it. The cards keep a picture per
-// tile of their own (client/js/poolcard.js); this is the one in hand.
-function preview() {
-    const node = el('figure', { className: 'work-view' },
-        el('figcaption', {},
-            el('span', { className: 'work-view-what mono' }),
-            el('progress', { className: 'work-view-bar', max: '1', value: '0' })),
-        el('canvas', { width: 256, height: 256,
-            title: 'click for the full-size frame' }));
-    node.hidden = true;
-    return node;
-}
 
 // How many lines the log keeps, and how many of them the block shows.
 const LOG_LINES = 200;
@@ -65,10 +34,8 @@ const describe = (caps) => (caps.webgpu
 
 // The loop is built once, on the first thing that needs it, because probing
 // the adapter is the slowest part of mounting the panel.
-async function makeLoop({ gpu, log, pace, where, world }) {
+async function makeLoop({ log, pace, where, world }) {
     const caps = await probeCaps();
-    gpu.textContent = describe(caps);
-    gpu.title = describe(caps);      // the whole of it; the strip shows an end
     return new WorkLoop({
         api, apiUrl: api.endpoints().api, filesUrl: api.endpoints().files, caps, log,
         pace, where: () => (world.checked ? where?.() ?? null : null),
@@ -109,35 +76,6 @@ export function lineOf(rec) {
         + (rec.err ? ` — ${rec.err}` : '');
 }
 
-// What an atom is doing, as a picture: a traced frame (webp bytes) or a
-// projection of the splats it is working on (rgba), with one line under it.
-export async function showPicture(view, rec) {
-    const canvas = view.querySelector('canvas');
-    const ctx = canvas.getContext('2d');
-    const { picture: p } = rec;
-    view.hidden = false;
-    view.querySelector('.work-view-what').textContent = captionOf(rec);
-    const bar = view.querySelector('.work-view-bar');
-    const share = shareOf(rec);
-    bar.hidden = share === null;
-    if (share !== null) bar.value = share;
-    if (p.rgba) {
-        canvas.width = p.width; canvas.height = p.height;
-        ctx.putImageData(new ImageData(new Uint8ClampedArray(p.rgba), p.width, p.height), 0, 0);
-        view.full = null;
-        return;
-    }
-    // A frame is on screen for as long as the next one takes to draw, which is
-    // milliseconds: nobody can judge a picture from that. The bytes are kept
-    // on the figure, and a click opens the one that is showing at full size.
-    const blob = new Blob([p.webp], { type: 'image/webp' });
-    view.full = blob;
-    const bitmap = await createImageBitmap(blob);
-    canvas.width = bitmap.width; canvas.height = bitmap.height;
-    ctx.drawImage(bitmap, 0, 0);
-    bitmap.close();
-}
-
 // How far along the atom is, 0..1, or null when the picture is a result
 // rather than a step.
 export function shareOf(rec) {
@@ -175,10 +113,11 @@ export function captionOf(rec) {
     return rec.event;
 }
 
-// One record kept: a picture is shown, anything else is a line in the log and
-// in the block the Settings tab draws it in.
-function keep(rec, { view, lines, set }) {
-    if (rec.picture) { showPicture(view, rec); return null; }
+// One record kept: a picture belongs to the card of the tile it is of, and the
+// loop keeps those itself (client/js/work.js pictures, client/js/poolcard.js);
+// anything else is a line in the log and in the block the Settings tab draws.
+function keep(rec, { lines, set }) {
+    if (rec.picture) return null;
     const line = lineOf(rec);
     lines.push(line);
     if (lines.length > LOG_LINES) lines.splice(0, lines.length - LOG_LINES);
@@ -187,7 +126,6 @@ function keep(rec, { view, lines, set }) {
         block.pre.textContent = lines.slice(-SHOWN_LINES).join('\n');
         if (block.following()) block.pre.scrollTop = block.pre.scrollHeight;
     }
-    if (rec.event === 'submit' || rec.event === 'error') view.hidden = true;
     return line;
 }
 
@@ -202,10 +140,17 @@ function mountSettings(host, { ready, work, lines }) {
     host.append(settingsLayout({ sw: sw.node, facts, zoom, log: log.node }));
     const redraw = () => facts.replaceChildren(...machineRows(work()?.caps, work()));
     const refresh = async () => {
-        host.querySelector('.wk-gpu').textContent = shortCaps(work()?.caps);
-        host.querySelector('.wk-world').textContent = await worldLine();
+        const gpu = host.querySelector('.work-gpu');
+        gpu.textContent = shortCaps(work()?.caps);
+        gpu.title = describe(work()?.caps ?? {});
+        host.querySelector('.work-progress').textContent = await worldLine();
         zoom.replaceChildren(...await zoomRows());
         redraw();
+    };
+    // What the machine is doing, on the tab that is about the machine.
+    const said = (text, tone) => {
+        host.querySelector('.work-state').textContent = text;
+        host.querySelector('.work-now').dataset.doing = tone ?? '';
     };
     sw.toggle.onchange = async () => {
         const w = await ready();
@@ -213,33 +158,37 @@ function mountSettings(host, { ready, work, lines }) {
         redraw();
     };
     sw.world.onchange = () => onWorld(sw.world, ready, sw.toggle, refresh);
-    return { ...sw, refresh, redraw, log };
+    return { ...sw, refresh, redraw, said, log };
 }
 
-export function mountWork(host, { loop, autostart = false, frames, where,
-    settings = null } = {}) {
-    const ui = strip();
-    const view = preview();
-    host.replaceChildren(ui.node);
-    ui.node.append(view);
-    view.querySelector('canvas').onclick = () => {
-        if (view.full) globalThis.open?.(URL.createObjectURL(view.full), '_blank');
-    };
+export function mountWork({ loop, autostart = false, frames, where,
+    settings = null, onState = () => {} } = {}) {
     const lines = [];
     let work = loop ?? null;
     let set = null;
+    // The tile the atom in hand is about, as the atom itself said it: a frame
+    // or a training step names the tile it is of, and the map draws where this
+    // machine is working (client/js/hudmap.js). It goes when the atom does.
+    let tile = null;
 
     // The error is the whole message when there is one: a panel that says
     // "error 1630 assemble" and nothing else is not worth reading.
     const listeners = new Set();
     const log = (rec) => {
-        const line = keep(rec, { view, lines, set: () => set });
+        if (rec.tile) tile = rec.tile;
+        if (rec.event === 'submit' || rec.event === 'error') tile = null;
+        const line = keep(rec, { lines, set: () => set });
         for (const fn of listeners) fn(rec, line);
         render();
     };
+    // Said twice, in the two places it belongs: on the strip along the top
+    // while the tab is busy at all, and on the Settings tab whatever it is
+    // doing — that tab is where somebody goes to ask.
     const render = () => {
-        ui.state.textContent = describeState(work);
-        ui.now.dataset.doing = toneOf(work);
+        const said = describeState(work);
+        const tone = toneOf(work);
+        onState(tone ? said : '', tone);
+        set?.said(said, tone);
         set?.redraw();
     };
 
@@ -251,16 +200,14 @@ export function mountWork(host, { loop, autostart = false, frames, where,
 
     async function ready() {
         if (!work) {
-            work = await makeLoop({ gpu: ui.gpu, log, pace, where,
+            work = await makeLoop({ log, pace, where,
                 world: set?.world ?? { checked: false } });
+            set?.refresh();
         }
         return work;
     }
 
-    const showProgress = async () => {
-        ui.world.textContent = await worldLine();
-        await set?.refresh();
-    };
+    const showProgress = async () => { await set?.refresh(); };
     if (settings) set = mountSettings(settings, { ready, work: () => work, lines });
 
     ready().then(() => {
@@ -272,8 +219,10 @@ export function mountWork(host, { loop, autostart = false, frames, where,
     // No refresh: the list of my dirty tiles with a Render button each is gone
     // (T6). Work reaches a tab through the pool, where it carries a price and
     // anybody can take it, rather than through a list only its owner could see.
-    return { ready, loop: () => work, log, progress: showProgress, view: () => view,
+    return { ready, loop: () => work, log, progress: showProgress,
         lines: () => lines,
+        // Which tile this machine is working on, or null when it is not.
+        tile: () => (work?.atom ? tile : null),
         onLog(fn) { listeners.add(fn); return () => listeners.delete(fn); },
         // Only where the Settings tab is mounted: the switch is a control on
         // it, not something the loop carries.

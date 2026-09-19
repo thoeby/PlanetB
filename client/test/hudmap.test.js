@@ -109,3 +109,22 @@ test('the map fills its canvas from whatever level has the ground', () => {
     const corners = canvas.painted.filter((p) => p.x < 12 && p.y < 12);
     assert.ok(corners.length > 0, 'including the corner of the canvas');
 });
+
+// SPEC §3.7: a compile is minutes of somebody's GPU on a piece of ground, and
+// the map is where that ground is. Drawn while this machine is working on it.
+test('the tile this machine is working on is a box on the map, named', () => {
+    const canvas = fakeCanvas();
+    const words = [];
+    const ctx = canvas.getContext();
+    canvas.getContext = () => Object.assign(ctx, {
+        measureText: () => ({ width: 60 }),
+        fillText: (word) => words.push(word),
+        strokeRect(x, y, w, h) { canvas.painted.push({ x, y, w, h, stroke: true }); },
+    });
+    drawMinimap(canvas, { at, working: {
+        west: at.lon - 0.005, east: at.lon + 0.005,
+        south: at.lat - 0.004, north: at.lat + 0.004, word: '14/8548/5801',
+    } });
+    assert.ok(canvas.painted.some((p) => p.stroke), 'the tile is outlined');
+    assert.deepEqual(words, ['14/8548/5801'], 'and says which tile it is');
+});
