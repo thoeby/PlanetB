@@ -2249,3 +2249,30 @@ Not proven here: `make player-run` and the browser lane (no GPU, no PostgREST
 in this container), and `make api-test`. Two things were red before the merge
 and are still red: `db/test/0154` test 3 compares two `now()` of one
 transaction, and `client/js/work.js` is over the four-hundred-line rule.
+
+## An artifact knows where it is
+
+Two rough edges of the job management, both met by one tile that said
+"artifact … is registered but is nowhere in the store".
+
+- **The row says where the bytes are** (`db/0166`, `artifact.path`).
+  `can_write` refuses a registered sha (Invariant 1) and the tab then had to
+  guess the address from the atoms that named the sha as their output —
+  which `drop_job` (db/0150) deletes, while the file stays under the old job.
+  Assemble is deterministic, so the next compile of the same tile made the
+  same bytes, was refused, and found nothing. `register_artifact` takes the
+  path now, fills it once and never moves it; `client/js/upload.js`
+  (`upload` and `elsewhere`, out of `work.js`, which is under four hundred
+  lines again) asks the row first. Rows from before are backfilled from what
+  their atoms said and from the kinds with one address each.
+- **A tab is offered only the atoms it builds.** `probeCaps` has always sent
+  `algo`; `atom_fits` reads it now, so a tab on new code is not handed an
+  older atom that it then refuses — each refusal cost the atom an attempt,
+  and three tabs made a piece `failed` for a reason that was nobody's.
+- `tools/store-check.sh` asks the store for every registered artifact and
+  prints the rows whose bytes are gone, with the SQL to drop them, and
+  deletes nothing. The way to get there: `splatworld init --reset` drops the
+  database and leaves `infra/files`; a tab that compiles in between finds the
+  old bytes already there (409, accepted), registers them, and a wipe of the
+  store afterwards leaves the row. Empty the store *before* the reset, or
+  both before any tab reconnects.

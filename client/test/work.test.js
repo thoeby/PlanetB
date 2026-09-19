@@ -8,6 +8,7 @@ import assert from 'node:assert/strict';
 
 import { InputCache, resolveInputs } from '../js/inputs.js';
 import { WorkLoop } from '../js/work.js';
+import { upload } from '../js/upload.js';
 
 const SHA_A = 'a'.repeat(64);
 const SHA_B = 'b'.repeat(64);
@@ -166,6 +167,48 @@ test('an artifact the store already holds is pointed at, not written again', asy
         'the consumer is told where the bytes really are');
 });
 
+test('an artifact whose atom is gone is found by the address its row carries', async () => {
+    // drop_job (db/0150) deletes the atoms; the file stays under the old job
+    // and nothing names that job any more. The row says where it is (db/0166).
+    const bytes = new TextEncoder().encode('{"a":1}');
+    const sha = await import('../lib/hash.js').then((m) => m.sha256(bytes));
+    const api = fakeApi({}, { claim_atom: ATOM, submit_atom: 'verified' });
+    api.select = async (table) => (table === 'artifact'
+        ? [{ sha256: sha, path: `/jobs/2/${sha}.json` }] : []);
+    const asked = [];
+    const loop = new WorkLoop({
+        api,
+        filesUrl: 'http://files',
+        spawn: () => ({ run: async () => OUT, terminate: () => {} }),
+        fetchFn: async (url, opts) => {
+            asked.push([opts?.method ?? 'GET', url]);
+            if (opts?.method !== 'HEAD') return new Response('', { status: 403 });
+            return new Response('', { status: url.includes('/jobs/2/') ? 200 : 404 });
+        },
+        timers: { setInterval: () => 1, clearInterval: () => {}, setTimeout: () => {} },
+    });
+    assert.equal(await loop.step(), 'verified');
+    assert.deepEqual(asked.filter((a) => a[0] === 'HEAD').map((a) => a[1]),
+        [`http://files/jobs/2/${sha}.json`], 'the address the row carries is the first one looked at');
+    const submit = api.calls.find((c) => c[1] === 'submit_atom')[2];
+    assert.equal(submit.result.path, `/jobs/2/${sha}.json`);
+});
+
+test('an upload registers where it put the bytes', async () => {
+    const api = fakeApi({ artifact: [] }, { claim_atom: ATOM, submit_atom: 'verified',
+        register_artifact: SHA_A });
+    const loop = new WorkLoop({
+        api,
+        filesUrl: 'http://files',
+        spawn: () => ({ run: async () => OUT, terminate: () => {} }),
+        fetchFn: async () => new Response('', { status: 201 }),
+        timers: { setInterval: () => 1, clearInterval: () => {}, setTimeout: () => {} },
+    });
+    await loop.step();
+    const reg = api.calls.find((c) => c[1] === 'register_artifact')[2];
+    assert.match(reg.path, new RegExp(`^/jobs/${ATOM.id}/${reg.sha256}\\.`));
+});
+
 test('nothing to claim is not a failure', async () => {
     const { loop } = loopOver(null, { spawnOut: OUT });
     assert.equal(await loop.step(), null);
@@ -279,7 +322,7 @@ test('an upload refused because its own bytes are already there is not a failure
         },
         timers: { setInterval: () => 1, clearInterval: () => {}, setTimeout: () => {} },
     });
-    const where = await loop.upload({ id: 3 }, { ext: 'r16', kind: 'height', bytes,
+    const where = await upload(loop, { id: 3 }, { ext: 'r16', kind: 'height', bytes,
         dir: '/tiles/14/8550/5809' }, sha);
     assert.equal(where, `/tiles/14/8550/5809/${sha}.r16`);
     assert.deepEqual(asked.filter((a) => a[0] === 'HEAD').map((a) => a[1]),

@@ -15,7 +15,7 @@ SELECT has_domain('public', 'zoom', 'domain zoom');
 
 -- columns --------------------------------------------------------------
 SELECT columns_are('public', 'artifact', ARRAY[
-    'sha256', 'kind', 'bytes', 'algo_version', 'created_by', 'created_at']);
+    'sha256', 'kind', 'bytes', 'algo_version', 'created_by', 'created_at', 'path']);
 SELECT columns_are('public', 'account', ARRAY['id', 'owner_id']);
 SELECT columns_are('public', 'ledger', ARRAY[
     'id', 'at', 'debit', 'credit', 'amount', 'ref']);
