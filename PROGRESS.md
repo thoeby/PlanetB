@@ -2351,3 +2351,45 @@ before any of this started, and the failures are not FND.12's:
 So story 27 is written and unrun, and so is story 26 against the merge.
 `make db-test`, `make api-test`, `make lint` and the node tests are green
 here; the player-run is not a gate anybody can pass right now.
+
+## FND.13: the ground goes with the land
+
+Story 28 (written, unrun — the player-run still stops at story 8): A assigns B
+a piece of hillside across the edge of a wood; the wood inside it becomes B's
+own shapes; B cuts a clearing out of them in QGIS and sends it; the ground that
+comes out of the compiler has a clearing in it, and so does the map.
+
+**A land's ground is the landholder's.** The cover (FND.12) is the operator's
+raster over the whole world. Where somebody's land is, it stops: the compiler
+takes the raster away inside every land a tile touches (db/0167's `tile_lands`,
+in the snapshot, so a land assigned over a tile cannot be published over by an
+atom made before it) and rasterises what is drawn on the land in its place, at
+the raster's own cells. Everything downstream — the blend, the colour, the
+thinning — is the same code, so a shape somebody drew and a class the operator
+mapped are the same kind of ground.
+
+**Tracing is the assigning admin's tab** (Invariant 9). Marching squares over
+the class grid, Douglas–Peucker at half a metre, and the rings inset by a cell
+so that a shape traced along the boundary is inside the land the database will
+accept it on. `client/test/trace.test.js` holds it to the ruler: the same
+raster gives the same rings in the same order, a single-cell speck is dropped,
+and a corner is never simplified away.
+
+**Which kinds count is the mapping's to say**, not a list in the compiler: a
+feature is part of the cover if its kind is one the operator mapped a class to.
+A world that maps nothing has no cover and a land on it is unaffected.
+
+### Three departures from TASKS-foundation.md FND.13, with their reasons
+
+- **The classes are read at z16 and traced at two metres**, not z18 and the
+  raster's own cell. A z18 cut of a land is forty-nine files to ask the store
+  for against four, and the sources are ten-metre and two-metre data: tracing
+  ESA WorldCover at twenty centimetres does not find a finer forest edge, it
+  finds the same edge with a hundred times as many corners in it.
+- **There is no separate `cover` atom.** The picture is written into the tar
+  `assemble` already carries the height and the colliders in, and published by
+  `sog` with them. The same path, already proven, and one atom rather than two;
+  what the map and QGIS read is still a file beside the tile.
+- **`/tiles/cover/{z}/{x}/{y}.png` is a manifest lookup**, as the task asks —
+  the store follows the published tile's own pointer and serves the file. It
+  computes nothing (Invariant 10).

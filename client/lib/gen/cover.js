@@ -16,6 +16,7 @@
 // one the style pinned, and the noise is seeded from the tile's own numbers.
 
 import { decodePng } from '../png.js';
+import { thinningOf } from './covercolour.js';
 import { paramsOf, symbolFor } from './index.js';
 
 export const COVER_ALGO = 'cover-v1';
@@ -129,6 +130,12 @@ export function readCover(img, sources, how = {}) {
     const classes = [];
     const at = new Map();
     const unmapped = new Map();
+    // A class the cover has: from the raster by its colour, or from a shape
+    // somebody drew, which has no colour and is named by what it is.
+    const index = (key, what) => {
+        if (!at.has(key)) { at.set(key, classes.length); classes.push({ hex: key, ...what }); }
+        return at.get(key);
+    };
     for (let i = 0; i < n * n; i++) {
         if (img.data[i * 4 + 3] < 128) continue;
         const hex = hexOf(img.data[i * 4], img.data[i * 4 + 1], img.data[i * 4 + 2]);
@@ -137,16 +144,57 @@ export function readCover(img, sources, how = {}) {
             unmapped.set(hex, (unmapped.get(hex) ?? 0) + 1);
             continue;
         }
-        if (!at.has(hex)) {
-            at.set(hex, classes.length);
-            classes.push({ hex, ...what });
-        }
-        codes[i] = at.get(hex);
+        codes[i] = index(hex, what);
     }
-    if (!classes.length) {
+    // FND.13: inside a land the ground is the landholder's own shapes and not
+    // the operator's raster — cleared first, so a clearing they cut is a
+    // clearing, then painted with what they drew. Rasterised here at the
+    // raster's own cells, which is what makes the two the same ground.
+    own(codes, n, how, index);
+    const left = prune(codes, classes);
+    if (!left.length) {
         return { classes: [], unmapped: [...unmapped.keys()].sort(), weightsAt: () => [] };
     }
-    return blended(codes, classes, n, unmapped, how);
+    return blended(codes, left, n, unmapped, how);
+}
+
+// A class the raster had and the land took away is not a class of this tile.
+// The codes are renumbered onto what is left, so a distance field is only ever
+// built for something that is actually there.
+function prune(codes, classes) {
+    const seen = new Int16Array(classes.length).fill(-1);
+    const left = [];
+    for (const c of codes) {
+        if (c >= 0 && seen[c] < 0) { seen[c] = left.length; left.push(classes[c]); }
+    }
+    for (let i = 0; i < codes.length; i++) codes[i] = codes[i] < 0 ? -1 : seen[codes[i]];
+    return left;
+}
+
+// The land's own word over the operator's, cell by cell.
+//
+// `owned(u, v)` is where a land is; `shapes` are what is drawn on it, in the
+// order the world hands them over (by id — Invariant 2), each one painting
+// over the last.
+function own(codes, n, how, index) {
+    const shapes = how.shapes ?? [];
+    if (!how.owned && !shapes.length) return;
+    for (let j = 0; j < n; j++) {
+        for (let i = 0; i < n; i++) {
+            const u = i / (n - 1);
+            const v = j / (n - 1);
+            if (!how.owned?.(u, v)) continue;
+            codes[j * n + i] = -1;
+        }
+    }
+    for (const shape of shapes) {
+        const c = index(`${shape.kind}=${shape.value}`, shape);
+        for (let j = 0; j < n; j++) {
+            for (let i = 0; i < n; i++) {
+                if (shape.contains(i / (n - 1), j / (n - 1))) codes[j * n + i] = c;
+            }
+        }
+    }
 }
 
 // The distance field of every class, and the reading of them. `metres` is how
@@ -184,96 +232,6 @@ function blended(codes, classes, n, unmapped, how) {
     };
 }
 
-// ------------------------------------------------------------- the colour
-
-const clamp01 = (v) => Math.min(Math.max(v, 0), 1);
-const toLinear = (c) => (c <= 0.04045 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4);
-
-/**
- * One material PNG, laid over the ground at its own size in metres.
- *
- * Nearest sample, not bilinear: a material is a texture the ground is made of,
- * read at whatever scale the vertex grid happens to be, and interpolating it
- * only smears two threads of grass into one grey.
- */
-export function sampleMaterial(img, tiling, x, z) {
-    if (!img?.data) return null;
-    const size = Math.max(0.01, Number(tiling) || 1);
-    const u = ((x / size) % 1 + 1) % 1;
-    const v = ((z / size) % 1 + 1) % 1;
-    const i = Math.min(Math.floor(u * img.width), img.width - 1);
-    const j = Math.min(Math.floor(v * img.height), img.height - 1);
-    const k = (j * img.width + i) * 4;
-    return [toLinear(img.data[k] / 255), toLinear(img.data[k + 1] / 255),
-        toLinear(img.data[k + 2] / 255)];
-}
-
-// Rock shows through where the ground is steep and snow lies where it is high:
-// two numbers on the class's own `paint` layer, not a biome system. Below the
-// number the class is not there at all; a quarter of it above, it is all there.
-function showing(paint, slope, height) {
-    let on = 1;
-    if (Number.isFinite(Number(paint?.above_slope))) {
-        const want = Number(paint.above_slope) / 100;
-        on *= clamp01((slope - want) / Math.max(0.01, want * 0.25) + 1);
-    }
-    if (Number.isFinite(Number(paint?.above_height))) {
-        const want = Number(paint.above_height);
-        on *= clamp01((height - want) / 60 + 1);
-    }
-    return on;
-}
-
-/**
- * What the ground looks like where a cover says what it is made of.
- *
- * @param {?object} cover readCover's answer
- * @param {object} how {paintOf, material, terrain, xOf, zOf}
- *   `paintOf(class)` the class's own `paint` parameters, `material(san)` the
- *   decoded PNG of one, `terrain` for the slope and height at a vertex, and
- *   `xOf`/`zOf` where a (u, v) of the grid is in the tile's own metres.
- * @returns {?function(number, number): ?number[]} linear RGB, or null where
- *   nothing mapped reaches — the ground keeps the colour it had.
- */
-export function coverColour(cover, how) {
-    if (!cover?.classes?.length) return null;
-    const paints = cover.classes.map((c) => how.paintOf?.(c) ?? null);
-    if (paints.every((p) => !p?.material)) return null;
-    return (u, v) => {
-        const x = how.xOf(u);
-        const z = how.zOf(v);
-        const slope = how.terrain?.slopeAt?.(x, z) ?? 0;
-        const height = (how.terrain?.at?.(x, z) ?? 0) + (how.terrain?.datum ?? 0);
-        const out = [0, 0, 0];
-        let sum = 0;
-        for (const [c, w0] of cover.weightsAt(u, v)) {
-            const paint = paints[c];
-            if (!paint?.material) continue;
-            const w = w0 * showing(paint, slope, height);
-            if (w <= 0) continue;
-            const rgb = sampleMaterial(how.material?.(paint.material), paint.tiling, x, z);
-            if (!rgb) continue;
-            for (let k = 0; k < 3; k++) out[k] += rgb[k] * w;
-            sum += w;
-        }
-        return sum > 0 ? out.map((c) => c / sum) : null;
-    };
-}
-
-/**
- * How thickly a class is scattered at a point: its share of the ground there,
- * so a forest edge thins out instead of stopping at a pixel.
- */
-export function thinningOf(cover, index, how) {
-    if (!cover?.classes?.length) return null;
-    return (x, z) => {
-        const u = how.uOf(x);
-        const v = how.vOf(z);
-        for (const [c, w] of cover.weightsAt(u, v)) if (c === index) return w;
-        return 0;
-    };
-}
-
 // ------------------------------------------------- the cover as features
 
 // FND.12: the ground cover, as features. A class the operator mapped is a
@@ -285,15 +243,21 @@ export function coverFeatures(cover, sw, ne) {
     const rings = [[[sw.x, sw.z], [ne.x, sw.z], [ne.x, ne.z], [sw.x, ne.z]]];
     const uOf = (x) => (x - sw.x) / ((ne.x - sw.x) || 1);
     const vOf = (z) => (z - ne.z) / ((sw.z - ne.z) || 1);
-    return (cover?.classes ?? []).map((c, at) => ({
-        id: `cover:${c.hex}`,
-        kind: c.kind,
-        props: { [c.key]: c.value },
-        rings,
-        lines: [],
-        contains: () => true,
-        thin: thinningOf(cover, at, { uOf, vOf }),
-    }));
+    // A class that came from a shape somebody drew is already a feature: it
+    // goes through its symbol as itself, with its own outline, and making a
+    // tile-wide one for it as well would draw everything on it twice. Only
+    // the raster's classes — the ones named by a colour — need one.
+    return (cover?.classes ?? []).map((c, at) => [c, at])
+        .filter(([c]) => String(c.hex).startsWith('#'))
+        .map(([c, at]) => ({
+            id: `cover:${c.hex}`,
+            kind: c.kind,
+            props: { [c.key]: c.value },
+            rings,
+            lines: [],
+            contains: () => true,
+            thin: thinningOf(cover, at, { uOf, vOf }),
+        }));
 }
 
 // Enough of a class for a symbol to be matched against it and its parameters
@@ -326,4 +290,51 @@ export async function loadMaterials(products) {
         if (img) out.set(san, img);
     }
     return out;
+}
+
+// ------------------------------------------------- the land's own ground
+
+const ringsOf = (geom) => {
+    if (geom?.type === 'Polygon') return geom.coordinates;
+    if (geom?.type === 'MultiPolygon') return geom.coordinates.flat();
+    return [];
+};
+
+/**
+ * Where the operator's raster stops, and what stands in for it there.
+ *
+ * FND.13: a land's ground is the landholder's. Inside one, the cover is taken
+ * away and the features they drew are rasterised in its place — at the
+ * raster's own cells, so a clearing they cut is a clearing in the same grid
+ * everything else is measured in.
+ *
+ * Which of their features count is not a list of kinds written here: it is
+ * whichever kinds the operator's own mapping names (db/0166). A world that
+ * maps nothing has no cover, and a land on it is unaffected.
+ *
+ * @param {object} world tile_world's answer
+ * @param {object[]} feats the tile's features, in the tile's own metres
+ * @param {object} how {contains(rings, x, z), xOf(u), zOf(v)}
+ * @returns {{owned: ?function, shapes: object[]}}
+ */
+export function landCover(world, feats, how) {
+    const keyFor = new Map();
+    for (const s of world?.cover ?? []) {
+        for (const what of Object.values(s.class_map ?? {})) {
+            if (!keyFor.has(what.kind)) keyFor.set(what.kind, what.key);
+        }
+    }
+    const lands = (world?.lands ?? []).map((l) => ringsOf(l.geom)).filter((r) => r.length);
+    const owned = lands.length
+        ? (u, v) => lands.some((rings) => how.inLonLat(rings, u, v))
+        : null;
+    const shapes = [];
+    for (const f of feats ?? []) {
+        const key = keyFor.get(f.kind);
+        const value = key ? f.props?.[key] : null;
+        if (!value || !f.rings?.length) continue;
+        shapes.push({ kind: f.kind, key, value,
+            contains: (u, v) => f.contains(how.xOf(u), how.zOf(v)) });
+    }
+    return { owned, shapes };
 }

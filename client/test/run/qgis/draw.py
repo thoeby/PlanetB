@@ -15,6 +15,7 @@ sentence QGIS would have put in the message bar.
 from __future__ import annotations
 
 import json
+import math
 import sys
 
 from qgis.core import (QgsApplication, QgsFeature, QgsGeometry, QgsProject,
@@ -49,6 +50,43 @@ def widget(project: QgsProject, ask: dict) -> dict:
         values.extend(entry.keys() if hasattr(entry, "keys") else [entry])
     return {"ok": True, "layer": ask["layer"], "field": ask["field"],
             "widget": setup.type(), "values": values}
+
+
+def remove(project: QgsProject, ask: dict) -> dict:
+    """Delete what is near a point, the way a person selects and deletes.
+
+    FND.13 story 28: the cover the operator handed over is the landholder's to
+    edit, and cutting a clearing out of a wood is deleting the shapes that are
+    in the way. Errors come back from the provider's commit, as QGIS would
+    show them.
+    """
+    layer = layer_named(project, ask["layer"])
+    if layer is None:
+        return {"ok": False, "error": f"no layer called {ask['layer']}",
+                "layers": [layer.name() for layer in project.mapLayers().values()]}
+    if not layer.isValid():
+        return {"ok": False, "error": f"{ask['layer']} would not open: "
+                                      f"{layer.dataProvider().error().message()}"}
+    middle = QgsGeometry.fromWkt(ask["within"])
+    if middle.isNull():
+        return {"ok": False, "error": f"that is not a point: {ask['within']}"}
+    # Metres about the point, as degrees at this latitude: near enough for a
+    # clearing, and this is the only place the story measures one.
+    lat = middle.asPoint().y()
+    span = float(ask.get("metres", 20)) / (111320.0 * math.cos(math.radians(lat)))
+    box = middle.buffer(span, 8).boundingBox()
+    if not layer.startEditing():
+        return {"ok": False, "error": f"{ask['layer']} is not editable"}
+    gone = [f.id() for f in layer.getFeatures(box)]
+    if gone and not layer.deleteFeatures(gone):
+        layer.rollBack()
+        return {"ok": False, "error": "QGIS would not delete those"}
+    if not layer.commitChanges():
+        said = "; ".join(layer.commitErrors())
+        layer.rollBack()
+        return {"ok": False, "error": said}
+    return {"ok": True, "layer": ask["layer"], "deleted": len(gone),
+            "count": layer.featureCount()}
 
 
 def draw(project: QgsProject, edit: dict) -> dict:
@@ -100,8 +138,13 @@ def main(argv: list[str]) -> int:
             return 1
         worst = 0
         for edit in edits:
-            result = (widget(project, edit) if edit.get("ask") == "widget"
-                      else draw(project, edit))
+            asked = edit.get("ask")
+            if asked == "widget":
+                result = widget(project, edit)
+            elif asked == "delete":
+                result = remove(project, edit)
+            else:
+                result = draw(project, edit)
             print(json.dumps(result))
             worst = worst or (0 if result["ok"] else 1)
         return worst

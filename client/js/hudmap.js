@@ -4,6 +4,8 @@
 // It draws what it is handed and reads nothing: the areas are the same rows the
 // Your land panel lists, so the two cannot disagree about who owns what.
 
+import { drawCover } from './covermap.js';
+
 const M_PER_DEG = 111320;
 
 export const SPANS = [250, 500, 1000, 2000, 5000, 20000];
@@ -49,7 +51,11 @@ export function drawMinimap(canvas,
     ];
 
     ctx.clearRect(0, 0, w, h);
+    // FND.13: what the world was rendered as, where it has been. The
+    // hillshade is what the map shows of ground nobody has compiled yet, and
+    // it stays under the pictures that have.
     if (!hillshade(ctx, { w, h, at, span, cos, ground })) grid(ctx, w, h);
+    drawCover(ctx, { w, h, at, span, cos });
     for (const a of areas) boundary(ctx, a, xy);
     for (const t of things) thing(ctx, xy(Number(t.lon), Number(t.lat)));
     // The tile this machine is computing, where it is (SPEC §3.7): a compile

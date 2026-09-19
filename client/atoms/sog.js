@@ -105,6 +105,32 @@ export function lodMeta(shas, bbox, levels) {
     };
 }
 
+// What a tile carries besides its splats: the ground the player walks on, the
+// boxes they bump into, and — since FND.13 — a picture of what the ground was
+// drawn in, for the map and for QGIS. Each is published under the tile's own
+// authority (db/0011_tilefiles.sql) and named in the manifest, so a published
+// tile is complete.
+async function alongside(extra, files, manifest, dir) {
+    const drawn = extra.get('cover.png');
+    if (drawn) {
+        files.push({ ext: 'png', kind: 'cover', algo_version: ALGO, bytes: drawn, dir });
+        manifest.cover = { sha256: await sha256(drawn), bytes: drawn.byteLength };
+    }
+    const ground = extra.get('height.r16');
+    const boxes = extra.get('colliders.json');
+    if (!ground || !boxes) return;
+    const scene = JSON.parse(new TextDecoder().decode(extra.get('scene.json')));
+    files.push({ ext: 'r16', kind: 'height', algo_version: 'assemble-v3',
+        bytes: ground, dir });
+    files.push({ ext: 'json', kind: 'colliders', algo_version: 'assemble-v3',
+        bytes: boxes, dir });
+    manifest.height = { sha256: await sha256(ground), ...scene.height };
+    manifest.colliders = {
+        sha256: await sha256(boxes),
+        count: JSON.parse(new TextDecoder().decode(boxes)).boxes.length,
+    };
+}
+
 export async function run({ atom, inputs, canvas, log, apiUrl }) {
     if (!inputs?.ply) throw new Error('sog needs a ply');
     const { splats: f, extra } = unpack(inputs.ply);
@@ -143,20 +169,7 @@ export async function run({ atom, inputs, canvas, log, apiUrl }) {
     files.push({ ext: 'json', kind: 'lod', algo_version: ALGO, bytes: meta, dir });
     manifest.lod = { sha256: await sha256(meta), levels: levels.map((l) => l.count),
         files: shas };
-    const ground = extra.get('height.r16');
-    const boxes = extra.get('colliders.json');
-    if (ground && boxes) {
-        const scene = JSON.parse(new TextDecoder().decode(extra.get('scene.json')));
-        files.push({ ext: 'r16', kind: 'height', algo_version: 'assemble-v3',
-            bytes: ground, dir });
-        files.push({ ext: 'json', kind: 'colliders', algo_version: 'assemble-v3',
-            bytes: boxes, dir });
-        manifest.height = { sha256: await sha256(ground), ...scene.height };
-        manifest.colliders = {
-            sha256: await sha256(boxes),
-            count: JSON.parse(new TextDecoder().decode(boxes)).boxes.length,
-        };
-    }
+    await alongside(extra, files, manifest, dir);
     return {
         files,
         output: 'sog',

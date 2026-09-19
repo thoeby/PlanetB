@@ -6,7 +6,7 @@
 // atom itself runs in.
 
 export const ALGO = {
-    assemble: 'assemble-v10', frame: 'frame-v10', train: 'train-v13',
+    assemble: 'assemble-v11', frame: 'frame-v10', train: 'train-v13',
     merge: 'merge-v1', sog: 'sog-v3', verify: 'verify-v1',
 };
 

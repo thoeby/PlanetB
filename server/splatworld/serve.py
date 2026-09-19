@@ -20,6 +20,8 @@ import time
 import urllib.error
 import urllib.parse
 import urllib.request
+
+import psycopg
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 
@@ -344,7 +346,36 @@ class Handler(BaseHTTPRequestHandler):
         # about now; the file behind it is immutable, this address is not.
         self._send(200, body, "image/tiff", {"Cache-Control": "no-store", **CORS})
 
+    def _rendered_cover(self, path: str) -> bool:
+        """/tiles/cover/{z}/{x}/{y}.png — the cover of the published tile.
+
+        FND.13: a lookup, not a computation. The tile's manifest says which
+        file is its cover picture (client/atoms/sog.js) and the file is where
+        every other file of that tile is; this only follows the pointer, so
+        that the map and QGIS have one address that does not change when the
+        tile is rendered again.
+        """
+        m = re.fullmatch(r"/tiles/cover/(\d+)/(\d+)/(\d+)\.png", path)
+        if not m:
+            return False
+        z, x, y = (int(v) for v in m.groups())
+        with psycopg.connect(self.cfg.dsn(), autocommit=True) as conn:
+            row = conn.execute(
+                "SELECT manifest -> 'cover' ->> 'sha256' FROM tile"
+                " WHERE z = %s AND x = %s AND y = %s AND published_version > 0",
+                (z, x, y)).fetchone()
+        sha = row[0] if row else None
+        target = safe_join(self.cfg.files, f"/tiles/{z}/{x}/{y}/{sha}.png") if sha else None
+        if not target or not target.is_file():
+            self._text(404, "no cover published for that tile")
+            return True
+        self._send(200, target.read_bytes(), "image/png",
+                   {"Cache-Control": "no-store", **CORS})
+        return True
+
     def _serve_store(self, path: str) -> None:
+        if self._rendered_cover(path):
+            return
         target = safe_join(self.cfg.files, path)
         # T1: the ground is cut when somebody first walks onto it, not seeded
         # ahead of time. Outside the coverage there is no world, and 404 is the

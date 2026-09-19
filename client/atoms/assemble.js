@@ -1,4 +1,4 @@
-// assemble.js — `assemble-v10`. The world, as geometry, in one tile's own frame.
+// assemble.js — `assemble-v11`. The world, as geometry, in one tile's own frame.
 //
 // Terrain from the seeded DEM, cut by terrainmods and roads; footprints
 // extruded; forests scattered; water laid flat; the ground coloured by its own
@@ -15,30 +15,36 @@
 // seeded from the atom, and the tar carries no timestamps.
 
 import { fetchJson } from '../js/api.js';
-import { fillVoids, loadDemExact, loadImage, sampleRgb } from '../lib/geo.js';
 import { loadAssets } from '../lib/assets.js';
 import { boundsOf, placeMeshes } from '../lib/glbmesh.js';
 import { packMeshes } from '../lib/mesh.js';
+import { encodePng } from '../lib/png.js';
 import { bboxOf, writePly } from '../lib/ply.js';
 import { contains } from '../lib/poly.js';
+import { toLocal } from './assemblelocal.js';
 import { MATERIALS } from '../lib/props.js';
 import { context, runAll } from '../lib/gen/index.js';
+import { loadGround, loadMaterials, loadProducts, theGround } from './assembleload.js';
 import {
-    coverColour, coverFeatures, coverOne, loadMaterials, paintOf, readCover,
+    coverFeatures, coverOne, landCover, paintOf, readCover,
 } from '../lib/gen/cover.js';
+import { coverColour, coverPicture } from '../lib/gen/covercolour.js';
 import { rngOf, sampleSurfaces } from '../lib/sampling.js';
 import { writeTar } from '../lib/tar.js';
 import {
     GRID, Terrain, applyHeightEdits, cutRoads, heightRaster, openHeights,
     terrainMesh,
 } from '../lib/terrain.js';
-import { readR32 } from '../lib/r32.js';
-import { localFromLonLat, lonLatFromLocal, tileBbox, tileFrame } from '../lib/tilemath.js';
+import { localFromLonLat, lonLatFromLocal } from '../lib/tilemath.js';
 
 // v4 writes each surface's own colour and leaves the light to the one
 // renderer (client/lib/raster.js); v3 had baked it for a sampled baseline
 // that is gone. The cut elevation is read whole (terrain.js GRID).
-export const ALGO = 'assemble-v10';
+export const ALGO = 'assemble-v11';
+
+// How big the cover picture a tile carries is (FND.13). A map tile, not a
+// texture: 256 is what every slippy map in the world serves.
+const COVER_PX = 256;
 
 // What assemble and sample both use to turn surfaces into splats; re-exported
 // because both atoms have always reached for them here.
@@ -46,39 +52,6 @@ export { rngOf, sampleSurfaces } from '../lib/sampling.js';
 const INIT_SHARE = 0.3;
 
 // ---------------------------------------------------------------- the world
-
-const ringsOf = (geom, pt) => {
-    if (geom.type === 'Polygon') return geom.coordinates.map((r) => r.map(pt));
-    if (geom.type === 'MultiPolygon') return geom.coordinates.flat().map((r) => r.map(pt));
-    return [];
-};
-
-const linesOf = (geom, pt) => {
-    if (geom.type === 'LineString') return [geom.coordinates.map(pt)];
-    if (geom.type === 'MultiLineString') return geom.coordinates.map((l) => l.map(pt));
-    return [];
-};
-
-// GeoJSON closes a ring by repeating its first point; nothing here wants that.
-const open = (ring) => (ring.length > 1
-    && ring[0][0] === ring.at(-1)[0] && ring[0][1] === ring.at(-1)[1]
-    ? ring.slice(0, -1) : ring);
-
-function toLocal(frame, feature) {
-    const pt = ([lon, lat]) => {
-        const p = localFromLonLat(frame, lon, lat);
-        return [p.x, p.z];
-    };
-    const rings = ringsOf(feature.geom, pt).map(open).filter((r) => r.length >= 3);
-    return {
-        id: feature.id,
-        kind: feature.kind,
-        props: feature.props ?? {},
-        rings,
-        lines: linesOf(feature.geom, pt),
-        contains: (x, z) => contains(rings, x, z),
-    };
-}
 
 // A feature that crosses the tile's edge arrives whole — a road runs for
 // kilometres, a forest spills into the next tile — and a tile shows its own
@@ -166,20 +139,6 @@ function colliderOf(meshes, at) {
 }
 
 // The scene itself: ground first, then everything that stands on it.
-// What the ground looks like where the operator has said so (db/0106): the
-// albedo's colour, dimmed by the shade where there is one. Null without an
-// albedo, and the ramp by height and slope answers instead.
-async function groundColour(z, x, y, filesUrl) {
-    const albedo = await loadImage('albedo', z, x, y, { filesUrl });
-    const shade = albedo ? await loadImage('shade', z, x, y, { filesUrl }) : null;
-    if (!albedo) return null;
-    return (u, v) => {
-        const base = sampleRgb(albedo, u, v);
-        const dim = base && shade ? sampleRgb(shade, u, v) : null;
-        return dim ? base.map((c, k) => c * dim[k]) : base;
-    };
-}
-
 // What a feature becomes is decided by the world's symbols, which travel with
 // it (db/0161): nothing here knows what a road, a wood or a roof is. Each
 // feature is put through the first symbol that matches it, and that symbol's
@@ -201,11 +160,22 @@ function build({ z, sw, ne, dem, frame, world, random, assets, products,
     // PLAN-foundation.md §3, step 3: the cover, after the ground is shaped and
     // before anything is drawn on it. The seed is the tile's own, so the same
     // tile wobbles the same edges in every tab (Invariant 2).
+    const xOf = (u) => sw.x + (ne.x - sw.x) * u;
+    const zOf = (v) => ne.z + (sw.z - ne.z) * v;
+    // FND.13: where a land is, the ground is the landholder's own shapes and
+    // not the operator's raster.
+    const own = landCover(world, feats, { xOf, zOf,
+        inLonLat: (rings, u, v) => {
+            const g = lonLatFromLocal(frame, { x: xOf(u), y: 0, z: zOf(v) });
+            return contains(rings, g.lon, g.lat);
+        } });
     const cover = readCover(coverImg, world.cover, {
         seed: (z * 73856093) ^ Math.round(frame.lon * 1e5)
             ^ Math.round(frame.lat * 1e5),
         metres: Math.abs(ne.x - sw.x) || 1,
         blendOf: (c) => paintOf(symbols, coverOne(c))?.blend,
+        owned: own.owned,
+        shapes: own.shapes,
     });
     const coverFeats = coverFeatures(cover, sw, ne);
     const ctx = context({ terrain, random, radius: Math.max(6, edge / 140),
@@ -224,9 +194,7 @@ function build({ z, sw, ne, dem, frame, world, random, assets, products,
     const painted = colourAt ?? coverColour(cover, {
         paintOf: (c) => paintOf(symbols, coverOne(c)),
         material: (san) => materials?.get(san) ?? null,
-        terrain,
-        xOf: (u) => sw.x + (ne.x - sw.x) * u,
-        zOf: (v) => ne.z + (sw.z - ne.z) * v,
+        terrain, xOf, zOf,
     });
     const meshes = clip([terrainMesh(terrain, 'terrain', painted, placed.openings),
         ...drawn.meshes, ...placed.meshes], sw, ne);
@@ -235,81 +203,8 @@ function build({ z, sw, ne, dem, frame, world, random, assets, products,
             && b.center[0] <= ne.x + CLIP_M && b.center[2] <= sw.z + CLIP_M
             && b.center[2] >= ne.z - CLIP_M);
     return { terrain, meshes, boxes, trees: ctx.trees, flags: drawn.flags,
-        paints: ctx.paints, roads: ctx.roads, placed, cover,
+        paints: ctx.paints, roads: ctx.roads, placed, cover, painted,
         openings: placed.openings };
-}
-
-// The files the pinned symbols name (db/0161): a segment's or a model's GLB,
-// a cross-section's or a collection's JSON, a material's PNG. Fetched by
-// digest like an instance's GLB, once each, and a missing one is skipped
-// rather than fatal — one lost product must not make a tile uncompilable.
-const EXT = { model: 'glb', segment: 'glb', material: 'png',
-    profile: 'json', collection: 'json' };
-
-async function loadProducts(files, filesUrl) {
-    const out = new Map();
-    for (const [san, what] of Object.entries(files ?? {})) {
-        const ext = EXT[what.type] ?? 'glb';
-        const res = await fetch(`${filesUrl}/assets/${what.sha256}.${ext}`).catch(() => null);
-        if (!res?.ok) continue;
-        const bytes = new Uint8Array(await res.arrayBuffer());
-        out.set(san, { type: what.type, bytes,
-            json: ext === 'json' ? JSON.parse(new TextDecoder().decode(bytes)) : null });
-    }
-    return out;
-}
-
-// The lands here that somebody has shaped: the grid each one saved and its own
-// outline, in this tile's frame. A file that will not load is skipped, as a
-// missing GLB is — one lost file must not make a tile uncompilable.
-async function loadGround(edits, frame, filesUrl) {
-    const out = [];
-    for (const e of edits ?? []) {
-        const res = await fetch(`${filesUrl}/assets/${e.sha256}.r32`).catch(() => null);
-        if (!res?.ok) continue;
-        const local = toLocal(frame, { id: e.area_id, kind: 'area', geom: e.geom });
-        out.push({ grid: readR32(new Uint8Array(await res.arrayBuffer())),
-            contains: local.contains });
-    }
-    return out;
-}
-
-// Everything about where this tile is and what the ground under it looks
-// like, before a single feature is read.
-async function theGround(z, x, y, filesUrl, wantCover = false) {
-    // This tile's own cut, never an ancestor's (client/lib/geo.js loadDemExact).
-    // A z14 read from z10 holds sixteen of this tile's samples, stretched over
-    // a 513-vertex mesh: the quilt of bilinear triangles a player saw in the
-    // frames. The mesh becomes the frames and the frames become the tile, so a
-    // coarse read here is not a slightly softer tile, it is a tile trained
-    // against a smear — and the store answers 404 for a tile outside the
-    // coverage's own envelope as well as for one outside the world, so the
-    // fall was silent.
-    const dem = await loadDemExact(z, x, y, { filesUrl });
-    if (!dem) {
-        throw new Error(`no ground cut at ${z}/${x}/${y}: the store has no elevation `
-            + 'for this tile at this zoom — either it is outside the coverage, or the '
-            + 'coverage refused the cut. A coarser one would make a quilt of it.');
-    }
-    // The survey's own holes, closed before they become geometry: a void is
-    // written as zero and the datum is subtracted from it, so an unfilled one
-    // is a two-kilometre pit that the frames see sky through (geo.js
-    // fillVoids).
-    fillVoids(dem);
-    const colourAt = await groundColour(z, x, y, filesUrl);
-    // FND.12: the class raster, composed from the operator's cover sources by
-    // the store (server/splatworld/ground.py). Only asked for when the applied
-    // style has a mapping to read it with — a world with no cover keeps the
-    // ramp it always had, and asks the store nothing.
-    const coverImg = wantCover
-        ? await loadImage('cover', z, x, y, { filesUrl }) : null;
-    const b = tileBbox(z, x, y);
-    const flat = tileFrame(z, x, y, 0);
-    const frame = tileFrame(z, x, y, sampleGround(dem));
-    return { b, dem, colourAt, coverImg, flat, frame,
-        centre: { lon: (b.west + b.east) / 2, lat: (b.south + b.north) / 2 },
-        sw: localFromLonLat(frame, b.west, b.south),
-        ne: localFromLonLat(frame, b.east, b.north) };
 }
 
 // -------------------------------------------------------------------- atom
@@ -334,7 +229,8 @@ export async function run({ atom, log, apiUrl, filesUrl }) {
     const products = await loadProducts(world.symbol_files, filesUrl);
     const materials = await loadMaterials(products);
     const ground = await loadGround(world.height_edits, frame, filesUrl);
-    const { terrain, meshes, boxes, trees, flags, roads, placed, openings, cover } =
+    const { terrain, meshes, boxes, trees, flags, roads, placed, openings, cover,
+        painted } =
         build({ z, sw, ne, dem, frame, world, random: rngOf(atom, z, x, y),
             assets, products, ground, colourAt, coverImg, materials });
     log?.({ event: 'assembled', z, x, y, meshes: meshes.length, trees,
@@ -355,6 +251,9 @@ export async function run({ atom, log, apiUrl, filesUrl }) {
         // The frame at ground level; the flat one is what tilemath gives for h=0.
         frame: { lon: frame.lon, lat: frame.lat, h: frame.h, flat_h: flat.h },
     };
+    // FND.13: what the ground was drawn in, as a picture, for the map and for
+    // QGIS. Absent where nothing mapped reaches this tile.
+    const map = coverPicture(painted, COVER_PX);
     const tar = writeTar([
         { name: 'scene.json', bytes: new TextEncoder().encode(JSON.stringify(scene)) },
         { name: 'mesh.bin', bytes: bin },
@@ -362,6 +261,7 @@ export async function run({ atom, log, apiUrl, filesUrl }) {
         { name: 'height.r16', bytes: height.bytes },
         { name: 'colliders.json',
             bytes: new TextEncoder().encode(JSON.stringify({ boxes })) },
+        ...(map ? [{ name: 'cover.png', bytes: encodePng(map, COVER_PX, COVER_PX) }] : []),
     ]);
     return {
         files: [{ ext: 'tar', kind: 'init_ply', algo_version: ALGO, bytes: tar }],
@@ -379,11 +279,3 @@ export async function run({ atom, log, apiUrl, filesUrl }) {
 }
 
 // The tile's origin sits at the ground under its centre (ARCHITECTURE §2).
-const sampleGround = (dem) => {
-    const n = dem.size;
-    const u = dem.u0 + dem.span / 2;
-    const v = dem.v0 + dem.span / 2;
-    const i = Math.min(n - 1, Math.max(0, Math.round(u * n - 0.5)));
-    const j = Math.min(n - 1, Math.max(0, Math.round(v * n - 0.5)));
-    return dem.data[j * n + i];
-};

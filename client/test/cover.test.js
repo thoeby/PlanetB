@@ -3,7 +3,8 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 
-import { distanceField, hexOf, readCover, thinningOf } from '../lib/gen/cover.js';
+import { distanceField, hexOf, readCover } from '../lib/gen/cover.js';
+import { thinningOf } from '../lib/gen/covercolour.js';
 
 test('the distance field is the exact euclidean one', () => {
     // One lit pixel in the middle of a 5×5: every other pixel's distance to it
@@ -90,4 +91,30 @@ test('a class is scattered as thickly as it holds the ground', () => {
     // The border wanders: the edge noise is half the blend width, which is
     // what keeps a raster's staircase from showing as a line of trees.
     assert.ok(thin(44, 32) > 0, 'the edge is not a straight line');
+});
+
+test('inside a land the shapes drawn on it are the ground, not the raster', () => {
+    // The whole tile is rock in the raster; the left half is a land, and the
+    // landholder has drawn a wood over part of it.
+    const rock = { size: 32, data: new Uint8Array(32 * 32 * 4) };
+    for (let i = 0; i < 32 * 32; i++) {
+        rock.data[i * 4] = ROCK[0]; rock.data[i * 4 + 1] = ROCK[1];
+        rock.data[i * 4 + 2] = ROCK[2]; rock.data[i * 4 + 3] = 255;
+    }
+    const cover = readCover(rock, sources, {
+        seed: 1, metres: 32, blendOf: () => 2,
+        owned: (u) => u < 0.5,
+        shapes: [{ kind: 'landuse', key: 'landuse', value: 'forest',
+            contains: (u, v) => u < 0.25 && v > 0.25 && v < 0.75 }],
+    });
+    const words = (at) => cover.weightsAt(...at).map(([c]) => cover.classes[c].value);
+    assert.deepEqual(words([0.1, 0.5]), ['forest'], 'where the wood is drawn, wood');
+    assert.deepEqual(words([0.35, 0.05]), [], 'elsewhere on the land, nothing');
+    assert.deepEqual(words([0.9, 0.5]), ['bare_rock'], 'off the land, the raster');
+});
+
+test('a land with nothing drawn on it takes the raster away', () => {
+    const cover = readCover(twoHalves(32, FOREST, ROCK), sources,
+        { seed: 1, metres: 32, blendOf: () => 1, owned: () => true });
+    assert.deepEqual(cover.classes, [], 'no class is left to draw');
 });

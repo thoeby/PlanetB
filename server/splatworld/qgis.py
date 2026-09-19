@@ -172,6 +172,27 @@ def raster_layer(parent, wms_url: str, coverage: str) -> str:
     return ident
 
 
+def rendered_ground(parent, app_url: str) -> tuple[str, str] | None:
+    """FND.13: what the world was drawn as, as a slippy-map layer.
+
+    The store serves the published tile's cover picture at one address that
+    does not change when the tile is rendered again
+    (server/splatworld/serve.py), so QGIS can hold it as an XYZ layer and see
+    the clearing somebody cut the next time they reload.
+    """
+    if not app_url:
+        return None
+    ident = "rendered_ground"
+    url = f"{app_url.rstrip('/')}/tiles/cover/%7Bz%7D/%7Bx%7D/%7By%7D.png"
+    node = _sub(parent, "maplayer", type="raster", hasScaleBasedVisibilityFlag="0")
+    _sub(node, "id", ident)
+    _sub(node, "datasource", f"type=xyz&url={url}&zmin=6&zmax=18")
+    _sub(node, "layername", "Rendered ground")
+    crs(node)
+    _sub(node, "provider", "wms")
+    return ident, "Rendered ground"
+
+
 def ground_shaping(parent, app_url: str,
                    areas: list[tuple[str, str]]) -> list[tuple[str, str]]:
     """FND.10: what somebody shaped, as a raster to edit.
@@ -240,6 +261,9 @@ def project_xml(layers: list[dict], conn: dict, wms_url: str,
         entries.append((ident, name, pg_source(conn, spec)))
     for ident, name in ground_shaping(project_layers, app_url, areas or []):
         entries.append((ident, name, ""))
+    drawn = rendered_ground(project_layers, app_url)
+    if drawn:
+        entries.append((drawn[0], drawn[1], ""))
     if coverage:
         ident = raster_layer(project_layers, wms_url, coverage)
         entries.append((ident, f"Ground ({wcs10_name(coverage)})", ""))

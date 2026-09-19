@@ -1,7 +1,7 @@
 -- The atoms a job is built with: one assemble version, one frame version and
 -- one training run, whatever the zoom. db/0103_onelook.sql settled that the
 -- light is baked once and drawn as it is; what has moved since are the version
--- names (assemble-v10, frame-v10), the iteration count (db/0114), and the
+-- names (assemble-v11, frame-v10), the iteration count (db/0114), and the
 -- sampler, which is gone — a z14 tile is trained like the rest.
 BEGIN;
 SELECT plan(6);
@@ -32,7 +32,7 @@ SELECT ensure_job(18, tile_x(7.805, 18), tile_y(46.295, 18)) AS j18,
        ensure_job(14, tile_x(7.805, 14), tile_y(46.295, 14)) AS j14;
 
 SELECT is((SELECT algo_version FROM atom
-           WHERE job_id = (SELECT j18 FROM jobs) AND op = 'assemble'), 'assemble-v10',
+           WHERE job_id = (SELECT j18 FROM jobs) AND op = 'assemble'), 'assemble-v11',
     'assemble bakes the light');
 SELECT is((SELECT min(algo_version) FROM atom
            WHERE job_id = (SELECT j18 FROM jobs) AND op = 'frame'), 'frame-v10',

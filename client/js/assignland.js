@@ -17,6 +17,7 @@
 // they are looking at.
 
 import * as api from './api.js';
+import { handOver } from './handover.js';
 import { empty } from './empty.js';
 import { groundOver, tileOver } from '../lib/demshade.js';
 import { MAP, ZOOM_STEP, areaAt, fitView, panned, paintMap, projection, zoomed }
@@ -373,25 +374,4 @@ function wire(ui, state, { redraw, both, look, say, sayLand, refresh }) {
         redraw();
     };
     ui.assign.onclick = () => handOver(state, ui.boundary, ui.nameField, say, refresh);
-}
-
-// Invariant 6: what may be assigned, to whom, and whether it is even in this
-// world is the database's to say — and what it says goes on the screen.
-async function handOver(state, boundary, nameField, say, refresh) {
-    if (!state.chosen) { say('Nobody is waiting for land.', true); return; }
-    const ring = ringOf(boundary.value);
-    if (!ring) { say('Put at least three corners on the map first.', true); return; }
-    try {
-        const done = await api.rpc('assign_land', {
-            request_id: state.chosen,
-            geojson: { type: 'Polygon', coordinates: [ring] },
-            name: nameField.value,
-        });
-        say(`${done.name} assigned to ${done.who}.`);
-        state.corners = [];
-        boundary.value = '';
-        await refresh();
-    } catch (err) {
-        say(String(err.body?.message ?? err.message ?? err), true);
-    }
 }
