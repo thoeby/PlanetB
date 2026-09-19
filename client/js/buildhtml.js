@@ -47,6 +47,45 @@ export const HTML = `
   <p class="build-saved status"></p>
 </div>
 
+<div class="section build-ports-section" hidden>
+  <span class="label">Ports</span>
+  <div class="note">What this thing can be told. A switch takes at once;
+    a screen is shown to others after the land's approver says yes.</div>
+  <ul class="build-ports rows"></ul>
+  <p class="build-ports-said status"></p>
+</div>
+
+<div class="section build-movers-section">
+  <span class="label">Movers</span>
+  <div class="note">A bus is not on the land, it moves over it: nothing here is
+    compiled and nobody approves it. Everybody sees it in the same place at the
+    same second, because everybody reads the world's own clock.</div>
+  <ul class="mv-list rows"></ul>
+  <div class="row">
+    <input class="mv-name" type="text" placeholder="Bus 1">
+    <input class="mv-search" type="search" placeholder="which product…">
+  </div>
+  <ul class="mv-found rows"></ul>
+  <div class="row">
+    <button type="button" class="mv-draw">Draw the route</button>
+    <span class="mv-route note"></span>
+  </div>
+  <div class="row">
+    <label class="mv-field">km/h <input class="mv-speed" type="number" value="30"></label>
+    <label class="mv-field">every N min <input class="mv-every" type="number" value="5"></label>
+  </div>
+  <div class="row">
+    <label class="mv-field">stop at m <input class="mv-stop-at" type="number" value="0"></label>
+    <label class="mv-field">for s <input class="mv-stop-s" type="number" value="0"></label>
+    <label class="mv-field row-switch">back and forth
+      <input class="mv-back" type="checkbox"></label>
+  </div>
+  <div class="row">
+    <button type="button" class="mv-make primary">Put it on the route</button>
+  </div>
+  <p class="mv-said status"></p>
+</div>
+
 <div class="section">
   <span class="label">Placed, not yet submitted</span>
   <div class="note">Saved objects are on the land for everyone, marked "not yet

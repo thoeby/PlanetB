@@ -13,6 +13,7 @@
 import * as api from './api.js';
 import { beforeAfter, changeWords, decide, el, noteField, waiting }
     from './permissionui.js';
+import { mountScreens } from './screensui.js';
 
 // Say yes or no, then re-read the list and only then say what happened — a
 // refresh that ran afterwards would wipe the one line that says it.
@@ -56,6 +57,31 @@ function actionsOf(decideWith, ctx, say) {
     };
 }
 
+// Reading the list again: the submissions, the screens beside them, and the
+// one sentence that says what this panel is for.
+function reader({ state, scope, screens, draw, onCount }) {
+    return async () => {
+        if (!api.token()) {
+            state.rows = [];
+            scope.textContent = '';
+            draw();
+            onCount(0);
+            return [];
+        }
+        state.rows = await api.rpc('submissions_waiting').catch(() => []);
+        await screens.refresh();
+        if (!state.rows.some((e) => e.id === state.chosen)) {
+            state.chosen = state.rows[0]?.id ?? null;
+        }
+        scope.textContent = 'What somebody built on land you decide for waits'
+            + ' here until you look at it and say yes or no. Approving opens'
+            + ' its render jobs; what lands is published.';
+        draw();
+        onCount(state.rows.length);
+        return state.rows;
+    };
+}
+
 // The nodes the panel is made of, once.
 function partsOf(host) {
     const ui = {
@@ -79,6 +105,9 @@ export function mountPermission(host, { onGo = () => {}, preview = null,
     onDecided = () => {}, onCount = () => {} } = {}) {
     const ui = partsOf(host);
     const { scope, toggle, count, list, card, status, note } = ui;
+    // FND.15: a screen is approved here too, and is not a submission — saying
+    // yes to one opens no render job (D13).
+    const screens = mountScreens(host, { onGo, onDecided });
 
     const state = { rows: [], chosen: null, after: true };
     // What the card is showing, so it is not rebuilt to say the same thing.
@@ -119,27 +148,9 @@ export function mountPermission(host, { onGo = () => {}, preview = null,
         card.replaceChildren(...decide(entry, acts, note));
     }
 
-    async function refresh() {
-        if (!api.token()) {
-            state.rows = [];
-            scope.textContent = '';
-            draw();
-            onCount(0);
-            return [];
-        }
-        state.rows = await api.rpc('submissions_waiting').catch(() => []);
-        if (!state.rows.some((e) => e.id === state.chosen)) {
-            state.chosen = state.rows[0]?.id ?? null;
-        }
-        scope.textContent = 'What somebody built on land you decide for waits'
-            + ' here until you look at it and say yes or no. Approving opens'
-            + ' its render jobs; what lands is published.';
-        draw();
-        onCount(state.rows.length);
-        return state.rows;
-    }
+    const refresh = reader({ state, scope, screens, draw, onCount });
 
     ui.again.onclick = () => refresh();
     refresh();
-    return { refresh, acts, after: () => state.after };
+    return { refresh, acts, screens, after: () => state.after };
 }

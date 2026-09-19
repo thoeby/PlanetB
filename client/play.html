@@ -80,6 +80,10 @@
   import { mountProfile } from './js/profileui.js';
   import { nearbyInstances } from './js/build.js';
   import { InstancePreview } from './js/preview.js';
+  import { LiveWorld, EVERY_MS, NEAR_M } from './js/live.js';
+  import { LiveDraw } from './js/livedraw.js';
+  import { Movers, EVERY_MS as MOVERS_MS, REACH_M } from './js/movers.js';
+  import { MoverDraw } from './js/moverdraw.js';
   import { XR_LIMITS, teleportTarget, xrRequested, xrSupported } from './js/xr.js';
   import { mountHud, whatIsMissing } from './js/hud.js';
   import { mountNextStep } from './js/nextstep.js';
@@ -386,11 +390,13 @@
     const rows = await nearbyInstances(lon, lat).catch(() => []);
     if (!rows.length) return rows;
     const sans = [...new Set(rows.map((r) => r.san))];
+    // FND.15: and its markings, which say which of its parts are live.
     const assets = await api.select('asset',
-      { san: `in.(${sans.join(',')})`, select: 'san,sha256' }).catch(() => []);
-    const bySan = new Map(assets.map((a) => [a.san, a.sha256]));
+      { san: `in.(${sans.join(',')})`, select: 'san,sha256,parts' }).catch(() => []);
+    const bySan = new Map(assets.map((a) => [a.san, a]));
     return rows.filter((r) => bySan.has(r.san))
-      .map((r) => ({ ...r, sha256: bySan.get(r.san) }));
+      .map((r) => ({ ...r, sha256: bySan.get(r.san).sha256,
+                     parts: bySan.get(r.san).parts ?? {} }));
   }
 
   // WP4.4: the wallet, and the bounty that puts a tile in front of a stranger.
@@ -409,9 +415,24 @@
 
   showCredits();
 
+  // FND.15: what a placed thing is doing right now — a lamp lit, a screen
+  // showing something — over the splats the compiler baked without it.
+  const liveWorld = new LiveWorld();
+  const liveDraw = new LiveDraw(app, pc, { preview, filesUrl: api.endpoints().files });
+
+  // FND.16: the things that move by the world's own clock. Where each is now
+  // is worked out from its route and its timetable, so nothing is stored per
+  // frame and two players see the same bus at the same second.
+  const movers = new Movers();
+  const moverDraw = new MoverDraw(app, pc, { preview, origin });
+
   const build = mountBuild(panelFor('Place', 'build'), {
     app, pc, api, camera, origin, terrain, streamer, player, work, preview,
-    canvas: view, nearby, wallet,
+    canvas: view, nearby, wallet, movers,
+    live: { wrote: (id, port, done) => {
+      liveWorld.wrote(id, port, done.value, done.rev);
+      liveDraw.apply(liveWorld);
+    } },
   });
 
   // SPEC §2.4 "Get land": somebody with none is told who hands it out, and
@@ -900,10 +921,41 @@
   setInterval(showWhatIsAround, 8000);
   showWhatIsAround();
 
+  // FND.15: what changed since the number this tab last saw, for things within
+  // sight of it. Nothing is asked while nobody is looking at the tab — the
+  // lamp will still be lit when they come back.
+  async function whatIsLive() {
+    if (document.hidden) return;
+    const p = camera.getPosition();
+    const g = origin.geodeticOf({ x: p.x, y: p.y, z: p.z });
+    await liveWorld.poll(g.lon, g.lat, NEAR_M).catch(() => 0);
+    // Applied either way: a thing that came into view since the last sweep has
+    // to be put in the state the world already said it was in.
+    liveDraw.apply(liveWorld);
+  }
+  setInterval(whatIsLive, EVERY_MS);
+  whatIsLive();
+
+  const groundUnder = (lon, lat) =>
+    terrain.heightAt(origin.localOf({ lon, lat, h: 0 })) ?? 0;
+
+  async function whatIsMoving() {
+    if (document.hidden) return;
+    if (!movers.checked) await movers.sync();
+    const p = camera.getPosition();
+    const g = origin.geodeticOf({ x: p.x, y: p.y, z: p.z });
+    await movers.near(g.lon, g.lat, REACH_M).catch(() => 0);
+  }
+  setInterval(whatIsMoving, MOVERS_MS);
+  whatIsMoving();
+
   // The traversal is re-run when the view changes or a load settles, and every
   // tenth frame regardless; on the other frames the streamer only places what
   // has arrived. Camera pose is compared as a string: cheap, and exact.
   let lastPose = '', lastPending = -1, lastHud = '', tick = 0;
+  // A mover whose GLB is still being fetched must not be asked for again on
+  // the next frame; the promise is the guard.
+  let placing = null;
   app.on('update', (dt) => {
     // Automate takes the window; nothing is drawn or streamed under it.
     if (paused) return;
@@ -926,6 +978,12 @@
       groundMesh?.rebased();
     }
     groundMesh?.update(camera.getPosition());
+    // FND.16: every mover put where this second says it is. Nothing is stored
+    // per frame — the clock and the route say where it is, for everybody.
+    if (!placing) {
+      placing = moverDraw.place(movers.where(), groundUnder)
+        .finally(() => { placing = null; });
+    }
     build.drawGizmo();
     drawAreas({ pc, app, origin, terrain }, land.areas());
     const labels = document.getElementById('world-labels');
@@ -976,6 +1034,6 @@
     app, pc, api, origin, streamer, camera, rows, terrain, player, setDriving, work, groundMesh,
     hud, setup, admin, symbols, catalog, land, submit, pool, permission, ground,
     share, goTo,
-    spot, build, preview, nearby, areas, wallet, flows, sculpt, xr: { wants: wantsXr, rig: () => rig },
+    spot, build, preview, nearby, areas, wallet, flows, sculpt, live: liveWorld, liveDraw, movers, moverDraw, xr: { wants: wantsXr, rig: () => rig },
   };
 </script>

@@ -9,13 +9,15 @@
 // handle needs a picker this client does not have, and because a test can press
 // a key. Snapping is on by default: a quarter metre, fifteen degrees, a tenth.
 
-import * as api from './api.js';
 import { HTML } from './buildhtml.js';
 import { placementDiff, propose } from './areas.js';
-import { Edits, SNAP, areasAt, raycastGround, snapTo, stepWords, tilesAt }
+import { Edits, SNAP, areasAt, raycastGround, snapTo, tilesAt }
     from './build.js';
-import { searchAssets } from './catalog.js';
-import { assetRow, tileRow } from './buildrows.js';
+import { getAsset, searchAssets } from './catalog.js';
+import { assetRow } from './buildrows.js';
+import { describe, looker, saveAndSay, showChosen } from './buildsay.js';
+import { mountPorts } from './portsui.js';
+import { mountMovers } from './moversui.js';
 
 const AXES = ['x', 'y', 'z'];
 const MODES = { move: 'move', turn: 'turn', size: 'size' };
@@ -103,6 +105,12 @@ class Session {
             { ...pose, sha256: this.state.brush.sha256 });
         this.state.selected = row;
         return this.sync();
+    }
+
+    // FND.16: where on the ground the pointer is, for a route being drawn.
+    at(screen) {
+        const hit = this.ray(screen);
+        return hit ? this.ctx.origin.geodeticOf(hit) : null;
     }
 
     async pick(screen) {
@@ -196,36 +204,6 @@ function keyHandler(state, acts, say) {
     };
 }
 
-function describe(state, depth) {
-    if (state.proposal && !state.selected) {
-        return `proposed ${String(state.proposal).slice(0, 8)} — an approver has to merge it`;
-    }
-    if (!state.selected) {
-        return `${state.brush ? `brush ${state.brush.san}` : 'nothing selected'}`
-            + ` · ${depth} undoable`;
-    }
-    return `${state.selected.san} · ${state.mode} ${state.axis}`
-        + ` · scale ${Number(state.selected.scale ?? 1).toFixed(2)} · ${depth} undoable`;
-}
-
-// SPEC §3.4: "you may not build here (owner Anna)" — the sentence names the
-// land and the person, because "5842edf5" is not an answer to "why not".
-const whereText = (state, areas) => {
-    if (!state.area) {
-        const theirs = areas[0];
-        return theirs
-            ? `you may not build here — ${theirs.name} belongs to ${theirs.owner}.`
-              + ' Ask them for a build grant'
-            : 'you may not build here — nobody owns this ground. Ask an admin'
-              + ' for land';
-    }
-    const how = state.area.may_write ? 'building on' : 'proposing to';
-    return `${how} ${state.area.name} · detail ${state.area.detail}`;
-};
-
-// Build mode takes the keyboard and the pointer off the player: the camera
-// stands still and the cursor is free, which is what makes a click a placement
-// rather than a request for pointer lock.
 function toggler(host, ctx, state, { acts, onKey, onClick, say }) {
     return (on) => {
         state.on = on ?? !state.on;
@@ -281,28 +259,16 @@ function wire(host, state, { toggle, catalog, acts, say }) {
 
 // The buttons say what is chosen, so nothing on this panel is only in
 // somebody's head (T5).
-function showChosen(host, state) {
-    for (const b of host.querySelectorAll('[data-mode]')) {
-        b.dataset.on = b.dataset.mode === state.mode ? '1' : '';
-    }
-    for (const b of host.querySelectorAll('[data-axis]')) {
-        b.dataset.on = b.dataset.axis === state.axis ? '1' : '';
-    }
-    const step = host.querySelector('.build-step');
-    if (step) step.textContent = stepWords(state);
-}
-
-// SPEC §3.4 step 4: "2 objects saved · 1 tile changed". The numbers are the
-// world's own — what was written, and what the tiles say afterwards.
-async function saveAndSay(session, refresh, line) {
-    const done = await session.save();
-    const tiles = await refresh();
-    const changed = (tiles ?? []).filter((t) => t.dirty).length;
-    line.textContent = done.objects
-        ? `${done.objects} object${done.objects === 1 ? '' : 's'} saved`
-          + ` \u00b7 ${changed} tile${changed === 1 ? '' : 's'} changed`
-        : 'nothing to save — place something first';
-    return done;
+function followSelection(state, ports) {
+    let showing = null;
+    return async () => {
+        const row = Edits.isPlacing(state.selected) ? null : state.selected;
+        if ((row?.id ?? null) === showing) return;
+        showing = row?.id ?? null;
+        const asset = row ? await getAsset(row.san).catch(() => null) : null;
+        await ports.show(row && { id: row.id, san: row.san,
+            mine: Boolean(state.area?.may_write) }, asset);
+    };
 }
 
 export function mountBuild(host, ctx) {
@@ -311,33 +277,18 @@ export function mountBuild(host, ctx) {
     const session = new Session(ctx, () => say());
     const { state } = session;
 
+    const ports = mountPorts(host, { wrote: ctx.live?.wrote });
+    const showPorts = followSelection(state, ports);
+    // FND.16: the buses on this land, and the route being drawn for a new one.
+    const movers = mountMovers(host, { clock: () => ctx.movers?.clock() ?? Date.now() / 1000 });
+
     const say = () => {
         q('.build-sel').textContent = describe(state, session.edits.depth);
         showChosen(host, state);
+        showPorts();
     };
 
-    async function render(tile, btn) {
-        btn.disabled = true;
-        const job = await api.rpc('ensure_job', { z: tile.z, x: tile.x, y: tile.y });
-        btn.textContent = `job ${job}`;
-        ctx.work?.refresh?.();
-        // WP4.4: a job is what a bounty attaches to, so the wallet is told
-        // which one the player just opened.
-        ctx.wallet?.target?.(tile, job);
-    }
-
-    // Where you are and what you may do here is worth saying whether or not
-    // build mode is on: a player opens this panel to find out.
-    async function refresh() {
-        say();
-        const { areas, tiles } = await session.look();
-        q('.build-where').textContent = whereText(state, areas);
-        q('.build-tiles').replaceChildren(...tiles.map((t) => tileRow(t, render)));
-        const open = tiles.find((t) => t.job_id) ?? tiles.find((t) => t.dirty);
-        if (open) ctx.wallet?.target?.(open, open.job_id ?? null);
-        return tiles;
-    }
-
+    const refresh = looker(host, ctx, session, say, movers);
     const after = (fn) => async (...args) => {
         const r = await fn(...args);
         await refresh();
@@ -356,6 +307,9 @@ export function mountBuild(host, ctx) {
     const onClick = async (e) => {
         const rect = ctx.canvas.getBoundingClientRect();
         const screen = { x: e.clientX - rect.left, y: e.clientY - rect.top };
+        // A click while a route is being drawn is a corner of it, and neither
+        // a thing being picked up nor a thing being put down.
+        if (movers.drawing()) { movers.corner(session.at(screen)); return; }
         if (!(await session.pick(screen))) await acts.place(screen);
     };
 
@@ -364,7 +318,8 @@ export function mountBuild(host, ctx) {
     wire(host, state, { toggle, catalog, acts, say });
     say();
 
-    return { state, toggle, refresh, catalog, ...acts, pick: (s) => session.pick(s),
+    return { state, toggle, refresh, catalog, ports, movers, ...acts,
+        pick: (s) => session.pick(s),
         drawGizmo: () => drawGizmo(ctx, state), edits: session.edits,
         setBrush: (a) => { state.brush = a; say(); } };
 }

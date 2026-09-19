@@ -127,3 +127,23 @@ what the ELX carries.
 Every flow is made with the inputs `world` and `world_key`. While a World block
 is in the flow neither can be removed — the row says "used by World blocks" —
 because that is the address it writes to and the login it writes as.
+
+## Live, and the clock
+
+FND.15 and FND.16 give a flow two more things to reach for, and give a player
+both of them by hand first.
+
+**Ports.** `port_write(p_instance, p_port, p_value)` is implemented for a
+player (db/0169): whoever may build on the land a thing stands on may set any
+port its product declares, and the value is held to that port's kind. It still
+refuses a flow, which has no login of its own until F10. `live_near` is how a
+page asks what has changed since the number it last saw; `live_of` is what one
+thing is set to.
+
+**Movers.** `mover_set(p_mover, p_fields)` is implemented too (db/0172), with
+`movers_near` and `movers_on` beside it. A mover is a line, a speed and a
+timetable; `world_clock()` is what makes two players see the same bus at the
+same second, and it has answered since FND.14.
+
+`world_events` is still the one that refuses everybody. Nothing reads the
+events yet — flows do, from F10 — but they are written now.

@@ -25,6 +25,7 @@ export class InstancePreview {
         this.glbs = new Map();                     // sha256 -> Uint8Array
         this.models = new Map();                   // sha256 -> [MeshInstance specs]
         this.entities = new Map();                 // instance id -> Entity
+        this.parts = new Map();                    // instance id -> part name -> Entity
         this.rows = new Map();                     // instance id -> row
     }
 
@@ -53,7 +54,9 @@ export class InstancePreview {
             const material = new pc.StandardMaterial();
             material.diffuse = new pc.Color(src.colors[0], src.colors[1], src.colors[2]);
             material.update();
-            return { mesh, material };
+            // FND.15: which marked part this came off, so a live one can be
+            // told things without the rest of the model hearing.
+            return { mesh, material, part: src.part ?? null };
         });
         this.models.set(sha, parts);
         return parts;
@@ -86,13 +89,34 @@ export class InstancePreview {
         const { pc } = this;
         const parts = await this.model(row.sha256);
         const entity = new pc.Entity(`instance:${row.id}`);
-        entity.addComponent('render', {
-            meshInstances: parts.map((p) => new pc.MeshInstance(p.mesh, p.material)),
-        });
+        // FND.15: a marked part is its own child entity with a material of its
+        // own — a pose it can be put in, and a colour that is this lamp's and
+        // not every lamp of that product's.
+        const byPart = new Map();
+        const plain = [];
+        for (const p of parts) {
+            if (!p.part) { plain.push(new pc.MeshInstance(p.mesh, p.material)); continue; }
+            const material = p.material.clone();
+            material.update();
+            if (!byPart.has(p.part)) byPart.set(p.part, []);
+            byPart.get(p.part).push(new pc.MeshInstance(p.mesh, material));
+        }
+        entity.addComponent('render', { meshInstances: plain });
+        const kids = new Map();
+        for (const [name, meshInstances] of byPart) {
+            const kid = new pc.Entity(`part:${name}`);
+            kid.addComponent('render', { meshInstances });
+            entity.addChild(kid);
+            kids.set(name, kid);
+        }
+        this.parts.set(row.id, kids);
         this.app.root.addChild(entity);
         this.entities.set(row.id, entity);
         return entity;
     }
+
+    // The marked parts of one placed thing, by name (client/js/live.js).
+    partsOf(id) { return this.parts.get(id) ?? new Map(); }
 
     // Placed by geodetic position, so a rebase moves it correctly rather than
     // by an offset (origin.js says why).
@@ -115,6 +139,7 @@ export class InstancePreview {
     drop(id) {
         this.entities.get(id)?.destroy();
         this.entities.delete(id);
+        this.parts.delete(id);
         this.rows.delete(id);
     }
 

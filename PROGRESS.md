@@ -2453,3 +2453,93 @@ nothing to copy, never said anything else: the last word on the screen was that
 it was still reading, for an assignment that had finished. It now puts the
 assignment's own sentence back. Story 16, which assigns a land before it draws
 anything, is what caught it.
+
+## FND.15: a thing can be told things
+
+A tile is the world as it was compiled. A lamp being switched on is not a
+reason to compile it again — so what a placed thing is told lives beside it in
+`live_state` (`db/0169`) and is drawn over the splats
+(`client/js/livedraw.js`): a light's own head made emissive with an additive
+glow over it, a screen as a quad the size of the part the maker marked, a door
+or a rotor turned about the axis it was given. The compiler already bakes
+neither the glow nor the screen (`client/atoms/assemble.js`), which is why
+both are drawn here and nowhere else.
+
+**Which ports a thing has is the product's** (FND.6, db/0160), and what each
+may be set to is checked in the database: a switch is not told a word, a
+colour is `#rrggbb`, a screen names a picture the world already holds as a
+`material` artifact. The page says the same sentences first; the database is
+what decides (Invariant 6).
+
+**Who may set one is whoever may build on the land it stands on** — not the
+person who put it there, because nobody records that (PLAYER-RUN.md), and not
+everybody, or a lamp is a thing passers-by switch. `port_write` is the only
+thing that writes the table; no INSERT or UPDATE grant is given to anybody.
+
+**One port is not like the others.** An `image` is an advertisement on
+somebody's land, so it is written as *pending* and everybody goes on seeing
+the old one until the land's approver says yes (D13, `db/0170`). Approving it
+compiles nothing: the splats are exactly what they were, and only the picture
+over them changes — so it is in the Permission panel beside the submissions
+rather than among them, where approving opens render jobs. Submit counts it
+with everything else the land has changed.
+
+**Events are written and nothing reads them yet.** `port_changed` is written
+where the change is made, by a trigger; `click`, `enter` and `leave` are the
+page's, through `record_event`, at most one a second per player per thing —
+the difference between a record and a flood. Flows read them from F10; an
+event nobody recorded is an event nobody can replay.
+
+**The sweep is "what changed since the number I last saw"**, for things within
+five hundred metres, every three seconds, and not at all while nobody is
+looking at the tab. `live_near` answers with a rev from a sequence that counts
+across the whole table, because a per-row counter cannot answer that question.
+What this tab wrote itself is shown at once rather than three seconds later.
+
+Two small changes elsewhere made room for it: `client/js/preview.js` now gives
+each marked part its own child entity with a material of its own (one lamp
+lighting up must not light every lamp of that product), and `buildui.js` was
+split — the sentences the Place panel says are `client/js/buildsay.js` now —
+to stay under the 400 lines CLAUDE.md allows.
+
+Story 30 is **green** (against the same replay world stories 29 and 16 were
+run against; the whole run in order is still stopped at story 8). Three
+departures it made me write down:
+
+- **A screen is the marked part's own surface**, not a quad over it. A quad
+  the size of the part is a second surface in exactly the same place, and
+  which of the two a frame draws is the depth buffer's guess. It cost a run
+  to find out.
+- **What a screen shows is asserted as the sha256 the tab is drawing with**,
+  not as pixels. A canonical GLB carries positions and normals and no texture
+  coordinates (`client/lib/glbmesh.js`), so a picture on a screen renders as a
+  flat wash of one of its colours — a comparison that would pass whatever
+  picture arrived. The lamp is asserted in pixels, because a glow is a glow.
+- **The stranger in step 4 is a fourth player.** The task says "C (no
+  rights)", but C asked B for a build grant on that land in story 10 and was
+  given one, so a lamp on it is as much C's to switch as B's. Dora signs up
+  and walks past instead.
+
+## FND.16: things that move by the clock
+
+A bus is not on the land, it moves over it: a line, a speed and a timetable
+(`db/0171`), and where it is at any second is worked out from those three by
+`client/lib/route.js`. Nothing is stored per frame, no tile is dirtied, and
+nobody approves it — there is nothing baked to approve.
+
+**Two players see the same bus at the same second** because neither tab is
+told where it is. Each measures its own clock against `world_clock()` once at
+load and works the position out from there, so a laptop whose clock is two
+minutes out sees the same bus as everybody else.
+
+**Where a bus may go is the land's to say** (Invariant 6): inside the land, or
+along a road that land owns, with a metre of slack because a line drawn on a
+map is drawn by hand. `mover_set` is the one verb that makes or changes one;
+it was FND.14's stub refusing everybody, and it now answers a player and goes
+on refusing a flow, which has no login of its own until F10.
+
+The route is drawn on the ground the way a boundary is — press Draw, click the
+corners, press it again — and the Movers list shows what runs on whichever
+land is under you, whether or not you may build on it, with a countdown that
+counts down. A bus everybody can see is a bus everybody can read the timetable
+of.

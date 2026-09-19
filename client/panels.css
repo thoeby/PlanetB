@@ -283,3 +283,44 @@
   border: 1px solid var(--line);
 }
 #panel .cv-unmapped { opacity: 0.65; }
+
+/* Place → Ports (FND.15): what a placed thing can be told, one line per port,
+   with the widget its kind asks for. A screen says what is waiting on it. */
+#panel .build-ports { margin: 6px 0; padding: 0; }
+#panel .build-ports li {
+  display: flex; gap: 8px; align-items: center; flex-wrap: wrap;
+  font-size: 12px; margin: 3px 0;
+}
+#panel .pt-name { flex: 0 0 auto; color: var(--ink-3); font-family: var(--mono); }
+#panel .pt-value { flex: 1; min-width: 80px; }
+#panel .pt-image { flex: 1 1 100%; }
+#panel .pt-image .pt-picture { width: 100%; }
+#panel .pt-found { margin: 4px 0; padding: 0; }
+#panel .pt-found li { margin: 1px 0; }
+#panel .pt-waiting { flex: 0 0 auto; font-size: 10px; }
+
+/* Permission → Screens (FND.15, D13): approving one compiles nothing, so it
+   is beside the submissions rather than among them. The prefix is `scr-`, not
+   `sc-`: Sculpt had that one first (client/js/sculptui.js). */
+#panel .scr-list { margin: 6px 0; padding: 0; }
+#panel .scr-screen {
+  display: grid; grid-template-columns: 64px 1fr; gap: 8px; align-items: center;
+  margin: 6px 0; font-size: 12px;
+}
+#panel .scr-shot {
+  width: 64px; height: 40px; object-fit: cover; grid-row: span 2;
+  border: 1px solid var(--line); background: var(--ground);
+}
+#panel .scr-screen .row { grid-column: 2; }
+
+/* Place → Movers (FND.16): a bus is a product, a line, a speed and a
+   timetable — and nothing on this list is ever submitted. */
+#panel .mv-list { margin: 6px 0; padding: 0; }
+#panel .mv-one {
+  display: flex; gap: 8px; align-items: center; font-size: 12px; margin: 3px 0;
+}
+#panel .mv-words { flex: 1; }
+#panel .mv-found { margin: 4px 0; padding: 0; }
+#panel .mv-field { display: flex; gap: 4px; align-items: center; font-size: 11px; }
+#panel .mv-field input[type="number"] { width: 64px; }
+#panel .mv-route { font-size: 11px; }
