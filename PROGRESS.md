@@ -2063,3 +2063,58 @@ does, as the player, under the same row-level security. It finds the API the
 way the page does, by reading the world's own `splatworld:api` meta tag. A
 plain script rather than a Processing algorithm, because headless QGIS runs a
 plain script and the choice was left open; `docs/manual.md` records it.
+
+## FND.11: what cannot be driven, what takes the ground away, and the shapes that are gone
+
+Story 26: B's road across the hillside is flagged on Submit and sent anyway; B
+puts the tunnel portal of story 21 against the slope and the compiler builds no
+ground where its mouth is; the operator turns the last `terrainmod` shapes into
+the grid that moves the ground now, and QGIS stops offering the kind.
+
+**A road across a slope is said, never refused.** `client/lib/gen/check.js`
+samples the ground across every line every five metres; over the symbol's
+`max_cross_slope` it is a flag. The same function runs in the page
+(`client/js/roadcheck.js`) over the land's own lines, so the owner reads on
+Submit what the approver is about to be shown, with a Go button to each place.
+It is a warning: a road across a slope is a road somebody may mean to build.
+
+**An opening is a part that takes the ground away.** A product marked with an
+`opening` (FND.6) keeps that node as a mesh of its own in canon-v2, named
+`open:<name>`, and `assemble-v8` places the instances **before** it builds the
+ground so the footprints of those meshes can be cut out of it: no terrain
+triangle whose middle falls in one, and no height in the collider there. The
+player walks into the portal's mouth.
+
+**The old shapes are the grid, said twice.** A `terrainmod` flattened, raised,
+lowered or smoothed whatever fell inside it, every time the tile was built. The
+land's grid says the same thing and says it once, so the operator converts them
+(Settings → Setup) and the world only counts what is left (db/0142). The
+conversion runs in a tab like everything else (Invariant 9) and reads the
+**operator's elevation** — the cut DEM tiles, not the ground the page is
+standing on, which already has both the grid and the shapes in it.
+`client/test/terrainmod.test.js` proves the two grounds are the same to the
+centimetre rather than by looking at two pictures.
+
+**The kind is retired, not dropped** (db/0143). The shapes that were are still
+rows pointing at it and this world removes nothing (Invariant 1), so it loses
+its geometry instead — "null for things that are not drawn at all" (db/0040) —
+and every project downloaded after that has no Terrain edit layer in it. Its
+symbol goes with it the one way a symbol ever reaches the world: pinned into a
+new `style_version`, with the jobs in flight moved, exactly as `apply_styles`
+does. Turning it off without pinning would move every tile's snapshot behind
+the operator's back (Invariant 2).
+
+**Two traps paid for.** A function PostgREST calls resolves `area` and
+`feature` to the **views** in `api`, not the tables in `public`: `old_shapes`
+needed `SET search_path = public` and `public.area_view`, and it passed pgTAP
+until the test was made to set the same path PostgREST does. And the
+conversion is the operator's, on every land at once, which no landholder rule
+allows — `may_shape` is `is_area_proposer(...) OR admin`, and for a player
+nothing changes, including the sentence they are refused with.
+
+**`RUN_KEEP_WORLD=1` and `tools/replay.sh`.** The gate is the whole run from an
+empty database, an hour and a half of it, and writing its last story cannot
+cost that per attempt. The tool saves the database, the store and the
+`ALTER DATABASE` settings a dump never carries, puts them back, and the fixture
+skips emptying the world when asked. It proves nothing: a story is green when
+the whole run is.

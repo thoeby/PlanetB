@@ -12,16 +12,33 @@
 const num = (v, fallback) => (Number.isFinite(Number(v)) ? Number(v) : fallback);
 
 export function run(params, feature, ctx) {
-    const width = num(params.width, 5);
-    const limit = num(params.max_cross_slope, 8) / 100;
-    const every = Math.max(1, num(params.every, 5));
+    return { flags: flagsAlong(feature.lines ?? [], params,
+        (x, z) => ctx.terrain.at(x, z)) };
+}
+
+/**
+ * The same measurement the page makes on Submit, over lines in metres.
+ *
+ * FND.11: a road laid across a hillside without shaping the ground first is a
+ * road nobody can drive. It is a warning and never a refusal — the submission
+ * goes through and says this.
+ *
+ * @param {Array<Array<[number, number]>>} lines
+ * @param {{width?: number, max_cross_slope?: number, every?: number}} params
+ * @param {(x: number, z: number) => number} heightAt
+ */
+export function flagsAlong(lines, params, heightAt) {
+    const width = num(params?.width, 5);
+    const limit = num(params?.max_cross_slope, 8) / 100;
+    const every = Math.max(1, num(params?.every, 5));
     const flags = [];
-    for (const line of feature.lines ?? []) {
+    for (const line of lines ?? []) {
         for (let i = 0; i + 1 < line.length; i++) {
-            flags.push(...alongSegment(line[i], line[i + 1], width, limit, every, ctx));
+            flags.push(...alongSegment(line[i], line[i + 1], width, limit, every,
+                { terrain: { at: heightAt } }));
         }
     }
-    return { flags };
+    return flags;
 }
 
 function alongSegment(a, b, width, limit, every, ctx) {

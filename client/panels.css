@@ -271,3 +271,11 @@
 #panel .sc-brush.picked { border-color: var(--accent); color: var(--accent); }
 #panel .sc-on-box { display: flex; gap: 6px; align-items: center; }
 #panel .sc-said { font-size: 11px; }
+
+/* FND.11: the places a road crosses a slope it should not. A warning with a
+ * way to go and look at each one, never a refusal. */
+#panel .su-flag {
+  display: flex; gap: 8px; align-items: center; justify-content: space-between;
+  font-size: 12px; margin: 2px 0;
+}
+#panel .su-go { padding: 2px 10px; }

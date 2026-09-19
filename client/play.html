@@ -483,6 +483,13 @@
       // Something was sent for a decision: the person who decides may be this
       // same player, and the panel that shows it is one tab away.
       onSubmitted: () => { pool.refresh(); land.refresh(); permission.refresh(); },
+      // FND.11: the roads that cannot be driven across, measured here with the
+      // compiler's own code before the approver is shown them.
+      ground: (lon, lat) => terrain.heightAt(origin.localOf({ lon, lat, h: 0 })) ?? 0,
+      onGo: (at) => {
+          const p = origin.localOf({ lon: at.lon, lat: at.lat, h: at.h ?? 0 });
+          player.position = { x: p.x, y: p.y + 2, z: p.z + 8 };
+      },
       onCount: (p) => {
           // The route through the app, as the chrome shows it. Every number
           // is one area_progress already reports; none is invented here.

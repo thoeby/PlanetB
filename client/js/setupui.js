@@ -11,6 +11,7 @@
 // PostgREST like every other write and the database decides who may (T0, §6).
 
 import * as api from './api.js';
+import { convertAll, oldShapes } from './oldshapes.js';
 import { el } from './chrome.js';
 import { bundledPlugins, bundlePlugins } from './flows.js';
 import { checkingServer, setCheckingServer } from './flowcheck.js';
@@ -68,6 +69,12 @@ const HTML = `
       <button type="button" class="gs-ladd">Add layer</button>
     </div>
     <ul class="gs-layers"></ul>
+    <!-- FND.11: the shapes that used to move the ground, while any are left.
+         Converting them is a tab's work, not the world's (Invariant 9). -->
+    <div class="gs-old" hidden>
+      <p class="gs-old-said status"></p>
+      <button type="button" class="gs-old-go">Convert</button>
+    </div>
     <p class="gs-drawer note"></p>
   </div>
 </div>
@@ -196,6 +203,47 @@ async function again(q, say) {
     }
 }
 
+// FND.11: how many old terrain-edit shapes are left, and the button that
+// turns them into the grid that moves the ground now (client/js/oldshapes.js).
+async function showOldShapes(q, say) {
+    const said = await oldShapes();
+    const n = Number(said?.shapes ?? 0);
+    q('.gs-old').hidden = !n;
+    if (!n) return;
+    const lands = (said.lands ?? []).length;
+    say('.gs-old-said', `Old terrain edits: ${n} on ${lands}`
+        + ` land${lands === 1 ? '' : 's'} \u2014 convert`);
+}
+
+// Every button of the panel, once.
+function wireSetup(q, say, { show, done, layers }) {
+    q('.gs-connect').onclick = () => connect(q, say).then((c) => {
+        layers.found = c;
+        q('.gs-llayer').replaceChildren(...c.map((l) => new Option(l.title, l.id)));
+    }).catch((err) => say('.gs-status', String(err.message ?? err), true));
+    q('.gs-ladd').onclick = () => addLayer(q, say, layers.found, show);
+    q('.gs-blocks').onclick = () => registerBlocks(q, say);
+    wireCheckingServer(q, say);
+    q('.gs-done').onclick = () => done();
+    q('.gs-again').onclick = () => again(q, say);
+    q('.gs-old-go').onclick = () => convertOld(q, say, show);
+}
+
+async function convertOld(q, say, show) {
+    q('.gs-old-go').disabled = true;
+    say('.gs-old-said', 'converting\u2026');
+    try {
+        const got = await convertAll();
+        say('.gs-old-said', `converted ${got.shapes} shape(s) on ${got.lands}`
+            + ` land${got.lands === 1 ? '' : 's'}`);
+        await show();
+    } catch (err) {
+        say('.gs-old-said', String(err.body?.message ?? err.message ?? err), true);
+    } finally {
+        q('.gs-old-go').disabled = false;
+    }
+}
+
 // The ground's layers (db/0106): what there is, and a way to take one out.
 function listLayers(q, g, refresh) {
     const items = (g?.layers ?? []).map((l) => {
@@ -267,11 +315,13 @@ export function mountSetup(host, { onGround = () => {} } = {}) {
         node.dataset.bad = bad ? '1' : '';
     };
 
-    let found = [];
+    // What the GeoServer said it publishes, once it has been asked.
+    const layers = { found: [] };
 
     async function show() {
         const g = await api.rpc('ground').catch(() => null);
         say('.gs-ground', describe(g));
+        await showOldShapes(q, say);
         listLayers(q, g, show);
         markSteps(q, g);
         if (g?.geoserver_url && !q('.gs-url').value) q('.gs-url').value = g.geoserver_url;
@@ -282,7 +332,7 @@ export function mountSetup(host, { onGround = () => {} } = {}) {
     // The world's ground. set_ground is an RPC, so an install with somebody
     // else's world already on it refuses this unless you are an admin.
     async function done() {
-        const chosen = found.find((c) => c.id === q('.gs-coverage').value);
+        const chosen = layers.found.find((c) => c.id === q('.gs-coverage').value);
         if (!chosen) return;
         const [west, south, east, north] = bbox(chosen);
         q('.gs-done').disabled = true;
@@ -303,20 +353,12 @@ export function mountSetup(host, { onGround = () => {} } = {}) {
         }
     }
 
-    q('.gs-connect').onclick = () => connect(q, say).then((c) => {
-        found = c;
-        q('.gs-llayer').replaceChildren(...c.map((l) => new Option(l.title, l.id)));
-    }).catch((err) => say('.gs-status', String(err.message ?? err), true));
-    q('.gs-ladd').onclick = () => addLayer(q, say, found, show);
-    q('.gs-blocks').onclick = () => registerBlocks(q, say);
-    wireCheckingServer(q, say);
-    q('.gs-done').onclick = () => done();
-    q('.gs-again').onclick = () => again(q, say);
+    wireSetup(q, say, { show, done, layers });
 
     show();
     // Where client/play.html mounts the sign-in form, so step 1 is a step
     // rather than a form at the bottom of the panel.
     return { refresh: show, done, account: q('.gs-account'),
         blocks: () => registerBlocks(q, say),
-        connect: () => connect(q, say).then((c) => { found = c; }) };
+        connect: () => connect(q, say).then((c) => { layers.found = c; }) };
 }

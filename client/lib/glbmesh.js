@@ -32,8 +32,12 @@ function canonicalMeshes(json) {
     if (!plain || json.meshes?.length !== nodes.length) {
         throw new Error('a canonical GLB is expected here: run canon-v1 over it first');
     }
-    return nodes.map((n, i) => ({ part: n.name?.startsWith('part:')
-        ? n.name.slice(5) : null, mesh: json.meshes[i] }));
+    return nodes.map((n, i) => ({
+        part: n.name?.startsWith('part:') ? n.name.slice(5) : null,
+        // FND.11: where this model takes the ground away, if it does.
+        opening: n.name?.startsWith('open:') ? n.name.slice(5) : null,
+        mesh: json.meshes[i],
+    }));
 }
 
 // One entry per primitive, in lib/mesh.js's unpacked shape. A primitive of a
@@ -45,16 +49,17 @@ export function meshesOf(glb, { skip = null } = {}) {
     const buffers = resolveBuffers(json, bin);
     return canonicalMeshes(json)
         .filter((m) => !(skip && m.part && skip.has(m.part)))
-        .flatMap((m) => m.mesh.primitives.map((prim) => partMesh(json, buffers, prim, m.part)));
+        .flatMap((m) => m.mesh.primitives.map(
+            (prim) => partMesh(json, buffers, prim, m.part, m.opening)));
 }
 
-function partMesh(json, buffers, prim, part) {
+function partMesh(json, buffers, prim, part, opening = null) {
     const positions = Float32Array.from(readAccessor(json, buffers, prim.attributes.POSITION));
     const normals = Float32Array.from(readAccessor(json, buffers, prim.attributes.NORMAL));
     const colour = colourOf(json.materials?.[prim.material]);
     const colors = new Float32Array(positions.length);
     for (let i = 0; i < colors.length; i += 3) colors.set(colour, i);
-    return { positions, normals, colors, part,
+    return { positions, normals, colors, part, opening,
         indices: Uint32Array.from(readAccessor(json, buffers, prim.indices)) };
 }
 

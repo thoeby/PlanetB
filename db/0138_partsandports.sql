@@ -245,7 +245,7 @@ SELECT jsonb_build_object(
           AND st_intersects(i.geom, tile_bbox(z, x, y))), '[]'::jsonb));
 $$;
 
--- db/0135's build_dag, with assemble at `assemble-v7`.
+-- db/0135's build_dag, with assemble at `assemble-v8`.
 --
 -- Invariant 2: the atom leaves a screen part's surface unbaked now, so a
 -- worker running the old code would bake a billboard the page then draws over.
@@ -271,7 +271,7 @@ BEGIN
     IF leaf THEN
         base := jsonb_build_object('snapshot', snap,
             'glb', instance_glbs(a_z, a_x, a_y)) || geo_inputs(a_z, a_x, a_y);
-        asm := new_atom(a_job, 'assemble', 'assemble-v7', base,
+        asm := new_atom(a_job, 'assemble', 'assemble-v8', base,
             jsonb_build_object('z', a_z, 'x', a_x, 'y', a_y,
                                'budget', budget), 0, '{}');
         i := 0;

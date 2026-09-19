@@ -76,6 +76,9 @@ function emptyDatabase() {
     if (done.status !== 0) {
         throw new Error(`make db-reset failed:\n${done.stderr || done.stdout}`);
     }
+}
+
+function runSize() {
     if (process.env.RUN_FULL_SIZE === '1') return;
     const db = process.env.PGDATABASE ?? 'splatworld';
     for (const [key, value] of [SMALL, ITERS, PX, LEASE]) {
@@ -220,11 +223,21 @@ function forgetGround() {
     try { chmodSync(join(FILES_ROOT, 'geo'), 0o1777); } catch { /* let a write fail */ }
 }
 
+// A run starts from an empty database and an empty store, always — that is
+// the gate. RUN_KEEP_WORLD=1 is for the person writing a late story: with
+// tools/replay.sh it puts back the world the stories before it left, so the
+// one being written can be run again in minutes instead of an hour and a
+// half. Nothing but a developer's own shell ever sets it.
+const keepingTheWorld = () => process.env.RUN_KEEP_WORLD === '1';
+
 export async function startWorld() {
     seedDem();
     seedFixtures();
-    emptyDatabase();
-    emptyStore();
+    if (!keepingTheWorld()) {
+        emptyDatabase();
+        emptyStore();
+    }
+    runSize();
     const stops = [];
     const geoserver = switchable(await startGeoServer());
     stops.push(() => geoserver.stop());

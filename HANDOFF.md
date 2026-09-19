@@ -525,6 +525,25 @@ Commit message `WPx.y: <task title>`. If you deviate from `TASKS.md`, say so in
 the commit body and add a row to `PROGRESS.md` — every deviation so far is
 recorded there, and that record is the reason this handoff is short.
 
+### Writing the last story of a run without paying for the whole run
+
+`make player-run` is the gate and it is an hour and a half from an empty
+database. Iterating on its last story that way is not a loop anybody can
+work in, so:
+
+```
+bash tools/replay.sh save after-25          # a run that got that far
+bash tools/replay.sh load after-25
+RUN_KEEP_WORLD=1 make player-run RUN_ARGS=client/test/run/26-*.spec.js
+```
+
+`replay.sh` saves the database, the file store and the `ALTER DATABASE`
+settings a dump never carries (the JWT secret and the run's small render
+numbers, without which nobody can sign in), and puts all three back.
+`RUN_KEEP_WORLD=1` is the only thing that stops the fixture emptying the
+world; nothing but a developer's own shell ever sets it, and the gate is
+still the whole run from empty. A story is green when that is green.
+
 ### What is left, and what it needs
 
 Nothing in `TASKS.md` is unticked. Four things are unrun rather than undone, and

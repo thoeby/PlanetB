@@ -1,4 +1,4 @@
-// assemble.js — `assemble-v7`. The world, as geometry, in one tile's own frame.
+// assemble.js — `assemble-v8`. The world, as geometry, in one tile's own frame.
 //
 // Terrain from the seeded DEM, cut by terrainmods and roads; footprints
 // extruded; forests scattered; water laid flat; the ground coloured by its own
@@ -26,7 +26,8 @@ import { context, runAll } from '../lib/gen/index.js';
 import { rngOf, sampleSurfaces } from '../lib/sampling.js';
 import { writeTar } from '../lib/tar.js';
 import {
-    GRID, Terrain, applyHeightEdits, cutRoads, heightRaster, terrainMesh,
+    GRID, Terrain, applyHeightEdits, cutRoads, heightRaster, openHeights,
+    terrainMesh,
 } from '../lib/terrain.js';
 import { readR32 } from '../lib/r32.js';
 import { localFromLonLat, lonLatFromLocal, tileBbox, tileFrame } from '../lib/tilemath.js';
@@ -34,7 +35,7 @@ import { localFromLonLat, lonLatFromLocal, tileBbox, tileFrame } from '../lib/ti
 // v4 writes each surface's own colour and leaves the light to the one
 // renderer (client/lib/raster.js); v3 had baked it for a sampled baseline
 // that is gone. The cut elevation is read whole (terrain.js GRID).
-export const ALGO = 'assemble-v7';
+export const ALGO = 'assemble-v8';
 
 // What assemble and sample both use to turn surfaces into splats; re-exported
 // because both atoms have always reached for them here.
@@ -113,9 +114,28 @@ function clip(meshes, sw, ne) {
 const liveSurfaces = (parts) => new Set((parts?.parts ?? [])
     .filter((p) => p.role === 'screen').map((p) => p.name));
 
+// FND.11: where a placed model takes the ground away — the box its opening's
+// own triangles cover, in the tile's frame.
+function openingsOf(placed) {
+    const out = [];
+    for (const m of placed) {
+        if (!m.opening) continue;
+        let [x0, z0, x1, z1] = [Infinity, Infinity, -Infinity, -Infinity];
+        for (let i = 0; i < m.positions.length; i += 3) {
+            x0 = Math.min(x0, m.positions[i]);
+            x1 = Math.max(x1, m.positions[i]);
+            z0 = Math.min(z0, m.positions[i + 2]);
+            z1 = Math.max(z1, m.positions[i + 2]);
+        }
+        if (Number.isFinite(x0)) out.push([x0, z0, x1, z1]);
+    }
+    return out;
+}
+
 function placeInstances(instances, assets, frame) {
     const meshes = [];
     const boxes = [];
+    const openings = [];
     let missing = 0;
     for (const i of instances ?? []) {
         const glb = assets.get(i.sha256);
@@ -125,10 +145,11 @@ function placeInstances(instances, assets, frame) {
         const placed = placeMeshes(glb, { at, yaw: i.yaw ?? 0, pitch: i.pitch ?? 0,
             roll: i.roll ?? 0, scale: i.scale ?? 1, material: 'asset',
             skip: liveSurfaces(i.parts) });
+        openings.push(...openingsOf(placed));
         meshes.push(...placed);
         boxes.push(colliderOf(placed, at));
     }
-    return { meshes, boxes, missing };
+    return { meshes, boxes, openings, missing };
 }
 
 function colliderOf(meshes, at) {
@@ -180,16 +201,19 @@ function build({ z, sw, ne, dem, frame, world, random, assets, products,
         // The roads every `surface` layer gathered, cut into the hill before
         // anything is drawn on it.
         cut: () => cutRoads(terrain, ctx.roads) });
-    const drawn = runAll(symbols, feats, ctx);
+    // The models are placed before the ground is built: where one of them
+    // opens the terrain, the terrain is not built there at all (FND.11).
     const placed = placeInstances(world.instances, assets ?? new Map(), frame);
-    const meshes = clip([terrainMesh(terrain, 'terrain', colourAt),
+    const drawn = runAll(symbols, feats, ctx);
+    const meshes = clip([terrainMesh(terrain, 'terrain', colourAt, placed.openings),
         ...drawn.meshes, ...placed.meshes], sw, ne);
     const boxes = [...drawn.boxes, ...placed.boxes]
         .filter((b) => b.center[0] >= sw.x - CLIP_M
             && b.center[0] <= ne.x + CLIP_M && b.center[2] <= sw.z + CLIP_M
             && b.center[2] >= ne.z - CLIP_M);
     return { terrain, meshes, boxes, trees: ctx.trees, flags: drawn.flags,
-        paints: ctx.paints, roads: ctx.roads, placed };
+        paints: ctx.paints, roads: ctx.roads, placed,
+        openings: placed.openings };
 }
 
 // The files the pinned symbols name (db/0139): a segment's or a model's GLB,
@@ -262,7 +286,7 @@ export async function run({ atom, log, apiUrl, filesUrl }) {
     const assets = await loadAssets(world.instances, { filesUrl });
     const products = await loadProducts(world.symbol_files, filesUrl);
     const ground = await loadGround(world.height_edits, frame, filesUrl);
-    const { terrain, meshes, boxes, trees, flags, roads, placed } =
+    const { terrain, meshes, boxes, trees, flags, roads, placed, openings } =
         build({ z, sw, ne, dem, frame, world, random: rngOf(atom, z, x, y),
             assets, products, ground, colourAt });
     log?.({ event: 'assembled', z, x, y, meshes: meshes.length, trees,
@@ -271,7 +295,8 @@ export async function run({ atom, log, apiUrl, filesUrl }) {
 
     const random = rngOf(atom, z, x, y);
     const splats = sampleSurfaces(meshes, Math.round(budget * INIT_SHARE), random);
-    const height = heightRaster(terrain);
+    // What the player walks on has the same holes in it.
+    const height = heightRaster(openHeights(terrain, openings));
     const { bin, specs } = packMeshes(meshes);
     const scene = {
         algo: ALGO, tile: { z, x, y }, origin: { ...centre, h: frame.h },

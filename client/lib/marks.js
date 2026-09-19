@@ -83,9 +83,14 @@ export function canonMarks(from = {}) {
 export const isMarked = (marks) => Boolean(marks
     && ((marks.parts?.length ?? 0) || (marks.openings?.length ?? 0)));
 
-// The nodes that are not the model's body any more: node name -> part name.
-export const partNodes = (marks) =>
-    new Map((marks?.parts ?? []).map((p) => [p.node, p.name]));
+// The nodes that are not the model's body any more: node name -> the name the
+// canonical file gives that mesh. A part keeps its own name; an opening is
+// marked apart from one, because where the ground is taken away is a shape
+// the compiler reads off the file (FND.11) and not a thing that is placed.
+export const partNodes = (marks) => new Map([
+    ...(marks?.parts ?? []).map((p) => [p.node, p.name]),
+    ...(marks?.openings ?? []).map((o) => [o.node, `open:${o.name}`]),
+]);
 
 // What a placed one can be told, in the words the card uses (FND.6).
 export function portWords(marks) {

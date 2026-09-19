@@ -37,6 +37,11 @@ export const ALGO = 'canon-v1';
 export const CANON_V2 = 2;
 export const ALGO_V2 = 'canon-v2';
 export const PART_PREFIX = 'part:';
+// An opening stays a mesh of its own too (FND.11): where the terrain is
+// removed is the shape of that node, and a shape has to be in the file to be
+// read off it. It is named apart from a part because it is not one — it does
+// nothing when it is placed, it takes ground away.
+export const OPEN_PREFIX = 'open:';
 
 const B32 = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ234567';
 
@@ -147,8 +152,10 @@ function buildMeshes(prims, materials, parts) {
     const meshes = body.length
         ? [{ name: null, groups: buildGroups(body, materials, slot) }] : [];
     for (const name of named) {
-        meshes.push({ name: PART_PREFIX + name,
-            groups: buildGroups(prims.filter((p) => p.part === name), materials, slot) });
+        meshes.push({
+            name: name.startsWith(OPEN_PREFIX) ? name : PART_PREFIX + name,
+            groups: buildGroups(prims.filter((p) => p.part === name), materials, slot),
+        });
     }
     if (parts) {
         for (const p of parts.values()) {
