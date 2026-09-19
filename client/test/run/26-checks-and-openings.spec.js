@@ -156,11 +156,9 @@ test('story 26 — a road that is too steep, a mouth in the ground, and the old'
         await placesThePortal(b);
     });
 
-    const project = await test.step('and draws a shape of the old kind', async () => {
+    await test.step('and draws a shape of the old kind', async () => {
         await panel(b, 'Your land');
-        const path = await downloadProject(b);
-        drawsAnOldShape(path, here);
-        return path;
+        drawsAnOldShape(await downloadProject(b), here);
     });
 
     await test.step('B sends it all', () => sendsIt(b));
@@ -181,16 +179,19 @@ test('story 26 — a road that is too steep, a mouth in the ground, and the old'
     await test.step('3 — A converts the old shapes', () => aConverts(a));
     await a.close();
 
-    // The project on B's disk still has the layer — it is the one the shape
-    // was drawn in. The next one he takes does not.
+    // The project B drew the shape in had the layer; the next one he takes
+    // does not. The old file cannot be asked any more — the view behind its
+    // layer went with the kind — and it does not need to be: the shape was
+    // drawn through it a few steps ago.
     const b2 = await open(browser, world, 'B', testInfo);
     await test.step('B signs in again', () => signIn(b2, 'ben@visp.example', 'Ben'));
     await test.step('and QGIS no longer offers the kind', async () => {
         await goesToHisLand(b2);
         const fresh = await downloadProject(b2);
-        const asked = { ask: 'widget', layer: 'Terrain edit', field: 'op' };
-        expect(drawInQgis(project, [asked])[0].ok, 'it was there').toBe(true);
-        expect(drawInQgis(fresh, [asked])[0].ok, 'and is not any more').toBe(false);
+        const [found] = drawInQgis(fresh, [{ ask: 'widget', layer: 'Terrain edit',
+            field: 'op' }]);
+        expect(found.ok, 'the layer is gone from the next project').toBe(false);
+        expect(found.error, 'and QGIS says so').toContain('no layer called Terrain edit');
     });
     await b2.close();
 });
