@@ -78,3 +78,50 @@ def test_the_drain_stops_at_the_end_of_the_body():
     handler.rfile = Fake()
     handler._drain(10)
     assert handler.rfile.left == 0
+
+
+def get(port: int, path: str) -> tuple[int, bytes]:
+    conn = http.client.HTTPConnection("127.0.0.1", port, timeout=10)
+    try:
+        conn.request("GET", path)
+        res = conn.getresponse()
+        return res.status, res.read()
+    finally:
+        conn.close()
+
+
+def test_a_tile_of_ground_already_on_disk_is_still_the_cutter_s_to_answer(store,
+                                                                         monkeypatch):
+    """The survey can be replaced under the same coverage.
+
+    A cut that is already a file was served straight off the disk, so the
+    staleness check never ran and a world whose elevation was swapped went on
+    drawing the hill before it. Every request for a tile of ground goes through
+    cut() now, which answers with the file it has when nothing has changed.
+    """
+    from splatworld import ground
+
+    cfg, port = store
+    target = ground.tile_path(cfg, 14, 8557, 5736)
+    target.parent.mkdir(parents=True, exist_ok=True)
+    target.write_bytes(b"old")
+    asked = []
+
+    def cut(cfg_, z, x, y, kind="dem"):
+        asked.append((z, x, y, kind))
+        target.write_bytes(b"new")
+        return target
+
+    monkeypatch.setattr(ground, "cut", cut)
+    status, body = get(port, "/geo/dem/14/8557/5736.r16")
+    assert status == 200
+    assert body == b"new", "what the cutter answered, not what was lying there"
+    assert asked == [(14, 8557, 5736, "dem")]
+
+
+def test_a_file_that_is_not_ground_is_served_as_it_is(store):
+    cfg, port = store
+    path = cfg.files / "assets" / "a.txt"
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_bytes(b"hello")
+    assert get(port, "/assets/a.txt") == (200, b"hello")

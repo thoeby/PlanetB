@@ -82,3 +82,16 @@ test('the ground asks the floor for the tile it means, at the level it means', (
         'z14, the tile the camera stands on, first');
     assert.equal(mesh.entities.size, 0, 'and nothing is built until a raster lands');
 });
+
+test('cutting the ground again takes the meshes with it', () => {
+    const gone = [];
+    const mesh = new DemGround(null, null, {
+        origin: { geodeticOf: () => ({ lon: 7.86, lat: 46.29, h: 0 }) },
+        floor: { raster: () => undefined },
+        streamer: { tiles: new Map(), entries: new Map() },
+    });
+    mesh.entities.set('8557/5736', { destroy: () => gone.push('8557/5736') });
+    mesh.rebuild();
+    assert.deepEqual(gone, ['8557/5736'], 'the mesh of the old survey is destroyed');
+    assert.equal(mesh.entities.size, 0, 'and the next update builds it again');
+});

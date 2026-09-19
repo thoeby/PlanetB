@@ -61,6 +61,10 @@
 #panel .tile { transition: border-color 0.12s ease; }
 #panel .tiles + .label, #panel .rows + .label { margin-top: 16px; }
 
+/* The ground's buttons are four sentences, and the panel is a column: they
+   wrap rather than running off the edge of it (client/js/setupui.js). */
+#panel .gs-step3 .row { flex-wrap: wrap; }
+
 /* ---------------------------------------------------------------- profile
  *
  * Who you are (design 5e): the same face the bar carries, at the size a page

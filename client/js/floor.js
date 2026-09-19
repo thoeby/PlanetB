@@ -18,9 +18,13 @@ const LEVELS = [6, 8, 10, 12, 14];
 const RETRY_MS = 10_000;
 
 export class DemFloor {
-    constructor({ filesUrl = '', fetchFn = fetch } = {}) {
+    constructor({ filesUrl = '', fetchFn = fetch, version = '' } = {}) {
         this.filesUrl = filesUrl;
         this.fetchFn = fetchFn;
+        // What the ground was last cut for (db/0154): it goes on every request
+        // so that a world whose survey was replaced is asked for again rather
+        // than read out of a cache that was told to keep it for a year.
+        this.version = version;
         this.tiles = new Map();
         this.pending = new Set();
         // What the store said the last time it could not cut a tile, and
@@ -93,10 +97,20 @@ export class DemFloor {
         return dem;
     }
 
+    // The ground was cut again: everything in hand is of the survey before it.
+    // The next ask fetches, under the new version.
+    forget(version = this.version) {
+        this.version = version;
+        this.tiles.clear();
+        this.pending.clear();
+        this.trouble = '';
+    }
+
     request(k, z, x, y) {
         if (this.pending.has(k)) return;
         this.pending.add(k);
-        loadDem(z, x, y, { filesUrl: this.filesUrl, fetchFn: this.fetchFn })
+        loadDem(z, x, y, { filesUrl: this.filesUrl, fetchFn: this.fetchFn,
+            version: this.version })
             .then((dem) => { this.tiles.set(k, dem); this.trouble = ''; })
             // A tile the store could not cut is asked for again, but not on
             // the next frame: a ground that answers 502 met a request storm.

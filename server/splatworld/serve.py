@@ -293,19 +293,24 @@ class Handler(BaseHTTPRequestHandler):
         # T1: the ground is cut when somebody first walks onto it, not seeded
         # ahead of time. Outside the coverage there is no world, and 404 is the
         # honest answer — client/lib/geo.js reads it as "no ground here".
-        if target and not target.is_file():
-            tile = ground.parse_request(path)
-            if tile:
-                try:
-                    target = ground.cut(self.cfg, *tile) or target  # (z, x, y, kind)
-                except (Exception, SystemExit) as err:  # noqa: BLE001
-                    # 404 here would be read as "there is no world at this
-                    # tile" (client/lib/geo.js), and the tab would say the
-                    # ground is outside the coverage when what actually
-                    # happened is that the cut failed. Say which.
-                    self.log_message("could not cut %s: %s", path, err)
-                    self._text(502, f"could not cut the ground for {path}: {err}")
-                    return
+        #
+        # Every request for a tile of ground goes through cut(), the ones that
+        # are already on disk as well: whether what is there is still the
+        # ground is cut()'s to say (ground.stale — a survey can be replaced
+        # under the same coverage, and then every file here is of the hill
+        # before it). It answers with the file it has when nothing changed.
+        tile = ground.parse_request(path)
+        if tile:
+            try:
+                target = ground.cut(self.cfg, *tile) or target  # (z, x, y, kind)
+            except (Exception, SystemExit) as err:  # noqa: BLE001
+                # 404 here would be read as "there is no world at this tile"
+                # (client/lib/geo.js), and the tab would say the ground is
+                # outside the coverage when what actually happened is that the
+                # cut failed. Say which.
+                self.log_message("could not cut %s: %s", path, err)
+                self._text(502, f"could not cut the ground for {path}: {err}")
+                return
         if not target or not target.is_file():
             self._text(404, "no such file")
             return

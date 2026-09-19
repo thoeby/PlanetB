@@ -156,6 +156,13 @@ export class DemGround {
         }
     }
 
+    // The ground was cut again (db/0154): every mesh here is the survey before
+    // it, so they go and are built again from what the floor fetches next.
+    rebuild() {
+        for (const e of this.entities.values()) e.destroy();
+        this.entities.clear();
+    }
+
     add(k, x, y, dem) {
         const { pc } = this;
         const geo = tileGeometry(Z, x, y, dem);

@@ -247,7 +247,7 @@ const across = (view) => {
 export function mountAssignLand(host, { filesUrl = '' } = {}) {
     const ui = build(host);
     const state = { ground: null, all: [], corners: [], open: [], chosen: null,
-        confirming: null, shade: null, shadeFor: null, admin: false,
+        confirming: null, shade: null, shadeFor: null, cutAt: '', admin: false,
         mode: 'draw', picked: null, view: fitView(null), fit: fitView(null) };
 
     const say = saying(ui.status);
@@ -282,7 +282,8 @@ export function mountAssignLand(host, { filesUrl = '' } = {}) {
         const key = `${t.z}/${t.x}/${t.y}`;
         if (key === state.shadeFor) return;
         state.shadeFor = key;
-        const got = await groundOver(state.view, { filesUrl }).catch(() => null);
+        const got = await groundOver(state.view,
+            { filesUrl, version: state.cutAt ?? '' }).catch(() => null);
         if (state.shadeFor !== key) return;      // the view moved on meanwhile
         state.shade = got;
         paint();
@@ -300,14 +301,26 @@ export function mountAssignLand(host, { filesUrl = '' } = {}) {
         view: () => state.view, pick: (id) => { state.picked = id; both(); } };
 }
 
+// The ground's shape, without the mark that says when it was last cut: the
+// map is put back to the whole world when the world moves, not when the same
+// world is cut again under an operator who is looking at one corner of it.
+const shapeOf = (g) => JSON.stringify({ ...(g ?? {}), set_at: null });
+
 // What the world says, into the state the panel draws from.
 async function reread(state) {
     const ground = await api.rpc('ground').catch(() => null);
-    if (JSON.stringify(ground) !== JSON.stringify(state.ground)) {
-        state.ground = ground;
+    if (shapeOf(ground) !== shapeOf(state.ground)) {
         state.fit = fitView(ground);
         state.view = state.fit;
     }
+    // The ground was cut again (db/0154): the hillshade behind the map is of
+    // the survey before it, so it goes and is asked for under the new mark.
+    if ((ground?.set_at ?? '') !== (state.cutAt ?? '')) {
+        state.cutAt = ground?.set_at ?? '';
+        state.shade = null;
+        state.shadeFor = null;
+    }
+    state.ground = ground;
     state.admin = api.role() === 'admin';
     // Every piece of land, not the admin's own: a boundary is drawn against
     // whose ground is already where (db/0085). A player gets their own from

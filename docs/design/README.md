@@ -74,7 +74,7 @@ Where each part of the design lives:
 | the bar and the altimeter's look | `client/bar.css` |
 | the altimeter's arithmetic | `client/js/altimeter.js` |
 | the frame, the panel and its tabs, the app the chrome is dressed for | `client/js/hud.js` |
-| the map in the corner | `client/js/hudmap.js` |
+| the map in the corner, and the hillshade both maps draw | `client/js/hudmap.js` |
 | the panels themselves | `client/js/{land,build,pool,permission,wallet,…}ui.js` |
 | the Work window's look (v8) | `client/work.css` |
 | what this machine is doing, and the loop behind it | `client/js/workui.js` |

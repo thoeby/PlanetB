@@ -1746,3 +1746,23 @@ Six things the Work window was asked for after the v8 build.
   `stale`). Changing the coverage clears the rows that say what is cut
   (db/0106) and cannot reach the files, so a world whose DEM was replaced went
   on serving the old elevation to everybody who had already walked there.
+
+## The ground can be cut again
+
+The survey behind a coverage can be replaced without its name changing, and
+then nothing noticed: the store kept serving the tiles it had cut from the old
+one, every tab kept the copies it had — a cut is served `immutable` and for a
+year — and the ground mesh kept the meshes it had built from them. The minimap
+looked right only because `heightNear` asks the coarse levels, which had never
+been cut at all. The setup panel's advice was "delete the store's geo/ folder".
+
+`recut_ground()` (db/0154, admin) is that act in the world: the rows that say
+which tile is cut from what go, and the ground's own `set_at` moves. Everything
+hangs off that mark — the store re-cuts a file older than it
+(`server/.../ground.py stale`, and `serve.py` now routes every tile of ground
+through `cut()` rather than only the ones that are missing), and the client asks
+for tiles as `…/geo/dem/z/x/y.r16?v=<set_at>`, which is the only way past a
+year-long immutable cache. Setup has the button ("Cut the ground again"); the
+page answers by forgetting the floor, dropping the ground meshes so they are
+built again, redrawing the corner map and refreshing the admin's map, whose
+hillshade follows the same mark by itself.

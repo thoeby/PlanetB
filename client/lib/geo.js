@@ -32,12 +32,18 @@ function subRect(z, x, y, az) {
 // tile outside the coverage's own envelope as well as for one outside the
 // world (server/splatworld/ground.py, "outside the coverage"), so the fall
 // was silent and looked like detail that had simply not been trained yet.
+// `version` is what the ground was last cut for (db/0154 recut_ground, the
+// `set_at` ground_view carries). A cut is served immutable and for a year, so
+// a browser that has one never asks again: the same ground under a new survey
+// is the same URL, and every map in the tab went on drawing the hill that is
+// not there any more. The version is that URL's only moving part.
 export async function loadRaster(kind, z, x, y,
-    { filesUrl = '', fetchFn = fetch, decode, exact = false }) {
+    { filesUrl = '', fetchFn = fetch, decode, exact = false, version = '' }) {
+    const v = version ? `?v=${encodeURIComponent(version)}` : '';
     for (let az = z; az >= MIN_Z; az -= 2) {
         const r = subRect(z, x, y, az);
         const ext = kind === 'dem' ? 'r16' : 'png';
-        const url = `${filesUrl}/geo/${kind}/${az}/${r.ax}/${r.ay}.${ext}`;
+        const url = `${filesUrl}/geo/${kind}/${az}/${r.ax}/${r.ay}.${ext}${v}`;
         const res = await fetchFn(url);
         if (res.status === 404) { if (exact) return null; continue; }
         if (!res.ok) {

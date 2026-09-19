@@ -109,3 +109,23 @@ test('a cut with no ground at all is left alone', () => {
     assert.equal(fillVoids({ data, size: 8 }).data.every((v) => v === 0), true,
         'there is nothing to fill it from, and loadRaster refuses it anyway');
 });
+
+// A cut is served immutable and for a year (server/splatworld/serve.py), so a
+// browser that has one never asks again — and the same ground under a new
+// survey is the same URL. The version is what makes it a different one
+// (db/0154 recut_ground).
+test('the ground is asked for under the mark it was cut for', async () => {
+    const asked = [];
+    const fetchFn = async (url) => {
+        asked.push(url);
+        return { status: 200, ok: true, arrayBuffer: async () => url };
+    };
+    const decode = async () => raster(8, 700);
+    await loadRaster('dem', 14, 8554, 5800, { fetchFn, decode });
+    assert.ok(!asked[0].includes('?'), 'no version, no question mark');
+    await loadRaster('dem', 14, 8554, 5800,
+        { fetchFn, decode, version: '2026-09-19T08:00:00+00:00' });
+    assert.ok(asked[1].startsWith('/geo/dem/14/8554/5800.r16?v='), asked[1]);
+    assert.ok(asked[1].includes('2026-09-19T08%3A00%3A00%2B00%3A00'),
+        'and the mark is escaped into it');
+});

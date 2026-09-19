@@ -31,10 +31,10 @@ export function tileOver({ west, south, east, north }) {
 // The ground over a rectangle, or null where the world has none there. `at` is
 // the height in metres at a lon/lat, and it is arithmetic once this resolves —
 // a tool redraws on every click and must not refetch.
-export async function groundOver(rect, { filesUrl = '', fetchFn } = {}) {
+export async function groundOver(rect, { filesUrl = '', fetchFn, version = '' } = {}) {
     if (!Number.isFinite(rect?.west) || !Number.isFinite(rect?.north)) return null;
     const { z, x, y } = tileOver(rect);
-    const dem = await loadDem(z, x, y, { filesUrl, fetchFn }).catch(() => null);
+    const dem = await loadDem(z, x, y, { filesUrl, fetchFn, version }).catch(() => null);
     if (!dem) return null;
     return {
         z,

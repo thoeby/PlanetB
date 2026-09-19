@@ -52,13 +52,15 @@ const HTML = `
     <select class="gs-coverage"><option value="">connect first</option></select>
     <div class="row">
       <button type="button" class="gs-done" disabled>Use this ground</button>
+      <button type="button" class="gs-recut" title="The survey behind this
+        coverage changed">Cut the ground again</button>
       <button type="button" class="gs-again">Render the whole ground again</button>
       <button type="button" class="gs-frames">Draw every frame again</button>
     </div>
     <p class="gs-ground status"></p>
     <div class="note">More of the ground: another elevation over or under
       this one, an orthophoto for the ground's colour, a shade to lay over it.
-      Delete the store's geo/ folder after changing these, then render again.</div>
+      Cut the ground again after changing these, then render again.</div>
     <div class="row">
       <select class="gs-lkind"><option value="dem">elevation</option>
         <option value="albedo">albedo</option><option value="shade">shade</option></select>
@@ -195,6 +197,30 @@ async function again(q, say) {
     }
 }
 
+// The same coverage, a new survey behind it (db/0154 recut_ground): every cut
+// the store has is of the old one and every tab is holding copies it was told
+// to keep for a year. This forgets them all; the maps ask again as they are
+// drawn. What is already compiled is left alone — that is the button beside
+// this one.
+async function recut(q, say, onRecut) {
+    q('.gs-recut').disabled = true;
+    say('.gs-ground', 'forgetting every cut of the ground\u2026');
+    try {
+        const out = await api.rpc('recut_ground', {});
+        const g = await api.rpc('ground').catch(() => null);
+        say('.gs-ground', `${out?.forgotten ?? 0} cut tile(s) forgotten \u2014 the`
+            + ' ground is cut again as it is asked for');
+        // The mark the RPC answered with, not whatever a second read happens
+        // to see: it is what every cut is now asked for under.
+        onRecut({ ...(g ?? {}), set_at: out?.cut_at ?? g?.set_at ?? '' });
+    } catch (err) {
+        say('.gs-ground', `could not: ${String(err.body?.message ?? err.message ?? err)}`,
+            true);
+    } finally {
+        q('.gs-recut').disabled = false;
+    }
+}
+
 // The ground's layers (db/0106): what there is, and a way to take one out.
 function listLayers(q, g, refresh) {
     const items = (g?.layers ?? []).map((l) => {
@@ -221,7 +247,7 @@ async function addLayer(q, say, found, refresh) {
     }
 }
 
-export function mountSetup(host, { onGround = () => {} } = {}) {
+export function mountSetup(host, { onGround = () => {}, onRecut = () => {} } = {}) {
     const box = document.createElement('div');
     box.innerHTML = HTML;
     host.append(box);
@@ -272,6 +298,7 @@ export function mountSetup(host, { onGround = () => {} } = {}) {
         found = c;
         q('.gs-llayer').replaceChildren(...c.map((l) => new Option(l.title, l.id)));
     }).catch((err) => say('.gs-status', String(err.message ?? err), true));
+    q('.gs-recut').onclick = () => recut(q, say, onRecut);
     q('.gs-ladd').onclick = () => addLayer(q, say, found, show);
     q('.gs-done').onclick = () => done();
     q('.gs-again').onclick = () => again(q, say);

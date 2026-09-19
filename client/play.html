@@ -157,6 +157,16 @@
       // and reloading with it carried the operator to null island the moment
       // they picked their ground (SPEC §3.1 step 3).
       onGround: () => { location.replace(location.pathname); },
+      // Cutting the same ground again does not move the world; what it changes
+      // is every copy of it this tab is holding (db/0154). The ground under
+      // your feet, the map in the corner and the admin's map all read the
+      // elevation, and all three had a year's worth of it cached.
+      onRecut: (g) => {
+          floor?.forget(g?.set_at ?? '');
+          groundMesh?.rebuild();
+          drawTheMap();
+          assignLand.refresh();
+      },
   });
   // What the world may say about itself. The same rows drive this tool's forms,
   // QGIS's layer forms and the rules the compiler matches on (T3).
@@ -295,7 +305,12 @@
   // is published yet, the elevation itself (client/js/floor.js): read, not
   // drawn. Every z14 tile of the ground is compiled (db/0104), so the second
   // is only ever a stopgap.
-  const floor = ground?.coverage ? new DemFloor({ filesUrl: api.endpoints().files }) : null;
+  // `version` is when the ground was last cut (db/0154): a cut is served
+  // immutable and for a year, so the same ground under a new survey has to be
+  // asked for under a new name or the tab never sees it.
+  const floor = ground?.coverage
+      ? new DemFloor({ filesUrl: api.endpoints().files, version: ground.set_at ?? '' })
+      : null;
   const terrain = new Terrain(streamer, { ground: floor });
   // SPEC §0.1: ground is always drawn. Where no published tile covers it,
   // the same elevation is drawn as plain terrain (client/js/ground.js).

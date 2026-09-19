@@ -93,3 +93,24 @@ test('a tile is asked for by the level and tile it is, whoever asks', async () =
     assert.equal(urls.length, 1, 'asked once');
     assert.ok(urls[0].endsWith('/geo/dem/14/8557/5736.r16'), urls[0]);
 });
+
+test('cutting the ground again forgets what is in hand, under a new mark', async () => {
+    const size = 8;
+    const data = new Float32Array(size * size).fill(1000);
+    const urls = [];
+    const fetchFn = async (url) => {
+        urls.push(String(url));
+        return new Response(data.buffer, { status: 200 });
+    };
+    const floor = new DemFloor({ fetchFn, version: 'first' });
+    floor.heightAt(7.85, 46.29);
+    await tick(); await tick();
+    assert.equal(floor.heightAt(7.85, 46.29), 1000, 'the ground of the first survey');
+    assert.ok(urls[0].includes('v=first'));
+
+    floor.forget('second');
+    assert.equal(floor.heightAt(7.85, 46.29), null, 'nothing in hand any more');
+    await tick(); await tick();
+    assert.equal(floor.heightAt(7.85, 46.29), 1000);
+    assert.ok(urls.at(-1).includes('v=second'), 'and it was asked for again, as the new one');
+});
