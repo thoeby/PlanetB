@@ -84,7 +84,7 @@ test('a tab claims an atom, runs it in a worker, uploads it and submits it',
         const caps = psql(`SELECT w.caps::text FROM worker w
                            JOIN auth.user u ON u.id = w.user_id
                            WHERE u.email = '${EMAIL}'`);
-        expect(JSON.parse(caps).algo.sog).toBe('sog-v1');
+        expect(JSON.parse(caps).algo.sog).toBe('sog-v3');
         expect(JSON.parse(caps)).toHaveProperty('webgpu');
 
         const log = await page.locator('.work-log').textContent();

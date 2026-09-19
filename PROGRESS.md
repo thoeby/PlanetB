@@ -2320,9 +2320,33 @@ before any of this started, and the failures are not FND.12's:
   It is not the world's end of it. Caught in the act, twelve minutes into the
   hang: no blocked backend (`pg_blocking_pids` empty), PostgREST's whole pool
   idle on `COMMIT`, and both servers answering a probe in under a tenth of a
-  second. The tab is what stops, on the handover from the WebGPU trainer to
-  the sog, and `sog-v3` (`c4ca185`) — where a sog became one file per level —
-  is where to start. It is the LOD work's to look at.
+  second.
+
+  A day of measurement on it, so nobody has to repeat it. In the order the
+  answers came:
+
+  - **The tab is what stops.** `page.evaluate(() => 1)` against it times out
+    at ten seconds while the other two tabs go on drawing.
+  - **The request it had in flight did arrive.** The sog's first level is on
+    disk with a `201`, `POST /rpc/register_artifact` shows as never answered
+    in the trace — and the `artifact` row for that sog is in the database.
+    So the call reached Postgres and committed; the answer never became a
+    continuation in the page.
+  - **Nothing is spinning.** All three renderer processes, sampled with gdb
+    and again through `/proc`: every thread `S`, on `futex_do_wait` or
+    `ep_poll`, the main thread idle in `MessagePumpDefault::Run`. Fifteen
+    CPU ticks between them over four seconds. It is not a JavaScript loop and
+    it is not a blocked syscall we can name.
+  - **It is not the harness.** The same hang with Playwright's trace and
+    video both off.
+  - **It is not the viewer's frame loop.** `app.autoRender = false` while the
+    tab holds an atom — the same switch Automate uses — changes nothing.
+
+  What is left is a tab whose event loop is idle and which nevertheless runs
+  no timer and delivers no response: the heartbeat interval never fires once
+  in fifteen minutes. `sog-v3` (`c4ca185`), where a sog became one file per
+  level and an atom began returning six files instead of two, is where the
+  behaviour starts. It is the LOD work's to finish; this task did not.
 
 So story 27 is written and unrun, and so is story 26 against the merge.
 `make db-test`, `make api-test`, `make lint` and the node tests are green
