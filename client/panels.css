@@ -346,3 +346,9 @@
   grid-template-columns: repeat(auto-fill, minmax(190px, 1fr));
 }
 #panel[data-part="Catalog"][data-wide="1"] .row { max-width: 900px; }
+#panel .sc-here, #panel .sc-shaped { margin: 0; }
+#panel .sc-corners { font-size: 11px; }
+#panel .sc-clear-box { align-items: center; gap: 12px; margin-top: 10px; }
+#panel .sc-clear-box .note { flex: 1 1 12rem; }
+#panel .sc-fields label[data-uses="target"] { flex-wrap: wrap; }
+#panel .sc-take { flex: 0 0 auto; padding: 4px 8px; font-size: 10px; }

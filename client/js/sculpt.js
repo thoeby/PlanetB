@@ -56,17 +56,58 @@ export class Shaping {
     // What the land is shaped into right now, as the world holds it.
     static async load(area) {
         const grid = gridFor(box(area.bbox), cellFor(area.bbox));
-        const [row] = await api.select('height_edit', {
-            area_id: `eq.${area.id}`, order: 'rev.desc', limit: '1',
-            select: 'sha256,rev',
-        }).catch(() => []);
-        if (!row) return new Shaping(area, grid);
-        const res = await fetch(`${api.endpoints().files}/assets/${row.sha256}.r32`)
+        // Who shaped it last and when (db/0176), so the panel can say what was
+        // already here. It read the revision and nothing else, and a land
+        // somebody flattened last week looked like one nobody had touched.
+        const was = await api.rpc('shaping_of', { p_area: area.id }).catch(() => null);
+        const made = (g, rev) => Object.assign(new Shaping(area, g, rev), { was });
+        if (!was?.sha256) return made(grid, Number(was?.rev ?? 0));
+        const res = await fetch(`${api.endpoints().files}/assets/${was.sha256}.r32`)
             .catch(() => null);
-        if (!res?.ok) return new Shaping(area, grid, Number(row.rev));
+        if (!res?.ok) return made(grid, Number(was.rev));
         const got = readR32(new Uint8Array(await res.arrayBuffer()));
-        return new Shaping(area, got.width === grid.width && got.height === grid.height
-            ? got : grid, Number(row.rev));
+        return made(got.width === grid.width && got.height === grid.height
+            ? got : grid, Number(was.rev));
+    }
+
+    // What this land's ground is, against the elevation the operator gave: how
+    // many cells have been moved at all, and how far up and down. The page had
+    // no way to say it, so "have I shaped this, and by how much" could only be
+    // answered by dragging a brush and watching.
+    summary() {
+        const { data } = this.grid;
+        let cells = 0;
+        let lowest = 0;
+        let highest = 0;
+        for (let k = 0; k < data.length; k++) {
+            const v = data[k];
+            if (!v) continue;
+            cells += 1;
+            if (v < lowest) lowest = v;
+            if (v > highest) highest = v;
+        }
+        return { cells, of: data.length, lowest, highest,
+            metres: Math.round(cells * this.grid.cell * this.grid.cell) };
+    }
+
+    // The ground put back as the operator gave it: one stroke, so it is undone
+    // like any other and only reaches the world when it is saved. Clearing was
+    // possible only by raising and lowering every cell by hand.
+    clear() {
+        const { data } = this.grid;
+        this.begin();
+        let moved = 0;
+        for (let k = 0; k < data.length; k++) {
+            if (!data[k]) continue;
+            this.remember(k);
+            data[k] = 0;
+            moved += 1;
+        }
+        // Every cell of the land, because the whole of it may have moved.
+        this.mark(this.stroke ?? new Map());
+        this.touched = [...box(this.area.bbox)];
+        this.end();
+        return moved;
     }
 
     get dirty() { return this.strokes.length > 0; }

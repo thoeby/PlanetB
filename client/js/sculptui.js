@@ -15,7 +15,8 @@ import { alongLine, dab } from './sculptbrush.js';
 import { el } from './poolui.js';
 import { rayThrough } from './buildui.js';
 import { raycastGround } from './build.js';
-import { BRUSH_SAYS, brushLine, brushUses, drawBrush, keyHandler } from './sculptmode.js';
+import { BRUSH_SAYS, brushLine, brushUses, drawBrush, groundLine, keyHandler, shapedLine }
+    from './sculptmode.js';
 
 const HTML = `
 <div class="section">
@@ -41,13 +42,18 @@ const HTML = `
     <label data-uses="strength">Strength (m)<input class="sc-strength" type="number"
       min="0.05" step="0.05" value="0.5"></label>
     <label data-uses="target">Level to (m)<input class="sc-target" type="number"
-      step="0.5"></label>
+      step="0.5"><button type="button" class="sc-take">Take it from here</button></label>
   </div>
+  <p class="note mono sc-here"></p>
 </div>
 <div class="section sc-line-box" hidden>
   <span class="label">Along a line</span>
   <div class="note">Click points along the path, or take one of this land's
     roads, and the bed is written once.</div>
+  <div class="spread">
+    <span class="muted sc-corners">no corners yet</span>
+    <button type="button" class="sc-line-clear">Start the line again</button>
+  </div>
   <div class="row">
     <select class="sc-road"></select>
     <label>Width (m)<input class="sc-width" type="number" min="1" value="7"></label>
@@ -64,6 +70,12 @@ const HTML = `
   </div>
   <p class="sc-status status"></p>
   <p class="muted sc-said"></p>
+  <p class="note mono sc-shaped"></p>
+  <div class="spread sc-clear-box">
+    <button type="button" class="sc-clear">Put the ground back</button>
+    <span class="note">As the operator's elevation gave it. Undo takes it
+      back, and nothing reaches the world until Save.</span>
+  </div>
 </div>`;
 
 // What the panel says about itself, in one line.
@@ -93,13 +105,25 @@ export function mountSculpt(host, ctx, { lands = () => [] } = {}) {
             q('.sc-status').dataset.bad = bad ? '1' : '';
         }
         q('.sc-said').textContent = sentence(state);
+        // What was already done to this land. `summary()` walks the whole
+        // grid, so it is written when something happened and not on every
+        // pointer move — `hover` is the one that runs sixty times a second.
+        q('.sc-shaped').textContent = shapedLine(state.shaping);
+        hover();
+    };
+    // What is under the brush, and how much of a line has been clicked out.
+    const hover = () => {
+        q('.sc-here').textContent = groundLine(state, ground);
+        const n = (state.line ?? []).length;
+        q('.sc-corners').textContent = n
+            ? `${n} corner${n === 1 ? '' : 's'} clicked` : 'no corners yet';
     };
 
     const ground = (lon, lat) => ctx.groundAt?.(lon, lat) ?? 0;
     // The height Level aims at is the panel's own field. It was read off
     // `ctx.target`, which nothing ever passed: Number(undefined) is NaN, the
     // brush refused every cell, and Level silently did nothing at all.
-    const paint = pointer(ctx, state, say, ground,
+    const paint = pointer(ctx, state, { say, hover: () => hover() }, ground,
         () => Number(q('.sc-target').value));
 
     const refresh = () => listLands(q, state, say, lands, choose);
@@ -122,10 +146,12 @@ export function mountSculpt(host, ctx, { lands = () => [] } = {}) {
 
     const save = () => saveGround(state, say, ctx);
     const apply = () => layBed(q, state, say, ctx, ground);
+    const clear = () => putBack(state, say, ctx);
+    const take = () => levelHere(q, state, say, ground);
 
-    wire(box, q, state, { toggle, choose, refresh, save, apply, say, ctx });
+    wire(box, q, state, { toggle, choose, refresh, save, apply, clear, take, say, ctx });
     refresh();
-    return { state, refresh, choose, toggle, save, apply,
+    return { state, refresh, choose, toggle, save, apply, clear, take,
         shaping: () => state.shaping, say,
         // Drawn every frame by the page, the way the Place gizmo is.
         drawBrush: () => drawBrush({ ...ctx, shapedAt: (lon, lat) =>
@@ -164,6 +190,30 @@ async function saveGround(state, say, ctx) {
         say(String(err.body?.message ?? err.message ?? err), true);
         return null;
     }
+}
+
+// The ground as the operator's elevation gave it: one stroke, undoable, and
+// nothing anybody else sees until it is saved. There was no way back to it at
+// all — a land somebody had flattened stayed flattened unless every cell was
+// raised by hand.
+function putBack(state, say, ctx) {
+    const moved = state.shaping?.clear() ?? 0;
+    ctx.onShaped?.();
+    say(moved ? `${moved.toLocaleString()} cell(s) put back \u2014 Save to keep it`
+        : 'this ground is already as the elevation gave it');
+    return moved;
+}
+
+// What Level aims at, read off the ground rather than typed from nothing: it
+// is a height above the sea, and the panel never said what one was.
+function levelHere(q, state, say, ground) {
+    const at = state.at;
+    const dem = at ? ground(at.lon, at.lat) : null;
+    if (!Number.isFinite(dem)) { say('point at some ground first', true); return null; }
+    const here = dem + (state.shaping?.at(at.lon, at.lat) ?? 0);
+    q('.sc-target').value = here.toFixed(1);
+    say(`levelling to ${here.toFixed(1)} m`);
+    return here;
 }
 
 // The bed, written once so one undo takes the whole of it back.
@@ -238,6 +288,13 @@ function wire(box, q, state, acts) {
     q('.sc-redo').onclick = redo;
     q('.sc-save').onclick = acts.save;
     q('.sc-apply').onclick = acts.apply;
+    q('.sc-clear').onclick = acts.clear;
+    q('.sc-take').onclick = acts.take;
+    q('.sc-line-clear').onclick = () => {
+        state.line = [];
+        acts.ctx.onShaped?.();
+        acts.say('the line is cleared \u2014 click its corners again');
+    };
     // The keys the buttons already print. Live only while shaping is on: R is
     // a letter somebody types into the name of a land.
     document.addEventListener('keydown',
@@ -247,7 +304,7 @@ function wire(box, q, state, acts) {
 
 // Dragging on the 3D view: the ray lands on the heightfield, and the point it
 // lands on is where the brush is. The same path the Place panel uses.
-function pointer(ctx, state, say, ground, levelTo) {
+function pointer(ctx, state, { say, hover }, ground, levelTo) {
     const where = (e) => {
         const rect = ctx.canvas.getBoundingClientRect();
         const r = rayThrough(ctx.camera, ctx.pc, e.clientX - rect.left, e.clientY - rect.top);
@@ -257,6 +314,7 @@ function pointer(ctx, state, say, ground, levelTo) {
     const one = (g) => {
         if (!state.shaping) return;
         if (!state.shaping.inside(g.lon, g.lat)) {
+            state.refused = true;
             say('You can only shape your own land', true);
             return;
         }
@@ -264,7 +322,11 @@ function pointer(ctx, state, say, ground, levelTo) {
             strength: state.strength, ground,
             target: state.brush === 'level' ? levelTo() : undefined });
         ctx.onShaped?.();
-        say('');
+        // The light line, not the whole panel: what has been shaped altogether
+        // walks the grid, and this runs on every dab of a drag. The refusal is
+        // the one thing that has to come off the screen the moment it stops
+        // being true.
+        if (state.refused) { state.refused = false; say(''); } else hover();
     };
     return { on: [
         ['pointerdown', (e) => {
@@ -283,8 +345,9 @@ function pointer(ctx, state, say, ground, levelTo) {
             state.at = g;
             state.inside = g ? Boolean(state.shaping?.inside(g.lon, g.lat)) : null;
             if (state.painting && g) one(g);
+            else hover();
         }],
-        ['pointerout', () => { state.at = null; }],
+        ['pointerout', () => { state.at = null; hover(); }],
         // The stroke is only a stroke once it is let go of, and the line
         // under the panel counts strokes — so it is said again here.
         ['pointerup', () => { state.painting = false; state.shaping?.end(); say(); }],

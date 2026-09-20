@@ -2795,3 +2795,52 @@ of the shading is the same number of metres across as it is down. `drawCover`
 was also measuring latitude at 110 540 m a degree where everything else uses
 111 320, which put a published cover picture two parts in a thousand off the
 boundary drawn over it.
+
+## What the build can do, and what the page could not reach
+
+The operator asked for the audit: go through what is built and check whether
+there is a control for it. The method was two lists — every function in the
+`api` schema against every `rpc('…')` in the page, and every table against
+every mention of it — and then reading what the difference meant.
+
+Twenty-three `api` functions are never called from the page. Eighteen of them
+are right not to be:
+
+- **`approve_tile`, `refuse_tile`, `my_candidates`** are db/0044's flow, which
+  db/0068 replaced: approval comes *before* rendering now, so there is no
+  candidate picture for anybody to judge. History, not a missing panel.
+- **`my_dirty_tiles`** is what the pool replaced (T6), and **`reset_atom`**
+  what `retry_job` replaced.
+- **`record_event`, `world_events`** are FND.15's, for the runners F10 brings.
+- **`height_edit_rev`, `qgis_credentials`, `gis_layers`** are QGIS's half of
+  the contract, and **`can_write`** is the file store's `auth_request`.
+- **`login`, `pay`, `hand_back_atom`, `geo_inputs`, `pinned_symbols`,
+  `one_mover`, `approve_screen`, `refuse_screen`, `drop_job`, `redo_renders`,
+  `retry_job`, `refuse_submission`** are all reached — through `api.js`
+  directly, from an atom, from a flow block, or from a panel that names them
+  in a table rather than in a literal the grep could see.
+
+The five that were real are all **terrain editing**, which is what the operator
+expected, and they are the difference between a tool and a set of verbs:
+
+- **What is under the brush.** The panel could not say what height the ground
+  is at, nor how far this land's own shaping has moved it — so Level's "Level
+  to (m)", which is a height above the sea, had to be typed from nothing. It
+  says both now, and **Take it from here** reads the number off the ground.
+- **What has already been done to this land.** `height_edit` has carried
+  `saved_by` and `saved_at` since db/0163 and nothing ever read them: a land
+  somebody flattened last week looked exactly like one nobody had touched.
+  `shaping_of` (db/0176) says the revision, when, and whose, and the panel
+  counts what is moved and by how much from the grid it already holds.
+- **Putting the ground back.** There was no way to it. A land somebody
+  flattened stayed flattened unless every cell was raised by hand.
+  `Shaping.clear()` is one stroke, undone like any other, and nothing reaches
+  the world until Save.
+- **The line being clicked out.** `state.line` collected corners and drew them
+  nowhere: you clicked points into the world and the only sign any had landed
+  was the bed appearing at the end. They are drawn on the ground now, counted
+  in the panel, and there is a way to start again.
+
+One more thing the audit found and did not build: **`worker_op_stats`** is
+written and never read. What this machine has done, by op and by how long, is
+worth a card in Work · Settings, and is not a control anybody is missing.

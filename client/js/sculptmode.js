@@ -43,6 +43,37 @@ export function brushLine(state) {
     return [says?.does, bits.join(' · ')].filter(Boolean).join(' ');
 }
 
+// What the ground under the brush is: the elevation the operator gave, and how
+// far this land's own shaping has moved it. The panel could say neither, so
+// "level to" was a number somebody typed in metres above the sea with nothing
+// to type it from.
+export function groundLine(state, ground) {
+    if (!state.at) return '';
+    const dem = ground?.(state.at.lon, state.at.lat);
+    if (!Number.isFinite(dem)) return 'no ground under the pointer';
+    const moved = state.shaping?.at(state.at.lon, state.at.lat) ?? 0;
+    const here = dem + moved;
+    return `${here.toFixed(1)} m here`
+        + (moved ? ` \u00b7 ${moved > 0 ? '+' : ''}${moved.toFixed(2)} m of shaping`
+            : ' \u00b7 as the elevation gave it')
+        + (state.inside === false ? ' \u00b7 not this land' : '');
+}
+
+// What has been done to this land's ground altogether: what is saved, and what
+// this tab has done since.
+export function shapedLine(shaping) {
+    if (!shaping) return '';
+    const { cells, lowest, highest, metres } = shaping.summary();
+    const was = shaping.was;
+    const before = was?.rev
+        ? `revision ${was.rev} \u00b7 last shaped by ${was.mine ? 'you' : was.who}`
+        : 'never shaped before';
+    if (!cells) return `${before} \u00b7 nothing is moved off the elevation`;
+    return `${before} \u00b7 ${cells.toLocaleString()} cells moved`
+        + ` (${metres.toLocaleString()} m\u00b2), from ${lowest.toFixed(1)}`
+        + ` to +${highest.toFixed(1)} m`;
+}
+
 // ------------------------------------------------------------------- keys
 
 // Every one of these is on the panel as well (T5: no key you have to know).
@@ -99,6 +130,27 @@ export function drawBrush(ctx, state) {
         [0, -metres / 4]]) {
         const end = offset(ctx, state.at, dx, dz);
         if (end) app.drawLine(mid, end, colour);
+    }
+    drawLine(ctx, state);
+}
+
+// The path the Along-line brush is being clicked out, on the ground. It was
+// kept in `state.line` and drawn nowhere: you clicked points into the world
+// and the only sign any of them had landed was the bed appearing at the end.
+function drawLine(ctx, state) {
+    const points = state.line ?? [];
+    if (state.brush !== 'line' || !points.length) return;
+    const { app, pc } = ctx;
+    const colour = new pc.Color(1, 0.85, 0.35);
+    const on = points.map((g) => offset(ctx, g, 0, 0)).filter(Boolean);
+    for (let i = 1; i < on.length; i++) app.drawLine(on[i - 1], on[i], colour);
+    // A cross at each corner, so one click reads as a corner before there are
+    // two of them to draw a line between.
+    for (const p of on) {
+        for (const [dx, dy] of [[1.5, 0], [0, 1.5]]) {
+            app.drawLine(new pc.Vec3(p.x - dx, p.y - dy, p.z),
+                new pc.Vec3(p.x + dx, p.y + dy, p.z), colour);
+        }
     }
 }
 
