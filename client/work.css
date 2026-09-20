@@ -328,6 +328,12 @@
 #panel .jc-shot { height: 180px; }
 #panel .jc-both { position: absolute; left: 8px; bottom: 8px; }
 
+/* No frame and no splats yet — which is most of the pool — so the card draws
+   where the tile is instead of a hatch and four words. Dimmed, because it is
+   the ground this job is about and not a picture of the job. */
+#panel .jc-where { opacity: 0.72; }
+#panel .po-card:hover .jc-where { opacity: 1; }
+
 /* The opened card shows both — the frames the tile was drawn from and the
    splats made of them — because the card can only show the newer. */
 #panel .jd-shots {

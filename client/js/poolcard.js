@@ -7,6 +7,7 @@
 // it is waiting for, how far through it is, and the last few things that
 // happened to it (db/0143 tile_event, carried on the row by db/0146 pool_row).
 
+import { drawWhere } from './hudmap.js';
 import { beyond, cr, el, far, needs, stuck, what } from './poolui.js';
 import { newest, shotWords } from './workshots.js';
 
@@ -111,7 +112,7 @@ export function shotCanvas(rec) {
 //
 // A tile nobody here has worked on has no picture, and says so rather than
 // leaving a grey box with no explanation.
-function shot(e, shots, live) {
+function shot(e, shots, live, place) {
     const box = el('div', { className: 'jc-shot' },
         el('span', { className: 'jc-kind', textContent: KIND[e.phase] ?? e.phase }),
         el('span', { className: 'jc-pay', 'data-paid': Number(e.bounty) > 0 ? '1' : '',
@@ -120,7 +121,9 @@ function shot(e, shots, live) {
     const rec = newest(shots);
     const canvas = shotCanvas(rec);
     if (!canvas) {
-        box.append(el('span', { className: 'jc-thumb mono',
+        const map = whereCanvas(e, place);
+        if (map) box.append(map);
+        box.append(el('span', { className: `jc-thumb mono${map ? ' jc-shotline' : ''}`,
             textContent: live ? 'working on it now' : 'nothing drawn here yet' }));
         return box;
     }
@@ -134,6 +137,23 @@ function shot(e, shots, live) {
             textContent: 'frames and splats \u00b7 details' }));
     }
     return box;
+}
+
+// How big the card draws its own map. Wider than tall, because that is the
+// shape of the space the picture would have filled, and drawWhere measures
+// both ways off the width.
+const MAP = { width: 320, height: 180 };
+
+// A card with nothing drawn on its tile yet: the ground it is about, rather
+// than a hatch and the words "nothing drawn here yet". A tile that has never
+// been rendered is most of the pool, so most of the cards were four words on a
+// grey box — and where the tile is is the one thing knowable before anybody
+// has drawn it.
+function whereCanvas(e, place) {
+    if (!place) return null;
+    const canvas = el('canvas', { className: 'po-shot jc-where', ...MAP });
+    drawWhere(canvas, e, place);
+    return canvas;
 }
 
 // A traced frame arrives as webp bytes: drawn when the decode lands, and a
@@ -218,10 +238,10 @@ export function stepLine(e) {
     }));
 }
 
-export function poolCard(e, acts, caps, shots = null, doing = '') {
+export function poolCard(e, acts, caps, shots = null, doing = '', place = null) {
     const bar = share(e);
     const li = el('li', { className: 'po-card', 'data-phase': e.phase },
-        shot(e, shots, Boolean(doing)),
+        shot(e, shots, Boolean(doing), place),
         el('div', { className: 'jc-body' },
             el('div', { className: 'jc-title' },
                 el('span', { className: 'name', textContent: `${e.z}/${e.x}/${e.y}` }),

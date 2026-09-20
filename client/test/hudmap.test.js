@@ -3,7 +3,8 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 
-import { drawMinimap, hillshade, SPANS, spanFor } from '../js/hudmap.js';
+import { drawMinimap, drawWhere, hillshade, SPANS, spanFor } from '../js/hudmap.js';
+import { tileCenter } from '../lib/tilemath.js';
 
 const at = { lon: 9.69, lat: 46.4 };
 
@@ -170,4 +171,54 @@ test('a square of ground is drawn square on a map that is not', () => {
     const down = step(asked.map((p) => p[1]), 111320);
     assert.ok(Math.abs(across - down) < 0.01,
         `a cell is ${across.toFixed(2)} m across and ${down.toFixed(2)} m down`);
+});
+
+// ------------------------------------------------- where one tile is
+
+// The same map, of one tile, on the card and in the opened card
+// (client/js/poolcard.js, client/js/jobdetail.js). It is drawn on a canvas
+// wider than it is tall, which is what the aspect went wrong on: the tile was
+// measured w/span across and h/span down, so a square tile came out the shape
+// of the canvas — a z14 tile drawn half again as wide as it is deep.
+function wideCanvas(w, h) {
+    const canvas = fakeCanvas(w);
+    canvas.height = h;
+    const ctx = canvas.getContext();
+    canvas.getContext = () => Object.assign(ctx, {
+        font: '', measureText: () => ({ width: 60 }), fillText() {},
+        strokeRect(x, y, ww, hh) { canvas.boxes.push({ x, y, w: ww, h: hh }); },
+    });
+    canvas.boxes = [];
+    return canvas;
+}
+
+test('a square tile is drawn square, whatever shape the canvas is', () => {
+    for (const [w, h] of [[380, 220], [320, 180], [200, 200]]) {
+        const canvas = wideCanvas(w, h);
+        drawWhere(canvas, { z: 14, x: 8548, y: 5801 }, {});
+        const [box] = canvas.boxes;
+        assert.ok(box, 'the tile is outlined');
+        assert.ok(Math.abs(box.w / Math.abs(box.h) - 1) < 0.02,
+            `${w}x${h}: the tile came out ${box.w} by ${box.h}`);
+    }
+});
+
+test('the tile is held on the map however far away you are standing', () => {
+    const tile = { z: 14, x: 8548, y: 5801 };
+    const c = tileCenter(tile.z, tile.x, tile.y);
+    const span = (metres) => drawWhere(wideCanvas(320, 180), tile,
+        { at: { lon: c.lon + metres / 85000, lat: c.lat } });
+    const near = span(0);
+    assert.ok(span(3000) > near, 'standing off it widens the map');
+    // And not without bound: a player on another continent gets a map of the
+    // tile, not a map of the continent with the tile invisible in it.
+    assert.ok(span(4e6) < near * 6, 'a player far away still gets a map of the tile');
+});
+
+test('the map of a tile is the ground under it, not a grid', () => {
+    const canvas = wideCanvas(320, 180);
+    drawWhere(canvas, { z: 14, x: 8548, y: 5801 },
+        { ground: { heightAt: (lon, lat) => 600 + (lat - 46.4) * 200000 } });
+    const shaded = canvas.painted.filter((p) => p.w <= 8);
+    assert.ok(shaded.length > 100, `the ground is shaded cell by cell: ${shaded.length}`);
 });

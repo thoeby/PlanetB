@@ -6,64 +6,12 @@
 // writes nothing except through the same RPCs the cards use — claim_for,
 // retry_job, drop_job, redo_renders — and setBounty.
 
-import { tileBbox, tileCenter } from '../lib/tilemath.js';
-import { hillshade, tileBox } from './hudmap.js';
+import { tileCenter } from '../lib/tilemath.js';
+import { drawWhere } from './hudmap.js';
 import { cr, el, far } from './poolui.js';
 import { setBounty } from './wallet.js';
 import { jobButtons, logRows, pieces, shotCanvas, statusOf, stepLine } from './poolcard.js';
 import { shotWords } from './workshots.js';
-
-const M_PER_DEG = 111320;
-
-// Where the tile is, on the same hillshade the corner map draws (hudmap.js):
-// the ground this job is about, the tile's own footprint on it, and you. Not
-// a slippy map — the one question it answers is "where is this, from here",
-// which is a rectangle, an arrow and a distance. A grid with a box on it was
-// a picture of nothing in particular, which is why this reads the ground.
-export function drawWhere(canvas, { z, x, y }, { at = null, ground = null } = {}) {
-    const ctx = canvas?.getContext?.('2d');
-    if (!ctx) return 0;
-    const b = tileBbox(z, x, y);
-    const c = tileCenter(z, x, y);
-    const cos = Math.cos((c.lat * Math.PI) / 180) || 1;
-    const wide = (b.east - b.west) * M_PER_DEG * cos;
-    const away = at ? Math.hypot((at.lon - c.lon) * M_PER_DEG * cos,
-        (at.lat - c.lat) * M_PER_DEG) : 0;
-    // Far enough away and the tile would be a pixel: the map holds the tile
-    // and says how far you are, rather than drawing both to scale.
-    const span = Math.max(wide * 3, Math.min(away * 2.4, wide * 14), 200);
-    const { width: w, height: h } = canvas;
-    // One metres-per-pixel, both ways. It was w/span across and h/span up, so
-    // a square tile on a 380 by 220 canvas was drawn 380 by 220: the map said
-    // a z14 tile is half again as wide as it is deep, which it is not.
-    const scale = w / span;
-    const px = (lon, lat) => [w / 2 + (lon - c.lon) * M_PER_DEG * cos * scale,
-        h / 2 - (lat - c.lat) * M_PER_DEG * scale];
-    ctx.clearRect(0, 0, w, h);
-    ctx.fillStyle = '#12151a';
-    ctx.fillRect(0, 0, w, h);
-    hillshade(ctx, { w, h, at: c, span, cos, ground });
-    tileBox(ctx, b, px, { word: `${z}/${x}/${y}`, w, h });
-    if (at) marker(ctx, px(at.lon, at.lat), w, h);
-    return Math.round(span);
-}
-
-// You, kept inside the map: a player standing off the edge of it is drawn on
-// the edge, because "which way is it" is worth more than the true position of
-// a dot that is not on the canvas at all.
-function marker(ctx, [ax, ay], w, h) {
-    const mx = Math.min(Math.max(ax, 6), w - 6);
-    const my = Math.min(Math.max(ay, 6), h - 6);
-    ctx.fillStyle = '#f2efe8';
-    ctx.strokeStyle = '#0b0d10';
-    ctx.lineWidth = 2;
-    ctx.beginPath();
-    ctx.moveTo(mx, my - 5); ctx.lineTo(mx + 5, my);
-    ctx.lineTo(mx, my + 5); ctx.lineTo(mx - 5, my);
-    ctx.closePath();
-    ctx.fill();
-    ctx.stroke();
-}
 
 const when = (t) => (t ? new Date(t).toLocaleTimeString() : '—');
 

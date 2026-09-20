@@ -116,9 +116,12 @@ function drawQueue(state, ui, ctx, count, say) {
     try {
         const parts = ui.get(state.name);
         drawChips(state, ctx, parts);
+        // The same `{ at, ground }` the opened card draws its map from: a card
+        // with no picture of its tile yet draws where the tile is instead.
+        const place = { at: ctx.where?.() ?? null, ground: ctx.ground() };
         parts.list.replaceChildren(...state.rows.map((r) => poolCard(r, ctx.acts,
             state.caps, state.shots?.get(`${r.z}/${r.x}/${r.y}`) ?? null,
-            ctx.doing(r))));
+            ctx.doing(r), place)));
         if (!state.rows.length) parts.list.append(...nothingWaiting(state));
         drawDetail(state, ctx, parts);
         for (const [name, q] of Object.entries(QUEUES)) {
