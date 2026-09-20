@@ -212,45 +212,12 @@
 #panel .mk-said { font-size: 11px; margin-top: 4px; }
 #panel .build-ports { font-size: 11px; }
 
-/* FND.7: Symbols. Three columns in a wide part — the symbols on the left, the
- * one being edited in the middle, the sample it builds on the right. */
-#panel .sy-cols {
-  display: grid; grid-template-columns: 1fr 1.4fr 1fr; gap: 14px; align-items: start;
-}
-#panel .sy-list, #panel .sy-stack, #panel .sy-versions { margin: 6px 0; padding: 0; }
-#panel .sy-list li, #panel .sy-stack li, #panel .sy-versions li {
-  display: flex; gap: 6px; align-items: baseline; margin: 2px 0;
-}
-#panel .sy-symbol, #panel .sy-layer { flex: 1 1 auto; text-align: left; padding: 4px 8px; }
-#panel .sy-symbol.picked, #panel .sy-layer.picked {
-  border-color: var(--accent); color: var(--accent);
-}
-#panel .sy-up, #panel .sy-down, #panel .sy-drop { flex: 0 0 auto; padding: 2px 6px; }
-#panel .sy-cond, #panel .sy-lcond, #panel .sy-prop {
-  display: flex; gap: 4px; align-items: center; margin: 3px 0;
-}
-#panel .sy-cond input, #panel .sy-lcond input, #panel .sy-prop input {
-  flex: 1 1 4rem; min-width: 0;
-}
-#panel .sy-layer-form label { display: flex; gap: 6px; align-items: center; margin: 3px 0; }
-#panel .sy-layer-form label input, #panel .sy-layer-form label select {
-  flex: 1 1 6rem; min-width: 0;
-}
-#panel .sy-preview { cursor: grab; touch-action: none; }
-#panel .sy-preview:active { cursor: grabbing; }
+/* A link that is a word rather than a button, used wherever a panel offers
+   something in the middle of a sentence. */
 #panel button.link {
   background: none; border: none; padding: 0; color: var(--accent);
   text-decoration: underline; cursor: pointer; font: inherit;
 }
-
-/* FND.8: what is saved and not yet built with, and the button that changes
- * that. It sits under the list, because it is about all of them. */
-#panel .sy-apply-box {
-  margin: 8px 0; padding-top: 8px; border-top: 1px solid var(--edge);
-}
-#panel .sy-changed { font-size: 12px; margin: 0 0 6px; }
-#panel .sy-confirm { margin-top: 8px; }
-#panel .sy-confirm-said { font-size: 12px; }
 
 /* FND.9: Shape. The brushes are a row of buttons with their keys on them, and
  * the one in hand is the one picked out. */
@@ -259,6 +226,16 @@
 #panel .sc-brush.picked { border-color: var(--accent); color: var(--accent); }
 #panel .sc-on-box { display: flex; gap: 6px; align-items: center; }
 #panel .sc-said { font-size: 11px; }
+/* A rule that gives an element its own display beats the hidden attribute, and
+   both of these are hidden by the brush in hand: a "Level to" box under Smooth
+   and a road bed under Raise are controls that do nothing. */
+#panel .sc-fields label[hidden], #panel .section.sc-line-box[hidden] { display: none; }
+#panel .sc-fields { flex-wrap: wrap; gap: 12px; }
+#panel .sc-keys {
+  font-family: var(--mono); font-size: 10px; letter-spacing: 0.06em;
+  white-space: nowrap;
+}
+#panel .sc-brush-says { margin: 0; }
 
 /* FND.11: the places a road crosses a slope it should not. A warning with a
  * way to go and look at each one, never a refusal. */

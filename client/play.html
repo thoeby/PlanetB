@@ -12,6 +12,7 @@
 <link rel="stylesheet" href="./panel.css">
 <link rel="stylesheet" href="./panels.css">
 <link rel="stylesheet" href="./work.css">
+<link rel="stylesheet" href="./symbols.css">
 <style>
   /* Only what a module's own markup needs and hud.css cannot know about. */
   .work-progress { white-space: pre-line; font-size: 12px; margin: 4px 0; }
@@ -457,7 +458,7 @@
   // in while the panel is open, the way Place is, and what it changes is the
   // land's own grid of relative metres (client/js/sculpt.js).
   const sculpt = mountSculpt(hud.panel('Shape'), {
-      canvas, camera, pc, origin, terrain, player,
+      canvas, camera, pc, app, origin, terrain, player,
       groundAt: (lon, lat) => terrain.heightAt(origin.localOf({ lon, lat, h: 0 })) ?? 0,
       onShaped: () => groundMesh?.reshape(
           (lon, lat) => sculpt.shaping()?.at(lon, lat) ?? 0, tilesOfShaping()),
@@ -993,6 +994,8 @@
         .finally(() => { placing = null; });
     }
     build.drawGizmo();
+    // FND.9: the brush, on the ground, where the pointer is.
+    sculpt.drawBrush();
     drawAreas({ pc, app, origin, terrain }, land.areas());
     const labels = document.getElementById('world-labels');
     labelAreas({ pc, app, origin, terrain }, land.areas(), labels);

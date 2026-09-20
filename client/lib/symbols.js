@@ -109,3 +109,54 @@ const WORDS = { model: 'model', segment: 'repeating piece',
     material: 'surface material' };
 
 const words = (type) => WORDS[type] ?? type;
+
+// What one layer is set to, in a line: the fields somebody has actually said
+// something about, in the order the layer names them. The list in the editor
+// shows this under the layer's own word, so a stack of four reads as four
+// things rather than as "Surface, Repeat, Repeat, Check".
+//
+// A value read off the feature is written the way the editor lets one be
+// typed — `lanes × 3, min 6` — because "[object Object]" is not a summary.
+export function layerSays(layer) {
+    const known = layerNamed(layer?.layer);
+    if (!known) return '';
+    const said = [];
+    for (const field of known.fields) {
+        const value = layer.params?.[field.name];
+        if (value === undefined || value === '') continue;
+        said.push(`${field.label.toLowerCase()} ${valueWords(value)}`);
+    }
+    if (layer.when?.length) said.push(`when ${layer.when.length} thing(s) hold`);
+    return said.join(' · ');
+}
+
+export function valueWords(value) {
+    if (value === null || value === undefined) return '—';
+    if (typeof value !== 'object') return String(value);
+    if (Array.isArray(value)) return value.map(valueWords).join(', ');
+    if (!('prop' in value)) return JSON.stringify(value);
+    const bits = [value.prop];
+    if (value.times !== undefined && value.times !== 1) bits.push(`× ${value.times}`);
+    if (value.plus) bits.push(`+ ${value.plus}`);
+    if (value.min !== undefined) bits.push(`min ${value.min}`);
+    if (value.max !== undefined) bits.push(`max ${value.max}`);
+    if (value.else !== undefined) bits.push(`else ${valueWords(value.else)}`);
+    return bits.join(' ');
+}
+
+// Which of a layer's product fields is filled in with a product of the wrong
+// type, if any: the editor puts the trouble on the field rather than only at
+// the bottom of the form (layerTrouble says it in a sentence).
+export function fieldTrouble(layer, typeOf = () => null) {
+    for (const field of productFields(layer?.layer)) {
+        const san = layer.params?.[field.name];
+        if (!san || typeof san !== 'string') continue;
+        const type = typeOf(san);
+        if (type && type !== field.type) {
+            return { field: field.name,
+                said: `A ${words(field.type)} is needed here — "${san}" is a ${
+                    words(type)}.` };
+        }
+    }
+    return null;
+}

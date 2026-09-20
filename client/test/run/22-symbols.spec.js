@@ -27,17 +27,18 @@ async function sanOf(a, name) {
     return (await card.locator('.san').textContent()).trim();
 }
 
-// 1 — the rules of every world before this one are symbols, and they are here.
+// 1 — the rules of every world before this one are symbols, and they are here,
+// under the kind of thing each is about, with what it lays down counted.
 async function whatIsThere(a) {
     await panel(a, 'Symbols');
     const list = a.page.locator('.sy-list');
     await expect(list).toContainText('any road', { timeout: UI });
     await expect(list).toContainText('any building');
     await expect(list).toContainText('spruce');
-    await expect(list.locator('li', { hasText: 'any road' }))
-        .toContainText('Surface');
-    await expect(list.locator('li', { hasText: 'any building' }))
-        .toContainText('Extrude');
+    await expect(list.locator('li.sy-kind')).toContainText(['building', 'highway']);
+    await expect(list.locator('li', { hasText: 'any road' })).toContainText('1 layer');
+    await expect(list.locator('.sy-row', { hasText: 'any road' }))
+        .toHaveAttribute('data-kind', 'highway');
 }
 
 const addsLayer = async (a, which) => {
@@ -86,19 +87,23 @@ async function buildsIt(a, products) {
 }
 
 // 3 — the sample says what the layers do, and a property turns one off.
+//
+// The row is offered rather than typed: the symbol says it cares about `lit`,
+// in the lamp layer's own "only when", so the sample offers it — and because
+// the symbol compares it against "yes", what it offers is a switch.
 async function theSample(a) {
-    await a.page.locator('.sy-add-prop').click();
-    const row = a.page.locator('.sy-props .sy-prop').first();
-    await row.locator('.prop').fill('lit');
-    await row.locator('.val').fill('yes');
-    await row.locator('.val').dispatchEvent('change');
+    const row = a.page.locator('.sy-try[data-prop="lit"]');
+    await expect(row).toBeVisible({ timeout: UI });
+    await expect(row).toHaveAttribute('data-kind', 'switch');
+    const lit = row.locator('.sy-try-val');
+    await lit.setChecked(true);
     await expect(a.page.locator('.sy-said')).toContainText('meshes', { timeout: UI });
-    const lit = await preview(a).screenshot();
+    const on = await preview(a).screenshot();
 
-    await row.locator('.val').fill('no');
-    await row.locator('.val').dispatchEvent('change');
-    await expect.poll(async () => differs(lit, await preview(a).screenshot()),
+    await lit.setChecked(false);
+    await expect.poll(async () => differs(on, await preview(a).screenshot()),
         { timeout: UI }).toBeGreaterThan(0.0005);
+    await lit.setChecked(true);
 }
 
 // 4 — saved is not applied.
@@ -109,10 +114,15 @@ async function savesIt(a) {
     await expect(a.page.locator('.sy-list')).toContainText('Kantonsstrasse');
 }
 
-// 5 — a repeating piece is not a surface material, and the refusal says so.
+// 5 — a repeating piece is not a surface material, and the refusal says so:
+// on the field it was typed into, and again when the save is refused.
 async function theRefusal(a, products) {
     await addsLayer(a, 'repeat');
     await fills(a, 'segment', products.asphalt);
+    await a.page.locator('.sy-layer-form .sy-f-segment').dispatchEvent('change');
+    const field = a.page.locator('.sy-layer-form .sy-field[data-field="segment"]');
+    await expect(field).toHaveAttribute('data-bad', '1', { timeout: UI });
+    await expect(field.locator('.sy-field-bad')).toContainText('surface material');
     await a.page.locator('.sy-save').click();
     await expect(said(a)).toContainText('repeating piece', { timeout: UI });
     await expect(said(a)).toContainText('is a surface material');

@@ -2672,3 +2672,72 @@ Three things that fell out of it:
   every panel; in Survey, where the map is 1 400 px wide and 540 tall, it was a
   valley two and a half times too wide. The box a view is drawn into now keeps
   the view's own proportions, in metres, and is centred in what is left.
+
+## Symbols, redrawn
+
+The operator sent a reference for this part — a turn of the design that is not
+in `docs/design/` — and the note that goes with the rest: the features are in
+the build and hard to find in the page.
+
+Four columns under one strip, each in a file of its own, and five questions the
+panel could not answer before:
+
+- **How many features does this catch?** `feature_matches` (db/0175) is
+  `client/lib/rules.js`'s matcher in SQL, over the same conditions db/0161
+  stores, and it is asked of the symbol **as it now stands** rather than as it
+  was last saved. A symbol that catches nothing and one that catches every road
+  in the valley looked exactly the same while it was being edited, which is the
+  difference that matters. One matcher in two languages is a thing to keep in
+  step; the alternative was the editor guessing.
+- **Which version is the world built with?** `symbols_now` and
+  `symbol_history` say it, beside the name and on every line of the history —
+  which is simply on screen now rather than behind a History button. A version
+  list nobody can see is a version list nobody uses.
+- **What does this layer do?** Each line of the stack says what it is set to
+  (`layerSays`), so four layers read as four things rather than as "Surface,
+  Repeat, Repeat, Check". The stack and the layer in hand are two columns; they
+  were one, and a four-layer symbol was a page of scrolling.
+- **Which field is wrong?** A product of the wrong kind is said on the field it
+  was typed into (`fieldTrouble`), not only in the sentence at the foot of the
+  form.
+- **What am I trying it with?** The sample offers a row for every property the
+  symbol mentions — the ones in its conditions and in its layers' — with the
+  widget its own value implies: a switch for `yes`, a stepper for a number, a
+  field for a word. It was two text boxes somebody had to know the names to
+  fill in.
+
+The order, which is the whole of how symbols resolve between two that match the
+same feature, is dragged within a kind rather than typed as a number. The list
+is grouped by kind, each row carrying a switch that saves where it is pressed.
+And the apply strip is at the top, because "is what I am looking at what the
+world is built with" is the first question the part has to answer, and it was
+tucked under the list.
+
+`symbolsui.js` kept only the deciding and the asking; the nodes are
+`symbolhtml.js`, `symbollist.js`, `symbollayers.js` and `symboltry.js`, and the
+look moved out of `client/panels.css` into `client/symbols.css`.
+
+## Shaping the ground, with the brush visible
+
+The other half of the operator's note. Three things about the Shape panel, and
+one defect under them:
+
+- **The brush is drawn on the ground where the pointer is** — a ring at its own
+  radius, following the ground so it lies on a hillside rather than through it,
+  and red where it is off this land. A brush twelve metres across was invisible
+  until a drag had already moved the ground, so the way to find out how big it
+  was was to use it and undo.
+- **The keys the buttons print are the keys that work.** R F S G L B picked
+  nothing; they do now, with `[` and `]` for bigger and smaller and Ctrl-Z for
+  undo. They are live only while shaping is on, because R is a letter somebody
+  types into the name of a land.
+- **A brush shows the numbers it reads and no others**, with a line saying what
+  a drag will do before the first one rather than counting strokes after it.
+  "Level to" under Smooth and a road bed under Raise are controls that do
+  nothing, which is worse than no control at all. Two of them were only ever
+  *meant* to be hidden: a rule that gives an element its own display beats the
+  `hidden` attribute, and `.sc-line-box` had been showing under every brush.
+
+And the defect: **the Level brush did nothing**. The height it aims at was read
+from `ctx.target`, which nothing ever passed — `Number(undefined)` is NaN, and
+the brush refuses a cell it cannot aim at. It reads the panel's own field now.

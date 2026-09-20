@@ -77,6 +77,7 @@ Where each part of the design lives:
 | the frame, the panel and its tabs, the app the chrome is dressed for | `client/js/hud.js` |
 | the map in the corner, and the hillshade both maps draw | `client/js/hudmap.js` |
 | the panels themselves | `client/js/{land,build,pool,permission,wallet,…}ui.js` |
+| Symbols: the four columns, and what each holds | `client/symbols.css`, `client/js/symbol{sui,html,list,form,layers,try,preview}.js` |
 | Survey's map, and the nodes around it | `client/js/{landmap,assignland,assignform}.js` |
 | the Work window's look (v8) | `client/work.css` |
 | what this machine is doing, and the loop behind it | `client/js/workui.js` |
@@ -137,3 +138,39 @@ altimeter, the controls, the map in the corner and the legend are about
 standing somewhere in the world, and nothing is standing in the world behind a
 Work window. The compass and the place line stay, because where you are is true
 in every view.
+
+## Symbols, redrawn
+
+The operator's reference for this part is a turn of the design that is not in
+the artboards here: four columns under one strip, and everything a symbol is
+said where it is edited.
+
+| what | where |
+|---|---|
+| the strip: what is saved against what the world is built with, and Apply | `symbolhtml.js` `HTML`, `symbols.css` |
+| the symbols, grouped by kind, each with its layer count and a switch | `symbollist.js` |
+| the name, the kind and order behind it, and the conditions | `symbolhtml.js`, `symbolform.js` |
+| the stack in order, beside the layer in hand and its fields | `symbollayers.js` |
+| the sample, the values it is tried with, and every version | `symbolpreview.js`, `symboltry.js` |
+
+Five things the build did not have, each of them a question the panel could
+not answer before:
+
+- **How many features does this catch?** `feature_matches` (db/0175) is
+  `client/lib/rules.js`'s matcher in SQL, over the conditions as they now
+  stand — not as they were last saved. A symbol that matches nothing and one
+  that matches every road in the valley looked identical while being edited.
+- **Which version is the world built with?** Said beside the name, and on
+  every line of the history, which is now simply on screen rather than behind
+  a button.
+- **What does this layer do?** Each line of the stack says what it is set to
+  (`layerSays`), so a stack of four reads as four things rather than as
+  "Surface, Repeat, Repeat, Check".
+- **Which field is wrong?** A product of the wrong kind is said on the field
+  it was typed into (`fieldTrouble`), not only in the sentence at the foot.
+- **What am I trying it with?** The sample offers a row for every property the
+  symbol mentions, with the widget its own value implies: a switch for `yes`,
+  a stepper for a number, a field for a word.
+
+And the order — which is the whole of how symbols resolve — is dragged, within
+a kind, rather than typed as a number into a form.

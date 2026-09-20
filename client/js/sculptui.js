@@ -15,6 +15,7 @@ import { alongLine, dab } from './sculptbrush.js';
 import { el } from './poolui.js';
 import { rayThrough } from './buildui.js';
 import { raycastGround } from './build.js';
+import { BRUSH_SAYS, brushLine, brushUses, drawBrush, keyHandler } from './sculptmode.js';
 
 const HTML = `
 <div class="section">
@@ -24,16 +25,23 @@ const HTML = `
   </div>
   <div class="note">Drag on the ground to shape it. What you shape is metres
     off the ground the operator's elevation says is there, so a better
-    elevation later keeps your shaping.</div>
+    elevation later keeps your shaping. While shaping is on you stand still —
+    turn it off to walk away.</div>
 </div>
 <div class="section">
-  <span class="label">Brush</span>
+  <div class="spread">
+    <span class="label">Brush</span>
+    <span class="muted sc-keys">R F S G L B · [ ] resize · Ctrl-Z undo</span>
+  </div>
   <div class="row sc-brushes"></div>
-  <div class="row">
-    <label>Size (m)<input class="sc-size" type="number" min="1" max="200" value="12"></label>
-    <label>Strength (m)<input class="sc-strength" type="number" min="0.05"
-      step="0.05" value="0.5"></label>
-    <label>Level to (m)<input class="sc-target" type="number" step="0.5"></label>
+  <p class="note sc-brush-says"></p>
+  <div class="row sc-fields">
+    <label data-uses="size">Size (m)<input class="sc-size" type="number" min="1"
+      max="200" value="12"></label>
+    <label data-uses="strength">Strength (m)<input class="sc-strength" type="number"
+      min="0.05" step="0.05" value="0.5"></label>
+    <label data-uses="target">Level to (m)<input class="sc-target" type="number"
+      step="0.5"></label>
   </div>
 </div>
 <div class="section sc-line-box" hidden>
@@ -72,7 +80,10 @@ export function mountSculpt(host, ctx, { lands = () => [] } = {}) {
     host.append(box);
     const q = (sel) => box.querySelector(sel);
     const state = { on: false, brush: 'raise', size: 12, strength: 0.5,
-        shaping: null, areas: [], roads: [], painting: false };
+        shaping: null, areas: [], roads: [], painting: false,
+        // Where the pointer last found ground, and whether that is this
+        // land: what the brush is drawn at, and what colour.
+        at: null, inside: null };
     // `say()` with nothing at all leaves what was said standing and only
     // counts the strokes again: letting go of a brush that refused must not
     // take the refusal off the screen.
@@ -85,7 +96,11 @@ export function mountSculpt(host, ctx, { lands = () => [] } = {}) {
     };
 
     const ground = (lon, lat) => ctx.groundAt?.(lon, lat) ?? 0;
-    const paint = pointer(ctx, state, say, ground);
+    // The height Level aims at is the panel's own field. It was read off
+    // `ctx.target`, which nothing ever passed: Number(undefined) is NaN, the
+    // brush refused every cell, and Level silently did nothing at all.
+    const paint = pointer(ctx, state, say, ground,
+        () => Number(q('.sc-target').value));
 
     const refresh = () => listLands(q, state, say, lands, choose);
     const choose = (id) => chooseLand(q, state, say, id);
@@ -111,7 +126,10 @@ export function mountSculpt(host, ctx, { lands = () => [] } = {}) {
     wire(box, q, state, { toggle, choose, refresh, save, apply, say, ctx });
     refresh();
     return { state, refresh, choose, toggle, save, apply,
-        shaping: () => state.shaping, say };
+        shaping: () => state.shaping, say,
+        // Drawn every frame by the page, the way the Place gizmo is.
+        drawBrush: () => drawBrush({ ...ctx, shapedAt: (lon, lat) =>
+            state.shaping?.at(lon, lat) ?? 0 }, state) };
 }
 
 async function listLands(q, state, say, lands, choose) {
@@ -168,46 +186,68 @@ function layBed(q, state, say, ctx, ground) {
     return got;
 }
 
-// The brush buttons, the fields, and the three that do something.
+// Which brush is in hand: the button picked out, only the fields it reads on
+// screen, and what it will do said before the first drag rather than counted
+// after it (client/js/sculptmode.js).
+function pickBrush(box, q, state, id, say) {
+    state.brush = id;
+    for (const b of box.querySelectorAll('.sc-brush')) {
+        b.classList.toggle('picked', b.dataset.brush === id);
+    }
+    for (const label of box.querySelectorAll('.sc-fields label')) {
+        label.hidden = !brushUses(id, label.dataset.uses);
+    }
+    q('.sc-brush-says').textContent = brushLine(state);
+    q('.sc-line-box').hidden = id !== 'line';
+    say('');
+}
+
+// The brush buttons, the fields, the keys, and the three that do something.
 function wire(box, q, state, acts) {
+    const pick = (id) => pickBrush(box, q, state, id, acts.say);
     q('.sc-brushes').replaceChildren(...BRUSHES.map((b) => {
         const button = el('button', { type: 'button', className: `sc-brush sc-brush-${b.id}`,
-            textContent: `${b.words} (${b.key.toUpperCase()})` });
-        button.onclick = () => {
-            state.brush = b.id;
-            for (const other of box.querySelectorAll('.sc-brush')) {
-                other.classList.toggle('picked', other === button);
-            }
-            q('.sc-line-box').hidden = b.id !== 'line';
-            acts.say('');
-        };
+            textContent: `${b.words} (${b.key.toUpperCase()})`,
+            title: BRUSH_SAYS[b.id]?.does ?? '' });
+        button.dataset.brush = b.id;
+        button.onclick = () => pick(b.id);
         return button;
     }));
-    box.querySelector('.sc-brush-raise').classList.add('picked');
     q('.sc-toggle').addEventListener('change', (e) => acts.toggle(e.target.checked));
     q('.sc-land').addEventListener('change', (e) => acts.choose(e.target.value));
-    q('.sc-size').addEventListener('change', (e) => {
-        state.size = Number(e.target.value) || 12;
+    const resize = (metres) => {
+        state.size = Math.min(200, Math.max(1, Math.round(metres) || 12));
+        q('.sc-size').value = String(state.size);
+        q('.sc-brush-says').textContent = brushLine(state);
         acts.say('');
-    });
+    };
+    q('.sc-size').addEventListener('change', (e) => resize(Number(e.target.value)));
     q('.sc-strength').addEventListener('change', (e) => {
         state.strength = Number(e.target.value) || 0.5;
+        q('.sc-brush-says').textContent = brushLine(state);
     });
-    q('.sc-undo').onclick = () => {
+    const undo = () => {
         acts.say(state.shaping?.undo() ? 'undone' : 'nothing to undo');
         acts.ctx.onShaped?.();
     };
-    q('.sc-redo').onclick = () => {
+    const redo = () => {
         acts.say(state.shaping?.redo() ? 'redone' : 'nothing to redo');
         acts.ctx.onShaped?.();
     };
+    q('.sc-undo').onclick = undo;
+    q('.sc-redo').onclick = redo;
     q('.sc-save').onclick = acts.save;
     q('.sc-apply').onclick = acts.apply;
+    // The keys the buttons already print. Live only while shaping is on: R is
+    // a letter somebody types into the name of a land.
+    document.addEventListener('keydown',
+        keyHandler(state, { brush: pick, size: resize, undo, redo }));
+    pick(state.brush);
 }
 
 // Dragging on the 3D view: the ray lands on the heightfield, and the point it
 // lands on is where the brush is. The same path the Place panel uses.
-function pointer(ctx, state, say, ground) {
+function pointer(ctx, state, say, ground, levelTo) {
     const where = (e) => {
         const rect = ctx.canvas.getBoundingClientRect();
         const r = rayThrough(ctx.camera, ctx.pc, e.clientX - rect.left, e.clientY - rect.top);
@@ -222,7 +262,7 @@ function pointer(ctx, state, say, ground) {
         }
         dab(state.shaping, g.lon, g.lat, { brush: state.brush, size: state.size,
             strength: state.strength, ground,
-            target: state.brush === 'level' ? Number(ctx.target?.()) : undefined });
+            target: state.brush === 'level' ? levelTo() : undefined });
         ctx.onShaped?.();
         say('');
     };
@@ -235,7 +275,16 @@ function pointer(ctx, state, say, ground) {
             if (state.brush === 'line') { state.line = [...(state.line ?? []), g]; return; }
             one(g);
         }],
-        ['pointermove', (e) => { if (state.painting) { const g = where(e); if (g) one(g); } }],
+        // Where the brush is, painting or not: the ring is drawn there every
+        // frame, so the size of a twelve-metre brush is something you can see
+        // rather than something you find out by moving the ground.
+        ['pointermove', (e) => {
+            const g = where(e);
+            state.at = g;
+            state.inside = g ? Boolean(state.shaping?.inside(g.lon, g.lat)) : null;
+            if (state.painting && g) one(g);
+        }],
+        ['pointerout', () => { state.at = null; }],
         // The stroke is only a stroke once it is let go of, and the line
         // under the panel counts strokes — so it is said again here.
         ['pointerup', () => { state.painting = false; state.shaping?.end(); say(); }],

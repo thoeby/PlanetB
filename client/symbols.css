@@ -1,0 +1,236 @@
+/* symbols.css — Settings · Symbols (FND.7), the part that says what a drawn
+ * thing becomes.
+ *
+ * Four columns under one strip: what the world is built with against what is
+ * saved, then the symbols, the one being edited, and the sample it builds.
+ * It has a turn of the design to itself and it is the widest part there is,
+ * so it has a file of its own rather than a corner of client/panels.css.
+ */
+
+/* Symbols is a wide part, but its body is not columns of modules the way the
+   general wide layout in client/panels.css lays one out: it is a strip and
+   then four columns of its own. */
+#panel[data-part="Symbols"] .tab-body:not([hidden]) { display: block; }
+
+/* ---------------------------------------------------- what is not applied */
+
+/* The first thing the part says, because it is the answer to "is what I am
+   looking at what the world is built with". It was under the list, which is
+   where somebody looks last. */
+#panel .sy-apply-box {
+  align-items: center; gap: 16px; margin: 0 0 14px; padding: 10px 14px;
+  border: 1px solid var(--edge-2); background: rgba(255, 255, 255, 0.03);
+  flex-wrap: wrap;
+}
+#panel .sy-changed { font-size: 12px; margin: 0; color: var(--ink-3); }
+#panel .sy-changed[data-some="1"] { color: var(--warn); }
+#panel .sy-confirm { flex: 1 0 100%; margin-top: 8px; }
+#panel .sy-confirm-said { font-size: 12px; }
+
+/* ------------------------------------------------------------ the columns */
+
+#panel .sy-cols {
+  display: grid; grid-template-columns: minmax(240px, 1fr) minmax(0, 2.4fr) minmax(300px, 1.1fr);
+  gap: 0 24px; align-items: start;
+}
+#panel .sy-cols > div { min-width: 0; }
+#panel .sy-mid, #panel .sy-right { border-left: 1px solid var(--edge-2); padding-left: 24px; }
+
+/* ------------------------------------------------------------- the symbols */
+
+#panel .sy-list-head { align-items: center; margin-bottom: 6px; }
+#panel .sy-list { margin: 0; padding: 0; list-style: none; }
+#panel .sy-kind {
+  display: block; margin: 14px 0 4px; color: var(--ink-3);
+}
+#panel .sy-list > li.sy-kind:first-child { margin-top: 0; }
+#panel .sy-row {
+  display: flex; align-items: center; gap: 8px; padding: 4px 0;
+  border-top: 1px solid var(--edge-2);
+}
+#panel .sy-row[data-held="1"] { opacity: 0.4; }
+#panel .sy-row[data-off="1"] .sy-symbol { opacity: 0.5; }
+#panel .sy-grip {
+  flex: 0 0 auto; cursor: grab; color: var(--ink-3); font-size: 14px;
+  letter-spacing: -2px; user-select: none;
+}
+#panel .sy-symbol {
+  flex: 1 1 auto; min-width: 0; display: flex; align-items: baseline; gap: 8px;
+  justify-content: space-between; text-align: left; padding: 5px 8px;
+  background: none; border: 1px solid transparent;
+}
+#panel .sy-symbol:hover { background: rgba(255, 255, 255, 0.04); }
+#panel .sy-symbol.picked { border-color: var(--accent); color: var(--accent); }
+/* A symbol's own name is what somebody typed, so it is not shouted at them:
+   client/panel.css puts every button in a panel in small caps, and these are
+   buttons. The same goes for what a layer is set to and who saved a version. */
+#panel .sy-symbol-name {
+  min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  text-transform: none; letter-spacing: 0.02em; font-size: 13px;
+}
+#panel .sy-symbol-sub {
+  flex: 0 0 auto; font-size: 11px; color: var(--ink-3);
+  text-transform: none; letter-spacing: normal; font-weight: 400;
+}
+/* A symbol the world is not built with yet, marked where they are counted. */
+#panel .sy-row[data-draft="1"] .sy-symbol-name::after {
+  content: ""; display: inline-block; width: 5px; height: 5px; margin-left: 6px;
+  background: var(--warn); transform: rotate(45deg);
+}
+#panel .sy-on-box { flex: 0 0 auto; }
+#panel .sy-list-foot { margin: 10px 0 0; }
+
+/* -------------------------------------------------- the symbol being edited */
+
+#panel .sy-head { align-items: baseline; gap: 12px; margin-bottom: 4px; }
+#panel .sy-head .sy-name {
+  flex: 1 1 auto; min-width: 0; font-family: var(--head); font-size: 20px;
+  letter-spacing: 0.06em; text-transform: uppercase; padding: 8px 10px;
+}
+#panel .sy-of { flex: 0 0 auto; font-size: 12px; }
+#panel .sy-more-btn { flex: 0 0 auto; white-space: nowrap; }
+/* `row` gives it a display of its own, which beats the hidden attribute. */
+#panel .sy-more { margin: 6px 0; gap: 14px; }
+#panel .sy-more[hidden] { display: none; }
+#panel .sy-more label { display: flex; align-items: center; gap: 6px; font-size: 12px; }
+#panel .sy-more .sy-order { width: 5rem; }
+#panel .sy-when-head, #panel .sy-when-foot { align-items: center; margin: 12px 0 6px; }
+#panel .sy-when-foot { margin: 6px 0 0; }
+
+/* A condition reads as three chips and a cross, not as a form. */
+#panel .sy-cond, #panel .sy-lcond {
+  display: flex; gap: 6px; align-items: center; margin: 4px 0; flex-wrap: wrap;
+}
+#panel .sy-cond .prop, #panel .sy-lcond .prop { flex: 0 0 11rem; min-width: 0; }
+#panel .sy-cond .op, #panel .sy-lcond .op { flex: 0 0 6.5rem; min-width: 0; }
+#panel .sy-cond .val, #panel .sy-lcond .val { flex: 1 1 10rem; min-width: 0; }
+#panel .sy-cond > button, #panel .sy-lcond > button { flex: 0 0 auto; }
+
+/* ------------------------------------------------ the stack and the layer */
+
+/* The stack on the left of the middle column, the layer in hand on the right:
+   they were one column, and a four-layer symbol was a page of scrolling. */
+#panel .sy-layers {
+  display: grid; grid-template-columns: minmax(200px, 0.9fr) minmax(0, 1.4fr);
+  gap: 0 20px; align-items: start; margin: 16px 0 0;
+  border-top: 1px solid var(--edge-2); padding-top: 14px;
+}
+#panel .sy-stack { margin: 8px 0; padding: 0; list-style: none; }
+#panel .sy-layer-row {
+  display: flex; align-items: center; gap: 8px; padding: 4px 0;
+  border-top: 1px solid var(--edge-2);
+}
+#panel .sy-layer-row[data-off="1"] .sy-layer { opacity: 0.5; }
+#panel .sy-layer {
+  flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; gap: 2px;
+  text-align: left; padding: 6px 8px; background: none; border: 1px solid transparent;
+}
+#panel .sy-layer:hover { background: rgba(255, 255, 255, 0.04); }
+#panel .sy-layer.picked { border-color: var(--accent); }
+#panel .sy-layer.picked .sy-layer-name { color: var(--accent); }
+#panel .sy-layer-name {
+  font-family: var(--head); font-size: 11px; letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+#panel .sy-layer-says {
+  font-size: 11px; color: var(--ink-3); overflow: hidden;
+  text-overflow: ellipsis; white-space: nowrap;
+  text-transform: none; letter-spacing: normal; font-weight: 400;
+}
+#panel .sy-eye-box { flex: 0 0 auto; }
+#panel .sy-drop-layer { margin-top: 8px; }
+
+#panel .sy-layer-form { padding-left: 20px; border-left: 1px solid var(--edge-2); }
+#panel .sy-layer-form.empty { padding: 24px 20px; }
+#panel .sy-form-head { align-items: baseline; margin-bottom: 4px; }
+#panel .sy-form-head .label i {
+  font-style: normal; color: var(--ink-3); text-transform: none;
+  letter-spacing: normal; font-weight: 400;
+}
+#panel .sy-fields {
+  display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+  gap: 10px 16px; margin: 12px 0;
+}
+#panel .sy-field { display: flex; flex-direction: column; gap: 4px; }
+#panel .sy-field input, #panel .sy-field select { width: 100%; min-width: 0; }
+/* A product of the wrong kind is said on the field it was typed into, not
+   only at the foot of the form (lib/symbols.js fieldTrouble). */
+#panel .sy-field[data-bad="1"] input { border-color: var(--bad); }
+#panel .sy-field-bad { font-size: 11px; color: var(--bad); }
+#panel .sy-only {
+  margin-top: 12px; padding-top: 10px; border-top: 1px solid var(--edge-2);
+}
+#panel .sy-save-row {
+  align-items: center; gap: 14px; margin: 16px 0 0; padding-top: 14px;
+  border-top: 1px solid var(--edge-2);
+}
+
+/* ------------------------------------------------- the sample, and history */
+
+#panel .sy-preview-box { position: relative; margin: 8px 0; }
+/* The sample is the whole of the right column, not the 12 rem thumbnail
+   client/panel.css gives a canvas in a form. */
+#panel canvas.sy-preview {
+  display: block; width: 100%; max-width: none; height: auto; margin: 0;
+  cursor: grab; touch-action: none; border: 1px solid var(--edge-2);
+}
+#panel .sy-preview:active { cursor: grabbing; }
+#panel .sy-preview-how, #panel .sy-preview-by {
+  position: absolute; font-family: var(--head); font-size: 10px;
+  letter-spacing: 0.1em; text-transform: uppercase; color: var(--ink-3);
+  pointer-events: none;
+}
+#panel .sy-preview-how { top: 8px; left: 10px; }
+#panel .sy-preview-by { bottom: 8px; right: 10px; text-transform: none; }
+#panel .sy-said { font-size: 11px; margin: 0 0 12px; }
+
+#panel .sy-tries { margin: 6px 0; }
+#panel .sy-try {
+  display: flex; align-items: center; justify-content: space-between; gap: 10px;
+  padding: 6px 0; border-top: 1px solid var(--edge-2); font-size: 12px;
+}
+#panel .sy-try-name { flex: 0 1 auto; min-width: 0; color: var(--ink-2); }
+#panel input.sy-try-name { flex: 0 1 8rem; }
+#panel .sy-try > input.sy-try-val { flex: 0 1 11rem; min-width: 0; }
+#panel .sy-try-switch { flex: 0 0 auto; display: flex; align-items: center; gap: 8px; }
+#panel .sy-try-says { color: var(--ink-3); }
+#panel .sy-step { flex: 0 0 auto; display: flex; align-items: center; gap: 0; }
+#panel .sy-step button { min-width: 28px; padding: 4px 8px; }
+#panel .sy-step input { width: 4.5rem; text-align: center; }
+#panel .sy-add-prop { margin-top: 8px; }
+
+#panel .sy-history { margin-top: 18px; }
+#panel .sy-versions { margin: 6px 0 0; padding: 0; list-style: none; }
+#panel .sy-v-row {
+  display: flex; align-items: center; gap: 10px; padding: 5px 0;
+  border-top: 1px solid var(--edge-2);
+}
+#panel .sy-version {
+  flex: 1 1 auto; min-width: 0; display: flex; align-items: baseline; gap: 10px;
+  text-align: left; padding: 3px 6px; background: none; border: 1px solid transparent;
+}
+#panel .sy-version:hover { background: rgba(255, 255, 255, 0.04); }
+#panel .sy-v-no { flex: 0 0 auto; color: var(--ink-3); }
+#panel .sy-v-who {
+  min-width: 0; font-size: 12px; overflow: hidden; text-overflow: ellipsis;
+  white-space: nowrap; text-transform: none; letter-spacing: normal;
+  font-weight: 400;
+}
+#panel .sy-v-state {
+  flex: 0 0 auto; font-family: var(--head); font-size: 10px; letter-spacing: 0.1em;
+  text-transform: uppercase; color: var(--ink-3);
+}
+#panel .sy-v-row[data-state="in-world"] .sy-v-state { color: var(--accent); }
+#panel .sy-v-row[data-state="draft"] .sy-v-state { color: var(--warn); }
+
+/* A window that cannot hold three columns puts the sample under the rest of
+   it rather than squeezing all three. */
+@media (max-width: 1500px) {
+  #panel .sy-cols { grid-template-columns: minmax(220px, 1fr) minmax(0, 2.2fr); }
+  #panel .sy-right {
+    grid-column: 1 / -1; border-left: 0; padding-left: 0; margin-top: 18px;
+    border-top: 1px solid var(--edge-2); padding-top: 14px;
+  }
+  #panel .sy-layers { grid-template-columns: minmax(0, 1fr); }
+  #panel .sy-layer-form { padding-left: 0; border-left: 0; }
+}

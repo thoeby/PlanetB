@@ -190,6 +190,7 @@ function showPanel(name, f) {
     // own: a wide panel lays its body out in columns of modules, and Work's
     // body is one queue whose cards are already a grid (client/work.css).
     frame.node.dataset.surface = at.tab;
+    frame.node.dataset.part = leaf;
     // Each panel is as wide as what it has to show (TABS.width), and a leaf
     // marked `wide` takes the window: a tool that is a map beside a form has
     // nothing to gain from being a column. Settings holds both kinds, so the
