@@ -11,8 +11,8 @@
 
 import * as api from './api.js';
 import { WorkLoop, probeCaps } from './work.js';
-import { el, logBlock, machineRows, settingsLayout, shortCaps, switches, worldLine,
-    zoomRows } from './worksettings.js';
+import { el, logBlock, machineRows, settingsLayout, shortCaps, sizeRows, sizeTrouble,
+    switches, worldLine, worldSize, zoomRows } from './worksettings.js';
 
 // How many lines the log keeps, and how many of them the block shows.
 const LOG_LINES = 200;
@@ -135,9 +135,10 @@ function keep(rec, { lines, set }) {
 function mountSettings(host, { ready, work, lines }) {
     const sw = switches();
     const facts = el('div', { className: 'wk-facts' });
+    const size = el('div', { className: 'wk-facts wk-size' });
     const zoom = el('div', { className: 'wk-zooms' });
     const log = logBlock(() => lines);
-    host.append(settingsLayout({ sw: sw.node, facts, zoom, log: log.node }));
+    host.append(settingsLayout({ sw: sw.node, facts, size, zoom, log: log.node }));
     const redraw = () => facts.replaceChildren(...machineRows(work()?.caps, work()));
     const refresh = async () => {
         const gpu = host.querySelector('.work-gpu');
@@ -145,6 +146,15 @@ function mountSettings(host, { ready, work, lines }) {
         gpu.title = describe(work()?.caps ?? {});
         host.querySelector('.work-progress').textContent = await worldLine();
         zoom.replaceChildren(...await zoomRows());
+        // How big a tile is built here (db/0173). A world left turned down by
+        // a player-run renders every tile at a twentieth of the budget and
+        // said nothing about it until this line.
+        const how = await worldSize();
+        size.replaceChildren(...sizeRows(how));
+        const bad = host.querySelector('.wk-size-trouble');
+        bad.textContent = sizeTrouble(how);
+        bad.hidden = !bad.textContent;
+        bad.dataset.bad = bad.textContent ? '1' : '';
         redraw();
     };
     // What the machine is doing, on the tab that is about the machine.

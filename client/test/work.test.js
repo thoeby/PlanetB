@@ -139,6 +139,34 @@ test('a claimed atom is uploaded to the path its claim reserved, then submitted'
     assert.equal(loop.done, 1);
 });
 
+// db/0173: the world takes a claim back when nobody beats for it, and a tab
+// that finds out at submit_atom has already spent the hour. A refused beat is
+// the answer, and it stops the run.
+test('a claim the world has taken back stops the run at the next beat', async () => {
+    let beat = () => {};
+    const api = fakeApi({ artifact: [] }, {
+        claim_atom: ATOM,
+        heartbeat: () => { throw new Error('atom 42 is not claimed by you'); },
+        submit_atom: 'verified',
+    });
+    const loop = new WorkLoop({
+        api,
+        filesUrl: 'http://files',
+        // The atom never finishes on its own: what ends this run is the beat.
+        spawn: () => ({ run: () => new Promise(() => {}), terminate: () => {} }),
+        fetchFn: async () => new Response('', { status: 201 }),
+        timers: { setInterval: (fn) => { beat = fn; return 1; },
+            clearInterval: () => {}, setTimeout: () => {} },
+    });
+    const running = loop.step();
+    // Let the claim and the input resolution settle, then miss a beat.
+    await new Promise((r) => { setTimeout(r, 0); });
+    beat();
+    await assert.rejects(() => running, /took this piece back/);
+    assert.ok(api.calls.some((c) => c[1] === 'fail_atom'),
+        'and the piece is handed back with the reason on it');
+});
+
 test('an artifact the store already holds is pointed at, not written again', async () => {
     const bytes = new TextEncoder().encode('{"a":1}');
     const sha = await import('../lib/hash.js').then((m) => m.sha256(bytes));
@@ -192,7 +220,8 @@ test('the claim is kept alive by a heartbeat, and only while it is held', async 
         },
     });
     await loop.step();
-    assert.equal(beat.ms, 60_000, 'every 60 s, well inside the 5 minute expiry');
+    assert.equal(beat.ms, 30_000,
+        'every 30 s, so a lease an operator has turned down still holds');
     await beat.fn();
     assert.deepEqual(api.calls.find((c) => c[1] === 'heartbeat')[2], { atom_id: 42 });
     assert.equal(cleared, true, 'and stopped once the atom is submitted');

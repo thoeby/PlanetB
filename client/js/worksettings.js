@@ -88,6 +88,50 @@ export async function zoomRows() {
     });
 }
 
+// How big a tile is built here, and what it would be built at if nobody had
+// said otherwise (db/0173 world_size). A world turned down is invisible
+// otherwise: `make player-run` used to leave its own numbers on the operator's
+// database for good, and every tile rendered after that came out at a
+// twentieth of the budget with a claim that ran out under a training run. A
+// number that is not the default is said in full, with the words that put it
+// back.
+const SIZE_ROWS = [
+    ['budget_scale', 'Splats', (v) => `${Math.round(Number(v) * 100)}% of the budget`],
+    ['iters', 'Training', (v) => `${v} iterations`],
+    ['frame_px', 'Frames', (v) => `${v} px`],
+    ['lease', 'Claim lease', (v) => String(v)],
+    ['lease_train', 'Training lease', (v) => String(v)],
+];
+
+export function sizeRows(size) {
+    if (!size) return [];
+    return SIZE_ROWS.map(([key, name, say]) => {
+        const one = size[key] ?? {};
+        const turned = Boolean(one.set) && String(one.is) !== String(one.default);
+        return el('div', { className: 'wk-fact' },
+            el('span', { textContent: name }),
+            el('span', { className: 'mono', 'data-tone': turned ? 'bad' : '',
+                textContent: say(one.is)
+                    + (turned ? ` \u00b7 not ${say(one.default)}` : '') }));
+    });
+}
+
+// The one sentence somebody can act on, or nothing at all when the world is
+// the size it should be.
+export function sizeTrouble(size) {
+    const turned = SIZE_ROWS.filter(([k]) => size?.[k]?.set
+        && String(size[k].is) !== String(size[k].default)).map(([k]) => k);
+    if (!turned.length) return '';
+    return 'This world is being built smaller than it should be. A player-run'
+        + ' left its own numbers on the database; every tile rendered now comes'
+        + ' out at that size. Put them back with:  '
+        + turned.map((k) => `ALTER DATABASE splatworld RESET splatworld.${k};`).join('  ');
+}
+
+export async function worldSize() {
+    return api.rpc('world_size').catch(() => null);
+}
+
 // The two numbers the strip along the top of every tab carries, from the same
 // rows: what the world has drawn, and how much work is standing ready.
 export async function worldLine() {
@@ -124,9 +168,15 @@ export function logBlock(lines) {
 }
 
 // The Settings tab, in the two columns the design lays it out in.
-export function settingsLayout({ sw, facts, zoom, log }) {
+export function settingsLayout({ sw, facts, zoom, log, size }) {
     return el('div', { className: 'wk-settings' },
         el('div', { className: 'wk-col' }, sw,
+            el('div', { className: 'wk-card' },
+                el('div', { className: 'wk-card-head' },
+                    el('span', { className: 'label',
+                        textContent: 'How big this world is built' })),
+                size,
+                el('p', { className: 'note wk-size-trouble', hidden: true })),
             el('div', { className: 'wk-card' },
                 el('div', { className: 'wk-card-head' },
                     el('span', { className: 'label', textContent: 'This machine' }),

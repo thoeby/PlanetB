@@ -652,7 +652,17 @@ minutes, and the tiles are built small: `db/0131`'s `splatworld.budget_scale`,
 `client/test/run/world.js` after every reset. `RUN_FULL_SIZE=1` renders at the
 operator's own numbers, which is hours a tile without a GPU. The claim lease is
 turned down the same way (`db/0132`, `splatworld.lease`), and it must stay
-above the minute a tab beats at (`client/js/work.js`).
+above the half-minute a tab beats at (`client/js/work.js`).
+
+**`ALTER DATABASE` persists, and the run happens in the operator's own
+database.** A run that set those four numbers and walked away left the world
+being built at a twentieth of the budget for good — every tile rendered
+afterwards came out poor, and every claim was leased for 150 seconds, which
+takes a training run away from the tab that is doing it. `startWorld` now
+records what it found and puts it back when the run ends, and the page says
+what the world is built at (Work · Settings, `db/0173` `world_size`). A world
+that went through an older run is still turned down: the panel says so and
+prints the `ALTER DATABASE … RESET` that undoes it.
 
 **Run `make gate` from a reset, not straight after `make player-run`.** The
 run leaves a whole world behind — land, published tiles, leaf jobs — and

@@ -78,16 +78,54 @@ function emptyDatabase() {
     }
 }
 
-function runSize() {
-    if (process.env.RUN_FULL_SIZE === '1') return;
-    const db = process.env.PGDATABASE ?? 'splatworld';
-    for (const [key, value] of [SMALL, ITERS, PX, LEASE]) {
-        const set = sh('psql', ['-v', 'ON_ERROR_STOP=1', '--no-psqlrc', '-q', '-c',
-            `ALTER DATABASE "${db}" SET splatworld.${key} = '${value}'`], { stdio: 'pipe' });
-        if (set.status !== 0) {
-            throw new Error(`could not set splatworld.${key}:\n${set.stderr || set.stdout}`);
+// ALTER DATABASE persists, and the database a run happens in is the
+// operator's own. A run that set these and walked away left the world being
+// built at a twentieth of the budget, sixty iterations and 192 px frames,
+// with every claim leased for 150 seconds — for good, and with nothing on the
+// page saying so. That is what "the claim went quiet and the world took the
+// piece back" was, and what "it still looks not great" was: one run, months
+// ago, and every tile since. So the run says what it found and puts it back
+// (`undoSize`), and the world says out loud what it is built at (db/0173).
+function alter(db, clause) {
+    const done = sh('psql', ['-v', 'ON_ERROR_STOP=1', '--no-psqlrc', '-q', '-c',
+        `ALTER DATABASE "${db}" ${clause}`], { stdio: 'pipe' });
+    if (done.status !== 0) {
+        throw new Error(`could not ${clause}:\n${done.stderr || done.stdout}`);
+    }
+}
+
+// What this database already had for the four keys, as psql prints them in
+// pg_db_role_setting: `splatworld.iters=60`. Anything else there is somebody
+// else's and is not touched.
+function sizeWas(db) {
+    const got = sh('psql', ['-Atc',
+        'SELECT unnest(setconfig) FROM pg_db_role_setting s'
+        + ' JOIN pg_database d ON d.oid = s.setdatabase'
+        + ` WHERE d.datname = '${db}' AND s.setrole = 0`], { stdio: 'pipe' });
+    const had = new Map();
+    for (const line of (got.stdout ?? '').split('\n')) {
+        const at = line.indexOf('=');
+        if (at > 0 && line.startsWith('splatworld.')) {
+            had.set(line.slice('splatworld.'.length, at), line.slice(at + 1));
         }
     }
+    return had;
+}
+
+function runSize() {
+    if (process.env.RUN_FULL_SIZE === '1') return () => {};
+    const db = process.env.PGDATABASE ?? 'splatworld';
+    const had = sizeWas(db);
+    for (const [key, value] of [SMALL, ITERS, PX, LEASE]) {
+        alter(db, `SET splatworld.${key} = '${value}'`);
+    }
+    return () => {
+        for (const [key] of [SMALL, ITERS, PX, LEASE]) {
+            alter(db, had.has(key)
+                ? `SET splatworld.${key} = '${had.get(key)}'`
+                : `RESET splatworld.${key}`);
+        }
+    };
 }
 
 // nginx is not in this stack, but the server's own store still has to be
@@ -237,8 +275,7 @@ export async function startWorld() {
         emptyDatabase();
         emptyStore();
     }
-    runSize();
-    const stops = [];
+    const stops = [runSize()];
     const geoserver = switchable(await startGeoServer());
     stops.push(() => geoserver.stop());
     stops.push(startServer());

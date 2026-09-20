@@ -2556,3 +2556,40 @@ things it made me change and one it made me write down:
   them a moment apart and hoping. `Movers.where(t)` takes the time, so "the
   same bus at the same second" is asserted as exactly that — and it is also
   what takes the run's own timing out of the test.
+
+## The world the test run left behind
+
+Two reports from the operator, one cause. Pressing Render on a tile came back
+"the claim went quiet and the world took the piece back", and the tiles that
+did finish looked poor.
+
+`make player-run` turns the world down so the stories can render at all on a
+machine with no GPU (`db/0131`, `db/0132`): a twentieth of the budget, sixty
+iterations, 192 px frames, and a 150-second claim lease. It sets them with
+`ALTER DATABASE`, in the operator's own database, and **`ALTER DATABASE`
+persists**. One run, months ago, and every tile since was built at a twentieth
+of the budget — and every claim, training included, was leased for two and a
+half minutes.
+
+Three things, so that neither happens again:
+
+- **The run puts the world back.** `startWorld` reads the four settings before
+  it writes its own and restores them when the run ends
+  (`client/test/run/world.js`). Anything else on the database is left alone.
+- **The world says how big it is built.** `world_size` (`db/0173`) reads the
+  four numbers out beside the defaults they replaced, and Work · Settings
+  draws them — red where somebody asked for something else, with the
+  `ALTER DATABASE … RESET` that undoes it. A world turned down was invisible,
+  which is the only reason this survived so long.
+- **A turned-down lease no longer takes a training run away.**
+  `claim_patience` kept a six-fold patience for `train` — thirty minutes
+  against five — and the operator's one knob flattened it. `splatworld.lease`
+  is the ordinary lease, as it was; training's is `splatworld.lease_train`,
+  and unset it is six times the ordinary one.
+
+And the tab stops working on a piece the world has taken off it. A refused
+heartbeat used to be one line in the log; an hour of training later
+`submit_atom` refused the finished run, and the message said nothing about
+why. The beat now ends the run where it happens, with the sentence that says
+what to look at. It beats every thirty seconds rather than every sixty, so a
+lease an operator has turned down still holds.

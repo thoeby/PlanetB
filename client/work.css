@@ -305,3 +305,13 @@
   #panel .jd { grid-template-columns: 1fr; }
   #panel .jd-list { flex-direction: row; overflow-x: auto; max-height: none; }
 }
+
+/* How big this world is built (db/0173). A number the operator did not ask
+   for is red and says what it should have been; the sentence under it is the
+   one thing they can do about it, so it is wide and wraps. */
+#panel .wk-fact [data-tone="bad"] { color: var(--bad); }
+#panel .wk-size-trouble {
+  margin: 0; padding: 10px 12px; border-top: 1px solid var(--edge-2);
+  white-space: pre-wrap; overflow-wrap: anywhere;
+}
+#panel .wk-size-trouble[data-bad="1"] { color: var(--warn); }

@@ -32,7 +32,11 @@ export { ALGO, spawnAtomWorker };
 // of rgba and a tab works through a lot of tiles.
 const PICTURES = 24;
 
-const HEARTBEAT_MS = 60_000;
+// How often a tab says it is still holding its claim. The world takes a claim
+// back after `claim_patience` (db/0173), which an operator may turn down: at
+// half a minute a tab survives a lease of one, and a tab whose timers the
+// browser has throttled to once a minute still beats inside a lease of two.
+const HEARTBEAT_MS = 30_000;
 const IDLE_MS = 15_000;
 // How long the pace may hold the loop back before it takes an atom anyway.
 // Standing aside for a tab that is being played is the point (WP5.2); standing
@@ -106,18 +110,40 @@ export class WorkLoop {
         // atom away from a worker that is still doing it. So the atom's own
         // progress reports beat as well as the timer.
         let last = Date.now();
+        // A beat that is refused is the world saying the claim is not this
+        // tab's any more — expire_claims took it back, or another tab has it.
+        // Finding that out at submit_atom, an hour of training later, is how
+        // "the claim went quiet and the world took the piece back" reads as a
+        // tile that will not render: the work is already lost when the beat is
+        // refused, so the run stops here and says so.
+        let refuse = () => {};
+        const lost = new Promise((_, no) => { refuse = no; });
+        // Nothing awaits `lost` on its own, and a rejection nobody is waiting
+        // for yet is an unhandled rejection the moment it happens.
+        lost.catch(() => {});
         const beat = () => {
             last = Date.now();
-            this.api.rpc('heartbeat', { atom_id: atom.id }).catch(
-                (err) => this.log({ event: 'beat-failed', atom: atom.id, err: String(err) }));
+            this.api.rpc('heartbeat', { atom_id: atom.id }).catch((err) => {
+                const said = String(err?.body?.message ?? err?.message ?? err);
+                this.log({ event: 'beat-failed', atom: atom.id, err: said });
+                if (/not claimed by you/.test(said)) {
+                    refuse(new Error(`${said} — the world took this piece back while this`
+                        + ' tab was still doing it, so nothing it computes can be'
+                        + ' submitted. The claim lease may be shorter than the work:'
+                        + ' see how big this world is built, in Work \u00b7 Settings.'));
+                }
+            });
         };
         const timer = this.timers.setInterval(beat, HEARTBEAT_MS);
         const progress = () => { if (Date.now() - last > HEARTBEAT_MS / 2) beat(); };
         try {
             const started = Date.now();
-            const out = await this.compute(atom, progress);
-            const state = await this.deliver(atom, out, (Date.now() - started) / 1000,
-                progress);
+            // Racing the claim, not just the clock: an hour of training that
+            // the world has already given to somebody else is an hour thrown
+            // away, and the message at the end of it says nothing about why.
+            const out = await Promise.race([this.compute(atom, progress), lost]);
+            const state = await Promise.race([
+                this.deliver(atom, out, (Date.now() - started) / 1000, progress), lost]);
             // Anything but 'verified' is submit_atom refusing the work: a
             // structural rule said no, the attempt was counted, and the atom
             // went back to `ready` for whoever claims next — this tab, in
