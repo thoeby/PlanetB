@@ -5,64 +5,23 @@
 // function and is tested under node.
 
 import * as tm from '../lib/tilemath.js';
+import { RESIDENT_MS, splatsHere } from './tileengine.js';
 import { LIMITS, POLL_MS, RETRY_MS, key, parseKey, selectTiles, showing }
     from './traverse.js';
 
 export { LIMITS, WEBGL_LIMITS, POLL_MS, RETRY_MS, key, parseKey, selectTiles, showing,
     REFINE_PX, HYSTERESIS, tileRadius, screenSpaceError, sphereVisible }
     from './traverse.js';
+// The three that read PlayCanvas's own fields, split out when this file passed
+// the 400 lines CLAUDE.md allows. Re-exported: they were always part of what
+// this module is, and the page asks this module for them.
+export { cameraState, RESIDENT_MS, splatsHere } from './tileengine.js';
 
 // --------------------------------------------------------------- the entities
 //
 // PlayCanvas is passed in rather than imported: the engine is a CDN global in
 // play.html, and handing it over keeps this module loadable under node, where
 // the traversal above is tested.
-
-// The frustum is built here from the camera node's current transform rather
-// than read off the component: the engine's frustum, and its view matrix, are
-// the ones it last rendered with, a frame behind, and a selection made with
-// them culls against where the camera was. `pc` is the engine; without it the
-// rendered frustum is used.
-let scratch = null;
-
-export function cameraState(cameraEntity, screenH, pc = null) {
-    const cc = cameraEntity.camera;
-    const p = cameraEntity.getPosition();
-    let d = cc.frustum.planeData;
-    if (pc) {
-        scratch ??= { frustum: new pc.Frustum(), view: new pc.Mat4(), mat: new pc.Mat4() };
-        scratch.view.copy(cameraEntity.getWorldTransform()).invert();
-        scratch.frustum.setFromMat4(scratch.mat.mul2(cc.projectionMatrix, scratch.view));
-        d = scratch.frustum.planeData;
-    }
-    const planes = [];
-    for (let i = 0; i < 6; i++) planes.push([d[i * 4], d[i * 4 + 1], d[i * 4 + 2], d[i * 4 + 3]]);
-    return {
-        position: { x: p.x, y: p.y, z: p.z },
-        planes, screenH, fovY: cc.fov * tm.RAD_PER_DEG,
-    };
-}
-
-// Whether a loaded asset's splats are on the device.
-//
-// A single-level .sog is ready when its splats are decoded. An octree asset is
-// ready when its *index* parses; the file it names is fetched afterwards by the
-// octree's own loader. A tile's octree names exactly one file, so file 0 is the
-// tile. These are the engine fields this file depends on (PlayCanvas 2.22,
-// pinned by tools/vendor.sh): re-read this one function on a version bump.
-export function splatsHere(entry) {
-    const resource = entry?.asset?.resource;
-    if (!resource) return false;
-    const octree = resource.octree;
-    return octree ? Boolean(octree.getFileResource(0)) : true;
-}
-
-// How long a placed tile is given to produce its splats before it is counted
-// as drawing anyway, with a complaint. The octree's loader retries twice and
-// then puts the url aside silently — nothing fires an error this file could
-// hear — so without this a 404 on one .sog would wedge refine, coarsen and the
-// swap for ever. It degrades the picture; it cannot stop the world.
-export const RESIDENT_MS = 10000;
 
 // Where the traversal starts: every published tile with no published tile above
 // it. A world compiles from the leaves up (SPEC §5.3) — the first thing anybody
@@ -113,6 +72,12 @@ export class TileStreamer {
         this.clock = 0;
         // Tiles whose bytes have arrived, waiting for their frame in the scene.
         this.arrived = [];
+        // FND.9: the z14 keys whose splats are put away while their ground is
+        // being shaped. You cannot shape what you cannot see, and what the
+        // shaping changes is the mesh under the splats (client/js/ground.js),
+        // so while Shape is on the splats over that land come off and the mesh
+        // is what is on screen. Nothing is unloaded: they are hidden.
+        this.hidden = new Set();
     }
 
     // rows: every row of GET /api/tile, published or not — refinableInto()
@@ -130,6 +95,26 @@ export class TileStreamer {
             candidates: this.candidates,
             failed: this.failed, now: Date.now(),
         };
+    }
+
+    // Which ground has its splats put away, as z14 keys. Handing it an empty
+    // list puts every one of them back.
+    hideUnder(keys) {
+        this.hidden = new Set(keys);
+        for (const e of this.entries.values()) this.showOrHide(e);
+        return this.hidden.size;
+    }
+
+    // A tile is hidden when the z14 tile it is part of is. Only the levels at
+    // or below z14 — a coarser tile is a merge of half a country, and taking
+    // one away to shape a field would be a hole the size of the merge.
+    showOrHide(e) {
+        if (!e?.entity || !e.row) return false;
+        const { z, x, y } = e.row;
+        const f = 2 ** (z - 14);
+        const hide = z >= 14 && this.hidden.has(key(14, Math.floor(x / f), Math.floor(y / f)));
+        e.entity.enabled = !hide;
+        return hide;
     }
 
     update(camera) {
@@ -242,6 +227,7 @@ export class TileStreamer {
             this.place(entity, entry.row);
             this.app.root.addChild(entity);
             entry.entity = entity;
+            this.showOrHide(entry);
             entry.placedAt = Date.now();
             entry.resident = splatsHere(entry);
             return entry;
@@ -367,6 +353,7 @@ export class TileStreamer {
         this.place(entity, row);
         this.app.root.addChild(entity);
         e.pending = { entity, asset, row, placedAt: Date.now() };
+        this.showOrHide(e.pending);
         this.settleResidency(Date.now());
     }
 
@@ -378,6 +365,7 @@ export class TileStreamer {
         e.entity = entity;
         e.asset = asset;
         e.row = row;
+        this.showOrHide(e);
         e.resident = true;
         e.placedAt = Date.now();
         e.pending = null;

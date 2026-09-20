@@ -10,13 +10,15 @@
 // the compiler ignoring every cell outside the land whatever was written.
 
 import * as api from './api.js';
-import { BRUSHES, Shaping, brushWords } from './sculpt.js';
+import { Shaping, brushWords } from './sculpt.js';
 import { alongLine, dab } from './sculptbrush.js';
 import { el } from './poolui.js';
 import { rayThrough } from './buildui.js';
 import { raycastGround } from './build.js';
-import { BRUSH_SAYS, brushLine, brushUses, drawBrush, groundLine, keyHandler, shapedLine }
+import { brushLine, brushUses, drawBrush, groundLine, keyHandler, shapedLine }
     from './sculptmode.js';
+import { panning } from './sculptpan.js';
+import { toolRail } from './sculptrail.js';
 
 const HTML = `
 <div class="section">
@@ -24,43 +26,12 @@ const HTML = `
     <label class="sc-on-box"><input type="checkbox" class="sc-toggle"> Shape this land</label>
     <select class="sc-land"></select>
   </div>
-  <div class="note">Drag on the ground to shape it. What you shape is metres
-    off the ground the operator's elevation says is there, so a better
-    elevation later keeps your shaping. While shaping is on you stand still —
-    turn it off to walk away.</div>
-</div>
-<div class="section">
-  <div class="spread">
-    <span class="label">Brush</span>
-    <span class="muted sc-keys">R F S G L B · [ ] resize · Ctrl-Z undo</span>
-  </div>
-  <div class="row sc-brushes"></div>
-  <p class="note sc-brush-says"></p>
-  <div class="row sc-fields">
-    <label data-uses="size">Size (m)<input class="sc-size" type="number" min="1"
-      max="200" value="12"></label>
-    <label data-uses="strength">Strength (m)<input class="sc-strength" type="number"
-      min="0.05" step="0.05" value="0.5"></label>
-    <label data-uses="target">Level to (m)<input class="sc-target" type="number"
-      step="0.5"><button type="button" class="sc-take">Take it from here</button></label>
-  </div>
-  <p class="note mono sc-here"></p>
-</div>
-<div class="section sc-line-box" hidden>
-  <span class="label">Along a line</span>
-  <div class="note">Click points along the path, or take one of this land's
-    roads, and the bed is written once.</div>
-  <div class="spread">
-    <span class="muted sc-corners">no corners yet</span>
-    <button type="button" class="sc-line-clear">Start the line again</button>
-  </div>
-  <div class="row">
-    <select class="sc-road"></select>
-    <label>Width (m)<input class="sc-width" type="number" min="1" value="7"></label>
-    <label>Shoulder (m)<input class="sc-shoulder" type="number" min="0" value="1"></label>
-    <label>Gradient (%)<input class="sc-gradient" type="number" min="1" value="8"></label>
-  </div>
-  <button type="button" class="sc-apply primary">Apply</button>
+  <div class="note">The tools are on the rail beside the world, and what the
+    one in hand needs is in the box under it. What you shape is metres off the
+    ground the operator's elevation says is there, so a better elevation later
+    keeps your shaping.</div>
+  <p class="muted sc-keys">H hand · R F S G L B brushes · [ ] resize
+    · Ctrl-Z undo</p>
 </div>
 <div class="section">
   <div class="row">
@@ -78,6 +49,30 @@ const HTML = `
   </div>
 </div>`;
 
+// Shaping on or off: who has the pointer, and what the world shows.
+//
+// FND.9: what is being shaped is the mesh, so while shaping is on the splats
+// over that land come off and the mesh is what is on screen — you cannot shape
+// ground you cannot see (client/js/tiles.js hideUnder).
+function shapeMode(ctx, state, rail, q, paint, say, on) {
+    state.on = on ?? !state.on;
+    q('.sc-toggle').checked = state.on;
+    rail.node.dataset.on = state.on ? '1' : '';
+    for (const [name, fn] of paint.on) {
+        if (state.on) ctx.canvas.addEventListener(name, fn, { passive: false });
+        else ctx.canvas.removeEventListener(name, fn);
+    }
+    if (state.on) {
+        ctx.player.detach();
+        document.exitPointerLock?.();
+    } else {
+        ctx.player.attach(ctx.canvas);
+    }
+    ctx.onMode?.(state.on);
+    say(state.on ? 'shaping \u2014 drag on the ground' : '');
+    return state.on;
+}
+
 // What the panel says about itself, in one line.
 const sentence = (state) => {
     if (!state.shaping) return 'no land to shape';
@@ -90,7 +85,11 @@ export function mountSculpt(host, ctx, { lands = () => [] } = {}) {
     const box = el('div');
     box.innerHTML = HTML;
     host.append(box);
-    const q = (sel) => box.querySelector(sel);
+    // The tools are over the world, not in this column (client/js/sculptrail.js),
+    // so the panel and the rail are asked together for whatever is wanted.
+    const rail = toolRail((id) => pick(id));
+    const q = (sel) => box.querySelector(sel) ?? rail.q(sel);
+    const pick = (id) => pickBrush(rail, q, state, id, say);
     const state = { on: false, brush: 'raise', size: 12, strength: 0.5,
         shaping: null, areas: [], roads: [], painting: false,
         // Where the pointer last found ground, and whether that is this
@@ -129,27 +128,15 @@ export function mountSculpt(host, ctx, { lands = () => [] } = {}) {
     const refresh = () => listLands(q, state, say, lands, choose);
     const choose = (id) => chooseLand(q, state, say, id);
 
-    const toggle = (on) => {
-        state.on = on ?? !state.on;
-        q('.sc-toggle').checked = state.on;
-        if (state.on) {
-            ctx.player.detach();
-            document.exitPointerLock?.();
-            for (const [name, fn] of paint.on) ctx.canvas.addEventListener(name, fn);
-        } else {
-            for (const [name, fn] of paint.on) ctx.canvas.removeEventListener(name, fn);
-            ctx.player.attach(ctx.canvas);
-        }
-        say(state.on ? 'shaping — drag on the ground' : '');
-        return state.on;
-    };
+    const toggle = (on) => shapeMode(ctx, state, rail, q, paint, say, on);
 
     const save = () => saveGround(state, say, ctx);
     const apply = () => layBed(q, state, say, ctx, ground);
     const clear = () => putBack(state, say, ctx);
     const take = () => levelHere(q, state, say, ground);
 
-    wire(box, q, state, { toggle, choose, refresh, save, apply, clear, take, say, ctx });
+    wire(rail, q, state, { toggle, choose, refresh, save, apply, clear, take, say,
+        ctx, pick });
     refresh();
     return { state, refresh, choose, toggle, save, apply, clear, take,
         shaping: () => state.shaping, say,
@@ -236,15 +223,14 @@ function layBed(q, state, say, ctx, ground) {
     return got;
 }
 
-// Which brush is in hand: the button picked out, only the fields it reads on
-// screen, and what it will do said before the first drag rather than counted
-// after it (client/js/sculptmode.js).
-function pickBrush(box, q, state, id, say) {
+// Which tool is in hand: lit on the rail, named over the box, and only the
+// fields it reads on screen — "Level to" under Smooth is a control that does
+// nothing, which is worse than no control at all. What it will do is said
+// before the first drag rather than counted after it (client/js/sculptmode.js).
+function pickBrush(rail, q, state, id, say) {
     state.brush = id;
-    for (const b of box.querySelectorAll('.sc-brush')) {
-        b.classList.toggle('picked', b.dataset.brush === id);
-    }
-    for (const label of box.querySelectorAll('.sc-fields label')) {
+    rail.pick(id);
+    for (const label of rail.all('.sc-fields label')) {
         label.hidden = !brushUses(id, label.dataset.uses);
     }
     q('.sc-brush-says').textContent = brushLine(state);
@@ -252,17 +238,9 @@ function pickBrush(box, q, state, id, say) {
     say('');
 }
 
-// The brush buttons, the fields, the keys, and the three that do something.
-function wire(box, q, state, acts) {
-    const pick = (id) => pickBrush(box, q, state, id, acts.say);
-    q('.sc-brushes').replaceChildren(...BRUSHES.map((b) => {
-        const button = el('button', { type: 'button', className: `sc-brush sc-brush-${b.id}`,
-            textContent: `${b.words} (${b.key.toUpperCase()})`,
-            title: BRUSH_SAYS[b.id]?.does ?? '' });
-        button.dataset.brush = b.id;
-        button.onclick = () => pick(b.id);
-        return button;
-    }));
+// The rail, the fields, the keys, and the three that do something.
+function wire(rail, q, state, acts) {
+    const pick = acts.pick;
     q('.sc-toggle').addEventListener('change', (e) => acts.toggle(e.target.checked));
     q('.sc-land').addEventListener('change', (e) => acts.choose(e.target.value));
     const resize = (metres) => {
@@ -295,8 +273,8 @@ function wire(box, q, state, acts) {
         acts.ctx.onShaped?.();
         acts.say('the line is cleared \u2014 click its corners again');
     };
-    // The keys the buttons already print. Live only while shaping is on: R is
-    // a letter somebody types into the name of a land.
+    // The keys the rail already prints on each glyph. Live only while shaping
+    // is on: R is a letter somebody types into the name of a land.
     document.addEventListener('keydown',
         keyHandler(state, { brush: pick, size: resize, undo, redo }));
     pick(state.brush);
@@ -304,32 +282,26 @@ function wire(box, q, state, acts) {
 
 // Dragging on the 3D view: the ray lands on the heightfield, and the point it
 // lands on is where the brush is. The same path the Place panel uses.
+//
+// The hand is the one tool that does not touch the ground: it moves the camera
+// over it (client/js/sculptpan.js), so a drag with it in hand goes there and
+// nowhere near the grid.
 function pointer(ctx, state, { say, hover }, ground, levelTo) {
+    const hand = panning(ctx);
     const where = (e) => {
         const rect = ctx.canvas.getBoundingClientRect();
         const r = rayThrough(ctx.camera, ctx.pc, e.clientX - rect.left, e.clientY - rect.top);
         const hit = raycastGround(ctx.terrain, r.from, r.dir);
         return hit ? ctx.origin.geodeticOf(hit) : null;
     };
-    const one = (g) => {
-        if (!state.shaping) return;
-        if (!state.shaping.inside(g.lon, g.lat)) {
-            state.refused = true;
-            say('You can only shape your own land', true);
-            return;
-        }
-        dab(state.shaping, g.lon, g.lat, { brush: state.brush, size: state.size,
-            strength: state.strength, ground,
-            target: state.brush === 'level' ? levelTo() : undefined });
-        ctx.onShaped?.();
-        // The light line, not the whole panel: what has been shaped altogether
-        // walks the grid, and this runs on every dab of a drag. The refusal is
-        // the one thing that has to come off the screen the moment it stops
-        // being true.
-        if (state.refused) { state.refused = false; say(''); } else hover();
-    };
+    const one = (g) => dabAt(ctx, state, { say, hover }, ground, levelTo, g);
     return { on: [
         ['pointerdown', (e) => {
+            if (state.brush === 'pan') {
+                state.painting = hand.take(e);
+                if (!state.painting) say('nothing under the pointer to take hold of', true);
+                return;
+            }
             const g = where(e);
             if (!g) { say('no ground under the pointer', true); return; }
             state.painting = true;
@@ -341,6 +313,7 @@ function pointer(ctx, state, { say, hover }, ground, levelTo) {
         // frame, so the size of a twelve-metre brush is something you can see
         // rather than something you find out by moving the ground.
         ['pointermove', (e) => {
+            if (state.brush === 'pan') { if (state.painting) hand.drag(e); return; }
             const g = where(e);
             state.at = g;
             state.inside = g ? Boolean(state.shaping?.inside(g.lon, g.lat)) : null;
@@ -348,11 +321,42 @@ function pointer(ctx, state, { say, hover }, ground, levelTo) {
             else hover();
         }],
         ['pointerout', () => { state.at = null; hover(); }],
+        // In and out over the land, with the hand in hand. The page's own
+        // wheel would scroll the panel behind it.
+        ['wheel', (e) => {
+            if (state.brush !== 'pan') return;
+            e.preventDefault();
+            hand.zoom(e);
+        }],
         // The stroke is only a stroke once it is let go of, and the line
         // under the panel counts strokes — so it is said again here.
-        ['pointerup', () => { state.painting = false; state.shaping?.end(); say(); }],
-        ['pointerleave', () => { state.painting = false; state.shaping?.end(); say(); }],
+        ['pointerup', () => { letGo(state, hand); say(); }],
+        ['pointerleave', () => { letGo(state, hand); say(); }],
     ] };
+}
+
+function letGo(state, hand) {
+    state.painting = false;
+    hand.drop();
+    state.shaping?.end();
+}
+
+// One dab of the brush in hand, where the pointer is.
+function dabAt(ctx, state, { say, hover }, ground, levelTo, g) {
+    if (!state.shaping) return;
+    if (!state.shaping.inside(g.lon, g.lat)) {
+        state.refused = true;
+        say('You can only shape your own land', true);
+        return;
+    }
+    dab(state.shaping, g.lon, g.lat, { brush: state.brush, size: state.size,
+        strength: state.strength, ground,
+        target: state.brush === 'level' ? levelTo() : undefined });
+    ctx.onShaped?.();
+    // The light line, not the whole panel: what has been shaped altogether
+    // walks the grid, and this runs on every dab of a drag. The refusal is the
+    // one thing that has to come off the screen the moment it stops being true.
+    if (state.refused) { state.refused = false; say(''); } else hover();
 }
 
 // The lines this land holds, so a bed can be laid along one without clicking

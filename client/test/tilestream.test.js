@@ -24,7 +24,8 @@ function row(z, x, y, published = true) {
         published_version: published ? 1 : 0,
         sog_sha256: published ? 'a'.repeat(64) : null,
         manifest: {
-            origin: o, splats: GRID[z] ** 2, geometric_error_m: span / GRID[z],
+            origin: o, splats: (GRID[z] ?? 64) ** 2,
+            geometric_error_m: span / (GRID[z] ?? 64),
         },
     };
 }
@@ -342,4 +343,42 @@ test('a swap keeps the tile it replaces until the new one has splats', async () 
     assert.equal(old.enabled, false, 'and the old one leaves');
     await tick();
     assert.ok(old.destroyed);
+});
+
+// FND.9: the ground a player is shaping is a mesh under the splats
+// (client/js/ground.js), so while Shape is on the splats over that land come
+// off — you cannot shape ground you cannot see. Nothing is unloaded: the
+// entities are disabled, and putting the tools away puts them back.
+test('the splats over the ground being shaped are put away, and put back', () => {
+    const land = { z: 14, x: 535 * 16, y: 361 * 16 };
+    const s = streamerWith([row(land.z, land.x, land.y),
+        row(16, land.x * 4, land.y * 4)], null);
+    // Twice: a tile that arrives during one update is placed in the next.
+    s.update(camera(300));
+    s.update(camera(300));
+    const on = () => [...s.entries.values()]
+        .filter((e) => e.entity && e.entity.enabled !== false)
+        .map((e) => `${e.row.z}/${e.row.x}/${e.row.y}`);
+    const all = on();
+    assert.ok(all.length, 'something is loaded to hide');
+
+    // The z14 key, and everything under it: a z16 of the same ground is the
+    // same splats over the same field.
+    s.hideUnder([`14/${land.x}/${land.y}`]);
+    assert.deepEqual(on(), [], 'every tile over that land is off');
+
+    s.hideUnder([]);
+    assert.deepEqual(on().sort(), all.sort(), 'and every one of them is back');
+});
+
+// A merge at z6 is half a country. Taking one away to shape a field would be a
+// hole the size of the merge, so the coarse levels are left alone.
+test('a coarse tile over the same ground is left where it is', () => {
+    const s = streamerWith(COORDS.map(([z, x, y]) => row(z, x, y)), null);
+    s.update(camera(300));
+    const coarse = [...s.entries.values()].find((e) => e.row.z < 14);
+    assert.ok(coarse, 'a coarse tile is loaded');
+    s.hideUnder([`14/${coarse.row.x * 2 ** (14 - coarse.row.z)}`
+        + `/${coarse.row.y * 2 ** (14 - coarse.row.z)}`]);
+    assert.notEqual(coarse.entity?.enabled, false);
 });

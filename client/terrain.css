@@ -1,0 +1,94 @@
+/* terrain.css — FND.9: the tool rail over the world while a land's ground is
+ * open to be shaped, and the small box of what the tool in hand needs.
+ *
+ * The nodes are client/js/sculptrail.js. They hang off the frame rather than
+ * the panel body, because a toolbar in a scrolling column scrolls away from
+ * the ground it is about, and because the panel is glass over the world and
+ * the ground being shaped is on the other side of it.
+ */
+
+/* Beside the panel, under the chrome. 24 is the gutter every panel keeps and
+   520 is the Terrain surface's width (js/tabbar.js TABS) — the rail stands
+   just clear of its right-hand edge. */
+#sculpt-tools {
+  position: absolute; left: 556px; top: 96px; display: none;
+  flex-direction: column; gap: 10px; align-items: flex-start;
+  width: 264px;
+}
+/* Shown with the surface it belongs to and with nothing else: a toolbar over
+   the world with no panel saying which land it is about is a toolbar for
+   nothing. */
+#hud:has(> #panel[data-open="1"][data-part="Shape"]) #sculpt-tools {
+  display: flex;
+}
+
+/* The rail: one glyph per tool, the key in the corner of each, the one in hand
+   lit. A row rather than a column because the box beneath it is the width of
+   seven of them, and two edges of chrome in the same corner read as one thing. */
+.sc-rail {
+  display: flex; gap: 2px; padding: 4px; --cut: 8px;
+}
+.sc-rail .sc-brush {
+  position: relative; width: 34px; height: 34px; padding: 0 0 6px; display: flex;
+  align-items: center; justify-content: center; background: none; border: 0;
+  color: var(--ink-3); cursor: pointer;
+}
+.sc-rail .sc-brush svg {
+  width: 20px; height: 20px; fill: none; stroke: currentColor;
+  stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round;
+}
+.sc-rail .sc-brush .sc-key {
+  position: absolute; left: 0; right: 0; bottom: 1px; font-family: var(--mono);
+  font-size: 8px; font-style: normal; text-align: center; line-height: 1;
+  color: var(--ink-3); opacity: 0.55;
+}
+.sc-rail .sc-brush:hover { color: var(--ink); background: rgba(255, 255, 255, 0.06); }
+.sc-rail .sc-brush.picked {
+  color: var(--accent); background: var(--accent-dim);
+  box-shadow: inset 0 0 0 1px var(--accent);
+}
+.sc-rail .sc-brush.picked .sc-key { color: var(--accent); opacity: 1; }
+
+/* The box: what the tool in hand needs, and nothing else. Small, because most
+   tools need one number and none needs more than four. */
+.sc-opt {
+  width: 100%; padding: 10px 12px; --cut: 8px;
+  display: flex; flex-direction: column; gap: 8px; font-size: 12px;
+}
+.sc-opt-head { align-items: baseline; }
+.sc-opt-name { font-size: 12px; }
+.sc-opt-key { font-size: 10px; color: var(--ink-3); }
+.sc-opt .note { margin: 0; font-size: 11px; }
+.sc-opt .sc-fields { display: flex; flex-direction: column; gap: 8px; }
+.sc-opt .sc-fields label, .sc-opt .sc-line-fields label {
+  display: flex; align-items: center; justify-content: space-between; gap: 8px;
+  font-size: 11px; color: var(--ink-2);
+}
+.sc-opt input[type="number"] { width: 74px; }
+.sc-opt select, .sc-opt .sc-apply { width: 100%; }
+.sc-opt .sc-take { width: 100%; padding: 3px 8px; font-size: 10px; }
+.sc-opt .sc-line-box {
+  display: flex; flex-direction: column; gap: 8px;
+  padding-top: 8px; border-top: 1px solid var(--edge-2);
+}
+.sc-opt .sc-line-fields { display: flex; flex-direction: column; gap: 6px; }
+.sc-opt .sc-corners { font-size: 11px; }
+.sc-opt .sc-line-clear { padding: 2px 8px; font-size: 10px; }
+.sc-opt .sc-here {
+  margin: 0; font-family: var(--mono); font-size: 10px; color: var(--ink-3);
+}
+/* A rule that gives an element its own display beats the hidden attribute, and
+   both of these are hidden by the tool in hand: a "Level to" box under Smooth
+   and a road bed under Raise are controls that do nothing. */
+.sc-opt .sc-fields label[hidden], .sc-opt .sc-line-box[hidden] { display: none; }
+
+/* The hand needs nothing, so its box is its sentence and the reading under the
+   pointer — a box of blank fields would say it had settings it has not. */
+#sculpt-tools[data-tool="pan"] .sc-opt .sc-fields { display: none; }
+
+/* While shaping is off the rail is on screen but does nothing: the tools are
+   there to be read before the switch is thrown, and pressing one then would be
+   a tool in hand with no hand on the ground. */
+#sculpt-tools:not([data-on="1"]) .sc-rail, #sculpt-tools:not([data-on="1"]) .sc-opt {
+  opacity: 0.72;
+}

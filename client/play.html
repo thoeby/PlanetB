@@ -13,6 +13,7 @@
 <link rel="stylesheet" href="./panels.css">
 <link rel="stylesheet" href="./work.css">
 <link rel="stylesheet" href="./symbols.css">
+<link rel="stylesheet" href="./terrain.css">
 <style>
   /* Only what a module's own markup needs and hud.css cannot know about. */
   .work-progress { white-space: pre-line; font-size: 12px; margin: 4px 0; }
@@ -463,6 +464,15 @@
       groundAt: (lon, lat) => terrain.heightAt(origin.localOf({ lon, lat, h: 0 })) ?? 0,
       onShaped: () => groundMesh?.reshape(
           (lon, lat) => sculpt.shaping()?.at(lon, lat) ?? 0, tilesOfShaping()),
+      // FND.9: shaping on or off. What is shaped is the mesh, so while it is on
+      // the splats over that land are put away and the mesh is what is on
+      // screen — and put back the moment it is off (client/js/tiles.js).
+      onMode: (on) => {
+          const tiles = on ? tilesOfShaping() : [];
+          groundMesh?.reshape(
+              (lon, lat) => sculpt.shaping()?.at(lon, lat) ?? 0, tiles);
+          streamer.hideUnder(tiles.map((k) => `14/${k}`));
+      },
       onSaved: () => { build.refresh(); submit.refresh(); },
   }, { lands: () => api.rpc('my_areas').catch(() => []) });
 

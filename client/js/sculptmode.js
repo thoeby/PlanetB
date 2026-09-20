@@ -12,10 +12,37 @@
 
 import { BRUSHES } from './sculpt.js';
 
+// Moving over the land is a tool like the brushes, not a mode you leave
+// shaping to be in: the panel had you turn Shape off, walk, and turn it back
+// on, which drops what is under the pointer and re-attaches the player twice.
+// Photoshop's hand, and its key.
+export const PAN = { id: 'pan', words: 'Pan & zoom', key: 'h' };
+
+// The rail, in the order it is drawn: the hand first, then the five brushes
+// and the line. One of them is in hand at any moment (client/js/sculptrail.js).
+export const TOOLS = [PAN, ...BRUSHES];
+
+export const toolNamed = (id) => TOOLS.find((t) => t.id === id) ?? PAN;
+
+// A glyph each, 24x24, in the same hand as the rest of the chrome
+// (client/js/tabbar.js icon). A rail of words is a row of buttons; a rail of
+// glyphs is a toolbar, and the words are on the box beside it.
+export const TOOL_ICON = {
+    pan: 'M12 3v18|M3 12h18|m9 6 3-3 3 3|m9 18 3 3 3-3|m6 9-3 3 3 3|m18 9 3 3-3 3',
+    raise: 'M3 20h18|m12 3 5 6h-10z|M12 9v7',
+    lower: 'M3 4h18|m12 21 5-6h-10z|M12 15V8',
+    smooth: 'M3 16c3 0 3-8 6-8s3 8 6 8 3-8 6-8|M3 21h18',
+    flatten: 'M3 14h18|M8 3v7|m5 7 3 3 3-3|M16 3v7|m13 7 3 3 3-3',
+    level: 'M3 12h18|M7 3v6|m4 6 3 3 3-3|M17 21v-6|m14 18 3-3 3 3',
+    line: 'm4 21 5-18|m20 21-5-18|M12 9v2|M12 14v2',
+};
+
 // What each brush does, and which of the three numbers it reads. A field a
 // brush does not read is not shown: "Level to" under Smooth is a control that
 // does nothing, which is worse than no control at all.
 export const BRUSH_SAYS = {
+    pan: { does: 'Drag to move over the land, the wheel to go in and out.'
+        + ' Nothing is shaped while this is in hand.', uses: [] },
     raise: { does: 'Pulls the ground up under the brush, softer towards its edge.',
         uses: ['size', 'strength'] },
     lower: { does: 'Pushes it down the same way.', uses: ['size', 'strength'] },
@@ -89,7 +116,7 @@ export function keyHandler(state, acts) {
             return;
         }
         if (e.ctrlKey || e.metaKey || e.altKey) return;
-        const brush = BRUSHES.find((b) => b.key === e.key.toLowerCase());
+        const brush = TOOLS.find((b) => b.key === e.key.toLowerCase());
         if (brush) { e.preventDefault(); acts.brush(brush.id); return; }
         // The two keys every brush in every tool has: bigger and smaller.
         if (e.key === '[' || e.key === ']') {
@@ -111,6 +138,9 @@ const AROUND = 48;
 // the size of by moving the ground and undoing it.
 export function drawBrush(ctx, state) {
     if (!state.on || !state.at || !ctx.app) return;
+    // The hand shapes nothing, so a twelve-metre ring under it is a ring that
+    // says something will happen where nothing will.
+    if (state.brush === 'pan') return;
     const { app, pc } = ctx;
     const colour = state.inside === false ? new pc.Color(1, 0.35, 0.3)
         : new pc.Color(0.5, 0.9, 1);
