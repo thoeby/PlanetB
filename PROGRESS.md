@@ -2876,3 +2876,26 @@ And a wide panel puts the corner instruments away while it is open: the
 altimeter runs up the right-hand edge and the controls and the map sit above
 the bottom one, over a panel that reaches both gutters. A view that takes the
 window already did this; Settings is the top strip's and opens over Build.
+
+## Three function bodies that never got the fix
+
+`make api-test` was red on the dev world and green from a reset, which is the
+shape of a bug that only running databases have.
+
+FND.15 and FND.16 wrote `live_near`, `mover_set` and `movers_near` with a bare
+`4326` in them, which db/0056's rule forbids: the world's SRID lives in
+`world_srid()` and nowhere else. The gate caught it and the fix was made **in
+db/0169 and db/0172 themselves** — which does nothing at all for a database
+that had already applied them. `make db-test` resets, so it stayed green; every
+world that had been migrated kept the old bodies for ever.
+
+db/0177 is the same three functions, as those files now have them, in a
+migration of their own. A database that never had the old ones gets what it
+already has. The pgTAP test beside it asserts what the migration is for — that
+no applied body of those three names a code — and the rule over everything else
+stays where it was, in `server/test_crs_agree.py`, which reads every applied
+body and knows that a typmod is not a choice made at run time.
+
+The lesson is the one from the lease: **editing a migration is not a fix for a
+world that has applied it.** Both times the gate was green and the operator's
+world was not.
