@@ -32,3 +32,6 @@ infra/seed/dem-visp.tif*
 infra/seed/osm-visp.gpkg
 infra/seed/tlm-visp.gpkg
 infra/seed/worldcover-visp.tif
+
+# Scratch harnesses a session leaves in the working directory.
+*.tmp.mjs
