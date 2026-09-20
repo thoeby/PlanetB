@@ -83,6 +83,14 @@ test('a view that takes the window says so, and Build and Play do not', () => {
         ['Automate', 'Work', 'Trade & Sell', 'Survey']);
     assert.equal(appIsFull('Build'), false);
     assert.equal(appIsFull('Play'), false);
+    // And the three that take it name the surface that is the window: that is
+    // what tells the page there is nothing behind it left to draw
+    // (client/js/hud.js showPanel, `data-window`). Automate is the fourth and
+    // names none — it is its own window and puts the world away itself.
+    for (const view of ['Work', 'Trade & Sell', 'Survey']) {
+        assert.ok(appSurface(view), `${view} names the surface it is`);
+    }
+    assert.equal(appSurface('Automate'), null);
 });
 
 // v6 folds the small buttons into the three the strip has room for: sharing

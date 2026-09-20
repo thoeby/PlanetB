@@ -214,7 +214,15 @@ function showPanel(name, f) {
     // about itself: the catalog is a 666 px drawer on Build's plinth and the
     // whole of Trade & Sell, and it is one surface either way.
     const app = f.hud.dataset.app;
-    const wide = wideAt(leaf) || (appIsFull(app) && appSurface(app) === at.tab);
+    // A workspace has the window when the surface it exists to open is the one
+    // on screen. Then there is nothing behind the panel to look at, so the
+    // world is not drawn at all and the glass is not glass (client/frame.css,
+    // client/play.html). Automate is full too and has no surface of its own:
+    // it is its own window (client/flow) and puts the world away itself.
+    const takes = appIsFull(app) && appSurface(app) !== null
+        && appSurface(app) === at.tab;
+    f.hud.dataset.window = takes ? '1' : '';
+    const wide = wideAt(leaf) || takes;
     frame.node.dataset.wide = wide ? '1' : '';
     // A panel that reaches both gutters has the corner instruments over it —
     // the altimeter up the right-hand edge and the controls and map above the
@@ -253,6 +261,18 @@ function drawersOf(at) {
     return d;
 }
 
+// Whoever is drawing the world is told when a workspace takes it over, because
+// a world nobody can see is a world nobody should be rendering. Once, when it
+// changes, rather than on every panel that opens.
+function windowWatch(f, taking) {
+    let held = '';
+    return () => {
+        if (f.hud.dataset.window === held) return;
+        held = f.hud.dataset.window;
+        for (const fn of taking) fn(held === '1');
+    };
+}
+
 export function mountHud(doc) {
     let open = 'World';
     let app = 'Build';
@@ -260,6 +280,7 @@ export function mountHud(doc) {
     // A view that is a workspace of its own — Automate is the first — is told
     // when it is switched to and away from; the chrome itself only changes hue.
     const watching = [];
+    const taking = [];
     // Switching a view dresses the chrome for it and tells whoever is
     // watching. `open` is left alone: pickApp decides what to open, and
     // `show` calls this when a panel belongs to another view.
@@ -294,6 +315,7 @@ export function mountHud(doc) {
     // working out of is out of date the moment it is drawn, and opening the
     // surface is the player asking what is in it.
     const onShow = new Map();
+    const took = windowWatch(f, taking);
 
     function show(name) {
         if (name === open && name !== 'World') name = 'World';
@@ -325,6 +347,7 @@ export function mountHud(doc) {
         // closed — Submit's refresh never ran when Publish was opened from
         // the bar, only when its own tab was pressed.
         const at = surfaceOf(name);
+        took();
         onShow.get(name)?.();
         const leaf = at?.part;
         if (leaf && leaf !== name) onShow.get(leaf)?.();
@@ -339,11 +362,11 @@ export function mountHud(doc) {
     show(open);
 
     return handle(f, { show, pickApp, onShow, app: () => app, opened: () => open,
-        watching });
+        watching, taking });
 }
 
 // What the rest of the page holds the chrome by.
-function handle(f, { show, pickApp, onShow, app, opened, watching }) {
+function handle(f, { show, pickApp, onShow, app, opened, watching, taking }) {
     return {
         show,
         // What happened while you were looking somewhere else: under the bell
@@ -352,6 +375,9 @@ function handle(f, { show, pickApp, onShow, app, opened, watching }) {
         // Which workspace the chrome is dressed for, and switching it.
         app: (name) => (name === undefined ? app() : pickApp(name)),
         onApp(fn) { watching.push(fn); },
+        // Whether a workspace has the window, and being told when that changes.
+        onWindow(fn) { taking.push(fn); },
+        takesWindow: () => f.hud.dataset.window === '1',
         panel: (name) => f.bodies.get(name),
         // What a surface says above its parts, rather than inside one of them.
         panelHead: (name) => f.frame.heads.get(name),

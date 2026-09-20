@@ -246,8 +246,10 @@ kbd {
 /* A view that takes the window puts the world's own chrome away with it
  * (js/apps.js `full`): the plinth, the altimeter, the controls, the map in the
  * corner, the legend and the crosshair are all about standing somewhere in the
- * world, and nothing is standing in the world behind a Work window. The
- * compass and the place line stay — where you are is true in every view.
+ * world, and nothing is standing in the world behind a Work window. The names
+ * drawn on the ground go with them: a land's name floating over a window of
+ * the pool is a word with nothing under it. The compass and the place line
+ * stay — where you are is true in every view.
  *
  * A panel in such a view reaches to the bottom edge, because there is no
  * plinth for it to stand clear of. */
@@ -256,6 +258,7 @@ kbd {
 #hud[data-full="1"] #corner,
 #hud[data-full="1"] #alt,
 #hud[data-full="1"] #legend,
+#hud[data-full="1"] #world-labels,
 #hud[data-full="1"] #crosshair { display: none; }
 #hud[data-full="1"] #panel { bottom: 24px; }
 
@@ -266,3 +269,14 @@ kbd {
 #hud[data-covered="1"] #alt,
 #hud[data-covered="1"] #legend,
 #hud[data-covered="1"] #crosshair { display: none; }
+
+/* A workspace that has the window (js/hud.js showPanel) is not standing
+   anywhere: the world stops being drawn under it (client/play.html), and what
+   is left on the canvas is a frozen frame of somewhere nobody is looking. So
+   the vignette — which is already a full-window sheet over the canvas and
+   under the chrome — goes opaque and covers it, and Work and Survey are a
+   window of their own rather than a pane of glass over a picture of a valley.
+
+   The canvas is covered rather than cleared: clearing it would flash black on
+   the way in and again on the way out. */
+body:has(#hud[data-window="1"]) #vignette { background: var(--ground); }
