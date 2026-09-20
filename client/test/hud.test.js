@@ -5,8 +5,8 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 
 import { whatIsMissing } from '../js/hud.js';
-import { GROUPS, LEAVES, TABS, keyed, surfaceOf, wideAt } from '../js/tabbar.js';
-import { APPS, appSurface } from '../js/apps.js';
+import { barOf, GROUPS, LEAVES, TABS, keyed, surfaceOf, wideAt } from '../js/tabbar.js';
+import { APPS, appIsFull, appSurface } from '../js/apps.js';
 
 test('with no ground at all, the world has nowhere to be', () => {
     assert.match(whatIsMissing({}), /Setup/);
@@ -60,13 +60,29 @@ test('every surface is in one of the two groups, and has a key of its own', () =
 test('the groups hold what the design puts in them', () => {
     const of = (g) => TABS.filter((t) => t.group === g).map((t) => t.name);
     assert.deepEqual(of('bar'),
-        ['Place', 'Catalog', 'Your land', 'Publish', 'Work']);
+        ['Place', 'Catalog', 'Your land', 'Publish', 'Terrain']);
     assert.deepEqual(of('top'), ['Profile', 'Wallet', 'Settings']);
 });
 
-test('the five surfaces the game is played through are on keys 1 to 5', () => {
-    assert.deepEqual(TABS.filter((t) => t.group === 'bar').map((t) => t.key),
+// The plinth is the view's own, and every surface on it belongs to a view.
+test('the five surfaces Build is played through are its plinth, on keys 1 to 5', () => {
+    assert.deepEqual(barOf('Build').map((t) => t.name),
+        ['Place', 'Catalog', 'Your land', 'Publish', 'Terrain']);
+    assert.deepEqual(barOf('Build').map((t) => t.key).sort(),
         ['1', '2', '3', '4', '5']);
+    // And a workspace has none: Work was the fifth button on Build's.
+    for (const view of ['Work', 'Survey', 'Automate', 'Trade & Sell']) {
+        assert.deepEqual(barOf(view), [], `${view} has a plinth of its own`);
+    }
+    assert.deepEqual(TABS.filter((t) => t.group === 'bar' && !t.view), [],
+        'a bar surface that belongs to no view would be on nobody\u2019s plinth');
+});
+
+test('a view that takes the window says so, and Build and Play do not', () => {
+    assert.deepEqual(APPS.filter((a) => appIsFull(a.name)).map((a) => a.name),
+        ['Automate', 'Work', 'Trade & Sell', 'Survey']);
+    assert.equal(appIsFull('Build'), false);
+    assert.equal(appIsFull('Play'), false);
 });
 
 // v6 folds the small buttons into the three the strip has room for: sharing

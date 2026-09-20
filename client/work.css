@@ -321,3 +321,29 @@
   white-space: pre-wrap; overflow-wrap: anywhere;
 }
 #panel .wk-size-trouble[data-bad="1"] { color: var(--warn); }
+
+/* The card's picture, taller (design 8b): a frame of a tile at 112 px was a
+   strip, and the splats being fitted are what somebody watches a training job
+   for. */
+#panel .jc-shot { height: 180px; }
+#panel .jc-both { position: absolute; left: 8px; bottom: 8px; }
+
+/* The opened card shows both — the frames the tile was drawn from and the
+   splats made of them — because the card can only show the newer. */
+#panel .jd-shots {
+  display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 14px; padding: 12px;
+}
+#panel .jd-shot { margin: 0; display: flex; flex-direction: column; gap: 6px; }
+#panel .jd-shot > canvas {
+  display: block; width: 100%; max-width: none; height: auto; margin: 0;
+  border: 1px solid var(--edge-2); background: #12151a; image-rendering: auto;
+}
+#panel .jd-shot figcaption {
+  display: flex; flex-direction: column; gap: 2px; font-size: 11px;
+  color: var(--ink-3);
+}
+#panel .jd-shot figcaption b {
+  font-family: var(--head); font-size: 10px; letter-spacing: 0.1em;
+  text-transform: uppercase; color: var(--ink-2);
+}

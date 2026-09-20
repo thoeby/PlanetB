@@ -336,3 +336,13 @@
   flex: 1 1 0; min-height: 200px; overflow: hidden;
 }
 #panel[data-surface="Survey"] .assign-canvas > canvas { height: 100%; }
+
+/* The catalog is Build's 666 px drawer and the whole of Trade & Sell (F4).
+   In the view it is the whole of, its body is one column of its own — not the
+   columns of modules a wide panel is otherwise laid out in — and the grid of
+   products is as many across as the window holds. */
+#panel[data-part="Catalog"][data-wide="1"] .tab-body:not([hidden]) { display: block; }
+#panel[data-part="Catalog"][data-wide="1"] .cards {
+  grid-template-columns: repeat(auto-fill, minmax(190px, 1fr));
+}
+#panel[data-part="Catalog"][data-wide="1"] .row { max-width: 900px; }

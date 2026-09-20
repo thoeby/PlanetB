@@ -14,7 +14,7 @@ import { GROUPS, LEAVES, PART_LEDE, TABS, keyed, surfaceOf, tabBar, viewOf, wide
     from './tabbar.js';
 import { mountAltimeter } from './altimeter.js';
 import { el, keyHints, place, topCentre } from './chrome.js';
-import { APPS, appKeyed, appNamed, appSurface, appsDrawer } from './apps.js';
+import { APPS, appIsFull, appKeyed, appNamed, appSurface, appsDrawer } from './apps.js';
 import { mountNotify } from './notify.js';
 import { state, whatIsMissing } from './hudsays.js';
 import { topBar } from './topbar.js';
@@ -159,8 +159,16 @@ function bindKeys(doc, { show, apps, drawer, tray, close }) {
 function dressFor(f, name) {
     const app = appNamed(name);
     f.hud.dataset.app = app.name;
+    // A workspace takes the window: no plinth under it and no instruments
+    // around it (client/js/apps.js appIsFull, client/frame.css).
+    f.hud.dataset.full = app.full ? '1' : '';
     f.hud.style.setProperty('--accent', app.hue);
     f.hud.style.setProperty('--accent-dim', `color-mix(in oklab, ${app.hue} 14%, transparent)`);
+    // The plinth is this view's surfaces and nobody else's: a bar about the
+    // land you are standing on has no business under a window of the pool.
+    for (const [, b] of f.buttons) {
+        if (b.dataset.view !== undefined) b.hidden = b.dataset.view !== app.name;
+    }
     for (const [n, b] of f.strip.apps) b.setAttribute('aria-selected', String(n === app.name));
     for (const [n, b] of f.drawer.buttons) b.setAttribute('aria-selected', String(n === app.name));
     return app.name;
@@ -195,14 +203,13 @@ function showPanel(name, f) {
     // marked `wide` takes the window: a tool that is a map beside a form has
     // nothing to gain from being a column. Settings holds both kinds, so the
     // part decides where it has an opinion (tabbar.js wideAt).
-    const wide = wideAt(leaf);
+    // A workspace's own surface takes the window whatever the surface says
+    // about itself: the catalog is a 666 px drawer on Build's plinth and the
+    // whole of Trade & Sell, and it is one surface either way.
+    const app = f.hud.dataset.app;
+    const wide = wideAt(leaf) || (appIsFull(app) && appSurface(app) === at.tab);
     frame.node.dataset.wide = wide ? '1' : '';
     frame.node.style.width = !wide && tab?.width ? `${tab.width}px` : '';
-    // A view that takes the window puts Build's instruments away with it: the
-    // altimeter, the controls, the map in the corner and the legend are about
-    // standing in the world, and nothing is standing in the world behind a
-    // Work window (SPEC §2.1: the instruments change with the view).
-    f.hud.dataset.full = wide && at.tab !== 'World' ? '1' : '';
 }
 
 
@@ -293,9 +300,12 @@ export function mountHud(doc) {
         // last one's hue over somebody else's panel.
         // A surface that belongs to no one view — Profile, the wallet,
         // Settings — is the same wherever you are working and leaves the view
-        // alone.
+        // alone. Nor does a view get walked out of by opening the surface it
+        // exists to open: the catalog is on Build's plinth and it is the whole
+        // of Trade & Sell, and pressing F4 must not land you back in Build.
+        const at2 = surfaceOf(name);
         const belongs = name === 'World' ? null : viewOf(name);
-        if (belongs) dressOnly(belongs);
+        if (belongs && appSurface(app) !== at2?.tab) dressOnly(belongs);
         showPanel(name, f);
         // The hook belongs to the body that is now on screen, not to the word
         // that was clicked. Opening a surface from the bar opens its first

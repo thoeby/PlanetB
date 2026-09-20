@@ -8,6 +8,7 @@
 // happened to it (db/0143 tile_event, carried on the row by db/0146 pool_row).
 
 import { beyond, cr, el, far, needs, stuck, what } from './poolui.js';
+import { newest, shotWords } from './workshots.js';
 
 const AGO = (at) => {
     const s = Math.max(0, (Date.now() - new Date(at).getTime()) / 1000);
@@ -86,28 +87,12 @@ export function logRows(e, limit = 3) {
         el('span', { className: 'po-log-when', textContent: AGO(r.at) }))))];
 }
 
-// What the picture is of, in the words the log uses for it.
-const shotLine = (rec, p) => `${p.width ?? '?'}\u00d7${p.height ?? '?'} \u00b7 `
-    + (rec.event === 'trained' ? 'as it finished'
-        : rec.event === 'frame' ? `frame ${rec.done ?? '?'} of ${rec.of ?? '?'}`
-            : `at step ${rec.iter ?? '?'}`);
-
-// The last picture this tab drew of the tile, if it drew one: a canvas the
-// card owns, painted from the record the work loop kept (client/js/work.js
-// pictures). A tile nobody here has worked on has none, and says so rather
-// than leaving a grey box with no explanation.
-function shot(e, rec, live) {
-    const box = el('div', { className: 'jc-shot' },
-        el('span', { className: 'jc-kind', textContent: KIND[e.phase] ?? e.phase }),
-        el('span', { className: 'jc-pay', 'data-paid': Number(e.bounty) > 0 ? '1' : '',
-            textContent: Number(e.bounty) > 0 ? `${cr(e.bounty)} cr` : 'free' }),
-        el('span', { className: 'jc-over mono', textContent: e.made }));
+// One picture, as a canvas: a traced frame arrives as webp bytes and the
+// splats as rgba the tab drew itself. Exported because the card shows the
+// newer of the two and the opened card shows both (client/js/jobdetail.js).
+export function shotCanvas(rec) {
     const p = rec?.picture;
-    if (!p?.rgba && !p?.webp) {
-        box.append(el('span', { className: 'jc-thumb mono',
-            textContent: live ? 'working on it now' : 'nothing drawn here yet' }));
-        return box;
-    }
+    if (!p?.rgba && !p?.webp) return null;
     const canvas = el('canvas', { className: 'po-shot',
         width: p.width ?? 256, height: p.height ?? 256 });
     if (p.rgba) {
@@ -116,8 +101,38 @@ function shot(e, rec, live) {
     } else {
         paint(canvas, p.webp);
     }
+    return canvas;
+}
+
+// The last picture this tab drew of the tile, if it drew one, and what it is
+// of — "frame 2 of 3", "step 400 of 2400 · 134 000 splats". It used to say
+// "256×256", which is the size of the thumbnail and reads as a claim about how
+// the world is being rendered.
+//
+// A tile nobody here has worked on has no picture, and says so rather than
+// leaving a grey box with no explanation.
+function shot(e, shots, live) {
+    const box = el('div', { className: 'jc-shot' },
+        el('span', { className: 'jc-kind', textContent: KIND[e.phase] ?? e.phase }),
+        el('span', { className: 'jc-pay', 'data-paid': Number(e.bounty) > 0 ? '1' : '',
+            textContent: Number(e.bounty) > 0 ? `${cr(e.bounty)} cr` : 'free' }),
+        el('span', { className: 'jc-over mono', textContent: e.made }));
+    const rec = newest(shots);
+    const canvas = shotCanvas(rec);
+    if (!canvas) {
+        box.append(el('span', { className: 'jc-thumb mono',
+            textContent: live ? 'working on it now' : 'nothing drawn here yet' }));
+        return box;
+    }
     box.append(canvas, el('span', { className: 'jc-thumb jc-shotline mono',
-        textContent: shotLine(rec, p) }));
+        textContent: shotWords(rec) }));
+    // Where both exist, the card says so: the frames are what the tile should
+    // look like and the splats are what has been made of them so far, and the
+    // opened card puts the two side by side.
+    if (shots?.frame && shots?.splat) {
+        box.append(el('span', { className: 'jc-thumb jc-both mono',
+            textContent: 'frames and splats \u00b7 details' }));
+    }
     return box;
 }
 
@@ -143,15 +158,27 @@ function paint(canvas, webp) {
 // What may be done to a job: Render only where there is something a tab could
 // be handed, and the three that put one right only where the ground is yours.
 // The card and the opened card offer the same, in the same words.
-export function jobButtons(e, acts, caps) {
+// What the button that takes the work says. "Render" was on all three: a
+// training job takes a quarter of an hour of GPU and said the same word as a
+// pack that takes two seconds. `doing` is the same button while this tab is
+// on that job — a job cannot be taken twice, and a button that looks pressable
+// while its work is running is a button somebody presses again.
+const TAKE = { render: 'Render', train: 'Train', publish: 'Pack' };
+const TAKING = { render: 'Rendering…', train: 'Training…', publish: 'Packing…' };
+
+export function jobButtons(e, acts, caps, doing = '') {
     const out = [];
     const button = (text, cls, fn) => {
         const b = el('button', { type: 'button', className: cls, textContent: text });
         b.onclick = () => fn(e, b);
         return b;
     };
-    if (Number(e.ready) && !beyond(e, caps)) {
-        out.push(button('Render', 'po-render primary', acts.render));
+    if (doing) {
+        const b = button(TAKING[e.phase] ?? 'Working…', 'po-render primary', () => {});
+        b.disabled = true;
+        out.push(b);
+    } else if (Number(e.ready) && !beyond(e, caps)) {
+        out.push(button(TAKE[e.phase] ?? 'Render', 'po-render primary', acts.render));
     } else if (beyond(e, caps)) {
         out.push(el('span', { className: 'chip', 'data-tone': 'warn',
             textContent: 'not this machine' }));
@@ -169,11 +196,11 @@ export function jobButtons(e, acts, caps) {
     return out;
 }
 
-function actions(e, acts, caps) {
+function actions(e, acts, caps, doing) {
     const open = el('button', { type: 'button', className: 'jc-open',
         textContent: 'Details \u203a' });
     open.onclick = () => acts.open?.(e);
-    return el('div', { className: 'jc-foot' }, ...jobButtons(e, acts, caps), open);
+    return el('div', { className: 'jc-foot' }, ...jobButtons(e, acts, caps, doing), open);
 }
 
 // The chain, as one line: ground · frames 2/3 · training · packing, with the
@@ -191,10 +218,10 @@ export function stepLine(e) {
     }));
 }
 
-export function poolCard(e, acts, caps, rec = null, doing = '') {
+export function poolCard(e, acts, caps, shots = null, doing = '') {
     const bar = share(e);
     const li = el('li', { className: 'po-card', 'data-phase': e.phase },
-        shot(e, rec, Boolean(doing)),
+        shot(e, shots, Boolean(doing)),
         el('div', { className: 'jc-body' },
             el('div', { className: 'jc-title' },
                 el('span', { className: 'name', textContent: `${e.z}/${e.x}/${e.y}` }),
@@ -206,7 +233,7 @@ export function poolCard(e, acts, caps, rec = null, doing = '') {
                 el('i', { style: `width: ${bar}%` }))]),
             stepLine(e),
             el('span', { className: 'mono jc-count', textContent: pieces(e) })),
-        actions(e, acts, caps),
+        actions(e, acts, caps, doing),
         ...logRows(e));
     if (doing) li.dataset.live = '1';
     // The whole card opens it, not only the words that say so (design 8f).

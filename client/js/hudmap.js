@@ -98,6 +98,13 @@ const CELL = 6;
 // out of the window are the same hill. Exported because every map of this
 // world is the same map — the corner one and the one under an open job
 // (client/js/jobdetail.js) — and two pictures of one hill is one too many.
+// `span` is how many metres the map is across, at its *width*. How far it
+// reaches north and south follows from that and from how tall it is, at the
+// same metres a pixel — it does not follow from `h`. Dividing by `h` made one
+// pixel worth `span/h` metres up and `span/w` metres across, so on a map that
+// is not square a square of ground was drawn as the canvas's own rectangle.
+// The corner map is square and hid it; the map under an open job is 380 by
+// 220, and drew every tile as a wide rectangle (client/js/jobdetail.js).
 export function hillshade(ctx, { w, h, at, span, cos, ground }) {
     // Whatever has the point.
     // The map is up to twenty kilometres across and the fine ground reaches
@@ -108,15 +115,17 @@ export function hillshade(ctx, { w, h, at, span, cos, ground }) {
     const height = ground?.heightNear ?? ground?.heightAt;
     if (!height) return false;
     const under = (lon, lat) => height.call(ground, lon, lat);
-    const cells = Math.ceil(w / CELL) + 1;
-    const step = span / (w / CELL);
-    const lonOf = (i) => at.lon + (i * CELL - w / 2) / w * span / (M_PER_DEG * cos);
-    const latOf = (j) => at.lat - (j * CELL - h / 2) / h * span / M_PER_DEG;
+    const mpp = span / w;                                 // metres a pixel
+    const across = Math.ceil(w / CELL) + 1;
+    const down = Math.ceil(h / CELL) + 1;
+    const step = mpp * CELL;
+    const lonOf = (i) => at.lon + ((i * CELL - w / 2) * mpp) / (M_PER_DEG * cos);
+    const latOf = (j) => at.lat - ((j * CELL - h / 2) * mpp) / M_PER_DEG;
     const grid_ = [];
     let seen = false;
-    for (let j = 0; j <= cells; j++) {
+    for (let j = 0; j <= down; j++) {
         const row = [];
-        for (let i = 0; i <= cells; i++) {
+        for (let i = 0; i <= across; i++) {
             const v = under(lonOf(i), latOf(j));
             if (v !== null && v !== undefined) seen = true;
             row.push(v);
@@ -128,14 +137,14 @@ export function hillshade(ctx, { w, h, at, span, cos, ground }) {
     // about the corner it has no ground for is better than one that invents a
     // hill there (shade() leaves a null cell unpainted).
     grid(ctx, w, h);
-    shade(ctx, grid_, cells, step);
+    shade(ctx, grid_, across, down, step);
     return true;
 }
 
 // Sun from the north-west, as every other picture of this world has it.
-function shade(ctx, grid_, cells, step) {
-    for (let j = 0; j < cells; j++) {
-        for (let i = 0; i < cells; i++) {
+function shade(ctx, grid_, across, down, step) {
+    for (let j = 0; j < down; j++) {
+        for (let i = 0; i < across; i++) {
             const here = grid_[j][i];
             if (here === null || here === undefined) continue;
             const east = grid_[j][i + 1] ?? here;

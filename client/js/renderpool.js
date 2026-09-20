@@ -63,6 +63,7 @@ function drawDetail(state, ctx, parts) {
         rows: state.rows, atoms: state.atoms, acts: ctx.acts, caps: state.caps,
         onGo: ctx.onGo, close: ctx.acts.close, where: ctx.where,
         ground: ctx.ground(), say: ctx.say, refresh: ctx.refresh,
+        shots: state.shots?.get(`${e.z}/${e.x}/${e.y}`) ?? null,
         doing: ctx.doing(e),
     }));
 }
@@ -81,7 +82,7 @@ function drawChips(state, ctx, parts) {
 // the same, and both ask the same RPC.
 function actionsOf(state, { loop, say, refresh, draw, ask }) {
     return {
-        render: (entry, button) => runJob(entry, button, { loop, say, refresh }),
+        render: (entry, button) => runJob(entry, button, { state, loop, say, refresh, draw }),
         retry: (entry, button) => ask(entry, button, 'retry_job',
             (n) => (n ? `${n} piece(s) start over` : 'nothing to try again')),
         drop: (entry, button) => ask(entry, button, 'drop_job',
@@ -142,6 +143,19 @@ function tick(state, ui, draw) {
     }
 }
 
+// What this tab is doing to this job, if it is doing anything to it.
+//
+// The job this tab took, not only the atom it happens to be holding: between
+// two atoms — claiming the next one, hashing and uploading the last —
+// `work.atom` is null, the button came back looking pressable, and pressing it
+// started the same job again.
+function doingTo(state, e) {
+    const mine = state.running === e.job;
+    const on = state.work?.atom?.job_id === e.job ? state.work.atom : null;
+    if (!mine && !on) return '';
+    return on ? DOING[on.op] ?? on.op : 'working';
+}
+
 // A pool that cannot be read says so in its own line; an empty list is the
 // answer "nothing is waiting", never the answer "the question failed".
 async function readPool(state, { where, loop, say, draw }) {
@@ -165,7 +179,7 @@ async function readPool(state, { where, loop, say, draw }) {
     // probing the adapter is the slowest part of mounting anything.
     state.work ??= await loop?.().catch(() => null) ?? null;
     state.caps ??= state.work?.caps ?? null;
-    state.shots = state.work?.pictures ?? null;
+    state.shots = state.work?.shots ?? null;
     // A job that has left the pool cannot stay open over an empty page.
     if (state.open && !state.rows.some((r) => r.job === state.open)) state.open = null;
     draw();
@@ -207,16 +221,15 @@ export function mountPool(hosts, { loop, where = () => ({}), onGo, count = () =>
     // player has open, which is the only one drawn.
     const state = { name: Object.keys(hosts)[0], page: null, rows: [], held: [],
         phase: 'all', sort: 'near', offset: 0, caps: null, shots: null,
-        open: null, atoms: [], work: null };
+        open: null, atoms: [], work: null,
+        // The job this tab has taken out of the pool, or null.
+        running: null };
     const say = (msg, bad = false) => {
         status.textContent = msg;
         status.dataset.bad = bad ? '1' : '';
     };
 
-    const ctx = { where, onGo, say, ground,
-        // What this tab is doing to this job, if it is doing anything to it.
-        doing: (e) => (state.work?.atom?.job_id === e.job
-            ? DOING[state.work.atom.op] ?? state.work.atom.op : '') };
+    const ctx = { where, onGo, say, ground, doing: (e) => doingTo(state, e) };
 
     const draw = () => drawQueue(state, ui, ctx, count, say);
 
@@ -258,11 +271,19 @@ export function mountPool(hosts, { loop, where = () => ({}), onGo, count = () =>
 
 // One job, taken out of the pool by the player who pressed Render: claim, run,
 // upload, submit, until this tab has nothing left it can do on it.
-async function runJob(entry, button, { loop, say, refresh }) {
+async function runJob(entry, button, { state, loop, say, refresh, draw }) {
+    // A tab does one job at a time (WorkLoop.focus), so taking a second while
+    // the first is running would only have it claim nothing and say so.
+    if (state.running) {
+        say('this tab is already on a job — wait for it, or open another tab', true);
+        return;
+    }
     const work = await loop();
     if (!work) { say('nothing here can render', true); return; }
     if (!api.token()) { say('sign in first — the work is paid for', true); return; }
+    state.running = entry.job;
     button.disabled = true;
+    draw();
     const tile = `${entry.z}/${entry.x}/${entry.y}`;
     say(`rendering ${tile}… ${what(entry)}`);
     work.focus(entry.job);
@@ -285,8 +306,10 @@ async function runJob(entry, button, { loop, say, refresh }) {
     } finally {
         clearInterval(watch);
         work.focus(null);
+        state.running = null;
         button.disabled = false;
         if (!refreshed) await refresh();
+        else draw();
     }
 }
 

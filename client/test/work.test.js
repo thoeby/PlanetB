@@ -315,3 +315,15 @@ test('an upload refused because its own bytes are already there is not a failure
         [`http://files/tiles/14/8550/5809/${sha}.r16`],
         'the path it asked for is the first one looked at');
 });
+
+// db/0143 and the Work cards: a tab keeps the frames it traced as well as the
+// splats it fitted, and a frame record names no tile of its own.
+test('the loop keeps a picture of each kind of the tile it is working on', async () => {
+    const { loop } = loopOver(ATOM, { spawnOut: OUT });
+    loop.log({ event: 'assembled', tile: { z: 14, x: 3, y: 4 } });
+    loop.log({ event: 'frame', done: 1, of: 3, picture: { webp: new Uint8Array([1]) } });
+    loop.log({ event: 'train', iter: 20, of: 60, picture: { rgba: new Uint8Array(4) } });
+    const both = loop.shots.get('14/3/4');
+    assert.equal(both.frame.done, 1, 'the frame picture survived the training');
+    assert.equal(both.splat.iter, 20);
+});

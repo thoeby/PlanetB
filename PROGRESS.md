@@ -2741,3 +2741,57 @@ one defect under them:
 And the defect: **the Level brush did nothing**. The height it aims at was read
 from `ctx.target`, which nothing ever passed — `Number(undefined)` is NaN, and
 the brush refuses a cell it cannot aim at. It reads the panel's own field now.
+
+## The plinth belongs to the view, and a job card says what it is
+
+Four more from the operator, and two of them were arithmetic.
+
+**The bottom bar was the whole page's.** It carried Build's five surfaces in
+every view, so a window of everybody's render queues stood on a strip about the
+land you are standing on. Every bar surface names the view it belongs to now
+(`tabbar.js` `barOf`) and the chrome shows that view's and hides the rest; a
+view marked `full` (`apps.js`) takes the window and has no plinth at all, no
+instruments around it, and a panel that reaches the bottom edge. **Work left
+Build's plinth** and **Terrain took its place**, holding FND.9's shaping tools
+— they were a second tab of Land, which is a panel about who owns what.
+
+A view may open a surface that is another's — Trade & Sell opens the catalog,
+which is on Build's plinth — and doing so no longer walks you back into that
+view. The catalog is a 666 px drawer in Build and the window in Trade & Sell,
+one surface either way.
+
+**A job could be taken twice.** The button was disabled while it ran, but the
+card is redrawn whenever the queue is, and the new button came back enabled;
+and between two atoms — claiming the next, hashing and uploading the last —
+`work.atom` is null, so even the "is this tab on it" test said no. The pool
+remembers the job it took (`state.running`), the button reads *Rendering…* /
+*Training…* / *Packing…* and is dead while it runs, and pressing it again says
+so rather than starting the same job twice.
+
+**And it said "Render" on all three.** A training job is a quarter-hour of GPU
+and a pack is two seconds; they now say Render, Train and Pack, which is what
+the pool's own phase already knew.
+
+**The card's picture was one picture, and the frames were never kept.** A
+`frame` record carries no tile of its own (`client/atoms/frame.js`), and the
+keeper only stored a picture when the record named a tile — so every traced
+frame was thrown away and only the training was ever seen. A tab keeps two per
+tile now (`client/js/workshots.js`): the frames it traced and the splats as
+they are fitted. The card shows the newer, taller; the opened card shows both
+side by side, which is what "what it should look like" against "what has been
+made of it" wants.
+
+The line under it said **"256×256"**, which is the size of the thumbnail the
+tab drew — it reads as a claim that the world is being rendered at 256 pixels,
+and it is not one. It says what the picture is of: "frame 2 of 3", "step 400 of
+2400 · 134 000 splats".
+
+**And the map under an open job drew every tile as a rectangle.** `drawWhere`
+scaled east-west by `w/span` and north-south by `h/span`, so on its 380-by-220
+canvas a square z14 tile was drawn 380 by 220 — the map said a tile is half
+again as wide as it is deep. `hillshade` had the same split and the corner map,
+being square, hid both. One metres-per-pixel, both ways, and a test that a cell
+of the shading is the same number of metres across as it is down. `drawCover`
+was also measuring latitude at 110 540 m a degree where everything else uses
+111 320, which put a published cover picture two parts in a thousand off the
+boundary drawn over it.

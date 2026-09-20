@@ -12,6 +12,8 @@
 import * as api from './api.js';
 import { tileBbox, tileX, tileY } from '../lib/tilemath.js';
 
+const M_PER_DEG = 111320;
+
 // How many pictures are kept, and how many are asked for at once. The map is
 // a hundred and eighty pixels across; a screenful is a handful of tiles.
 const KEEP = 64;
@@ -52,7 +54,7 @@ function picture(z, x, y, filesUrl) {
 function zoomFor(span, lat) {
     for (const z of ZOOMS) {
         const b = tileBbox(z, tileX(0, z), tileY(lat, z));
-        const across = (b.east - b.west) * 111320 * Math.cos(lat * Math.PI / 180);
+        const across = (b.east - b.west) * M_PER_DEG * Math.cos((lat * Math.PI) / 180);
         if (across <= span) return z;
     }
     return ZOOMS.at(-1);
@@ -70,20 +72,24 @@ export function drawCover(ctx, { w, h, at, span, cos, filesUrl = null }) {
     const store = filesUrl ?? api.endpoints().files;
     const z = zoomFor(span, at.lat);
     const metres = span / w;
-    const east = at.lon + (span / 2) / (111320 * cos);
-    const west = at.lon - (span / 2) / (111320 * cos);
-    const north = at.lat + (span / 2) / 110540;
-    const south = at.lat - (span / 2) / 110540;
+    // A degree of latitude is M_PER_DEG here as it is everywhere else in this
+    // world: it was 110540, so a cover picture sat two parts in a thousand off
+    // the boundary drawn over it and the hillshade drawn under it.
+    const half = (h / 2) * metres;
+    const east = at.lon + (span / 2) / (M_PER_DEG * cos);
+    const west = at.lon - (span / 2) / (M_PER_DEG * cos);
+    const north = at.lat + half / M_PER_DEG;
+    const south = at.lat - half / M_PER_DEG;
     let drew = false;
     for (let y = tileY(north, z); y <= tileY(south, z); y++) {
         for (let x = tileX(west, z); x <= tileX(east, z); x++) {
             const img = picture(z, x, y, store);
             if (!img) continue;
             const b = tileBbox(z, x, y);
-            const x0 = w / 2 + (b.west - at.lon) * 111320 * cos / metres;
-            const x1 = w / 2 + (b.east - at.lon) * 111320 * cos / metres;
-            const y0 = h / 2 - (b.north - at.lat) * 110540 / metres;
-            const y1 = h / 2 - (b.south - at.lat) * 110540 / metres;
+            const x0 = w / 2 + ((b.west - at.lon) * M_PER_DEG * cos) / metres;
+            const x1 = w / 2 + ((b.east - at.lon) * M_PER_DEG * cos) / metres;
+            const y0 = h / 2 - ((b.north - at.lat) * M_PER_DEG) / metres;
+            const y1 = h / 2 - ((b.south - at.lat) * M_PER_DEG) / metres;
             ctx.drawImage(img, x0, y0, x1 - x0, y1 - y0);
             drew = true;
         }

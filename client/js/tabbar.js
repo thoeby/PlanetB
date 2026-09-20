@@ -23,6 +23,8 @@ export const ICONS = {
     'Your land': 'M3 6l6-3 6 3 6-3v15l-6 3-6-3-6 3z|M9 3v15|M15 6v15',
     Publish: 'm22 2-7 20-4-9-9-4Z|M22 2 11 13',
     Work: 'M2 7h20v14H2z|M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16|M2 13h20',
+    // Two ridges and a brush over them: the ground itself, shaped by hand.
+    Terrain: 'M2 18l5-7 4 5 3-4 8 6z|M12 3v5|M9.5 5.5 12 3l2.5 2.5',
     Settings: 'M21 4h-7M10 4H3M21 12h-9M8 12H3M21 20h-5M12 20H3M14 2v4M8 10v4M16 18v4',
     Share: 'M18 2a3 3 0 1 0 0 6 3 3 0 0 0 0-6M6 9a3 3 0 1 0 0 6 3 3 0 0 0 0-6'
         + '|M18 16a3 3 0 1 0 0 6 3 3 0 0 0 0-6|m8.6 13.5 6.8 4M15.4 6.5l-6.8 4',
@@ -43,25 +45,34 @@ export const TABS = [
     { name: 'World', group: null, lede: '' },
     { name: 'Place', group: 'bar', key: '1', width: 470, view: 'Build',
         lede: 'Put a product from the catalog on your own land.' },
-    // And the F4 view: the catalog both ways is what Trade & Sell is.
-    { name: 'Catalog', group: 'bar', key: '2', width: 666, view: 'Trade & Sell',
+    // The catalog is on Build's plinth because that is where you reach for a
+    // product to place, and it is the whole of Trade & Sell, where it takes
+    // the window. A surface belongs to one view — the one whose bar carries
+    // it — and a view may open a surface that is not its own.
+    { name: 'Catalog', group: 'bar', key: '2', width: 666, view: 'Build',
         lede: 'Products anyone may build with. Register your own.' },
     { name: 'Your land', group: 'bar', key: '3', label: 'Land', width: 500, view: 'Build',
-        parts: [{ name: 'Your land', label: 'Land' },
-            { name: 'Shape', label: 'Shape' }] },
+        lede: 'The ground you own, and what stands on it.' },
     { name: 'Publish', group: 'bar', key: '4', width: 500, view: 'Build',
         parts: [{ name: 'Submit', label: 'Submit' },
             { name: 'Permission', label: 'Approve' }] },
+    // FND.9's tools are a surface of Build's own now, not a second tab of
+    // Land: shaping the ground is a thing you do standing in it, with a brush
+    // in hand, and it was two clicks down a panel about who owns what.
+    { name: 'Terrain', group: 'bar', key: '5', width: 520, view: 'Build',
+        parts: [{ name: 'Shape', label: 'Shape' }] },
     // Work is a surface with queues behind it, not one list (design 8a–8f).
     // The machine strip is the surface's own head (hud.js panelHead) because
     // what this tab can do is the same answer whichever queue is open, and the
     // queues are the kinds of work the pool itself sorts into (db/0152
     // pool_open.phase), a tab each. The names are the code's and the labels
     // the design's: Publish and Settings are surfaces of their own, so no part
-    // may take either word for its name. It is the F3 view as well as the
-    // fifth button on the plinth, and it takes the window either way: four
-    // queues of cards beside a card opened is not a column 1 040 px wide.
-    { name: 'Work', group: 'bar', key: '5', width: 1040, view: 'Work', wide: true,
+    // may take either word for its name.
+    //
+    // It is the F3 view and nothing else: it was the fifth button on Build's
+    // plinth as well, which put a window of somebody else's queues under a bar
+    // about the land you are standing on.
+    { name: 'Work', group: null, view: 'Work', wide: true,
         parts: [{ name: 'Every job', label: 'All' },
             { name: 'Render jobs', label: 'Render jobs' },
             { name: 'Training', label: 'Training' },
@@ -96,6 +107,12 @@ export const TABS = [
 // Every part there is, with the surface that holds it.
 const PARTS = TABS.flatMap((t) => (t.parts ?? []).map((p) => ({ ...p, of: t.name })));
 
+// The plinth a view has: the surfaces that belong to it. It was one bar for
+// the whole page, so Work — a window of everybody's queues — stood on the same
+// strip as the land you are standing on, and switching view left it there.
+export const barOf = (view) =>
+    TABS.filter((t) => t.group === 'bar' && t.view === view);
+
 // What a part is for, said where the part is opened rather than on the button
 // that opens the surface.
 export const PART_LEDE = {
@@ -114,7 +131,6 @@ export const PART_LEDE = {
     Vocabulary: 'What things may say about themselves.',
     Symbols: 'What the compiler lays down where a thing is drawn.',
     'Ground cover': 'What the ground between the drawn things is made of.',
-    'Your land': 'The ground you own, and what stands on it.',
     Shape: 'The ground itself: pull it up, push it down, lay a road bed.',
 };
 
@@ -186,6 +202,10 @@ function button(t, onPick, kids) {
 // It returns its buttons by surface name so the chrome can select one and hang
 // a count on it. Who you are and what is set once are the top strip's
 // (client/js/topbar.js).
+// Every bar surface there is, in one strip, each button marked with the view
+// it belongs to: the chrome shows the current view's and hides the rest
+// (client/js/hud.js dressFor). Built once, because a badge hung on a button
+// has to survive switching away and back.
 export function tabBar(onPick) {
     const bar = el('div', { id: 'tabs' });
     const buttons = new Map();
@@ -195,6 +215,7 @@ export function tabBar(onPick) {
         const b = button(t, onPick, [
             el('span', { className: 'key', textContent: t.key }), icon(t.name),
             el('span', { className: 'label', textContent: t.label ?? t.name })]);
+        b.dataset.view = t.view ?? '';
         buttons.set(t.name, b);
         row.append(b);
     }

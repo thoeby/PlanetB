@@ -10,7 +10,8 @@ import { tileBbox, tileCenter } from '../lib/tilemath.js';
 import { hillshade, tileBox } from './hudmap.js';
 import { cr, el, far } from './poolui.js';
 import { setBounty } from './wallet.js';
-import { jobButtons, logRows, pieces, statusOf, stepLine } from './poolcard.js';
+import { jobButtons, logRows, pieces, shotCanvas, statusOf, stepLine } from './poolcard.js';
+import { shotWords } from './workshots.js';
 
 const M_PER_DEG = 111320;
 
@@ -32,8 +33,12 @@ export function drawWhere(canvas, { z, x, y }, { at = null, ground = null } = {}
     // and says how far you are, rather than drawing both to scale.
     const span = Math.max(wide * 3, Math.min(away * 2.4, wide * 14), 200);
     const { width: w, height: h } = canvas;
-    const px = (lon, lat) => [w / 2 + ((lon - c.lon) * M_PER_DEG * cos * w) / span,
-        h / 2 - ((lat - c.lat) * M_PER_DEG * h) / span];
+    // One metres-per-pixel, both ways. It was w/span across and h/span up, so
+    // a square tile on a 380 by 220 canvas was drawn 380 by 220: the map said
+    // a z14 tile is half again as wide as it is deep, which it is not.
+    const scale = w / span;
+    const px = (lon, lat) => [w / 2 + (lon - c.lon) * M_PER_DEG * cos * scale,
+        h / 2 - (lat - c.lat) * M_PER_DEG * scale];
     ctx.clearRect(0, 0, w, h);
     ctx.fillStyle = '#12151a';
     ctx.fillRect(0, 0, w, h);
@@ -148,7 +153,7 @@ function header(e, { acts, caps, onGo, close, doing }) {
         el('div', { className: 'jd-head-row' },
             el('span', { className: 'name', textContent: `${e.z}/${e.x}/${e.y}` }),
             el('span', { className: 'jd-status', textContent: statusOf(e, doing) }),
-            el('div', { className: 'jd-acts' }, ...jobButtons(e, acts, caps), go, shut)),
+            el('div', { className: 'jd-acts' }, ...jobButtons(e, acts, caps, doing), go, shut)),
         // The chain, where the job is opened as well as on its card: this is
         // the thing four people may work on one after another (db/0153).
         stepLine(e));
@@ -156,8 +161,30 @@ function header(e, { acts, caps, onGo, close, doing }) {
 
 // One job, whole. `rows` is the page of the queue it was opened from, and
 // `atoms` its pieces, read once for the job that is open.
+// What this tab has seen of the tile: the frames it traced and the splats it
+// has fitted so far, side by side. Two different things — what the tile should
+// look like, and what has been made of it — and the card can only show one.
+function looks(shots) {
+    const both = [['The frames it was drawn from', shots?.frame],
+        ['The splats, as they are fitted', shots?.splat]]
+        .map(([words, rec]) => [words, rec, shotCanvas(rec)])
+        .filter(([, , canvas]) => canvas);
+    if (!both.length) return null;
+    return el('div', { className: 'jd-card jd-looks' },
+        el('div', { className: 'wk-card-head' },
+            el('span', { className: 'label', textContent: 'What it looks like' }),
+            el('span', { className: 'note',
+                textContent: 'from this tab\u2019s own work on it' })),
+        el('div', { className: 'jd-shots' },
+            ...both.map(([words, rec, canvas]) => el('figure', { className: 'jd-shot' },
+                canvas,
+                el('figcaption', {},
+                    el('b', { textContent: words }),
+                    el('span', { className: 'mono', textContent: shotWords(rec) }))))));
+}
+
 export function jobDetail(e, { rows, atoms, acts, caps, onGo, close, where,
-    ground = null, say, refresh, doing = '' }) {
+    ground = null, shots = null, say, refresh, doing = '' }) {
     const canvas = el('canvas', { className: 'jd-map', width: 380, height: 220 });
     const node = el('div', { className: 'jd' },
         sideList(rows, e.job, acts.open),
@@ -168,6 +195,7 @@ export function jobDetail(e, { rows, atoms, acts, caps, onGo, close, where,
                     el('div', { className: 'wk-card-head' },
                         el('span', { className: 'label', textContent: 'Where it is' })),
                     canvas, el('div', { className: 'jd-facts' })),
+                looks(shots),
                 el('div', { className: 'jd-card' },
                     el('div', { className: 'wk-card-head' },
                         el('span', { className: 'label',

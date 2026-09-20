@@ -3,7 +3,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 
-import { drawMinimap, SPANS, spanFor } from '../js/hudmap.js';
+import { drawMinimap, hillshade, SPANS, spanFor } from '../js/hudmap.js';
 
 const at = { lon: 9.69, lat: 46.4 };
 
@@ -127,4 +127,47 @@ test('the tile this machine is working on is a box on the map, named', () => {
     } });
     assert.ok(canvas.painted.some((p) => p.stroke), 'the tile is outlined');
     assert.deepEqual(words, ['14/8548/5801'], 'and says which tile it is');
+});
+
+// Enough of a 2D context to record what a draw asked for, and to record every
+// lon/lat the shading looked the ground up at.
+const asked = [];
+
+function fakeCtx(drawn) {
+    return new Proxy({}, {
+        get: (_, name) => {
+            if (name === 'fillStyle' || name === 'strokeStyle' || name === 'lineWidth'
+                || name === 'font') return '';
+            return (...args) => drawn.push([name, ...args]);
+        },
+        set: () => true,
+    });
+}
+
+// A square of ground is a square on the map, whatever shape the map is. It was
+// not: the corner map is square and hid it, and the map under an open job is
+// 380 by 220 and drew every z14 tile as a 380-by-220 rectangle.
+test('a square of ground is drawn square on a map that is not', () => {
+    const drawn = [];
+    const ctx = fakeCtx(drawn);
+    asked.length = 0;
+    const ground = { heightAt: (lon, lat) => { asked.push([lon, lat]); return 600; } };
+    // Two hundred metres across, on a canvas half as tall as it is wide.
+    hillshade(ctx, { w: 400, h: 200, at, span: 200, cos: Math.cos((46.4 * Math.PI) / 180),
+        ground });
+    const cells = drawn.filter((d) => d[0] === 'fillRect');
+    // The shading reaches the bottom of the canvas and no further: h/CELL rows.
+    // It covers the canvas and one cell over, not two canvases' worth.
+    const lowest = Math.max(...cells.map((d) => d[2]));
+    assert.ok(lowest >= 194 && lowest <= 206, `the shading stops at ${lowest} of 200`);
+    // And one cell of the shading is the same number of metres either way,
+    // which is the whole of it: it was span/w across and span/h up.
+    const step = (values, perDeg) => {
+        const sorted = [...new Set(values)].sort((a, b) => a - b);
+        return Math.abs(sorted[1] - sorted[0]) * perDeg;
+    };
+    const across = step(asked.map((p) => p[0]), 111320 * Math.cos((46.4 * Math.PI) / 180));
+    const down = step(asked.map((p) => p[1]), 111320);
+    assert.ok(Math.abs(across - down) < 0.01,
+        `a cell is ${across.toFixed(2)} m across and ${down.toFixed(2)} m down`);
 });

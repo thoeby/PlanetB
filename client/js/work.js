@@ -25,12 +25,10 @@ import { InputCache, resolveInputs } from './inputs.js';
 // them, and because the file was over its four hundred lines.
 export { probeCaps } from './workcaps.js';
 import { ALGO, spawnAtomWorker } from './workcaps.js';
+import { Shots } from './workshots.js';
 
 export { ALGO, spawnAtomWorker };
-
-// How many tiles' last picture to keep. A picture is a few hundred kilobytes
-// of rgba and a tab works through a lot of tiles.
-const PICTURES = 24;
+export { Shots } from './workshots.js';
 
 // How often a tab says it is still holding its claim. The world takes a claim
 // back after `claim_patience` (db/0173), which an operator may turn down: at
@@ -64,19 +62,12 @@ export class WorkLoop {
         this.spawn = spawn;
         this.cache = cache ?? new InputCache({ filesUrl, fetchFn });
         this.fetchFn = fetchFn ?? ((...a) => fetch(...a));
-        // The last picture each tile was seen in, so a panel that is not the
-        // work panel can show it (client/js/poolcard.js). One per tile, the
-        // newest: a run pumps one every two hundred steps and keeping them
-        // all would be a video nobody asked for.
-        this.pictures = new Map();
+        // The pictures this tab took of the tiles it worked on, so a panel
+        // that is not the work panel can show them (client/js/workshots.js).
+        this.shots = new Shots();
         this.log = (rec) => {
             const full = { t: Date.now(), ...rec };
-            if (rec.picture && rec.tile) {
-                this.pictures.set(`${rec.tile.z}/${rec.tile.x}/${rec.tile.y}`, full);
-                if (this.pictures.size > PICTURES) {
-                    this.pictures.delete(this.pictures.keys().next().value);
-                }
-            }
+            this.shots.saw(full);
             console.debug(JSON.stringify(full));
             log(full);
         };

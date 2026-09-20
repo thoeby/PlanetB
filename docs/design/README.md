@@ -113,14 +113,14 @@ wired yet" and pressing one changed a hue. A view names the surface it opens
 (`client/js/apps.js` `surface`) and a surface names the view it belongs to
 (`client/js/tabbar.js` `view`), and switching opens it:
 
-| view | opens |
-|---|---|
-| Build · F1 | the world |
-| Automate · F2 | the flow editor, which takes the window itself |
-| Work · F3 | the Work surface, full width: four queues and the machine |
-| Trade & Sell · F4 | the catalog |
-| Play · F5 | nothing yet — walking is built, visiting and photographing are not |
-| Survey · F6 | the land map: who is waiting, and the ground it is drawn on |
+| view | plinth | opens |
+|---|---|---|
+| Build · F1 | Place · Catalog · Land · Publish · Terrain | the world |
+| Automate · F2 | — | the flow editor, which takes the window itself |
+| Work · F3 | — | the Work surface: four queues and the machine |
+| Trade & Sell · F4 | — | the catalog, full window |
+| Play · F5 | Build's | nothing yet — walking is built, visiting is not |
+| Survey · F6 | — | the land map: who is waiting, and the ground it is drawn on |
 
 Two things follow. **Work takes the window** rather than the 1 040 px drawer it
 had: four queues of cards beside a card opened is the window the design draws
@@ -129,15 +129,25 @@ where the land map lives**, not a tab of Settings — nobody looking for a map
 opens Settings — and it has no button on either bar, because a map of the whole
 world is a workspace rather than a drawer over the one you are standing in.
 
-The plinth stays in every view: Work is the fifth button on it and the catalog
-is the second, so opening one from the bar walks into that workspace. What is
-Build's alone still goes with Build — the legend, the "what is missing" line,
-the next step and the two numbers on the strip. And a view that takes the
-window puts Build's *instruments* away with it (`#hud[data-full]`): the
-altimeter, the controls, the map in the corner and the legend are about
-standing somewhere in the world, and nothing is standing in the world behind a
-Work window. The compass and the place line stay, because where you are is true
-in every view.
+**The plinth belongs to the view it is in** (`tabbar.js` `barOf`). Every bar
+surface names its view, and the chrome shows that view's and hides the rest. A
+view marked `full` (`apps.js`) is a workspace and takes the window: no plinth,
+no altimeter, no controls panel, no map in the corner, no legend, no crosshair,
+and its panel reaches the bottom edge. Four of the six are — Automate, Work,
+Trade & Sell, Survey — and Build and Play are the world itself, so they keep
+all of it. The compass and the place line stay everywhere, because where you
+are is true in every view.
+
+**Terrain is Build's fifth button**, holding FND.9's shaping tools. It was a
+second tab of Land, which is a panel about who owns what; shaping the ground is
+something you do standing in it with a brush in hand. **Work left Build's
+plinth**: a window of everybody's queues under a strip about the land you are
+standing on was two views at once.
+
+A view may open a surface that belongs to another — Trade & Sell opens the
+catalog, which is on Build's plinth — and doing so does not walk you back into
+that view. The surface is as wide as the view needs it: a 666 px drawer in
+Build, the window in Trade & Sell.
 
 ## Symbols, redrawn
 
