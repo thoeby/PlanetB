@@ -49,6 +49,24 @@
 }
 .sc-rail .sc-brush.picked .sc-key { color: var(--accent); opacity: 1; }
 
+/* What can be done to the ground, in the same hand as the tools: undo, redo,
+   save, and back to the elevation. They were three wide buttons and a fourth
+   wider one down the panel. Save is the accented one — it is the only one of
+   the four anybody else ever sees the result of. */
+.sc-deeds { display: flex; gap: 2px; padding: 4px; --cut: 8px; }
+.sc-deeds .sc-deed {
+  width: 34px; height: 34px; padding: 0; display: flex; align-items: center;
+  justify-content: center; background: none; border: 0; color: var(--ink-3);
+  cursor: pointer;
+}
+.sc-deeds .sc-deed svg {
+  width: 18px; height: 18px; fill: none; stroke: currentColor;
+  stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round;
+}
+.sc-deeds .sc-deed:hover { color: var(--ink); background: rgba(255, 255, 255, 0.06); }
+.sc-deeds .sc-save { color: var(--accent); }
+.sc-deeds .sc-save:hover { background: var(--accent-dim); }
+
 /* The box: what the tool in hand needs, and nothing else. Small, because most
    tools need one number and none needs more than four. */
 .sc-opt {

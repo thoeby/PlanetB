@@ -95,3 +95,40 @@ test('cutting the ground again takes the meshes with it', () => {
     assert.deepEqual(gone, ['8557/5736'], 'the mesh of the old survey is destroyed');
     assert.equal(mesh.entities.size, 0, 'and the next update builds it again');
 });
+
+// FND.9: while a land's ground is being shaped it is the mesh that is on
+// screen, because the splats over it have been put away (client/js/tiles.js
+// hideUnder). So that land's tiles are built as fast as their rasters arrive,
+// and built wherever they are — a field at the far end of the ring, or past
+// it, is still the field whose mesh is being edited.
+function forcedGround(force, { lon = 7.86, lat = 46.29 } = {}) {
+    const built = [];
+    const mesh = new DemGround(null, null, {
+        origin: { geodeticOf: () => ({ lon, lat, h: 0 }) },
+        floor: { raster: () => ({ data: new Float32Array(1), size: 1 }) },
+        streamer: { tiles: new Map(), entries: new Map() },
+    });
+    mesh.add = (k) => { built.push(k); mesh.entities.set(k, { destroy: () => {} }); };
+    mesh.force = new Set(force);
+    return { mesh, built };
+}
+
+test('the ground being shaped is built all at once, not one tile a frame', () => {
+    const here = { x: tileX(7.86, 14), y: tileY(46.29, 14) };
+    const land = [`${here.x}/${here.y}`, `${here.x + 1}/${here.y}`,
+        `${here.x}/${here.y + 1}`, `${here.x + 1}/${here.y + 1}`];
+    const { mesh, built } = forcedGround(land);
+    mesh.update({ x: 0, y: 0, z: 0 });
+    for (const k of land) assert.ok(built.includes(k), `${k} was built in the first frame`);
+    // And the rest of the ring keeps its one a frame, so walking into a valley
+    // does not stall on forty meshes at once.
+    assert.equal(built.length, land.length + 1, `${built.length} built`);
+});
+
+test('a land past the ring is still drawn while it is being shaped', () => {
+    const away = `${tileX(7.86, 14) + 40}/${tileY(46.29, 14) + 40}`;
+    const { mesh, built } = forcedGround([away]);
+    mesh.update({ x: 0, y: 0, z: 0 });
+    assert.ok(built.includes(away), 'the forced tile is built though the ring misses it');
+    assert.ok(mesh.entities.has(away), 'and it is not pruned away again');
+});

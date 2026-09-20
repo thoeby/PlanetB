@@ -34,19 +34,12 @@ const HTML = `
     · Ctrl-Z undo</p>
 </div>
 <div class="section">
-  <div class="row">
-    <button type="button" class="sc-undo">Undo</button>
-    <button type="button" class="sc-redo">Redo</button>
-    <button type="button" class="sc-save primary">Save</button>
-  </div>
   <p class="sc-status status"></p>
   <p class="muted sc-said"></p>
   <p class="note mono sc-shaped"></p>
-  <div class="spread sc-clear-box">
-    <button type="button" class="sc-clear">Put the ground back</button>
-    <span class="note">As the operator's elevation gave it. Undo takes it
-      back, and nothing reaches the world until Save.</span>
-  </div>
+  <p class="note">Undo, redo, save and putting the ground back are the four
+    glyphs under the tools. Nothing reaches the world until Save, and Undo
+    takes back putting the ground back like any other stroke.</p>
 </div>`;
 
 // Shaping on or off: who has the pointer, and what the world shows.
@@ -89,7 +82,18 @@ export function mountSculpt(host, ctx, { lands = () => [] } = {}) {
     // so the panel and the rail are asked together for whatever is wanted.
     const rail = toolRail((id) => pick(id));
     const q = (sel) => box.querySelector(sel) ?? rail.q(sel);
-    const pick = (id) => pickBrush(rail, q, state, id, say);
+    // Drawing which tool is in hand, and taking one up. They are two things:
+    // the rail draws itself when the panel is mounted, and nobody has asked
+    // for anything then.
+    const show = (id) => pickBrush(rail, q, state, id, say);
+    // Picking a tool is asking to use it. The rail was live-looking and inert
+    // until a checkbox in the panel was ticked — you took the hand, dragged,
+    // and nothing happened, because nothing was listening to the canvas yet.
+    // The checkbox stays: it is how you put the tools down and walk away.
+    // The tool first, then the arming: `show` clears whatever was last said —
+    // a refusal about somebody else's land does not survive picking a
+    // different tool — and turning shaping on is the thing worth saying.
+    const pick = (id) => { show(id); return state.on || toggle(true); };
     const state = { on: false, brush: 'raise', size: 12, strength: 0.5,
         shaping: null, areas: [], roads: [], painting: false,
         // Where the pointer last found ground, and whether that is this
@@ -136,7 +140,7 @@ export function mountSculpt(host, ctx, { lands = () => [] } = {}) {
     const take = () => levelHere(q, state, say, ground);
 
     wire(rail, q, state, { toggle, choose, refresh, save, apply, clear, take, say,
-        ctx, pick });
+        ctx, pick, show });
     refresh();
     return { state, refresh, choose, toggle, save, apply, clear, take,
         shaping: () => state.shaping, say,
@@ -277,8 +281,16 @@ function wire(rail, q, state, acts) {
     // is on: R is a letter somebody types into the name of a land.
     document.addEventListener('keydown',
         keyHandler(state, { brush: pick, size: resize, undo, redo }));
-    pick(state.brush);
+    acts.show(state.brush);
 }
+
+// How far the pointer reaches, and how coarsely the ray is marched before it
+// bisects. Place puts a thing down within arm's reach and four hundred metres
+// is plenty for it; shaping is done looking across a field from above it, and
+// at four hundred metres every pointer past the near ground answered "no
+// ground under the pointer". Three kilometres at six-metre steps is five
+// hundred samples — the bisect after them is what makes it exact.
+const REACH = { far: 3000, step: 6 };
 
 // Dragging on the 3D view: the ray lands on the heightfield, and the point it
 // lands on is where the brush is. The same path the Place panel uses.
@@ -291,7 +303,7 @@ function pointer(ctx, state, { say, hover }, ground, levelTo) {
     const where = (e) => {
         const rect = ctx.canvas.getBoundingClientRect();
         const r = rayThrough(ctx.camera, ctx.pc, e.clientX - rect.left, e.clientY - rect.top);
-        const hit = raycastGround(ctx.terrain, r.from, r.dir);
+        const hit = raycastGround(ctx.terrain, r.from, r.dir, REACH);
         return hit ? ctx.origin.geodeticOf(hit) : null;
     };
     const one = (g) => dabAt(ctx, state, { say, hover }, ground, levelTo, g);
@@ -315,12 +327,17 @@ function pointer(ctx, state, { say, hover }, ground, levelTo) {
         ['pointermove', (e) => {
             if (state.brush === 'pan') { if (state.painting) hand.drag(e); return; }
             const g = where(e);
-            state.at = g;
+            // The last place the pointer found ground is kept when it finds
+            // none: a brush that vanishes the moment the ray misses is a brush
+            // you cannot see the size of, and `lost` is what draws it dimmed
+            // rather than not at all (client/js/sculptmode.js).
+            state.lost = !g;
+            if (g) state.at = g;
             state.inside = g ? Boolean(state.shaping?.inside(g.lon, g.lat)) : null;
             if (state.painting && g) one(g);
             else hover();
         }],
-        ['pointerout', () => { state.at = null; hover(); }],
+        ['pointerout', () => { state.lost = true; hover(); }],
         // In and out over the land, with the hand in hand. The page's own
         // wheel would scroll the panel behind it.
         ['wheel', (e) => {

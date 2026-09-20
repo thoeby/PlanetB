@@ -25,16 +25,26 @@ export function raycastGround(terrain, from, dir, { far = 400, step = 0.5 } = {}
     const at = (t) => ({ x: from.x + dir.x * t, y: from.y + dir.y * t, z: from.z + dir.z * t });
     const under = (p) => {
         const h = terrain.heightAt(p);
-        return h === null ? null : p.y - h;
+        return h === null || h === undefined ? null : p.y - h;
     };
-    let last = under(from);
-    if (last === null) return null;
-    for (let t = step; t <= far; t += step) {
-        const p = at(t);
-        const d = under(p);
-        if (d === null) return null;
-        if (d <= 0 && last > 0) return bisect(at, t - step, t, under);
-        last = d;
+    // A gap in the ground — a tile whose elevation has not arrived yet, or a
+    // hole in the coverage — used to end the ray: one unanswerable sample and
+    // the whole cast returned null, which is how "no ground under the pointer"
+    // came back while the ground was plainly on screen. It is one surface
+    // saying it cannot see this point, so the march carries the last sample it
+    // knew was above the ground across the gap and picks up on the far side.
+    //
+    // Where the crossing is inside the gap the bisect lands on its near edge,
+    // because that is the last place the ground was known to be underfoot.
+    const n = Math.floor(far / step);
+    const first = under(from);
+    let above = first !== null && first > 0 ? 0 : null;
+    for (let i = 1; i <= n; i++) {
+        const t = i * step;
+        const d = under(at(t));
+        if (d === null) continue;
+        if (d > 0) { above = t; continue; }
+        return above === null ? null : bisect(at, above, t, under);
     }
     return null;
 }

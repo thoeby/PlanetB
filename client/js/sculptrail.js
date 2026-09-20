@@ -52,6 +52,32 @@ const OPTIONS = `
 </div>
 <p class="note mono sc-here"></p>`;
 
+// What can be done to the ground, as glyphs beside the tools: undo, redo,
+// save, and back to the elevation. They were three wide buttons and a fourth
+// wider one down the panel, which is a lot of chrome for four verbs you press
+// with a hand already on the rail.
+//
+// The classes are the ones the panel used, because they are what the stories
+// press (client/test/run/24-sculpt.spec.js) and what sculptui wires.
+const DEEDS = [
+    { cls: 'sc-undo', words: 'Undo', key: 'Ctrl-Z',
+        icon: 'M3 10h11a5 5 0 0 1 0 10h-4|m3 10 5-5|m3 10 5 5' },
+    { cls: 'sc-redo', words: 'Redo', key: 'Ctrl-Shift-Z',
+        icon: 'M21 10H10a5 5 0 0 0 0 10h4|m21 10-5-5|m21 10-5 5' },
+    { cls: 'sc-save', words: 'Save the ground', key: '',
+        icon: 'M5 4h11l3 3v13H5z|M8 4v6h7V4|M8 20v-6h8v6' },
+    { cls: 'sc-clear', words: 'Put the ground back as the elevation gave it', key: '',
+        icon: 'M4 6h16|M4 12h10|M4 18h16|m20 9 3 3-3 3' },
+];
+
+function deedButton(d) {
+    const b = el('button', { type: 'button', className: `sc-deed ${d.cls}`,
+        title: d.key ? `${d.words} \u00b7 ${d.key}` : d.words },
+    icon(d.icon));
+    b.setAttribute('aria-label', d.words);
+    return b;
+}
+
 // One tool: its glyph, its key, and what it is for under the pointer. The
 // class carries the tool's id because the stories press `.sc-brush-line`
 // (client/test/run/24-sculpt.spec.js) and because the rail lights one of them.
@@ -72,9 +98,10 @@ function toolButton(t, onPick) {
 export function toolRail(onPick) {
     const rail = el('div', { className: 'sc-rail glass' },
         ...TOOLS.map((t) => toolButton(t, onPick)));
+    const deeds = el('div', { className: 'sc-deeds glass' }, ...DEEDS.map(deedButton));
     const opt = el('div', { className: 'sc-opt glass' });
     opt.innerHTML = OPTIONS;
-    const node = el('div', { id: 'sculpt-tools' }, rail, opt);
+    const node = el('div', { id: 'sculpt-tools' }, rail, opt, deeds);
     (document.getElementById('hud') ?? document.body).append(node);
     return {
         node,

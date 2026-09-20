@@ -128,40 +128,73 @@ export function keyHandler(state, acts) {
 
 // ------------------------------------------------------------- the brush
 
-// How many segments the ring is drawn with. Enough that it reads as a circle
-// at the sizes a brush is used at, and few enough to be free every frame.
-const AROUND = 48;
+// How many segments a ring is drawn with. Enough that it reads as a circle at
+// the sizes a brush is used at, and few enough to be free every frame.
+const AROUND = 64;
 
-// The brush, on the ground, where the pointer is: a ring at its own radius,
-// following the ground under it so it lies on a hillside rather than through
-// it, and a cross at the middle. A brush you cannot see is a brush you find
-// the size of by moving the ground and undoing it.
+// What a cursor in a sculpting tool looks like, and has looked like since
+// Z-Brush: a ring on the surface at the brush's own radius, a second one
+// inside it where the dab is at full strength, a cross at the centre and a
+// short stalk standing off the ground so the middle is findable on a slope.
+//
+// Each ring is drawn twice, a hand's breadth apart, because `drawLine` has no
+// width and one segment-wide circle disappears against grass.
+const RINGS = [
+    { of: 1, shade: 1 },
+    { of: 0.985, shade: 1 },
+    { of: 0.5, shade: 0.45 },
+];
+
+// How far the middle stands off the ground, and how long the cross is.
+const STALK_M = 1.5;
+
+// The brush, on the ground, where the pointer is. A brush you cannot see is a
+// brush you find the size of by moving the ground and undoing it.
+//
+// Three colours: the ordinary one, red for ground that is not this land, and
+// dim for a pointer that has run off the ground altogether — the last is drawn
+// where the ground was last found rather than not drawn at all, so the cursor
+// never simply vanishes.
 export function drawBrush(ctx, state) {
     if (!state.on || !state.at || !ctx.app) return;
     // The hand shapes nothing, so a twelve-metre ring under it is a ring that
     // says something will happen where nothing will.
     if (state.brush === 'pan') return;
     const { app, pc } = ctx;
-    const colour = state.inside === false ? new pc.Color(1, 0.35, 0.3)
-        : new pc.Color(0.5, 0.9, 1);
+    const tone = (shade) => (state.lost ? new pc.Color(0.6 * shade, 0.6 * shade, 0.6 * shade)
+        : state.inside === false ? new pc.Color(shade, 0.35 * shade, 0.3 * shade)
+            : new pc.Color(0.5 * shade, 0.9 * shade, shade));
     const metres = Math.max(state.size, 1) / 2;
-    const ring = [];
+    for (const { of, shade } of RINGS) ring(ctx, state.at, metres * of, tone(shade), app);
+    middle(ctx, state, metres, tone(1), app, pc);
+    drawLine(ctx, state);
+}
+
+// One circle, laid on the ground so it lies on a hillside rather than through
+// it: every point is lifted to the height under it.
+function ring(ctx, at, metres, colour, app) {
+    let was = null;
     for (let i = 0; i <= AROUND; i++) {
         const a = (i / AROUND) * Math.PI * 2;
-        const p = offset(ctx, state.at, Math.cos(a) * metres, Math.sin(a) * metres);
-        if (p) ring.push(p);
+        const p = offset(ctx, at, Math.cos(a) * metres, Math.sin(a) * metres);
+        if (p && was) app.drawLine(was, p, colour);
+        was = p;
     }
-    for (let i = 1; i < ring.length; i++) app.drawLine(ring[i - 1], ring[i], colour);
-    // And a cross where it is pointed, because the ring alone says nothing
-    // about where the middle of a twelve-metre brush is on a slope.
+}
+
+// The centre: a cross on the ground and a stalk standing off it. The ring
+// alone says nothing about where the middle of a twelve-metre brush is on a
+// slope, and on flat ground seen from above it says nothing about which way is
+// up.
+function middle(ctx, state, metres, colour, app, pc) {
     const mid = offset(ctx, state.at, 0, 0);
     if (!mid) return;
-    for (const [dx, dz] of [[metres / 4, 0], [-metres / 4, 0], [0, metres / 4],
-        [0, -metres / 4]]) {
+    const arm = Math.min(metres / 3, 4);
+    for (const [dx, dz] of [[arm, 0], [-arm, 0], [0, arm], [0, -arm]]) {
         const end = offset(ctx, state.at, dx, dz);
         if (end) app.drawLine(mid, end, colour);
     }
-    drawLine(ctx, state);
+    app.drawLine(mid, new pc.Vec3(mid.x, mid.y + STALK_M, mid.z), colour);
 }
 
 // The path the Along-line brush is being clicked out, on the ground. It was

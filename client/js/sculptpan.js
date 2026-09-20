@@ -20,6 +20,11 @@ const MIN_AGL = 2;
 // them, and two metres up you want centimetres.
 const STEP = 0.18;
 
+// How far the hand reaches for the ground it takes hold of, and how coarsely
+// the ray is marched before it bisects. The same reach the brushes use: you
+// pan by grabbing ground across the field, not ground at your feet.
+const REACH = { far: 3000, step: 6 };
+
 // Where a ray meets the level plane the drag took hold at.
 //
 // The plane, not the ground: re-casting against the hillside every move makes
@@ -37,8 +42,13 @@ function onPlane(r, y) {
 // both are asked of the same geodetic point (client/js/origin.js).
 function above(ctx, p) {
     const g = ctx.origin.geodeticOf(p);
-    return g.h - (ctx.groundAt?.(g.lon, g.lat) ?? 0);
+    const floor = ctx.groundAt?.(g.lon, g.lat);
+    return Number.isFinite(floor) ? g.h - floor : NaN;
 }
+
+// What one notch of the wheel is worth where there is no ground to measure
+// against: a stride, so the wheel still moves rather than doing nothing.
+const FALLBACK_M = 50;
 
 export function panning(ctx) {
     let grab = null;
@@ -51,7 +61,7 @@ export function panning(ctx) {
         // the edge of any ground — the height the camera is looking down at.
         take(e) {
             const r = ray(e);
-            const hit = raycastGround(ctx.terrain, r.from, r.dir);
+            const hit = raycastGround(ctx.terrain, r.from, r.dir, REACH);
             grab = hit ? { x: hit.x, y: hit.y, z: hit.z }
                 : Object.assign(onPlane(r, 0) ?? {}, { y: 0 });
             return Number.isFinite(grab?.x) ? grab : (grab = null);
@@ -72,11 +82,17 @@ export function panning(ctx) {
         // loses the land.
         zoom(e) {
             const c = ctx.camera.getPosition();
-            const step = Math.max(Math.abs(above(ctx, c)), MIN_AGL) * STEP
+            const agl = above(ctx, c);
+            // No ground to measure against — off the coverage, or a tile that
+            // has not arrived — is not a reason for the wheel to do nothing:
+            // it falls back to a fixed step and the clamp below is skipped,
+            // because there is no floor to be clamped to.
+            const known = Number.isFinite(agl);
+            const step = (known ? Math.max(Math.abs(agl), MIN_AGL) : FALLBACK_M) * STEP
                 * (e.deltaY > 0 ? -1 : 1);
             const f = ctx.camera.forward;
             const to = { x: c.x + f.x * step, y: c.y + f.y * step, z: c.z + f.z * step };
-            if (above(ctx, to) < MIN_AGL) return false;
+            if (known && above(ctx, to) < MIN_AGL) return false;
             ctx.camera.setPosition(to.x, to.y, to.z);
             return true;
         },

@@ -40,6 +40,48 @@ test('a ray that never meets the ground hits nothing', () => {
         'off the heightfield is not a hit');
 });
 
+// A tile whose elevation has not arrived, or a hole in the coverage, answers
+// null for the points over it. That used to end the ray: one unanswerable
+// sample and the cast returned nothing, which is how the terrain editor said
+// "no ground under the pointer" while the ground was plainly on screen.
+test('a gap in the ground is stepped over, not treated as the end of the ray', () => {
+    // Flat ground at y = 0, with nothing to say about a band the ray passes
+    // high over on its way down.
+    const gappy = { heightAt: ({ x }) => (x > -55 && x < -45 ? null : 0) };
+    const down = { x: 0.6, y: -0.8, z: 0 };
+    const hit = raycastGround(gappy, { x: -60, y: 30, z: 0 }, down, { far: 200, step: 0.5 });
+    assert.ok(hit, 'the ray reached the ground past the gap');
+    assert.ok(Math.abs(hit.y) < 1e-3, 'and landed on the surface');
+    assert.ok(Math.abs(hit.x - (-37.5)) < 0.5, `where the ground is, at ${hit.x}`);
+});
+
+// And when the crossing itself is inside the gap, the answer is the near edge
+// of it: the last place the ground was known to be underfoot. Better than
+// refusing — a brush that works up to the hole is a brush you can use.
+test('a crossing inside a gap lands on the edge of what is known', () => {
+    const gappy = { heightAt: ({ x }) => (x > -40 && x < -20 ? null : 0) };
+    const hit = raycastGround(gappy, { x: -60, y: 30, z: 0 }, { x: 0.6, y: -0.8, z: 0 },
+        { far: 200, step: 0.5 });
+    assert.ok(hit, 'there is still an answer');
+    assert.ok(hit.x <= -40 + 1e-6, `at the near edge of the gap, not past it: ${hit.x}`);
+});
+
+test('ground that answers nowhere is still nothing to hit', () => {
+    const nowhere = { heightAt: () => null };
+    assert.equal(raycastGround(nowhere, { x: 0, y: 30, z: 0 }, { x: 0, y: -1, z: 0 }), null);
+});
+
+// Place puts a thing down within arm's reach; shaping is done looking across a
+// field from above it. The reach is the caller's to say.
+test('the ray goes as far as it is asked to and no further', () => {
+    const flat = { heightAt: () => 0 };
+    const shallow = { x: 0.995, y: -0.0998, z: 0 };
+    assert.equal(raycastGround(flat, { x: 0, y: 60, z: 0 }, shallow), null,
+        'six hundred metres away is past the default four hundred');
+    assert.ok(raycastGround(flat, { x: 0, y: 60, z: 0 }, shallow, { far: 3000, step: 6 }),
+        'and within three kilometres it is found');
+});
+
 test('a ray that starts underground is not a hit', () => {
     assert.equal(raycastGround(hill, { x: 0, y: -50, z: 0 }, { x: 0, y: -1, z: 0 }), null);
 });

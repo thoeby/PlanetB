@@ -156,21 +156,49 @@ export class DemGround {
         const cy = tm.tileY(g.lat, Z);
         const want = new Set();
         let built = false;
-        for (const { x, y } of ringAround(cx, cy)) {
+        for (const { x, y, forced } of this.around(cx, cy)) {
             const k = `${x}/${y}`;
-            if (covered(this.tiles, Z, x, y, this.drawn) && !this.force.has(k)) continue;
+            if (!forced && covered(this.tiles, Z, x, y, this.drawn)) continue;
             want.add(k);
-            if (this.entities.has(k) || built) continue;
+            // One mesh a frame, so walking into a valley does not stall on
+            // forty of them at once — except the ground being shaped, which is
+            // built as fast as its rasters arrive. That land is the whole of
+            // what the player is looking at (FND.9), and a field appearing one
+            // tile a frame after the splats came off it is a field with holes
+            // in it for as long as it takes.
+            if (this.entities.has(k) || (built && !forced)) continue;
             const dem = this.floor.raster(Z, x, y);
             if (dem === undefined || dem === null) continue;
             this.add(k, x, y, dem);
-            built = true;
+            // A forced tile is free: it does not spend the frame's one build,
+            // or the land being shaped would hold up the ring it stands in.
+            built = built || !forced;
         }
         for (const [k, e] of this.entities) {
             if (want.has(k)) continue;
             e.destroy();
             this.entities.delete(k);
         }
+    }
+
+    // The tiles to draw: the ring around the camera, and the ground being
+    // shaped wherever it is. Forced first, and forced even where the ring does
+    // not reach — a land at the far end of it, or past it, is still the land
+    // whose mesh is being edited.
+    around(cx, cy) {
+        const forced = [];
+        const rest = [];
+        for (const t of ringAround(cx, cy)) {
+            (this.force.has(`${t.x}/${t.y}`) ? forced : rest)
+                .push({ x: t.x, y: t.y, forced: this.force.has(`${t.x}/${t.y}`) });
+        }
+        const seen = new Set(forced.map((t) => `${t.x}/${t.y}`));
+        for (const k of this.force) {
+            if (seen.has(k)) continue;
+            const [x, y] = k.split('/').map(Number);
+            if (Number.isFinite(x) && Number.isFinite(y)) forced.push({ x, y, forced: true });
+        }
+        return [...forced, ...rest];
     }
 
     // The ground was cut again (db/0154): every mesh here is the survey before
