@@ -58,7 +58,11 @@ function theOldWoodIsThere(project) {
 // downloaded before it is out of date.
 async function addsAValue(a, b) {
     await panel(a, 'Vocabulary');
-    await a.page.locator('.ad-kind').selectOption('highway');
+    // The kinds are a list of what the world can hold, not a dropdown: each
+    // one says what it is drawn as, how much it may say about itself, and how
+    // much of the world is one.
+    await a.page.locator('.vo-row[data-kind="highway"] .vo-kind').click();
+    await expect(a.page.locator('.vo-name')).toHaveValue('highway', { timeout: UI });
     await a.page.locator('.ad-name').fill('highway');
     await a.page.locator('.ad-type').selectOption('choice');
     await a.page.locator('.ad-choices').fill(

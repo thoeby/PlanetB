@@ -78,6 +78,8 @@ Where each part of the design lives:
 | the map in the corner, and the hillshade both maps draw | `client/js/hudmap.js` |
 | the panels themselves | `client/js/{land,build,pool,permission,wallet,…}ui.js` |
 | Symbols: the four columns, and what each holds | `client/symbols.css`, `client/js/symbol{sui,html,list,form,layers,try,preview}.js` |
+| Vocabulary: the kinds, and what one may say about itself | `client/js/{adminui,vocabui}.js` |
+| Ground cover: the four steps | `client/js/{coverui,coverform,covertile,coversld}.js` |
 | Survey's map, and the nodes around it | `client/js/{landmap,assignland,assignform}.js` |
 | the Work window's look (v8) | `client/work.css` |
 | what this machine is doing, and the loop behind it | `client/js/workui.js` |
@@ -184,3 +186,27 @@ not answer before:
 
 And the order — which is the whole of how symbols resolve — is dragged, within
 a kind, rather than typed as a number into a form.
+
+## Settings' three wide parts
+
+Symbols, Vocabulary and Ground cover each take the whole window, and each is
+now the same shape: a list of what there is on the left, and what one of them
+is on the right. A wide panel also puts the corner instruments away while it
+is open (`#hud[data-covered]`), because the altimeter and the map sit over it.
+
+**Vocabulary** was a `<select>` of thirty kinds and two browser `prompt()`s for
+a new one. The kinds are a list grouped by what they are about — drawn on the
+ground, products, land — each saying what it is drawn as, how much it may say
+about itself, and how many of them are in the world. A kind's own label, shape
+and order are editable, and so is every field of every property: `put_kind` and
+`put_property` have taken a label and an ordering since db/0040 and the panel
+could set neither, so a typo in a label meant dropping the property and writing
+it again.
+
+**Ground cover** was a wall of controls with nothing saying which came first —
+an address, a user, a password, a connect, a layer, a priority, an add, a read,
+an attribute, a style download, a table of six unlabelled inputs and a save. It
+is four numbered steps: add a source (behind its own button, because it is done
+once), read what is in it, say what each class is, keep it. The class table has
+headings and shows how much of the ground each class is, which was counted and
+never drawn.

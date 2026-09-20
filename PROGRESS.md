@@ -2844,3 +2844,35 @@ expected, and they are the difference between a tool and a set of verbs:
 One more thing the audit found and did not build: **`worker_op_stats`** is
 written and never read. What this machine has done, by op and by how long, is
 worth a card in Work · Settings, and is not a control anybody is missing.
+
+## Vocabulary and Ground cover, redrawn
+
+Both take the whole window and both were laid out as though they did not.
+
+**Vocabulary** was a `<select>` of thirty kinds, two browser `prompt()`s for a
+new one, and a list of properties that could only be added and removed. It is
+two columns: the kinds grouped by what they are about — drawn on the ground,
+products, land — each saying what it is drawn as, how much it may say about
+itself, and how many of them are in the world (`feature_matches`, db/0175,
+which was written for the Symbols panel and answers this too). A kind's label,
+shape and order are editable, and so is every field of every property:
+`put_kind` and `put_property` have taken a `label` and an `ordering` since
+db/0040 and the panel could set neither, so a typo in a label meant dropping
+the property and writing it again — and what is already written keeps a dropped
+property.
+
+**Ground cover** was a wall of controls with nothing saying which came first:
+an address, a user, a password, a connect, a layer, a priority, an add, a read,
+an attribute, a style download, a table of six unlabelled inputs and a save.
+It is four numbered steps now — add a source, read what is in it, say what each
+class is, keep it — with step 1 behind its own button because it is done once.
+The sources are a list you pick from rather than a list *and* a dropdown that
+could disagree about which source the right-hand side was about. The class
+table has headings, so "Wald · landuse · forest" is three named columns rather
+than three boxes of placeholder text, and it shows how much of the ground each
+class is, which was counted and thrown away.
+
+And a wide panel puts the corner instruments away while it is open: the
+altimeter runs up the right-hand edge and the controls and the map sit above
+the bottom one, over a panel that reaches both gutters. A view that takes the
+window already did this; Settings is the top strip's and opens over Build.

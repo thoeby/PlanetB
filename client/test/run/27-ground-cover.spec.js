@@ -40,12 +40,16 @@ const readCoords = (text) => {
 // priority, add.
 async function addsSources(a, world) {
     await panel(a, 'Ground cover');
-    await a.page.locator('.cv-url').fill(world.geoserverUrl);
-    await a.page.locator('.cv-connect').click();
-    await expect(a.page.locator('.cv-status'))
-        .toContainText('layer(s)', { timeout: UI });
     for (const [layer, priority] of [['splatworld:tlm', '0'],
         ['splatworld:worldcover', '1']]) {
+        // Step 1 is behind its own button: the address, the password and the
+        // layer are what you do once, and they were half the panel for ever.
+        await a.page.locator('.cv-new').click();
+        await expect(a.page.locator('.cv-url')).toBeVisible({ timeout: UI });
+        await a.page.locator('.cv-url').fill(world.geoserverUrl);
+        await a.page.locator('.cv-connect').click();
+        await expect(a.page.locator('.cv-status'))
+            .toContainText('layer(s)', { timeout: UI });
         await a.page.locator('.cv-layer').selectOption(layer);
         await a.page.locator('.cv-priority').fill(priority);
         await a.page.locator('.cv-add').click();
@@ -69,7 +73,10 @@ async function maps(a, colour, kind, key, value) {
 // 2 — what each class is, in the world's own words. The classes are read out
 // of the ground the world cut, not typed from a data sheet.
 async function mapsThem(a, layer, rows) {
-    await a.page.locator('.cv-source').selectOption({ label: layer });
+    // One control for one choice: the source is picked in the list on the
+    // left, which drives everything on the right.
+    await a.page.locator('.cv-source-pick', { hasText: layer }).first().click();
+    await expect(a.page.locator('.cv-which')).toHaveText(layer, { timeout: UI });
     await a.page.locator('.cv-read').click();
     await expect(said(a)).toContainText('class(es) in it', { timeout: 120_000 });
     for (const [colour, kind, key, value] of rows) await maps(a, colour, kind, key, value);
@@ -80,11 +87,14 @@ async function mapsThem(a, layer, rows) {
 // 4 — a class nobody said anything about. It is in the table, it says it is
 // not shown, and nothing anywhere refuses anything.
 async function theUnmapped(a) {
-    const rows = a.page.locator('.cv-map tr');
-    await expect(rows.filter({ hasText: 'not shown' }).first())
-        .toBeVisible({ timeout: UI });
-    const unmapped = await rows.filter({ hasText: 'not shown' }).count();
-    expect(unmapped, 'the classes A did not map are still listed').toBeGreaterThan(0);
+    // The table says which rows are not said, and counts them in its own head:
+    // "not shown" is the unchosen option of every row's select, so the class
+    // is the thing to look at, not the words.
+    const unmapped = a.page.locator('.cv-map tr.cv-unmapped');
+    await expect(unmapped.first()).toBeVisible({ timeout: UI });
+    expect(await unmapped.count(), 'the classes A did not map are still listed')
+        .toBeGreaterThan(0);
+    await expect(a.page.locator('.cv-counted')).toContainText('said', { timeout: UI });
     await expect(a.page.locator('.cv-said')).not.toHaveAttribute('data-bad', '1');
 }
 

@@ -28,7 +28,11 @@ const squareAt = ({ lon, lat }, size = 0.0004) =>
 
 async function definesIt(a) {
     await panel(a, 'Vocabulary');
-    await a.page.locator('.ad-kind').selectOption('landuse');
+    // The kinds are a list of what the world can hold, not a dropdown: each
+    // one says what it is drawn as, how much it may say about itself, and how
+    // much of the world is one.
+    await a.page.locator('.vo-row[data-kind="landuse"] .vo-kind').click();
+    await expect(a.page.locator('.vo-name')).toHaveValue('landuse', { timeout: UI });
     await a.page.locator('.ad-name').fill('leaf_type');
     await a.page.locator('.ad-type').selectOption('choice');
     await a.page.locator('.ad-choices').fill('broadleaved, needleleaved');

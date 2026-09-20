@@ -209,6 +209,11 @@ function showPanel(name, f) {
     const app = f.hud.dataset.app;
     const wide = wideAt(leaf) || (appIsFull(app) && appSurface(app) === at.tab);
     frame.node.dataset.wide = wide ? '1' : '';
+    // A panel that reaches both gutters has the corner instruments over it —
+    // the altimeter up the right-hand edge and the controls and map above the
+    // bottom one — so they go while it is open, wherever it was opened from.
+    // A view that takes the window puts them away for good (apps.js `full`).
+    f.hud.dataset.covered = wide && at.tab !== 'World' ? '1' : '';
     frame.node.style.width = !wide && tab?.width ? `${tab.width}px` : '';
 }
 

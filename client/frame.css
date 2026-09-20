@@ -257,3 +257,11 @@ kbd {
 #hud[data-full="1"] #legend,
 #hud[data-full="1"] #crosshair { display: none; }
 #hud[data-full="1"] #panel { bottom: 24px; }
+
+/* And a panel that reaches both gutters has them over it whatever view it was
+   opened from — Settings is the top strip's, and its wide parts are the whole
+   window (js/hud.js showPanel). */
+#hud[data-covered="1"] #corner,
+#hud[data-covered="1"] #alt,
+#hud[data-covered="1"] #legend,
+#hud[data-covered="1"] #crosshair { display: none; }

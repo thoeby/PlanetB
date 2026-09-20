@@ -15,49 +15,8 @@ import * as api from './api.js';
 import { el } from './poolui.js';
 import { colourOf, sldFor } from './coversld.js';
 import { classesIn, coverTileUrl } from './covertile.js';
+import { HTML, classRow, emptyRow, sourceRow } from './coverform.js';
 
-const HTML = `
-<div class="cv-cols">
-  <div class="cv-left">
-    <span class="label">Sources</span>
-    <div class="note">A cover source is a layer your GeoServer publishes as a
-      picture — one flat colour per class. A raster of classes already is one;
-      a vector layer is one once you publish it with the style below.</div>
-    <label>GeoServer<input class="cv-url"
-      placeholder="the one in Setup, or another"></label>
-    <div class="row">
-      <input class="cv-user" placeholder="admin">
-      <input class="cv-pw" type="password" placeholder="password">
-      <button type="button" class="cv-connect">Ask it what it draws</button>
-    </div>
-    <div class="row">
-      <label>Layer<select class="cv-layer"><option value="">connect first</option></select></label>
-      <label>Priority<input class="cv-priority" type="number" value="0"></label>
-      <button type="button" class="cv-add">Add source</button>
-    </div>
-    <p class="cv-status status"></p>
-    <ul class="cv-sources rows"></ul>
-  </div>
-  <div class="cv-mid">
-    <div class="spread">
-      <span class="label">What each class is</span>
-      <select class="cv-source"></select>
-    </div>
-    <div class="note">Read the classes out of the ground the world has cut,
-      then say what each one is. A class you do not map is not shown — nothing
-      is refused and nothing breaks.</div>
-    <div class="row">
-      <button type="button" class="cv-read">Read the classes</button>
-      <label>in the attribute<input class="cv-field" placeholder="OBJEKTART"></label>
-      <button type="button" class="cv-sld">Download style for GeoServer</button>
-    </div>
-    <table class="cv-map"><tbody></tbody></table>
-    <div class="row">
-      <button type="button" class="cv-save primary">Keep this mapping</button>
-    </div>
-    <p class="cv-said status"></p>
-  </div>
-</div>`;
 
 const post = (path, body) => fetch(path, {
     method: 'POST',
@@ -89,27 +48,52 @@ export function mountCover(host) {
     async function show() {
         state.kinds = await vocabulary();
         state.sources = await api.rpc('cover_draft').catch(() => []);
-        listSources(q, state, show);
-        const chosen = q('.cv-source');
-        chosen.replaceChildren(...state.sources.map(
-            (s) => new Option(s.layer, String(s.id))));
-        if (state.at && state.sources.some((s) => s.id === state.at)) {
-            chosen.value = String(state.at);
+        if (!state.sources.some((s) => s.id === state.at)) {
+            state.at = state.sources[0]?.id ?? null;
+            load(q, state);
         }
-        state.at = Number(chosen.value) || state.sources[0]?.id || null;
+        listSources(q, state, { pick, refresh: show });
+        whichOne(q, state);
         drawRows(q, state);
         return state.sources;
     }
 
+    // Which source the right-hand side is about. It was a list on the left and
+    // a dropdown on the right, two controls for one choice that could disagree.
+    function pick(source) {
+        state.at = source.id;
+        load(q, state);
+        listSources(q, state, { pick, refresh: show });
+        whichOne(q, state);
+    }
+
+    wire(q, say, state, show);
+    show();
+    return { refresh: show, pick, state };
+}
+
+// The step-2 and step-3 heads: which source is being read, and how much of it
+// has been said so far.
+function whichOne(q, state) {
+    const source = state.sources.find((s) => s.id === state.at);
+    q('.cv-which').textContent = source ? source.layer : 'add a source first';
+    q('.cv-mid').dataset.empty = source ? '' : '1';
+}
+
+function wire(q, say, state, show) {
+    q('.cv-new').onclick = () => {
+        q('.cv-add-box').hidden = !q('.cv-add-box').hidden;
+        if (!q('.cv-add-box').hidden) q('.cv-url').focus();
+    };
+    q('.cv-add-not').onclick = () => { q('.cv-add-box').hidden = true; };
+    q('.cv-add-box').onsubmit = (e) => {
+        e.preventDefault();
+        addSource(q, say, state, show);
+    };
     q('.cv-connect').onclick = () => connect(q, say, state);
-    q('.cv-add').onclick = () => addSource(q, say, state, show);
-    q('.cv-source').onchange = () => { state.at = Number(q('.cv-source').value); load(q, state); };
     q('.cv-read').onclick = () => readClasses(q, say, state);
     q('.cv-save').onclick = () => saveMap(q, say, state, show);
     q('.cv-sld').onclick = () => downloadSld(q, state);
-
-    show();
-    return { refresh: show };
 }
 
 // Every layer that GeoServer draws. A cover reaches the world over WMS — a
@@ -141,7 +125,8 @@ async function addSource(q, say, state, show) {
             kind: 'cover', url: q('.cv-url').value.trim(), layer: id,
             west, south, east, north, priority: Number(q('.cv-priority').value) || 0,
         });
-        say('.cv-status', `${id} added — read its classes and map them`);
+        say('.cv-status', `${id} added \u2014 read its classes and map them`);
+        q('.cv-add-box').hidden = true;
         await show();
     } catch (err) {
         say('.cv-status', String(err.body?.message ?? err.message ?? err), true);
@@ -180,51 +165,32 @@ function load(q, state) {
     drawRows(q, state);
 }
 
-function listSources(q, state, refresh) {
-    q('.cv-sources').replaceChildren(...state.sources.map((s) => {
-        const gone = el('button', { type: 'button', textContent: 'Remove' });
-        gone.onclick = () => api.rpc('drop_ground_layer', { id: s.id }).then(refresh);
-        const mapped = Object.keys(s.class_map ?? {}).length;
-        return el('li', {}, [
-            el('span', { className: 'mono', textContent: s.layer }),
-            el('span', { className: 'muted',
-                textContent: ` priority ${s.priority} · ${mapped} class(es) mapped` }),
-            gone]);
-    }));
+function listSources(q, state, { pick, refresh }) {
+    q('.cv-sources').replaceChildren(...state.sources.map((s) => sourceRow(s, {
+        at: state.at, onPick: pick,
+        onDrop: (one) => api.rpc('drop_ground_layer', { id: one.id }).then(refresh),
+    })));
+    if (!state.sources.length) {
+        q('.cv-sources').append(el('li', { className: 'muted',
+            textContent: 'no sources yet \u2014 the ground between the drawn things'
+                + ' is the height-and-slope ramp until there is one' }));
+    }
 }
 
-// One row per class: its colour as the raster carries it, and the world's own
-// words for what it is. Unmapped first, and said to be unmapped.
+// One row per class, unmapped first and said to be unmapped: what has not been
+// said is the whole of the work in front of somebody here.
 function drawRows(q, state) {
     const rows = [...state.rows].sort((a, b) =>
-        Number(Boolean(b.kind)) - Number(Boolean(a.kind)) || a.colour.localeCompare(b.colour));
-    q('.cv-map tbody').replaceChildren(...rows.map((r) => {
-        const swatch = el('span', { className: 'cv-swatch' });
-        swatch.style.background = r.colour;
-        const kind = el('select', { className: 'cv-kind' });
-        kind.replaceChildren(new Option('not shown', ''),
-            ...state.kinds.map((k) => new Option(k.label || k.name, k.name)));
-        kind.value = r.kind ?? '';
-        const key = el('input', { className: 'cv-key', value: r.key ?? '',
-            placeholder: 'landuse' });
-        const value = el('input', { className: 'cv-value', value: r.value_of ?? '',
-            placeholder: 'forest' });
-        const source = el('input', { className: 'cv-src', value: r.value ?? '',
-            placeholder: 'Wald' });
-        for (const [node, field] of [[kind, 'kind'], [key, 'key'],
-            [value, 'value_of'], [source, 'value']]) {
-            node.onchange = () => { r[field] = node.value.trim(); drawRows(q, state); };
-        }
-        return el('tr', { className: r.kind ? '' : 'cv-unmapped' }, [
-            el('td', {}, [swatch]),
-            el('td', { className: 'mono', textContent: r.colour }),
-            el('td', {}, [source]),
-            el('td', {}, [kind]),
-            el('td', {}, [key]),
-            el('td', {}, [value]),
-            el('td', { className: 'muted', textContent: r.kind ? '' : 'not shown' }),
-        ]);
-    }));
+        Number(Boolean(b.kind)) - Number(Boolean(a.kind))
+        || (Number(b.count ?? 0) - Number(a.count ?? 0))
+        || a.colour.localeCompare(b.colour));
+    const again = () => drawRows(q, state);
+    q('.cv-map tbody').replaceChildren(...(rows.length
+        ? rows.map((r) => classRow(r, state.kinds, again))
+        : [emptyRow('nothing read yet \u2014 press "Read the classes" above')]));
+    const said = rows.filter((r) => r.kind).length;
+    q('.cv-counted').textContent = rows.length
+        ? `${said} of ${rows.length} said` : '';
 }
 
 async function saveMap(q, say, state, show) {
