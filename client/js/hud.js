@@ -166,9 +166,16 @@ function dressFor(f, name) {
     f.hud.style.setProperty('--accent-dim', `color-mix(in oklab, ${app.hue} 14%, transparent)`);
     // The plinth is this view's surfaces and nobody else's: a bar about the
     // land you are standing on has no business under a window of the pool.
+    // A view with none of its own has no plinth at all rather than an empty
+    // one — Play is the world with nothing on it yet, and an empty chamfered
+    // box standing on the bottom edge is not a thing that says so.
+    let on = 0;
     for (const [, b] of f.buttons) {
-        if (b.dataset.view !== undefined) b.hidden = b.dataset.view !== app.name;
+        if (b.dataset.view === undefined) continue;
+        b.hidden = b.dataset.view !== app.name;
+        if (!b.hidden) on += 1;
     }
+    f.hud.dataset.plinth = on ? '1' : '';
     for (const [n, b] of f.strip.apps) b.setAttribute('aria-selected', String(n === app.name));
     for (const [n, b] of f.drawer.buttons) b.setAttribute('aria-selected', String(n === app.name));
     return app.name;

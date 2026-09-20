@@ -251,6 +251,7 @@ kbd {
  *
  * A panel in such a view reaches to the bottom edge, because there is no
  * plinth for it to stand clear of. */
+#hud:not([data-plinth="1"]) #tabs,
 #hud[data-full="1"] #tabs,
 #hud[data-full="1"] #corner,
 #hud[data-full="1"] #alt,
