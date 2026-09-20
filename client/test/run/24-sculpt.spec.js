@@ -81,6 +81,26 @@ async function thePlateau(b) {
     await expect(summary(b)).toContainText(`${before + 2} strokes unsaved`);
 }
 
+// 2b — the hand. Moving over a field used to mean turning Shape off, walking,
+// and turning it back on; and what is on screen while shaping is the mesh, not
+// the splats, because the mesh is what a brush writes into.
+async function theHand(b, here) {
+    await expect(b.page.locator('#sculpt-tools')).toBeVisible();
+    const hidden = await b.page.evaluate(
+        () => window.splatworld.streamer?.hidden?.size ?? 0);
+    expect(hidden, 'the splats over the land being shaped are put away')
+        .toBeGreaterThan(0);
+
+    await brush(b, 'pan');
+    await expect(b.page.locator('.sc-opt-name')).toHaveText('Pan & zoom');
+    const strokes = await summary(b).textContent();
+    await drag(b, [{ x: 860, y: 520 }, { x: 900, y: 540 }, { x: 940, y: 560 }]);
+    const moved = readCoords(await b.page.locator('#standing .coords').textContent());
+    expect(moved, 'the hand moved him over the land').not.toEqual(here);
+    await expect(summary(b)).toHaveText(strokes, 'and shaped nothing doing it');
+    await brush(b, 'raise');
+}
+
 // A drag is a press, some moves and a release — one stroke, one undo.
 async function drag(b, points) {
     await b.page.mouse.move(points[0].x, points[0].y);
@@ -163,6 +183,8 @@ test('story 24 — B shapes his ground, and the world is rendered with it',
         await test.step('1 — a bed along his road', () => theBed(b));
         await test.step('2 — a plateau, smoothed, undone and redone',
             () => thePlateau(b));
+        await test.step('2b — the hand moves him over it, and shapes nothing',
+            () => theHand(b, here));
         await test.step('3 — saved, and sent', async () => {
             await savesIt(b);
             await sendsIt(b);

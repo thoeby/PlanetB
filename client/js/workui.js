@@ -42,13 +42,22 @@ async function makeLoop({ log, pace, where, world }) {
     });
 }
 
-const describeState = (work) => (work?.atom
-    ? `running ${work.atom.op} #${work.atom.id}`
-    : `${work?.running ? 'waiting for work' : 'idle'} — `
-      + `${work?.done ?? 0} done, ${work?.failed ?? 0} failed`);
+// What the machine is doing, in one line. How many pieces, not which one: a
+// tab holds up to four of them (client/js/work.js LANES), and naming the one
+// that happened to be claimed last said the tab was doing a quarter of it.
+const describeState = (work) => {
+    const held = [...(work?.working?.values() ?? [])];
+    if (!held.length) {
+        return `${work?.running ? 'waiting for work' : 'idle'} — `
+            + `${work?.done ?? 0} done, ${work?.failed ?? 0} failed`;
+    }
+    const ops = [...new Set(held.map((a) => a.op))].join(' · ');
+    return held.length === 1 ? `running ${held[0].op} #${held[0].id}`
+        : `running ${held.length} pieces — ${ops}`;
+};
 
 // Three states, and the strip is lit for the two that mean the tab is busy.
-const toneOf = (work) => (work?.atom ? 'run' : work?.running ? 'wait' : '');
+const toneOf = (work) => (work?.working?.size ? 'run' : work?.running ? 'wait' : '');
 
 // Background rendering narrows what may be claimed; chasing a bounty does not.
 // Either way claim_atom decides, and it still prefers paid work.
@@ -139,7 +148,16 @@ function mountSettings(host, { ready, work, lines }) {
     const zoom = el('div', { className: 'wk-zooms' });
     const log = logBlock(() => lines);
     host.append(settingsLayout({ sw: sw.node, facts, size, zoom, log: log.node }));
-    const redraw = () => facts.replaceChildren(...machineRows(work()?.caps, work()));
+    // How many pieces this tab takes at once. The loop reads it on the next
+    // claim of each lane, so what is in hand is left alone.
+    const setLanes = async (n) => {
+        const w = await ready();
+        w.lanes = n;
+        if (w.running) { w.stop(); w.start(); }
+        redraw();
+    };
+    const redraw = () => facts.replaceChildren(
+        ...machineRows(work()?.caps, work(), work() ? setLanes : null));
     const refresh = async () => {
         const gpu = host.querySelector('.work-gpu');
         gpu.textContent = shortCaps(work()?.caps);

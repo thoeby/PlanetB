@@ -299,8 +299,7 @@ async function runJob(entry, button, { state, loop, say, refresh, draw }) {
         if (op) say(`${tile} · ${DOING[op] ?? op}…`);
     }, 500);
     try {
-        let step = await work.step();
-        while (step) step = await work.step();
+        await drive(work);
         const rows = await refresh();
         say(await landed(tile, entry, rows, work.caps));
         refreshed = true;
@@ -314,6 +313,35 @@ async function runJob(entry, button, { state, loop, say, refresh, draw }) {
         if (!refreshed) await refresh();
         else draw();
     }
+}
+
+// How long a lane that has nothing to claim waits before asking again, while
+// another lane is still working. A piece that unblocks the next one does so
+// when it is submitted, and nothing tells the other lanes.
+const LANE_WAIT_MS = 400;
+
+// The job, to the end, in as many lanes as the tab runs (client/js/work.js
+// LANES). A tile's frames are three atoms with no order between them, so a
+// press of Render that did them one after another left the network idle while
+// the GPU worked and the GPU idle while it uploaded.
+//
+// A lane with nothing to claim does not go home while another lane is still
+// holding a piece: what that piece unblocks is this job's next atom, and the
+// lane that gave up is the one that would have taken it.
+async function drive(work) {
+    const lane = async () => {
+        for (;;) {
+            if (await work.step()) continue;
+            if (!work.working?.size) return;
+            await new Promise((r) => setTimeout(r, LANE_WAIT_MS));
+        }
+    };
+    const lanes = await Promise.allSettled(
+        Array.from({ length: Math.max(1, work.lanes ?? 1) }, lane));
+    // One lane's failure is the job's: the others are told nothing by it, and
+    // the message belongs on the panel whichever lane hit it.
+    const bad = lanes.find((l) => l.status === 'rejected');
+    if (bad) throw bad.reason;
 }
 
 // What the world says about the tile afterwards, not what this tab hoped:

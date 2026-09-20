@@ -86,13 +86,14 @@ const ATOM = {
 };
 
 // One atom, start to finish, with the file store and the Web Worker faked.
-function loopOver(atom, { rpcs = {}, spawnOut } = {}) {
+function loopOver(atom, { rpcs = {}, spawnOut, lanes = 1 } = {}) {
     const puts = [];
     const api = fakeApi({ artifact: [] }, {
         claim_atom: atom, submit_atom: 'verified', register_artifact: SHA_A, ...rpcs,
     });
     const loop = new WorkLoop({
         api,
+        lanes,
         filesUrl: 'http://files',
         spawn: () => ({ run: async () => spawnOut, terminate: () => {} }),
         fetchFn: async (url, opts) => {
@@ -261,6 +262,8 @@ test('a claim that fails is idle, logged once per streak, and not a crash', asyn
         'a new streak after a success is logged again');
 });
 
+// One lane here, so the count is about generations and not about how many
+// pieces a tab takes at once — which the test below is about.
 test('stop() then start() leaves one loop running, not two', async () => {
     let claims = 0;
     const wake = [];
@@ -326,4 +329,51 @@ test('the loop keeps a picture of each kind of the tile it is working on', async
     const both = loop.shots.get('14/3/4');
     assert.equal(both.frame.done, 1, 'the frame picture survived the training');
     assert.equal(both.splat.iter, 20);
+});
+
+// A tile's frames are independent of one another, and a tab did them one at a
+// time: the network idle while the GPU worked, the GPU idle while it uploaded.
+// Four lanes overlap them.
+test('a tab takes four pieces at once, not one', async () => {
+    let handed = 0;
+    const inFlight = [];
+    let most = 0;
+    const done = [];
+    const { loop } = loopOver(null, { lanes: 4, spawnOut: OUT, rpcs: {
+        claim_atom: () => (handed < 8 ? { ...ATOM, id: ++handed } : null),
+    } });
+    // Each atom is held until the test lets it go, so how many are in hand at
+    // once is a thing the test can read rather than a race it has to win.
+    loop.spawn = () => ({
+        run: () => new Promise((go) => { inFlight.push(go); most = Math.max(most,
+            inFlight.length); }),
+        terminate: () => {},
+    });
+    loop.timers = { ...loop.timers, setTimeout: () => {} };
+    const runs = Array.from({ length: 4 }, () => loop.step().then((s) => done.push(s)));
+    while (inFlight.length < 4) await new Promise((r) => setTimeout(r, 0));
+    assert.equal(loop.working.size, 4, 'four atoms are in hand');
+    assert.ok(loop.atom, 'and one of them is the one the panels read');
+    for (const go of inFlight.splice(0)) go(OUT);
+    await Promise.all(runs);
+    assert.equal(most, 4);
+    assert.deepEqual(done, ['verified', 'verified', 'verified', 'verified']);
+    assert.equal(loop.working.size, 0, 'and none is left in hand');
+    assert.equal(loop.atom, null);
+});
+
+// SPEC §3.12: a tab that is closing hands back what it is holding, so nobody
+// waits five minutes for work that is in nobody's hands. All of it, now that
+// there is more than one piece.
+test('closing the tab hands back every piece it is holding', async () => {
+    const { loop, api } = loopOver(null, { lanes: 4 });
+    const back = [];
+    api.rpcOnTheWayOut = (name, args) => back.push([name, args.atom_id]);
+    loop.api = api;
+    for (const id of [11, 12, 13]) loop.working.set(id, { id });
+    loop.atom = loop.working.get(11);
+    assert.equal(loop.handBack(), 3);
+    assert.deepEqual(back, [['hand_back_atom', 11], ['hand_back_atom', 12],
+        ['hand_back_atom', 13]]);
+    assert.equal(loop.handBack(), false, 'and nothing is handed back twice');
 });

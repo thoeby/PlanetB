@@ -19,8 +19,9 @@ export const el = (tag, props = {}, ...kids) => {
 // exactly that, so the control stays a checkbox and the keyboard keeps working.
 const SWITCHES = [
     ['work-toggle', 'Work in the background',
-        'Keep computing while this window is not in front. One job at a time,'
-        + ' and it stands aside while the world is being played.'],
+        'Keep computing while this window is not in front. Several pieces at'
+        + ' once — as many as the row below says — and it stands aside while'
+        + ' the world is being played.'],
     ['work-world', 'Help render the world',
         'Take the deterministic pieces nobody pays for, nearest first. This is'
         + ' what fills the map in.'],
@@ -50,20 +51,43 @@ export const shortCaps = (caps) => (caps?.webgpu
 // how big a buffer it will hand out, and what it has done today. The last one
 // is red where anything failed, because a machine that fails everything looks
 // exactly like an idle one on the strip above.
-export function machineRows(caps, work) {
+//
+// "Pieces at once" is a control, not a reading: it said 1 whatever the loop
+// was doing, and what it is worth depends on the machine — four lanes on a
+// laptop that can hold one z18's frames in memory is four lanes that swap.
+export function machineRows(caps, work, onLanes = null) {
     const rows = [
         ['Renderer', caps?.webgpu
             ? `WebGPU · ${caps.adapter?.vendor ?? 'gpu'}`
             : `WebGL2 only · ${caps?.renderer ?? 'unknown renderer'}`],
         ['Buffers', caps?.webgpu ? `up to ${caps.max_buffer_mb} MB` : 'not asked for'],
-        ['Jobs at once', '1'],
+        ['Pieces at once', lanesBox(work, onLanes)],
         ['Done', String(work?.done ?? 0), 'accent'],
         ['Failed', String(work?.failed ?? 0), Number(work?.failed) > 0 ? 'bad' : ''],
     ];
     return rows.map(([k, v, tone]) => el('div', { className: 'wk-fact' },
         el('span', { textContent: k }),
-        el('span', { className: 'mono', 'data-tone': tone ?? '', title: v,
-            textContent: v })));
+        typeof v === 'string'
+            ? el('span', { className: 'mono', 'data-tone': tone ?? '', title: v,
+                textContent: v })
+            : v));
+}
+
+// How many pieces this tab takes at once (client/js/work.js LANES). Changing
+// it takes hold of the next piece each lane claims; what is in hand is left
+// alone, because taking a claim off a running atom is what the world's own
+// expiry is for.
+export const LANE_CHOICES = [1, 2, 4, 6, 8];
+
+function lanesBox(work, onLanes) {
+    const now = Number(work?.lanes ?? 1);
+    const box = el('select', { className: 'wk-lanes mono' });
+    box.replaceChildren(...LANE_CHOICES.map(
+        (n) => new Option(n === 1 ? 'one at a time' : `${n} at once`, String(n))));
+    box.value = String(LANE_CHOICES.includes(now) ? now : LANE_CHOICES[0]);
+    box.disabled = !onLanes;
+    box.onchange = () => onLanes?.(Number(box.value));
+    return box;
 }
 
 // One line per zoom of how far the world has got, as a bar (design 8e's "help

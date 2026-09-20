@@ -270,6 +270,9 @@
 #panel .wk-fact > span:last-child {
   max-width: 62%; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
 }
+/* How many pieces this tab takes at once: the one row of the machine card that
+   is a control rather than a reading (client/js/worksettings.js). */
+#panel .wk-fact .wk-lanes { width: 150px; font-size: 12px; padding: 2px 6px; }
 /* An empty log is a block that says so rather than nothing at all. */
 #panel .wk-log .work-log:empty { display: block; }
 #panel .wk-log .work-log:empty::before {

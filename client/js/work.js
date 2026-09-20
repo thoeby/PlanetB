@@ -19,6 +19,7 @@
 
 import { sha256 } from '../lib/hash.js';
 import { InputCache, resolveInputs } from './inputs.js';
+import { putFile } from './workstore.js';
 
 // What this tab can do and how it runs an atom are client/js/workcaps.js;
 // they are re-exported here because this is where every caller reaches for
@@ -43,6 +44,18 @@ const IDLE_MS = 15_000;
 // never claim anything, which is the same as not offering.
 const PACED_MAX_MS = 10_000;
 
+// How many pieces a tab has in hand at once.
+//
+// A tile's three frames are three atoms with the same inputs and no order
+// between them, and a tab did them one after another: claim, fetch, trace,
+// hash, upload, submit, then the same again, with the network idle while the
+// GPU worked and the GPU idle while it uploaded. Four lanes overlap those, so
+// a tab that could fetch one frame while tracing another does.
+//
+// Four rather than as many as there are pieces: each lane holds an atom's
+// inputs and its worker, and a z18's frames are a hundred megabytes each.
+export const LANES = 4;
+
 // -------------------------------------------------------------------- the loop
 
 export class WorkLoop {
@@ -52,7 +65,10 @@ export class WorkLoop {
     // that is not rendering anything passes nothing and never waits.
     // `where` answers the player's position, which claim_atom orders by.
     constructor({ api, apiUrl, filesUrl, caps = {}, spawn = spawnAtomWorker, cache,
-        log = () => {}, timers = globalThis, fetchFn, pace, where } = {}) {
+        log = () => {}, timers = globalThis, fetchFn, pace, where,
+        lanes = LANES } = {}) {
+        // How many atoms this tab runs at once, never fewer than one.
+        this.lanes = Math.max(1, Math.round(lanes) || 1);
         this.pace = pace ?? (() => 0);
         this.where = where ?? (() => null);
         this.api = api;
@@ -75,6 +91,9 @@ export class WorkLoop {
         this.running = false;
         this.generation = 0;
         this.claimFailures = 0;
+        // Every atom in hand, by id, and one of them — whichever was claimed
+        // last — as `atom`, which is what the panels and the strip read.
+        this.working = new Map();
         this.atom = null;
         this.done = 0;
         this.failed = 0;
@@ -94,6 +113,7 @@ export class WorkLoop {
     async step() {
         const atom = await this.claim();
         if (!atom) return null;
+        this.working.set(atom.id, atom);
         this.atom = atom;
         this.log({ event: 'claim', atom: atom.id, op: atom.op, job: atom.job_id });
         // A long atom saturates the machine, and a starved main thread is one
@@ -168,7 +188,8 @@ export class WorkLoop {
             throw err;
         } finally {
             this.timers.clearInterval(timer);
-            this.atom = null;
+            this.working.delete(atom.id);
+            this.atom = this.working.values().next().value ?? null;
         }
     }
 
@@ -282,55 +303,10 @@ export class WorkLoop {
             version });
     }
 
-    // Returns where the bytes are. 409 is this atom's own path already holding
-    // them — the same computation run twice. 403 is the artifact existing
-    // somewhere else in the store, which Invariant 1 forbids writing again.
-    async upload(atom, file, sha) {
-        const path = `${file.dir ?? `/jobs/${atom.id}`}/${sha}.${file.ext}`;
-        const res = await this.fetchFn(this.filesUrl + path, {
-            method: 'PUT',
-            headers: {
-                'X-Sha256': sha,
-                Authorization: `Bearer ${this.api.token()}`,
-                'Content-Type': 'application/octet-stream',
-            },
-            body: file.bytes,
-        });
-        if (res.status === 403) return this.elsewhere(sha, file.ext, path);
-        if (res.status !== 201 && res.status !== 204 && res.status !== 409) {
-            throw new Error(`PUT ${path} -> ${res.status}`);
-        }
-        await this.api.rpc('register_artifact', {
-            sha256: sha, kind: file.kind, bytes: file.bytes.byteLength,
-            algo_version: file.algo_version ?? ALGO[atom.op] ?? atom.algo_version,
-        });
-        this.log({ event: 'upload', atom: atom.id, sha, kind: file.kind,
-            bytes: file.bytes.byteLength });
-        return path;
-    }
-
-    async elsewhere(sha, ext, wanted) {
-        const [known] = await this.api.select('artifact',
-            { sha256: `eq.${sha}`, select: 'sha256' });
-        if (!known) throw new Error(`PUT ${wanted} -> 403`);
-        const rows = await this.api.select('atom',
-            { output_sha256: `eq.${sha}`, select: 'id,result', order: 'id.asc', limit: '20' });
-        const said = rows.find((r) => r.result?.path)?.result?.path;
-        // The path asked for, first. can_write refuses a registered sha before
-        // it looks at the path at all (Invariant 1), so an atom that uploaded
-        // this file and then failed later is refused its own bytes back at the
-        // address they are already at. A tile's height and colliders are that
-        // case: they belong to no atom's output_sha256, so nothing below finds
-        // them.
-        for (const path of [wanted, said, ...rows.map((r) => `/jobs/${r.id}/${sha}.${ext}`)]) {
-            if (!path) continue;
-            const res = await this.fetchFn(this.filesUrl + path, { method: 'HEAD' });
-            if (res.ok) {
-                this.log({ event: 'deduped', sha, path });
-                return path;
-            }
-        }
-        throw new Error(`artifact ${sha} is registered but is nowhere in the store`);
+    // Where the bytes go, and where they already are: the file store's half
+    // of a delivery (client/js/workstore.js).
+    upload(atom, file, sha) {
+        return putFile(this, atom, file, sha);
     }
 
     // Keeps claiming until stopped. An empty claim is not an error: it means
@@ -341,7 +317,15 @@ export class WorkLoop {
         const generation = ++this.generation;
         const live = () => this.running && this.generation === generation;
         this.running = true;
-        this.log({ event: 'start', caps: this.caps });
+        this.log({ event: 'start', caps: this.caps, lanes: this.lanes });
+        await Promise.all(Array.from({ length: this.lanes }, () => this.lane(live)));
+        this.log({ event: 'stop', done: this.done, failed: this.failed });
+    }
+
+    // One lane: atom after atom until the loop is stopped. `paced` is the
+    // lane's own, so a tab being played holds each of them back on its own
+    // account rather than all of them on one budget.
+    async lane(live) {
         let paced = 0;
         while (live()) {
             let idle = false;
@@ -359,7 +343,6 @@ export class WorkLoop {
                 await new Promise((r) => this.timers.setTimeout(r, IDLE_MS));
             }
         }
-        this.log({ event: 'stop', done: this.done, failed: this.failed });
     }
 
     stop() { this.running = false; }
@@ -369,11 +352,14 @@ export class WorkLoop {
     // that crashed; a tab that is closing knows, and says so, so nobody waits
     // five minutes for work that is in nobody's hands.
     handBack() {
-        const atom = this.atom;
-        if (!atom) return false;
+        const held = [...this.working.values()];
+        if (!held.length) return false;
         this.running = false;
+        this.working.clear();
         this.atom = null;
-        this.api.rpcOnTheWayOut?.('hand_back_atom', { atom_id: atom.id });
-        return true;
+        for (const atom of held) {
+            this.api.rpcOnTheWayOut?.('hand_back_atom', { atom_id: atom.id });
+        }
+        return held.length;
     }
 }
