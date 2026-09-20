@@ -20,8 +20,9 @@ import * as api from './api.js';
 import { handOver } from './handover.js';
 import { empty } from './empty.js';
 import { groundOver, tileOver } from '../lib/demshade.js';
-import { MAP, ZOOM_STEP, areaAt, fitView, panned, paintMap, projection, zoomed }
+import { MAP, ZOOM_STEP, areaAt, fitView, panned, paintMap, projection, sizeMap, zoomed }
     from './landmap.js';
+import { build } from './assignform.js';
 
 const el = (tag, props = {}, ...kids) => {
     const node = Object.assign(document.createElement(tag), props);
@@ -120,71 +121,6 @@ async function removeLand(area, state, say, refresh, draw) {
         say(String(err.body?.message ?? err.message ?? err), true);
     }
     await refresh();
-}
-
-// The strip over the map: which of its two jobs it is doing, and how far in it
-// is looking. A coverage is tens of kilometres and the land on it is a few
-// hundred metres, so there has to be a way in.
-function mapControls() {
-    const mode = el('div', { className: 'row lm-mode' });
-    const buttons = new Map();
-    for (const [key, label] of [['draw', 'Draw'], ['pick', 'Pick']]) {
-        const b = el('button', { type: 'button', textContent: label });
-        b.dataset.mode = key;
-        buttons.set(key, b);
-        mode.append(b);
-    }
-    const zoom = el('div', { className: 'row lm-zoom' });
-    const zooms = new Map();
-    for (const [key, label, title] of [['out', '−', 'zoom out'],
-        ['in', '+', 'zoom in'], ['fit', 'Fit', 'the whole world']]) {
-        const b = el('button', { type: 'button', textContent: label, title });
-        b.dataset.zoom = key;
-        zooms.set(key, b);
-        zoom.append(b);
-    }
-    const scale = el('span', { className: 'lm-scale muted mono' });
-    return { node: el('div', { className: 'spread lm-bar' }, mode, zoom, scale),
-        buttons, zooms, scale };
-}
-
-// The panel, as the design lays it out: who is waiting, the map, what was
-// drawn as numbers, and the name it will be called.
-function build(host) {
-    const canvas = el('canvas', { id: 'assign-map', width: MAP.w, height: MAP.h });
-    const controls = mapControls();
-    const requests = el('div', { className: 'rows assign-requests' });
-    const boundary = el('textarea', { id: 'assign-boundary', rows: 5,
-        placeholder: 'one "longitude, latitude" per line' });
-    const nameField = el('input', { type: 'text', id: 'assign-name',
-        placeholder: 'Ben’s field' });
-    const finish = el('button', { type: 'button',
-        textContent: 'Finish the boundary' });
-    const clear = el('button', { type: 'button', textContent: 'Start again' });
-    const assign = el('button', { type: 'button', className: 'primary',
-        textContent: 'Assign this land' });
-    const status = el('p', { className: 'status assign-status' });
-    const picked = el('div', { className: 'picked' });
-    const landStatus = el('p', { className: 'status land-drop-status' });
-    host.append(el('div', { className: 'section assign' },
-        el('span', { className: 'label', textContent: 'Land requests' }),
-        requests,
-        el('p', { className: 'muted',
-            textContent: 'Drag the map to move it, + and − to go in and'
-                + ' out. Draw puts corners down; Pick selects the land you'
-                + ' click on.' }),
-        controls.node, canvas,
-        el('div', { className: 'row' }, finish, clear),
-        el('label', { htmlFor: 'assign-boundary', textContent: 'boundary' }),
-        boundary,
-        el('label', { htmlFor: 'assign-name', textContent: 'name this land' }),
-        nameField, assign, status));
-    host.append(el('div', { className: 'section picked-box' },
-        el('span', { className: 'label', textContent: 'The land you picked' }),
-        picked, landStatus));
-
-    return { canvas, controls, requests, boundary, nameField, finish, clear,
-        assign, status, picked, landStatus };
 }
 
 // Where a pointer event lands on the map, in lon/lat.
@@ -297,9 +233,35 @@ export function mountAssignLand(host, { filesUrl = '' } = {}) {
         return state.open;
     }
 
+    const fitToRoom = watchRoom(host, ui.canvas, paint);
+
     refresh();
     return { refresh, requests: () => state.open, land: () => state.all,
-        view: () => state.view, pick: (id) => { state.picked = id; both(); } };
+        view: () => state.view, pick: (id) => { state.picked = id; both(); },
+        fitToRoom };
+}
+
+// The map is drawn at the size the room it is in gives it: in Survey that is
+// most of the window, and the same map beside a form in a column is the 420 px
+// it always was (client/js/landmap.js sizeMap). Nothing about the view changes
+// — only how many pixels it is painted onto, and `lonLatOf` already reads the
+// canvas back through MAP.
+function watchRoom(host, canvas, paint) {
+    const box = canvas.parentElement;
+    const fit = () => {
+        const room = box?.getBoundingClientRect();
+        if (!room?.width) return;
+        // The box's own height where it has one (Survey stretches it), and the
+        // map's own proportions where the column decides (a panel in a column).
+        const size = sizeMap(room.width, room.height > 60 ? room.height
+            : room.width * (300 / 420));
+        if (canvas.width === size.w && canvas.height === size.h) return;
+        canvas.width = size.w;
+        canvas.height = size.h;
+        paint();
+    };
+    if (typeof ResizeObserver === 'function' && box) new ResizeObserver(fit).observe(box);
+    return fit;
 }
 
 // The ground's shape, without the mark that says when it was last cut: the

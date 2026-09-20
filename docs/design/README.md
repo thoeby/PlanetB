@@ -67,6 +67,7 @@ Where each part of the design lives:
 | colours, type, chamfers, the chrome | `client/hud.css` |
 | the strip along the top, the apps drawer, the notifications | `client/top.css` |
 | the views, and what each is for | `client/js/apps.js` |
+| which surface a view opens, and which view a surface belongs to | `client/js/apps.js` (`surface`), `client/js/tabbar.js` (`view`) |
 | the strip's cells: apps, numbers, clock, wallet, bell, you | `client/js/topbar.js` |
 | a notification's eight seconds, and the tray after them | `client/js/notify.js` |
 | the house styles a panel's contents inherit | `client/panel.css` |
@@ -76,6 +77,7 @@ Where each part of the design lives:
 | the frame, the panel and its tabs, the app the chrome is dressed for | `client/js/hud.js` |
 | the map in the corner, and the hillshade both maps draw | `client/js/hudmap.js` |
 | the panels themselves | `client/js/{land,build,pool,permission,wallet,…}ui.js` |
+| Survey's map, and the nodes around it | `client/js/{landmap,assignland,assignform}.js` |
 | the Work window's look (v8) | `client/work.css` |
 | what this machine is doing, and the loop behind it | `client/js/workui.js` |
 | Work's Settings tab | `client/js/worksettings.js` |
@@ -102,3 +104,36 @@ refined against the build"). Two places where this build deliberately differs
 from both, because it went further: a rendered tile is a **candidate** that a
 person approves (the spec has approval before rendering), and land is drawn in
 QGIS rather than assigned by an admin.
+
+## Five of the six views open something (F1–F6)
+
+chrome6 drew six views and the build wired one, so five of the cards said "not
+wired yet" and pressing one changed a hue. A view names the surface it opens
+(`client/js/apps.js` `surface`) and a surface names the view it belongs to
+(`client/js/tabbar.js` `view`), and switching opens it:
+
+| view | opens |
+|---|---|
+| Build · F1 | the world |
+| Automate · F2 | the flow editor, which takes the window itself |
+| Work · F3 | the Work surface, full width: four queues and the machine |
+| Trade & Sell · F4 | the catalog |
+| Play · F5 | nothing yet — walking is built, visiting and photographing are not |
+| Survey · F6 | the land map: who is waiting, and the ground it is drawn on |
+
+Two things follow. **Work takes the window** rather than the 1 040 px drawer it
+had: four queues of cards beside a card opened is the window the design draws
+(v8), and it is `wide` in `tabbar.js` like Settings' own wide parts. **Survey is
+where the land map lives**, not a tab of Settings — nobody looking for a map
+opens Settings — and it has no button on either bar, because a map of the whole
+world is a workspace rather than a drawer over the one you are standing in.
+
+The plinth stays in every view: Work is the fifth button on it and the catalog
+is the second, so opening one from the bar walks into that workspace. What is
+Build's alone still goes with Build — the legend, the "what is missing" line,
+the next step and the two numbers on the strip. And a view that takes the
+window puts Build's *instruments* away with it (`#hud[data-full]`): the
+altimeter, the controls, the map in the corner and the legend are about
+standing somewhere in the world, and nothing is standing in the world behind a
+Work window. The compass and the place line stay, because where you are is true
+in every view.

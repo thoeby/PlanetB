@@ -77,8 +77,11 @@ $$;
 -- had said otherwise. Public, because how big the tiles you are looking at
 -- were built is not a secret — and because the one thing that made this bug
 -- unfindable is that the numbers were invisible.
+-- SECURITY DEFINER because it reads claim_patience, which is the pool's own
+-- and revoked from everybody (db/0090). What it hands back is four numbers and
+-- the defaults they replaced; it decides nothing.
 CREATE OR REPLACE FUNCTION world_size() RETURNS jsonb
-LANGUAGE sql STABLE AS $$
+LANGUAGE sql STABLE SECURITY DEFINER SET search_path = public AS $$
 SELECT jsonb_object_agg(key, jsonb_build_object(
     'is', is_now, 'default', world_default(key), 'set', asked))
 FROM (

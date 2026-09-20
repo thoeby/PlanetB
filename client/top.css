@@ -265,9 +265,11 @@
 @keyframes toast-drain { from { width: 100%; } to { width: 0; } }
 @media (prefers-reduced-motion: reduce) { .toast u { animation: none; } }
 
-/* An app that is not Build has no panels, no plinth and no legend of its own
-   yet; what it does have is the world, and the strip that says where you are. */
-#hud[data-app]:not([data-app="Build"]) #tabs,
+/* What belongs to Build and to nothing else: the legend of what a colour on
+   the ground means, the line that says what the world is missing, the next
+   step, and the two numbers the view is played by. The plinth is *not* one of
+   them any more — Work is the fifth button on it and the catalog is the
+   second, and a view you can only leave by pressing F1 is a trap. */
 #hud[data-app]:not([data-app="Build"]) #legend,
 #hud[data-app]:not([data-app="Build"]) #notice,
 #hud[data-app]:not([data-app="Build"]) #next,

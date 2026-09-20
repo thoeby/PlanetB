@@ -8,6 +8,7 @@
 import { test as base, expect } from '@playwright/test';
 
 import { startWorld } from './world.js';
+import { viewOf } from '../../js/tabbar.js';
 
 // A player waits on the world changing, never on the clock.
 export const UI = 30_000;
@@ -143,7 +144,16 @@ export async function panel(player, name) {
         return;
     }
     const holder = page.locator(`:is(${bars}) button[data-parts*=",${name},"]`);
-    if (await holder.getAttribute('aria-selected') !== 'true') await holder.click();
+    // A surface that is a whole view is on neither bar: Survey's map is
+    // reached by switching to Survey, the way a player reaches it. The view
+    // opens its own first part, so only a second part needs pressing.
+    if (await holder.count()) {
+        if (await holder.getAttribute('aria-selected') !== 'true') await holder.click();
+    } else {
+        const view = viewOf(name);
+        if (!view) throw new Error(`no surface, part or view holds "${name}"`);
+        await panelApp(player, view);
+    }
     const part = page.locator(`#panel .parts button[data-tab="${name}"]`);
     if (await part.getAttribute('aria-selected') !== 'true') await part.click();
 }

@@ -11,7 +11,18 @@
 
 import { shadeRect } from '../lib/demshade.js';
 
+// How big the map is drawn, in pixels. Not a constant since Survey became a
+// view of its own (SPEC §2.1): a map that is the whole workspace is drawn at
+// the size of the workspace, and the same map beside a form is drawn small.
+// Everything that reads it — the projection, the painter, where a click lands
+// — reads it here, so setting it is all there is to do.
 export const MAP = { w: 420, h: 300, pad: 12 };
+
+export function sizeMap(w, h) {
+    MAP.w = Math.max(320, Math.round(w));
+    MAP.h = Math.max(240, Math.round(h));
+    return MAP;
+}
 
 // How far in one press of + or − goes, and how far in the map may be taken:
 // forty metres across is a garden wall, and past that the DEM behind it has
@@ -19,9 +30,24 @@ export const MAP = { w: 420, h: 300, pad: 12 };
 const STEP = 1.8;
 const MIN_SPAN_DEG = 0.0004;
 
-export const boxOf = () => ({
-    x: MAP.pad, y: MAP.pad, w: MAP.w - 2 * MAP.pad, h: MAP.h - 2 * MAP.pad,
-});
+// The pixels the map is drawn into. Given a view, the box is cut down to that
+// view's own proportions and centred, so the ground is not stretched to fill
+// whatever shape the panel happens to be: Survey's map is twice as wide as it
+// is tall, and a valley drawn to fill it is a valley twice as wide as it is.
+// A degree of longitude is shorter the further north it is, so the width is
+// taken in metres, near enough.
+export const boxOf = (view = null) => {
+    const b = { x: MAP.pad, y: MAP.pad,
+        w: MAP.w - 2 * MAP.pad, h: MAP.h - 2 * MAP.pad };
+    if (!view) return b;
+    const mid = (((view.north + view.south) / 2) * Math.PI) / 180;
+    const wide = Math.max((view.east - view.west) * Math.cos(mid), 1e-12);
+    const tall = Math.max(view.north - view.south, 1e-12);
+    const k = Math.min(b.w / wide, b.h / tall);
+    const w = wide * k;
+    const h = tall * k;
+    return { x: b.x + (b.w - w) / 2, y: b.y + (b.h - h) / 2, w, h };
+};
 
 // The rectangle the map is looking at, as lon/lat. `fit` is the whole of the
 // world's ground, which is where it starts and what Fit puts it back to.
@@ -33,7 +59,7 @@ export function fitView(ground) {
 }
 
 export function projection(view) {
-    const b = boxOf();
+    const b = boxOf(view);
     const dx = (view.east - view.west) || 1;
     const dy = (view.north - view.south) || 1;
     return {
@@ -120,7 +146,7 @@ export function paintMap(canvas, { view, ground, areas, corners, shade, picked }
     const ctx = canvas?.getContext?.('2d');
     if (!ctx) return;
     const p = projection(view);
-    const b = boxOf();
+    const b = boxOf(view);
     ctx.clearRect(0, 0, MAP.w, MAP.h);
     ctx.fillStyle = '#11151a';
     ctx.fillRect(0, 0, MAP.w, MAP.h);

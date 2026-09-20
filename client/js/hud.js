@@ -10,52 +10,18 @@
 // client/js/altimeter.js and the compass, place line and key hints are
 // client/js/chrome.js. This puts them on the screen.
 
-import { GROUPS, LEAVES, PART_LEDE, TABS, keyed, surfaceOf, tabBar, wideAt }
+import { GROUPS, LEAVES, PART_LEDE, TABS, keyed, surfaceOf, tabBar, viewOf, wideAt }
     from './tabbar.js';
 import { mountAltimeter } from './altimeter.js';
-import { drawHints, el, keyHints, place, topCentre } from './chrome.js';
-import { APPS, appKeyed, appNamed, appsDrawer } from './apps.js';
+import { el, keyHints, place, topCentre } from './chrome.js';
+import { APPS, appKeyed, appNamed, appSurface, appsDrawer } from './apps.js';
 import { mountNotify } from './notify.js';
+import { state, whatIsMissing } from './hudsays.js';
 import { topBar } from './topbar.js';
 
 export { GROUPS, TABS, keyed };
 export { APPS };
-
-// An empty world is black, and black says nothing. What is missing is always
-// one of four things, and each of them is somebody's next move.
-export function whatIsMissing({ coverage, areas = 0, mine = 0, things = null,
-    published = 0 } = {}) {
-    if (!coverage) {
-        return 'No ground yet. Setup \u00b7 connect your GeoServer and pick the'
-            + ' coverage the world stands on.';
-    }
-    if (!areas) {
-        return 'No land yet. Draw an area in QGIS — run `splatworld qgis`, open'
-            + ' gis/splatworld.qgs, draw on Your land and save.';
-    }
-    // Land on its own holds nothing to compile: a tile exists where something
-    // stands. This is the step people fall down, because the land is drawn and
-    // the world still says nothing is waiting.
-    if (things === 0) {
-        return 'Nothing stands on your land yet. In QGIS, draw a road, a wood or'
-            + ' a building inside it and save — that is what there is to compile.';
-    }
-    if (!published) {
-        return mine
-            ? 'Nothing here is compiled yet. Submit \u00b7 put your land in the'
-              + ' render pool, then render it and approve what comes back.'
-            : 'Nothing here is compiled yet, and none of the land is yours.';
-    }
-    return '';
-}
-
-// Two letters off a name or an address, for the face on the bar.
-const initials = (label) => {
-    const word = String(label ?? '').split('@')[0];
-    const parts = word.split(/[^A-Za-z0-9]+/).filter(Boolean);
-    const two = parts.length > 1 ? parts[0][0] + parts[1][0] : word.slice(0, 2);
-    return (two || '\u2014').toUpperCase();
-};
+export { whatIsMissing };
 
 // The panel frame: a title, whatever this surface says about itself above its
 // parts, the parts where it has more than one, and the × that closes it.
@@ -112,10 +78,11 @@ function buildFrame(doc, show, on) {
     // delimited and comma terminated, because a part's name is words — "Render
     // jobs" — and a space-separated list cannot hold one: a selector matches
     // ",Render jobs," and gets exactly the surface that holds it.
+    // A surface that is a whole view has no button on either bar — Survey is
+    // reached by switching to it — so there is nothing to hang its parts on.
     for (const t of TABS) {
-        if (t.parts) {
-            buttons.get(t.name).dataset.parts = `,${t.parts.map((x) => x.name).join(',')},`;
-        }
+        const b = t.parts && buttons.get(t.name);
+        if (b) b.dataset.parts = `,${t.parts.map((x) => x.name).join(',')},`;
     }
     const map = el('canvas', { id: 'minimap', width: 240, height: 240 });
     // Where the map's search box goes (client/js/places.js): the map is the
@@ -201,7 +168,8 @@ function dressFor(f, name) {
 
 // Which panel is on screen, and the frame dressed for it. `name` is a leaf —
 // a surface, or one part of one — and the bar lights the surface it is under.
-function showPanel(name, { buttons, bodies, frame }) {
+function showPanel(name, f) {
+    const { buttons, bodies, frame } = f;
     const at = surfaceOf(name) ?? { tab: 'World', part: null };
     for (const [tab, b] of buttons) b.setAttribute('aria-selected', String(tab === at.tab));
     const leaf = at.part ?? at.tab;
@@ -211,11 +179,17 @@ function showPanel(name, { buttons, bodies, frame }) {
         b.setAttribute('aria-selected', String(part === leaf));
     }
     const tab = TABS.find((t) => t.name === at.tab);
-    frame.parts.hidden = !tab?.parts;
+    // One part is not a choice: a strip of tabs with one word on it says a
+    // surface has others when it has not.
+    frame.parts.hidden = (tab?.parts?.length ?? 0) < 2;
     for (const [name, host] of frame.heads) host.hidden = name !== at.tab;
     frame.head.hidden = !frame.heads.get(at.tab)?.childElementCount;
     frame.title.textContent = at.tab;
     frame.node.dataset.open = at.tab === 'World' ? '' : '1';
+    // Which surface is on screen, for the one or two that need a rule of their
+    // own: a wide panel lays its body out in columns of modules, and Work's
+    // body is one queue whose cards are already a grid (client/work.css).
+    frame.node.dataset.surface = at.tab;
     // Each panel is as wide as what it has to show (TABS.width), and a leaf
     // marked `wide` takes the window: a tool that is a map beside a form has
     // nothing to gain from being a column. Settings holds both kinds, so the
@@ -223,81 +197,13 @@ function showPanel(name, { buttons, bodies, frame }) {
     const wide = wideAt(leaf);
     frame.node.dataset.wide = wide ? '1' : '';
     frame.node.style.width = !wide && tab?.width ? `${tab.width}px` : '';
+    // A view that takes the window puts Build's instruments away with it: the
+    // altimeter, the controls, the map in the corner and the legend are about
+    // standing in the world, and nothing is standing in the world behind a
+    // Work window (SPEC §2.1: the instruments change with the view).
+    f.hud.dataset.full = wide && at.tab !== 'World' ? '1' : '';
 }
 
-
-// What the bar and the corners say about you and about the world's progress.
-function state(f) {
-    const { you, stats, buttons, notice } = f;
-    const credits = f.strip.money.credits;
-    return {
-        // A surface with something waiting behind it says so without being
-        // opened. A count hung on a part shows on the surface that holds it.
-        badge(name, n) {
-            const b = buttons.get(surfaceOf(name)?.tab ?? name);
-            if (!b) return;
-            b.querySelector('.count')?.remove();
-            if (n > 0) b.append(el('span', { className: 'count', textContent: String(n) }));
-        },
-        // How many jobs are behind one part of a surface, on the part's own
-        // tab (design 8a: every queue carries its count). A null takes it off;
-        // zero is a number worth showing, because an empty queue is an answer.
-        partCount(name, n) {
-            const b = f.frame.partButtons.get(name);
-            if (!b) return;
-            b.querySelector('.count')?.remove();
-            if (n !== null && n !== undefined) {
-                b.append(el('span', { className: 'count', textContent: String(n) }));
-            }
-        },
-        // What this machine is computing, on the strip along the top rather
-        // than inside the panel that is about it (client/js/topbar.js). Empty
-        // text takes the chip away, which is what idle looks like.
-        machine(text, tone = '') {
-            const chip = f.strip.machine;
-            chip.b.hidden = !text;
-            chip.b.dataset.doing = tone;
-            chip.what.textContent = text ?? '';
-        },
-        // Who you are, on the chip that is you: initials on the face, the name
-        // beside it, and a lit pip when somebody is signed in at all.
-        signedIn(label) {
-            const name = label && label !== 'not signed in' ? label : '';
-            // The chip is 9rem wide: an address is shown by the part of it
-            // that is a person, with the whole of it on the button's title.
-            you.name.textContent = name ? name.split('@')[0] : 'Sign in';
-            you.face.textContent = initials(name);
-            you.b.dataset.in = name ? '1' : '';
-            you.b.title = name || 'Profile';
-        },
-        // The one line an empty world needs: what is missing, and where to do
-        // something about it. Empty text takes it away.
-        notice(text) {
-            notice.textContent = text ?? '';
-            notice.hidden = !text;
-        },
-        // v6 keeps two of the five stages on the bar — what is rendered and
-        // what is waiting for a person — and the balance beside them. The rest
-        // are read in the panel that is about them; a number nobody acts on is
-        // not worth a strip along the top.
-        stat(key, value) {
-            if (key === 'credits') {
-                credits.replaceChildren(value ?? '\u2014', el('i', { textContent: 'CR' }));
-            } else if (stats[key]) stats[key].textContent = value;
-        },
-        // How high you are, how far that is above the ground, and where you
-        // are looking (client/js/altimeter.js).
-        height(at) { f.alt.set(at); },
-        // Walking or flying, and the keys for it (SPEC §2.3's corner).
-        moving(mode) { drawHints(f.hints, mode); },
-        // The minimap, the scale it is drawn at, and where its search lives.
-        minimap: () => f.map,
-        mapBox: () => f.mapBox,
-        mapScale(text) { f.scale.textContent = text; },
-        // Where the attention chip is mounted (SPEC §2.1).
-        waitingSlot: () => f.waiting,
-    };
-}
 
 // The drawer and the tray are the two things that hang off the top strip, and
 // only one of them is ever down.
@@ -334,13 +240,24 @@ export function mountHud(doc) {
     // A view that is a workspace of its own — Automate is the first — is told
     // when it is switched to and away from; the chrome itself only changes hue.
     const watching = [];
-    const pickApp = (name) => {
-        if (name === null) { drawers.apps(f.drawer.node.hidden); return app; }
+    // Switching a view dresses the chrome for it and tells whoever is
+    // watching. `open` is left alone: pickApp decides what to open, and
+    // `show` calls this when a panel belongs to another view.
+    const dressOnly = (name) => {
         const was = app;
         app = dressFor(f, name);
         drawers.apps(false);
-        if (app !== 'Build') show('World');
         if (app !== was) for (const fn of watching) fn(app, was);
+        return app;
+    };
+    const pickApp = (name) => {
+        if (name === null) { drawers.apps(f.drawer.node.hidden); return app; }
+        dressOnly(name);
+        // A view opens what it is: Work its queues, Survey its map, Trade &
+        // Sell the catalog (apps.js appSurface). A view that is the world
+        // itself closes whatever the last one had open, because a panel
+        // belonging to another workspace left over the world is not this one.
+        show(appSurface(app) ?? 'World');
         return app;
     };
     const f = buildFrame(doc, (name) => show(name), {
@@ -360,7 +277,24 @@ export function mountHud(doc) {
 
     function show(name) {
         if (name === open && name !== 'World') name = 'World';
+        // A view whose panel is closed is a hue over the world and nothing
+        // else, so closing it leaves the view: Esc and the × go back to Build.
+        if (name === 'World' && open !== 'World' && appSurface(app)) {
+            open = name;
+            pickApp('Build');
+            return f.bodies.get(name);
+        }
         open = name;
+        // And the chrome is dressed for whichever view this panel belongs to.
+        // The plinth is not Build's alone any more — Work is the fifth button
+        // on it and the F3 view, and the catalog is Trade & Sell — so opening
+        // one from the bar walks into that workspace rather than leaving the
+        // last one's hue over somebody else's panel.
+        // A surface that belongs to no one view — Profile, the wallet,
+        // Settings — is the same wherever you are working and leaves the view
+        // alone.
+        const belongs = name === 'World' ? null : viewOf(name);
+        if (belongs) dressOnly(belongs);
         showPanel(name, f);
         // The hook belongs to the body that is now on screen, not to the word
         // that was clicked. Opening a surface from the bar opens its first
@@ -381,19 +315,25 @@ export function mountHud(doc) {
     // `open` cannot start out disagreeing.
     show(open);
 
+    return handle(f, { show, pickApp, onShow, app: () => app, opened: () => open,
+        watching });
+}
+
+// What the rest of the page holds the chrome by.
+function handle(f, { show, pickApp, onShow, app, opened, watching }) {
     return {
         show,
         // What happened while you were looking somewhere else: under the bell
         // for eight seconds, and in the tray after that (client/js/notify.js).
         notify: (n) => f.notify.push(n),
         // Which workspace the chrome is dressed for, and switching it.
-        app: (name) => (name === undefined ? app : pickApp(name)),
+        app: (name) => (name === undefined ? app() : pickApp(name)),
         onApp(fn) { watching.push(fn); },
         panel: (name) => f.bodies.get(name),
         // What a surface says above its parts, rather than inside one of them.
         panelHead: (name) => f.frame.heads.get(name),
         whenShown(name, fn) { onShow.set(name, fn); },
-        opened: () => open,
+        opened,
         ...state(f),
         ...place(f.top),
     };

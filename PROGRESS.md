@@ -2626,3 +2626,49 @@ One thing checked and not done: `SPACING_CAP` was the other suspect — a splat
 sized from the tile's mean spacing rather than its own triangle's. It cannot
 bite. db/0151 put four fifths of the budget on area alone, which bounds a
 triangle's per-splat area at 1.25× the tile mean, and the cap is at 16×.
+
+## The views open something
+
+The operator's report was that the features are in the build and not in the
+page: "very little of your developed features are exposed in the UI, and the
+ones that are are absolutely difficult to figure out how to use. I want the
+app/tabs to house the features. Right now only tasks and build is really
+populated. Lets make the work tab a full screen UI of the current work panel
+and the survey house the map where you assign land to a user."
+
+chrome6 drew six views and the build wired one. Pressing F3 changed a hue and
+took the plinth away, and four of the six cards in the drawer said "not wired
+yet". Now a view names the surface it opens (`client/js/apps.js` `surface`) and
+a surface names the view it belongs to (`client/js/tabbar.js` `view`):
+
+- **Work · F3** is the Work surface at full width. It was already four queues
+  of cards beside a card opened — design v8 draws that as a window and the
+  build drew it as a 1 040 px drawer.
+- **Survey · F6** is the land map: who is waiting, the ground it would be drawn
+  on, and every piece of it there is. It was a tab of Settings, which is
+  nowhere anybody looking for a map would open. It has no button on either bar
+  — a map of the whole world is a workspace, not a drawer over the one you are
+  standing in — so the story harness reaches it the way a player does, through
+  the drawer (`client/test/run/players.js`).
+- **Trade & Sell · F4** is the catalog, which is what "the catalog both ways"
+  already was.
+- **Play · F5** still says it is not wired, because walking is built and
+  visiting and photographing are not.
+
+Three things that fell out of it:
+
+- **The plinth stays in every view.** It was hidden for anything but Build,
+  from when Build was the only one; with Work the fifth button on it and the
+  catalog the second, a view you can only leave by pressing F1 is a trap. What
+  is Build's alone still goes with Build: the legend, the "what is missing"
+  line, the next step and the two numbers on the strip.
+- **A view that takes the window puts Build's instruments away.** The
+  altimeter, the controls panel, the map in the corner and the legend are about
+  standing somewhere in the world, and nothing is standing in the world behind
+  a Work window. The compass and the place line stay.
+- **The land map is drawn at the size of the room it is in**, and no longer
+  stretched to fill it. `MAP` was a constant 420 × 300 and `projection` mapped
+  the view onto the whole of it, so the same valley was a different shape in
+  every panel; in Survey, where the map is 1 400 px wide and 540 tall, it was a
+  valley two and a half times too wide. The box a view is drawn into now keeps
+  the view's own proportions, in metres, and is centred in what is left.

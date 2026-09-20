@@ -41,14 +41,15 @@ export const GROUPS = ['bar', 'top'];
 // rest of the app and the stories call it.
 export const TABS = [
     { name: 'World', group: null, lede: '' },
-    { name: 'Place', group: 'bar', key: '1', width: 470,
+    { name: 'Place', group: 'bar', key: '1', width: 470, view: 'Build',
         lede: 'Put a product from the catalog on your own land.' },
-    { name: 'Catalog', group: 'bar', key: '2', width: 666,
+    // And the F4 view: the catalog both ways is what Trade & Sell is.
+    { name: 'Catalog', group: 'bar', key: '2', width: 666, view: 'Trade & Sell',
         lede: 'Products anyone may build with. Register your own.' },
-    { name: 'Your land', group: 'bar', key: '3', label: 'Land', width: 500,
+    { name: 'Your land', group: 'bar', key: '3', label: 'Land', width: 500, view: 'Build',
         parts: [{ name: 'Your land', label: 'Land' },
             { name: 'Shape', label: 'Shape' }] },
-    { name: 'Publish', group: 'bar', key: '4', width: 500,
+    { name: 'Publish', group: 'bar', key: '4', width: 500, view: 'Build',
         parts: [{ name: 'Submit', label: 'Submit' },
             { name: 'Permission', label: 'Approve' }] },
     // Work is a surface with queues behind it, not one list (design 8a–8f).
@@ -57,8 +58,10 @@ export const TABS = [
     // queues are the kinds of work the pool itself sorts into (db/0152
     // pool_open.phase), a tab each. The names are the code's and the labels
     // the design's: Publish and Settings are surfaces of their own, so no part
-    // may take either word for its name.
-    { name: 'Work', group: 'bar', key: '5', width: 1040,
+    // may take either word for its name. It is the F3 view as well as the
+    // fifth button on the plinth, and it takes the window either way: four
+    // queues of cards beside a card opened is not a column 1 040 px wide.
+    { name: 'Work', group: 'bar', key: '5', width: 1040, view: 'Work', wide: true,
         parts: [{ name: 'Every job', label: 'All' },
             { name: 'Render jobs', label: 'Render jobs' },
             { name: 'Training', label: 'Training' },
@@ -72,15 +75,22 @@ export const TABS = [
     { name: 'Wallet', group: 'top', key: '6', width: 500,
         lede: 'What you have, and what moved.' },
     // Settings is one panel with tabs, not three buttons: the account and the
-    // ground the world stands on, and the two admin tools. Land is a map beside
-    // a form and the vocabulary is two lists, so those two parts take the
-    // window (`wide`) while Setup stays a column.
+    // ground the world stands on, and the tools that say what the compiler
+    // lays down. The vocabulary is two lists and the symbols are three
+    // columns, so those parts take the window (`wide`) while Setup stays a
+    // column. Land left for Survey, below.
     { name: 'Settings', group: 'top', key: '`', width: 470,
         parts: [{ name: 'Setup', label: 'Setup' },
-            { name: 'Land', label: 'Land', key: '0', wide: true },
             { name: 'Vocabulary', label: 'Vocabulary', wide: true },
             { name: 'Symbols', label: 'Symbols', wide: true },
             { name: 'Ground cover', label: 'Ground cover', wide: true }] },
+    // Survey is top-down: who is waiting for land, and the map it is drawn on
+    // (SPEC §2.1). It is the F6 view and nothing else — it has no button on
+    // either bar, because a map of the whole world is a workspace rather than
+    // a drawer over the one you are standing in. It was a tab of Settings,
+    // where nobody looking for a map would think to open it.
+    { name: 'Survey', group: null, key: '0', view: 'Survey', wide: true,
+        parts: [{ name: 'Land', label: 'Land' }] },
 ];
 
 // Every part there is, with the surface that holds it.
@@ -126,10 +136,23 @@ export const keyed = (key) => {
     return (TABS.find(same) ?? PARTS.find(same))?.name ?? null;
 };
 
+// And the view a leaf is reached through, or null where it belongs to no one
+// view: Profile, the wallet and Settings are the same wherever you are
+// working, and opening one must not walk you out of the workspace you are in.
+export const viewOf = (name) => {
+    const at = surfaceOf(name);
+    return at ? TABS.find((t) => t.name === at.tab)?.view ?? null : null;
+};
+
 // Whether a leaf takes the whole window: said by the part where a surface's
 // parts disagree about it, and by the surface otherwise.
-export const wideAt = (name) => Boolean(PARTS.find((p) => p.name === name)?.wide
-    ?? TABS.find((t) => t.name === name)?.wide);
+export const wideAt = (name) => {
+    const part = PARTS.find((p) => p.name === name);
+    // The part has the last word, then the surface that holds it — a surface
+    // every part of which takes the window says so once, at the top.
+    return Boolean(part?.wide
+        ?? TABS.find((t) => t.name === (part?.of ?? name))?.wide);
+};
 
 export const el = (tag, props = {}, ...kids) => {
     const node = Object.assign(document.createElement(tag), props);

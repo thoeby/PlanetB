@@ -7,6 +7,12 @@
  * which is the largest of them and has a design turn of its own.
  */
 
+/* Work takes the window (tabbar.js `wide`), but its body is not columns of
+   modules the way Survey's map beside its form is: it is one queue, whose
+   cards are already a grid three across, or the Settings tab's own two
+   columns. So it opts out of the wide layout in client/panels.css. */
+#panel[data-surface="Work"][data-wide="1"] .tab-body:not([hidden]) { display: block; }
+
 /* The status line the queues write, over the cards: what just happened to a
    job, beside nothing else — what this machine is doing is on the strip along
    the top of the page now (client/js/topbar.js, client/top.css). */

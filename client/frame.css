@@ -242,3 +242,13 @@ kbd {
 
 /* The panel and the card share the same corner: the card steps aside. */
 #panel[data-open="1"] ~ #next, #next:has(~ #panel[data-open="1"]) { display: none; }
+
+/* A view that takes the window puts Build's instruments away with it
+ * (js/hud.js showPanel): the altimeter, the controls, the map in the corner
+ * and the legend are all about standing somewhere in the world, and nothing is
+ * standing in the world behind a Work window. The compass and the place line
+ * stay — where you are is true in every view. */
+#hud[data-full="1"] #corner,
+#hud[data-full="1"] #alt,
+#hud[data-full="1"] #legend,
+#hud[data-full="1"] #crosshair { display: none; }

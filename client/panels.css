@@ -324,3 +324,38 @@
 #panel .mv-field { display: flex; gap: 4px; align-items: center; font-size: 11px; }
 #panel .mv-field input[type="number"] { width: 64px; }
 #panel .mv-route { font-size: 11px; }
+
+/* ------------------------------------------------------------ Survey (F6)
+
+   The map is the workspace here, not a picture beside a form (SPEC §2.1), so
+   it takes the room and the two columns of words stack beside it. The canvas
+   itself is sized to the box it lands in — js/assignland.js watches the room
+   and js/landmap.js draws at whatever size it is told. */
+#panel[data-surface="Survey"] .tab-body:not([hidden]) {
+  display: grid; grid-template-columns: minmax(340px, 400px) minmax(0, 1fr);
+  grid-template-areas: "lede lede" "side map";
+  grid-template-rows: auto minmax(0, 1fr); gap: 0 32px;
+  height: 100%; min-height: 0; overflow: hidden;
+  /* Not the `align-items: start` of the general wide layout above: here both
+     columns are as tall as the window, and the map fills what is left. */
+  align-items: stretch;
+}
+#panel[data-surface="Survey"] .tab-body > .lede { grid-area: lede; }
+/* The words scroll on their own; the map does not scroll at all. */
+#panel[data-surface="Survey"] .assign-side {
+  grid-area: side; overflow-y: auto; min-height: 0; padding-right: 8px;
+}
+#panel[data-surface="Survey"] .section.assign-map {
+  grid-area: map; display: flex; flex-direction: column;
+  min-width: 0; min-height: 0; margin-top: 0;
+}
+#panel .assign-canvas { min-width: 0; margin: 8px 0; }
+#panel .assign-canvas > canvas {
+  display: block; width: 100%; height: auto; border: 1px solid var(--edge-2);
+}
+/* In Survey the map fills what is left of the column, so the two buttons
+   under it stay on screen however tall the window is. */
+#panel[data-surface="Survey"] .assign-canvas {
+  flex: 1 1 0; min-height: 200px; overflow: hidden;
+}
+#panel[data-surface="Survey"] .assign-canvas > canvas { height: 100%; }

@@ -6,6 +6,7 @@ import assert from 'node:assert/strict';
 
 import { whatIsMissing } from '../js/hud.js';
 import { GROUPS, LEAVES, TABS, keyed, surfaceOf, wideAt } from '../js/tabbar.js';
+import { APPS, appSurface } from '../js/apps.js';
 
 test('with no ground at all, the world has nowhere to be', () => {
     assert.match(whatIsMissing({}), /Setup/);
@@ -46,7 +47,9 @@ test('land with something on it is a Submit away', () => {
 test('every surface is in one of the two groups, and has a key of its own', () => {
     assert.deepEqual(GROUPS, ['bar', 'top']);
     for (const t of TABS) {
-        if (t.name === 'World') continue;
+        // The world is not a surface, and a surface that is a view of its own
+        // is reached by the view's F-key rather than from a bar (apps.js).
+        if (t.name === 'World' || t.group === null) continue;
         assert.ok(GROUPS.includes(t.group), `${t.name} is in no group`);
         assert.match(t.key, /^[0-9`a-z]$/, `${t.name} has no key`);
     }
@@ -72,7 +75,6 @@ test('the five surfaces the game is played through are on keys 1 to 5', () => {
 test('what used to be a button of its own is a tab of one of the three', () => {
     assert.deepEqual(surfaceOf('Share'), { tab: 'Profile', part: 'Share' });
     assert.deepEqual(surfaceOf('Setup'), { tab: 'Settings', part: 'Setup' });
-    assert.deepEqual(surfaceOf('Land'), { tab: 'Settings', part: 'Land' });
     assert.deepEqual(surfaceOf('Vocabulary'), { tab: 'Settings', part: 'Vocabulary' });
     assert.deepEqual(surfaceOf('Settings'), { tab: 'Settings', part: 'Setup' });
 });
@@ -81,9 +83,33 @@ test('what used to be a button of its own is a tab of one of the three', () => {
 // a form in a column, and two tools that want the window.
 test('a part says whether it takes the window, where its surface cannot', () => {
     assert.equal(wideAt('Setup'), false);
-    assert.equal(wideAt('Land'), true);
     assert.equal(wideAt('Vocabulary'), true);
     assert.equal(wideAt('Place'), false);
+    // And a surface that is a whole view says it once, for every part of it.
+    assert.equal(wideAt('Land'), true);
+    assert.equal(wideAt('Every job'), true);
+    assert.equal(wideAt('Machine'), true);
+});
+
+// A view names the surface it opens, and that surface is reached through it
+// rather than through a bar: Survey is a map of the whole world, which is a
+// workspace and not a drawer over the one you are standing in.
+test('a view opens the surface it names, and Build opens the world', () => {
+    assert.equal(appSurface('Work'), 'Work');
+    assert.equal(appSurface('Survey'), 'Survey');
+    assert.equal(appSurface('Trade & Sell'), 'Catalog');
+    assert.equal(appSurface('Build'), null);
+    assert.equal(appSurface('Play'), null);
+    assert.deepEqual(surfaceOf('Land'), { tab: 'Survey', part: 'Land' });
+});
+
+test('a view that opens nothing says so on its own card', () => {
+    const live = APPS.filter((a) => a.live).map((a) => a.name);
+    assert.deepEqual(live, ['Build', 'Automate', 'Work', 'Trade & Sell', 'Survey']);
+    for (const a of APPS) {
+        assert.equal(Boolean(a.live), Boolean(appSurface(a.name)) || a.name === 'Build'
+            || a.name === 'Automate', `${a.name} says one thing and opens another`);
+    }
 });
 
 test('a key names its surface, and a key nobody bound names none', () => {
@@ -92,7 +118,7 @@ test('a key names its surface, and a key nobody bound names none', () => {
     assert.equal(keyed('p'), 'Profile');
     assert.equal(keyed('`'), 'Settings');
     assert.equal(keyed('9'), 'Share');
-    assert.equal(keyed('0'), 'Land');
+    assert.equal(keyed('0'), 'Survey');
     assert.equal(keyed('z'), null);
 });
 

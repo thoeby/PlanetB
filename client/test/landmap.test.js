@@ -7,7 +7,8 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 
-import { MAP, ZOOM_STEP, areaAt, fitView, panned, pointInArea, projection, zoomed }
+import { MAP, ZOOM_STEP, areaAt, boxOf, fitView, panned, pointInArea, projection, sizeMap,
+    zoomed }
     from '../js/landmap.js';
 
 // Visp, roughly the four kilometres tools/make-seed-dem.sh cuts.
@@ -83,4 +84,23 @@ test('a ring with a bite out of it is not clicked through', () => {
         [0, 0], [2, 0], [2, 1], [1, 1], [1, 2], [0, 2], [0, 0]]] } };
     assert.equal(pointInArea(area, 0.5, 0.5), true, 'in the arm');
     assert.equal(pointInArea(area, 1.5, 1.5), false, 'and not in the notch');
+});
+
+// Survey's map is twice as wide as it is tall (SPEC §2.1), and the ground it
+// draws is not: the box the view is drawn into keeps the view's own
+// proportions rather than filling whatever shape the panel is.
+test('the ground is not stretched to fill the panel', () => {
+    sizeMap(1400, 500);
+    const b = boxOf(FIT);
+    const wide = (FIT.east - FIT.west)
+        * Math.cos((((FIT.north + FIT.south) / 2) * Math.PI) / 180);
+    const tall = FIT.north - FIT.south;
+    assert.ok(Math.abs((b.w / b.h) - (wide / tall)) < 1e-6,
+        `the box is ${(b.w / b.h).toFixed(3)} and the ground ${(wide / tall).toFixed(3)}`);
+    assert.ok(b.x > MAP.pad, 'and it is centred in what is left');
+    // A point still comes back as itself, whatever the box.
+    const p = projection(FIT);
+    const [lon, lat] = p.toLonLat(...p.toPx(7.8815, 46.2939));
+    assert.ok(Math.abs(lon - 7.8815) < 1e-9 && Math.abs(lat - 46.2939) < 1e-9);
+    sizeMap(420, 300);
 });

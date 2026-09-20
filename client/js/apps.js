@@ -1,10 +1,14 @@
 // apps.js — the views, and the drawer that switches between them.
 //
 // A view is a workspace over the same world, the way Blender's are: the bar,
-// the panels and the instruments change, where you stand does not. Build is
-// the one this repository implements; the others are here because the top
-// strip is where they will appear, and a drawer that lists one view teaches
-// nobody what the key does. Each has a hue, and the chrome takes it.
+// the panels and the instruments change, where you stand does not. Each has a
+// hue, and the chrome takes it.
+//
+// A view is nothing but a hue until it names what it opens. Five of the six do
+// now: Build is the world, Automate the flow editor, and Work, Trade & Sell
+// and Survey each name a surface in tabbar.js (`view`), which is what switching
+// to them opens. Play is the world with nothing on it — walking is built and
+// visiting and photographing are not, so its card still says so.
 //
 // Taken from docs/design/chrome6.dc.html, whose six apps the operator has
 // since named for what they are played for (SPEC §2.1 Views): Drive, Photo
@@ -29,13 +33,15 @@ export const APPS = [
             + '|M9 7h6|M14 5h1|M14 15h1',
     },
     {
-        name: 'Work', key: 'F3', hue: 'oklch(0.82 0.16 80)',
-        desc: 'Your machine as a renderer. Queue, throughput, earnings, thermals.',
+        name: 'Work', key: 'F3', hue: 'oklch(0.82 0.16 80)', live: true, surface: 'Work',
+        desc: 'Your machine as a renderer: the four queues, what each job pays,'
+            + ' and what this machine is doing with itself.',
         icon: 'M6 6h12v12H6z|M9 9h6v6H9z|M9 2v4M15 2v4M9 18v4M15 18v4'
             + '|M2 9h4M2 15h4M18 9h4M18 15h4',
     },
     {
-        name: 'Trade & Sell', key: 'F4', hue: 'oklch(0.78 0.13 320)',
+        name: 'Trade & Sell', key: 'F4', hue: 'oklch(0.78 0.13 320)', live: true,
+        surface: 'Catalog',
         desc: 'The catalog both ways: what to buy, what you sell, and for how much.',
         icon: 'M3 7h11l6 6-7 7-6-6z|M7.5 10.5h.01|M14 14l2 2|M16 5h5v5',
     },
@@ -46,13 +52,20 @@ export const APPS = [
             + '|M9 16h6a3 3 0 0 0 0-6h-6a3 3 0 0 1 0-6h3',
     },
     {
-        name: 'Survey', key: 'F6', hue: 'oklch(0.8 0.15 145)',
-        desc: 'Top-down. Parcels, ownership, rights, approvals and coverage as layers.',
+        name: 'Survey', key: 'F6', hue: 'oklch(0.8 0.15 145)', live: true, surface: 'Survey',
+        desc: 'Top-down: who is waiting for land, the ground it would be drawn'
+            + ' on, and every piece of it there is.',
         icon: 'm12 3 9 5-9 5-9-5 9-5z|M3 13l9 5 9-5|M3 17l9 5 9-5',
     },
 ];
 
 export const appNamed = (name) => APPS.find((a) => a.name === name) ?? APPS[0];
+
+// The panel a view opens when you switch to it, or null for a view that is the
+// world itself. A view is a workspace, and a workspace with nothing open in it
+// is nothing but a hue. Which surfaces *belong* to a view is the other half of
+// this and is said in tabbar.js (`view`), because that is where a surface is.
+export const appSurface = (name) => appNamed(name).surface ?? null;
 
 // The key that switches an app directly, F1…F6, or null.
 export const appKeyed = (code) => APPS.find((a) => a.key === code)?.name ?? null;
