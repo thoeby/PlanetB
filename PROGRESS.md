@@ -2593,3 +2593,36 @@ heartbeat used to be one line in the log; an hour of training later
 why. The beat now ends the run where it happens, with the sentence that says
 what to look at. It beats every thirty seconds rather than every sixty, so a
 lease an operator has turned down still holds.
+
+## The ground is seeded before what stands on it
+
+The other half of "it still looks not great": the seed is allocated across
+every triangle in the tile at once (`client/lib/sampling.js` `allocate`) — four
+fifths by area, and the last fifth by area × detail, where `detailOf` runs from
+1 on smooth uniform ground to about 16 on an edge.
+
+A hillside is one colour over hundreds of square metres. It is the surface that
+loses every time, and it is the one a player is always looking at: a hole in a
+wall is a missing wall, a hole in the ground is the sky underneath it. Measured
+on a hundred-metre square of ground with four times its own area of roof and
+wall standing on it, the ground was given **a sixth** of the seed — 1.8 m
+between its splats, where the roofs' were centimetres apart.
+
+`seedSurfaces` samples the ground by itself, before anything that stands on it,
+and gives it at least `ground_floor` of the seed however little there is to see
+on it. On that same tile it goes from a sixth of the seed to two thirds, and
+its spacing from 1.8 m to 0.87 m. Where `ground_floor` is nothing the ground
+still keeps its own area share, because the detail weighting no longer reaches
+across the two. A tile that is all ground, or none of it, is seeded exactly as
+it was.
+
+Two thirds of a tenth of the budget is 53 000 splats over a z14 tile: 7.3 m
+apart, and a splat two sigma wide at that spacing covers, with overlap. What a
+tile is made of changes, so the name does (Invariant 2): `train-v14`, with the
+share in the atom's params beside the seed share. `assemble` is untouched, so
+nothing is re-framed.
+
+One thing checked and not done: `SPACING_CAP` was the other suspect — a splat
+sized from the tile's mean spacing rather than its own triangle's. It cannot
+bite. db/0151 put four fifths of the budget on area alone, which bounds a
+triangle's per-splat area at 1.25× the tile mean, and the cap is at 16×.

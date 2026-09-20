@@ -184,4 +184,46 @@ export function sampleSurfaces(meshes, total, random,
     return f;
 }
 
+// Two sets of splats, one after the other. Generic over the fields, the way
+// `permute` is: it joins whatever a splat set carries.
+export function joinSplats(a, b) {
+    if (!a.count) return b;
+    if (!b.count) return a;
+    const out = { count: a.count + b.count };
+    for (const k of Object.keys(a)) {
+        if (k === 'count') continue;
+        out[k] = new a[k].constructor(out.count);
+        out[k].set(a[k]);
+        out[k].set(b[k], a.count);
+    }
+    return out;
+}
+
+// The ground is seeded on its own, whatever else stands on the tile.
+// `allocate` spends a fifth of the budget by area x detail, and `detailOf`
+// runs from 1 on smooth uniform ground to about 16 on an edge — so on a tile
+// with buildings and trees on it the ground is the surface that loses. Four
+// hundred square metres of roof and wall over a hundred-metre square of ground
+// took five sixths of the seed, and the ground's splats ended up 1.8 m apart
+// where the roofs' were centimetres.
+//
+// Sampled by itself it is given at least `floor` of the seed however little
+// there is to see on it, and its own area share even where `floor` is nothing.
+// Everything that stands on it is sampled exactly as it always was.
+export const isGround = (m) => m.material === 'terrain';
+
+export function seedSurfaces(meshes, total, random, { floor = 0, ...how } = {}) {
+    const ground = meshes.filter(isGround);
+    const rest = meshes.filter((m) => !isGround(m));
+    if (!ground.length || !rest.length) return sampleSurfaces(meshes, total, random, how);
+    const spread = (list) => triangles(list).reduce((s, [m, i]) => s + area(m, i), 0);
+    const mine = spread(ground);
+    const share = Math.max(mine / (mine + spread(rest) || 1), floor);
+    const n = Math.min(Math.max(Math.round(total * share), 1), total - 1);
+    // The ground first, so a prefix of the seed is mostly ground: the preview
+    // reads a prefix, and a preview of the trees is not a preview of the tile.
+    return joinSplats(sampleSurfaces(ground, n, random, how),
+        sampleSurfaces(rest, total - n, random, how));
+}
+
 export const rngOf = (atom, z, x, y) => rng((atom.seed ?? 0) + z * 1000003 + x * 1009 + y);

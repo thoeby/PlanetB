@@ -1,4 +1,4 @@
-// train.js — `train-v13`. The tile, learned from its own frames, by brush.
+// train.js — `train-v14`. The tile, learned from its own frames, by brush.
 //
 // `assemble` built the surfaces and `frame` path-traced them from a fixed
 // camera set. The seed is those surfaces sampled at the tile's whole budget
@@ -19,6 +19,11 @@
 // thing that actually closes the gaps, and cannot be undone by anything
 // downstream. Fewer splats (db/0111 halved the budget), each of them bigger.
 //
+// v14 seeds the ground before anything that stands on it (GROUND_FLOOR): the
+// seed used to be allocated across every triangle at once, and the ground —
+// smooth, one colour, and the surface a player is always looking at — lost
+// every time to the roofs and the trees standing on it.
+//
 // Four poses are held back (client/lib/frames.js): brush never sees them, and
 // `verify` renders two of them in another tab. Invariant 8: probabilistic
 // quality assurance, not proof.
@@ -33,10 +38,10 @@ import {
 import { unpackMeshes } from '../lib/mesh.js';
 import { datasetDir, removeDir } from '../lib/opfs.js';
 import { bboxOf, writePly } from '../lib/ply.js';
-import { rngOf, sampleSurfaces } from '../lib/sampling.js';
+import { rngOf, seedSurfaces } from '../lib/sampling.js';
 import { readTar, writeTar } from '../lib/tar.js';
 
-export const ALGO = 'train-v13';
+export const ALGO = 'train-v14';
 // The in-plane sigma of a seed splat as a share of its spacing. Sigma, not
 // radius: a gaussian is visible out to about two of them, so a splat at 1.15
 // covered four to five times the distance to its neighbour — twenty times the
@@ -86,6 +91,18 @@ export const MIN_PAD_M = 2;
 // carries the tile and growth puts the rest where the frames say the picture
 // is wrong (db/0145).
 export const SEED_SHARE = 0.1;
+// And at least this much of the seed goes on the ground, however little there
+// is to see on it. The allocation weights a triangle by its colour and normal
+// spread (client/lib/sampling.js detailOf), and a hillside is one colour over
+// hundreds of square metres: it is the surface that loses every time, and the
+// one a player is always looking at. A hole in a wall is a missing wall; a
+// hole in the ground is the sky underneath it. Measured on a tile of ground
+// with four times its own area of roof and wall standing on it, the ground was
+// given a sixth of the seed and its splats came out 1.8 m apart.
+//
+// Two thirds of a tenth of the budget: on a z14 that is 53 000 splats over
+// 1693 m, 7.3 m apart, and a splat two sigma wide at that spacing covers.
+export const GROUND_FLOOR = 0.66;
 // How much wider every trained splat is made before it is written: the ground
 // is covered by splats overlapping their neighbours, and the trainer settles
 // on extents that leave the background showing between them. A multiple, so it
@@ -263,12 +280,14 @@ export async function run({ atom, inputs, log }) {
     const random = rngOf(atom, z, x, y);
     // Shuffled so any prefix is a fair sample: the preview reads a prefix.
     const share = Number(atom.params?.seed_share) || SEED_SHARE;
-    const seed = shuffled(sampleSurfaces(meshes, Math.round(budget * share), random,
-        { spread: SPREAD, even: true }), random);
+    const floor = atom.params?.ground_floor === undefined
+        ? GROUND_FLOOR : Number(atom.params.ground_floor);
+    const seed = shuffled(seedSurfaces(meshes, Math.round(budget * share), random,
+        { spread: SPREAD, even: true, floor }), random);
     const set = atom.params?.camera_set;
     const ground = groundOf(files, scene);
     const eye = cameraSet(set, frameBounds(meshes), ground)[holdout(viewCount(set) || 1)[0]];
-    log?.({ event: 'seeded', tile: scene.tile, splats: seed.count,
+    log?.({ event: 'seeded', tile: scene.tile, splats: seed.count, ground_floor: floor,
         picture: pointsPicture(seed, eye) });
 
     const splats = await trainWithBrush({ atom, seed, tars, scene, eye, iters, budget, size, log });
@@ -292,6 +311,7 @@ export async function run({ atom, inputs, log }) {
             bytes: tar.length, splat_count: out.count, finite: true,
             bbox: bboxOf(out), origin: scene.origin, tile: scene.tile,
             iters, backend: 'brush', frame_size: size, seeded: seed.count, scale,
+            ground_floor: floor,
             dropped: splats.count - out.count,
         },
     };
