@@ -197,9 +197,11 @@ async function trainWithBrush({ atom, seed, tars, scene, eye, iters, budget, siz
         vram_mb: Math.round((adapter.limits?.maxBufferSize ?? 0) / 1048576),
         frames_mb: Math.round(ds.views * size * size * 4 / 1048576) });
     let training = null;
+    let held = null;
     let last = { iter: 0, ms: 0, brush: 0, ours: 0 };
     try {
-        const app = await brushApp(brush);
+        const { app, device } = await brushApp(brush);
+        held = device;
         training = await trainIn(app, dir, (init) => configFor(init, { iters, budget, size,
             seed: atom.seed ?? 42, refineEvery: Number(atom.params?.refine_every) || 0 }), {
             // How many steps brush is asked for a call. One, unless the page
@@ -236,6 +238,7 @@ async function trainWithBrush({ atom, seed, tars, scene, eye, iters, budget, siz
     } finally {
         training?.free?.();
         await removeDir(name).catch(() => {});
+        held?.destroy?.();
     }
 }
 

@@ -283,15 +283,21 @@ export async function trainIn(app, dir, config,
     return training;
 }
 
-// Brush on its own device, the way its own app runs: burn picks the
-// adapter, the features and the limits. This used to hand brush a device
-// this code had made (initExisting) so the splats could be copied off it;
-// tools/brush-readback.patch reads them through burn instead, and nothing
-// here holds a device any more.
+// Brush on a device this code makes (brushDevice above), because a device
+// burn makes for itself on the web has no `timestamp-query`: CubeCL then
+// times its autotune samples by a method that yields nothing on wasm, every
+// sample "carried no measurement", and the tuner panicked at the first
+// reduce. Every feature the adapter offers is what a tune needs. The splats
+// come back through burn (tools/brush-readback.patch), so the device is
+// held for nothing but this.
 export async function brushApp(brush) {
+    const { adapter, device } = await brushDevice();
+    if (!adapter.features.has('timestamp-query')) {
+        throw new Error('this GPU offers no timestamp-query, which brush needs to tune its kernels');
+    }
     const app = new brush.BrushApp();
-    await app.init();
-    return app;
+    app.initExisting(adapter, device, device.queue);
+    return { app, device };
 }
 
 // The splats as brush holds them, off its GPU through burn
