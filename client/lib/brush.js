@@ -17,6 +17,8 @@ let mod = null;
 // The last thing brush's panic hook wrote: a Rust panic reaches JS as
 // "RuntimeError: unreachable", and the reason went to console.error in the
 // worker where nobody looks. It is kept and put on the error instead.
+import { yieldTask } from './quickyield.js';
+
 let lastPanic = '';
 // What the device said before it died: a WebGPU device that runs out of memory
 // or fails validation does not throw where the mistake was — the next readback
@@ -229,6 +231,8 @@ export function configFor(init, { iters, budget, size, seed = 42, refineEvery = 
 // scheduler wait rather than GPU time — the same 800 ms on a P2000, an M4000
 // and a 4060 Ti, where the demo did 150. Everything brush says on the way —
 // loading, the seed placed, kernels tuned — reaches the panel step by step.
+// The yield is a channel post, not a timer: a background tab clamps timers
+// to one a second (client/lib/quickyield.js).
 export async function trainIn(app, dir, config,
     { steps = 1, onStep, onWarn, onBatch, onStage } = {}) {
     const { BrushMessageKind: K } = mod;
@@ -266,7 +270,7 @@ export async function trainIn(app, dir, config,
         // be taken (client/atoms/train.js) — and when the browser gets its
         // task back.
         await onBatch?.(iter, training);
-        await new Promise((r) => setTimeout(r, 0));
+        await yieldTask();
     }
     return training;
 }

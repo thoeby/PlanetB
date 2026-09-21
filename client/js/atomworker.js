@@ -5,6 +5,11 @@
 // The op names the module: client/atoms/{op}.js, and nothing else.
 
 import { deviceTrouble } from '../lib/brush.js';
+import { install as unthrottleTimers } from '../lib/quickyield.js';
+
+// Before anything in this worker sets a timer: brush's glue yields through
+// setTimeout(0), and a background tab clamps that to one a second.
+unthrottleTimers(globalThis);
 
 const OP = /^[a-z][a-z0-9_]*$/;
 
