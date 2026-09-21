@@ -142,8 +142,9 @@ class PostgREST:
             stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
             text=True, encoding="utf8", errors="replace", bufsize=1,
         )
-        threading.Thread(target=_drain, daemon=True,
-                         args=(self.proc, self._said, self.verbose)).start()
+        self._reader = threading.Thread(target=_drain, daemon=True,
+                                        args=(self.proc, self._said, self.verbose))
+        self._reader.start()
         self._wait()
         return self
 
@@ -161,9 +162,12 @@ class PostgREST:
 
     def _died(self) -> str:
         """What it said before it went, which beats anything guessed here."""
-        # Give the reader a moment: the process is gone, its last lines may not
-        # have crossed the pipe yet.
-        time.sleep(0.3)
+        # The process is gone; its last lines are what say why, and they are
+        # the reader's to finish: PostgREST prints "Starting" first and the
+        # reason it stopped last, and a fixed pause showed only the first.
+        reader = getattr(self, "_reader", None)
+        if reader is not None:
+            reader.join(timeout=5.0)
         code = self.proc.returncode if self.proc else "?"
         lines = [f"PostgREST stopped straight away (exit {code}). It said:"]
         said = [line for line in self._said if line.strip()]
