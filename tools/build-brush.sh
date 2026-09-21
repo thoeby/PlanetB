@@ -20,13 +20,13 @@ BRUSH_REPO=${BRUSH_REPO:-https://github.com/ArthurBrussee/brush}
 # older brush. The 800 ms a step this build was blamed for was the pump in
 # client/lib/brush.js, not the level.
 AUTOTUNE_LEVEL=${AUTOTUNE_LEVEL:-Full}
-BRUSH_REV=${BRUSH_REV:-main}
+BRUSH_REV=${BRUSH_REV:-ee797e9edb5a9d4a5636981ffe965a941dd8df05}
 DEST=client/vendor/brush
 WORK=$(mktemp -d)
 
 rustup target add wasm32-unknown-unknown
 command -v wasm-pack > /dev/null || cargo install wasm-pack --locked
-git clone --depth 1 --branch "$BRUSH_REV" "$BRUSH_REPO" "$WORK/brush"
+git clone -q "$BRUSH_REPO" "$WORK/brush" && ( cd "$WORK/brush" && git checkout -q "$BRUSH_REV" )
 # One change of ours (tools/brush-autotune.patch): autotune at $AUTOTUNE_LEVEL,
 # because burn's roofline throughput measurement reads synchronously and
 # panics on wasm. Applied by hand rather than `patch`, so the hunk survives
