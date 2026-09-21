@@ -37,11 +37,9 @@ export { Shots } from './workshots.js';
 // browser has throttled to once a minute still beats inside a lease of two.
 const HEARTBEAT_MS = 30_000;
 const IDLE_MS = 15_000;
-// How long the pace may hold the loop back before it takes an atom anyway.
-// Standing aside for a tab that is being played is the point (WP5.2); standing
-// aside for ever is not. A machine that never reaches 30 fps — a software
-// renderer, an old laptop — would otherwise offer to help the world and then
-// never claim anything, which is the same as not offering.
+// How long the pace may hold the loop back before it takes an atom anyway:
+// standing aside for a tab being played is the point (WP5.2), standing aside
+// for ever is not, and a machine that never reaches 30 fps would never claim.
 const PACED_MAX_MS = 10_000;
 
 // How many pieces a tab has in hand at once.
