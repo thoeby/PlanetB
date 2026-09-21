@@ -19,7 +19,7 @@ BRUSH_REPO=${BRUSH_REPO:-https://github.com/ArthurBrussee/brush}
 # measurement the patch exists for. The web demo that runs without it is an
 # older brush. The 800 ms a step this build was blamed for was the pump in
 # client/lib/brush.js, not the level.
-AUTOTUNE_LEVEL=${AUTOTUNE_LEVEL:-none}
+AUTOTUNE_LEVEL=${AUTOTUNE_LEVEL:-Full}
 BRUSH_REV=${BRUSH_REV:-main}
 DEST=client/vendor/brush
 WORK=$(mktemp -d)
