@@ -148,31 +148,6 @@ test('a claimed atom is uploaded to the path its claim reserved, then submitted'
 // db/0173: the world takes a claim back when nobody beats for it, and a tab
 // that finds out at submit_atom has already spent the hour. A refused beat is
 // the answer, and it stops the run.
-test('a claim the world has taken back stops the run at the next beat', async () => {
-    let beat = () => {};
-    const api = fakeApi({ artifact: [] }, {
-        claim_atom: ATOM,
-        heartbeat: () => { throw new Error('atom 42 is not claimed by you'); },
-        submit_atom: 'verified',
-    });
-    const loop = new WorkLoop({
-        api,
-        filesUrl: 'http://files',
-        // The atom never finishes on its own: what ends this run is the beat.
-        spawn: () => ({ run: () => new Promise(() => {}), terminate: () => {} }),
-        fetchFn: async () => new Response('', { status: 201 }),
-        timers: { setInterval: (fn) => { beat = fn; return 1; },
-            clearInterval: () => {}, setTimeout: () => {} },
-    });
-    const running = loop.step();
-    // Let the claim and the input resolution settle, then miss a beat.
-    await new Promise((r) => { setTimeout(r, 0); });
-    beat();
-    await assert.rejects(() => running, /took this piece back/);
-    assert.ok(api.calls.some((c) => c[1] === 'fail_atom'),
-        'and the piece is handed back with the reason on it');
-});
-
 test('an artifact the store already holds is pointed at, not written again', async () => {
     const bytes = new TextEncoder().encode('{"a":1}');
     const sha = await import('../lib/hash.js').then((m) => m.sha256(bytes));
@@ -383,3 +358,28 @@ test('closing the tab hands back every piece it is holding', async () => {
     assert.equal(loop.handBack(), false, 'and nothing is handed back twice');
 });
 
+
+// db/0181: a claim this tab lost is not this tab's to put down, and the run
+// it lost is stopped rather than left training for nobody.
+test('a lost claim stops the run and fails nothing', async () => {
+    let beat = null;
+    let terminated = 0;
+    const api = fakeApi({ artifact: [] }, {
+        claim_atom: { ...ATOM, op: 'train', algo_version: 'train-v14' },
+        heartbeat: () => {
+            throw new Error('atom 42 is not claimed by you: another tab holds it');
+        },
+    });
+    const loop = new WorkLoop({
+        api, filesUrl: 'http://files',
+        spawn: () => ({ run: () => new Promise(() => {}), terminate: () => { terminated += 1; } }),
+        timers: { setInterval: (fn) => { beat = fn; return 1; }, clearInterval: () => {},
+            setTimeout: () => {} },
+    });
+    const stepping = loop.step();
+    await new Promise((r) => setTimeout(r, 5));
+    beat();
+    await assert.rejects(() => stepping, /took this piece back/);
+    assert.equal(terminated, 1, 'the worker is stopped');
+    assert.ok(!api.calls.some((c) => c[1] === 'fail_atom'), 'nothing is failed');
+});

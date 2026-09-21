@@ -155,6 +155,10 @@ export class WorkLoop {
         // tile that will not render: the work is already lost when the beat is
         // refused, so the run stops here and says so.
         let refuse = () => {};
+        // The worker the atom runs in, so losing the claim stops the run: a
+        // race that rejects leaves the promise it lost to still running, and
+        // a training run nobody will submit is the GPU for the next half hour.
+        const held = { worker: null };
         const lost = new Promise((_, no) => { refuse = no; });
         // Nothing awaits `lost` on its own, and a rejection nobody is waiting
         // for yet is an unhandled rejection the moment it happens.
@@ -179,7 +183,7 @@ export class WorkLoop {
             // Racing the claim, not just the clock: an hour of training that
             // the world has already given to somebody else is an hour thrown
             // away, and the message at the end of it says nothing about why.
-            const out = await Promise.race([this.compute(atom, progress), lost]);
+            const out = await Promise.race([this.compute(atom, progress, held), lost]);
             const state = await Promise.race([
                 this.deliver(atom, out, (Date.now() - started) / 1000, progress), lost]);
             // Anything but 'verified' is submit_atom refusing the work: a
@@ -207,17 +211,25 @@ export class WorkLoop {
             const reason = String(err?.message ?? err).replace(/\s*\n\s*/g, ' · ').slice(0, 600);
             this.log({ event: 'error', atom: atom.id, op: atom.op, err: reason,
                 ...(err?.where ? { where: err.where } : {}) });
-            // The piece goes back into the pool now, with the reason on it,
-            // not in five minutes when the heartbeat is missed
-            // (db/0093_afailedpiecegoesbackatonce.sql).
-            await this.api.rpc('fail_atom', { atom_id: atom.id, reason }).catch(
-                (e) => this.log({ event: 'fail-failed', atom: atom.id, err: String(e) }));
+            await this.putDown(atom, reason, held);
             throw err;
         } finally {
             this.timers.clearInterval(timer);
             this.working.delete(atom.id);
             this.atom = this.working.values().next().value ?? null;
         }
+    }
+
+    // A run that failed is stopped and its piece put back. A claim this tab
+    // lost is not this tab's to put down: failing it would take it out of the
+    // hands of whoever holds it now, and the world already knows. Otherwise
+    // the piece goes back into the pool now, with the reason on it, not in
+    // five minutes when the heartbeat is missed (db/0093).
+    async putDown(atom, reason, held) {
+        held.worker?.terminate();
+        if (/not claimed by you/.test(reason)) return;
+        await this.api.rpc('fail_atom', { atom_id: atom.id, reason }).catch(
+            (e) => this.log({ event: 'fail-failed', atom: atom.id, err: String(e) }));
     }
 
     // Which rule refused an atom. submit_atom writes the name to `verification`
@@ -258,7 +270,7 @@ export class WorkLoop {
     // work off it after five minutes (db/0005_state.sql). A z18's frames are a
     // hundred megabytes to fetch and its ply as much again to hash and upload,
     // and none of that says a word on its own.
-    async compute(atom, progress = () => {}) {
+    async compute(atom, progress = () => {}, held = {}) {
         // Running an older atom's inputs through this code would put bytes in
         // the world under a name that did not make them (Invariant 2).
         const wrong = wrongVersion(atom);
@@ -269,6 +281,7 @@ export class WorkLoop {
             async (err) => { throw await lostInput(this, err); });
         progress();
         const worker = this.spawn();
+        held.worker = worker;
         try {
             const out = await worker.run(
                 { atom, inputs, apiUrl: this.apiUrl, filesUrl: this.filesUrl },
