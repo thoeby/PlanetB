@@ -11,7 +11,8 @@
 
 import * as api from './api.js';
 import { WorkLoop, probeCaps } from './work.js';
-import { el, logBlock, machineRows, settingsLayout, shortCaps, sizeRows, sizeTrouble,
+import { el, logBlock, machineRows, myStanding, settingsLayout, shortCaps, sizeRows,
+    sizeTrouble,
     switches, worldLine, worldSize, zoomRows } from './worksettings.js';
 
 // How many lines the log keeps, and how many of them the block shows.
@@ -156,8 +157,9 @@ function mountSettings(host, { ready, work, lines }) {
         if (w.running) { w.stop(); w.start(); }
         redraw();
     };
+    let standing = null;
     const redraw = () => facts.replaceChildren(
-        ...machineRows(work()?.caps, work(), work() ? setLanes : null));
+        ...machineRows(work()?.caps, work(), work() ? setLanes : null, standing));
     const refresh = async () => {
         const gpu = host.querySelector('.work-gpu');
         gpu.textContent = shortCaps(work()?.caps);
@@ -169,6 +171,8 @@ function mountSettings(host, { ready, work, lines }) {
         // said nothing about it until this line.
         const how = await worldSize();
         size.replaceChildren(...sizeRows(how));
+        standing = await myStanding();
+        redraw();
         const bad = host.querySelector('.wk-size-trouble');
         bad.textContent = sizeTrouble(how);
         bad.hidden = !bad.textContent;

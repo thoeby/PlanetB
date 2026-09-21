@@ -55,7 +55,7 @@ export const shortCaps = (caps) => (caps?.webgpu
 // "Pieces at once" is a control, not a reading: it said 1 whatever the loop
 // was doing, and what it is worth depends on the machine — four lanes on a
 // laptop that can hold one z18's frames in memory is four lanes that swap.
-export function machineRows(caps, work, onLanes = null) {
+export function machineRows(caps, work, onLanes = null, standing = null) {
     const rows = [
         ['Renderer', caps?.webgpu
             ? `WebGPU · ${caps.adapter?.vendor ?? 'gpu'}`
@@ -64,6 +64,7 @@ export function machineRows(caps, work, onLanes = null) {
         ['Pieces at once', lanesBox(work, onLanes)],
         ['Done', String(work?.done ?? 0), 'accent'],
         ['Failed', String(work?.failed ?? 0), Number(work?.failed) > 0 ? 'bad' : ''],
+        ['Standing', ...standingSaid(standing)],
     ];
     return rows.map(([k, v, tone]) => el('div', { className: 'wk-fact' },
         el('span', { textContent: k }),
@@ -71,6 +72,21 @@ export function machineRows(caps, work, onLanes = null) {
             ? el('span', { className: 'mono', 'data-tone': tone ?? '', title: v,
                 textContent: v })
             : v));
+}
+
+// What the pool thinks of this player's worker (db/0179 my_standing): the
+// trust it has and the least it needs to be handed training. A worker under
+// that line is handed no training by the pool and, until this line, told
+// nothing — the world looked as if it only rendered your own tiles.
+export function standingSaid(standing) {
+    const trust = standing?.trust == null ? NaN : Number(standing.trust);
+    const need = Number(standing?.needs?.train ?? 0);
+    if (!standing || !Number.isFinite(trust)) return ['not asked yet', ''];
+    if (trust < need) {
+        return [`trust ${trust} — under ${need}, so the pool hands this tab no`
+            + ' training; pieces it finishes raise it', 'bad'];
+    }
+    return [`trust ${trust}`, ''];
 }
 
 // How many pieces this tab takes at once (client/js/work.js LANES). Changing
@@ -154,6 +170,10 @@ export function sizeTrouble(size) {
 
 export async function worldSize() {
     return api.rpc('world_size').catch(() => null);
+}
+
+export async function myStanding() {
+    return api.token() ? api.rpc('my_standing').catch(() => null) : null;
 }
 
 // The two numbers the strip along the top of every tab carries, from the same

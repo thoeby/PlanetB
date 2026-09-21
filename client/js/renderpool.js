@@ -358,7 +358,9 @@ async function landed(tile, entry, rows, caps) {
         const more = drawnWhen(entry);
         return `${tile} is published${more ? ` \u2014 ${more}` : ''}`;
     }
-    const now = (rows ?? []).find((r) => r.job === entry.job);
+    // By tile, not by job: a job the world no longer builds is reopened as
+    // another job at the same version while this tab is on it (db/0179).
+    const now = (rows ?? []).find((r) => r.z === entry.z && r.x === entry.x && r.y === entry.y);
     if (!now) {
         return `${tile}: every piece is done and the publish did not land —`
             + ' the world moved on while this tab was working. Submit it again.';
