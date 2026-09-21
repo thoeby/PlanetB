@@ -57,7 +57,8 @@ function seedOf(files, train) {
 
 async function main([job, out = `dataset-${job}`, ...flags]) {
     if (!job) {
-        throw new Error('usage: node tools/dataset.mjs <job id> [out dir] [--all] [--without kinds]');
+        throw new Error('usage: node tools/dataset.mjs <job id> [out dir] [--all]'
+            + ' [--without kinds]');
     }
     const atoms = await rows('atom',
         `job_id=eq.${job}&select=id,op,params,seed,output_sha256,result&order=id`);
