@@ -78,6 +78,7 @@ export function lineOf(rec) {
     if (rec.event === 'train' && rec.iter != null) {
         return `train ${rec.atom ?? ''} step ${rec.iter} of ${rec.of}`
             + (rec.per ? ` · ${rec.per} ms a step` : '')
+            + (rec.in_brush != null ? ` · ${rec.in_brush} in brush, ${rec.ours} here` : '')
             + (rec.maps != null ? ` · ${rec.maps} readbacks waiting ${rec.map_ms} ms`
                 + ` · ${rec.submits} submits · ${rec.allocs} buffers (${rec.alloc_mb} MB)` : '');
     }
