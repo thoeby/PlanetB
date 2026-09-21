@@ -33,7 +33,7 @@ SELECT ensure_job(18, tile_x(7.805, 18), tile_y(46.295, 18)) AS j18,
        ensure_job(14, tile_x(7.805, 14), tile_y(46.295, 14)) AS j14;
 
 SELECT is((SELECT algo_version FROM atom
-           WHERE job_id = (SELECT j18 FROM jobs) AND op = 'dataset'), 'dataset-v1',
+           WHERE job_id = (SELECT j18 FROM jobs) AND op = 'dataset'), 'dataset-v2',
     'the dataset bakes the light and draws it as it is');
 SELECT is((SELECT count(*)::int FROM atom
            WHERE job_id = (SELECT j18 FROM jobs) AND op IN ('assemble', 'frame')), 0,

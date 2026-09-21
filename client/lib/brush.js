@@ -239,6 +239,10 @@ export async function trainIn(app, dir, config,
     const training = app.startTrainingFromDirectory(dir, async (init) => config(init));
     let done = false;
     let iter = 0;
+    // Where a step's time goes: inside brush's trainSteps, or out here —
+    // the preview, the log, the yield. Totals, so the caller can difference.
+    const spent = { brush: 0, ours: 0 };
+    let mark = performance.now();
     while (!done) {
         const msgs = await training.trainSteps(steps).catch((err) => {
             const said = deviceTrouble();
@@ -254,8 +258,10 @@ export async function trainIn(app, dir, config,
             throw new Error(`the GPU refused brush's kernels at iteration ${iter}: `
                 + deviceTrouble());
         }
+        spent.brush += performance.now() - mark;
+        mark = performance.now();
         for (const m of msgs) {
-            if (m.kind === K.TrainStep) { iter = m.iter; onStep?.(m.iter, m.elapsedMs); }
+            if (m.kind === K.TrainStep) { iter = m.iter; onStep?.(m.iter, m.elapsedMs, spent); }
             else if (m.kind === K.Warning) onWarn?.(m.text);
             else if (m.kind === K.DoneTraining) done = true;
             else if (m.kind === K.StartLoading) onStage?.('loading the frames');
@@ -271,6 +277,8 @@ export async function trainIn(app, dir, config,
         // task back.
         await onBatch?.(iter, training);
         await yieldTask();
+        spent.ours += performance.now() - mark;
+        mark = performance.now();
     }
     return training;
 }

@@ -62,13 +62,13 @@ self.addEventListener('unhandledrejection', (ev) => {
 });
 
 self.onmessage = async (ev) => {
-    const { atom, inputs, apiUrl, filesUrl } = ev.data;
+    const { atom, inputs, apiUrl, filesUrl, knobs } = ev.data;
     try {
         if (!OP.test(atom.op)) throw new Error(`refusing to load atom op '${atom.op}'`);
         const url = new URL(`../atoms/${atom.op}.js`, import.meta.url);
         const mod = await import(url.href);
         const out = await mod.run({
-            atom, inputs, apiUrl, filesUrl, canvas,
+            atom, inputs, apiUrl, filesUrl, canvas, knobs,
             log: (rec) => self.postMessage({ log: rec }),
         });
         self.postMessage({ done: out }, transfers(out));

@@ -93,6 +93,8 @@ export class WorkLoop {
         this.spawn = spawn;
         this.cache = cache ?? new InputCache({ filesUrl, fetchFn });
         this.fetchFn = fetchFn ?? ((...a) => fetch(...a));
+        // The page's query string, for an atom with a knob (train_batch).
+        this.knobs = Object.fromEntries(new URLSearchParams(globalThis.location?.search ?? ''));
         // The pictures this tab took of the tiles it worked on, so a panel
         // that is not the work panel can show them (client/js/workshots.js).
         this.shots = new Shots();
@@ -220,9 +222,8 @@ export class WorkLoop {
         }
     }
 
-    // A run that failed is stopped and its piece put back now, with the
-    // reason on it (db/0093). A claim this tab lost is not its to put down:
-    // that would take it out of the hands of whoever holds it now.
+    // A failed run is stopped and its piece put back with the reason (db/0093);
+    // a claim this tab lost is not its to put down.
     async putDown(atom, reason, held) {
         held.worker?.terminate();
         if (/not claimed by you/.test(reason)) return;
@@ -282,7 +283,8 @@ export class WorkLoop {
         held.worker = worker;
         try {
             const out = await worker.run(
-                { atom, inputs, apiUrl: this.apiUrl, filesUrl: this.filesUrl },
+                { atom, inputs, apiUrl: this.apiUrl, filesUrl: this.filesUrl,
+                    knobs: this.knobs },
                 (rec) => { progress(); this.log({ atom: atom.id, ...rec }); });
             // A verify atom answers a question and writes nothing; every other
             // op has to have made something (client/atoms/verify.js).

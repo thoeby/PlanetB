@@ -174,7 +174,8 @@ function checkSeed(seed) {
     }
 }
 
-async function trainWithBrush({ atom, seed, tars, scene, eye, iters, budget, size, log }) {
+async function trainWithBrush({ atom, seed, tars, scene, eye, iters, budget, size, log,
+    knobs }) {
     const brush = await loadBrush();
     const { adapter, device } = await brushDevice();
     const name = `train-${atom.id}`;
@@ -193,24 +194,33 @@ async function trainWithBrush({ atom, seed, tars, scene, eye, iters, budget, siz
         vram_mb: Math.round((device.limits.maxBufferSize ?? 0) / 1048576),
         frames_mb: Math.round(ds.views * size * size * 4 / 1048576) });
     let training = null;
-    let last = { iter: 0, ms: 0 };
+    let last = { iter: 0, ms: 0, brush: 0, ours: 0 };
     try {
         const app = new brush.BrushApp();
         app.initExisting(adapter, device, device.queue);
         training = await trainIn(app, dir, (init) => configFor(init, { iters, budget, size,
             seed: atom.seed ?? 42, refineEvery: Number(atom.params?.refine_every) || 0 }), {
+            // How many steps brush is asked for a call. One, unless the page
+            // was opened with ?train_batch=N: the knob that measures whether
+            // the pump between steps is what a step costs.
+            steps: Math.max(1, Number(knobs?.train_batch) || 1),
             // Every tenth step, with the pace since the last report: a silent
             // minute on a slow card reads as a hang, and elapsed-over-steps
             // would carry the loading and tuning time in front of step one.
-            onStep: (iter, ms) => {
+            onStep: (iter, ms, spent) => {
                 if (iter % 10 !== 0 && iter !== 1) return;
-                const per = last.iter ? Math.round((ms - last.ms) / (iter - last.iter)) : null;
-                // And what those steps asked of the device, per step: the
-                // readbacks and their wait are where a slow step on an idle
-                // GPU goes (client/lib/brush.js deviceStats).
-                const asked = deviceStats(Math.max(iter - last.iter, 1));
-                last = { iter, ms };
-                log?.({ event: 'train', iter, of: iters, ms: Math.round(ms), per, ...asked });
+                const n = Math.max(iter - last.iter, 1);
+                const per = last.iter ? Math.round((ms - last.ms) / n) : null;
+                // And where those steps went, per step: inside brush, or in
+                // this code between its calls; and what they asked of the
+                // device — the readbacks and their wait are where a slow
+                // step on an idle GPU goes (client/lib/brush.js deviceStats).
+                const asked = deviceStats(n);
+                const split = { in_brush: Math.round((spent.brush - last.brush) / n),
+                    ours: Math.round((spent.ours - last.ours) / n) };
+                last = { iter, ms, brush: spent.brush, ours: spent.ours };
+                log?.({ event: 'train', iter, of: iters, ms: Math.round(ms), per,
+                    ...split, ...asked });
             },
             onWarn: (text) => log?.({ event: 'warning', text }),
             onStage: (text) => log?.({ event: 'stage', text }),
@@ -253,7 +263,7 @@ export function widen(f, k) {
     return f;
 }
 
-export async function run({ atom, inputs, log }) {
+export async function run({ atom, inputs, log, knobs }) {
     const built = inputs?.dataset ?? inputs?.assemble;
     if (!built) throw new Error('train needs the dataset artifact');
     const tars = inputs.dataset ? [inputs.dataset]
@@ -279,7 +289,8 @@ export async function run({ atom, inputs, log }) {
     log?.({ event: 'seeded', tile: scene.tile, splats: seed.count, ground_floor: floor,
         picture: pointsPicture(seed, eye) });
 
-    const splats = await trainWithBrush({ atom, seed, tars, scene, eye, iters, budget, size, log });
+    const splats = await trainWithBrush({ atom, seed, tars, scene, eye, iters, budget, size, log,
+        knobs });
     const box = bounds(seed, MARGIN);
     const scale = Number(atom.params?.scale) || SCALE;
     const out = widen(keep(splats, box.lo, box.hi), scale);

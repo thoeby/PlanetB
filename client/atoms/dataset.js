@@ -1,4 +1,4 @@
-// dataset.js — `dataset-v1`. One tile, one folder: everything the trainer
+// dataset.js — `dataset-v2`. One tile, one folder: everything the trainer
 // learns a tile from, made in one piece of work.
 //
 // Until FND.5 a tile was assembled by one atom and framed by three to six
@@ -11,12 +11,13 @@
 // scene and its meshes, the seed, the height and colliders the player walks
 // on, every frame, and the transforms.json that places them. train reads it,
 // sog reads it for the tile's height and colliders, and tools/dataset.mjs
-// unpacks it into the folder brush's own app takes.
+// unpacks it into the folder brush's own app takes. v2 draws both faces of
+// every surface (client/lib/raster.js).
 import { run as assemble } from './assemble.js';
 import { renderFrames } from './frame.js';
 import { readTar, writeTar } from '../lib/tar.js';
 
-export const ALGO = 'dataset-v1';
+export const ALGO = 'dataset-v2';
 
 export async function run(ctx) {
     const { atom, canvas, log } = ctx;

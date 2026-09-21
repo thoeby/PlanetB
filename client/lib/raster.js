@@ -29,6 +29,12 @@ export function meshObject(m, materials = {}) {
     const mat = new THREE.MeshStandardMaterial({
         vertexColors: true, metalness: 0,
         roughness: materials[m.material]?.roughness ?? 1,
+        // Both faces, in the colour pass: a slope folded by a nodata spike or
+        // a steep DEM cell, seen from a low ring camera, is otherwise culled
+        // to a white streak the trainer then learns as a hole (dataset-v2).
+        // The shadow pass keeps drawing back faces only, as below.
+        side: THREE.DoubleSide,
+        shadowSide: THREE.BackSide,
         // The shadow pass draws back faces (three.js's default), and that is
         // right for a heightfield: the map holds the far slopes, a valley
         // behind a hill is deeper than the hill's far slope and is shadowed,

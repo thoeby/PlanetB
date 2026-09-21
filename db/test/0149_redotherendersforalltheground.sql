@@ -18,7 +18,7 @@ CREATE TEMP TABLE j AS
 SELECT id, z, x, y FROM job WHERE state = 'open' AND z = 14 ORDER BY id LIMIT 1;
 CREATE TEMP TABLE w AS SELECT my_worker('{}'::jsonb) AS id;
 INSERT INTO artifact (sha256, kind, bytes, algo_version)
-VALUES (repeat('a', 64), 'dataset', 4096, 'dataset-v1');
+VALUES (repeat('a', 64), 'dataset', 4096, 'dataset-v2');
 
 -- The dataset is the ground and the frames in one (db/0183).
 UPDATE atom SET state = 'claimed', worker_id = (SELECT id FROM w), claimed_at = now()

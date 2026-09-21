@@ -32,7 +32,7 @@ UPDATE atom SET params = params || '{"camera_set": "z16-v2"}', state = 'ready'
 WHERE job_id = (SELECT jid FROM j) AND op = 'train';
 SELECT ok(stale_work_waiting(), 'training from the old set is stale work');
 SELECT isnt((SELECT job_id FROM claim_for((SELECT jid FROM j),
-    '{"algo": {"dataset": "dataset-v1"}}')), (SELECT jid FROM j),
+    '{"algo": {"dataset": "dataset-v2"}}')), (SELECT jid FROM j),
     'and asking for the job hands out work from the one that replaced it');
 
 SELECT * FROM finish();
