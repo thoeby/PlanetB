@@ -293,7 +293,7 @@ export async function trainIn(app, dir, config,
 export async function brushApp(brush) {
     const { adapter, device } = await brushDevice();
     if (!adapter.features.has('timestamp-query')) {
-        throw new Error('this GPU offers no timestamp-query, which brush needs to tune its kernels');
+        throw new Error('this GPU offers no timestamp-query, which brush needs to tune with');
     }
     const app = new brush.BrushApp();
     app.initExisting(adapter, device, device.queue);
