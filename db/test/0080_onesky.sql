@@ -36,7 +36,7 @@ CREATE TEMP TABLE j16 AS
 SELECT ensure_job(16, tile_x(7.405, 16), tile_y(46.405, 16), 0) AS id;
 SELECT is((SELECT params ->> 'camera_set' FROM atom
            WHERE job_id = (SELECT id FROM j16) AND op = 'train'),
-          'z16-v2', 'the trainer is still told which cameras it was shown');
+          'z16-v3', 'the trainer is still told which cameras it was shown');
 
 SELECT * FROM finish();
 ROLLBACK;

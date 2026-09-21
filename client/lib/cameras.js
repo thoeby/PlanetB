@@ -24,6 +24,15 @@ export const SETS = {
     // enough that the ground is close — the overlap and the parallax
     // photogrammetry wants. 9 + 36 = 45.
     'z16-v2': { rings: [], az: 0, grid: 0, perTarget: 0, top: 0, stations: 3, sides: 4 },
+    // v2's stations see every part of the ground close and from above, and
+    // nothing else does: a tile trained on them matched all 45 frames and
+    // was a field of blobs from where a player actually stands — far off and
+    // low, looking across it. v3 keeps the stations and adds three rings of
+    // twelve at 1.8 extents out, at 12°, 25° and 40°: the whole tile in
+    // frame from every side, low enough to see the sides of things, which
+    // is the view the trainer has to be held to. 45 + 36 = 81.
+    'z16-v3': { rings: [12, 25, 40], az: 12, ringDist: 1.8, grid: 0, perTarget: 0, top: 0,
+        stations: 3, sides: 4 },
 };
 
 // How many poses a set has, or 0 for a set this build does not know — a name
@@ -97,11 +106,12 @@ export function cameraSet(name, bounds, ground = null) {
 
     // Orbits: three or two rings of 24 azimuths, looking at the middle, and
     // never below the ground they are over plus a little.
+    const dist = e * (s.ringDist ?? 0.95);
     for (const elev of s.rings) {
         for (let i = 0; i < s.az; i++) {
             const a = (i / s.az) * Math.PI * 2;
-            const r = e * 0.95 * Math.cos(elev * RAD);
-            const h = e * 0.95 * Math.sin(elev * RAD);
+            const r = dist * Math.cos(elev * RAD);
+            const h = dist * Math.sin(elev * RAD);
             const px = c[0] + Math.cos(a) * r;
             const pz = c[2] + Math.sin(a) * r;
             const py = Math.max(middle[1] + h, at(px, pz, -Infinity) + Math.max(3, e * 0.05));

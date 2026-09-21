@@ -30,7 +30,7 @@ SELECT advance_atoms((SELECT jid FROM j));
 SELECT is((SELECT state FROM atom WHERE id = (SELECT id FROM asm)), 'verified',
     'the assemble is verified');
 SELECT is((SELECT count(*) FROM atom WHERE job_id = (SELECT jid FROM j)
-           AND op = 'frame' AND state = 'ready'), 3::bigint, 'and its frames are ready');
+           AND op = 'frame' AND state = 'ready'), 5::bigint, 'and its frames are ready');
 
 -- A tab holding a frame says the assemble's bytes are gone.
 CREATE TEMP TABLE frm AS

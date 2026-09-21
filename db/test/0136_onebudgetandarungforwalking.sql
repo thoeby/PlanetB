@@ -7,7 +7,7 @@ SELECT is(tile_budget(18), 600000::bigint, 'and so does a z18: the ladder is eve
 SELECT is(tile_budget(20), 600000::bigint, 'and the new rung');
 SELECT is(tile_budget(6), 600000::bigint, 'and the coarsest merged one');
 
-SELECT is(camera_views(20), 45, 'z20 is framed from the stations of z16-v2');
+SELECT is(camera_views(20), 81, 'z20 is framed from the stations and rings of z16-v3');
 
 -- The rung exists in the ladder, and in what a land may ask to be compiled to.
 SELECT lives_ok($$ INSERT INTO tile (z, x, y) VALUES (20, 547456, 371200) $$,

@@ -220,11 +220,9 @@ export class WorkLoop {
         }
     }
 
-    // A run that failed is stopped and its piece put back. A claim this tab
-    // lost is not this tab's to put down: failing it would take it out of the
-    // hands of whoever holds it now, and the world already knows. Otherwise
-    // the piece goes back into the pool now, with the reason on it, not in
-    // five minutes when the heartbeat is missed (db/0093).
+    // A run that failed is stopped and its piece put back now, with the
+    // reason on it (db/0093). A claim this tab lost is not its to put down:
+    // that would take it out of the hands of whoever holds it now.
     async putDown(atom, reason, held) {
         held.worker?.terminate();
         if (/not claimed by you/.test(reason)) return;

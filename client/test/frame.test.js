@@ -17,6 +17,7 @@ test('the sets are the ones the DAG counts on', () => {
     assert.equal(viewCount('z18-v1'), 120, '3 rings x 24 + 16 targets x 2 obliques + 16 top');
     assert.equal(viewCount('z16-v1'), 56, '2 rings x 24 + 8 top');
     assert.equal(viewCount('z16-v2'), 45, '9 stations, each nadir + 4 sides');
+    assert.equal(viewCount('z16-v3'), 81, 'the stations and three rings of twelve from afar');
     for (const name of Object.keys(SETS)) {
         const cams = cameraSet(name, BOUNDS);
         assert.equal(cams.length, viewCount(name));
@@ -150,4 +151,21 @@ test('z16-v2 covers the tile from stations, above the ground', () => {
     }
     const hilly = cameraSet('z16-v2', { centre: [0, 0, 0], extent: 850 }, () => 900);
     for (const c of hilly) assert.ok(c.position[1] >= 905, 'never in the hill');
+});
+
+// z16-v3: the stations, and rings far out and low, which is where a player
+// stands when the tile is looked at across the world.
+test('z16-v3 adds far, low rings round the stations', () => {
+    const cams = cameraSet('z16-v3', { centre: [0, 0, 0], extent: 850 }, () => 0);
+    assert.equal(cams.length, 81);
+    const rings = cams.filter((c) => c.kind === 'ring');
+    assert.equal(rings.length, 36);
+    for (const c of rings) {
+        const out = Math.hypot(c.position[0], c.position[2]);
+        assert.ok(out > 850 * 1.3, 'a ring eye stands outside the tile');
+        const elev = Math.atan2(c.position[1], out) * 180 / Math.PI;
+        assert.ok(elev > 10 && elev < 42, `and looks in low, at ${elev.toFixed(0)}°`);
+    }
+    const hilly = cameraSet('z16-v3', { centre: [0, 0, 0], extent: 850 }, () => 900);
+    for (const c of hilly) assert.ok(c.position[1] > 900, 'never below the ground it is over');
 });

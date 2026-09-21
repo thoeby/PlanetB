@@ -31,6 +31,8 @@
 import { cameraSet, viewCount } from '../lib/cameras.js';
 import { boundsOf as frameBounds, groundOf } from './frame.js';
 import { pointsPicture, shuffled } from '../lib/preview.js';
+import { dataset } from '../lib/dataset.js';
+export { dataset };
 import { holdout } from '../lib/frames.js';
 import {
     brushDevice, configFor, deviceStats, keep, loadBrush, readSplats, trainIn,
@@ -118,32 +120,6 @@ export const PREVIEW_EVERY = 200;
 export const PREVIEW_SPLATS = 150000;
 
 const decoder = new TextDecoder();
-const encoder = new TextEncoder();
-
-// The dataset brush reads: every frame that is not held out, one
-// transforms.json naming them and the seed, and the seed itself.
-export function dataset(tars, set, seed) {
-    const back = new Set(holdout(viewCount(set) || 0));
-    const files = [];
-    let intr = null;
-    const frames = [];
-    for (const bytes of tars) {
-        const t = readTar(bytes);
-        const meta = JSON.parse(decoder.decode(t.get('transforms.json')));
-        intr = intr ?? meta;
-        for (const fr of meta.frames) {
-            if (back.has(fr.pose_id)) continue;
-            files.push({ name: fr.file_path, bytes: t.get(fr.file_path) });
-            frames.push(fr);
-        }
-    }
-    if (!frames.length) throw new Error('every frame was held out; the set is too small');
-    frames.sort((a, b) => a.pose_id - b.pose_id);
-    const transforms = { ...intr, frames, ply_file_path: 'init.ply' };
-    files.push({ name: 'transforms.json', bytes: encoder.encode(JSON.stringify(transforms)) });
-    files.push({ name: 'init.ply', bytes: writePly(seed) });
-    return { files, views: frames.length, held: back.size };
-}
 
 // The window a trained splat has to be inside to be this tile's. Height is
 // the seed's own span plus a share of it; x and z are the seed's span plus a

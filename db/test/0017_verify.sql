@@ -45,12 +45,12 @@ SELECT ensure_job((SELECT z FROM tt), (SELECT x FROM tt), (SELECT y FROM tt)) AS
 SELECT is((SELECT count(*)::int FROM atom
            WHERE job_id = (SELECT jid FROM jobs) AND op = 'verify'), 0,
     'nothing is built to check a tile perceptually');
-SELECT is((SELECT count(*)::int FROM atom WHERE job_id = (SELECT jid FROM jobs)), 6,
+SELECT is((SELECT count(*)::int FROM atom WHERE job_id = (SELECT jid FROM jobs)), 8,
     'a leaf is assembled, framed, trained and encoded, and that is all');
 SELECT results_eq(
     $$SELECT op, count(*)::int FROM atom
       WHERE job_id = (SELECT jid FROM jobs) GROUP BY op ORDER BY op$$,
-    $$VALUES ('assemble', 1), ('frame', 3), ('sog', 1), ('train', 1)$$,
+    $$VALUES ('assemble', 1), ('frame', 5), ('sog', 1), ('train', 1)$$,
     'the baseline tile is trained like any other, not sampled');
 
 -- rendering it -----------------------------------------------------------
@@ -87,7 +87,7 @@ BEGIN
 END
 $$;
 
-SELECT is((SELECT count(*)::int FROM said), 6, 'the tab worked through all six');
+SELECT is((SELECT count(*)::int FROM said), 8, 'the tab worked through all eight');
 SELECT is((SELECT count(*)::int FROM said WHERE state <> 'verified'), 0,
     'and every one was accepted without waiting for anybody''s opinion');
 SELECT is((SELECT count(*)::int FROM atom
