@@ -116,11 +116,16 @@ export class BrushSplats {
     private constructor();
     free(): void;
     [Symbol.dispose](): void;
+    buffers(): BrushSplatBuffers | undefined;
     /**
      * All three GPU buffers backing this snapshot. Returns `null` if Brush
      * isn't running on the WebGPU backend.
+     * splatworld: the splats off the GPU as typed arrays — the first `limit`
+     * of them — read through burn on the device brush trains on. With
+     * `app.init()` that device is brush's own and the host never holds it,
+     * so `buffers()` alone cannot be read back; this can.
      */
-    buffers(): BrushSplatBuffers | undefined;
+    read(limit: number): Promise<any>;
     readonly numSplats: number;
     readonly shDegree: number;
 }
@@ -217,6 +222,7 @@ export interface InitOutput {
     readonly brushsplatbuffers_transforms: (a: number) => any;
     readonly brushsplats_buffers: (a: number) => number;
     readonly brushsplats_numSplats: (a: number) => number;
+    readonly brushsplats_read: (a: number, b: number) => any;
     readonly brushsplats_shDegree: (a: number) => number;
     readonly intounderlyingbytesource_autoAllocateChunkSize: (a: number) => number;
     readonly intounderlyingbytesource_cancel: (a: number) => void;
@@ -232,9 +238,9 @@ export interface InitOutput {
     readonly training_trainSteps: (a: number, b: number) => any;
     readonly wasm_bindgen_60e0e64c2e293829___convert__closures_____invoke___js_sys_227ad448081b40fb___Function_fn_wasm_bindgen_60e0e64c2e293829___JsValue_____wasm_bindgen_60e0e64c2e293829___sys__Undefined___js_sys_227ad448081b40fb___Function_fn_wasm_bindgen_60e0e64c2e293829___JsValue_____wasm_bindgen_60e0e64c2e293829___sys__Undefined_______true_: (a: number, b: number, c: any, d: any) => void;
     readonly wasm_bindgen_60e0e64c2e293829___convert__closures_____invoke___wasm_bindgen_60e0e64c2e293829___JsValue__core_ed718c3d60ebd546___result__Result_____wasm_bindgen_60e0e64c2e293829___JsError___true_: (a: number, b: number, c: any) => [number, number];
-    readonly wasm_bindgen_60e0e64c2e293829___convert__closures_____invoke___wasm_bindgen_60e0e64c2e293829___sys__JsNullable_wgpu_1a00cd2c62d46558___backend__webgpu__webgpu_sys__gen_GpuError__GpuError___core_ed718c3d60ebd546___result__Result_____wasm_bindgen_60e0e64c2e293829___JsError___true_: (a: number, b: number, c: any) => [number, number];
-    readonly wasm_bindgen_60e0e64c2e293829___convert__closures_____invoke___wasm_bindgen_60e0e64c2e293829___sys__JsNullable_wgpu_1a00cd2c62d46558___backend__webgpu__webgpu_sys__gen_GpuError__GpuError___core_ed718c3d60ebd546___result__Result_____wasm_bindgen_60e0e64c2e293829___JsError___true__38: (a: number, b: number, c: any) => [number, number];
-    readonly wasm_bindgen_60e0e64c2e293829___convert__closures_____invoke___wasm_bindgen_60e0e64c2e293829___sys__JsNullable_wgpu_1a00cd2c62d46558___backend__webgpu__webgpu_sys__gen_GpuError__GpuError___core_ed718c3d60ebd546___result__Result_____wasm_bindgen_60e0e64c2e293829___JsError___true__39: (a: number, b: number, c: any) => [number, number];
+    readonly wasm_bindgen_60e0e64c2e293829___convert__closures_____invoke___wasm_bindgen_60e0e64c2e293829___sys__JsNullable_wgpu_decf374e5028c2e5___backend__webgpu__webgpu_sys__gen_GpuError__GpuError___core_ed718c3d60ebd546___result__Result_____wasm_bindgen_60e0e64c2e293829___JsError___true_: (a: number, b: number, c: any) => [number, number];
+    readonly wasm_bindgen_60e0e64c2e293829___convert__closures_____invoke___wasm_bindgen_60e0e64c2e293829___sys__JsNullable_wgpu_decf374e5028c2e5___backend__webgpu__webgpu_sys__gen_GpuError__GpuError___core_ed718c3d60ebd546___result__Result_____wasm_bindgen_60e0e64c2e293829___JsError___true__39: (a: number, b: number, c: any) => [number, number];
+    readonly wasm_bindgen_60e0e64c2e293829___convert__closures_____invoke___wasm_bindgen_60e0e64c2e293829___sys__JsNullable_wgpu_decf374e5028c2e5___backend__webgpu__webgpu_sys__gen_GpuError__GpuError___core_ed718c3d60ebd546___result__Result_____wasm_bindgen_60e0e64c2e293829___JsError___true__40: (a: number, b: number, c: any) => [number, number];
     readonly wasm_bindgen_60e0e64c2e293829___convert__closures_____invoke___wasm_bindgen_60e0e64c2e293829___JsValue______true_: (a: number, b: number, c: any) => void;
     readonly wasm_bindgen_60e0e64c2e293829___convert__closures_____invoke___web_sys_807c35570cc7a797___features__gen_Event__Event______true_: (a: number, b: number, c: any) => void;
     readonly __wbindgen_malloc_command_export: (a: number, b: number) => number;

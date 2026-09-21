@@ -1,2 +1,1 @@
-brush (ee797e9edb5a9d4a5636981ffe965a941dd8df05), Apache-2.0, https://github.com/ArthurBrussee/brush
-Built with tools/brush-autotune.patch applied (autotune level Full: no roofline throughput measurement, which reads synchronously and panics on wasm).
+brush (5ee2053437bcb5d42d64b361d82cd8c915f87ad1), Apache-2.0, https://github.com/ArthurBrussee/brush

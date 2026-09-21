@@ -19,7 +19,7 @@ BRUSH_REPO=${BRUSH_REPO:-https://github.com/ArthurBrussee/brush}
 # measurement the patch exists for. The web demo that runs without it is an
 # older brush. The 800 ms a step this build was blamed for was the pump in
 # client/lib/brush.js, not the level.
-AUTOTUNE_LEVEL=${AUTOTUNE_LEVEL:-Full}
+AUTOTUNE_LEVEL=${AUTOTUNE_LEVEL:-none}
 BRUSH_REV=${BRUSH_REV:-main}
 DEST=client/vendor/brush
 WORK=$(mktemp -d)
@@ -44,13 +44,38 @@ anchor = '        console_error_panic_hook::set_once();\n'
 assert anchor in s, 'brush-js lib.rs: anchor for the autotune patch is gone'
 open(p, 'w').write(s.replace(anchor, anchor + add, 1))
 PY
+# Two changes of ours, always (tools/brush-readback.patch): BrushSplats.read(),
+# the splats off the GPU as typed arrays through burn itself, so the trainer
+# can let brush make its own device (app.init(), the way brush's own app
+# does) and still get the result back.
+python3 - "$WORK/brush/apps/brush-js/src/lib.rs" <<'PY'
+import sys
+p = sys.argv[1]; s = open(p).read()
+hunk = open('tools/brush-readback.patch').read().split('@@\n', 1)[1]
+add = ''.join(l[1:] for l in hunk.splitlines(True) if l.startswith('+'))
+anchor = '    pub fn buffers(&self) -> Option<BrushSplatBuffers> {\n'
+assert anchor in s, 'brush-js lib.rs: anchor for the readback patch is gone'
+open(p, 'w').write(s.replace(anchor, add + anchor, 1))
+PY
+
 # wasm-pack fetches binaryen's wasm-opt from GitHub releases at build time;
 # where that download cannot be had (a sandbox behind a proxy), WASM_OPT=0
-# packages without it. The module is larger and the JS glue the same; the
-# GPU does the training either way, so a step costs what it costs.
+# packages without it and the module is optimised below with the binaryen
+# npm ships instead — the same wasm-opt, the same flags brush's own release
+# profile uses (apps/brush-js/Cargo.toml). Unoptimised it is 51 MB and
+# slower on the CPU side; optimised, 18.
 OPT=; [ "${WASM_OPT:-1}" = 0 ] && OPT=--no-opt
 ( cd "$WORK/brush/apps/brush-js" && wasm-pack build . --release --target web $OPT \
     --out-dir "$WORK/pkg" )
+if [ -n "$OPT" ]; then
+    ( cd "$WORK" && npm init -y > /dev/null && npm install --no-audit --no-fund binaryen > /dev/null )
+    "$WORK/node_modules/binaryen/bin/wasm-opt" -Oz --converge \
+        --enable-bulk-memory --enable-nontrapping-float-to-int --enable-simd \
+        --enable-reference-types --enable-multivalue --enable-sign-ext \
+        --enable-mutable-globals --enable-bulk-memory-opt --enable-call-indirect-overlong \
+        "$WORK/pkg/brush_js_bg.wasm" -o "$WORK/pkg/brush_js_bg.opt.wasm"
+    mv "$WORK/pkg/brush_js_bg.opt.wasm" "$WORK/pkg/brush_js_bg.wasm"
+fi
 mkdir -p "$DEST"
 cp "$WORK/pkg/brush_js.js" "$WORK/pkg/brush_js_bg.wasm" "$WORK/pkg/brush_js.d.ts" "$DEST/"
 cp "$WORK/brush/LICENSE" "$DEST/LICENSE"

@@ -1,0 +1,29 @@
+--- a/apps/brush-js/src/lib.rs
++++ b/apps/brush-js/src/lib.rs
+@@
++    /// splatworld: the splats off the GPU as typed arrays — the first `limit`
++    /// of them — read through burn on the device brush trains on. With
++    /// `app.init()` that device is brush's own and the host never holds it,
++    /// so `buffers()` alone cannot be read back; this can.
++    #[wasm_bindgen(js_name = read)]
++    pub async fn read(&self, limit: u32) -> Result<JsValue, JsValue> {
++        let n = (self.inner.num_splats().min(limit)) as usize;
++        let err = |e: String| JsValue::from_str(&e);
++        let transforms = self.inner.transforms.val().slice([0..n])
++            .into_data_async().await.map_err(|e| err(format!("{e:?}")))?
++            .to_vec::<f32>().map_err(|e| err(format!("{e:?}")))?;
++        let sh = self.inner.sh_coeffs.val().slice([0..n])
++            .into_data_async().await.map_err(|e| err(format!("{e:?}")))?
++            .to_vec::<f32>().map_err(|e| err(format!("{e:?}")))?;
++        let opac = self.inner.raw_opacities.val().slice([0..n])
++            .into_data_async().await.map_err(|e| err(format!("{e:?}")))?
++            .to_vec::<f32>().map_err(|e| err(format!("{e:?}")))?;
++        let out = js_sys::Object::new();
++        js_sys::Reflect::set(&out, &"count".into(), &JsValue::from(n as u32))?;
++        js_sys::Reflect::set(&out, &"shDegree".into(), &JsValue::from(self.inner.sh_degree()))?;
++        js_sys::Reflect::set(&out, &"transforms".into(), &js_sys::Float32Array::from(&transforms[..]))?;
++        js_sys::Reflect::set(&out, &"sh".into(), &js_sys::Float32Array::from(&sh[..]))?;
++        js_sys::Reflect::set(&out, &"opac".into(), &js_sys::Float32Array::from(&opac[..]))?;
++        Ok(out.into())
++    }
++

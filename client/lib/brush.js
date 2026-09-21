@@ -283,34 +283,27 @@ export async function trainIn(app, dir, config,
     return training;
 }
 
-async function readBuffer(device, src, bytes) {
-    // MAP_READ | COPY_DST, and READ: the WebGPU constants, spelled out so
-    // this file also loads where there is no GPU (the node tests).
-    const staging = device.createBuffer({ size: bytes, usage: 0x1 | 0x8 });
-    const enc = device.createCommandEncoder();
-    enc.copyBufferToBuffer(src, 0, staging, 0, bytes);
-    device.queue.submit([enc.finish()]);
-    await staging.mapAsync(0x1);
-    const out = new Float32Array(staging.getMappedRange().slice(0));
-    staging.unmap();
-    staging.destroy();
-    return out;
+// Brush on its own device, the way its own app runs: burn picks the
+// adapter, the features and the limits. This used to hand brush a device
+// this code had made (initExisting) so the splats could be copied off it;
+// tools/brush-readback.patch reads them through burn instead, and nothing
+// here holds a device any more.
+export async function brushApp(brush) {
+    const app = new brush.BrushApp();
+    await app.init();
+    return app;
 }
 
-// The splats as brush holds them, off its GPU: transforms [N, 10] as
-// means(3) | rotation xyzw(4) | log scales(3), sh [N, (deg+1)^2, 3], and raw
-// opacities [N]. Bound whole by brush's own demo, so offset 0.
-export async function readSplats(device, splats, limit = Infinity) {
-    const n = Math.min(splats.numSplats, limit);
-    const coeffs = (splats.shDegree + 1) ** 2;
-    const b = splats.buffers();
-    if (!b) throw new Error('brush is not on WebGPU: no buffers to read');
-    const [transforms, sh, opac] = await Promise.all([
-        readBuffer(device, b.transforms, n * 10 * 4),
-        readBuffer(device, b.shCoeffs, n * coeffs * 3 * 4),
-        readBuffer(device, b.rawOpacities, n * 4),
-    ]);
-    return splatsFromBrush({ transforms, sh, opac, count: n, coeffs });
+// The splats as brush holds them, off its GPU through burn
+// (tools/brush-readback.patch): transforms [N, 10] as means(3) |
+// rotation xyzw(4) | log scales(3), sh [N, (deg+1)^2, 3], raw opacities [N].
+export async function readSplats(splats, limit = Infinity) {
+    if (typeof splats.read !== 'function') {
+        throw new Error('this brush build has no read(): run tools/build-brush.sh');
+    }
+    const r = await splats.read(Number.isFinite(limit) ? limit : 0xffffffff);
+    return splatsFromBrush({ transforms: r.transforms, sh: r.sh, opac: r.opac,
+        count: r.count, coeffs: (r.shDegree + 1) ** 2 });
 }
 
 // Pure, so client/test/brush.test.js can check the layout without a GPU.

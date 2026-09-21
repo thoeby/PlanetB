@@ -46,7 +46,7 @@ import { dataset } from '../lib/dataset.js';
 export { dataset };
 import { holdout } from '../lib/frames.js';
 import {
-    brushDevice, configFor, deviceStats, keep, loadBrush, readSplats, trainIn,
+    brushApp, configFor, deviceStats, keep, loadBrush, readSplats, trainIn,
 } from '../lib/brush.js';
 import { unpackMeshes } from '../lib/mesh.js';
 import { datasetDir, removeDir } from '../lib/opfs.js';
@@ -177,7 +177,10 @@ function checkSeed(seed) {
 async function trainWithBrush({ atom, seed, tars, scene, eye, iters, budget, size, log,
     knobs }) {
     const brush = await loadBrush();
-    const { adapter, device } = await brushDevice();
+    // Which card this tab has, for the log only: brush picks its own
+    // (client/lib/brush.js brushApp), the way its own app does.
+    const adapter = await globalThis.navigator?.gpu?.requestAdapter?.().catch(() => null);
+    if (!adapter) throw new Error('no WebGPU adapter: training needs one');
     const name = `train-${atom.id}`;
     checkSeed(seed);
     const ds = dataset(tars, atom.params?.camera_set, seed);
@@ -191,13 +194,12 @@ async function trainWithBrush({ atom, seed, tars, scene, eye, iters, budget, siz
         held: ds.held, from: seed.count, iters, size, budget,
         gpu: [info.vendor, info.architecture, info.device, info.description]
             .filter(Boolean).join(' ') || 'unnamed adapter',
-        vram_mb: Math.round((device.limits.maxBufferSize ?? 0) / 1048576),
+        vram_mb: Math.round((adapter.limits?.maxBufferSize ?? 0) / 1048576),
         frames_mb: Math.round(ds.views * size * size * 4 / 1048576) });
     let training = null;
     let last = { iter: 0, ms: 0, brush: 0, ours: 0 };
     try {
-        const app = new brush.BrushApp();
-        app.initExisting(adapter, device, device.queue);
+        const app = await brushApp(brush);
         training = await trainIn(app, dir, (init) => configFor(init, { iters, budget, size,
             seed: atom.seed ?? 42, refineEvery: Number(atom.params?.refine_every) || 0 }), {
             // How many steps brush is asked for a call. One, unless the page
@@ -224,25 +226,24 @@ async function trainWithBrush({ atom, seed, tars, scene, eye, iters, budget, siz
             },
             onWarn: (text) => log?.({ event: 'warning', text }),
             onStage: (text) => log?.({ event: 'stage', text }),
-            onBatch: (iter, t) => preview(device, t, iter, iters, eye, log),
+            onBatch: (iter, t) => preview(t, iter, iters, eye, log),
         });
         const current = training.currentSplats();
         if (!current) throw new Error('brush produced no splats');
-        const splats = await readSplats(device, current);
+        const splats = await readSplats(current);
         current.free?.();
         return splats;
     } finally {
         training?.free?.();
         await removeDir(name).catch(() => {});
-        device.destroy?.();
     }
 }
 
-async function preview(device, training, iter, iters, eye, log) {
+async function preview(training, iter, iters, eye, log) {
     if (iter % PREVIEW_EVERY !== 0 || !iter) return;
     const cur = training.currentSplats();
     if (!cur) return;
-    const some = await readSplats(device, cur, PREVIEW_SPLATS);
+    const some = await readSplats(cur, PREVIEW_SPLATS);
     const total = cur.numSplats;
     cur.free?.();
     log?.({ event: 'train', iter, of: iters, splats: total, picture: pointsPicture(some, eye) });
