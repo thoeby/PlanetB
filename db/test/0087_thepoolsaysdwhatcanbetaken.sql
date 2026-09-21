@@ -30,8 +30,8 @@ CREATE TEMP TABLE fresh AS
 SELECT j FROM jsonb_array_elements(render_pool(7.805, 46.295, 20)) j
 WHERE (j ->> 'job')::bigint = (SELECT jid FROM jobs);
 SELECT is((SELECT (j ->> 'ready')::int FROM fresh), 1,
-    'one piece can be taken: the assemble everything else waits on');
--- Everything else in the job — the frames, the training, the encoding — is
+    'one piece can be taken: the dataset everything else waits on');
+-- Everything else in the job — the training, the encoding — is
 -- waiting on that one piece, and the row says so rather than counting them as
 -- work a tab could take.
 SELECT is((SELECT (j ->> 'blocked')::int FROM fresh),
@@ -40,7 +40,7 @@ SELECT is((SELECT (j ->> 'blocked')::int FROM fresh),
 
 -- It gives up for good.
 UPDATE atom SET state = 'failed', attempts = 3
-WHERE job_id = (SELECT jid FROM jobs) AND op = 'assemble';
+WHERE job_id = (SELECT jid FROM jobs) AND op = 'dataset';
 
 CREATE TEMP TABLE dead AS
 SELECT j FROM jsonb_array_elements(render_pool(7.805, 46.295, 20)) j

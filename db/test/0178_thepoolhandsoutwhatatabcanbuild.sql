@@ -25,7 +25,7 @@ SELECT is((SELECT count(*) FROM atom
              AND algo_version IS DISTINCT FROM algo_current(op)), 0::bigint,
     'build_dag makes every op at the version algo_current names');
 SELECT is((SELECT count(DISTINCT op) FROM atom WHERE job_id = (SELECT jid FROM j)),
-    4::bigint, 'assemble, frame, train and sog, at z14');
+    3::bigint, 'dataset, train and sog, at z14 (db/0183)');
 
 -- A tab that builds an older trainer is not handed the train piece.
 INSERT INTO worker (user_id, trust) SELECT owner_id, 1 FROM ids;
@@ -39,13 +39,13 @@ UPDATE atom SET state = 'verified' WHERE job_id = (SELECT jid FROM j) AND op <> 
 UPDATE atom SET state = 'ready' WHERE job_id = (SELECT jid FROM j) AND op = 'train';
 SELECT is((SELECT id FROM claim_atom('{"webgpu": true, "max_buffer_mb": 100000,
     "ops": ["train"], "algo": {"train": "train-v1"}}')), NULL::bigint,
-    'a tab building train-v1 is handed no train-v14 piece');
+    'a tab building train-v1 is handed no train-v15 piece');
 SELECT is((SELECT id FROM claim_for((SELECT jid FROM j), '{"webgpu": true,
     "max_buffer_mb": 100000, "algo": {"train": "train-v1"}}')), NULL::bigint,
     'nor when it asks for that job by name');
 SELECT is((SELECT op FROM claim_for((SELECT jid FROM j), '{"webgpu": true,
-    "max_buffer_mb": 100000, "algo": {"train": "train-v14"}}')), 'train',
-    'a tab building train-v14 is');
+    "max_buffer_mb": 100000, "algo": {"train": "train-v15"}}')), 'train',
+    'a tab building train-v15 is');
 SELECT ok(hand_back_atom((SELECT id FROM atom
     WHERE job_id = (SELECT jid FROM j) AND op = 'train')), 'and hands it back');
 SELECT is((SELECT op FROM claim_atom('{"webgpu": true, "max_buffer_mb": 100000,
@@ -66,11 +66,11 @@ SELECT live_job(14, tile_x(7.885, 14), tile_y(46.295, 14),
     (SELECT expected_version FROM tile
      WHERE z = 14 AND x = tile_x(7.885, 14) AND y = tile_y(46.295, 14))) AS jid;
 SELECT is((SELECT algo_version FROM atom WHERE job_id = (SELECT jid FROM j2) AND op = 'train'),
-    'train-v14', 'and the same version of the tile has a train-v14 piece now');
+    'train-v15', 'and the same version of the tile has a train-v15 piece now');
 SELECT is((SELECT count(*) FROM atom WHERE job_id = (SELECT jid FROM j2)
-           AND op = 'frame' AND state = 'verified'),
-    (SELECT count(*) FROM atom WHERE job_id = (SELECT jid FROM j2) AND op = 'frame'),
-    'with the frames it had already made');
+           AND op = 'dataset' AND state = 'verified'),
+    (SELECT count(*) FROM atom WHERE job_id = (SELECT jid FROM j2) AND op = 'dataset'),
+    'with the dataset it had already made');
 
 SELECT * FROM finish();
 ROLLBACK;

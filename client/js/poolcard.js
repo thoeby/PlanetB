@@ -31,7 +31,9 @@ const KIND = { render: 'render', train: 'training', publish: 'packing' };
 // says "0 failed" on every tile teaches nobody to look at the one that says 1.
 export function pieces(e) {
     const bits = [];
-    if (Number(e.frames)) bits.push(`${e.frames_done}/${e.frames} frames`);
+    // One dataset per tile since db/0183: the line says whether it is drawn.
+    if (Number(e.frames) === 1) bits.push(Number(e.frames_done) ? 'dataset drawn' : 'dataset to draw');
+    else if (Number(e.frames)) bits.push(`${e.frames_done}/${e.frames} frames`);
     if (Number(e.ready)) bits.push(`${e.ready} ready`);
     if (Number(e.claimed)) bits.push(`${e.claimed} in hand`);
     if (Number(e.blocked)) bits.push(`${e.blocked} waiting`);
@@ -43,7 +45,7 @@ export function pieces(e) {
 // The steps a job is made of, and how far each has got (db/0153 job_steps).
 // A compile is four things in a row that four different people may do, and
 // the card said none of that: it had a button and a count of pieces.
-const STEP_WORD = { assemble: 'ground', frame: 'frames', train: 'training',
+const STEP_WORD = { dataset: 'dataset', assemble: 'ground', frame: 'frames', train: 'training',
     sog: 'packing', merge: 'merge', verify: 'checks' };
 
 export function stepsOf(e) {

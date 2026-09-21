@@ -24,7 +24,7 @@ GRANT SELECT ON jobs TO player;
 -- Three bad attempts at the first atom, the way a GeoServer that is not ready
 -- produces them.
 UPDATE atom SET state = 'failed', attempts = 3
-WHERE job_id = (SELECT jid FROM jobs) AND op = 'assemble';
+WHERE job_id = (SELECT jid FROM jobs) AND op = 'dataset';
 
 SELECT is((SELECT count(*)::int FROM atom
            WHERE job_id = (SELECT jid FROM jobs) AND state = 'failed'), 1,
@@ -53,10 +53,10 @@ SELECT is(retry_job((SELECT jid FROM jobs)),
     (SELECT count(*)::int FROM atom WHERE job_id = (SELECT jid FROM jobs)),
     'and tries it again, every atom of it');
 SELECT is((SELECT state FROM atom
-           WHERE job_id = (SELECT jid FROM jobs) AND op = 'assemble'), 'ready',
+           WHERE job_id = (SELECT jid FROM jobs) AND op = 'dataset'), 'ready',
     'the atom is handed out again, from the beginning');
 SELECT is((SELECT attempts::int FROM atom
-           WHERE job_id = (SELECT jid FROM jobs) AND op = 'assemble'), 0,
+           WHERE job_id = (SELECT jid FROM jobs) AND op = 'dataset'), 0,
     'with its three strikes forgotten');
 
 SELECT * FROM finish();

@@ -49,6 +49,21 @@ Two acceptances are unrun for want of hardware and are marked as such: WP3.1's
 headset). WP5.1's raster seed has been run over a region, not over the whole of
 Switzerland — the sources for that are outside this container's egress policy.
 
+## One tile, one folder (FND.5, db/0178–0183)
+
+What a week of "the pool is broken" turned out to be, and what was done:
+
+| what was seen | cause | fix |
+|---|---|---|
+| every train piece refused with "compile the tile again" | the tab's version table said train-v13 after the trainer moved to v14, and the pool never read what a tab builds | db/0178: `caps.algo` is read by the claim; `algo_current()` is the one place versions are written and tests hold the tab and `build_dag` to it; stale jobs are reopened |
+| "another tab holds it", one atom training four times in one tab | two worker rows per player, chosen at random by every lookup; fail_atom asked whose player, not whose tab | db/0181: one worker per user, a lost claim is not this tab's to put down, and the run it lost is stopped |
+| "registered but nowhere in the store", no reset gets past it | a verified atom reused by hash whose file is gone | db/0180: the tab holding the work forgets the artifact and makes it again |
+| a trained tile is blobs from where a player stands | 45 views, all close and from above | db/0182: z16-v3, 81 views with far, low rings |
+| eight folders per tile, none of them the dataset | assemble + 3–6 frame atoms | db/0183: one `dataset` atom, one tar; `tools/dataset.mjs` unpacks it for brush's app |
+
+A leaf job is three atoms now: dataset, train, sog. Not yet run here:
+`make player-run` and a real training run — no GPU in this container.
+
 ## The interface, against the design ✅
 
 `docs/SPEC.md` is the product specification and `docs/design/` the design it

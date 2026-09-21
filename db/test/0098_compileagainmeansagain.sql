@@ -1,5 +1,6 @@
 -- "Compile it all again" withdraws what was submitted for the version it
--- moves past, so the land is submittable again at once; and frames are v4.
+-- moves past, so the land is submittable again at once; and the frames are a
+-- dataset (db/0183).
 BEGIN;
 SELECT plan(6);
 
@@ -52,7 +53,7 @@ SELECT set_area_detail('00000000-0000-0000-0000-000000000981', 16);
 CREATE TEMP TABLE j16 AS
 SELECT ensure_job(16, tile_x(7.905, 16), tile_y(46.295, 16)) AS jid;
 SELECT is((SELECT min(algo_version) FROM atom
-           WHERE job_id = (SELECT jid FROM j16) AND op = 'frame'), 'frame-v10',
+           WHERE job_id = (SELECT jid FROM j16) AND op = 'dataset'), 'dataset-v1',
     'frames are the version the client publishes');
 
 SELECT * FROM finish();

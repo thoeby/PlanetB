@@ -5,7 +5,8 @@
 -- (db/0035_mergeready.sql), never rendered, and nothing said so. A tile with
 -- nothing under it is the bottom of its own ladder now, and is built the way a
 -- z14 leaf is (db/0045_coarseleaf.sql) — which, since the sampler was removed
--- and the branch put back in db/0128, means assembled, framed and trained.
+-- and the branch put back in db/0128, means assembled, framed and trained —
+-- one dataset atom and a trainer since db/0183.
 BEGIN;
 SELECT plan(9);
 
@@ -56,14 +57,14 @@ SELECT ensure_job((SELECT z FROM coarse), (SELECT x FROM coarse),
                   (SELECT y FROM coarse)) AS jid;
 
 SELECT is((SELECT array_agg(DISTINCT op) FROM atom WHERE job_id = (SELECT jid FROM jobs)),
-    ARRAY['assemble', 'frame', 'sog', 'train'],
+    ARRAY['dataset', 'sog', 'train'],
     'it is assembled, framed and trained, not merged out of nothing');
 
 -- And it is actually handed out, which is the whole point ---------------
 SELECT set_config('request.jwt.claims',
     json_build_object('sub', owner_id, 'role', 'player')::text, true) FROM ids;
 CREATE TEMP TABLE claimed AS SELECT * FROM claim_atom('{}'::jsonb);
-SELECT is((SELECT op FROM claimed), 'assemble',
+SELECT is((SELECT op FROM claimed), 'dataset',
     'a tab asking for work is given it');
 SELECT is((SELECT j.z::int FROM job j WHERE j.id = (SELECT job_id FROM claimed)),
     (SELECT z::int FROM coarse), 'for that very tile');

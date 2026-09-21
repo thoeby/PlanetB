@@ -1,4 +1,4 @@
--- "Compile it all again" on unchanged ground: the new job's assemble is the
+-- "Compile it all again" on unchanged ground: the new job's dataset is the
 -- cancelled job's, and it must come along rather than wait there for ever.
 BEGIN;
 SELECT plan(8);
@@ -24,7 +24,7 @@ CREATE TEMP TABLE tt AS SELECT 18 AS z, tile_x(7.805, 18) AS x, tile_y(46.295, 1
 CREATE TEMP TABLE first AS
 SELECT ensure_job((SELECT z FROM tt), (SELECT x FROM tt), (SELECT y FROM tt)) AS jid;
 CREATE TEMP TABLE asm AS
-SELECT id FROM atom WHERE job_id = (SELECT jid FROM first) AND op = 'assemble';
+SELECT id FROM atom WHERE job_id = (SELECT jid FROM first) AND op = 'dataset';
 
 -- The world does not move; the person asks for it again.
 SELECT ok(recompile_land('00000000-0000-0000-0000-000000000094') > 0, 'the ground is marked');
@@ -35,7 +35,7 @@ CREATE TEMP TABLE second AS
 SELECT ensure_job((SELECT z FROM tt), (SELECT x FROM tt), (SELECT y FROM tt)) AS jid;
 SELECT isnt((SELECT jid FROM second), (SELECT jid FROM first), 'a new job is opened');
 SELECT is((SELECT job_id FROM atom WHERE id = (SELECT id FROM asm)), (SELECT jid FROM second),
-    'the assemble atom, unchanged, moves to the new job');
+    'the dataset atom, unchanged, moves to the new job');
 SELECT is((SELECT state FROM atom WHERE id = (SELECT id FROM asm)), 'ready',
     'and is somebody''s to take');
 SELECT is((SELECT count(*) FROM atom
@@ -44,12 +44,12 @@ SELECT is((SELECT count(*) FROM atom
     'everything else in the job waits on it');
 
 -- A verified dependency counts from the start: mark it done, ask again, and
--- the frames are ready without anybody touching the assemble. The state
+-- the training is ready without anybody touching the dataset. The state
 -- machine (db/0005) has no ready -> verified, so a worker claims it on the way.
 INSERT INTO worker (id, user_id, caps, trust)
 SELECT '00000000-0000-0000-0000-000000000941'::uuid, owner_id, '{}', 0.8 FROM ids;
 INSERT INTO artifact (sha256, kind, bytes, algo_version)
-VALUES (repeat('a', 64), 'init_ply', 4096, 'assemble-v2');
+VALUES (repeat('a', 64), 'dataset', 4096, 'dataset-v1');
 UPDATE atom SET state = 'claimed', worker_id = '00000000-0000-0000-0000-000000000941',
     claimed_at = now(), heartbeat_at = now() WHERE id = (SELECT id FROM asm);
 UPDATE atom SET state = 'verified', output_sha256 = repeat('a', 64),
@@ -58,9 +58,9 @@ SELECT ok(recompile_land('00000000-0000-0000-0000-000000000094') > 0, 'asked aga
 CREATE TEMP TABLE third AS
 SELECT ensure_job((SELECT z FROM tt), (SELECT x FROM tt), (SELECT y FROM tt)) AS jid;
 SELECT is((SELECT count(*) FROM atom
-           WHERE job_id = (SELECT jid FROM third) AND op = 'frame' AND state = 'ready'),
-    ceil(camera_views(18)::numeric / frame_chunk())::bigint,
-    'every frame atom of the new job is ready over the verified assemble');
+           WHERE job_id = (SELECT jid FROM third) AND op = 'train' AND state = 'ready'),
+    1::bigint,
+    'the train atom of the new job is ready over the verified dataset');
 
 SELECT * FROM finish();
 ROLLBACK;

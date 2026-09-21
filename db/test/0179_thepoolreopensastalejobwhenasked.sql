@@ -24,16 +24,16 @@ SELECT is((SELECT trust FROM jsonb_to_record(my_standing()) AS s (trust numeric)
 SELECT is((SELECT (my_standing() -> 'needs' ->> 'train')::numeric), trust_min('train'),
     'and what training asks of it');
 
--- The world moved on: the assemble piece is at a version nobody builds.
-UPDATE atom SET algo_version = 'assemble-v1',
-                atom_hash = atom_hash(op, 'assemble-v1', inputs, params, seed)
-WHERE job_id = (SELECT jid FROM j) AND op = 'assemble';
+-- The world moved on: the dataset piece is at a version nobody builds.
+UPDATE atom SET algo_version = 'dataset-v0',
+                atom_hash = atom_hash(op, 'dataset-v0', inputs, params, seed)
+WHERE job_id = (SELECT jid FROM j) AND op = 'dataset';
 SELECT ok(stale_work_waiting(), 'the pool knows there is stale work in it');
 
 -- Asking for that job by name reopens it and hands out the new piece.
 CREATE TEMP TABLE got AS
-SELECT * FROM claim_for((SELECT jid FROM j), '{"algo": {"assemble": "assemble-v11"}}');
-SELECT is((SELECT algo_version FROM got), 'assemble-v11',
+SELECT * FROM claim_for((SELECT jid FROM j), '{"algo": {"dataset": "dataset-v1"}}');
+SELECT is((SELECT algo_version FROM got), 'dataset-v1',
     'claim_for hands out the piece the world builds now');
 SELECT isnt((SELECT job_id FROM got), (SELECT jid FROM j), 'out of the job that replaced it');
 SELECT is((SELECT state FROM job WHERE id = (SELECT jid FROM j)), 'cancelled',

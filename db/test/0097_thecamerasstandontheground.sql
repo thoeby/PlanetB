@@ -1,8 +1,9 @@
--- Every frame atom of a trained tile is of one version, and every one of them
--- carries the same renderer choice: two tabs handed two chunks of one tile
--- draw it the same way (Invariant 2).
+-- The frames of a trained tile are drawn by one dataset atom of one version,
+-- and the renderer choice rides along in its params, so a tile is drawn the
+-- same way whichever tab is handed it (Invariant 2).
 --
--- It used to say frame-v3 and 32 paths a pixel; see db/test/0092.
+-- It used to say frame-v3 and 32 paths a pixel, and then a frame atom per
+-- chunk of the camera set; see db/test/0092 and db/0183.
 BEGIN;
 SELECT plan(4);
 
@@ -27,18 +28,17 @@ CREATE TEMP TABLE jobs AS
 SELECT ensure_job(18, tile_x(7.805, 18), tile_y(46.295, 18)) AS j18;
 
 SELECT is((SELECT count(*) FROM atom
-           WHERE job_id = (SELECT j18 FROM jobs) AND op = 'frame'),
-    ceil(camera_views(18)::numeric / frame_chunk())::bigint,
-    'a z18 job has a frame atom per chunk of its camera set');
-SELECT is((SELECT count(DISTINCT algo_version) FROM atom
-           WHERE job_id = (SELECT j18 FROM jobs) AND op = 'frame'), 1::bigint,
-    'all of one version');
+           WHERE job_id = (SELECT j18 FROM jobs) AND op = 'dataset'), 1::bigint,
+    'a z18 job has one dataset atom for its camera set');
+SELECT is((SELECT (params ->> 'views')::int FROM atom
+           WHERE job_id = (SELECT j18 FROM jobs) AND op = 'dataset'),
+    camera_views(18), 'which draws every view of it');
 SELECT is((SELECT min(algo_version) FROM atom
-           WHERE job_id = (SELECT j18 FROM jobs) AND op = 'frame'), 'frame-v10',
+           WHERE job_id = (SELECT j18 FROM jobs) AND op = 'dataset'), 'dataset-v1',
     'and that version is the one the client publishes');
-SELECT is((SELECT count(DISTINCT params - 'from' - 'to')::int FROM atom
-           WHERE job_id = (SELECT j18 FROM jobs) AND op = 'frame'), 1,
-    'and they differ in nothing but which views they draw');
+SELECT ok((SELECT params @> frame_renderer() FROM atom
+           WHERE job_id = (SELECT j18 FROM jobs) AND op = 'dataset'),
+    'and it carries the renderer the operator chose');
 
 SELECT * FROM finish();
 ROLLBACK;

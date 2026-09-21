@@ -14,24 +14,17 @@ SELECT compile_ground();
 CREATE TEMP TABLE j AS
 SELECT id FROM job WHERE state = 'open' AND z = 14 ORDER BY id LIMIT 1;
 
--- Walk the ground and the frames to verified the way a tab would: an atom
--- may only be claimed from ready, and verified from claimed
--- (db/0005_state.sql atom_state_guard).
+-- Walk the dataset (the ground and the frames in one, db/0183) to verified
+-- the way a tab would: an atom may only be claimed from ready, and verified
+-- from claimed (db/0005_state.sql atom_state_guard).
 CREATE TEMP TABLE w AS SELECT my_worker('{}'::jsonb) AS id;
 INSERT INTO artifact (sha256, kind, bytes, algo_version)
-VALUES (repeat('a', 64), 'init_ply', 4096, 'assemble-v11'),
-       (repeat('b', 64), 'frames', 4096, 'frame-v10');
+VALUES (repeat('a', 64), 'dataset', 4096, 'dataset-v1');
 UPDATE atom SET state = 'claimed', worker_id = (SELECT id FROM w), claimed_at = now()
-WHERE job_id = (SELECT id FROM j) AND op = 'assemble' AND state = 'ready';
+WHERE job_id = (SELECT id FROM j) AND op = 'dataset' AND state = 'ready';
 UPDATE atom SET state = 'verified', output_sha256 = repeat('a', 64),
     worker_id = null, claimed_at = null
-WHERE job_id = (SELECT id FROM j) AND op = 'assemble';
-SELECT advance_atoms((SELECT id FROM j));
-UPDATE atom SET state = 'claimed', worker_id = (SELECT id FROM w), claimed_at = now()
-WHERE job_id = (SELECT id FROM j) AND op = 'frame' AND state = 'ready';
-UPDATE atom SET state = 'verified', output_sha256 = repeat('b', 64),
-    worker_id = null, claimed_at = null
-WHERE job_id = (SELECT id FROM j) AND op = 'frame';
+WHERE job_id = (SELECT id FROM j) AND op = 'dataset';
 SELECT advance_atoms((SELECT id FROM j));
 SELECT is((SELECT count(*) FROM atom WHERE job_id = (SELECT id FROM j)
            AND op = 'train' AND state = 'ready'), 1::bigint,
@@ -42,13 +35,13 @@ SELECT is((SELECT p ->> 'phase' FROM (SELECT pool_row((SELECT id FROM j)) AS p) 
 CREATE TEMP TABLE n AS SELECT redo_renders((SELECT id FROM j)) AS frames;
 SELECT ok((SELECT frames FROM n) > 0, 'the frames are asked for again');
 SELECT is((SELECT count(*) FROM atom WHERE job_id = (SELECT id FROM j)
-           AND op = 'frame' AND state = 'ready'), (SELECT frames FROM n)::bigint,
+           AND op = 'dataset' AND state = 'ready'), (SELECT frames FROM n)::bigint,
     'every one of them, back in the pool');
 SELECT is((SELECT state FROM atom WHERE job_id = (SELECT id FROM j) AND op = 'train'),
     'waiting', 'and the training waits for them');
 SELECT is((SELECT e.detail FROM tile_event e WHERE e.job_id = (SELECT id FROM j)
            ORDER BY e.id DESC LIMIT 1),
-    (SELECT frames FROM n) || ' frame(s) asked for again, and the training with them',
+    'the frames asked for again, and the training with them',
     'and the tile remembers being asked');
 
 SELECT * FROM finish();

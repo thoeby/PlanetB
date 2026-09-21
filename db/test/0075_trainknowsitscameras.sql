@@ -23,14 +23,15 @@ SELECT is((SELECT params ->> 'camera_set' FROM atom
            WHERE job_id = (SELECT id FROM j) AND op = 'train'),
           'z16-v3', 'a z16 trainer knows which set it is learning from (db/0182)');
 SELECT is((SELECT count(DISTINCT params ->> 'camera_set') FROM atom
-           WHERE job_id = (SELECT id FROM j) AND op IN ('train', 'frame')),
-          1::bigint, 'and it is the one the frames beside it were rendered with');
+           WHERE job_id = (SELECT id FROM j) AND op IN ('train', 'dataset')),
+          1::bigint, 'and it is the one the dataset beside it was rendered with');
 SELECT ok((SELECT (params ->> 'needs_webgpu')::boolean FROM atom
            WHERE job_id = (SELECT id FROM j) AND op = 'train'),
           'training still says it wants a GPU');
-SELECT is((SELECT count(*) FROM atom
-           WHERE job_id = (SELECT id FROM j) AND op = 'frame'),
-          5::bigint, 'and the frames are the chunks of an 81-view set');
+-- One tile, one folder (db/0183): the dataset atom draws the whole set.
+SELECT is((SELECT (params ->> 'views')::int FROM atom
+           WHERE job_id = (SELECT id FROM j) AND op = 'dataset'),
+          81, 'and the dataset draws every view of an 81-view set');
 
 SELECT * FROM finish();
 ROLLBACK;

@@ -51,21 +51,21 @@ SELECT results_eq(
 SELECT results_eq(
     $$SELECT op, count(*)::int FROM atom
       WHERE job_id = (SELECT j18 FROM jobs) GROUP BY op ORDER BY op$$,
-    $$VALUES ('assemble', 1), ('frame', 6), ('sog', 1), ('train', 1)$$,
+    $$VALUES ('dataset', 1), ('sog', 1), ('train', 1)$$,
     -- No verify atoms: a person approves the tile now, not three strangers
-    -- agreeing about a PSNR (db/0044_permission.sql, T7).
-    'z18 DAG = 1 assemble, 6 frame, 1 train, 1 sog');
+    -- agreeing about a PSNR (db/0044_permission.sql, T7). One tile, one
+    -- folder (db/0183): the dataset atom assembles and draws every view.
+    'z18 DAG = 1 dataset, 1 train, 1 sog');
 SELECT is((SELECT count(*)::int FROM atom
            WHERE job_id = (SELECT j18 FROM jobs) AND state = 'ready'), 1,
-    'only the assemble atom starts ready');
-SELECT is((SELECT count(*)::int FROM atom
-           WHERE job_id = (SELECT j18 FROM jobs) AND op = 'frame'
-             AND (params ->> 'to')::int - (params ->> 'from')::int = 20),
-    6, 'frame atoms cover 20 views each');
--- 120 views do not divide by 20 evenly at the end, so the last one is short.
-SELECT is((SELECT max((params ->> 'to')::int) FROM atom
-           WHERE job_id = (SELECT j18 FROM jobs) AND op = 'frame'),
-    120, 'and between them they cover every view of the tile');
+    'only the dataset atom starts ready');
+SELECT is((SELECT (params ->> 'views')::int FROM atom
+           WHERE job_id = (SELECT j18 FROM jobs) AND op = 'dataset'),
+    120, 'the dataset atom draws every view of the tile');
+SELECT is((SELECT (inputs ->> 'dataset')::bigint FROM atom
+           WHERE job_id = (SELECT j18 FROM jobs) AND op = 'train'),
+    (SELECT id FROM atom WHERE job_id = (SELECT j18 FROM jobs) AND op = 'dataset'),
+    'and the training names it as its input');
 SELECT is((SELECT (params ->> 'budget')::bigint FROM atom
            WHERE op = 'train' AND job_id = (SELECT j18 FROM jobs)),
     600000::bigint, 'z18 train budget is the one every tile has (db/0136)');

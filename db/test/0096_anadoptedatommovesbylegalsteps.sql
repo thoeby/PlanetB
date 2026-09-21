@@ -1,5 +1,5 @@
 -- An atom a dead tab was still holding in a cancelled job is taken over by
--- the job that asks for it, through legal transitions; and z16 frames are
+-- the job that asks for it, through legal transitions; and z18 frames are
 -- the size they are trained at.
 BEGIN;
 SELECT plan(7);
@@ -27,9 +27,9 @@ CREATE TEMP TABLE tt AS SELECT 18 AS z, tile_x(7.805, 18) AS x, tile_y(46.295, 1
 CREATE TEMP TABLE first AS
 SELECT ensure_job((SELECT z FROM tt), (SELECT x FROM tt), (SELECT y FROM tt)) AS jid;
 CREATE TEMP TABLE asm AS
-SELECT id FROM atom WHERE job_id = (SELECT jid FROM first) AND op = 'assemble';
+SELECT id FROM atom WHERE job_id = (SELECT jid FROM first) AND op = 'dataset';
 
--- A tab claims the assemble and goes away -- its claim has stopped beating
+-- A tab claims the dataset and goes away -- its claim has stopped beating
 -- (db/0178: one that is still beating keeps the piece); the land is asked
 -- for again.
 UPDATE atom SET state = 'claimed', worker_id = '00000000-0000-0000-0000-000000000961',
@@ -42,21 +42,21 @@ CREATE TEMP TABLE second AS
 SELECT id AS jid FROM job WHERE z = (SELECT z FROM tt) AND x = (SELECT x FROM tt)
   AND y = (SELECT y FROM tt) AND state = 'open';
 SELECT is((SELECT job_id FROM atom WHERE id = (SELECT id FROM asm)), (SELECT jid FROM second),
-    'the assemble atom moves to the new job');
+    'the dataset atom moves to the new job');
 SELECT is((SELECT state FROM atom WHERE id = (SELECT id FROM asm)), 'ready',
     'in nobody''s hands, ready for anybody');
 SELECT is((SELECT worker_id FROM atom WHERE id = (SELECT id FROM asm)), null, 'no worker');
 
--- The frames the new job asks for.
+-- The frames the new job asks for: drawn by its dataset atom (db/0183).
 SELECT is((SELECT min((params ->> 'size')::int) FROM atom
-           WHERE job_id = (SELECT jid FROM second) AND op = 'frame'), 1024,
+           WHERE job_id = (SELECT jid FROM second) AND op = 'dataset'), 1024,
     'z18 frames are 1024 px');
 -- The z16 over the same ground has the z18 under it, so it asks for no frames
 -- at all: it is merged from what is there (db/0135).
 CREATE TEMP TABLE j16 AS
 SELECT ensure_job(16, tile_x(7.805, 16), tile_y(46.295, 16)) AS jid;
 SELECT is((SELECT count(*)::int FROM atom
-           WHERE job_id = (SELECT jid FROM j16) AND op = 'frame'), 0,
+           WHERE job_id = (SELECT jid FROM j16) AND op = 'dataset'), 0,
     'a tile with children asks for no frames of its own');
 
 SELECT * FROM finish();

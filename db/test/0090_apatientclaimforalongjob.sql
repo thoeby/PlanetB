@@ -37,15 +37,15 @@ SELECT ensure_job(18, tile_x(7.8771, 18), tile_y(46.2916, 18)) AS jid;
 -- that the old rule would have taken them both.
 SELECT set_config('request.jwt.claims',
     json_build_object('sub', worker_id, 'role', 'player')::text, true) FROM ids;
--- The train waits on its frames, and waiting is not claimable
+-- The train waits on its dataset, and waiting is not claimable
 -- (db/0005_state.sql), so it is made ready before it is taken.
 UPDATE atom SET state = 'ready'
-WHERE job_id = (SELECT jid FROM jobs) AND op IN ('train', 'assemble')
+WHERE job_id = (SELECT jid FROM jobs) AND op IN ('train', 'dataset')
   AND state = 'waiting';
 UPDATE atom SET state = 'claimed', worker_id = my_worker(null),
                 claimed_at = now() - interval '8 minutes',
                 heartbeat_at = now() - interval '8 minutes'
-WHERE job_id = (SELECT jid FROM jobs) AND op IN ('train', 'assemble');
+WHERE job_id = (SELECT jid FROM jobs) AND op IN ('train', 'dataset');
 
 SELECT is((SELECT count(*)::int FROM atom
            WHERE job_id = (SELECT jid FROM jobs) AND state = 'claimed'), 2,
@@ -55,9 +55,9 @@ SELECT lives_ok($$SELECT expire_claims()$$, 'the backstop runs');
 
 SELECT results_eq(
     $$SELECT op, state FROM atom
-      WHERE job_id = (SELECT jid FROM jobs) AND op IN ('assemble', 'train')
+      WHERE job_id = (SELECT jid FROM jobs) AND op IN ('dataset', 'train')
       ORDER BY op$$,
-    $$VALUES ('assemble', 'ready'), ('train', 'claimed')$$,
-    'the assemble is taken back and the train is left to get on with it');
+    $$VALUES ('dataset', 'ready'), ('train', 'claimed')$$,
+    'the dataset is taken back and the train is left to get on with it');
 
 ROLLBACK;

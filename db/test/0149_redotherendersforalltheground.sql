@@ -18,23 +18,18 @@ CREATE TEMP TABLE j AS
 SELECT id, z, x, y FROM job WHERE state = 'open' AND z = 14 ORDER BY id LIMIT 1;
 CREATE TEMP TABLE w AS SELECT my_worker('{}'::jsonb) AS id;
 INSERT INTO artifact (sha256, kind, bytes, algo_version)
-VALUES (repeat('a', 64), 'init_ply', 4096, 'assemble-v11'),
-       (repeat('b', 64), 'frames', 4096, 'frame-v10');
+VALUES (repeat('a', 64), 'dataset', 4096, 'dataset-v1');
 
+-- The dataset is the ground and the frames in one (db/0183).
 UPDATE atom SET state = 'claimed', worker_id = (SELECT id FROM w), claimed_at = now()
-WHERE job_id = (SELECT id FROM j) AND op = 'assemble' AND state = 'ready';
+WHERE job_id = (SELECT id FROM j) AND op = 'dataset' AND state = 'ready';
 UPDATE atom SET state = 'verified', output_sha256 = repeat('a', 64), worker_id = null
-WHERE job_id = (SELECT id FROM j) AND op = 'assemble';
-SELECT advance_atoms((SELECT id FROM j));
-UPDATE atom SET state = 'claimed', worker_id = (SELECT id FROM w), claimed_at = now()
-WHERE job_id = (SELECT id FROM j) AND op = 'frame' AND state = 'ready';
-UPDATE atom SET state = 'verified', output_sha256 = repeat('b', 64), worker_id = null
-WHERE job_id = (SELECT id FROM j) AND op = 'frame';
+WHERE job_id = (SELECT id FROM j) AND op = 'dataset';
 SELECT advance_atoms((SELECT id FROM j));
 
 -- The frames wander off to another job's row, the way an adoption leaves them.
 CREATE TEMP TABLE moved AS
-SELECT id FROM atom WHERE job_id = (SELECT id FROM j) AND op = 'frame';
+SELECT id FROM atom WHERE job_id = (SELECT id FROM j) AND op = 'dataset';
 UPDATE atom SET job_id = (SELECT max(id) FROM job WHERE state = 'open')
 WHERE id IN (SELECT id FROM moved);
 

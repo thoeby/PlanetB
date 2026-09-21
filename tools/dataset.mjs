@@ -1,18 +1,17 @@
 #!/usr/bin/env node
-// dataset.mjs — the exact dataset a tile's trainer hands brush, as one folder.
+// dataset.mjs — a tile's dataset, unpacked into the folder brush's app takes.
 //
-// A tile's frames are traced in atoms of twenty, so a job holds three or four
-// frame tars and an assemble tar, and the only place they are ever one
-// nerfstudio dataset is the tab's private storage while brush runs. This
-// writes that dataset to disk — images, transforms.json and init.ply, the
-// seed made the way the trainer makes it — so the same run can be repeated
-// and looked at in brush's own app.
+// A tile's dataset atom (client/atoms/dataset.js) writes one tar: the
+// assembled scene, the seed, every frame and transforms.json. This fetches it
+// for a job and unpacks it. By default the four poses the trainer holds back
+// for verification are left out and init.ply is the seed the trainer makes,
+// so the folder is exactly what brush was handed; --all keeps every frame and
+// the assemble's own init.ply.
 //
 //   node tools/dataset.mjs <job id> [out dir] [--all]
 //
 // SPLATWORLD_API and SPLATWORLD_FILES name the world (default: the dev
-// server, http://localhost:8080/api and http://localhost:8080). --all keeps
-// the four poses the trainer holds back for verify.
+// server, http://localhost:8080/api and http://localhost:8080).
 import { mkdirSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { dataset } from '../client/lib/dataset.js';
@@ -38,20 +37,8 @@ async function bytes(atom) {
     return new Uint8Array(await res.arrayBuffer());
 }
 
-async function main([job, out = `dataset-${job}`, ...flags]) {
-    if (!job) throw new Error('usage: node tools/dataset.mjs <job id> [out dir] [--all]');
-    const atoms = await rows('atom',
-        `job_id=eq.${job}&select=id,op,params,seed,output_sha256,result&order=id`);
-    const asm = atoms.find((a) => a.op === 'assemble');
-    const train = atoms.find((a) => a.op === 'train');
-    const frames = atoms.filter((a) => a.op === 'frame');
-    if (!asm?.output_sha256) throw new Error(`job ${job}: the assemble is not done`);
-    const missing = frames.filter((f) => !f.output_sha256);
-    if (missing.length) {
-        throw new Error(`job ${job}: frames ${missing.map((f) => f.id)} are not done`);
-    }
-
-    const files = readTar(await bytes(asm));
+// The seed the trainer makes from the assembled meshes, the way it makes it.
+function seedOf(files, train) {
     const scene = JSON.parse(new TextDecoder().decode(files.get('scene.json')));
     const meshes = unpackMeshes(files.get('mesh.bin'), scene.meshes);
     const p = train?.params ?? {};
@@ -60,20 +47,32 @@ async function main([job, out = `dataset-${job}`, ...flags]) {
     const random = rngOf(train ?? { seed: 0 }, z, x, y);
     const share = Number(p.seed_share) || SEED_SHARE;
     const floor = p.ground_floor === undefined ? GROUND_FLOOR : Number(p.ground_floor);
-    const seed = shuffled(seedSurfaces(meshes, Math.round(budget * share), random,
-        { spread: SPREAD, even: true, floor }), random);
+    return { scene, seed: shuffled(seedSurfaces(meshes, Math.round(budget * share), random,
+        { spread: SPREAD, even: true, floor }), random) };
+}
 
-    const tars = [];
-    for (const f of frames) tars.push(await bytes(f));
-    const set = p.camera_set ?? frames[0]?.params?.camera_set;
-    const ds = dataset(tars, set, seed, { all: flags.includes('--all') });
-    for (const f of ds.files) {
+async function main([job, out = `dataset-${job}`, ...flags]) {
+    if (!job) throw new Error('usage: node tools/dataset.mjs <job id> [out dir] [--all]');
+    const atoms = await rows('atom',
+        `job_id=eq.${job}&select=id,op,params,seed,output_sha256,result&order=id`);
+    const ds = atoms.find((a) => a.op === 'dataset');
+    if (!ds?.output_sha256) throw new Error(`job ${job}: the dataset is not made yet`);
+    const tar = await bytes(ds);
+    const files = readTar(tar);
+    const all = flags.includes('--all');
+    const train = atoms.find((a) => a.op === 'train');
+    const { scene, seed } = seedOf(files, train);
+    const set = ds.params?.camera_set;
+    const written = all ? [...files].map(([name, b]) => ({ name, bytes: b }))
+        : dataset([tar], set, seed).files;
+    for (const f of written) {
         const to = join(out, f.name);
         mkdirSync(join(to, '..'), { recursive: true });
         writeFileSync(to, f.bytes);
     }
-    console.log(`${out}: tile ${z}/${x}/${y}, ${ds.views} frames of ${set}`
-        + `${ds.held ? ` (${ds.held} held back)` : ''}, ${seed.count} seed splats`);
+    const { z, x, y } = scene.tile;
+    console.log(`${out}: tile ${z}/${x}/${y}, ${written.length} files of ${set}`
+        + `${all ? '' : ` as the trainer saw them, ${seed.count} seed splats`}`);
 }
 
 main(process.argv.slice(2)).catch((err) => { console.error(err.message); process.exit(1); });

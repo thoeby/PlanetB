@@ -93,19 +93,19 @@ SELECT ensure_job(t.z, t.x, t.y) AS id
 FROM tile t WHERE t.z = 14 AND t.dirty LIMIT 1;
 
 SELECT ok(NOT reset_atom((SELECT a.id FROM atom a JOIN jid ON jid.id = a.job_id
-                          WHERE a.op = 'assemble')),
+                          WHERE a.op = 'dataset')),
           'an atom that has not failed is left alone');
 
 SET LOCAL role = 'postgres';
 UPDATE atom SET state = 'failed', attempts = 3
-WHERE op = 'assemble' AND job_id = (SELECT id FROM jid);
+WHERE op = 'dataset' AND job_id = (SELECT id FROM jid);
 SET LOCAL role = 'player';
 
 SELECT ok(reset_atom((SELECT a.id FROM atom a JOIN jid ON jid.id = a.job_id
-                      WHERE a.op = 'assemble')),
+                      WHERE a.op = 'dataset')),
           'a failed atom can be tried again');
 SELECT is((SELECT a.state || ' ' || a.attempts FROM atom a JOIN jid ON jid.id = a.job_id
-           WHERE a.op = 'assemble'), 'ready 0',
+           WHERE a.op = 'dataset'), 'ready 0',
           'it is claimable again, with its attempts forgiven');
 
 ROLLBACK;

@@ -18,9 +18,9 @@ CREATE TEMP TABLE j AS
 SELECT ensure_job(14, tile_x(7.885, 14), tile_y(46.295, 14)) AS jid;
 UPDATE worker SET trust = 1 WHERE user_id = (SELECT owner_id FROM ids);
 
--- The tab takes the assemble piece.
+-- The tab takes the dataset piece.
 CREATE TEMP TABLE held AS SELECT * FROM claim_for((SELECT jid FROM j), '{}');
-SELECT is((SELECT op FROM held), 'assemble', 'the tab holds the assemble piece');
+SELECT is((SELECT op FROM held), 'dataset', 'the tab holds the dataset piece');
 
 -- The job is cancelled and asked for again; the piece is adopted mid-run.
 UPDATE job SET state = 'cancelled' WHERE id = (SELECT jid FROM j);

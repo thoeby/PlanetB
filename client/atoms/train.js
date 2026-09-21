@@ -1,4 +1,4 @@
-// train.js — `train-v14`. The tile, learned from its own frames, by brush.
+// train.js — `train-v15`. The tile, learned from its own frames, by brush.
 //
 // `assemble` built the surfaces and `frame` path-traced them from a fixed
 // camera set. The seed is those surfaces sampled at the tile's whole budget
@@ -24,6 +24,10 @@
 // smooth, one colour, and the surface a player is always looking at — lost
 // every time to the roofs and the trees standing on it.
 //
+// v15 reads one dataset (client/atoms/dataset.js): the frames, the poses and
+// the assembled tile in one tar, where v14 read an assemble tar and three to
+// six frame tars.
+//
 // Four poses are held back (client/lib/frames.js): brush never sees them, and
 // `verify` renders two of them in another tab. Invariant 8: probabilistic
 // quality assurance, not proof.
@@ -43,7 +47,7 @@ import { bboxOf, writePly } from '../lib/ply.js';
 import { rngOf, seedSurfaces } from '../lib/sampling.js';
 import { readTar, writeTar } from '../lib/tar.js';
 
-export const ALGO = 'train-v14';
+export const ALGO = 'train-v15';
 // The in-plane sigma of a seed splat as a share of its spacing. Sigma, not
 // radius: a gaussian is visible out to about two of them, so a splat at 1.15
 // covered four to five times the distance to its neighbour — twenty times the
@@ -243,10 +247,12 @@ export function widen(f, k) {
 }
 
 export async function run({ atom, inputs, log }) {
-    if (!inputs?.assemble) throw new Error('train needs the assemble artifact');
-    const tars = [].concat(inputs.frames ?? []).filter(Boolean);
+    const pack = inputs?.dataset ?? inputs?.assemble;
+    if (!pack) throw new Error('train needs the dataset artifact');
+    const tars = inputs.dataset ? [inputs.dataset]
+        : [].concat(inputs.frames ?? []).filter(Boolean);
     if (!tars.length) throw new Error('train needs at least one frame artifact');
-    const files = readTar(inputs.assemble);
+    const files = readTar(pack);
     const scene = JSON.parse(decoder.decode(files.get('scene.json')));
     const meshes = unpackMeshes(files.get('mesh.bin'), scene.meshes);
     const budget = Number(atom.params?.budget) || scene.budget;

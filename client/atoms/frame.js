@@ -96,14 +96,17 @@ function rendererOf(atom, canvas, size) {
     });
 }
 
-export async function run({ atom, inputs, canvas, log }) {
+// Every view of the set between `from` and `to`, drawn from the assembled
+// tile: the frames as WebP entries and the transforms.json that places them.
+// The dataset atom (client/atoms/dataset.js) draws the whole set with this;
+// run() below is the old chunked frame atom over the same function.
+export async function renderFrames({ atom, assemble, canvas, log }) {
     const set = atom.params.camera_set;
     const from = atom.params.from ?? 0;
     const to = Math.min(atom.params.to ?? viewCount(set), viewCount(set));
-    if (!inputs?.assemble) throw new Error('frame needs the assemble artifact');
     const size = sizeOf(atom);
 
-    const files = readTar(inputs.assemble);
+    const files = readTar(assemble);
     const scene = JSON.parse(new TextDecoder().decode(files.get('scene.json')));
     const meshes = unpackMeshes(files.get('mesh.bin'), scene.meshes);
     const cams = cameraSet(set, boundsOf(meshes), groundOf(files, scene)).slice(from, to);
@@ -123,6 +126,13 @@ export async function run({ atom, inputs, canvas, log }) {
     log?.({ event: 'framed', set, from, to, size, tile: scene.tile });
 
     const transforms = transformsJson(cams, size, entries.map((e) => e.name));
+    return { entries, transforms, set, from, to, size, tile: scene.tile };
+}
+
+export async function run({ atom, inputs, canvas, log }) {
+    if (!inputs?.assemble) throw new Error('frame needs the assemble artifact');
+    const { entries, transforms, set, from, to, size, tile } =
+        await renderFrames({ atom, assemble: inputs.assemble, canvas, log });
     const tar = writeTar([
         ...entries,
         { name: 'transforms.json',
@@ -133,7 +143,7 @@ export async function run({ atom, inputs, canvas, log }) {
         output: 'tar',
         result: {
             bytes: tar.length, frames: entries.length, from, to, size,
-            camera_set: set, finite: true, tile: scene.tile,
+            camera_set: set, finite: true, tile,
         },
     };
 }

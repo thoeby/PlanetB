@@ -23,8 +23,8 @@ SELECT is((SELECT count(*)::int FROM atom a INNER JOIN job j ON j.id = a.job_id
 SELECT ok((SELECT count(*) FROM atom a INNER JOIN job j ON j.id = a.job_id
            WHERE j.z = 14 AND a.op = 'train' AND (a.params ->> 'iters')::int = 2400) >= 4,
     'a z14 tile trains, at 1200 steps (db/0122)');
-SELECT is((SELECT min(algo_version) FROM atom WHERE op = 'frame'), 'frame-v10',
-    'from frame-v10 frames (db/0125)');
+SELECT is((SELECT min(algo_version) FROM atom WHERE op = 'dataset'), 'dataset-v1',
+    'from dataset-v1 frames (db/0183)');
 
 -- Asking again builds the same tiles again, no more and no fewer.
 SELECT is(compile_ground(), (SELECT (out ->> 'dirtied')::int FROM g),

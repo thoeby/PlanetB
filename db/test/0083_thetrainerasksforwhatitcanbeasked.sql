@@ -1,4 +1,4 @@
--- The z18 job that stopped with two pieces left: assembled, framed, and then a
+-- The z18 job that stopped with two pieces left: its dataset drawn, and then a
 -- train atom no tab could claim because it asked for 4 GB of VRAM and no
 -- browser reports VRAM at all.
 BEGIN;
@@ -35,10 +35,10 @@ SELECT is((SELECT (params ->> 'min_buffer_mb')::numeric FROM atom
     ceil(96::numeric * tile_budget(18) / 1048576),
     'it asks for the widest per-splat buffer it will allocate');
 SELECT is((SELECT atom_buffer_mb(a) FROM atom a
-           WHERE a.job_id = (SELECT jid FROM jobs) AND a.op = 'assemble'), 0::numeric,
+           WHERE a.job_id = (SELECT jid FROM jobs) AND a.op = 'dataset'), 0::numeric,
     'and nothing that is not training asks for one');
 
--- Assemble and every frame, so the job is left exactly where the player's was.
+-- The dataset, so the job is left exactly where the player's was.
 SELECT set_config('request.jwt.claims',
     json_build_object('sub', worker_id, 'role', 'player')::text, true) FROM ids;
 DO $$
@@ -50,12 +50,11 @@ BEGIN
         EXIT WHEN a.id IS NULL OR a.op = 'train' OR n > 30;
         n := n + 1;
         sha := lpad(to_hex(a.id), 64, '0');
-        PERFORM register_artifact(sha,
-            CASE a.op WHEN 'assemble' THEN 'init_ply' ELSE 'frames' END, 4096, 'x');
+        PERFORM register_artifact(sha, 'dataset', 4096, 'x');
         PERFORM submit_atom(a.id, sha, jsonb_build_object(
             'splat_count', 1000, 'finite', true, 'gpu_seconds', 1,
             'bbox', jsonb_build_array(-50, -5, -50, 50, 20, 50),
-            'frames', 20, 'views', 20, 'width', 256, 'height', 256,
+            'frames', (a.params ->> 'views')::int, 'width', 256, 'height', 256,
             'camera_set', 'z18-v1'));
     END LOOP;
     -- The train atom the loop stopped on goes back, so the claims below start

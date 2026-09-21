@@ -20,30 +20,30 @@ CREATE TEMP TABLE j AS
 SELECT ensure_job(14, tile_x(7.885, 14), tile_y(46.295, 14)) AS jid;
 INSERT INTO worker (user_id, trust) SELECT owner_id, 1 FROM ids;
 
--- The assemble is done and its bytes registered; then the store loses them.
+-- The dataset is done and its bytes registered; then the store loses them.
 CREATE TEMP TABLE asm AS
 SELECT * FROM claim_for((SELECT jid FROM j), '{}');
-SELECT register_artifact(repeat('9', 64), 'ply', 100, 'assemble-v11');
+SELECT register_artifact(repeat('9', 64), 'dataset', 100, 'dataset-v1');
 UPDATE atom SET state = 'verified', output_sha256 = repeat('9', 64), result = '{}'
 WHERE id = (SELECT id FROM asm);
 SELECT advance_atoms((SELECT jid FROM j));
 SELECT is((SELECT state FROM atom WHERE id = (SELECT id FROM asm)), 'verified',
-    'the assemble is verified');
+    'the dataset is verified');
 SELECT is((SELECT count(*) FROM atom WHERE job_id = (SELECT jid FROM j)
-           AND op = 'frame' AND state = 'ready'), 5::bigint, 'and its frames are ready');
+           AND op = 'train' AND state = 'ready'), 1::bigint, 'and its training is ready');
 
--- A tab holding a frame says the assemble's bytes are gone.
+-- A tab holding the training says the dataset's bytes are gone.
 CREATE TEMP TABLE frm AS
-SELECT * FROM claim_for((SELECT jid FROM j), '{}');
+SELECT * FROM claim_for((SELECT jid FROM j), '{"webgpu": true, "max_buffer_mb": 100000}');
 SELECT set_config('request.jwt.claims',
     json_build_object('sub', other_id, 'role', 'player')::text, true) FROM ids;
 SELECT throws_like($$SELECT artifact_missing(repeat('9', 64))$$, '%only a tab that is holding%',
     'somebody holding nothing may not say so');
 SELECT set_config('request.jwt.claims',
     json_build_object('sub', owner_id, 'role', 'player')::text, true) FROM ids;
-SELECT is(artifact_missing(repeat('9', 64)), 1, 'the tab holding the frame may');
+SELECT is(artifact_missing(repeat('9', 64)), 1, 'the tab holding the training may');
 SELECT is((SELECT state FROM atom WHERE id = (SELECT id FROM asm)), 'ready',
-    'the assemble starts again');
+    'the dataset starts again');
 SELECT is((SELECT output_sha256 FROM atom WHERE id = (SELECT id FROM asm)), NULL,
     'with no output');
 SELECT ok(NOT EXISTS (SELECT 1 FROM artifact WHERE sha256 = repeat('9', 64)),

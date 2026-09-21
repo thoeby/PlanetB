@@ -110,7 +110,16 @@ Triggers: `feature`/`instance` insert/update → for every materialised tile int
 
 ## 5. Atom DAG
 
-Trained tile (z16, z18):
+Trained tile (z14–z20), since FND.5 "one tile, one folder":
+```
+dataset ─▶ train ─▶ sog ─▶ publish_tile
+```
+`dataset` is what used to be `assemble` and `frame[0..N)`: one atom assembles
+the tile, draws every view of its camera set and writes one tar — scene,
+meshes, seed, height, colliders, frames, `transforms.json`. One job is three
+pieces of work and one folder holds everything the trainer learned from
+(`tools/dataset.mjs` unpacks it for brush's own app). The old shape, for
+history:
 ```
 assemble ─▶ frame[0..N) ─▶ train ─▶ sog ─▶ verify×3 ─▶ (published by the third verification)
 ```
@@ -137,9 +146,10 @@ published tile; "apply to world" is what moves the pin.
 
 | op | inputs | output | algo |
 |---|---|---|---|
-| `assemble` | features+instances snapshot (GeoJSON), DEM/ortho tiles, GLBs | `init.ply`, `height.r16`, `colliders.json` (one tar artifact) | `assemble-v1`: terrain grid, terrainmods, road cuts, extruded footprints, seeded scatter, GLB placement |
-| `frame` | assemble artifact, camera set id, index range | WebP frames + `transforms.json` | `frame-v10`: rasterised, or path traced where the operator asks for it (`splatworld.renderer`, db/0119), under the one sky of `lib/light.js`; the void is transparent so the trainer learns no blue wall; placed GLBs with their textures |
-| `train` | frames, init.ply, budget, iters | `.ply` + the tile's height and colliders, in one tar | `train-v1`: Adam over a differentiable gaussian rasteriser (WebGPU, `client/lib/gsgpu.js`), poses injected from `transforms.json`, MCMC relocation and growth capped by the budget |
+| `dataset` | what `assemble` took, plus the camera set id and size | one tar: everything below that `assemble` and `frame` made, together | `dataset-v1`: `assemble.run` then `frame.renderFrames` over the whole set (client/atoms/dataset.js) |
+| `assemble` (retired, used by `dataset`) | features+instances snapshot (GeoJSON), DEM/ortho tiles, GLBs | `init.ply`, `height.r16`, `colliders.json` (one tar artifact) | `assemble-v1`: terrain grid, terrainmods, road cuts, extruded footprints, seeded scatter, GLB placement |
+| `frame` (retired, used by `dataset`) | assemble artifact, camera set id, index range | WebP frames + `transforms.json` | `frame-v10`: rasterised, or path traced where the operator asks for it (`splatworld.renderer`, db/0119), under the one sky of `lib/light.js`; the void is transparent so the trainer learns no blue wall; placed GLBs with their textures |
+| `train` | the dataset tar, budget, iters | `.ply` + the tile's height and colliders, in one tar | `train-v1`: Adam over a differentiable gaussian rasteriser (WebGPU, `client/lib/gsgpu.js`), poses injected from `transforms.json`, MCMC relocation and growth capped by the budget |
 | `merge` | 16 child `.ply`/`.sog`, voxel, budget, seed | `.ply` | `merge-v1`, bit-exact deterministic (integer voxel keys, fixed iteration order, no atomics) |
 | `sog` | `.ply` | `.sog` | `sog-v1` = splat-transform core |
 | `verify` | `.sog`, the frame tars, 2 of the four held-out poses | `{psnr, passed}`, no artifact | `verify-v1` |

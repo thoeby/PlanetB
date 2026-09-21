@@ -45,12 +45,14 @@ SELECT ensure_job((SELECT z FROM tt), (SELECT x FROM tt), (SELECT y FROM tt)) AS
 SELECT is((SELECT count(*)::int FROM atom
            WHERE job_id = (SELECT jid FROM jobs) AND op = 'verify'), 0,
     'nothing is built to check a tile perceptually');
-SELECT is((SELECT count(*)::int FROM atom WHERE job_id = (SELECT jid FROM jobs)), 8,
-    'a leaf is assembled, framed, trained and encoded, and that is all');
+-- One tile, one folder (db/0183): the dataset atom assembles and draws
+-- every view, then the trainer, then the pack.
+SELECT is((SELECT count(*)::int FROM atom WHERE job_id = (SELECT jid FROM jobs)), 3,
+    'a leaf is assembled and framed as one dataset, trained and encoded, and that is all');
 SELECT results_eq(
     $$SELECT op, count(*)::int FROM atom
       WHERE job_id = (SELECT jid FROM jobs) GROUP BY op ORDER BY op$$,
-    $$VALUES ('assemble', 1), ('frame', 5), ('sog', 1), ('train', 1)$$,
+    $$VALUES ('dataset', 1), ('sog', 1), ('train', 1)$$,
     'the baseline tile is trained like any other, not sampled');
 
 -- rendering it -----------------------------------------------------------
@@ -75,19 +77,19 @@ BEGIN
         EXIT WHEN aid IS NULL;
         SELECT * INTO a FROM atom WHERE id = aid;
         sha := md5(a.id::text) || md5(a.id::text || 'salt');
-        kind := CASE a.op WHEN 'assemble' THEN 'init_ply' WHEN 'frame' THEN 'frames'
+        kind := CASE a.op WHEN 'dataset' THEN 'dataset'
                           WHEN 'train' THEN 'ply' ELSE 'sog' END;
         PERFORM register_artifact(sha, kind, 2048, a.algo_version);
         INSERT INTO said (op, state, sha)
         VALUES (a.op, submit_atom(a.id, sha, jsonb_build_object(
             'splat_count', 1000, 'finite', true, 'gpu_seconds', 1,
-            'frames', (a.params ->> 'to')::int - (a.params ->> 'from')::int,
+            'frames', (a.params ->> 'views')::int,
             'bbox', '[-50, -5, -50, 50, 20, 50]'::jsonb)), sha);
     END LOOP;
 END
 $$;
 
-SELECT is((SELECT count(*)::int FROM said), 8, 'the tab worked through all eight');
+SELECT is((SELECT count(*)::int FROM said), 3, 'the tab worked through all three');
 SELECT is((SELECT count(*)::int FROM said WHERE state <> 'verified'), 0,
     'and every one was accepted without waiting for anybody''s opinion');
 SELECT is((SELECT count(*)::int FROM atom

@@ -1,10 +1,11 @@
--- Every frame atom of a trained tile is of one version, and what the operator
--- chose to draw it with rides along in its params (Invariant 2).
+-- The frames of a trained tile are drawn by one atom of one version, and what
+-- the operator chose to draw them with rides along in its params (Invariant 2).
 --
 -- It used to say frame-v2 and 64 paths a pixel. The version moved on — frame-v10
--- draws the void transparent (db/0125) — and the path tracer became the
--- operator's choice rather than the default (db/0119), so the sample count is
--- there when they ask for it and absent when they do not.
+-- drew the void transparent (db/0125), and since db/0183 one dataset atom draws
+-- every view — and the path tracer became the operator's choice rather than
+-- the default (db/0119), so the sample count is there when they ask for it and
+-- absent when they do not.
 BEGIN;
 SELECT plan(4);
 
@@ -29,17 +30,16 @@ CREATE TEMP TABLE jobs AS
 SELECT ensure_job(18, tile_x(7.805, 18), tile_y(46.295, 18)) AS j18;
 
 SELECT is((SELECT count(*) FROM atom
-           WHERE job_id = (SELECT j18 FROM jobs) AND op = 'frame'),
-    ceil(camera_views(18)::numeric / frame_chunk())::bigint,
-    'a z18 job has a frame atom per chunk of its camera set');
-SELECT is((SELECT count(DISTINCT algo_version) FROM atom
-           WHERE job_id = (SELECT j18 FROM jobs) AND op = 'frame'), 1::bigint,
-    'all of one version');
+           WHERE job_id = (SELECT j18 FROM jobs) AND op = 'dataset'), 1::bigint,
+    'a z18 job has one dataset atom for its whole camera set');
+SELECT is((SELECT (params ->> 'views')::int FROM atom
+           WHERE job_id = (SELECT j18 FROM jobs) AND op = 'dataset'),
+    camera_views(18), 'drawing every view of it');
 SELECT is((SELECT min(algo_version) FROM atom
-           WHERE job_id = (SELECT j18 FROM jobs) AND op = 'frame'), 'frame-v10',
+           WHERE job_id = (SELECT j18 FROM jobs) AND op = 'dataset'), 'dataset-v1',
     'and that version is the one the client publishes');
 SELECT is((SELECT bool_or(params ? 'samples') FROM atom
-           WHERE job_id = (SELECT j18 FROM jobs) AND op = 'frame'),
+           WHERE job_id = (SELECT j18 FROM jobs) AND op = 'dataset'),
     frame_renderer() ? 'samples',
     'and it carries a path count exactly when the operator asked for the tracer');
 

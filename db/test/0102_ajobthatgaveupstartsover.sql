@@ -25,17 +25,17 @@ GRANT SELECT ON jobs TO player;
 -- An atom reaches 'verified' through somebody's hands (db/0017's guard), and
 -- what it points at is a file that exists (Invariant 1).
 INSERT INTO artifact (sha256, kind, bytes, algo_version)
-VALUES (repeat('a', 64), 'init_ply', 4096, 'assemble-v11');
+VALUES (repeat('a', 64), 'dataset', 4096, 'dataset-v1');
 UPDATE atom SET state = 'claimed', worker_id = my_worker(NULL),
                 claimed_at = now(), heartbeat_at = now()
-WHERE job_id = (SELECT jid FROM jobs) AND op = 'assemble';
+WHERE job_id = (SELECT jid FROM jobs) AND op = 'dataset';
 UPDATE atom SET state = 'verified', output_sha256 = repeat('a', 64), attempts = 1
-WHERE job_id = (SELECT jid FROM jobs) AND op = 'assemble';
+WHERE job_id = (SELECT jid FROM jobs) AND op = 'dataset';
 UPDATE atom SET state = 'failed', attempts = 3
-WHERE job_id = (SELECT jid FROM jobs) AND op <> 'assemble';
+WHERE job_id = (SELECT jid FROM jobs) AND op <> 'dataset';
 
 SELECT ok(retry_job((SELECT jid FROM jobs)) >= 2, 'every atom of the job is put back');
-SELECT is((SELECT state FROM atom WHERE job_id = (SELECT jid FROM jobs) AND op = 'assemble'),
+SELECT is((SELECT state FROM atom WHERE job_id = (SELECT jid FROM jobs) AND op = 'dataset'),
     'ready', 'the finished first atom is done again, not reused');
 SELECT is((SELECT count(*)::int FROM atom
            WHERE job_id = (SELECT jid FROM jobs) AND output_sha256 IS NOT NULL), 0,
