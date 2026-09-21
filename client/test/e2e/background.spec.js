@@ -29,7 +29,7 @@ function seed(at) {
     const near = { z: 14, x: tileX(at.lon, 14) + 30, y };
     const far = { z: 14, x: tileX(at.lon, 14) + 3000, y };
     const made = {
-        train: readyAtom({ ...near, op: 'train', algo: 'train-v15', params: {} }),
+        train: readyAtom({ ...near, op: 'train', algo: 'train-v16', params: {} }),
         far: readyAtom({ ...far, op: 'merge', algo: 'merge-v1', params: {} }),
         near: readyAtom({ ...near, op: 'merge', algo: 'merge-v1', params: {} }),
     };

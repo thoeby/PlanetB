@@ -15,9 +15,10 @@ test('half the contrast is gone at the visibility distance', () => {
     assert.ok(Math.abs(seen(VISIBILITY_M) - 0.5) < 1e-6);
 });
 
-test('the air is visible over a valley and not over a street', () => {
+test('the air is visible over a range and not over a valley', () => {
     assert.ok(seen(60) > 0.999, 'nothing underfoot is hazed');
-    assert.ok(seen(2000) < 0.95, 'a ridge two kilometres off is');
+    assert.ok(seen(2000) > 0.99, 'nor is a ridge two kilometres off (db/0184: clear alpine air)');
+    assert.ok(seen(15000) < 0.8, 'a range fifteen kilometres off is');
 });
 
 test('the horizon is the paler end of the sky', () => {

@@ -1,4 +1,4 @@
-// train.js — `train-v15`. The tile, learned from its own frames, by brush.
+// train.js — `train-v16`. The tile, learned from its own frames, by brush.
 //
 // `assemble` built the surfaces and `frame` path-traced them from a fixed
 // camera set. The seed is those surfaces sampled at the tile's whole budget
@@ -28,6 +28,13 @@
 // the assembled tile in one tar, where v14 read an assemble tar and three to
 // six frame tars.
 //
+// v16 starts where brush's own app starts: a seed of three tenths of the
+// budget (what assemble samples, SEED_SHARE), and brush's own refine interval
+// and growth window (client/lib/brush.js configFor). Handed one of these
+// datasets, that app had the tile readable in a minute; this, from a tenth
+// of the budget, refining every thirty steps and growing for 1 440 of them,
+// had blobs.
+//
 // Four poses are held back (client/lib/frames.js): brush never sees them, and
 // `verify` renders two of them in another tab. Invariant 8: probabilistic
 // quality assurance, not proof.
@@ -47,7 +54,7 @@ import { bboxOf, writePly } from '../lib/ply.js';
 import { rngOf, seedSurfaces } from '../lib/sampling.js';
 import { readTar, writeTar } from '../lib/tar.js';
 
-export const ALGO = 'train-v15';
+export const ALGO = 'train-v16';
 // The in-plane sigma of a seed splat as a share of its spacing. Sigma, not
 // radius: a gaussian is visible out to about two of them, so a splat at 1.15
 // covered four to five times the distance to its neighbour — twenty times the
@@ -96,7 +103,7 @@ export const MIN_PAD_M = 2;
 // came to 5.96× rather than 33× — 134 000 of a 600 000 budget. So the seed
 // carries the tile and growth puts the rest where the frames say the picture
 // is wrong (db/0145).
-export const SEED_SHARE = 0.1;
+export const SEED_SHARE = 0.3;
 // And at least this much of the seed goes on the ground, however little there
 // is to see on it. The allocation weights a triangle by its colour and normal
 // spread (client/lib/sampling.js detailOf), and a hillside is one colour over
@@ -247,12 +254,12 @@ export function widen(f, k) {
 }
 
 export async function run({ atom, inputs, log }) {
-    const pack = inputs?.dataset ?? inputs?.assemble;
-    if (!pack) throw new Error('train needs the dataset artifact');
+    const built = inputs?.dataset ?? inputs?.assemble;
+    if (!built) throw new Error('train needs the dataset artifact');
     const tars = inputs.dataset ? [inputs.dataset]
         : [].concat(inputs.frames ?? []).filter(Boolean);
     if (!tars.length) throw new Error('train needs at least one frame artifact');
-    const files = readTar(pack);
+    const files = readTar(built);
     const scene = JSON.parse(decoder.decode(files.get('scene.json')));
     const meshes = unpackMeshes(files.get('mesh.bin'), scene.meshes);
     const budget = Number(atom.params?.budget) || scene.budget;

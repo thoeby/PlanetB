@@ -23,12 +23,12 @@ SELECT ensure_job(14, tile_x(7.885, 14), tile_y(46.295, 14)) AS jid;
 CREATE TEMP TABLE t AS
 SELECT * FROM atom WHERE job_id = (SELECT jid FROM j) AND op = 'train';
 
-SELECT is((SELECT algo_version FROM t), 'train-v15',
+SELECT is((SELECT algo_version FROM t), 'train-v16',
     'the ground being seeded first is a trainer of its own');
 SELECT is((SELECT params ->> 'ground_floor' FROM t), '0.66',
     'two thirds of the seed is the ground''s, whatever stands on it');
-SELECT is((SELECT params ->> 'seed_share' FROM t), '0.1',
-    'and the seed is still a tenth of the budget');
+SELECT is((SELECT params ->> 'seed_share' FROM t), '0.3',
+    'and the seed is three tenths of the budget (db/0184)');
 
 SELECT * FROM finish();
 ROLLBACK;

@@ -98,25 +98,17 @@ test('the config speaks brush: iterations, budget, growth to the budget, no eval
         size: 512 });
     assert.equal(c['total-train-iters'], 1500);
     assert.equal(c['max-splats'], 600000);
-    assert.equal(c['growth-stop-iter'], 900, 'grows for the first 60 %');
+    assert.equal(c['growth-stop-iter'], undefined, 'growth is on brush\'s own clock (db/0184)');
     assert.equal(c['sh-degree'], 0);
     assert.equal(c['eval-split-every'], null);
     assert.equal(c['refine-every'], 200, 'what brush proposed and this does not touch stays');
 });
 
 test('refine-every is asked for when the atom says so, and left to brush when not', () => {
-    // Brush grows by a fraction of what it holds at each refine, and configFor
-    // stops growth at 60 % of the run. At brush's own interval a 1 200-step run
-    // gets about five of them, which took a 22 500 seed to 37 000 of a 600 000
-    // budget (db/0133).
     const asked = configFor({}, { iters: 1200, budget: 800000, size: 1024, refineEvery: 50 });
     assert.equal(asked['refine-every'], 50);
-    assert.equal(asked['growth-stop-iter'], 720);
-    assert.equal((asked['growth-stop-iter'] - asked['growth-start-iter']) / 50, 14.4,
-        'fourteen chances to grow in the window, not five');
-
     const left = configFor({ 'refine-every': 150 }, { iters: 1200, budget: 800000, size: 1024 });
-    assert.equal(left['refine-every'], 150, "brush's own number is not touched");
+    assert.equal(left['refine-every'], 150, 'brush\'s own interval stays');
 });
 
 test('widen makes a splat bigger across the surface and not through it', () => {

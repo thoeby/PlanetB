@@ -174,11 +174,13 @@ export async function brushDevice(gpu = globalThis.navigator?.gpu) {
 }
 
 // brush's TrainStreamConfig, in its kebab-case names, over what it proposed.
-// The seed is most of the budget on the surface (client/atoms/train.js) and
-// brush densifies towards max-splats — the budget — for the first part of the
-// run: splitting where the picture is still wrong is what puts small splats
-// on edges, and a seed of uniform discs has none. No eval split: verify holds
-// its own poses back.
+// Brush's own schedule is left alone: how often it refines and how long it
+// grows are what its app runs with, and its app, handed one of our datasets
+// (tools/dataset.mjs), had the tile readable in a minute where this had
+// blobs — with the same seed size (client/atoms/train.js SEED_SHARE) and no
+// override. db/0138's shorter refine interval and db/0133's growth window
+// were tuned for a 1 200-step run from a tenth of the budget and are
+// history. An atom may still ask for a refine interval (db/0145).
 //
 // What is not touched here: `split-at-screen-size`. Raising it to let splats
 // grow larger panics brush's own rasteriser — "num_intersections > max
@@ -198,9 +200,8 @@ export function configFor(init, { iters, budget, size, seed = 42, refineEvery = 
         // 37 000 of a 600 000 budget — one splat per 77 m² of a z14 tile. Zero
         // leaves brush's own number alone.
         ...(refineEvery > 0 ? { 'refine-every': refineEvery } : {}),
+        // The .sog keeps the DC colour only (client/lib/sogenc.js).
         'sh-degree': 0,
-        'growth-start-iter': 0,
-        'growth-stop-iter': Math.round(iters * 0.6),
         'max-resolution': size,
         // The frames' alpha is where the tile is not (client/lib/raster.js):
         // masked, those pixels are left out of the loss, rather than

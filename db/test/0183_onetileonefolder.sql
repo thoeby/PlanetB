@@ -20,7 +20,7 @@ INSERT INTO worker (user_id, trust) SELECT owner_id, 1 FROM ids;
 
 SELECT results_eq(
     $$SELECT op, algo_version FROM atom WHERE job_id = (SELECT jid FROM j) ORDER BY id$$,
-    $$VALUES ('dataset', 'dataset-v1'), ('train', 'train-v15'), ('sog', 'sog-v3')$$,
+    $$VALUES ('dataset', 'dataset-v1'), ('train', 'train-v16'), ('sog', 'sog-v3')$$,
     'a leaf job is a dataset, a trainer and a pack');
 SELECT is((SELECT (params ->> 'views')::int FROM atom
            WHERE job_id = (SELECT jid FROM j) AND op = 'dataset'), 81,

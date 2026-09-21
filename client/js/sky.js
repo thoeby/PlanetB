@@ -14,14 +14,19 @@
 
 import { SKY_COLOUR, SUN } from '../lib/light.js';
 
-// The air: how far you see before the haze takes half the contrast. 18 km was
-// a clear alpine day and meant nothing at the distances a player actually
-// looks over — at 500 m an exp2 fog of that density leaves 99.9 % of the
-// contrast, which is no atmosphere at all. 6 km puts visible haze on a ridge a
-// kilometre off and still leaves the ground underfoot untouched.
-export const VISIBILITY_M = 6000;
+// The air: how far you see before the haze takes half the contrast. 6 km put
+// a wall of haze on a ridge a kilometre off — the operator's word was "too
+// dense". A clear alpine day sees fifty kilometres or more; 25 km keeps the
+// far ranges hazed and the valley in front of you sharp.
+export const VISIBILITY_M = 25000;
 // The horizon: the sky's colour desaturated and lightened by the air.
 export const HORIZON = [0.74, 0.80, 0.88];
+// What is under the world. The dome used to paint haze below the horizon
+// too, so every hole in a tile — its edge, a slope nobody framed, ground
+// not yet rendered — was a bright blue window into nothing, the one thing
+// that reads as broken from every angle. Below a thin band of haze at the
+// horizon the dome is dark now, so a hole reads as shadow.
+export const UNDERWORLD = [0.06, 0.065, 0.075];
 export const ZENITH = SKY_COLOUR.map((c) => c * 0.75);
 
 const VERT = `
@@ -43,6 +48,7 @@ varying vec3 vDir;
 uniform vec3 uZenith;
 uniform vec3 uHorizon;
 uniform vec3 uSun;
+uniform vec3 uUnder;
 void main() {
     vec3 d = normalize(vDir);
     float up = clamp(d.y, 0.0, 1.0);
@@ -50,7 +56,7 @@ void main() {
     vec3 sky = mix(uHorizon, uZenith, pow(up, 0.55));
     float s = max(dot(d, uSun), 0.0);
     vec3 glow = vec3(1.0, 0.95, 0.85) * (pow(s, 600.0) * 1.2 + pow(s, 8.0) * 0.10);
-    vec3 c = d.y < 0.0 ? mix(uHorizon, uHorizon * 0.85, clamp(-d.y * 3.0, 0.0, 1.0)) : sky + glow;
+    vec3 c = d.y < 0.0 ? mix(uHorizon, uUnder, clamp(-d.y * 12.0, 0.0, 1.0)) : sky + glow;
     gl_FragColor = vec4(c, 1.0);
 }`;
 
@@ -80,6 +86,7 @@ const FRAG_WGSL = `
 uniform uZenith: vec3f;
 uniform uHorizon: vec3f;
 uniform uSun: vec3f;
+uniform uUnder: vec3f;
 varying vDir: vec3f;
 @fragment
 fn fragmentMain(input: FragmentInput) -> FragmentOutput {
@@ -92,7 +99,7 @@ fn fragmentMain(input: FragmentInput) -> FragmentOutput {
     let glow = vec3f(1.0, 0.95, 0.85) * (pow(s, 600.0) * 1.2 + pow(s, 8.0) * 0.10);
     var c = sky + glow;
     if (d.y < 0.0) {
-        c = mix(uniform.uHorizon, uniform.uHorizon * 0.85, clamp(-d.y * 3.0, 0.0, 1.0));
+        c = mix(uniform.uHorizon, uniform.uUnder, clamp(-d.y * 12.0, 0.0, 1.0));
     }
     output.color = vec4f(c, 1.0);
     return output;
@@ -127,6 +134,7 @@ export function mountSky(app, pc, camera) {
     material.setParameter('uZenith', ZENITH);
     material.setParameter('uHorizon', HORIZON);
     material.setParameter('uSun', SUN);
+    material.setParameter('uUnder', UNDERWORLD);
     material.update();
     const mesh = pc.Mesh.fromGeometry(device,
         new pc.SphereGeometry({ radius: 1, latitudeBands: 24, longitudeBands: 32 }));

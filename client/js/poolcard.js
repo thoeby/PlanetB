@@ -32,8 +32,9 @@ const KIND = { render: 'render', train: 'training', publish: 'packing' };
 export function pieces(e) {
     const bits = [];
     // One dataset per tile since db/0183: the line says whether it is drawn.
-    if (Number(e.frames) === 1) bits.push(Number(e.frames_done) ? 'dataset drawn' : 'dataset to draw');
-    else if (Number(e.frames)) bits.push(`${e.frames_done}/${e.frames} frames`);
+    if (Number(e.frames) === 1) {
+        bits.push(Number(e.frames_done) ? 'dataset drawn' : 'dataset to draw');
+    } else if (Number(e.frames)) bits.push(`${e.frames_done}/${e.frames} frames`);
     if (Number(e.ready)) bits.push(`${e.ready} ready`);
     if (Number(e.claimed)) bits.push(`${e.claimed} in hand`);
     if (Number(e.blocked)) bits.push(`${e.blocked} waiting`);
