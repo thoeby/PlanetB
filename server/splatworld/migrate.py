@@ -98,8 +98,19 @@ def explain(cfg: Config, err: psycopg.OperationalError) -> str:
     return f"Could not reach PostgreSQL at {where}:\n  {text.strip()}"
 
 
+# Every connection this module opens, with a bound on the wait: a PostgreSQL
+# that is down, or a port a firewall swallows, made `init` print the database
+# line and then nothing at all — psycopg waits for the operating system,
+# which on Windows can be minutes. Ten seconds, then the reason in words.
+def connect(cfg: Config, database: str | None = None, **kw):
+    try:
+        return psycopg.connect(cfg.dsn(database), connect_timeout=10, **kw)
+    except psycopg.OperationalError as err:
+        raise SystemExit(explain(cfg, err)) from err
+
+
 def database_exists(cfg: Config) -> bool:
-    with psycopg.connect(cfg.dsn("postgres"), autocommit=True) as conn:
+    with connect(cfg, "postgres", autocommit=True) as conn:
         row = conn.execute(
             "SELECT 1 FROM pg_database WHERE datname = %s", (cfg.pg_database,)
         ).fetchone()
@@ -108,14 +119,14 @@ def database_exists(cfg: Config) -> bool:
 
 def schema_present(cfg: Config) -> bool:
     """Whether the migrations have already been applied here."""
-    with psycopg.connect(cfg.dsn(), autocommit=True) as conn:
+    with connect(cfg, autocommit=True) as conn:
         row = conn.execute("SELECT to_regclass('public.tile')").fetchone()
         return bool(row and row[0])
 
 
 def create_database(cfg: Config, *, drop: bool = False) -> None:
     name = sql.Identifier(cfg.pg_database)
-    with psycopg.connect(cfg.dsn("postgres"), autocommit=True) as conn:
+    with connect(cfg, "postgres", autocommit=True) as conn:
         if drop:
             conn.execute(sql.SQL("DROP DATABASE IF EXISTS {} WITH (FORCE)").format(name))
         if drop or not database_exists(cfg):
@@ -149,7 +160,7 @@ def apply(cfg: Config, *, on_step=print) -> int:
     count = 0
     # One applier at a time: two processes that both saw the same file pending
     # would otherwise race, and the loser would stop on the winner's objects.
-    with psycopg.connect(cfg.dsn(), autocommit=True) as guard:
+    with connect(cfg, autocommit=True) as guard:
         guard.execute("SELECT pg_advisory_lock(%s)", (APPLY_LOCK,))
         guard.execute("CREATE EXTENSION IF NOT EXISTS postgis")
         guard.execute("CREATE EXTENSION IF NOT EXISTS pgcrypto")
@@ -172,7 +183,7 @@ def apply(cfg: Config, *, on_step=print) -> int:
 def _apply_one(cfg: Config, path: Path) -> bool:
     """Applies one file. False if the database already had everything in it."""
     try:
-        with psycopg.connect(cfg.dsn()) as conn:
+        with connect(cfg) as conn:
             conn.execute(_substitute(path.read_text(encoding="utf8"), cfg))
             conn.execute("INSERT INTO migration (name) VALUES (%s)", (path.name,))
             conn.commit()
@@ -185,7 +196,7 @@ def _apply_one(cfg: Config, path: Path) -> bool:
 
 def pending(cfg: Config) -> list[str]:
     """Migrations in the checkout that this database has not had."""
-    with psycopg.connect(cfg.dsn(), autocommit=True) as conn:
+    with connect(cfg, autocommit=True) as conn:
         if not conn.execute("SELECT to_regclass('public.migration')").fetchone()[0]:
             return []  # made before this bookkeeping existed; init --reset once
         done = {r[0] for r in conn.execute("SELECT name FROM migration")}
@@ -194,7 +205,7 @@ def pending(cfg: Config) -> list[str]:
 
 def check_postgis(cfg: Config) -> str:
     """Fails early and in words, rather than on the first geometry column."""
-    with psycopg.connect(cfg.dsn("postgres"), autocommit=True) as conn:
+    with connect(cfg, "postgres", autocommit=True) as conn:
         row = conn.execute(
             "SELECT default_version FROM pg_available_extensions WHERE name = 'postgis'"
         ).fetchone()

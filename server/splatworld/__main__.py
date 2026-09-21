@@ -68,6 +68,7 @@ def _cfg(args: argparse.Namespace) -> config.Config:
 def cmd_init(args: argparse.Namespace) -> int:
     cfg = _cfg(args)
     print(f"database {cfg.pg_database} on {cfg.pg_host}:{cfg.pg_port}")
+    print("  connecting...", flush=True)
     version = migrate.check_postgis(cfg)
     print(f"  PostGIS {version} available")
     if args.reset:
