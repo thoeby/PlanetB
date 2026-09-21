@@ -8,7 +8,11 @@
 // so the folder is exactly what brush was handed; --all keeps every frame and
 // the assemble's own init.ply.
 //
-//   node tools/dataset.mjs <job id> [out dir] [--all]
+//   node tools/dataset.mjs <job id> [out dir] [--all] [--without ring,oblique,top]
+//
+// --without leaves out every frame of those kinds, to ask brush's app what a
+// kind of view does to the result: the rings are the far, low views of
+// z16-v3, the stations are the rest.
 //
 // SPLATWORLD_API and SPLATWORLD_FILES name the world (default: the dev
 // server, http://localhost:8080/api and http://localhost:8080).
@@ -52,7 +56,7 @@ function seedOf(files, train) {
 }
 
 async function main([job, out = `dataset-${job}`, ...flags]) {
-    if (!job) throw new Error('usage: node tools/dataset.mjs <job id> [out dir] [--all]');
+    if (!job) throw new Error('usage: node tools/dataset.mjs <job id> [out dir] [--all] [--without kinds]');
     const atoms = await rows('atom',
         `job_id=eq.${job}&select=id,op,params,seed,output_sha256,result&order=id`);
     const ds = atoms.find((a) => a.op === 'dataset');
@@ -60,11 +64,13 @@ async function main([job, out = `dataset-${job}`, ...flags]) {
     const tar = await bytes(ds);
     const files = readTar(tar);
     const all = flags.includes('--all');
+    const at = flags.indexOf('--without');
+    const without = at >= 0 ? String(flags[at + 1] ?? '').split(',').filter(Boolean) : [];
     const train = atoms.find((a) => a.op === 'train');
     const { scene, seed } = seedOf(files, train);
     const set = ds.params?.camera_set;
-    const written = all ? [...files].map(([name, b]) => ({ name, bytes: b }))
-        : dataset([tar], set, seed).files;
+    const written = all && !without.length ? [...files].map(([name, b]) => ({ name, bytes: b }))
+        : dataset([tar], set, seed, { all, without }).files;
     for (const f of written) {
         const to = join(out, f.name);
         mkdirSync(join(to, '..'), { recursive: true });
@@ -72,6 +78,7 @@ async function main([job, out = `dataset-${job}`, ...flags]) {
     }
     const { z, x, y } = scene.tile;
     console.log(`${out}: tile ${z}/${x}/${y}, ${written.length} files of ${set}`
+        + `${without.length ? ` without ${without.join(', ')}` : ''}`
         + `${all ? '' : ` as the trainer saw them, ${seed.count} seed splats`}`);
 }
 

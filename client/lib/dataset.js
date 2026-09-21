@@ -12,7 +12,9 @@ const encoder = new TextEncoder();
 
 // The dataset brush reads: every frame that is not held out, one
 // transforms.json naming them and the seed, and the seed itself.
-export function dataset(tars, set, seed, { all = false } = {}) {
+// `without` leaves out every frame of those kinds ('ring', 'oblique',
+// 'top'), for a run that asks what a kind of view does to the result.
+export function dataset(tars, set, seed, { all = false, without = [] } = {}) {
     const back = new Set(all ? [] : holdout(viewCount(set) || 0));
     const files = [];
     let intr = null;
@@ -22,7 +24,7 @@ export function dataset(tars, set, seed, { all = false } = {}) {
         const meta = JSON.parse(decoder.decode(t.get('transforms.json')));
         intr = intr ?? meta;
         for (const fr of meta.frames) {
-            if (back.has(fr.pose_id)) continue;
+            if (back.has(fr.pose_id) || without.includes(fr.kind)) continue;
             files.push({ name: fr.file_path, bytes: t.get(fr.file_path) });
             frames.push(fr);
         }
