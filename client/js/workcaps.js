@@ -5,8 +5,13 @@
 // versions it builds, what claim_atom may hand it, and the Web Worker the
 // atom itself runs in.
 
+// The version of each op this tab builds. It is what claim_atom is told
+// (`caps.algo`), so the world hands this tab only pieces it can make
+// (db/0178). client/test/algo.test.js holds it to the atom modules and to the
+// database's own algo_current(): the one time it drifted, every train piece
+// in the world was claimed, refused and counted as a failed attempt.
 export const ALGO = {
-    assemble: 'assemble-v11', frame: 'frame-v10', train: 'train-v13',
+    assemble: 'assemble-v11', frame: 'frame-v10', train: 'train-v14',
     merge: 'merge-v1', sog: 'sog-v3', verify: 'verify-v1',
 };
 

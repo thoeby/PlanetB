@@ -29,9 +29,11 @@ SELECT ensure_job((SELECT z FROM tt), (SELECT x FROM tt), (SELECT y FROM tt)) AS
 CREATE TEMP TABLE asm AS
 SELECT id FROM atom WHERE job_id = (SELECT jid FROM first) AND op = 'assemble';
 
--- A tab claims the assemble and goes away; the land is asked for again.
+-- A tab claims the assemble and goes away -- its claim has stopped beating
+-- (db/0178: one that is still beating keeps the piece); the land is asked
+-- for again.
 UPDATE atom SET state = 'claimed', worker_id = '00000000-0000-0000-0000-000000000961',
-                claimed_at = now(), heartbeat_at = now()
+                claimed_at = now() - interval '1 day', heartbeat_at = now() - interval '1 day'
 WHERE id = (SELECT id FROM asm);
 SELECT ok(recompile_land('00000000-0000-0000-0000-000000000096') > 0, 'the ground is marked');
 SELECT lives_ok($$SELECT ensure_job((SELECT z FROM tt), (SELECT x FROM tt), (SELECT y FROM tt))$$,

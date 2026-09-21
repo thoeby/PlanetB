@@ -111,12 +111,17 @@ const OUT = {
     result: { splat_count: 0 },
 };
 
-test('an atom of a version this tab does not build is failed back, not run', async () => {
+test('an atom of a version this tab does not build is handed back, not failed', async () => {
     const { loop, api } = loopOver({ ...ATOM, op: 'train', algo_version: 'train-v1' });
-    await assert.rejects(() => loop.step(), /train-v1/);
-    const failed = api.calls.find((c) => c[0] === 'rpc' && c[1] === 'fail_atom');
-    assert.ok(failed, 'it went back to the pool');
-    assert.match(failed[2].reason, /train-v1/);
+    await assert.rejects(() => loop.step(), /train-v1.*job is out of date/);
+    const back = api.calls.find((c) => c[0] === 'rpc' && c[1] === 'hand_back_atom');
+    assert.ok(back, 'it went back to the pool');
+    assert.ok(!api.calls.some((c) => c[1] === 'fail_atom'), 'refusing is not an attempt');
+});
+
+test('an atom newer than this tab says the page is out of date', async () => {
+    const { loop } = loopOver({ ...ATOM, op: 'train', algo_version: 'train-v99' });
+    await assert.rejects(() => loop.step(), /train-v99: this page is out of date, reload it/);
 });
 
 test('a claimed atom is uploaded to the path its claim reserved, then submitted', async () => {

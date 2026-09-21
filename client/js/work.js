@@ -56,6 +56,21 @@ const PACED_MAX_MS = 10_000;
 // inputs and its worker, and a z18's frames are a hundred megabytes each.
 export const LANES = 4;
 
+// Why this tab cannot build an atom, or null when it can. Which side is out
+// of date is in the numbers: an atom newer than the tab means the page has
+// been served a newer world since it loaded, and the fix is a reload; an atom
+// older than the tab is a job opened before the world moved on, and the fix
+// is the job's, not the player's (refresh_stale_jobs, db/0178).
+export function wrongVersion(atom) {
+    const mine = ALGO[atom.op];
+    if (!mine || !atom.algo_version || atom.algo_version === mine) return null;
+    const n = (v) => Number(/-v(\d+)$/.exec(v)?.[1] ?? 0);
+    const said = `this tab builds ${mine}, and that atom asks for ${atom.algo_version}`;
+    return n(atom.algo_version) > n(mine)
+        ? `${said}: this page is out of date, reload it`
+        : `${said}: that job is out of date, and the world will reopen it`;
+}
+
 // -------------------------------------------------------------------- the loop
 
 export class WorkLoop {
@@ -113,6 +128,18 @@ export class WorkLoop {
     async step() {
         const atom = await this.claim();
         if (!atom) return null;
+        // An atom names the version of the code that may make it (Invariant
+        // 2), and this tab has one version of each. claim_atom filters on
+        // `caps.algo` (db/0178), so this is a world older than that or a tab
+        // that lied about itself; either way the piece goes straight back,
+        // not through fail_atom: refusing to run is not a failed attempt, and
+        // three refusals must not mark the atom failed.
+        const wrong = wrongVersion(atom);
+        if (wrong) {
+            this.log({ event: 'error', atom: atom.id, op: atom.op, err: wrong });
+            await this.api.rpc('hand_back_atom', { atom_id: atom.id }).catch(() => {});
+            throw new Error(wrong);
+        }
         this.working.set(atom.id, atom);
         this.atom = atom;
         this.log({ event: 'claim', atom: atom.id, op: atom.op, job: atom.job_id });
@@ -232,15 +259,10 @@ export class WorkLoop {
     // hundred megabytes to fetch and its ply as much again to hash and upload,
     // and none of that says a word on its own.
     async compute(atom, progress = () => {}) {
-        // An atom names the version of the code that may make it (Invariant 2).
-        // This tab has one version of each; running an older atom's inputs
-        // through it would put bytes in the world under a name that did not
-        // make them — and, while a trainer is being changed, would answer a
-        // question about the new one with a run of the old.
-        if (ALGO[atom.op] && atom.algo_version && atom.algo_version !== ALGO[atom.op]) {
-            throw new Error(`this tab builds ${ALGO[atom.op]}, and that atom asks for `
-                + `${atom.algo_version}: compile the tile again to get one it can build`);
-        }
+        // Running an older atom's inputs through this code would put bytes in
+        // the world under a name that did not make them (Invariant 2).
+        const wrong = wrongVersion(atom);
+        if (wrong) throw new Error(wrong);
         const resolved = await resolveInputs(this.api, atom.inputs);
         progress();
         const inputs = await this.cache.load(resolved);
