@@ -23,7 +23,10 @@ export async function putFile(work, atom, file, sha) {
         },
         body: file.bytes,
     });
-    if (res.status === 403) return elsewhere(work, sha, file.ext, path);
+    if (res.status === 403) {
+        const found = await elsewhere(work, sha, file.ext, path);
+        return found ?? putFile(work, atom, file, sha);
+    }
     if (res.status !== 201 && res.status !== 204 && res.status !== 409) {
         throw new Error(`PUT ${path} -> ${res.status}`);
     }
@@ -57,5 +60,27 @@ async function elsewhere(work, sha, ext, wanted) {
             return path;
         }
     }
-    throw new Error(`artifact ${sha} is registered but is nowhere in the store`);
+    // Registered, and gone: the world cannot see the store, so this tab —
+    // which holds the bytes in its hands — says so, and puts them back
+    // (db/0180 artifact_missing). Once: a second refusal is something else.
+    if (work.repaired?.has(sha)) {
+        throw new Error(`artifact ${sha} is registered but is nowhere in the store`);
+    }
+    (work.repaired ??= new Set()).add(sha);
+    await work.api.rpc('artifact_missing', { sha256: sha });
+    work.log({ event: 'missing', sha, said: 'registered but nowhere in the store; forgotten,'
+        + ' and written again' });
+    return null;
+}
+
+// A 404 while reading an input is the store having lost an artifact the
+// world still lists (db/0180). The world is told, so the atom that made it is
+// back in the pool, and the error says what happens next.
+export async function lostInput(work, err) {
+    const m = /GET \S*\/([0-9a-f]{64})\.[a-z0-9]+ -> 404/.exec(String(err?.message ?? ''));
+    if (!m) return err;
+    const n = await work.api.rpc('artifact_missing', { sha256: m[1] }).catch(() => null);
+    const said = n == null ? 'and the world could not be told'
+        : `so the ${n} piece(s) that made it are back in the pool; this one follows`;
+    return new Error(`input ${m[1].slice(0, 12)}… is gone from the store, ${said}`);
 }

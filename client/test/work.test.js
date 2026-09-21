@@ -382,3 +382,4 @@ test('closing the tab hands back every piece it is holding', async () => {
         ['hand_back_atom', 13]]);
     assert.equal(loop.handBack(), false, 'and nothing is handed back twice');
 });
+

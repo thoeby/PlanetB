@@ -19,7 +19,7 @@
 
 import { sha256 } from '../lib/hash.js';
 import { InputCache, resolveInputs } from './inputs.js';
-import { putFile } from './workstore.js';
+import { lostInput, putFile } from './workstore.js';
 
 // What this tab can do and how it runs an atom are client/js/workcaps.js;
 // they are re-exported here because this is where every caller reaches for
@@ -265,7 +265,8 @@ export class WorkLoop {
         if (wrong) throw new Error(wrong);
         const resolved = await resolveInputs(this.api, atom.inputs);
         progress();
-        const inputs = await this.cache.load(resolved);
+        const inputs = await this.cache.load(resolved).catch(
+            async (err) => { throw await lostInput(this, err); });
         progress();
         const worker = this.spawn();
         try {
