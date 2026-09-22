@@ -21,9 +21,8 @@ import { join } from 'node:path';
 import { dataset } from '../client/lib/dataset.js';
 import { unpackMeshes } from '../client/lib/mesh.js';
 import { shuffled } from '../client/lib/preview.js';
-import { rngOf, seedSurfaces } from '../client/lib/sampling.js';
+import { rngOf, seedOf as placeSeed } from '../client/lib/sampling.js';
 import { readTar } from '../client/lib/tar.js';
-import { GROUND_FLOOR, SEED_SHARE, SPREAD } from '../client/atoms/train.js';
 
 const API = process.env.SPLATWORLD_API ?? 'http://localhost:8080/api';
 const FILES = process.env.SPLATWORLD_FILES ?? 'http://localhost:8080';
@@ -41,7 +40,8 @@ async function bytes(atom) {
     return new Uint8Array(await res.arrayBuffer());
 }
 
-// The seed the trainer makes from the assembled meshes, the way it makes it.
+// The seed the trainer makes from the assembled meshes, the way it makes it
+// (client/lib/sampling.js seedOf, under the train atom's own params).
 function seedOf(files, train) {
     const scene = JSON.parse(new TextDecoder().decode(files.get('scene.json')));
     const meshes = unpackMeshes(files.get('mesh.bin'), scene.meshes);
@@ -49,10 +49,7 @@ function seedOf(files, train) {
     const budget = Number(p.budget) || scene.budget;
     const { z, x, y } = scene.tile;
     const random = rngOf(train ?? { seed: 0 }, z, x, y);
-    const share = Number(p.seed_share) || SEED_SHARE;
-    const floor = p.ground_floor === undefined ? GROUND_FLOOR : Number(p.ground_floor);
-    return { scene, seed: shuffled(seedSurfaces(meshes, Math.round(budget * share), random,
-        { spread: SPREAD, even: true, floor }), random) };
+    return { scene, seed: shuffled(placeSeed(meshes, budget, random, p).seed, random) };
 }
 
 async function main([job, out = `dataset-${job}`, ...flags]) {

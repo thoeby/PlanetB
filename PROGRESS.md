@@ -2914,3 +2914,40 @@ body and knows that a typmod is not a choice made at run time.
 The lesson is the one from the lease: **editing a migration is not a fix for a
 world that has applied it.** Both times the gate was green and the operator's
 world was not.
+
+## The seed covers the ground in a grid, and the ground has something on it
+
+db/0184 put the trainer where brush's own app starts, and the tiles still
+came back with stretches of hillside tens of metres across that no splat had
+landed on. Three tenths of the budget allocated by area is fair on average and
+a lottery by triangle, and a trainer cannot move what is not there (db/0186):
+
+- **A tenth of the budget is a lattice across the ground**
+  (`client/lib/sampling.js` `gridSurfaces`, the train atom's `seed_grid`): one
+  splat at every point of a square lattice that falls on a ground triangle,
+  at that triangle's height, colour and normal, before the allocation places
+  the other two tenths. No stretch of ground is more than a spacing from a
+  splat. Deterministic, no randomness in it.
+- **One seed recipe** (`seedOf`): `train-v17` starts from it, `assemble-v12`
+  writes it as init.ply, `tools/dataset.mjs` puts it in the folder, and the
+  dataset's transforms.json names it. Until now assemble's init.ply was a
+  different sample at random placement and the folder's transforms named no
+  ply, so brush's app, given the folder whole, started from random points.
+- **The frames' alpha is read as brush's app reads it**: transparent, so the
+  void around a tile is trained towards nothing and |alpha| is in the loss,
+  which holds the edge in. `masked` (train-v10 to v16) left the void out of
+  the loss, and the edges came back smeared outward.
+- **The ground is mottled** (`client/lib/terrain.js` `mottleAt`): two octaves
+  of value noise, six and twenty-four metres, within a seventh of the colour
+  either way, the one field across a tile's edge into its neighbour at the
+  same zoom, and off under an orthophoto. A hillside of one colour gives a
+  trainer nothing to hold a splat in place with along the slope.
+- `dataset-v3` carries assemble-v12; every open job draws its dataset and
+  trains again.
+
+Not measured here: this box has no GPU and no PostGIS, so `make db-test` and
+the browser suite did not run; the node suite and eslint are green, and the
+pgTAP test beside db/0186 and the older tests that name the versions are
+updated and unrun. Still open: the step time. The `train` log lines say where
+a step goes (`in_brush`, `ours`, `maps`, `map_ms`); a run at these settings is
+what answers it.

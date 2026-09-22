@@ -12,12 +12,14 @@
 // on, every frame, and the transforms.json that places them. train reads it,
 // sog reads it for the tile's height and colliders, and tools/dataset.mjs
 // unpacks it into the folder brush's own app takes. v2 draws both faces of
-// every surface (client/lib/raster.js).
+// every surface (client/lib/raster.js). v3 is assemble-v12 underneath: the
+// ground mottled (client/lib/terrain.js mottleAt), init.ply the trainer's own
+// seed (client/lib/sampling.js seedOf), and transforms.json naming it.
 import { run as assemble } from './assemble.js';
 import { renderFrames } from './frame.js';
 import { readTar, writeTar } from '../lib/tar.js';
 
-export const ALGO = 'dataset-v2';
+export const ALGO = 'dataset-v3';
 
 export async function run(ctx) {
     const { atom, canvas, log } = ctx;

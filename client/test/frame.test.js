@@ -92,6 +92,8 @@ test('transforms.json is nerfstudio-shaped and names every frame', () => {
     assert.equal(t.frames[0].pose_id, 20, 'a chunk keeps the set-wide pose ids');
     assert.equal(t.frames[0].file_path, 'frame_0020.webp');
     assert.equal(t.frames[0].transform_matrix.length, 4);
+    assert.equal(t.ply_file_path, 'init.ply',
+        'and names the seed, so brush starts from it and not from random points');
 });
 
 test('bounds are the middle of the ground and how far the scene reaches', () => {

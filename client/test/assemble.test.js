@@ -121,7 +121,7 @@ async function serve() {
 }
 
 const ATOM = {
-    id: 1, op: 'assemble', algo_version: 'assemble-v11', seed: 7,
+    id: 1, op: 'assemble', algo_version: 'assemble-v12', seed: 7,
     inputs: { snapshot: WORLD.snapshot }, params: { z: Z, x: X, y: Y, budget: BUDGET },
 };
 
@@ -136,7 +136,7 @@ test('assemble produces the five files the rest of the pipeline reads', async ()
             ['scene.json', 'mesh.bin', 'init.ply', 'height.r16', 'colliders.json']);
 
         const scene = JSON.parse(new TextDecoder().decode(files.get('scene.json')));
-        assert.equal(scene.algo, 'assemble-v11');
+        assert.equal(scene.algo, 'assemble-v12');
         assert.deepEqual(scene.tile, { z: Z, x: X, y: Y });
         assert.ok(scene.origin.h > 350 && scene.origin.h < 460, 'the origin sits on the ground');
         assert.ok(scene.meshes.length >= 6, 'terrain, road, walls, roofs, water, trees');
@@ -240,12 +240,14 @@ test('a ring is triangulated, wound and scattered the same way every time', () =
 //
 // The ply moved once since, and not for the vocabulary: db/0151's sampler
 // (`assemble-v6` on the LOD branch — a splat is the size it claims) writes
-// every seed differently. The hash here is what that compiler wrote over the
-// old-vocabulary fixture at 826809a, and the merged compiler over this one
-// matches it; the mesh never moved at all.
+// every seed differently. Both moved again at assemble-v12 (db/0186): the
+// ground's colours carry a mottle now (client/lib/terrain.js mottleAt), and
+// init.ply is the trainer's own seed (client/lib/sampling.js seedOf), a third
+// of it on a lattice. The hashes are what v12 wrote over this fixture; what
+// they guard is that nothing moves again without a version saying so.
 const BEFORE_FND3 = {
-    mesh: 'f7d2a23134b5c7b3d336c73f8e1a4bfd6250422ffbd6dc4fc18f7356dd3cf6e1',
-    ply: 'c249822acfa4e3335d94bdc8fc093008b34b75a199ec70286816d259128e6147',
+    mesh: '7a35814ad3f2c1308923eefc1480083038b11da5812851398c2625db852d53a3',
+    ply: '5c636032da6ee9800fbd4b2d7ca31511bb31db4eaca089c000caeddc45da51f4',
     trees: 118,
 };
 

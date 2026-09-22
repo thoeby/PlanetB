@@ -19,6 +19,8 @@
 // a 24-bit depth texture (client/lib/raster.js). v10 leaves the void
 // transparent instead of painting it sky, for brush to mask, and is drawn
 // from the z16-v2 stations (client/lib/cameras.js) over a 513-vertex ground.
+// v11's transforms.json names init.ply as the seed (client/lib/cameras.js
+// transformsJson), so the dataset's own folder starts brush's app from it.
 
 import { cameraSet, transformsJson, viewCount } from '../lib/cameras.js';
 import { unpackMeshes } from '../lib/mesh.js';
@@ -28,7 +30,7 @@ import { toWebp } from '../lib/render.js';
 import { readTar, writeTar } from '../lib/tar.js';
 import { localFromLonLat, tileBbox, tileFrame } from '../lib/tilemath.js';
 
-export const ALGO = 'frame-v10';
+export const ALGO = 'frame-v11';
 export const SIZE = 1024;
 const QUALITY = 0.9;
 

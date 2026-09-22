@@ -212,12 +212,18 @@ export function perspective(fovDeg, aspect, near, far) {
 }
 
 // nerfstudio's transforms.json, OPENCV camera model with a square sensor.
+// `ply_file_path` names the seed assemble writes beside its scene: brush
+// starts from it when the file is there (brush-dataset nerfstudio.rs) and
+// from random points in the frustums when it is not, which is what its own
+// app did with a dataset unpacked whole (tools/dataset.mjs --all) before the
+// name was in here.
 export function transformsJson(cams, size, files) {
     const f = size / 2 / Math.tan(cams[0].fov * RAD / 2);
     return {
         camera_model: 'OPENCV',
         fl_x: f, fl_y: f, cx: size / 2, cy: size / 2, w: size, h: size,
         k1: 0, k2: 0, p1: 0, p2: 0,
+        ply_file_path: 'init.ply',
         frames: cams.map((cam, i) => ({
             file_path: files[i],
             pose_id: cam.id,

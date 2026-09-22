@@ -102,6 +102,8 @@ test('the config speaks brush: iterations, budget, growth to the budget, no eval
     assert.equal(c['sh-degree'], 0);
     assert.equal(c['eval-split-every'], null);
     assert.equal(c['refine-every'], 200, 'what brush proposed and this does not touch stays');
+    assert.equal(c['alpha-mode'], undefined,
+        "the frames' alpha is read the way brush's own app reads it: not overridden");
 });
 
 test('refine-every is asked for when the atom says so, and left to brush when not', () => {

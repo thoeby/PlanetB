@@ -78,7 +78,7 @@ test('two tabs render the same range of a camera set to the same frames',
     async ({ page }) => {
         const snapshot = psql(`SELECT world_snapshot(${TILE.z}, ${TILE.x}, ${TILE.y})`);
         const assemble = readyAtom({
-            ...TILE, op: 'assemble', algo: 'assemble-v11', inputs: { snapshot },
+            ...TILE, op: 'assemble', algo: 'assemble-v12', inputs: { snapshot },
             params: { ...TILE, budget: 600000 },
         });
         const errors = [];
@@ -90,7 +90,7 @@ test('two tabs render the same range of a camera set to the same frames',
 
         // Two atoms, the same range, rendered one after the other by this tab.
         const frames = [1, 2].map((seed) => readyAtom({
-            ...TILE, op: 'frame', algo: 'frame-v10',
+            ...TILE, op: 'frame', algo: 'frame-v11',
             inputs: { assemble: Number(assemble), snapshot },
             params: { camera_set: 'z16-v2', from: FROM, to: TO, run: seed,
                 size: SIZE, samples: SAMPLES },

@@ -205,10 +205,15 @@ export function configFor(init, { iters, budget, size, seed = 42, refineEvery = 
         // The .sog keeps the DC colour only (client/lib/sogenc.js).
         'sh-degree': 0,
         'max-resolution': size,
-        // The frames' alpha is where the tile is not (client/lib/raster.js):
-        // masked, those pixels are left out of the loss, rather than
-        // transparent, which would train them towards nothing.
-        'alpha-mode': 'masked',
+        // The frames' alpha is where the tile is not (client/lib/raster.js),
+        // and brush is left to read it the way its own app does with the
+        // same folder: no mask file beside a frame, so `transparent` — those
+        // pixels are trained towards nothing, and |alpha - 0| is in the loss
+        // (brush-train's match-alpha-weight), which is what holds a splat at
+        // the tile's edge to the tile. train-v10 to v16 said `masked`, which
+        // leaves the void out of the loss altogether: a splat drifting over
+        // the edge costs nothing there, and the edge came back smeared
+        // outward while the app, on the same dataset, had a clean one.
         'eval-split-every': null,
         'eval-every': iters * 10,
         'export-every': iters * 10,

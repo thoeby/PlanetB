@@ -1,13 +1,16 @@
-// assemble.js — `assemble-v11`. The world, as geometry, in one tile's own frame.
+// assemble.js — `assemble-v12`. The world, as geometry, in one tile's own frame.
 //
 // Terrain from the seeded DEM, cut by terrainmods and roads; footprints
 // extruded; forests scattered; water laid flat; the ground coloured by its own
-// ground and blended by slope and height. Out come four files in one tar:
+// ground and blended by slope and height, and mottled a little from point to
+// point where no orthophoto says otherwise (client/lib/terrain.js mottleAt).
+// Out come four files in one tar:
 //
 //   scene.json   what the scene is, and where every buffer lives in mesh.bin
 //   mesh.bin     positions, normals, colours and indices, one mesh per material
-//   init.ply     area-weighted surface samples at 30 % of the tile's budget —
-//                where `train` starts from, and what `sample` publishes as is
+//   init.ply     the seed, at 30 % of the tile's budget: the same recipe
+//                `train` starts brush from (client/lib/sampling.js seedOf),
+//                so a dataset made of this tar and the frames is that run
 //   height.r16   the ground the player walks on
 //   colliders.json  the boxes the player bumps into
 //
@@ -29,7 +32,7 @@ import {
     coverFeatures, coverOne, landCover, paintOf, readCover,
 } from '../lib/gen/cover.js';
 import { coverColour, coverPicture } from '../lib/gen/covercolour.js';
-import { rngOf, sampleSurfaces } from '../lib/sampling.js';
+import { rngOf, seedOf } from '../lib/sampling.js';
 import { writeTar } from '../lib/tar.js';
 import {
     GRID, Terrain, applyHeightEdits, cutRoads, heightRaster, openHeights,
@@ -39,8 +42,9 @@ import { localFromLonLat, lonLatFromLocal } from '../lib/tilemath.js';
 
 // v4 writes each surface's own colour and leaves the light to the one
 // renderer (client/lib/raster.js); v3 had baked it for a sampled baseline
-// that is gone. The cut elevation is read whole (terrain.js GRID).
-export const ALGO = 'assemble-v11';
+// that is gone. The cut elevation is read whole (terrain.js GRID). v12 writes
+// the trainer's own seed as init.ply and mottles the ground's colour.
+export const ALGO = 'assemble-v12';
 
 // How big the cover picture a tile carries is (FND.13). A map tile, not a
 // texture: 256 is what every slippy map in the world serves.
@@ -49,7 +53,6 @@ const COVER_PX = 256;
 // What assemble and sample both use to turn surfaces into splats; re-exported
 // because both atoms have always reached for them here.
 export { rngOf, sampleSurfaces } from '../lib/sampling.js';
-const INIT_SHARE = 0.3;
 
 // ---------------------------------------------------------------- the world
 
@@ -143,7 +146,7 @@ function colliderOf(meshes, at) {
 // it (db/0161): nothing here knows what a road, a wood or a roof is. Each
 // feature is put through the first symbol that matches it, and that symbol's
 // layers draw it (client/lib/gen/).
-function build({ z, sw, ne, dem, frame, world, random, assets, products,
+function build({ z, sw, ne, dem, frame, world, random, assets, products, tile,
     ground = [], colourAt = null, coverImg = null, materials = null }) {
     const symbols = world.symbols ?? [];
     const feats = (world.features ?? []).map((f) => toLocal(frame, f));
@@ -196,7 +199,10 @@ function build({ z, sw, ne, dem, frame, world, random, assets, products,
         material: (san) => materials?.get(san) ?? null,
         terrain, xOf, zOf,
     });
-    const meshes = clip([terrainMesh(terrain, 'terrain', painted, placed.openings),
+    // The mottle is for ground that has no picture of its own: an orthophoto
+    // (db/0106) carries its own.
+    const meshes = clip([
+        terrainMesh(terrain, 'terrain', painted, placed.openings, { tile, mottle: !colourAt }),
         ...drawn.meshes, ...placed.meshes], sw, ne);
     const boxes = [...drawn.boxes, ...placed.boxes]
         .filter((b) => b.center[0] >= sw.x - CLIP_M
@@ -232,14 +238,14 @@ export async function run({ atom, log, apiUrl, filesUrl }) {
     const { terrain, meshes, boxes, trees, flags, roads, placed, openings, cover,
         painted } =
         build({ z, sw, ne, dem, frame, world, random: rngOf(atom, z, x, y),
-            assets, products, ground, colourAt, coverImg, materials });
+            assets, products, ground, colourAt, coverImg, materials, tile: { z, x, y } });
     log?.({ event: 'assembled', z, x, y, meshes: meshes.length, trees,
         cover: cover?.classes?.length ?? 0, unmapped: cover?.unmapped?.length ?? 0,
         buildings: boxes.length, roads: roads.length,
         instances: placed.meshes.length, missing: placed.missing });
 
     const random = rngOf(atom, z, x, y);
-    const splats = sampleSurfaces(meshes, Math.round(budget * INIT_SHARE), random);
+    const { seed: splats } = seedOf(meshes, budget, random);
     // What the player walks on has the same holes in it.
     const height = heightRaster(openHeights(terrain, openings));
     const { bin, specs } = packMeshes(meshes);

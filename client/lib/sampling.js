@@ -212,18 +212,138 @@ export function joinSplats(a, b) {
 // Everything that stands on it is sampled exactly as it always was.
 export const isGround = (m) => m.material === 'terrain';
 
-export function seedSurfaces(meshes, total, random, { floor = 0, ...how } = {}) {
+export function seedSurfaces(meshes, total, random, { floor = 0, grid = 0, ...how } = {}) {
     const ground = meshes.filter(isGround);
     const rest = meshes.filter((m) => !isGround(m));
-    if (!ground.length || !rest.length) return sampleSurfaces(meshes, total, random, how);
+    // The lattice first: it is the part of the seed that is the same whatever
+    // the allocation does, and a prefix of the seed is then the ground, evenly.
+    const lattice = grid > 0 && ground.length
+        ? gridSurfaces(ground, Math.round(total * grid), how) : emptySplats(0);
+    const left = Math.max(total - lattice.count, 0);
+    if (!ground.length || !rest.length) {
+        return joinSplats(lattice, sampleSurfaces(meshes, left, random, how));
+    }
     const spread = (list) => triangles(list).reduce((s, [m, i]) => s + area(m, i), 0);
     const mine = spread(ground);
     const share = Math.max(mine / (mine + spread(rest) || 1), floor);
-    const n = Math.min(Math.max(Math.round(total * share), 1), total - 1);
-    // The ground first, so a prefix of the seed is mostly ground: the preview
-    // reads a prefix, and a preview of the trees is not a preview of the tile.
-    return joinSplats(sampleSurfaces(ground, n, random, how),
-        sampleSurfaces(rest, total - n, random, how));
+    const n = Math.min(Math.max(Math.round(left * share), 1), Math.max(left - 1, 1));
+    // The ground before what stands on it, so a prefix of the seed is mostly
+    // ground: the preview reads a prefix, and a preview of the trees is not a
+    // preview of the tile.
+    return joinSplats(lattice, joinSplats(sampleSurfaces(ground, n, random, how),
+        sampleSurfaces(rest, Math.max(left - n, 0), random, how)));
+}
+
+// The ground, on a lattice. `sampleSurfaces` places a triangle's splats
+// within that triangle, and the allocation decides how many each gets: fair
+// by area, but a hillside of 500 000 triangles at a few thousand splats is a
+// lottery, and the tiles kept coming back with stretches of ground — tens of
+// metres across — that had no splat on them at all. Nothing there to move,
+// so nothing the trainer could do about it.
+//
+// So a share of the seed is not allocated at all: one splat at every point
+// of a square lattice across the ground's plan, spaced so `n` of them cover
+// it, wherever that point falls on a ground triangle — at that triangle's
+// own height, colour and normal. No two stretches of ground are more than a
+// spacing apart, and it is the same lattice for the same ground (Invariant
+// 2: no randomness in it at all). The count comes out near `n`, not at it:
+// a lattice does not know where the ground ends.
+export function gridSurfaces(meshes, n, { spread = 0.5 } = {}) {
+    const tris = triangles(meshes);
+    const lo = [Infinity, Infinity];
+    let plan = 0;
+    const flat = tris.map(([m, i]) => {
+        const v = [0, 1, 2].map((k) => vert(m, m.indices[i + k]));
+        lo[0] = Math.min(lo[0], v[0][0], v[1][0], v[2][0]);
+        lo[1] = Math.min(lo[1], v[0][2], v[1][2], v[2][2]);
+        plan += Math.abs((v[1][0] - v[0][0]) * (v[2][2] - v[0][2])
+            - (v[2][0] - v[0][0]) * (v[1][2] - v[0][2])) / 2;
+        return v;
+    });
+    if (!(plan > 0) || !(n >= 1)) return emptySplats(0);
+    const s = Math.sqrt(plan / n);
+    const rows = [];
+    const seen = new Set();
+    for (let t = 0; t < tris.length; t++) latticeIn(flat[t], tris[t], s, lo, seen, rows);
+    const f = emptySplats(rows.length);
+    for (let k = 0; k < rows.length; k++) {
+        const [p, c, q] = rows[k];
+        f.x[k] = p[0]; f.y[k] = p[1]; f.z[k] = p[2];
+        f.r[k] = c[0]; f.g[k] = c[1]; f.b[k] = c[2];
+        f.a[k] = 1;
+        f.sx[k] = s * spread; f.sy[k] = s * 0.15; f.sz[k] = s * spread;
+        [f.qw[k], f.qx[k], f.qy[k], f.qz[k]] = q;
+    }
+    return f;
+}
+
+// Every lattice point (spacing `s`, from `lo`, half a step in) that falls on
+// this triangle in plan, as [position, colour, rotation]. A point on a shared
+// edge falls on both triangles and is placed once (`seen`).
+function latticeIn(v, [m, i], s, lo, seen, rows) {
+    const x0 = v[0][0]; const z0 = v[0][2];
+    const ux = v[1][0] - x0; const uz = v[1][2] - z0;
+    const wx = v[2][0] - x0; const wz = v[2][2] - z0;
+    const det = ux * wz - wx * uz;
+    if (Math.abs(det) < 1e-12) return;
+    const first = (a, k) => Math.ceil((a - lo[k]) / s - 0.5);
+    const last = (a, k) => Math.floor((a - lo[k]) / s - 0.5);
+    const ia = first(Math.min(x0, v[1][0], v[2][0]), 0);
+    const ib = last(Math.max(x0, v[1][0], v[2][0]), 0);
+    const ja = first(Math.min(z0, v[1][2], v[2][2]), 1);
+    const jb = last(Math.max(z0, v[1][2], v[2][2]), 1);
+    for (let j = ja; j <= jb; j++) {
+        for (let a = ia; a <= ib; a++) {
+            const px = lo[0] + (a + 0.5) * s - x0;
+            const pz = lo[1] + (j + 0.5) * s - z0;
+            const bu = (px * wz - wx * pz) / det;
+            const bv = (ux * pz - px * uz) / det;
+            if (bu < 0 || bv < 0 || bu + bv > 1) continue;
+            const key = `${a},${j}`;
+            if (seen.has(key)) continue;
+            seen.add(key);
+            const w = [1 - bu - bv, bu, bv];
+            const ids = [m.indices[i], m.indices[i + 1], m.indices[i + 2]];
+            const mixed = (get) => [0, 1, 2].map((c) =>
+                w[0] * get(m, ids[0])[c] + w[1] * get(m, ids[1])[c] + w[2] * get(m, ids[2])[c]);
+            const nrm = mixed((mm, k) => [mm.normals[k * 3], mm.normals[k * 3 + 1],
+                mm.normals[k * 3 + 2]]);
+            const len = Math.hypot(nrm[0], nrm[1], nrm[2]) || 1;
+            rows.push([mixed(vert), mixed(col).map((c) => Math.min(c, 1)),
+                quatToNormal(nrm.map((c) => c / len))]);
+        }
+    }
 }
 
 export const rngOf = (atom, z, x, y) => rng((atom.seed ?? 0) + z * 1000003 + x * 1009 + y);
+
+// ------------------------------------------------------------------ the seed
+
+// The one seed. `assemble` writes it as init.ply and `train` starts brush
+// from it, and they are the same recipe so that a dataset put together from
+// the two artifacts — the frames tar and the assemble tar in one folder — is
+// exactly what the trainer here is handed. Until it was, brush's own app was
+// training the same frames from a different seed (assemble's, at another
+// share and placed at random), and what it showed said nothing about what
+// this trainer was doing with them.
+//
+// `share`: of the tile's budget, seeded on the surfaces. `grid`: of the
+// budget, laid on a lattice across the ground (gridSurfaces), a third of the
+// seed. `floor`: of what the allocation places, the ground's least share
+// (seedSurfaces). `spread`: the in-plane sigma of a seed splat as a share of
+// its spacing — a gaussian is visible out to about two of them, so half the
+// spacing puts the two-sigma edge at one spacing: covered, with overlap, and
+// no smear (client/atoms/train.js has the history of 1.15).
+export const SEED = { share: 0.3, grid: 0.1, floor: 0.66, spread: 0.5 };
+
+// The seed of `budget` splats' worth of surfaces, under the atom's params
+// where it has them (seed_share, seed_grid, ground_floor) and SEED's numbers
+// where it does not. The shares are returned with it, for the record.
+export function seedOf(meshes, budget, random, params = {}) {
+    const share = Number(params.seed_share) || SEED.share;
+    const grid = params.seed_grid === undefined ? SEED.grid : Number(params.seed_grid);
+    const floor = params.ground_floor === undefined ? SEED.floor : Number(params.ground_floor);
+    const seed = seedSurfaces(meshes, Math.round(budget * share), random,
+        { spread: SEED.spread, even: true, floor, grid: grid / share });
+    return { seed, share, grid, floor };
+}

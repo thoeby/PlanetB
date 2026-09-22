@@ -236,6 +236,52 @@ export function terrainColour(slope, height, openness = 1) {
     return ground.map((c) => c * ao);
 }
 
+// The ground's colour, varied a little from point to point. The bands above
+// are one colour over a whole hillside, and a trainer learning from frames of
+// one colour has nothing to hold a splat in place with: every position along
+// the slope reproduces the frame equally well, so the splats settle where the
+// seed put them and the surface between them stays a blur. Real ground is
+// never one colour — the grass is patchy, the scree is banded — and a little
+// of that is what gives the frames something to lock onto.
+//
+// Two octaves of value noise, six and twenty-four metres across, together
+// never more than a seventh either way of the colour they are laid on: a
+// mottle, not a pattern, and nothing a player picks out as one. Keyed on the
+// point's place in the zoom's own grid (the tile's index times the cells a
+// tile has, plus the cell), so neighbouring tiles at the same zoom carry the
+// one field across their shared edge with no seam in it. Deterministic
+// (Invariant 2): the same ground is the same mottle.
+const MOTTLE = [{ metres: 6, amp: 0.06 }, { metres: 24, amp: 0.08 }];
+
+// An integer lattice point to 0..1, well mixed, the same on every machine.
+function hashAt(i, j) {
+    let h = Math.imul(i | 0, 0x27d4eb2d) ^ Math.imul(j | 0, 0x165667b1);
+    h = Math.imul(h ^ (h >>> 15), 0x85ebca6b);
+    h = Math.imul(h ^ (h >>> 13), 0xc2b2ae35);
+    return ((h ^ (h >>> 16)) >>> 0) / 4294967296;
+}
+
+function valueNoise(u, v) {
+    const i = Math.floor(u); const j = Math.floor(v);
+    const fade = (t) => t * t * (3 - 2 * t);
+    const su = fade(u - i); const sv = fade(v - j);
+    const top = hashAt(i, j) * (1 - su) + hashAt(i + 1, j) * su;
+    const bottom = hashAt(i, j + 1) * (1 - su) + hashAt(i + 1, j + 1) * su;
+    return top * (1 - sv) + bottom * sv;
+}
+
+// The multiplier on the ground's colour at grid point (i, j) of `tile`.
+export function mottleAt(terrain, i, j, tile = null) {
+    const n = terrain.size;
+    const gi = ((tile?.x ?? 0) * (n - 1) + i) * Math.abs(terrain.stepX);
+    const gj = ((tile?.y ?? 0) * (n - 1) + j) * Math.abs(terrain.stepZ);
+    let m = 1;
+    for (const { metres, amp } of MOTTLE) {
+        m += (valueNoise(gi / metres, gj / metres) - 0.5) * 2 * amp;
+    }
+    return m;
+}
+
 // How much sky one grid point can see, from the ground around it: every
 // neighbour that rises above the horizontal takes a little away. Cheap, and
 // entirely the DEM's own answer.
@@ -267,8 +313,10 @@ export function openAt(h, size, i, j, stepX, stepZ, radius = 3) {
 const inAnOpening = (openings, x, z) => (openings ?? []).some(
     (o) => x >= o[0] && x <= o[2] && z >= o[1] && z <= o[3]);
 
+// `mottle` lays mottleAt over whatever colour a point has — the ramp's or
+// the cover's — and is left off where an orthophoto carries its own.
 export function terrainMesh(terrain, material = 'terrain', colourAt = null,
-    openings = null) {
+    openings = null, { tile = null, mottle = false } = {}) {
     const m = new Mesh(material);
     const n = terrain.size;
     for (let j = 0; j < n; j++) {
@@ -277,8 +325,12 @@ export function terrainMesh(terrain, material = 'terrain', colourAt = null,
             const s = terrain.slope(i, j);
             const open = openAt(terrain.h, n, i, j,
                 Math.abs(terrain.stepX), Math.abs(terrain.stepZ));
-            const own = colourAt?.(i / (n - 1), j / (n - 1))
+            let own = colourAt?.(i / (n - 1), j / (n - 1))
                 ?? terrainColour(s, h + terrain.datum, open);
+            if (mottle) {
+                const k = mottleAt(terrain, i, j, tile);
+                own = own.map((c) => Math.min(c * k, 1));
+            }
             m.vertex([terrain.x(i), h, terrain.z(j)], normalAt(terrain, i, j), own);
         }
     }

@@ -396,6 +396,29 @@ afternoon on style.
 - `AL03`, `CP01`, `CP02` are excluded because PostGIS type modifiers and the
   `PUBLIC` / `VALUE` keywords are misparsed as identifiers.
 
+**Brush's own app is the control, and the folder it gets has to be the trainer's**
+- The way to check the trainer is `node tools/dataset.mjs <job>` and the
+  folder in brush's web app (arthurbrussee.github.io/brush-demo). Since
+  db/0186 the seed is one recipe (`client/lib/sampling.js` `seedOf`): the
+  trainer's, the tool's, and assemble's own init.ply, which the dataset's
+  transforms.json now names — so `--all` starts from it too, where before it
+  started from random points. A difference between the app and the atom is a
+  real one now: same seed, and a config that is brush's own except
+  `sh-degree`, `max-splats` and the iteration count.
+- The app failing with `[Invalid ShaderModule "main"] is invalid due to a
+  previous error` is that build of the app against that browser, not the
+  dataset: a dataset cannot change a kernel's source. The previous error is
+  the first line in the console — the compiler naming what it refused; with
+  Chromium after subgroups shipped it is `cannot call built-in function
+  'subgroupAdd' without extension 'subgroups'`, the failure
+  `client/lib/brush.js` `withSubgroups` shims for the vendored build. Load
+  any other dataset in the app: if that fails the same way, that is the
+  answer, and the app has been rebuilt since the one that trained.
+- Six hundred milliseconds a step with the GPU idle is readbacks, not
+  kernels: the `train` log lines carry `in_brush`, `ours`, `maps` and
+  `map_ms` per step (`client/lib/brush.js` deviceStats). A refine is where
+  most of them are, and the seed is what decides how much a refine has to do.
+
 ## 3. Conventions this code already commits to
 
 - **Migrations are numbered and never edited once applied.** Add a new file;

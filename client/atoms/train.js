@@ -19,7 +19,7 @@
 // thing that actually closes the gaps, and cannot be undone by anything
 // downstream. Fewer splats (db/0111 halved the budget), each of them bigger.
 //
-// v14 seeds the ground before anything that stands on it (GROUND_FLOOR): the
+// v14 seeds the ground before anything that stands on it (ground_floor): the
 // seed used to be allocated across every triangle at once, and the ground —
 // smooth, one colour, and the surface a player is always looking at — lost
 // every time to the roofs and the trees standing on it.
@@ -29,11 +29,20 @@
 // six frame tars.
 //
 // v16 starts where brush's own app starts: a seed of three tenths of the
-// budget (what assemble samples, SEED_SHARE), and brush's own refine interval
+// budget (what assemble samples, sampling.js SEED), and brush's own refine interval
 // and growth window (client/lib/brush.js configFor). Handed one of these
 // datasets, that app had the tile readable in a minute; this, from a tenth
 // of the budget, refining every thirty steps and growing for 1 440 of them,
 // had blobs.
+//
+// v17 lays a third of that seed on a lattice across the ground (sampling.js
+// gridSurfaces, `seed_grid`): three tenths allocated by area still came back
+// with stretches of hillside tens of metres across that no splat had landed
+// on, and a trainer cannot move what is not there. The recipe is sampling.js
+// seedOf, which is also what assemble writes as init.ply and what
+// tools/dataset.mjs puts in the folder for brush's app: one seed, wherever
+// the run happens. And the frames' alpha is read as that app reads it
+// (configFor): transparent, not masked.
 //
 // Four poses are held back (client/lib/frames.js): brush never sees them, and
 // `verify` renders two of them in another tab. Invariant 8: probabilistic
@@ -51,18 +60,10 @@ import {
 import { unpackMeshes } from '../lib/mesh.js';
 import { datasetDir, removeDir } from '../lib/opfs.js';
 import { bboxOf, writePly } from '../lib/ply.js';
-import { rngOf, seedSurfaces } from '../lib/sampling.js';
+import { rngOf, seedOf } from '../lib/sampling.js';
 import { readTar, writeTar } from '../lib/tar.js';
 
-export const ALGO = 'train-v16';
-// The in-plane sigma of a seed splat as a share of its spacing. Sigma, not
-// radius: a gaussian is visible out to about two of them, so a splat at 1.15
-// covered four to five times the distance to its neighbour — twenty times the
-// area it is meant to hold — and `widen` multiplied that again. A tile of
-// 134 000 splats at 4.6 m spacing came back looking like a few dozen blobs,
-// because each one was twenty metres across. Half the spacing puts the
-// two-sigma edge at one spacing: covered, with overlap, and no smear.
-export const SPREAD = 0.5;
+export const ALGO = 'train-v17';
 // How far past the seed's box a splat may end up and still be this tile's,
 // measured up and down. Across the ground there is far less room than this:
 // see EDGE_PAD_M.
@@ -89,33 +90,6 @@ export const EDGE_PAD_M = 1;
 // and none inside the tile". The server no longer serves such a tile, and a
 // run is no longer destroyed by one if it does.
 export const MIN_PAD_M = 2;
-// The seed is this share of the budget unless the atom says otherwise; brush
-// grows the rest where the frames say the picture is wrong (client/lib/brush.js
-// configFor). What decides whether a seed ever reaches the budget is how many
-// refine passes the growth window holds, not how big the seed is, because
-// brush grows by a fraction of what it already has — about a tenth, measured
-// on the run that started this (22 500 → 37 000 in five passes). At brush's
-// own interval those five passes are all a 1 200-step run gets, which is why
-// a fortieth of the budget came back as a splat per 77 m²; the answer is not
-// a bigger seed alone but a shorter `refine_every` as well (db/0138). That
-// bought passes and lost yield: at twenty steps a pass there is a fifth as
-// much gradient built up, so fewer splats clear the threshold, and 36 passes
-// came to 5.96× rather than 33× — 134 000 of a 600 000 budget. So the seed
-// carries the tile and growth puts the rest where the frames say the picture
-// is wrong (db/0145).
-export const SEED_SHARE = 0.3;
-// And at least this much of the seed goes on the ground, however little there
-// is to see on it. The allocation weights a triangle by its colour and normal
-// spread (client/lib/sampling.js detailOf), and a hillside is one colour over
-// hundreds of square metres: it is the surface that loses every time, and the
-// one a player is always looking at. A hole in a wall is a missing wall; a
-// hole in the ground is the sky underneath it. Measured on a tile of ground
-// with four times its own area of roof and wall standing on it, the ground was
-// given a sixth of the seed and its splats came out 1.8 m apart.
-//
-// Two thirds of a tenth of the budget: on a z14 that is 53 000 splats over
-// 1693 m, 7.3 m apart, and a splat two sigma wide at that spacing covers.
-export const GROUND_FLOOR = 0.66;
 // How much wider every trained splat is made before it is written: the ground
 // is covered by splats overlapping their neighbours, and the trainer settles
 // on extents that leave the background showing between them. A multiple, so it
@@ -282,16 +256,13 @@ export async function run({ atom, inputs, log, knobs }) {
     const { z, x, y } = scene.tile;
     const random = rngOf(atom, z, x, y);
     // Shuffled so any prefix is a fair sample: the preview reads a prefix.
-    const share = Number(atom.params?.seed_share) || SEED_SHARE;
-    const floor = atom.params?.ground_floor === undefined
-        ? GROUND_FLOOR : Number(atom.params.ground_floor);
-    const seed = shuffled(seedSurfaces(meshes, Math.round(budget * share), random,
-        { spread: SPREAD, even: true, floor }), random);
+    const placed = seedOf(meshes, budget, random, atom.params ?? {});
+    const seed = shuffled(placed.seed, random);
     const set = atom.params?.camera_set;
     const ground = groundOf(files, scene);
     const eye = cameraSet(set, frameBounds(meshes), ground)[holdout(viewCount(set) || 1)[0]];
-    log?.({ event: 'seeded', tile: scene.tile, splats: seed.count, ground_floor: floor,
-        picture: pointsPicture(seed, eye) });
+    log?.({ event: 'seeded', tile: scene.tile, splats: seed.count, share: placed.share,
+        grid: placed.grid, ground_floor: placed.floor, picture: pointsPicture(seed, eye) });
 
     const splats = await trainWithBrush({ atom, seed, tars, scene, eye, iters, budget, size, log,
         knobs });
@@ -315,7 +286,7 @@ export async function run({ atom, inputs, log, knobs }) {
             bytes: tar.length, splat_count: out.count, finite: true,
             bbox: bboxOf(out), origin: scene.origin, tile: scene.tile,
             iters, backend: 'brush', frame_size: size, seeded: seed.count, scale,
-            ground_floor: floor,
+            seed_share: placed.share, seed_grid: placed.grid, ground_floor: placed.floor,
             dropped: splats.count - out.count,
         },
     };
