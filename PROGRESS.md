@@ -2977,3 +2977,24 @@ brush, 66 ms in readbacks. That is not the pump and not the readbacks; it is
 brush's own step on that build. The preview picture during a run is a plot of
 the splats' positions and colours (`client/lib/preview.js` pointsPicture),
 not a render, and says nothing about what the tile will look like.
+
+## brush's two render counters were never zeroed
+
+The operator ran the same dataset in brush's own app and it panicked as ours
+had: `num_visible (530659) > total_splats (180000)`. brush's render pass
+counts the visible splats and the tile intersections with two one-element
+atomic counters made by `int_zeros`; on this build's burn the fill of a
+one-element tensor does not land on wasm, so each counter holds whatever the
+pooled memory held before — the previous step's count — and accumulates. The
+assert fires on a tile every camera sees whole, which is all of ours, and
+passes on a scene where a view sees a third of the splats, which is every
+scene brush ships with. Before it fires the intersections count is over by the
+same factor, and it sizes every sort and raster pass after it: the 700 to
+1 500 ms a step, and a tile trained on wrong counts.
+
+`tools/brush-counters.patch` zeroes both by a host write (`int_from_data`);
+`tools/build-brush.sh` applies it and the vendored wasm is rebuilt with it, at
+the same brush revision. The autotune patch resolves a tune with one sample
+and turns the wasm logger on in release, so CubeCL's "Tuning <key>" lines
+reach the console. Proof is a run: no panic on a tile seen whole, and the
+`train` line's `GPU busy` and step time.
