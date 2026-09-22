@@ -32,12 +32,22 @@ let deviceErrors = [];
 // round trip through the event loop) with the time it took to come back, and
 // every buffer created (Dawn zero-clears each on first use). Per step, these
 // say where a step's time goes when the GPU is idle for most of it.
-const stats = { submits: 0, cmdbufs: 0, maps: 0, mapMs: 0, allocs: 0, allocBytes: 0 };
+const stats = { submits: 0, cmdbufs: 0, maps: 0, mapMs: 0, allocs: 0, allocBytes: 0,
+    gpuMs: 0 };
+// When the GPU last had nothing of ours left to do, so consecutive submits
+// are not counted twice over: the busy time of a submit is from the later of
+// its submission and the previous one's completion, to its completion.
+let gpuIdleAt = 0;
 
-// The counts since the last call, per `steps` steps.
+// The counts since the last call, per `steps` steps. `gpu_ms` is how long
+// the GPU was busy with what brush submitted — measured with
+// onSubmittedWorkDone, so it is the device's own word — against the step's
+// wall time: a step of 700 ms with 30 ms of it on the GPU is a step spent in
+// the wasm, not in the kernels, and the other way round is the kernels.
 export function deviceStats(steps = 1) {
     const out = {
         submits: Number((stats.submits / steps).toFixed(1)),
+        gpu_ms: Number((stats.gpuMs / steps).toFixed(0)),
         maps: Number((stats.maps / steps).toFixed(1)),
         map_ms: Number((stats.mapMs / steps).toFixed(0)),
         allocs: Number((stats.allocs / steps).toFixed(1)),
@@ -52,7 +62,14 @@ function countOn(device) {
     device.queue.submit = (bufs) => {
         stats.submits += 1;
         stats.cmdbufs += bufs?.length ?? 1;
-        return submit(bufs);
+        const at = performance.now();
+        const out = submit(bufs);
+        device.queue.onSubmittedWorkDone?.().then(() => {
+            const done = performance.now();
+            stats.gpuMs += done - Math.max(at, gpuIdleAt);
+            gpuIdleAt = done;
+        }).catch(() => {});
+        return out;
     };
     const create = device.createBuffer.bind(device);
     device.createBuffer = (desc) => {
