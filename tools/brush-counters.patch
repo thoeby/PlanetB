@@ -1,0 +1,18 @@
+--- a/crates/brush-render/src/render.rs
++++ b/crates/brush-render/src/render.rs
+@@
+-            let num_visible_buf = Self::int_zeros([1].into(), &device, IntDType::U32);
+-            let num_intersections_buf = Self::int_zeros([1].into(), &device, IntDType::U32);
++            // splatworld: the two atomic counters, zeroed by a host write rather
++            // than by `int_zeros`. On this build the fill of a one-element tensor
++            // did not land on wasm, the counter came back holding what the pooled
++            // memory held before — the previous step's count — and the counts
++            // accumulated step over step: "num_visible (530659) > total_splats
++            // (180000)" on a tile every camera sees whole, and the intersections
++            // count, over by the same factor, sizing every sort and raster pass
++            // after it. A scene where a view sees a third of the splats passes
++            // the assert and trains on the same wrong counts.
++            let num_visible_buf = Self::int_from_data(
++                burn::tensor::TensorData::from([0u32]), &device);
++            let num_intersections_buf = Self::int_from_data(
++                burn::tensor::TensorData::from([0u32]), &device);

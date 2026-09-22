@@ -58,6 +58,21 @@ assert anchor in s, 'brush-js lib.rs: anchor for the readback patch is gone'
 open(p, 'w').write(s.replace(anchor, add + anchor, 1))
 PY
 
+# The third change (tools/brush-counters.patch): the render pass's two atomic
+# counters are zeroed by a host write, not by int_zeros, whose one-element
+# fill did not land on wasm — the counts accumulated step over step, panicked
+# on a tile every camera sees whole ("num_visible > total_splats"), and sized
+# every sort and raster pass wrong on every other tile.
+python3 - "$WORK/brush/crates/brush-render/src/render.rs" <<'PY'
+import sys
+p = sys.argv[1]; s = open(p).read()
+hunk = open('tools/brush-counters.patch').read().split('@@\n', 1)[1]
+old = ''.join(l[1:] for l in hunk.splitlines(True) if l.startswith('-'))
+new = ''.join(l[1:] for l in hunk.splitlines(True) if l.startswith('+'))
+assert old in s, 'brush-render render.rs: the counters are not where the patch expects'
+open(p, 'w').write(s.replace(old, new, 1))
+PY
+
 # wasm-pack fetches binaryen's wasm-opt from GitHub releases at build time;
 # where that download cannot be had (a sandbox behind a proxy), WASM_OPT=0
 # packages without it and the module is optimised below with the binaryen

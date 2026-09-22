@@ -18,7 +18,28 @@
 +            // benchmark's own timing reads have panicked (timings.rs,
 +            // "Failed to map buffer"). AUTOTUNE_LEVEL= on tools/build-brush.sh
 +            // is how to try another one without editing this.
-+            cfg.autotune.bench.max_samples = 3;
++            // One sample a candidate. On wasm a tune is resolved on the event
++            // loop after its benchmarks have run, and until it resolves every
++            // launch of that key runs candidate 0 — the naive kernel
++            // (cubecl-runtime tune/local.rs, `Pending`). Three samples of every
++            // candidate at the Full level, for every key the growing splat
++            // count brings, is minutes of a run on the slow kernel; one sample
++            // is what makes the decision land while the run can still use it.
++            cfg.autotune.bench.max_samples = 1;
 +            cfg.autotune.bench.min_samples = 1;
++            // And say so in the console: "Tuning <key>" when a key is met and
++            // the fastest when it resolves, through the log crate to the
++            // wasm logger below. A run whose keys never resolve is a run on
++            // the naive kernels, and this is the only way to see that.
++            cfg.autotune.logger.log = Some(burn::cubecl::config::logger::LogCrateLevel::Info);
++            cfg.autotune.logger.level = burn::cubecl::config::autotune::AutotuneLogLevel::Full;
 +            let _ = CubeClRuntimeConfig::try_set(cfg);
++        }
++        // splatworld: the wasm logger in release too, at Info, so CubeCL's
++        // autotune lines reach the console (brush-js has it debug-only).
++        {
++            static SPLATWORLD_LOGGER: std::sync::Once = std::sync::Once::new();
++            SPLATWORLD_LOGGER.call_once(|| {
++                wasm_logger::init(wasm_logger::Config::new(log::Level::Info));
++            });
 +        }

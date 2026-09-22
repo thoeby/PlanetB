@@ -396,6 +396,25 @@ afternoon on style.
 - `AL03`, `CP01`, `CP02` are excluded because PostGIS type modifiers and the
   `PUBLIC` / `VALUE` keywords are misparsed as identifiers.
 
+**`num_visible > total_splats` is a counter that was never zeroed, and it is why the step was slow**
+- brush's render pass counts the visible splats and the tile intersections
+  with two one-element atomic counters made by `int_zeros` (brush-render
+  render.rs). On this build's burn the fill of a one-element tensor did not
+  land on wasm, so the counters held whatever the pooled memory held before
+  — the previous step's counts — and accumulated step over step. The panic
+  is the assert on the visible count, and it fires on a tile every camera
+  sees whole (our datasets: 180 000 seeded, all visible, over the total by
+  the third step) and passes on a scene where a view sees a third of the
+  splats — which is every dataset brush's own app ships with, and why the
+  app was fine with those and panicked with ours. Before the assert fires
+  the intersections count is over by the same factor, and it sizes every
+  sort and raster pass after it: a step three times the work it should be,
+  on wrong data, which is the 700 to 1 500 ms a step and the blur.
+- `tools/brush-counters.patch` zeroes both counters by a host write
+  (`int_from_data`) instead; `tools/build-brush.sh` applies it. The proof is
+  the step time and the absence of the panic on a tile seen whole, nothing
+  else.
+
 **Brush's own app is the control, and the folder it gets has to be the trainer's**
 - The way to check the trainer is `node tools/dataset.mjs <job>` and the
   folder in brush's web app (arthurbrussee.github.io/brush-demo). Since
