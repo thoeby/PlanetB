@@ -27,16 +27,12 @@
 +            // is what makes the decision land while the run can still use it.
 +            cfg.autotune.bench.max_samples = 1;
 +            cfg.autotune.bench.min_samples = 1;
-+            // And say so in the console: "Tuning <key>" when a key is met and
-+            // the fastest when it resolves, through the log crate to the
-+            // wasm logger below. A run whose keys never resolve is a run on
-+            // the naive kernels, and this is the only way to see that.
-+            cfg.autotune.logger.log = Some(burn::cubecl::config::logger::LogCrateLevel::Info);
-+            cfg.autotune.logger.level = burn::cubecl::config::autotune::AutotuneLogLevel::Full;
 +            let _ = CubeClRuntimeConfig::try_set(cfg);
 +        }
 +        // splatworld: the wasm logger in release too, at Info, so CubeCL's
-+        // autotune lines reach the console (brush-js has it debug-only).
++        // "Tuning <key>" lines reach the console (brush-js has it debug-only):
++        // a run whose keys never resolve is a run on the naive kernels, and
++        // this is the only way to see that.
 +        {
 +            static SPLATWORLD_LOGGER: std::sync::Once = std::sync::Once::new();
 +            SPLATWORLD_LOGGER.call_once(|| {
