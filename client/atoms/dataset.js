@@ -14,12 +14,14 @@
 // unpacks it into the folder brush's own app takes. v2 draws both faces of
 // every surface (client/lib/raster.js). v3 is assemble-v12 underneath: the
 // ground mottled (client/lib/terrain.js mottleAt), init.ply the trainer's own
-// seed (client/lib/sampling.js seedOf), and transforms.json naming it.
+// seed (client/lib/sampling.js seedOf), and transforms.json naming it. v4 is
+// assemble-v13 (the ground cut one zoom deeper, over a mesh twice as fine)
+// and the frames drawn with a grain on the ground (client/lib/raster.js).
 import { run as assemble } from './assemble.js';
 import { renderFrames } from './frame.js';
 import { readTar, writeTar } from '../lib/tar.js';
 
-export const ALGO = 'dataset-v3';
+export const ALGO = 'dataset-v4';
 
 export async function run(ctx) {
     const { atom, canvas, log } = ctx;

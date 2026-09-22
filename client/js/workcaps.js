@@ -11,7 +11,7 @@
 // database's own algo_current(): the one time it drifted, every train piece
 // in the world was claimed, refused and counted as a failed attempt.
 export const ALGO = {
-    dataset: 'dataset-v3', train: 'train-v17',
+    dataset: 'dataset-v4', train: 'train-v17',
     merge: 'merge-v1', sog: 'sog-v3', verify: 'verify-v1',
 };
 

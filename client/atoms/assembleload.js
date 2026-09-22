@@ -6,7 +6,7 @@
 // symbols name. A file that will not load is skipped rather than fatal — one
 // lost product must not make a tile uncompilable.
 
-import { fillVoids, loadDemExact, loadImage, sampleRgb } from '../lib/geo.js';
+import { fillVoids, loadDemDeeper, loadImage, sampleRgb } from '../lib/geo.js';
 import { loadMaterials } from '../lib/gen/cover.js';
 import { readR32 } from '../lib/r32.js';
 import { toLocal } from './assemblelocal.js';
@@ -65,7 +65,10 @@ export async function loadGround(edits, frame, filesUrl) {
 
 // Everything about where this tile is and what the ground under it looks
 // like, before a single feature is read.
-export async function theGround(z, x, y, filesUrl, wantCover = false) {
+// `deeper` is how many zooms below the tile's own its ground is cut at
+// (client/lib/geo.js loadDemDeeper): the atom's `dem_deeper`, one by default.
+export async function theGround(z, x, y, filesUrl, wantCover = false, deeper = 1) {
+    deeper = Number(deeper);
     // This tile's own cut, never an ancestor's (client/lib/geo.js loadDemExact).
     // A z14 read from z10 holds sixteen of this tile's samples, stretched over
     // a 513-vertex mesh: the quilt of bilinear triangles a player saw in the
@@ -74,7 +77,7 @@ export async function theGround(z, x, y, filesUrl, wantCover = false) {
     // against a smear — and the store answers 404 for a tile outside the
     // coverage's own envelope as well as for one outside the world, so the
     // fall was silent.
-    const dem = await loadDemExact(z, x, y, { filesUrl });
+    const dem = await loadDemDeeper(z, x, y, deeper, { filesUrl });
     if (!dem) {
         throw new Error(`no ground cut at ${z}/${x}/${y}: the store has no elevation `
             + 'for this tile at this zoom — either it is outside the coverage, or the '

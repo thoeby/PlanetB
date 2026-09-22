@@ -18,17 +18,94 @@ import { BOUNCE_COLOUR, SKY_COLOUR, SUN, SUN_COLOUR, SUN_STRENGTH } from './ligh
 
 export const SHADOW_MAP = 4096;
 
+// The grain on the ground: a tileable greyscale the terrain's colour is
+// multiplied by, laid across the world every GRAIN_M metres by position, so
+// it is the same grain on the same ground from every camera and across every
+// tile's edge. Three octaves of value noise at 6 m, 1.5 m and 0.4 m, within
+// a seventh of the colour. The header above said no texture on the ground,
+// because a pattern reads as a pattern: this is the texture of ground with
+// no pattern in it, and it is the difference between a hillside a trainer
+// can hold a splat still on and one where every position along the slope
+// reproduces the frame equally well. The vertex mottle (client/lib/terrain.js
+// mottleAt) is the same idea at the mesh's own resolution; this is finer than
+// any mesh. Deterministic: the same bytes every time (Invariant 2).
+export const GRAIN_M = 24;
+const GRAIN_PX = 512;
+const GRAIN = [{ cells: 4, amp: 0.06 }, { cells: 16, amp: 0.05 }, { cells: 64, amp: 0.03 }];
+let grain = null;
+
+function hashAt(i, j) {
+    let h = Math.imul(i | 0, 0x27d4eb2d) ^ Math.imul(j | 0, 0x165667b1);
+    h = Math.imul(h ^ (h >>> 15), 0x85ebca6b);
+    h = Math.imul(h ^ (h >>> 13), 0xc2b2ae35);
+    return ((h ^ (h >>> 16)) >>> 0) / 4294967296;
+}
+
+// Value noise on a lattice of `cells` across the texture, wrapping, so the
+// texture tiles.
+function tileNoise(u, v, cells) {
+    const x = u * cells; const y = v * cells;
+    const i = Math.floor(x); const j = Math.floor(y);
+    const fade = (t) => t * t * (3 - 2 * t);
+    const su = fade(x - i); const sv = fade(y - j);
+    const at = (a, b) => hashAt(((a % cells) + cells) % cells, ((b % cells) + cells) % cells);
+    const top = at(i, j) * (1 - su) + at(i + 1, j) * su;
+    const bottom = at(i, j + 1) * (1 - su) + at(i + 1, j + 1) * su;
+    return top * (1 - sv) + bottom * sv;
+}
+
+export function grainAt(u, v) {
+    let m = 1;
+    for (const { cells, amp } of GRAIN) m += (tileNoise(u, v, cells) - 0.5) * 2 * amp;
+    return m;
+}
+
+export function grainTexture() {
+    if (grain) return grain;
+    const n = GRAIN_PX;
+    const data = new Uint8Array(n * n * 4);
+    for (let j = 0; j < n; j++) {
+        for (let i = 0; i < n; i++) {
+            const k = Math.round(Math.min(grainAt((i + 0.5) / n, (j + 0.5) / n), 1) * 255);
+            data.set([k, k, k, 255], (j * n + i) * 4);
+        }
+    }
+    grain = new THREE.DataTexture(data, n, n, THREE.RGBAFormat);
+    grain.wrapS = THREE.RepeatWrapping;
+    grain.wrapT = THREE.RepeatWrapping;
+    grain.minFilter = THREE.LinearMipmapLinearFilter;
+    grain.magFilter = THREE.LinearFilter;
+    grain.generateMipmaps = true;
+    grain.colorSpace = THREE.NoColorSpace;
+    grain.needsUpdate = true;
+    return grain;
+}
+
+// The ground's texture coordinates: its position, in grains.
+export function groundUv(positions) {
+    const uv = new Float32Array(positions.length / 3 * 2);
+    for (let i = 0, k = 0; i < positions.length; i += 3, k += 2) {
+        uv[k] = positions[i] / GRAIN_M;
+        uv[k + 1] = positions[i + 2] / GRAIN_M;
+    }
+    return uv;
+}
+
 // One mesh of the assembled scene (client/lib/mesh.js unpacked) as three.js
-// geometry: its vertex colours and its material's roughness.
+// geometry: its vertex colours and its material's roughness; the ground
+// with its grain.
 export function meshObject(m, materials = {}) {
     const g = new THREE.BufferGeometry();
     g.setAttribute('position', new THREE.BufferAttribute(m.positions, 3));
     g.setAttribute('normal', new THREE.BufferAttribute(m.normals, 3));
     g.setAttribute('color', new THREE.BufferAttribute(m.colors, 3));
     g.setIndex(new THREE.BufferAttribute(m.indices, 1));
+    const ground = m.material === 'terrain';
+    if (ground) g.setAttribute('uv', new THREE.BufferAttribute(groundUv(m.positions), 2));
     const mat = new THREE.MeshStandardMaterial({
         vertexColors: true, metalness: 0,
         roughness: materials[m.material]?.roughness ?? 1,
+        map: ground ? grainTexture() : null,
         // Both faces, in the colour pass: a slope folded by a nodata spike or
         // a steep DEM cell, seen from a low ring camera, is otherwise culled
         // to a white streak the trainer then learns as a hole (dataset-v2).

@@ -21,7 +21,7 @@ SELECT ensure_job(14, tile_x(7.405, 14), tile_y(46.405, 14), 0) AS id;
 
 SELECT is((SELECT algo_version FROM atom
            WHERE job_id = (SELECT id FROM j) AND op = 'dataset'),
-          'dataset-v3', 'the geometry is assembled under the new sky');
+          'dataset-v4', 'the geometry is assembled under the new sky');
 SELECT is((SELECT algo_version FROM atom
            WHERE job_id = (SELECT id FROM j) AND op = 'train'),
           'train-v17', 'and trained by the trainer the client runs');

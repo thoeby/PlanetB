@@ -2951,3 +2951,29 @@ pgTAP test beside db/0186 and the older tests that name the versions are
 updated and unrun. Still open: the step time. The `train` log lines say where
 a step goes (`in_brush`, `ours`, `maps`, `map_ms`); a run at these settings is
 what answers it.
+
+## The ground is cut a zoom deeper, and drawn with a grain
+
+The operator's words for a dataset frame were a 1990s game map. A cut is 512
+samples across at any zoom, so a z14 tile from its own cut is a 3.3 m grid
+over a half-metre survey: every fold smaller than that was gone before the
+trainer saw a frame (db/0187, `dataset-v4`, `assemble-v13`):
+
+- **The ground comes from the four cuts one zoom deeper** (`client/lib/geo.js`
+  `loadDemDeeper`, the atom's `dem_deeper`, one by default) stitched into one
+  raster, over a mesh of 1025 vertices across (`assemble.js` `gridFor`). Any
+  descendant the store cannot cut puts the tile back on its own cut. A
+  1025 mesh is four times the triangles, ten seconds of CPU in node's
+  assemble test, and a dataset of tens of megabytes; 2049 would be four
+  times that again, which is why `dem_deeper` stops at one here.
+- **The frames draw a grain on the ground** (`client/lib/raster.js`
+  `grainTexture`): a tileable greyscale by world position every 24 m, three
+  octaves down to forty centimetres, within a seventh of the colour. Finer
+  than any mesh, and the same from every camera.
+
+Still not measured here, and still the open question: the step. The
+operator's line at these settings reads 1 462 ms a step, 1 482 of it in
+brush, 66 ms in readbacks. That is not the pump and not the readbacks; it is
+brush's own step on that build. The preview picture during a run is a plot of
+the splats' positions and colours (`client/lib/preview.js` pointsPicture),
+not a render, and says nothing about what the tile will look like.

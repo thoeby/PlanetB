@@ -204,6 +204,41 @@ export const loadDemExact = (z, x, y, opts) =>
 
 export const sampleHeight = (dem, u, v) => bilinear(dem, u, v, 1, (i) => dem.data[i])[0];
 
+// The tile's ground from the cuts `deeper` zooms down: the 2^deeper x 2^deeper
+// descendants at z + deeper, each cut exactly, stitched into one raster of
+// the tile. A cut is 512 samples across whatever its zoom, so a z14 tile at
+// its own zoom is a 3.3 m grid over a half-metre survey, and the mesh built
+// from it — which becomes the frames, which become the tile — had the relief
+// of a 1990s game map: every fold in the hillside smaller than three metres
+// was gone before the trainer ever saw it. One zoom deeper is four cuts and
+// a 1024 grid; two is sixteen and 2048. Any descendant the store cannot cut
+// (outside the coverage, or all void) puts the tile back on its own cut —
+// coarse ground, not a quilt with a hole in it. The composite is the tile's
+// own rectangle (u0 = v0 = 0, span = 1), so it samples like any other.
+export async function loadDemDeeper(z, x, y, deeper, opts) {
+    if (!(deeper > 0)) return loadDemExact(z, x, y, opts);
+    const f = 2 ** deeper;
+    const asked = [];
+    for (let j = 0; j < f; j++) {
+        for (let i = 0; i < f; i++) {
+            asked.push(loadDemExact(z + deeper, x * f + i, y * f + j, opts));
+        }
+    }
+    const cuts = await Promise.all(asked);
+    if (cuts.some((c) => !c)) return loadDemExact(z, x, y, opts);
+    const n = cuts[0].size;
+    const size = n * f;
+    const data = new Float32Array(size * size);
+    cuts.forEach((c, k) => {
+        const bi = (k % f) * n;
+        const bj = Math.floor(k / f) * n;
+        for (let r = 0; r < n; r++) {
+            data.set(c.data.subarray(r * n, r * n + n), (bj + r) * size + bi);
+        }
+    });
+    return { kind: 'dem', size, data, az: z, ax: x, ay: y, u0: 0, v0: 0, span: 1, deeper };
+}
+
 // An albedo or a shade (db/0106): the PNG the WMS drew, decoded with the
 // worker's own OffscreenCanvas (decodeImage, below).
 export const loadImage = (kind, z, x, y, opts) =>

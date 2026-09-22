@@ -115,13 +115,17 @@ async function serve() {
             res.writeHead(404).end();
         }
     });
+    // A 1025-vertex assemble is ten seconds of CPU between one fetch and the
+    // next, longer than node's five-second keep-alive; a socket the server
+    // has closed is what undici reports as "fetch failed".
+    server.keepAliveTimeout = 120_000;
     await new Promise((r) => server.listen(0, '127.0.0.1', r));
     const url = `http://127.0.0.1:${server.address().port}`;
     return { url, stop: () => server.close() };
 }
 
 const ATOM = {
-    id: 1, op: 'assemble', algo_version: 'assemble-v12', seed: 7,
+    id: 1, op: 'assemble', algo_version: 'assemble-v13', seed: 7,
     inputs: { snapshot: WORLD.snapshot }, params: { z: Z, x: X, y: Y, budget: BUDGET },
 };
 
@@ -136,7 +140,7 @@ test('assemble produces the five files the rest of the pipeline reads', async ()
             ['scene.json', 'mesh.bin', 'init.ply', 'height.r16', 'colliders.json']);
 
         const scene = JSON.parse(new TextDecoder().decode(files.get('scene.json')));
-        assert.equal(scene.algo, 'assemble-v12');
+        assert.equal(scene.algo, 'assemble-v13');
         assert.deepEqual(scene.tile, { z: Z, x: X, y: Y });
         assert.ok(scene.origin.h > 350 && scene.origin.h < 460, 'the origin sits on the ground');
         assert.ok(scene.meshes.length >= 6, 'terrain, road, walls, roofs, water, trees');
@@ -246,8 +250,8 @@ test('a ring is triangulated, wound and scattered the same way every time', () =
 // of it on a lattice. The hashes are what v12 wrote over this fixture; what
 // they guard is that nothing moves again without a version saying so.
 const BEFORE_FND3 = {
-    mesh: '7a35814ad3f2c1308923eefc1480083038b11da5812851398c2625db852d53a3',
-    ply: '5c636032da6ee9800fbd4b2d7ca31511bb31db4eaca089c000caeddc45da51f4',
+    mesh: '03c21d62a9c9333a53147de758c15f895279a6bca5661574f97c3b908593ff28',
+    ply: '10687e2f8f216a6802c46b65ecfb0a8e154ef4f6440936fe8f65b338a97ef818',
     trees: 118,
 };
 

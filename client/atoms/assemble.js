@@ -1,4 +1,4 @@
-// assemble.js — `assemble-v12`. The world, as geometry, in one tile's own frame.
+// assemble.js — `assemble-v13`. The world, as geometry, in one tile's own frame.
 //
 // Terrain from the seeded DEM, cut by terrainmods and roads; footprints
 // extruded; forests scattered; water laid flat; the ground coloured by its own
@@ -43,8 +43,10 @@ import { localFromLonLat, lonLatFromLocal } from '../lib/tilemath.js';
 // v4 writes each surface's own colour and leaves the light to the one
 // renderer (client/lib/raster.js); v3 had baked it for a sampled baseline
 // that is gone. The cut elevation is read whole (terrain.js GRID). v12 writes
-// the trainer's own seed as init.ply and mottles the ground's colour.
-export const ALGO = 'assemble-v12';
+// the trainer's own seed as init.ply and mottles the ground's colour. v13
+// builds the ground from the cuts one zoom deeper (`dem_deeper`, geo.js
+// loadDemDeeper) over a mesh twice as fine (gridFor).
+export const ALGO = 'assemble-v13';
 
 // How big the cover picture a tile carries is (FND.13). A map tile, not a
 // texture: 256 is what every slippy map in the world serves.
@@ -53,6 +55,14 @@ const COVER_PX = 256;
 // What assemble and sample both use to turn surfaces into splats; re-exported
 // because both atoms have always reached for them here.
 export { rngOf, sampleSurfaces } from '../lib/sampling.js';
+
+// The mesh's vertices across, for the ground it was cut from: GRID's number
+// at the tile's own zoom, doubled for each zoom deeper the cut is, so the
+// mesh carries what the cut holds. Capped at 1025 — 2M triangles, and a
+// dataset of sixty megabytes — because 2049 is four times that again.
+export const MAX_GRID = 1025;
+export const gridFor = (z, dem) =>
+    Math.min(((GRID[z] ?? 65) - 1) * 2 ** (dem?.deeper ?? 0) + 1, MAX_GRID);
 
 // ---------------------------------------------------------------- the world
 
@@ -150,7 +160,7 @@ function build({ z, sw, ne, dem, frame, world, random, assets, products, tile,
     ground = [], colourAt = null, coverImg = null, materials = null }) {
     const symbols = world.symbols ?? [];
     const feats = (world.features ?? []).map((f) => toLocal(frame, f));
-    const terrain = new Terrain({ sw, ne, size: GRID[z] ?? 65, dem });
+    const terrain = new Terrain({ sw, ne, size: gridFor(z, dem), dem });
     // The frame's origin is the ground under the tile centre, so heights are
     // measured from there, not from the ellipsoid.
     for (let i = 0; i < terrain.h.length; i++) terrain.h[i] -= frame.h;
@@ -228,8 +238,8 @@ export async function run({ atom, log, apiUrl, filesUrl }) {
         throw new Error(`the world moved: ${world.snapshot} is not ${atom.inputs.snapshot}`);
     }
 
-    const { centre, flat, frame, sw, ne, dem, colourAt, coverImg } =
-        await theGround(z, x, y, filesUrl, Boolean(world.cover?.length));
+    const { centre, flat, frame, sw, ne, dem, colourAt, coverImg } = await theGround(z, x, y,
+        filesUrl, Boolean(world.cover?.length), atom.params.dem_deeper ?? 1);
 
     const assets = await loadAssets(world.instances, { filesUrl });
     const products = await loadProducts(world.symbol_files, filesUrl);

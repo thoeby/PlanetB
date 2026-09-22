@@ -23,7 +23,7 @@ INSERT INTO worker (user_id, trust) SELECT owner_id, 1 FROM ids;
 -- The dataset is done and its bytes registered; then the store loses them.
 CREATE TEMP TABLE asm AS
 SELECT * FROM claim_for((SELECT jid FROM j), '{}');
-SELECT register_artifact(repeat('9', 64), 'dataset', 100, 'dataset-v3');
+SELECT register_artifact(repeat('9', 64), 'dataset', 100, 'dataset-v4');
 UPDATE atom SET state = 'verified', output_sha256 = repeat('9', 64), result = '{}'
 WHERE id = (SELECT id FROM asm);
 SELECT advance_atoms((SELECT jid FROM j));
