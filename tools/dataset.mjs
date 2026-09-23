@@ -9,15 +9,25 @@
 // the assemble's own init.ply.
 //
 //   node tools/dataset.mjs <job id> [out dir] [--all] [--without ring,oblique,top]
+//                          [--args] [--trained]
 //
 // --without leaves out every frame of those kinds, to ask brush's app what a
 // kind of view does to the result: the rings are the far, low views of
 // z16-v3, the stations are the rest.
 //
+// --args writes args.txt, which brush's app reads from the folder as its
+// command line: the train atom's own config (client/lib/brush.js configFor),
+// so the app trains with exactly what the atom does rather than its defaults.
+// --trained writes trained.ply beside it: the splats the atom got back from
+// brush, kept to the tile (client/atoms/train.js keep) and before the .sog,
+// its levels and the viewer's budget. Opened in the app next to its own run,
+// it says whether a hole is the training's or what came after.
+//
 // SPLATWORLD_API and SPLATWORLD_FILES name the world (default: the dev
 // server, http://localhost:8080/api and http://localhost:8080).
 import { mkdirSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
+import { configFor } from '../client/lib/brush.js';
 import { dataset } from '../client/lib/dataset.js';
 import { unpackMeshes } from '../client/lib/mesh.js';
 import { shuffled } from '../client/lib/preview.js';
@@ -40,6 +50,19 @@ async function bytes(atom) {
     return new Uint8Array(await res.arrayBuffer());
 }
 
+// The train atom's config as brush's command line: the keys configFor sets,
+// in its kebab-case names, minus the ones that only mean something to the
+// atom (evaluation and export cadence, a null split).
+const ATOM_ONLY = new Set(['eval-split-every', 'eval-every', 'export-every']);
+
+function argsFor(train, size) {
+    const p = train?.params ?? {};
+    const c = configFor({}, { iters: Number(p.iters), budget: Number(p.budget), size,
+        seed: train?.seed ?? 42, refineEvery: Number(p.refine_every) || 0, tuning: p.brush });
+    return Object.entries(c).filter(([k, v]) => !ATOM_ONLY.has(k) && v != null)
+        .map(([k, v]) => `--${k} ${v}`).join('\n');
+}
+
 // The seed the trainer makes from the assembled meshes, the way it makes it
 // (client/lib/sampling.js seedOf, under the train atom's own params).
 function seedOf(files, train) {
@@ -55,7 +78,7 @@ function seedOf(files, train) {
 async function main([job, out = `dataset-${job}`, ...flags]) {
     if (!job) {
         throw new Error('usage: node tools/dataset.mjs <job id> [out dir] [--all]'
-            + ' [--without kinds]');
+            + ' [--without kinds] [--args] [--trained]');
     }
     const atoms = await rows('atom',
         `job_id=eq.${job}&select=id,op,params,seed,output_sha256,result&order=id`);
@@ -75,6 +98,16 @@ async function main([job, out = `dataset-${job}`, ...flags]) {
         const to = join(out, f.name);
         mkdirSync(join(to, '..'), { recursive: true });
         writeFileSync(to, f.bytes);
+    }
+    if (flags.includes('--args')) {
+        writeFileSync(join(out, 'args.txt'), `${argsFor(train, Number(train?.params?.size)
+            || Number(ds.params?.size))}\n`);
+    }
+    if (flags.includes('--trained')) {
+        if (!train?.output_sha256) throw new Error(`job ${job}: the tile is not trained yet`);
+        const ply = readTar(await bytes(train)).get('splats.ply');
+        if (!ply) throw new Error(`job ${job}: the train artifact holds no splats.ply`);
+        writeFileSync(join(out, 'trained.ply'), ply);
     }
     const { z, x, y } = scene.tile;
     console.log(`${out}: tile ${z}/${x}/${y}, ${written.length} files of ${set}`

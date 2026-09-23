@@ -1,6 +1,6 @@
 -- Splats grow in the run rather than after it, over 4000 steps (db/0189).
 BEGIN;
-SELECT plan(4);
+SELECT plan(1);
 
 SET client_min_messages = warning;
 
@@ -21,18 +21,9 @@ SELECT recompile_land('00000000-0000-0000-0000-000000000189');
 CREATE TEMP TABLE j AS
 SELECT ensure_job(14, tile_x(7.885, 14), tile_y(46.295, 14)) AS jid;
 
-SELECT is((SELECT algo_version FROM atom
-           WHERE job_id = (SELECT jid FROM j) AND op = 'train'), 'train-v18',
-    'the tile trains with train-v18');
-SELECT is((SELECT params -> 'brush' FROM atom
-           WHERE job_id = (SELECT jid FROM j) AND op = 'train'),
-    '{"scale-decay": 0, "opac-decay": 0.002, "growth-grad-threshold": 0.0015,
-      "growth-select-fraction": 0.4}'::jsonb,
-    'brush is let off its size and opacity pulls, and grows more');
-SELECT is((SELECT (params ->> 'iters')::int FROM atom
-           WHERE job_id = (SELECT jid FROM j) AND op = 'train'), 4000,
-    'over 4000 steps');
-SELECT is(algo_current('train'), 'train-v18', 'and the pool hands that out');
+SELECT is((SELECT (params -> 'brush' ->> 'growth-select-fraction')::numeric FROM atom
+           WHERE job_id = (SELECT jid FROM j) AND op = 'train'), 0.4,
+    'brush grows more than its own default (db/0189; its decays went back in db/0190)');
 
 SELECT * FROM finish();
 ROLLBACK;
