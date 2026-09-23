@@ -6,7 +6,7 @@
  * *This API requires the following crate features to be activated: `ReadableStreamType`*
  */
 
-export type ReadableStreamType = "bytes";
+type ReadableStreamType = "bytes";
 
 /**
  * Owns the Brush runtime state (wgpu device, panic hook, etc.). Holds nothing
@@ -17,6 +17,10 @@ export class BrushApp {
     free(): void;
     [Symbol.dispose](): void;
     /**
+     * Initialize Brush with its own internal `GPUDevice`.
+     */
+    init(): Promise<void>;
+    /**
      * Initialize Brush against an existing `(GPUAdapter, GPUDevice, GPUQueue)`
      * triple. Use this when the host app already has a WebGPU device and
      * wants Brush to train on the same one — splat buffers exposed via
@@ -24,10 +28,6 @@ export class BrushApp {
      * pipelines without copies.
      */
     initExisting(adapter: any, device: any, queue: any): void;
-    /**
-     * Initialize Brush with its own internal `GPUDevice`.
-     */
-    init(): Promise<void>;
     /**
      * Construct a `BrushApp`. Installs the wasm panic hook + logger and
      * applies the global `CubeCL` config. You must `await app.init()`
@@ -170,7 +170,7 @@ export class Training {
      * Snapshot the current splats. Returns `null` if no splats have been
      * produced yet.
      */
-    currentSplats(): BrushSplats | undefined;
+    currentSplats(): Promise<BrushSplats | undefined>;
     /**
      * Drive the training stream until `steps` `TrainStep` events have been
      * emitted (or the stream ends), and return every message produced along
@@ -190,6 +190,11 @@ export class Training {
     trainSteps(steps: number): Promise<BrushMessage[]>;
 }
 
+/**
+ * Entry point invoked by JavaScript in a worker.
+ */
+export function task_worker_entry_point(ptr: number): void;
+
 export type InitInput = RequestInfo | URL | Response | BufferSource | WebAssembly.Module;
 
 export interface InitOutput {
@@ -198,9 +203,6 @@ export interface InitOutput {
     readonly __wbg_brushmessage_free: (a: number, b: number) => void;
     readonly __wbg_brushsplatbuffers_free: (a: number, b: number) => void;
     readonly __wbg_brushsplats_free: (a: number, b: number) => void;
-    readonly __wbg_intounderlyingbytesource_free: (a: number, b: number) => void;
-    readonly __wbg_intounderlyingsink_free: (a: number, b: number) => void;
-    readonly __wbg_intounderlyingsource_free: (a: number, b: number) => void;
     readonly __wbg_training_free: (a: number, b: number) => void;
     readonly brushapp_init: (a: number) => any;
     readonly brushapp_initExisting: (a: number, b: any, c: any, d: any) => [number, number];
@@ -224,34 +226,35 @@ export interface InitOutput {
     readonly brushsplats_numSplats: (a: number) => number;
     readonly brushsplats_read: (a: number, b: number) => any;
     readonly brushsplats_shDegree: (a: number) => number;
+    readonly training_currentSplats: (a: number) => any;
+    readonly training_trainSteps: (a: number, b: number) => any;
+    readonly task_worker_entry_point: (a: number) => [number, number];
+    readonly __wbg_intounderlyingsink_free: (a: number, b: number) => void;
+    readonly intounderlyingsink_abort: (a: number, b: any) => any;
+    readonly intounderlyingsink_close: (a: number) => any;
+    readonly intounderlyingsink_write: (a: number, b: any) => any;
+    readonly __wbg_intounderlyingsource_free: (a: number, b: number) => void;
+    readonly intounderlyingsource_cancel: (a: number) => void;
+    readonly intounderlyingsource_pull: (a: number, b: any) => any;
+    readonly __wbg_intounderlyingbytesource_free: (a: number, b: number) => void;
     readonly intounderlyingbytesource_autoAllocateChunkSize: (a: number) => number;
     readonly intounderlyingbytesource_cancel: (a: number) => void;
     readonly intounderlyingbytesource_pull: (a: number, b: any) => any;
     readonly intounderlyingbytesource_start: (a: number, b: any) => void;
     readonly intounderlyingbytesource_type: (a: number) => number;
-    readonly intounderlyingsink_abort: (a: number, b: any) => any;
-    readonly intounderlyingsink_close: (a: number) => any;
-    readonly intounderlyingsink_write: (a: number, b: any) => any;
-    readonly intounderlyingsource_cancel: (a: number) => void;
-    readonly intounderlyingsource_pull: (a: number, b: any) => any;
-    readonly training_currentSplats: (a: number) => number;
-    readonly training_trainSteps: (a: number, b: number) => any;
-    readonly wasm_bindgen_60e0e64c2e293829___convert__closures_____invoke___js_sys_227ad448081b40fb___Function_fn_wasm_bindgen_60e0e64c2e293829___JsValue_____wasm_bindgen_60e0e64c2e293829___sys__Undefined___js_sys_227ad448081b40fb___Function_fn_wasm_bindgen_60e0e64c2e293829___JsValue_____wasm_bindgen_60e0e64c2e293829___sys__Undefined_______true_: (a: number, b: number, c: any, d: any) => void;
-    readonly wasm_bindgen_60e0e64c2e293829___convert__closures_____invoke___wasm_bindgen_60e0e64c2e293829___JsValue__core_ed718c3d60ebd546___result__Result_____wasm_bindgen_60e0e64c2e293829___JsError___true_: (a: number, b: number, c: any) => [number, number];
-    readonly wasm_bindgen_60e0e64c2e293829___convert__closures_____invoke___wasm_bindgen_60e0e64c2e293829___sys__JsNullable_wgpu_1a00cd2c62d46558___backend__webgpu__webgpu_sys__gen_GpuError__GpuError___core_ed718c3d60ebd546___result__Result_____wasm_bindgen_60e0e64c2e293829___JsError___true_: (a: number, b: number, c: any) => [number, number];
-    readonly wasm_bindgen_60e0e64c2e293829___convert__closures_____invoke___wasm_bindgen_60e0e64c2e293829___sys__JsNullable_wgpu_1a00cd2c62d46558___backend__webgpu__webgpu_sys__gen_GpuError__GpuError___core_ed718c3d60ebd546___result__Result_____wasm_bindgen_60e0e64c2e293829___JsError___true__39: (a: number, b: number, c: any) => [number, number];
-    readonly wasm_bindgen_60e0e64c2e293829___convert__closures_____invoke___wasm_bindgen_60e0e64c2e293829___sys__JsNullable_wgpu_1a00cd2c62d46558___backend__webgpu__webgpu_sys__gen_GpuError__GpuError___core_ed718c3d60ebd546___result__Result_____wasm_bindgen_60e0e64c2e293829___JsError___true__40: (a: number, b: number, c: any) => [number, number];
-    readonly wasm_bindgen_60e0e64c2e293829___convert__closures_____invoke___wasm_bindgen_60e0e64c2e293829___JsValue______true_: (a: number, b: number, c: any) => void;
-    readonly wasm_bindgen_60e0e64c2e293829___convert__closures_____invoke___web_sys_807c35570cc7a797___features__gen_Event__Event______true_: (a: number, b: number, c: any) => void;
-    readonly __wbindgen_malloc_command_export: (a: number, b: number) => number;
-    readonly __wbindgen_realloc_command_export: (a: number, b: number, c: number, d: number) => number;
-    readonly __externref_table_alloc_command_export: () => number;
+    readonly wasm_bindgen__closure__destroy__h32129ee7a11f57fd: (a: number, b: number) => void;
+    readonly wasm_bindgen__closure__destroy__h3b5076827a26e149: (a: number, b: number) => void;
+    readonly wasm_bindgen__convert__closures_____invoke__h3803c100475c966f: (a: number, b: number, c: any, d: any) => void;
+    readonly wasm_bindgen__convert__closures_____invoke__he4e60d8aacfe2948: (a: number, b: number, c: any) => void;
+    readonly wasm_bindgen__convert__closures_____invoke__hfba3f418bb36f29c: (a: number, b: number, c: any) => void;
+    readonly __wbindgen_malloc: (a: number, b: number) => number;
+    readonly __wbindgen_realloc: (a: number, b: number, c: number, d: number) => number;
+    readonly __externref_table_alloc: () => number;
     readonly __wbindgen_externrefs: WebAssembly.Table;
-    readonly __wbindgen_exn_store_command_export: (a: number) => void;
-    readonly __wbindgen_free_command_export: (a: number, b: number, c: number) => void;
-    readonly __wbindgen_destroy_closure_command_export: (a: number, b: number) => void;
-    readonly __externref_drop_slice_command_export: (a: number, b: number) => void;
-    readonly __externref_table_dealloc_command_export: (a: number) => void;
+    readonly __wbindgen_exn_store: (a: number) => void;
+    readonly __externref_drop_slice: (a: number, b: number) => void;
+    readonly __wbindgen_free: (a: number, b: number, c: number) => void;
+    readonly __externref_table_dealloc: (a: number) => void;
     readonly __wbindgen_start: () => void;
 }
 

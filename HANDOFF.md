@@ -415,6 +415,20 @@ afternoon on style.
   the step time and the absence of the panic on a tile seen whole, nothing
   else.
 
+**The brush revision was the problem, not our side of it**
+- brush's web demo (github.com/ArthurBrussee/brush-demo) was last deployed
+  2026-04-25, from brush e700993. Every revision vendored here since
+  (5ee2053, ee797e9) came after brush moved onto burn's new runtimes
+  (ce76c88, 2026-09-06), which nobody had run on the web: the autotune panic,
+  the counters, the missing `enable subgroups;` were all that stack, and the
+  patches only got it to run. It also trained wrong: on the same synthetic
+  ground, 300 steps, SwiftShader, ee797e9 left the colours at the seed's grey
+  (DC std 0.015) while 48ca31c learned the texture (0.61), at the same
+  learning rate — and took 755 ms a step against 126.
+- `tools/build-brush.sh` now pins 48ca31c: the first brush-js commit, a week
+  after the demo's revision, same engine generation, no autotune patch, no
+  counters patch. Before moving the pin forward, repeat that comparison.
+
 **Brush's own app is the control, and the folder it gets has to be the trainer's**
 - The way to check the trainer is `node tools/dataset.mjs <job>` and the
   folder in brush's web app (arthurbrussee.github.io/brush-demo). Since

@@ -204,7 +204,8 @@ async function trainWithBrush({ atom, seed, tars, scene, eye, iters, budget, siz
             onStage: (text) => log?.({ event: 'stage', text }),
             onBatch: (iter, t) => preview(t, iter, iters, eye, log),
         });
-        const current = training.currentSplats();
+        // Async on some brush revisions, a plain value on others.
+        const current = await training.currentSplats();
         if (!current) throw new Error('brush produced no splats');
         const splats = await readSplats(current);
         current.free?.();
@@ -218,7 +219,7 @@ async function trainWithBrush({ atom, seed, tars, scene, eye, iters, budget, siz
 
 async function preview(training, iter, iters, eye, log) {
     if (iter % PREVIEW_EVERY !== 0 || !iter) return;
-    const cur = training.currentSplats();
+    const cur = await training.currentSplats();
     if (!cur) return;
     const some = await readSplats(cur, PREVIEW_SPLATS);
     const total = cur.numSplats;

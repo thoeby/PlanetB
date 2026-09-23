@@ -5,22 +5,21 @@
 set -euo pipefail
 
 BRUSH_REPO=${BRUSH_REPO:-https://github.com/ArthurBrussee/brush}
-# Which CubeCL autotune level the build bakes in: Minimal, Balanced, Extensive
-# or Full. Full is ours because the levels below it register burn's roofline
-# bounds generator, whose throughput measurement reads a tensor synchronously
-# and panics on wasm. Every level benchmarks its candidates, though, and the
-# benchmarking is itself where this runtime has fallen over on a Pascal card
-# ("Failed to map buffer: BufferAsyncError", cubecl-wgpu timings.rs): if a run
-# dies there, build with AUTOTUNE_LEVEL=Balanced and see which failure you get,
-# because the two are different bugs and only one of them is ours to dodge.
-# `none` leaves brush's own defaults alone — no patch at all. Tried against
-# ee797e9: the first mean panics on wasm ("Failed to read tensor data
-# synchronously", cubecl-environment future/reader.rs), the roofline
-# measurement the patch exists for. The web demo that runs without it is an
-# older brush. The 800 ms a step this build was blamed for was the pump in
-# client/lib/brush.js, not the level.
-AUTOTUNE_LEVEL=${AUTOTUNE_LEVEL:-Full}
-BRUSH_REV=${BRUSH_REV:-ee797e9edb5a9d4a5636981ffe965a941dd8df05}
+# Which brush. 48ca31c (2026-05-03) is the first commit with brush-js, one
+# week after e700993, the revision brush's own web demo was deployed from
+# (github.com/ArthurBrussee/brush-demo, 2026-04-25): the same burn/CubeCL
+# generation, with brush's own wasm settings (one CubeCL stream, default
+# autotune) and none of ours needed. Every revision tried before it (5ee2053,
+# ee797e9) is after brush moved onto burn's new runtimes (ce76c88, #526) and
+# before anyone ran that on the web: autotune panicked, fills did not land,
+# subgroup kernels lacked their directive, and a step took thirty times the
+# demo's on the same card with the same dataset.
+BRUSH_REV=${BRUSH_REV:-48ca31c28b74d85bbd938f03e53cb66c7b94789a}
+# Which CubeCL autotune level to bake in (tools/brush-autotune.patch):
+# Minimal, Balanced, Extensive, Full, or `none` for brush's own default. The
+# patch exists for ee797e9 and later, whose roofline measurement reads a
+# tensor synchronously and panics on wasm; at 48ca31c it has no anchor.
+AUTOTUNE_LEVEL=${AUTOTUNE_LEVEL:-none}
 DEST=client/vendor/brush
 WORK=$(mktemp -d)
 
@@ -69,8 +68,13 @@ p = sys.argv[1]; s = open(p).read()
 hunk = open('tools/brush-counters.patch').read().split('@@\n', 1)[1]
 old = ''.join(l[1:] for l in hunk.splitlines(True) if l.startswith('-'))
 new = ''.join(l[1:] for l in hunk.splitlines(True) if l.startswith('+'))
-assert old in s, 'brush-render render.rs: the counters are not where the patch expects'
-open(p, 'w').write(s.replace(old, new, 1))
+if old in s:
+    open(p, 'w').write(s.replace(old, new, 1))
+else:
+    # Revisions before ee797e9 name the counters differently and zero them
+    # on a stack where the fill lands; the patch is for the later ones.
+    assert 'num_visible_buf =' not in s, 'brush-render render.rs: the counters moved'
+    print('brush: render counters left as brush has them')
 PY
 
 # wasm-pack fetches binaryen's wasm-opt from GitHub releases at build time;
