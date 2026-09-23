@@ -113,6 +113,16 @@ test('refine-every is asked for when the atom says so, and left to brush when no
     assert.equal(left['refine-every'], 150, 'brush\'s own interval stays');
 });
 
+test('an atom turns brush\'s decay and growth knobs, and only those', () => {
+    const c = configFor({ 'scale-decay': 0.002, 'lr-mean': 1 }, { iters: 10, budget: 10, size: 64,
+        tuning: { 'scale-decay': 0, 'opac-decay': 0.002, 'lr-mean': 9, 'growth-grad-threshold': 'x' } });
+    assert.equal(c['scale-decay'], 0);
+    assert.equal(c['opac-decay'], 0.002);
+    assert.equal(c['lr-mean'], 1, 'a knob not on the list stays brush\'s');
+    assert.equal(c['growth-grad-threshold'], undefined, 'a value that is not a number is ignored');
+    assert.equal(configFor({}, { iters: 1, budget: 1, size: 1 })['scale-decay'], undefined);
+});
+
 test('widen makes a splat bigger across the surface and not through it', () => {
     const f = emptySplats(2);
     f.sx.set([0.5, 0.1]); f.sy.set([0.1, 0.4]); f.sz.set([0.4, 0.3]);

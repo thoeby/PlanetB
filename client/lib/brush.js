@@ -207,9 +207,19 @@ export async function brushDevice(gpu = globalThis.navigator?.gpu) {
 // what bounds how many splats a screen tile can hold. A splat that has to be
 // bigger than the trainer will carry is widened after the run instead, where
 // brush never renders it (client/atoms/train.js, `widen`).
-export function configFor(init, { iters, budget, size, seed = 42, refineEvery = 0 }) {
+// brush's own knobs an atom may turn (its `brush` param, db/0189): how hard
+// it pulls splats smaller and fainter, and how readily it grows new ones.
+// Anything else in that object is ignored.
+const TUNABLE = ['scale-decay', 'opac-decay', 'growth-grad-threshold',
+    'growth-select-fraction'];
+
+export function configFor(init,
+    { iters, budget, size, seed = 42, refineEvery = 0, tuning = {} }) {
+    const tuned = Object.fromEntries(TUNABLE
+        .filter((k) => Number.isFinite(tuning?.[k])).map((k) => [k, tuning[k]]));
     return {
         ...init,
+        ...tuned,
         'total-train-iters': iters,
         'max-splats': budget,
         // How often brush looks for splats to split. It grows by a fraction of

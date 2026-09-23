@@ -39,8 +39,8 @@ SELECT is((SELECT count(*)::int FROM atom
            WHERE job_id = (SELECT j18 FROM jobs) AND op IN ('assemble', 'frame')), 0,
     'and nothing else assembles or draws it');
 SELECT is((SELECT (params ->> 'iters')::int FROM atom
-           WHERE job_id = (SELECT j18 FROM jobs) AND op = 'train'), 2400,
-    'z18: 2400 iterations');
+           WHERE job_id = (SELECT j18 FROM jobs) AND op = 'train'), 4000,
+    'z18: 4000 iterations');
 -- z16 and z14 both have finer tiles under them on this land, so they are
 -- merged from what is there rather than rendering the same ground again
 -- (db/0135). The look they carry is their children's.
