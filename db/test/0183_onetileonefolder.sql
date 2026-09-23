@@ -20,7 +20,7 @@ INSERT INTO worker (user_id, trust) SELECT owner_id, 1 FROM ids;
 
 SELECT results_eq(
     $$SELECT op, algo_version FROM atom WHERE job_id = (SELECT jid FROM j) ORDER BY id$$,
-    $$VALUES ('dataset', 'dataset-v4'), ('train', 'train-v17'), ('sog', 'sog-v3')$$,
+    $$VALUES ('dataset', 'dataset-v5'), ('train', 'train-v17'), ('sog', 'sog-v3')$$,
     'a leaf job is a dataset, a trainer and a pack');
 SELECT is((SELECT (params ->> 'views')::int FROM atom
            WHERE job_id = (SELECT jid FROM j) AND op = 'dataset'), 81,
@@ -35,7 +35,7 @@ SELECT is((SELECT (inputs ->> 'dataset')::bigint FROM atom
 
 -- A dataset that drew fewer frames than the set has is refused.
 CREATE TEMP TABLE ds AS SELECT * FROM claim_for((SELECT jid FROM j), '{}');
-SELECT register_artifact(repeat('a', 64), 'dataset', 100, 'dataset-v4');
+SELECT register_artifact(repeat('a', 64), 'dataset', 100, 'dataset-v5');
 SELECT is(submit_atom((SELECT id FROM ds), repeat('a', 64),
     '{"splat_count": 10, "bytes": 100, "finite": true, "frames": 80,
       "bbox": [0, 0, 0, 1, 1, 1]}'), 'ready',

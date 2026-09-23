@@ -1,4 +1,4 @@
-// assemble.js — `assemble-v13`. The world, as geometry, in one tile's own frame.
+// assemble.js — `assemble-v14`. The world, as geometry, in one tile's own frame.
 //
 // Terrain from the seeded DEM, cut by terrainmods and roads; footprints
 // extruded; forests scattered; water laid flat; the ground coloured by its own
@@ -45,8 +45,9 @@ import { localFromLonLat, lonLatFromLocal } from '../lib/tilemath.js';
 // that is gone. The cut elevation is read whole (terrain.js GRID). v12 writes
 // the trainer's own seed as init.ply and mottles the ground's colour. v13
 // builds the ground from the cuts one zoom deeper (`dem_deeper`, geo.js
-// loadDemDeeper) over a mesh twice as fine (gridFor).
-export const ALGO = 'assemble-v13';
+// loadDemDeeper) over a mesh twice as fine (gridFor). v14 lets that mesh
+// reach 2049 across, for a z14 ground cut from z16 (db/0188).
+export const ALGO = 'assemble-v14';
 
 // How big the cover picture a tile carries is (FND.13). A map tile, not a
 // texture: 256 is what every slippy map in the world serves.
@@ -58,9 +59,9 @@ export { rngOf, sampleSurfaces } from '../lib/sampling.js';
 
 // The mesh's vertices across, for the ground it was cut from: GRID's number
 // at the tile's own zoom, doubled for each zoom deeper the cut is, so the
-// mesh carries what the cut holds. Capped at 1025 — 2M triangles, and a
-// dataset of sixty megabytes — because 2049 is four times that again.
-export const MAX_GRID = 1025;
+// mesh carries what the cut holds. Capped at 2049 — 8M triangles, and a
+// dataset of some two hundred megabytes; 4097 would be four times that again.
+export const MAX_GRID = 2049;
 export const gridFor = (z, dem) =>
     Math.min(((GRID[z] ?? 65) - 1) * 2 ** (dem?.deeper ?? 0) + 1, MAX_GRID);
 

@@ -53,11 +53,11 @@ SELECT set_area_detail('00000000-0000-0000-0000-000000000991', 16);
 CREATE TEMP TABLE j16 AS
 SELECT ensure_job(16, tile_x(7.905, 16), tile_y(46.295, 16)) AS jid;
 SELECT is((SELECT min(algo_version) FROM atom
-           WHERE job_id = (SELECT jid FROM j16) AND op = 'dataset'), 'dataset-v4',
+           WHERE job_id = (SELECT jid FROM j16) AND op = 'dataset'), 'dataset-v5',
     'frames are the version the client publishes');
 SELECT is((SELECT min((params ->> 'size')::int) FROM atom
-           WHERE job_id = (SELECT jid FROM j16) AND op IN ('dataset', 'train')), 1024,
-    'a z16 tile is framed and trained at 1024 px');
+           WHERE job_id = (SELECT jid FROM j16) AND op IN ('dataset', 'train')), 1280,
+    'a z16 tile is framed and trained at 1280 px');
 
 SELECT * FROM finish();
 ROLLBACK;

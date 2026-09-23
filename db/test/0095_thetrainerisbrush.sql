@@ -31,8 +31,8 @@ SELECT is((SELECT (params ->> 'iters')::int FROM atom
            WHERE job_id = (SELECT j18 FROM jobs) AND op = 'train'), 2400,
     'z18: 2400 iterations (db/0148)');
 SELECT is((SELECT (params ->> 'size')::int FROM atom
-           WHERE job_id = (SELECT j18 FROM jobs) AND op = 'train'), 1024,
-    'z18 trains at the frames'' own 1024 px (db/0116)');
+           WHERE job_id = (SELECT j18 FROM jobs) AND op = 'train'), 1280,
+    'z18 trains at the frames'' own 1280 px (db/0116)');
 -- The z16 over that same ground has the z18 under it, so it is merged from
 -- what is there rather than rendered a second time (db/0135).
 SELECT is((SELECT count(*)::int FROM atom

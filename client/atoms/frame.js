@@ -31,12 +31,12 @@ import { readTar, writeTar } from '../lib/tar.js';
 import { localFromLonLat, tileBbox, tileFrame } from '../lib/tilemath.js';
 
 export const ALGO = 'frame-v11';
-export const SIZE = 1024;
+export const SIZE = 1280;
 const QUALITY = 0.9;
 
 const name = (id) => `frame_${String(id).padStart(4, '0')}.webp`;
 
-// The frames are square and 1024 px unless the atom says otherwise (the DAG
+// The frames are square and 1280 px unless the atom says otherwise (the DAG
 // sets 512 for z16, the size it is trained at; the browser gate sets less).
 const sizeOf = (atom) => Math.max(16, Number(atom.params?.size) || SIZE);
 

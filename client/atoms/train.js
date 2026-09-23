@@ -253,7 +253,7 @@ export async function run({ atom, inputs, log, knobs }) {
     const meshes = unpackMeshes(files.get('mesh.bin'), scene.meshes);
     const budget = Number(atom.params?.budget) || scene.budget;
     const iters = Number(atom.params?.iters) || 4000;
-    const size = Number(atom.params?.size) || 1024;
+    const size = Number(atom.params?.size) || 1280;
     const { z, x, y } = scene.tile;
     const random = rngOf(atom, z, x, y);
     // Shuffled so any prefix is a fair sample: the preview reads a prefix.

@@ -49,8 +49,8 @@ SELECT is((SELECT worker_id FROM atom WHERE id = (SELECT id FROM asm)), null, 'n
 
 -- The frames the new job asks for: drawn by its dataset atom (db/0183).
 SELECT is((SELECT min((params ->> 'size')::int) FROM atom
-           WHERE job_id = (SELECT jid FROM second) AND op = 'dataset'), 1024,
-    'z18 frames are 1024 px');
+           WHERE job_id = (SELECT jid FROM second) AND op = 'dataset'), 1280,
+    'z18 frames are 1280 px');
 -- The z16 over the same ground has the z18 under it, so it asks for no frames
 -- at all: it is merged from what is there (db/0135).
 CREATE TEMP TABLE j16 AS

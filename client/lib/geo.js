@@ -212,8 +212,8 @@ export const sampleHeight = (dem, u, v) => bilinear(dem, u, v, 1, (i) => dem.dat
 // of a 1990s game map: every fold in the hillside smaller than three metres
 // was gone before the trainer ever saw it. One zoom deeper is four cuts and
 // a 1024 grid; two is sixteen and 2048. Any descendant the store cannot cut
-// (outside the coverage, or all void) puts the tile back on its own cut —
-// coarse ground, not a quilt with a hole in it. The composite is the tile's
+// (outside the coverage, or all void) puts the tile one zoom less deep, down
+// to its own cut — coarse ground, not a quilt with a hole in it. The composite is the tile's
 // own rectangle (u0 = v0 = 0, span = 1), so it samples like any other.
 export async function loadDemDeeper(z, x, y, deeper, opts) {
     if (!(deeper > 0)) return loadDemExact(z, x, y, opts);
@@ -225,7 +225,7 @@ export async function loadDemDeeper(z, x, y, deeper, opts) {
         }
     }
     const cuts = await Promise.all(asked);
-    if (cuts.some((c) => !c)) return loadDemExact(z, x, y, opts);
+    if (cuts.some((c) => !c)) return loadDemDeeper(z, x, y, deeper - 1, opts);
     const n = cuts[0].size;
     const size = n * f;
     const data = new Float32Array(size * size);
