@@ -39,13 +39,13 @@ UPDATE atom SET state = 'verified' WHERE job_id = (SELECT jid FROM j) AND op <> 
 UPDATE atom SET state = 'ready' WHERE job_id = (SELECT jid FROM j) AND op = 'train';
 SELECT is((SELECT id FROM claim_atom('{"webgpu": true, "max_buffer_mb": 100000,
     "ops": ["train"], "algo": {"train": "train-v1"}}')), NULL::bigint,
-    'a tab building train-v1 is handed no train-v19 piece');
+    'a tab building train-v1 is handed no train-v20 piece');
 SELECT is((SELECT id FROM claim_for((SELECT jid FROM j), '{"webgpu": true,
     "max_buffer_mb": 100000, "algo": {"train": "train-v1"}}')), NULL::bigint,
     'nor when it asks for that job by name');
 SELECT is((SELECT op FROM claim_for((SELECT jid FROM j), '{"webgpu": true,
-    "max_buffer_mb": 100000, "algo": {"train": "train-v19"}}')), 'train',
-    'a tab building train-v19 is');
+    "max_buffer_mb": 100000, "algo": {"train": "train-v20"}}')), 'train',
+    'a tab building train-v20 is');
 SELECT ok(hand_back_atom((SELECT id FROM atom
     WHERE job_id = (SELECT jid FROM j) AND op = 'train')), 'and hands it back');
 SELECT is((SELECT op FROM claim_atom('{"webgpu": true, "max_buffer_mb": 100000,
@@ -66,7 +66,7 @@ SELECT live_job(14, tile_x(7.885, 14), tile_y(46.295, 14),
     (SELECT expected_version FROM tile
      WHERE z = 14 AND x = tile_x(7.885, 14) AND y = tile_y(46.295, 14))) AS jid;
 SELECT is((SELECT algo_version FROM atom WHERE job_id = (SELECT jid FROM j2) AND op = 'train'),
-    'train-v19', 'and the same version of the tile has a train-v19 piece now');
+    'train-v20', 'and the same version of the tile has a train-v20 piece now');
 SELECT is((SELECT count(*) FROM atom WHERE job_id = (SELECT jid FROM j2)
            AND op = 'dataset' AND state = 'verified'),
     (SELECT count(*) FROM atom WHERE job_id = (SELECT jid FROM j2) AND op = 'dataset'),

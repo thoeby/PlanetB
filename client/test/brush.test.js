@@ -13,17 +13,26 @@ import { EDGE_PAD_M, MARGIN, bounds, dataset, widen } from '../atoms/train.js';
 
 const near = (a, b, eps = 1e-5) => assert.ok(Math.abs(a - b) < eps, `${a} vs ${b}`);
 
-test('brush rows become splats: means, xyzw rotation, log scales, sh0, logit', () => {
-    const transforms = new Float32Array([1, 2, 3, 0.1, 0.2, 0.3, 0.9, Math.log(0.5),
+test('brush rows become splats: means, wxyz rotation, log scales, sh0, logit', () => {
+    const transforms = new Float32Array([1, 2, 3, 0.9, 0.1, 0.2, 0.3, Math.log(0.5),
         Math.log(2), 0]);
     const sh = new Float32Array([(0.7 - 0.5) / SH_C0, (0.2 - 0.5) / SH_C0, 0]);
     const opac = new Float32Array([0]);
     const f = splatsFromBrush({ transforms, sh, opac, count: 1, coeffs: 1 });
     near(f.x[0], 1); near(f.z[0], 3);
-    near(f.qw[0], 0.9); near(f.qx[0], 0.1); near(f.qz[0], 0.3);
+    const n = Math.hypot(0.9, 0.1, 0.2, 0.3);
+    near(f.qw[0], 0.9 / n); near(f.qx[0], 0.1 / n); near(f.qy[0], 0.2 / n);
+    near(f.qz[0], 0.3 / n);
     near(f.sx[0], 0.5); near(f.sy[0], 2); near(f.sz[0], 1);
     near(f.r[0], 0.7); near(f.g[0], 0.2); near(f.b[0], 0.5);
     near(f.a[0], 0.5);
+});
+
+test('brush\'s first rotation column is w: a new splat [1, 0, 0, 0] is unturned', () => {
+    const transforms = new Float32Array([0, 0, 0, 2, 0, 0, 0, 0, 0, 0]);
+    const f = splatsFromBrush({ transforms, sh: new Float32Array(3),
+        opac: new Float32Array(1), count: 1, coeffs: 1 });
+    near(f.qw[0], 1); near(f.qx[0], 0); near(f.qy[0], 0); near(f.qz[0], 0);
 });
 
 test('higher sh bands are skipped: colour is the first coefficient of each', () => {

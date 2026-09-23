@@ -24,7 +24,7 @@ SELECT ensure_job(14, tile_x(7.885, 14), tile_y(46.295, 14)) AS jid;
 CREATE TEMP TABLE t AS
 SELECT * FROM atom WHERE job_id = (SELECT jid FROM j) AND op = 'train';
 
-SELECT is((SELECT algo_version FROM t), 'train-v19',
+SELECT is((SELECT algo_version FROM t), 'train-v20',
     'a seed with a lattice in it is a trainer of its own');
 SELECT is((SELECT params ->> 'seed_share' FROM t), '0.3',
     'three tenths of the budget is seeded (db/0184)');
@@ -35,7 +35,7 @@ SELECT is((SELECT params -> 'refine_every' FROM t), NULL,
 SELECT is((SELECT min(algo_version) FROM atom
            WHERE job_id = (SELECT jid FROM j) AND op = 'dataset'), 'dataset-v5',
     'the dataset writes the same seed, over mottled ground');
-SELECT is(algo_current('train'), 'train-v19',
+SELECT is(algo_current('train'), 'train-v20',
     'and the pool hands out the trainer that carries it');
 
 SELECT * FROM finish();

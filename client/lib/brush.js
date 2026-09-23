@@ -334,7 +334,13 @@ export async function brushApp(brush) {
 
 // The splats as brush holds them, off its GPU through burn
 // (tools/brush-readback.patch): transforms [N, 10] as means(3) |
-// rotation xyzw(4) | log scales(3), sh [N, (deg+1)^2, 3], raw opacities [N].
+// rotation wxyz(4) | log scales(3), sh [N, (deg+1)^2, 3], raw opacities [N].
+// wxyz, whatever brush-js's own doc comment says ("rotation_xyzw"): brush's
+// shader reads quat.x as w (brush-render helpers.wgsl quat_to_mat), its ply
+// export writes that column as rot_0, and a new splat starts at [1, 0, 0, 0].
+// Read as xyzw, every trained splat came back turned: discs brush had laid
+// along the slope stood on edge in the viewer, a scratchy ridge with holes
+// that brush's own view of the same run did not have.
 export async function readSplats(splats, limit = Infinity) {
     if (typeof splats.read !== 'function') {
         throw new Error('this brush build has no read(): run tools/build-brush.sh');
@@ -350,8 +356,11 @@ export function splatsFromBrush({ transforms, sh, opac, count, coeffs }) {
     for (let i = 0; i < count; i++) {
         const t = i * 10;
         f.x[i] = transforms[t]; f.y[i] = transforms[t + 1]; f.z[i] = transforms[t + 2];
-        f.qx[i] = transforms[t + 3]; f.qy[i] = transforms[t + 4];
-        f.qz[i] = transforms[t + 5]; f.qw[i] = transforms[t + 6];
+        // Unnormalised in training, the way brush holds it; normalised on the
+        // way out, as brush's own ply export does.
+        const [w, qx, qy, qz] = transforms.subarray(t + 3, t + 7);
+        const n = Math.hypot(w, qx, qy, qz) || 1;
+        f.qw[i] = w / n; f.qx[i] = qx / n; f.qy[i] = qy / n; f.qz[i] = qz / n;
         f.sx[i] = Math.exp(transforms[t + 7]);
         f.sy[i] = Math.exp(transforms[t + 8]);
         f.sz[i] = Math.exp(transforms[t + 9]);

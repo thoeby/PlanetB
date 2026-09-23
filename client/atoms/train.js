@@ -65,8 +65,8 @@ import { readTar, writeTar } from '../lib/tar.js';
 
 // v18 hands brush the atom's `brush` knobs (client/lib/brush.js configFor):
 // db/0189 lets splats grow in the run rather than be widened after it.
-// v19 is v18's code (db/0190).
-export const ALGO = 'train-v19';
+// v19 is v18's code (db/0190). v20 reads brush's rotations as wxyz (db/0191).
+export const ALGO = 'train-v20';
 // How far past the seed's box a splat may end up and still be this tile's,
 // measured up and down. Across the ground there is far less room than this:
 // see EDGE_PAD_M.
