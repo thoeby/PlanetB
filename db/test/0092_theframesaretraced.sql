@@ -36,7 +36,7 @@ SELECT is((SELECT (params ->> 'views')::int FROM atom
            WHERE job_id = (SELECT j18 FROM jobs) AND op = 'dataset'),
     camera_views(18), 'drawing every view of it');
 SELECT is((SELECT min(algo_version) FROM atom
-           WHERE job_id = (SELECT j18 FROM jobs) AND op = 'dataset'), 'dataset-v5',
+           WHERE job_id = (SELECT j18 FROM jobs) AND op = 'dataset'), 'dataset-v6',
     'and that version is the one the client publishes');
 SELECT is((SELECT bool_or(params ? 'samples') FROM atom
            WHERE job_id = (SELECT j18 FROM jobs) AND op = 'dataset'),

@@ -208,10 +208,11 @@ export async function brushDevice(gpu = globalThis.navigator?.gpu) {
 // bigger than the trainer will carry is widened after the run instead, where
 // brush never renders it (client/atoms/train.js, `widen`).
 // brush's own knobs an atom may turn (its `brush` param, db/0189): how hard
-// it pulls splats smaller and fainter, and how readily it grows new ones.
-// Anything else in that object is ignored.
+// it pulls splats smaller and fainter, how readily it grows new ones, and how
+// much the frames' alpha counts in the loss (db/0192). Anything else in that
+// object is ignored.
 const TUNABLE = ['scale-decay', 'opac-decay', 'growth-grad-threshold',
-    'growth-select-fraction'];
+    'growth-select-fraction', 'match-alpha-weight'];
 
 export function configFor(init,
     { iters, budget, size, seed = 42, refineEvery = 0, tuning = {} }) {

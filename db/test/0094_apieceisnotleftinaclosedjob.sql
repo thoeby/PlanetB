@@ -49,7 +49,7 @@ SELECT is((SELECT count(*) FROM atom
 INSERT INTO worker (id, user_id, caps, trust)
 SELECT '00000000-0000-0000-0000-000000000941'::uuid, owner_id, '{}', 0.8 FROM ids;
 INSERT INTO artifact (sha256, kind, bytes, algo_version)
-VALUES (repeat('a', 64), 'dataset', 4096, 'dataset-v5');
+VALUES (repeat('a', 64), 'dataset', 4096, 'dataset-v6');
 UPDATE atom SET state = 'claimed', worker_id = '00000000-0000-0000-0000-000000000941',
     claimed_at = now(), heartbeat_at = now() WHERE id = (SELECT id FROM asm);
 UPDATE atom SET state = 'verified', output_sha256 = repeat('a', 64),

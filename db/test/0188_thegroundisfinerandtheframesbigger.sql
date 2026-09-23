@@ -23,7 +23,7 @@ CREATE TEMP TABLE j AS
 SELECT ensure_job(14, tile_x(7.885, 14), tile_y(46.295, 14)) AS jid;
 
 SELECT is((SELECT min(algo_version) FROM atom
-           WHERE job_id = (SELECT jid FROM j) AND op = 'dataset'), 'dataset-v5',
+           WHERE job_id = (SELECT jid FROM j) AND op = 'dataset'), 'dataset-v6',
     'the dataset is the version with the finer ground');
 SELECT is((SELECT (params ->> 'dem_deeper')::int FROM atom
            WHERE job_id = (SELECT jid FROM j) AND op = 'dataset'), 2,
@@ -32,7 +32,7 @@ SELECT is(world_default('frame_px'), '1280', 'frames are 1280 px unless the worl
 SELECT is((SELECT (params ->> 'refine_every')::int FROM atom
            WHERE job_id = (SELECT jid FROM j) AND op = 'train'), 100,
     'brush refines every 100 steps');
-SELECT is(algo_current('dataset'), 'dataset-v5', 'and the pool hands that out');
+SELECT is(algo_current('dataset'), 'dataset-v6', 'and the pool hands that out');
 
 SELECT * FROM finish();
 ROLLBACK;

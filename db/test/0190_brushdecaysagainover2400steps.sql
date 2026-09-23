@@ -26,7 +26,8 @@ SELECT is((SELECT algo_version FROM atom
     'the tile trains with train-v20');
 SELECT is((SELECT params -> 'brush' FROM atom
            WHERE job_id = (SELECT jid FROM j) AND op = 'train'),
-    '{"growth-grad-threshold": 0.0015, "growth-select-fraction": 0.4}'::jsonb,
+    '{"growth-grad-threshold": 0.0015, "growth-select-fraction": 0.4,
+      "match-alpha-weight": 0.5}'::jsonb,
     'brush keeps its own decays and grows more');
 SELECT is((SELECT (params ->> 'iters')::int FROM atom
            WHERE job_id = (SELECT jid FROM j) AND op = 'train'), 2400,

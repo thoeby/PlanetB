@@ -123,8 +123,10 @@ test('refine-every is asked for when the atom says so, and left to brush when no
 });
 
 test('an atom turns brush\'s decay and growth knobs, and only those', () => {
-    const c = configFor({ 'scale-decay': 0.002, 'lr-mean': 1 }, { iters: 10, budget: 10, size: 64,
-        tuning: { 'scale-decay': 0, 'opac-decay': 0.002, 'lr-mean': 9, 'growth-grad-threshold': 'x' } });
+    const tuning = { 'scale-decay': 0, 'opac-decay': 0.002, 'lr-mean': 9,
+        'growth-grad-threshold': 'x' };
+    const c = configFor({ 'scale-decay': 0.002, 'lr-mean': 1 },
+        { iters: 10, budget: 10, size: 64, tuning });
     assert.equal(c['scale-decay'], 0);
     assert.equal(c['opac-decay'], 0.002);
     assert.equal(c['lr-mean'], 1, 'a knob not on the list stays brush\'s');

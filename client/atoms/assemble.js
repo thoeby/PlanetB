@@ -1,4 +1,4 @@
-// assemble.js — `assemble-v14`. The world, as geometry, in one tile's own frame.
+// assemble.js — `assemble-v15`. The world, as geometry, in one tile's own frame.
 //
 // Terrain from the seeded DEM, cut by terrainmods and roads; footprints
 // extruded; forests scattered; water laid flat; the ground coloured by its own
@@ -21,6 +21,7 @@ import { fetchJson } from '../js/api.js';
 import { loadAssets } from '../lib/assets.js';
 import { boundsOf, placeMeshes } from '../lib/glbmesh.js';
 import { packMeshes } from '../lib/mesh.js';
+import { skirt } from '../lib/skirt.js';
 import { encodePng } from '../lib/png.js';
 import { bboxOf, writePly } from '../lib/ply.js';
 import { contains } from '../lib/poly.js';
@@ -46,8 +47,20 @@ import { localFromLonLat, lonLatFromLocal } from '../lib/tilemath.js';
 // the trainer's own seed as init.ply and mottles the ground's colour. v13
 // builds the ground from the cuts one zoom deeper (`dem_deeper`, geo.js
 // loadDemDeeper) over a mesh twice as fine (gridFor). v14 lets that mesh
-// reach 2049 across, for a z14 ground cut from z16 (db/0188).
-export const ALGO = 'assemble-v14';
+// reach 2049 across, for a z14 ground cut from z16 (db/0188). v15 carries the
+// ground past the tile's edge (client/lib/skirt.js, skirtWidth).
+export const ALGO = 'assemble-v15';
+
+// How far the ground the frames draw runs past the tile's edge, as a share of
+// the tile's width, so a smaller tile gets a smaller skirt. Trained splats
+// are kept to the seed's box plus a metre (client/atoms/train.js keep), so
+// neighbouring tiles overlap by about this much. Capped just inside CLIP_M
+// (8 m), which clip() below cuts at: the structural rule allows a trained
+// tile ten metres past its edge (db/0015_structural.sql), which a z14's 1 %
+// would exceed.
+export const SKIRT_SHARE = 0.01;
+export const skirtWidth = (sw, ne) => Math.min(SKIRT_SHARE * Math.abs(ne.x - sw.x),
+    CLIP_M - 0.5);
 
 // How big the cover picture a tile carries is (FND.13). A map tile, not a
 // texture: 256 is what every slippy map in the world serves.
@@ -213,7 +226,8 @@ function build({ z, sw, ne, dem, frame, world, random, assets, products, tile,
     // The mottle is for ground that has no picture of its own: an orthophoto
     // (db/0106) carries its own.
     const meshes = clip([
-        terrainMesh(terrain, 'terrain', painted, placed.openings, { tile, mottle: !colourAt }),
+        skirt(terrainMesh(terrain, 'terrain', painted, placed.openings,
+            { tile, mottle: !colourAt }), terrain.size, skirtWidth(sw, ne)),
         ...drawn.meshes, ...placed.meshes], sw, ne);
     const boxes = [...drawn.boxes, ...placed.boxes]
         .filter((b) => b.center[0] >= sw.x - CLIP_M

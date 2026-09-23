@@ -25,10 +25,10 @@ import { lostInput, putFile } from './workstore.js';
 // they are re-exported here because this is where every caller reaches for
 // them, and because the file was over its four hundred lines.
 export { probeCaps } from './workcaps.js';
-import { ALGO, spawnAtomWorker } from './workcaps.js';
+import { ALGO, capsFor, spawnAtomWorker, wrongVersion } from './workcaps.js';
 import { Shots } from './workshots.js';
 
-export { ALGO, spawnAtomWorker };
+export { ALGO, spawnAtomWorker, wrongVersion };
 export { Shots } from './workshots.js';
 
 // How often a tab says it is still holding its claim. The world takes a claim
@@ -53,21 +53,6 @@ const PACED_MAX_MS = 10_000;
 // Four rather than as many as there are pieces: each lane holds an atom's
 // inputs and its worker, and a z18's frames are a hundred megabytes each.
 export const LANES = 4;
-
-// Why this tab cannot build an atom, or null when it can. Which side is out
-// of date is in the numbers: an atom newer than the tab means the page has
-// been served a newer world since it loaded, and the fix is a reload; an atom
-// older than the tab is a job opened before the world moved on, and the fix
-// is the job's, not the player's (refresh_stale_jobs, db/0178).
-export function wrongVersion(atom) {
-    const mine = ALGO[atom.op];
-    if (!mine || !atom.algo_version || atom.algo_version === mine) return null;
-    const n = (v) => Number(/-v(\d+)$/.exec(v)?.[1] ?? 0);
-    const said = `this tab builds ${mine}, and that atom asks for ${atom.algo_version}`;
-    return n(atom.algo_version) > n(mine)
-        ? `${said}: this page is out of date, reload it`
-        : `${said}: that job is out of date, and the world will reopen it`;
-}
 
 // -------------------------------------------------------------------- the loop
 
@@ -136,6 +121,7 @@ export class WorkLoop {
         // three refusals must not mark the atom failed.
         const wrong = wrongVersion(atom);
         if (wrong) {
+            this.working.delete(atom.id);
             this.log({ event: 'error', atom: atom.id, op: atom.op, err: wrong });
             await this.api.rpc('hand_back_atom', { atom_id: atom.id }).catch(() => {});
             throw new Error(wrong);
@@ -243,21 +229,28 @@ export class WorkLoop {
     // of failures so a server that is down does not fill the log. The position
     // travels with the claim rather than with the worker row: a player moves,
     // and the nearest unfinished tile moves with them.
+    // One claim at a time, and what it got is in `working` before the next
+    // is asked: capsFor reads it, and four lanes starting together would
+    // otherwise each be handed a dataset.
     async claim() {
-        const near = this.where();
-        const caps = near ? { ...this.caps, near } : this.caps;
+        const turn = this.turn;
+        let done;
+        this.turn = new Promise((r) => { done = r; });
+        await turn;
+        const caps = capsFor(this.caps, this.where(), this.working.values());
         try {
             const atom = this.job
                 ? await this.api.rpc('claim_for', { job_id: this.job, caps })
                 : await this.api.rpc('claim_atom', { caps });
             this.claimFailures = 0;
+            if (atom?.id) this.working.set(atom.id, atom);
             return atom?.id ? atom : null;
         } catch (err) {
             if (this.claimFailures++ === 0) {
                 this.log({ event: 'claim-failed', err: String(err?.message ?? err) });
             }
             return null;
-        }
+        } finally { done(); }
     }
 
     // `progress` is the atom saying it is still alive, which beats if the last
