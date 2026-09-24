@@ -231,3 +231,8 @@ column of its own and the status line under the canvas are v9's Automate,
 which the build has not taken yet — the dots inside the server dropdown
 (10d; a native select cannot draw them), and the inspector's "On alpha"
 card.
+
+**The Planner** (`TASKS-flows.md` FL.8) is drawn from the operator's sketch,
+`assets/planner-sketch.png`: lanes a job over a day, the runs on them, next
+runs on the right, one job's run times underneath. Built in
+`client/js/planner*.js` and `client/planner.css`.

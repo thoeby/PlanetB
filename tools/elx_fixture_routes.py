@@ -87,9 +87,11 @@ def job_xml(j):
 
 
 def report_xml(r):
-    return ('<report id="%s" job_id="%s">%s%s%s</report>'
+    return ('<report id="%s" job_id="%s">%s%s%s%s%s</report>'
             % (r['id'], r['job_id'], tag('job_name', r['job_name']),
-               tag('timestamp', r['timestamp']), tag('result_code', r['code'])))
+               tag('timestamp', r['timestamp']), tag('result_code', r['code']),
+               tag('duration_ms', r.get('duration_ms', 0)),
+               tag('started_by', r.get('started_by', 'manual'))))
 
 
 # ------------------------------------------------------------------ running
@@ -124,7 +126,8 @@ def call_world(world, key, fn, args):
             return res.status, res.read().decode()
     except urllib.error.HTTPError as err:
         return err.code, err.read().decode()
-    except OSError as err:
+    except (OSError, ValueError) as err:
+        # No address, or one that is not one: the run fails and says why.
         return 0, str(err)
 
 
@@ -150,15 +153,18 @@ def run_job(job):
     return code, lines or ['nothing to do']
 
 
-def record_run(job):
+def record_run(job, started_by='manual'):
+    began = time.time()
     code, lines = run_job(job)
+    took = int((time.time() - began) * 1000) + 1
     rid = new_id()
-    stamp = time.strftime('%Y-%m-%dT%H:%M:%SZ', time.gmtime())
+    stamp = time.strftime('%Y-%m-%dT%H:%M:%SZ', time.gmtime(began))
     body = '<report>%s%s<log>%s</log></report>' % (
         tag('job', job['name']), tag('result_code', code),
         ''.join(tag('line', ln) for ln in lines))
     STATE['report'][rid] = {'id': rid, 'job_id': job['id'], 'job_name': job['name'],
-                            'timestamp': stamp, 'code': code, 'body': body}
+                            'timestamp': stamp, 'code': code, 'body': body,
+                            'duration_ms': took, 'started_by': started_by}
     return STATE['report'][rid]
 
 

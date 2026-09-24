@@ -28,6 +28,7 @@ import { mountProcesses } from './serverprocs.js';
 import { mountServices } from './serverservices.js';
 import { mountJobs } from './serverjobs.js';
 import { mountReports, mountRunPanel } from './serverreports.js';
+import { mountPlanner } from './plannerui.js';
 import { openRemote, intoLand, sendFlow } from './serverdo.js';
 import { bindKeys, refresh, create, openFlow, save, importFiles, exportFlow, validate }
     from './flowsdo.js';
@@ -182,12 +183,14 @@ function remoteLists(ctx, tabs) {
     };
     const parts = [mountProcesses, mountServices, mountJobs, mountReports]
         .map((mount) => mount(tabs.remotePane, bag));
+    bag.planner = mountPlanner(ctx.root, bag);
     const run = () => (bag.server() ? Promise.all(parts.map((p) => p.run())) : null);
     ctx.server.onChange((s) => {
         tabs.server(s);
         ctx.bar.send.textContent = s ? `Send to ${s.name}` : 'Send';
         ctx.bar.send.disabled = !s;
         run();
+        if (s && bag.planner && !bag.planner.node.hidden) bag.planner.open();
     });
     return { run, parts, bag, tabs };
 }

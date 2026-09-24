@@ -171,6 +171,7 @@ to confirm, each one a working assumption the code states where it makes it:
 | triggers | inside the job body, as a `triggers` array | `records.js jobPayload` |
 | the report list | `GET /report?job_id&limit&offset` | `records.js reports` |
 | live run output | not read; the report is shown instead | `client/js/serverjobs.js` |
+| a report's duration, starter, warnings | `duration_ms`, `started_by`, `warnings` in the report row | `records.js toReport` (the Planner) |
 | an XML-only plugin (`world`) | loads (FND.14 branch A) | `client/flow/world/` |
 
 Record the first real run here:

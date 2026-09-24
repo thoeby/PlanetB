@@ -250,10 +250,44 @@ stops it (asked first, design 10l); a run the fixture makes anyway with the
 old key is refused and the lamp stays as B left it. That a flow key cannot
 write a port on another land is db/test/0197's.
 
-## FL.8 — The pool (D12)
+## FL.8 — The Planner
+
+The operator's sketch (`docs/design/assets/planner-sketch.png`): every job on
+the chosen server as a lane on a timeline — what ran when, how it ended, how
+long it took, and what runs next.
+
+- **Planner** on the Jobs section opens it over Automate. Top: the job count
+  on the server, what the server last said, **New job**, **Refresh**, **Close**.
+  Tools: the day (‹ › and **Now**), the window (6 h · 24 h · 7 days), **All
+  runs** · **Failed only**, and the legend.
+- A lane a job: its name, process and triggers; its runs from the server's
+  reports, placed at their time and as wide as they took; its planned runs
+  (the cron evaluator's reading of its triggers, dashed — the server is the
+  authority); the line that is now; on the right its next run and "N runs ·
+  M failed · usually X".
+- A run opened: when, how long, what started it, how it ended, and for a
+  failure the first thing its report says went wrong; **Open report**, **Run
+  now**, **Edit job**.
+- The chosen job underneath: how long each of its last 60 runs took, the
+  usual run (the median) dashed, slowest and failed counted, a tooltip a bar.
+- Status is never colour alone: done solid, warnings hatched, failed outlined
+  and crossed, running dashed, skipped grey hatched, planned a dashed tick;
+  the legend names each.
+- A report's duration, what started it and its warnings are read as
+  `duration_ms`, `started_by` and `warnings` — assumed like the rest of the
+  report row (`docs/flow.md`); without them a run is a tick and says "—".
+
+**Story 39**: B makes *Broken* on `alpha` (story 38's process, no world
+address), runs it, and runs *Dusk* twice more. The Planner shows two lanes:
+Dusk's three runs done and its next at 18:00, Broken's run failed; opened, it
+says what alpha said. Choosing Dusk draws its three run times. Failed only
+leaves the failure; Run now from its card runs it again; 7 days shows a tick
+a day.
+
+## FL.9 — The pool (D12)
 
 Other people's servers take flows for a price per hour. Written as its own
-task file when FL.7 is green: a `process_server` row marked *offered*,
+task file when FL.8 is green: a `process_server` row marked *offered*,
 `flow_run` leases with heartbeat, a dropped run restarts fresh on the next
 runner (a flow never resumes), the owner sees every restart, price per hour
 through the ledger (Invariant 5), Work → Flow runs. Not started here.

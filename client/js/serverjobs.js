@@ -26,7 +26,7 @@ export function triggerWords(job) {
 }
 
 // What the dialog needs from the server before it can be drawn.
-async function forDialog(server) {
+export async function forDialog(server) {
     const [processes, services] = await Promise.all([
         processApi(server.url).list(), recordsApi(server.url).services().catch(() => [])]);
     return { processes, services };
@@ -79,8 +79,10 @@ export function mountJobs(host, bag) {
             part.run();
         });
     });
+    // The Planner (plannerui.js): these jobs on a timeline.
+    const planner = act('Planner', 'fl-planner-open', () => bag.planner?.open());
     const part = section(host, 'Jobs', {
-        head: [add],
+        head: [add, planner],
         load: () => recordsApi(bag.server().url).jobs()
             .catch((e) => { throw new Error(failWords(e, bag.server().name)); }),
         draw(rows, list) {

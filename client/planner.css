@@ -1,0 +1,116 @@
+/* planner.css — the Planner over Automate (client/js/plannerui.js), after the
+ * operator's timeline sketch: a lane per job, the runs on it, what runs next,
+ * and one job's run times underneath. Loaded with flow.css (client/flow/boot.js).
+ *
+ * Every status carries a second cue besides its colour, because done and
+ * done-with-warnings are too close for a colour-blind reader (dataviz check:
+ * protan ΔE 5.3): warnings are hatched, a failure is outlined and crossed,
+ * running is a dashed outline, skipped is grey and hatched, planned a dashed
+ * tick. The legend names all of them. */
+
+#flows .fl-planner {
+  --pl-done: oklch(0.72 0.14 145); --pl-warned: oklch(0.8 0.15 80);
+  --pl-failed: oklch(0.72 0.17 25); --pl-running: oklch(0.8 0.14 290);
+  --pl-line: rgba(255, 255, 255, 0.08); --pl-name: 220px; --pl-nextw: 180px;
+  position: absolute; inset: 0; z-index: 6; display: flex; flex-direction: column;
+  background: var(--ground); overflow: hidden;
+}
+#flows .fl-planner[hidden] { display: none; }
+#flows .pl-top, #flows .pl-tools { display: flex; gap: 8px; align-items: center;
+  padding: 8px 12px; border-bottom: 1px solid var(--edge); background: var(--panel-solid); }
+#flows .pl-top .name { font-family: var(--head); font-weight: 700; font-size: 16px;
+  letter-spacing: 0.08em; text-transform: uppercase; }
+#flows .pl-top .spacer { flex: 1; }
+#flows .pl-said { font-size: 12px; }
+#flows .pl-date { font-family: var(--head); font-weight: 700; letter-spacing: 0.06em;
+  text-transform: uppercase; min-width: 150px; text-align: center; }
+#flows .pl-segs { display: flex; }
+#flows .pl-segs button[aria-pressed="true"] { border-color: var(--pl-running);
+  color: var(--pl-running); background: rgba(169, 155, 240, 0.12); }
+#flows .pl-legend { margin-left: auto; display: flex; gap: 14px; font-size: 12px;
+  color: var(--ink-3); flex-wrap: wrap; }
+#flows .pl-legend > span { display: flex; gap: 5px; align-items: center; }
+#flows .pl-key { width: 10px; height: 10px; display: inline-block; position: relative; }
+
+#flows .pl-grid-head, #flows .pl-row { display: grid;
+  grid-template-columns: var(--pl-name) 1fr var(--pl-nextw); }
+#flows .pl-grid-head { font-size: 10px; letter-spacing: 0.1em; text-transform: uppercase;
+  padding: 6px 12px; border-bottom: 1px solid var(--edge); }
+#flows .pl-axis { position: relative; height: 16px; }
+#flows .pl-tick { position: absolute; transform: translateX(-50%); color: var(--ink-3);
+  font-size: 10px; }
+#flows .pl-now-label { position: absolute; transform: translateX(-50%); font-size: 10px;
+  background: var(--pl-running); color: var(--ground); padding: 0 4px; }
+#flows .pl-rows { flex: 1 1 auto; overflow-y: auto; min-height: 120px; }
+#flows .pl-row { border-bottom: 1px solid var(--pl-line); min-height: 48px; padding: 0 12px; }
+#flows .pl-row[data-chosen="1"] { background: rgba(255, 255, 255, 0.04);
+  box-shadow: inset 2px 0 var(--pl-running); }
+#flows .pl-name { display: flex; flex-direction: column; align-items: flex-start; gap: 1px;
+  text-align: left; text-transform: none; letter-spacing: 0; font-family: var(--body);
+  font-weight: 400; background: none; border: 0; padding: 6px 0; }
+#flows .pl-name .pl-job { font-size: 13px; }
+#flows .pl-name span { font-size: 11px; }
+#flows .pl-next { display: flex; flex-direction: column; justify-content: center; gap: 2px;
+  font-size: 11px; padding-left: 12px; }
+#flows .pl-lane { position: relative; border-left: 1px solid var(--pl-line); }
+
+/* A run: 2px wide at least, so a short one is a tick rather than nothing. */
+#flows .pl-run { position: absolute; top: 14px; bottom: 14px; min-width: 3px; padding: 0;
+  border: 0; background: var(--pl-done); }
+#flows .pl-run:hover, #flows .pl-run:focus-visible, #flows .pl-bar:hover,
+#flows .pl-bar:focus-visible { outline: 2px solid var(--ink); outline-offset: 1px; }
+#flows .fl-planner [data-status="warned"] { background: repeating-linear-gradient(45deg,
+  var(--pl-warned) 0 3px, rgba(0, 0, 0, 0.35) 3px 5px); }
+#flows .fl-planner [data-status="failed"] { background: var(--pl-failed);
+  box-shadow: inset 0 0 0 1px var(--ink); }
+#flows .pl-run[data-status="failed"]::after, #flows .pl-bar[data-status="failed"]::after {
+  content: "\00d7"; position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%);
+  font-size: 10px; color: var(--ground); line-height: 1; }
+#flows .fl-planner [data-status="running"] { background: transparent;
+  outline: 1px dashed var(--pl-running); outline-offset: -1px; }
+#flows .fl-planner [data-status="skipped"] { background: repeating-linear-gradient(45deg,
+  var(--ink-3) 0 1px, transparent 1px 4px); }
+#flows .fl-planner [data-status="planned"] { background: transparent;
+  border-left: 1px dashed var(--ink-3); }
+#flows .pl-key[data-status="done"] { background: var(--pl-done); }
+#flows .pl-plan { position: absolute; top: 18px; bottom: 18px; width: 0;
+  border-left: 1px dashed var(--ink-3); }
+#flows .pl-now { position: absolute; top: 0; bottom: 0; width: 1px;
+  background: var(--pl-running); pointer-events: none; }
+
+#flows .pl-pop { position: absolute; z-index: 8; width: 250px; padding: 10px;
+  background: var(--panel-solid); border: 1px solid var(--pl-failed); font-size: 12px; }
+#flows .pl-pop[hidden] { display: none; }
+#flows .pl-pop-head { display: flex; gap: 6px; align-items: baseline; margin-bottom: 8px; }
+#flows .pl-pop-head .pl-badge { margin-left: auto; padding: 1px 5px; font-size: 10px;
+  color: var(--ground); }
+#flows .pl-pop-close { padding: 0 5px; }
+#flows .pl-pair { display: grid; grid-template-columns: 80px 1fr; gap: 6px; padding: 2px 0; }
+#flows .pl-pop-acts { display: flex; gap: 6px; margin-top: 10px; }
+
+#flows .pl-chart { flex: 0 0 240px; border-top: 1px solid var(--pl-running);
+  padding: 8px 12px 6px; position: relative; display: flex; flex-direction: column; }
+#flows .pl-chart[hidden] { display: none; }
+#flows .pl-chart-head { display: flex; justify-content: space-between; font-size: 12px; }
+#flows .pl-chart-title { font-family: var(--head); font-weight: 700; letter-spacing: 0.06em;
+  text-transform: uppercase; }
+#flows .pl-chart-title .muted { text-transform: none; letter-spacing: 0;
+  font-family: var(--body); font-weight: 400; }
+#flows .pl-plot { position: relative; flex: 1; margin: 10px 0 4px 44px; }
+#flows .pl-grid { position: absolute; left: 0; right: 0; height: 0;
+  border-top: 1px solid var(--pl-line); }
+#flows .pl-grid-label { position: absolute; right: 100%; margin-right: 6px;
+  transform: translateY(-50%); font-size: 10px; color: var(--ink-3); white-space: nowrap; }
+#flows .pl-bars { position: absolute; inset: 0; display: flex; align-items: flex-end; gap: 2px; }
+#flows .pl-bar { flex: 1 1 0; max-width: 22px; padding: 0; border: 0; position: relative;
+  background: var(--pl-done); border-radius: 2px 2px 0 0; }
+#flows .pl-usual { position: absolute; left: 0; right: 0; height: 0;
+  border-top: 1px dashed var(--ink-3); pointer-events: none; }
+#flows .pl-usual span { position: absolute; right: 0; top: -14px; font-size: 10px; }
+#flows .pl-chart-ends { display: flex; justify-content: space-between; font-size: 10px;
+  margin-left: 44px; }
+#flows .pl-tip { position: absolute; z-index: 9; padding: 4px 8px; font-size: 11px;
+  background: var(--panel-solid); border: 1px solid var(--edge); pointer-events: none;
+  white-space: nowrap; }
+#flows .pl-tip[hidden] { display: none; }
+#flows .fl-planner .fl-run { flex: 0 0 180px; }

@@ -31,6 +31,7 @@ async function loadLiteGraph() {
     await addOnce('link', { rel: 'stylesheet',
         href: new URL('../vendor/litegraph/litegraph.css', HERE).href });
     await addOnce('link', { rel: 'stylesheet', href: new URL('../flow.css', HERE).href });
+    await addOnce('link', { rel: 'stylesheet', href: new URL('../planner.css', HERE).href });
     await addOnce('script', { src: new URL('../vendor/litegraph/litegraph.js', HERE).href });
     if (!globalThis.LiteGraph) throw new Error('litegraph loaded but defined nothing');
     return globalThis;

@@ -63,6 +63,9 @@ function toJob(el) {
   };
 }
 
+/** @param {string} t */
+const num = (t) => (t !== "" && Number.isFinite(Number(t)) ? Number(t) : undefined);
+
 /** @param {Element} el */
 function toReport(el) {
   const raw = childText(el, "result_code") || childText(el, "code") || attr(el, "result_code");
@@ -73,6 +76,13 @@ function toReport(el) {
     jobName: childText(el, "job_name"),
     timestamp: childText(el, "timestamp") || childText(el, "created_at"),
     code, ok: code === undefined ? undefined : code === 0,
+    // The Planner's (planner.js): how long the run took, what started it,
+    // and how many warnings it logged. Assumed names, like the rest of the
+    // report row (docs/flow.md); absent, the Planner draws a tick and says "—".
+    duration: num(childText(el, "duration_ms") || attr(el, "duration_ms")),
+    startedBy: childText(el, "started_by") || undefined,
+    warnings: num(childText(el, "warnings")) ?? 0,
+    running: childText(el, "state") === "running",
   };
 }
 
