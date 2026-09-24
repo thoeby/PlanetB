@@ -60,6 +60,20 @@ async function attachExisting(state, { acts, said }, attach) {
     askHere(acts, 'which flow', sel, 'Attach', (id) => attach(id, state.thing.id));
 }
 
+// One flow's line: Open for whoever may read it; for a builder also where it
+// runs, Run on… and Stop (FL.7, rundialog.js), and Detach.
+function flowLine(r, thing, { on, acts, said, reload, attach }) {
+    const li = el('li', {}, el('span', { className: 'name', textContent: r.name }));
+    li.dataset.flow = r.name;
+    li.append(button('Open', 'open', () => on.open?.(r)));
+    if (thing.mine) {
+        li.append(...runControls(r, thing, { host: acts, reload,
+            say: (t) => { said.textContent = t; said.dataset.tone = ''; } }),
+        button('Detach', 'detach', () => attach(r.id, null)));
+    }
+    return li;
+}
+
 export function mountObjectFlows(host, on = {}) {
     const section = host.querySelector('.build-flows-section');
     const list = host.querySelector('.build-flows');
@@ -69,21 +83,12 @@ export function mountObjectFlows(host, on = {}) {
 
     const draw = () => {
         const { thing, rows } = state;
-        list.replaceChildren(...rows.map((r) => {
-            const li = el('li', {}, el('span', { className: 'name', textContent: r.name }));
-            li.dataset.flow = r.name;
-            li.append(button('Open', 'open', () => on.open?.(r)));
-            if (thing.mine) {
-                // FL.7: where it runs, Run on… and Stop (rundialog.js).
-                li.append(...runControls(r, thing, { host: acts, reload,
-                    say: (t) => { said.textContent = t; } }),
-                button('Detach', 'detach', () => attach(r.id, null)));
-            }
-            return li;
-        }));
+        list.replaceChildren(...rows.map((r) =>
+            flowLine(r, thing, { on, acts, said, reload, attach })));
         if (!rows.length) {
-            list.append(el('li', { className: 'muted',
-                textContent: `No flows on this ${thing.name} yet.` }));
+            const none = el('li', { textContent: `No flows on this ${thing.name} yet.` });
+            none.dataset.tone = 'quiet';
+            list.append(none);
         }
         acts.replaceChildren();
         if (thing.mine) {
@@ -91,6 +96,7 @@ export function mountObjectFlows(host, on = {}) {
                 button('Attach existing…', 'attach',
                     () => attachExisting(state, { acts, said }, attach)));
         } else {
+            said.dataset.tone = 'quiet';
             said.textContent = `Only people who build on ${thing.land} change its flows.`;
         }
     };
@@ -102,6 +108,7 @@ export function mountObjectFlows(host, on = {}) {
             await flows.attachFlow(await flows.getFlow(id), instance);
         } catch (e) {
             said.textContent = String(e?.message ?? e).replace(/^\d+ \S+: /, '');
+            said.dataset.tone = 'bad';
         }
         await reload();
     }

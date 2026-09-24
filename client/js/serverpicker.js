@@ -36,7 +36,10 @@ function editDialog(host, row, done) {
     const close = () => wrap.remove();
     test.onclick = async () => {
         answer.textContent = 'asking…';
-        answer.textContent = reachWords(await reach(url.input.value.trim()), location.origin);
+        answer.dataset.tone = 'quiet';
+        const r = await reach(url.input.value.trim());
+        answer.textContent = reachWords(r, location.origin);
+        answer.dataset.tone = { up: 'good', cors: 'warn' }[r.state] ?? 'bad';
     };
     save.onclick = async () => {
         try {
@@ -51,6 +54,31 @@ function editDialog(host, row, done) {
     cancel.onclick = close;
     host.append(wrap);
     name.input.focus();
+}
+
+// Remove, in design 10f's two ways: refused while flows of yours run there,
+// asked otherwise.
+async function removing(li, s, on) {
+    li.querySelector('.fl-srv-say')?.remove();
+    const why = await on.removable(s);
+    const say = el('div', { className: 'fl-srv-say' });
+    if (why) {
+        say.append(el('p', { textContent: why }));
+        say.dataset.tone = 'warn';
+        li.append(say);
+        return;
+    }
+    const yes = el('button', { type: 'button', textContent: 'Remove' });
+    const no = el('button', { type: 'button', textContent: 'Cancel' });
+    say.append(el('p', { textContent: `Remove ${s.name}? Flows sent there keep running there;`
+        + ' this page just stops showing them.' }), yes, no);
+    yes.onclick = async () => {
+        await ps.removeServer(s.id);
+        li.remove();
+        await on.changed();
+    };
+    no.onclick = () => say.remove();
+    li.append(say);
 }
 
 // Every server of mine, with Edit and Remove. World's server is the
@@ -72,13 +100,7 @@ function manageDialog(host, list, on) {
             const edit = el('button', { type: 'button', textContent: 'Edit' });
             edit.onclick = () => { wrap.remove(); on.edit(s); };
             const del = el('button', { type: 'button', textContent: 'Remove' });
-            del.onclick = async () => {
-                const why = await on.removable(s);
-                if (why) { li.append(el('p', { className: 'fl-err', textContent: why })); return; }
-                await ps.removeServer(s.id);
-                li.remove();
-                await on.changed();
-            };
+            del.onclick = () => removing(li, s, on);
             li.append(edit, del);
         }
         rows.append(li);
@@ -115,6 +137,7 @@ function prober(state, { dot, words }) {
         dot.dataset.state = r.state === 'up' ? 'up' : 'down';
         dot.title = reachWords(r, location.origin);
         words.textContent = r.state === 'up' ? r.version ?? '' : dot.title;
+        words.dataset.tone = { up: 'quiet', cors: 'warn' }[r.state] ?? 'bad';
     };
 }
 

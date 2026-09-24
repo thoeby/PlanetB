@@ -12,6 +12,7 @@
 // back with is the one shown.
 
 import { el } from './poolui.js';
+import * as api from './api.js';
 import * as flows from './flows.js';
 import { bootFlow } from '../flow/boot.js';
 import { mountCanvas, EMPTY_FLOW } from './flowcanvas.js';
@@ -92,7 +93,8 @@ async function building(ctx) {
 
 // FL.2: the palette and the hatching follow the chosen server's blocks.
 function repaint(ctx) {
-    ctx.canvas.palette.refresh({ visible: ctx.blocks.visible, from: ctx.blocks.from });
+    ctx.canvas.palette.refresh({ visible: ctx.blocks.visible, from: ctx.blocks.from,
+        server: ctx.blocks.server()?.name });
     ctx.blocks.mark(ctx.canvas.graph);
     ctx.inspector?.show(ctx.canvas.selected());
 }
@@ -208,6 +210,10 @@ function context(parts, { onClose, onStay, lands, pickObject }) {
             ctx.state.dirty = dirty;
             bar.dirty.hidden = !dirty;
             bar.save.disabled = !ctx.state.open;
+            const remote = ctx.state.remote;
+            bar.save.hidden = Boolean(remote);
+            bar.keep.hidden = !remote;
+            bar.ro.hidden = !remote;
             bar.undo.disabled = !ctx.canvas?.canUndo();
             bar.redo.disabled = !ctx.canvas?.canRedo();
         },
@@ -218,7 +224,15 @@ function context(parts, { onClose, onStay, lands, pickObject }) {
         stay: () => { root.hidden = false; onStay?.(); },
     };
     ctx.world = worldBag(ctx, pickObject);
-    ctx.server = mountServerPicker(bar.server, () => root);
+    ctx.server = mountServerPicker(bar.server, () => root, {
+        // Design 10f: a server that runs flows of yours is not removed.
+        async removable(s) {
+            const runs = await api.select('flow_deployment', { select: 'id',
+                server_id: `eq.${s.id}`, revoked_at: 'is.null' }).catch(() => []);
+            return runs.length
+                ? `${s.name} runs ${runs.length} of your flows \u2014 stop them first.` : '';
+        },
+    });
     return ctx;
 }
 
@@ -234,6 +248,8 @@ export function mountFlows(doc, opts) {
         exportElx: () => exportFlow(ctx),
         importElx: () => picker.click(),
         send: () => sendFlow(ctx),
+        keep: () => ctx.state.remote
+            && intoLand(ctx, ctx.state.remote.server, ctx.state.remote.row),
     };
     const tabs = leftTabs(left);
     ctx.remoteLists = remoteLists(ctx, tabs);

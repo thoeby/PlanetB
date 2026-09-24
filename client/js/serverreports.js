@@ -46,14 +46,19 @@ export function mountRunPanel(host) {
     const body = el('div', { className: 'fl-run-body' });
     const close = el('button', { type: 'button', textContent: 'Close' });
     const node = el('div', { className: 'fl-run', hidden: true },
-        el('div', { className: 'fl-run-head' }, title, state, close), note, body);
+        el('div', { className: 'fl-run-head' },
+            el('span', { className: 'muted', textContent: 'Run' }), title, state, close),
+        note, body);
     close.onclick = () => { node.hidden = true; };
     host.append(node);
     return {
         node,
         async show(server, summary, words = '') {
             node.hidden = false;
-            title.textContent = `${summary.jobName || 'a run'} on ${server.name}`;
+            // Design 10b: the run is named with the time it ran.
+            const at = (summary.timestamp ?? '').slice(11, 16);
+            title.textContent = `${summary.jobName || 'a run'} on ${server.name}`
+                + (at ? ` \u00b7 ${at}` : '');
             state.textContent = summary.ok === undefined ? 'running' : summary.ok ? 'done'
                 : `failed · ${summary.code}`;
             note.textContent = words;
@@ -74,6 +79,7 @@ function line(r, bag, reload) {
         el('span', { className: 'mono', textContent: (r.timestamp ?? '').replace('T', ' ') }),
         el('span', { className: 'pick', textContent: r.jobName || r.jobId || 'ad hoc' }),
         el('span', { className: 'fl-result', textContent: result(r) }));
+    li.lastChild.dataset.tone = r.ok === undefined ? 'quiet' : r.ok ? 'good' : 'bad';
     li.dataset.report = r.id;
     li.append(
         act('Open', 'open', () => bag.runPanel.show(s, r)),

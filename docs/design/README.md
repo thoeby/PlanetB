@@ -220,3 +220,14 @@ bottom panel, and a lamp's card with its flows and Run on…), 10d–10k the
 dialogs and the other states, and 10l every sentence with the colour it
 takes. `splatworld-v9.dc.html` is the turn before it, the whole page in one
 file. Where the build and 10l differ in a word, 10l wins.
+
+Built from v10 so far: every sentence of 10l that a story reaches, in its
+colour (`[data-tone]` in `client/hud.css`); the server picker's dot and words;
+Remove asked or refused (10f); a process from a server marked Read-only with
+Save into my land… in the bar (10b); the run panel named with its time; the
+lamp card's Flows section with the chip, Run on… with its cron preview, and
+Stop asked first (10c, 10k). Not built: 10a's layout — the palette as a
+column of its own and the status line under the canvas are v9's Automate,
+which the build has not taken yet — the dots inside the server dropdown
+(10d; a native select cannot draw them), and the inspector's "On alpha"
+card.

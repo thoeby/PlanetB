@@ -101,6 +101,16 @@ test('story 32 — a player keeps process servers and switches between them',
         });
 
         await world.elx.beta.start();
+        await test.step('removing a server is asked first', async () => {
+            await serverSelect(b).selectOption({ label: 'Manage servers…' });
+            const row = b.page.locator('#flows .fl-srv-dialog li[data-server="beta"]');
+            await row.getByRole('button', { name: 'Remove' }).click();
+            await expect(row).toContainText('Remove beta? Flows sent there keep running there;'
+                + ' this page just stops showing them.');
+            await row.locator('.fl-srv-say').getByRole('button', { name: 'Cancel' }).click();
+            await b.page.locator('#flows .fl-srv-dialog')
+                .getByRole('button', { name: 'Done' }).click();
+        });
         // Every window is a 3D view competing for one machine (story 30).
         await b.close();
     });

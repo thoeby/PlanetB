@@ -164,3 +164,6 @@
 #flows .fl-run-title { flex: 1; font-family: var(--head); font-weight: 700; }
 #flows .fl-tree details { margin-left: 12px; }
 #flows .fl-tree .fl-leaf { margin-left: 12px; }
+#flows .fl-ro { border: 1px solid var(--edge); padding: 2px 6px; font-family: var(--head);
+  font-size: 10px; letter-spacing: 0.12em; text-transform: uppercase; }
+#flows .fl-ro[hidden] { display: none; }

@@ -215,3 +215,11 @@ body {
 #pick-ask[hidden] { display: none; }
 #pick-ask .pick-line { margin: 0; font-size: 13px; }
 #pick-ask .pick-stop { font-size: 10px; }
+
+/* Design 10l: a sentence takes the colour of what it says — answered and
+ * running are good, a refusal is bad, what needs a look is warn, and what is
+ * only progress or an empty list is quiet (TASKS-flows.md). */
+[data-tone="good"] { color: oklch(0.8 0.15 145); }
+[data-tone="bad"] { color: oklch(0.8 0.18 25); }
+[data-tone="warn"] { color: var(--warn); }
+[data-tone="quiet"] { color: rgba(242, 239, 232, 0.6); }

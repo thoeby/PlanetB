@@ -36,7 +36,10 @@ async function looksAtIt(b) {
         await processRow(b, 'Weather check').getByRole('button', { name: 'Open' }).click();
         await expect(b.page.locator('#flows .fl-top .name'))
             .toHaveText('Weather check · on alpha', { timeout: UI });
-        await expect(b.page.locator('#flows .fl-save')).toBeDisabled();
+        // Design 10b: Save gives way to keeping a copy, and the bar says why.
+        await expect(b.page.locator('#flows .fl-ro')).toBeVisible();
+        await expect(b.page.locator('#flows .fl-save')).toBeHidden();
+        await expect(b.page.locator('#flows .fl-keep')).toBeVisible();
     });
 }
 

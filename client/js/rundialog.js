@@ -11,7 +11,9 @@ import { servers } from './processservers.js';
 import { runsOf, runOn, stop } from './flowrun.js';
 import { failWords } from '../flow/server/client.js';
 import { CRON_NOTE } from './jobdialog.js';
+import { cronNextFirings } from '../flow/server/cron.js';
 
+const toned = (node, tone) => { node.dataset.tone = tone; return node; };
 const plain = (e) => String(e?.message ?? e).replace(/^\d+ \S+: /, '');
 
 function labelled(label, input) {
@@ -27,7 +29,20 @@ function runDialog(host, flow, thing, mine, done) {
         el('option', { value: 'cron', textContent: 'Every …' }),
         el('option', { value: 'events', textContent: 'When something happens here' }));
     const cron = el('input', { type: 'text', value: '0 18 * * *' });
-    const cronRow = labelled('cron expression', cron);
+    const next = el('span', { className: 'note build-run-next' });
+    const preview = () => {
+        try {
+            next.textContent = `next 5 \u00b7 ${cronNextFirings(cron.value.trim())
+                .map((d) => d.toISOString().slice(11, 16)).join(' \u00b7 ')}`;
+            next.dataset.tone = 'quiet';
+        } catch {
+            next.textContent = 'That is not a cron expression \u2014 five fields, minute first.';
+            next.dataset.tone = 'bad';
+        }
+    };
+    cron.addEventListener('input', preview);
+    preview();
+    const cronRow = el('div', {}, labelled('cron expression', cron), next);
     cronRow.hidden = true;
     start.onchange = () => { cronRow.hidden = start.value !== 'cron'; };
     const summary = el('p', { className: 'note' });
@@ -48,12 +63,16 @@ function runDialog(host, flow, thing, mine, done) {
         const s = mine.find((x) => x.id === server.value);
         try {
             await runOn(flow, s, { kind: start.value, expression: cron.value.trim() },
-                (t) => { said.textContent = t; });
+                (t) => {
+                    said.textContent = t;
+                    said.dataset.tone = t.startsWith('running on') ? 'good' : 'quiet';
+                });
             wrap.remove();
             await done();
         } catch (e) {
             said.textContent = e?.name === 'ApiError' && e.errorCode !== undefined
                 ? failWords(e, s.name) : plain(e);
+            said.dataset.tone = 'bad';
         }
     };
     const cancel = el('button', { type: 'button', textContent: 'Cancel' });
@@ -66,7 +85,7 @@ function confirmHere(host, words, ok, onOk) {
     const yes = el('button', { type: 'button', className: 'primary', textContent: ok });
     const no = el('button', { type: 'button', textContent: 'Cancel' });
     const wrap = el('div', { className: 'build-flows-ask build-confirm' },
-        el('p', { className: 'status', textContent: words }),
+        toned(el('p', { className: 'status', textContent: words }), 'bad'),
         el('div', { className: 'row' }, yes, no));
     yes.onclick = async () => { wrap.remove(); await onOk(); };
     no.onclick = () => wrap.remove();
@@ -87,7 +106,7 @@ export function runControls(flow, thing, { host, reload, say }) {
         if (run) {
             chip.textContent = `● ${where?.name ?? 'a server'}`
                 + (run.elx_sha256 !== flow.elx_sha256 ? ' · changed since sent' : '');
-            chip.dataset.changed = run.elx_sha256 !== flow.elx_sha256 ? '1' : '';
+            chip.dataset.tone = run.elx_sha256 !== flow.elx_sha256 ? 'warn' : 'good';
             runBtn.textContent = `Update on ${where?.name ?? 'the server'}`;
             stopBtn.hidden = false;
         }

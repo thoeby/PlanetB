@@ -19,7 +19,7 @@ const ALL = { visible: () => true, from: () => '' };
 function lines(source = ALL) {
     return allBlocks().filter((b) => source.visible(b.plugin)).map((b) => ({
         block: b,
-        group: source.from(b.plugin) ? `${path(b)} \u00b7 from ${source.from(b.plugin)}`
+        group: source.from(b.plugin) ? `${path(b)} \u00b7 ${source.from(b.plugin)}`
             : path(b),
         label: b.name || b.id,
         hay: `${b.name} ${b.id} ${path(b)}`.toLowerCase().replaceAll(/[-_.]/g, ' '),
@@ -102,7 +102,12 @@ export function mountPalette(host, { onDrop, onRefresh }) {
     return {
         node,
         // Called once the plugins are registered, and again if they change.
-        refresh(next = source) { source = next; all = lines(source); draw(); },
+        refresh(next = source) {
+            source = next;
+            if (source.server) again.title = `Ask ${source.server} for its blocks again`;
+            all = lines(source);
+            draw();
+        },
         blockOf(key) { return all.find((l) => `${l.block.plugin}.${l.block.id}` === key)?.block; },
         focus() { search.focus(); },
         search,

@@ -21,6 +21,13 @@ export function topBar() {
     const importBtn = button('fl-import', 'Import');
     // FL.3: the saved flow, to the chosen process server.
     const send = button('fl-send', 'Send');
+    // FL.3, design 10b: a process opened from a server is read-only here, and
+    // the one thing to do with it is keep a copy.
+    const ro = el('span', { className: 'fl-ro', textContent: 'Read-only',
+        title: 'Read-only \u00b7 the bytes as the server has them' });
+    ro.hidden = true;
+    const keep = button('fl-keep', 'Save into my land…', true);
+    keep.hidden = true;
     const undo = button('fl-undo', 'Undo · Ctrl-Z');
     const redo = button('fl-redo', 'Redo · Ctrl-Shift-Z');
     const relayout = button('fl-layout', 'Auto-layout');
@@ -28,12 +35,12 @@ export function topBar() {
     // FL.1: which process server the view talks to (serverpicker.js).
     const server = el('span', { className: 'fl-srv' });
     const node = el('div', { className: 'fl-top' },
-        name, undo, redo, relayout, server,
+        name, ro, undo, redo, relayout, server,
         el('span', { className: 'spacer' }), dirty, said,
-        save, validate, send, exportBtn, importBtn, close);
+        save, keep, validate, send, exportBtn, importBtn, close);
 
     return {
-        node, name, dirty, said, save, undo, redo, server, send,
+        node, name, dirty, said, save, undo, redo, server, send, ro, keep,
         // The canvas exists only once litegraph has loaded, so the buttons are
         // wired then rather than when they are built.
         wire(canvas, on) {
@@ -43,6 +50,7 @@ export function topBar() {
             exportBtn.onclick = on.exportElx;
             importBtn.onclick = on.importElx;
             send.onclick = on.send;
+            keep.onclick = on.keep;
             undo.onclick = () => canvas.undo();
             redo.onclick = () => canvas.redo();
             relayout.onclick = () => canvas.relayout();

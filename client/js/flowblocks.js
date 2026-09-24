@@ -22,6 +22,13 @@ export async function serverPlugins(url) {
         .map((xml) => ({ id: idOf(xml), xml }));
 }
 
+// Where a plugin in the palette came from, in design 10l's words.
+function fromWords(state, plugin) {
+    const name = state.server?.name ?? '';
+    if (plugin === 'world' && state.has?.has('world')) return `${name} knows these blocks`;
+    return state.from.has(plugin) ? `from ${name}` : '';
+}
+
 export function flowBlocks({ LiteGraph, bundled, say }) {
     const mine = new Map(bundled.map((p) => [p.id, p.xml.trim()]));
     const state = { server: null, has: null, from: new Set(), overridden: new Set() };
@@ -66,7 +73,7 @@ export function flowBlocks({ LiteGraph, bundled, say }) {
         server: () => state.server,
         // What the palette shows: the bundle, and what the chosen server has.
         visible: (plugin) => mine.has(plugin) || Boolean(state.has?.has(plugin)),
-        from: (plugin) => (state.from.has(plugin) ? state.server?.name ?? '' : ''),
+        from: (plugin) => fromWords(state, plugin),
         // What the chosen server itself has (the bundle, while it is unknown):
         // the kinds of service it can be asked for (FL.4).
         served: (plugin) => (state.has ? state.has.has(plugin) : mine.has(plugin)),
