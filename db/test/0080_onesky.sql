@@ -24,7 +24,7 @@ SELECT is((SELECT algo_version FROM atom
           'dataset-v6', 'the geometry is assembled under the new sky');
 SELECT is((SELECT algo_version FROM atom
            WHERE job_id = (SELECT id FROM j) AND op = 'train'),
-          'train-v20', 'and trained by the trainer the client runs');
+          'train-v21', 'and trained by the trainer the client runs');
 SELECT is((SELECT (params ->> 'budget')::bigint FROM atom
            WHERE job_id = (SELECT id FROM j) AND op = 'train'),
           600000::bigint, 'with the budget every tile has: what moved is where they go');
