@@ -202,7 +202,25 @@ export const loadDem = (z, x, y, opts) =>
 export const loadDemExact = (z, x, y, opts) =>
     loadRaster('dem', z, x, y, { ...opts, decode: opts.decode ?? decodeDem, exact: true });
 
-export const sampleHeight = (dem, u, v) => bilinear(dem, u, v, 1, (i) => dem.data[i])[0];
+// The height at (u, v). Inside the outermost pixel centres it is bilinear;
+// in the half pixel between them and the raster's edge it carries the edge
+// pair's slope on rather than holding the last centre's value. Held, a tile's
+// edge took the height half a pixel in from its own side, the tile across the
+// seam half a pixel in from the other, and on a slope the two met with a step
+// between them — a line along every seam once both were trained.
+export function sampleHeight(dem, u, v) {
+    const n = dem.size;
+    if (n < 2) return dem.data[0];
+    const fx = Math.min(Math.max((dem.u0 + u * dem.span) * n - 0.5, -0.5), n - 0.5);
+    const fy = Math.min(Math.max((dem.v0 + v * dem.span) * n - 0.5, -0.5), n - 0.5);
+    const x0 = Math.min(Math.max(Math.floor(fx), 0), n - 2);
+    const y0 = Math.min(Math.max(Math.floor(fy), 0), n - 2);
+    const sx = fx - x0;
+    const sy = fy - y0;
+    const h = (i, j) => dem.data[j * n + i];
+    return (h(x0, y0) * (1 - sx) + h(x0 + 1, y0) * sx) * (1 - sy)
+        + (h(x0, y0 + 1) * (1 - sx) + h(x0 + 1, y0 + 1) * sx) * sy;
+}
 
 // The tile's ground from the cuts `deeper` zooms down: the 2^deeper x 2^deeper
 // descendants at z + deeper, each cut exactly, stitched into one raster of

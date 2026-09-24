@@ -1,4 +1,4 @@
-// assemble.js — `assemble-v16`. The world, as geometry, in one tile's own frame.
+// assemble.js — `assemble-v17`. The world, as geometry, in one tile's own frame.
 //
 // Terrain from the seeded DEM, cut by terrainmods and roads; footprints
 // extruded; forests scattered; water laid flat; the ground coloured by its own
@@ -50,8 +50,9 @@ import { localFromLonLat, lonLatFromLocal } from '../lib/tilemath.js';
 // reach 2049 across, for a z14 ground cut from z16 (db/0188). v15 carries the
 // ground past the tile's edge (client/lib/skirt.js, skirtWidth). v16 takes the
 // skirt's slope over eight cells and caps it, and the share from the atom's
-// `skirt` param (db/0194), 0 for none.
-export const ALGO = 'assemble-v16';
+// `skirt` param (db/0194), 0 for none. v17 carries the edge's slope out to
+// the raster's edge rather than holding the last pixel (geo.js sampleHeight).
+export const ALGO = 'assemble-v17';
 
 // How far the ground the frames draw runs past the tile's edge, as a share of
 // the tile's width, so a smaller tile gets a smaller skirt. Trained splats

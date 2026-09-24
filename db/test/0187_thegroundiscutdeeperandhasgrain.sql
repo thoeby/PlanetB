@@ -22,9 +22,9 @@ CREATE TEMP TABLE j AS
 SELECT ensure_job(14, tile_x(7.885, 14), tile_y(46.295, 14)) AS jid;
 
 SELECT is((SELECT min(algo_version) FROM atom
-           WHERE job_id = (SELECT jid FROM j) AND op = 'dataset'), 'dataset-v7',
+           WHERE job_id = (SELECT jid FROM j) AND op = 'dataset'), 'dataset-v8',
     'the ground is cut a zoom deeper and drawn with a grain');
-SELECT is(algo_current('dataset'), 'dataset-v7', 'and the pool hands that out');
+SELECT is(algo_current('dataset'), 'dataset-v8', 'and the pool hands that out');
 
 SELECT * FROM finish();
 ROLLBACK;

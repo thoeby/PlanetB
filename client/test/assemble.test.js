@@ -125,7 +125,7 @@ async function serve() {
 }
 
 const ATOM = {
-    id: 1, op: 'assemble', algo_version: 'assemble-v16', seed: 7,
+    id: 1, op: 'assemble', algo_version: 'assemble-v17', seed: 7,
     inputs: { snapshot: WORLD.snapshot }, params: { z: Z, x: X, y: Y, budget: BUDGET },
 };
 
@@ -140,7 +140,7 @@ test('assemble produces the five files the rest of the pipeline reads', async ()
             ['scene.json', 'mesh.bin', 'init.ply', 'height.r16', 'colliders.json']);
 
         const scene = JSON.parse(new TextDecoder().decode(files.get('scene.json')));
-        assert.equal(scene.algo, 'assemble-v16');
+        assert.equal(scene.algo, 'assemble-v17');
         assert.deepEqual(scene.tile, { z: Z, x: X, y: Y });
         assert.ok(scene.origin.h > 350 && scene.origin.h < 460, 'the origin sits on the ground');
         assert.ok(scene.meshes.length >= 6, 'terrain, road, walls, roofs, water, trees');
@@ -247,14 +247,15 @@ test('a ring is triangulated, wound and scattered the same way every time', () =
 // every seed differently. Both moved again at assemble-v12 (db/0186): the
 // ground's colours carry a mottle now (client/lib/terrain.js mottleAt), and
 // init.ply is the trainer's own seed (client/lib/sampling.js seedOf), a third
-// of it on a lattice. Both again at assemble-v16 (db/0192): the ground runs
+// of it on a lattice. Both again at assemble-v15 (db/0192): the ground runs
 // past the tile's edge (client/lib/skirt.js), and the seed covers that too;
-// and at v16 (db/0194), whose skirt takes its slope over eight cells.
-// The hashes are what v16 writes over this fixture; what they guard is that
-// nothing moves again without a version saying so.
+// at v16 (db/0194), whose skirt takes its slope over eight cells; and at v17
+// (db/0195), whose edge heights reach the edge. The hashes are what v17
+// writes over this fixture; what they guard is that nothing moves again
+// without a version saying so.
 const BEFORE_FND3 = {
-    mesh: '99bf4442c55ec4071c37a26c0ccf6ba35815cdc48aeb8cb5e43bae4c40e9fdbe',
-    ply: 'bc7c21289c23e78bc6f775226e7bee0b31e969248feaf443d461d1741b594484',
+    mesh: '057dc8e08034634ac21299ac2102570dcdf4cb4f3e4c4fb50a61f1139b88b33f',
+    ply: '15e52418f6a03317133849d70666252dac79a403304c7e00f7d5a83014f9b43e',
     trees: 118,
 };
 

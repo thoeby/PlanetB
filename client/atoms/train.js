@@ -62,12 +62,14 @@ import { datasetDir, removeDir } from '../lib/opfs.js';
 import { bboxOf, writePly } from '../lib/ply.js';
 import { rngOf, seedOf } from '../lib/sampling.js';
 import { readTar, writeTar } from '../lib/tar.js';
+import { lonLatFromLocal, tileBbox } from '../lib/tilemath.js';
 
 // v18 hands brush the atom's `brush` knobs (client/lib/brush.js configFor):
 // db/0189 lets splats grow in the run rather than be widened after it.
 // v19 is v18's code (db/0190). v20 reads brush's rotations as wxyz (db/0191).
-// v21 is v20's code (db/0193).
-export const ALGO = 'train-v21';
+// v21 is v20's code (db/0193). v22 keeps a splat only if its centre is over
+// the tile's own ground (`ownGround`, db/0195).
+export const ALGO = 'train-v22';
 // How far past the seed's box a splat may end up and still be this tile's,
 // measured up and down. Across the ground there is far less room than this:
 // see EDGE_PAD_M.
@@ -120,6 +122,22 @@ export function bounds(seed, margin) {
         : Math.min((box[k + 3] - box[k]) * margin, EDGE_PAD_M)));
     return { lo: box.map((v, k) => v - pad[k % 3]).slice(0, 3),
         hi: box.slice(3).map((v, k) => v + pad[k]) };
+}
+
+// Every splat whose centre is not over this tile's own ground, in lon/lat,
+// made transparent, so `keep` drops it. The skirt (client/lib/skirt.js) is
+// ground for the frames so that the splats along the edge train as covered as
+// the rest; what grew over it is the neighbour's ground, and kept, it was a
+// band a skirt wide on each side of every seam where two tiles' splats, each
+// trained on its own frames, lay over each other. Cut at the tile's edge in
+// lon/lat — the edge the neighbour is cut at too — every place has one tile's
+// splats, and the seam is closed by the edge splats' own extent.
+export function ownGround(f, frame, b) {
+    for (let i = 0; i < f.count; i++) {
+        const g = lonLatFromLocal(frame, { x: f.x[i], y: f.y[i], z: f.z[i] });
+        if (g.lon < b.west || g.lon > b.east || g.lat < b.south || g.lat > b.north) f.a[i] = 0;
+    }
+    return f;
 }
 
 function pack(splats, files) {
@@ -274,7 +292,8 @@ export async function run({ atom, inputs, log, knobs }) {
         knobs });
     const box = bounds(seed, MARGIN);
     const scale = Number(atom.params?.scale) || SCALE;
-    const out = widen(keep(splats, box.lo, box.hi), scale);
+    const own = ownGround(splats, scene.frame ?? scene.origin, tileBbox(z, x, y));
+    const out = widen(keep(own, box.lo, box.hi), scale);
     if (!out.count) {
         const span = (f) => bboxOf(f).map((v) => v.toFixed(1)).join(' ');
         const win = [...box.lo, ...box.hi].map((v) => v.toFixed(1)).join(' ');
