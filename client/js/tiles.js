@@ -319,6 +319,10 @@ export class TileStreamer {
             this.swap(k, row);
             swapped++;
         }
+        // A tile published since the page loaded, over ground no published
+        // tile covers, is a root: without this it was never drawn until a
+        // reload.
+        if (rows?.length) this.roots = rootsOf([...this.tiles.values()]);
         return swapped;
     }
 

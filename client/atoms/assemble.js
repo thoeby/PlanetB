@@ -262,8 +262,7 @@ export async function run({ atom, log, apiUrl, filesUrl }) {
     const products = await loadProducts(world.symbol_files, filesUrl);
     const materials = await loadMaterials(products);
     const ground = await loadGround(world.height_edits, frame, filesUrl);
-    const { terrain, meshes, boxes, trees, flags, roads, placed, openings, cover,
-        painted } =
+    const { terrain, meshes, boxes, trees, flags, roads, placed, openings, cover, painted } =
         build({ z, sw, ne, dem, frame, world, random: rngOf(atom, z, x, y),
             assets, products, ground, colourAt, coverImg, materials, tile: { z, x, y },
             skirtShare: Number(atom.params.skirt ?? SKIRT_SHARE) });
