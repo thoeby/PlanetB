@@ -45,7 +45,7 @@ test('story 36 — jobs and reports on a server', async ({ browser, world }, tes
 
     await test.step('Run now, and what alpha said about it', async () => {
         await job(b, 'Dusk').getByRole('button', { name: 'Run now' }).click();
-        const run = b.page.locator('#flows .fl-run');
+        const run = b.page.locator('#flows .fl-mid .fl-run');
         await expect(run).toBeVisible({ timeout: UI });
         await expect(run).toContainText('Dusk on alpha');
         await expect(run).toContainText('done');
@@ -60,7 +60,7 @@ test('story 36 — jobs and reports on a server', async ({ browser, world }, tes
         await expect(rowOf).toContainText('Dusk', { timeout: UI });
         await expect(rowOf).toContainText('✓ 0');
         await rowOf.getByRole('button', { name: 'Open' }).click();
-        await expect(b.page.locator('#flows .fl-run .fl-tree')).toContainText('Dusk');
+        await expect(b.page.locator('#flows .fl-mid .fl-run .fl-tree')).toContainText('Dusk');
     });
     // Every window is a 3D view competing for one machine (story 30).
     await b.close();

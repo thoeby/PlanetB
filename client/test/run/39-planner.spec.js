@@ -25,7 +25,7 @@ async function makesBroken(b) {
 async function runs(b, name, times) {
     for (let i = 0; i < times; i++) {
         await job(b, name).getByRole('button', { name: 'Run now' }).click();
-        await expect(b.page.locator('#flows .fl-run')).toContainText(`${name} on alpha`,
+        await expect(b.page.locator('#flows .fl-mid .fl-run')).toContainText(`${name} on alpha`,
             { timeout: UI });
     }
 }

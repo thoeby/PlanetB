@@ -56,12 +56,37 @@ export function serverClient(base) {
         : "application/json";
       /** @type {any} */ (init).body = text ? opts.body : JSON.stringify(opts.body);
     }
-    const res = await fetch(root + PREFIX + path + qs(opts.query), init);
+    let res;
+    try {
+      res = await fetch(root + PREFIX + path + qs(opts.query), init);
+    } catch (err) {
+      throw await unreadable(root, err);
+    }
     const said = await res.text();
     if (!res.ok && !said.includes("elx_api_msg")) throw new ApiError(res.status, said);
     return parseEnvelope(said);
   }
   return { base: root, request };
+}
+
+/**
+ * A fetch that threw: nobody answered, or somebody answered and the browser
+ * kept the answer from the page because the server did not allow this page
+ * to read it (CORS) — which is what the elx server does (docs/flow.md). An
+ * opaque probe tells the two apart.
+ *
+ * @param {string} root
+ * @param {unknown} err
+ */
+async function unreadable(root, err) {
+  try {
+    await fetch(`${root}${PREFIX}/system/status`, { mode: "no-cors" });
+    const e = new ApiError(0, "cors");
+    /** @type {any} */ (e).cors = true;
+    return e;
+  } catch {
+    return err;
+  }
 }
 
 /**
@@ -106,7 +131,8 @@ export function reachWords(r, origin) {
   if (r.state === "up") return `Answered${r.version ? ` — elx ${r.version}` : ""}.`;
   if (r.state === "cors") {
     return "It answered, but this page is not allowed to read it (CORS) — "
-      + `the server has to allow ${origin}.`;
+      + `the server has to allow ${origin}. Run tools/elx-relay.py beside it and add`
+      + " the relay's address instead.";
   }
   return "That address did not answer.";
 }
@@ -119,6 +145,10 @@ export function reachWords(r, origin) {
  * @returns {string}
  */
 export function failWords(err, name) {
+  if (/** @type {any} */ (err)?.cors) {
+    return `${name} answered, but this page is not allowed to read it (CORS) — run`
+      + " tools/elx-relay.py beside it and use the relay's address.";
+  }
   if (err instanceof ApiError && err.errorCode != null) {
     return `${name} said: ${err.body || err.message}`;
   }

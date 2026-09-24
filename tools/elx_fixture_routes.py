@@ -117,11 +117,11 @@ def constants(node):
 
 
 def call_world(world, key, fn, args):
-    req = urllib.request.Request(
-        world.rstrip('/') + '/rpc/' + fn, data=json.dumps(args).encode(),
-        headers={'Content-Type': 'application/json', 'Authorization': 'Bearer ' + key},
-        method='POST')
     try:
+        req = urllib.request.Request(
+            world.rstrip('/') + '/rpc/' + fn, data=json.dumps(args).encode(),
+            headers={'Content-Type': 'application/json', 'Authorization': 'Bearer ' + key},
+            method='POST')
         with urllib.request.urlopen(req, timeout=10) as res:
             return res.status, res.read().decode()
     except urllib.error.HTTPError as err:
