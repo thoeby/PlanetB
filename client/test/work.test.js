@@ -365,7 +365,7 @@ test('a lost claim stops the run and fails nothing', async () => {
     let beat = null;
     let terminated = 0;
     const api = fakeApi({ artifact: [] }, {
-        claim_atom: { ...ATOM, op: 'train', algo_version: 'train-v21' },
+        claim_atom: { ...ATOM, op: 'train', algo_version: 'train-v22' },
         heartbeat: () => {
             throw new Error('atom 42 is not claimed by you: another tab holds it');
         },

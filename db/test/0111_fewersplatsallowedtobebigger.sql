@@ -28,7 +28,7 @@ SELECT ensure_job(14, tile_x(7.885, 14), tile_y(46.295, 14)) AS jid;
 CREATE TEMP TABLE t AS
 SELECT * FROM atom WHERE job_id = (SELECT jid FROM j) AND op = 'train';
 
-SELECT is((SELECT algo_version FROM t), 'train-v21', 'the trainer is train-v21');
+SELECT is((SELECT algo_version FROM t), 'train-v22', 'the trainer is train-v22');
 SELECT is((SELECT (params ->> 'iters')::int FROM t), 2400,
     'over 2400 steps: the second half is where splats get small (db/0148)');
 SELECT is((SELECT jsonb_build_array(params -> 'seed_share', params -> 'scale',

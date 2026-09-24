@@ -1,4 +1,4 @@
--- A trained splat is turned the way brush turned it (db/0191): train-v21.
+-- A trained splat is turned the way brush turned it (db/0191): train-v22.
 BEGIN;
 SELECT plan(2);
 
@@ -22,9 +22,9 @@ CREATE TEMP TABLE j AS
 SELECT ensure_job(14, tile_x(7.885, 14), tile_y(46.295, 14)) AS jid;
 
 SELECT is((SELECT algo_version FROM atom
-           WHERE job_id = (SELECT jid FROM j) AND op = 'train'), 'train-v21',
-    'the tile trains with train-v21');
-SELECT is(algo_current('train'), 'train-v21', 'and the pool hands that out');
+           WHERE job_id = (SELECT jid FROM j) AND op = 'train'), 'train-v22',
+    'the tile trains with train-v22');
+SELECT is(algo_current('train'), 'train-v22', 'and the pool hands that out');
 
 SELECT * FROM finish();
 ROLLBACK;
