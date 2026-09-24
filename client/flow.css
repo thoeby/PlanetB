@@ -1,169 +1,352 @@
-/* flow.css — the Automate workspace: the flows on the left, the canvas in the
- * middle, the inspector on the right, and one bar over all three. It is a view,
- * not a panel, so it takes the window; the chrome's own strip stays above it.
- * Loaded with litegraph's stylesheet the first time Automate is opened
- * (client/flow/boot.js).
+/* flow.css — the Automate workspace, design v10 artboard 10a
+ * (docs/design/splatworld-v10.dc.html): my flows on the left, the blocks
+ * beside them, the canvas in the middle, the inspector on the right, and one
+ * bar over all four. It is a view, not a panel, so it takes the window; the
+ * chrome's own strip stays above it. Loaded with litegraph's stylesheet the
+ * first time Automate is opened (client/flow/boot.js). The On-a-server tab,
+ * the run panel and the dialogs are in flowsrv.css.
  */
 
 /* Inside #hud (client/js/flowsui.js), under the top strip and the apps drawer
  * — both z-index 4 there — and over the plinth and the panels. */
 #flows {
+  --p: oklch(0.8 0.14 290); --p-line: oklch(0.8 0.14 290 / 0.6);
+  --p-dim: oklch(0.8 0.14 290 / 0.14);
+  --g: oklch(0.8 0.15 145); --r: oklch(0.8 0.18 25); --a: oklch(0.82 0.16 80);
+  --m: rgba(242, 239, 232, 0.6); --m2: rgba(242, 239, 232, 0.45);
+  --cut: polygon(6px 0, 100% 0, 100% calc(100% - 6px), calc(100% - 6px) 100%, 0 100%, 0 6px);
   position: absolute; inset: 44px 0 0; display: grid; z-index: 3;
-  grid-template-columns: 240px 1fr 300px; grid-template-rows: 44px 1fr;
-  background: var(--ground); color: var(--ink); font-family: var(--body);
+  grid-template-columns: 340px 260px minmax(0, 1fr) 320px;
+  grid-template-rows: 52px minmax(0, 1fr);
+  background: rgba(10, 12, 15, 0.97); color: var(--ink); font-family: var(--body);
+  font-size: 14px; border-top: 1px solid rgba(255, 255, 255, 0.1);
 }
 #flows[hidden] { display: none; }
+#flows [hidden] { display: none !important; }
 
+/* ------------------------------------------------------------ the bar */
 #flows .fl-top {
-  grid-column: 1 / -1; display: flex; gap: 8px; align-items: center;
-  padding: 0 12px; border-bottom: 1px solid var(--edge);
-  background: var(--panel-solid);
+  grid-column: 1 / -1; display: flex; gap: 12px; align-items: center; min-width: 0;
+  padding: 0 16px; border-bottom: 1px solid rgba(255, 255, 255, 0.12);
+  background: linear-gradient(180deg, rgba(24, 27, 33, 0.95), rgba(14, 16, 20, 0.95));
 }
-#flows .fl-top .name { font-family: var(--head); font-weight: 700;
-  letter-spacing: 0.08em; text-transform: uppercase; font-size: 14px; }
-#flows .fl-top .spacer { flex: 1; }
-#flows .fl-dirty { color: var(--warn); font-size: 12px; }
-#flows .fl-dirty[hidden] { display: none; }
-#flows .fl-said { color: var(--ink-3); font-size: 12px; font-family: var(--mono); }
+#flows .fl-kicker { font-family: var(--head); font-weight: 700; font-size: 12px;
+  letter-spacing: 0.14em; text-transform: uppercase; color: var(--p); }
+#flows .fl-top .name { font-family: var(--head); font-weight: 700; font-size: 20px;
+  letter-spacing: 0.08em; text-transform: uppercase; line-height: 1; white-space: nowrap;
+  overflow: hidden; text-overflow: ellipsis; max-width: 320px; }
+#flows .fl-where { font-size: 12px; color: var(--m); white-space: nowrap; }
+#flows .fl-sep { width: 1px; height: 26px; background: rgba(255, 255, 255, 0.15);
+  flex: none; }
+#flows .fl-group { display: flex; gap: 4px; align-items: center; }
+#flows .fl-acts-top { gap: 6px; }
+#flows .fl-top .spacer { flex: 1; display: flex; gap: 10px; align-items: center;
+  justify-content: flex-end; font-size: 12px; min-width: 0; }
+#flows .fl-dirty { display: inline-flex; align-items: center; gap: 7px; padding: 3px 9px;
+  border: 1px solid oklch(0.82 0.16 80 / 0.6); color: var(--a); font-family: var(--head);
+  font-weight: 700; font-size: 11px; letter-spacing: 0.12em; text-transform: uppercase; }
+#flows .fl-dirty i { width: 6px; height: 6px; background: var(--a); transform: rotate(45deg); }
+#flows .fl-said { color: var(--m); font-size: 12px; white-space: nowrap; overflow: hidden;
+  text-overflow: ellipsis; min-width: 0; }
 
+/* ------------------------------------------------------------ buttons */
 #flows button, #flows .act {
-  padding: 6px 11px; background: rgba(255, 255, 255, 0.06); color: var(--ink);
-  border: 1px solid var(--edge); cursor: pointer; font-family: var(--head);
-  font-weight: 700; font-size: 11px; letter-spacing: 0.1em;
-  text-transform: uppercase;
+  height: 30px; padding: 0 10px; background: transparent; color: var(--ink);
+  border: 1px solid rgba(255, 255, 255, 0.2); cursor: pointer; font-family: var(--head);
+  font-weight: 700; font-size: 12px; letter-spacing: 0.08em; text-transform: uppercase;
+  display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+  white-space: nowrap;
 }
-#flows button:hover { background: rgba(255, 255, 255, 0.12); }
-#flows button.primary { background: var(--accent); color: var(--ground);
-  border-color: var(--accent); }
-#flows button:disabled { opacity: 0.45; cursor: default; }
-#flows input, #flows select {
-  width: 100%; padding: 6px 8px; background: rgba(0, 0, 0, 0.35);
-  color: var(--ink); border: 1px solid var(--edge); font: inherit; font-size: 13px;
+#flows button:hover { background: rgba(255, 255, 255, 0.07); }
+#flows button:disabled { color: var(--m2); border-color: rgba(255, 255, 255, 0.12);
+  cursor: default; background: transparent; }
+#flows button.primary { background: var(--p); color: #0b0d10; border-color: transparent;
+  clip-path: var(--cut); }
+#flows button.primary:hover { filter: brightness(1.08); }
+#flows button.primary:disabled { opacity: 0.5; color: #0b0d10; background: var(--p); }
+#flows button kbd { font-family: var(--mono); font-size: 9px; color: var(--m2);
+  letter-spacing: 0; }
+#flows button.primary kbd { color: rgba(11, 13, 16, 0.6); }
+#flows .fl-acts-top button { height: 34px; padding: 0 12px; font-size: 13px;
+  border-color: rgba(255, 255, 255, 0.25); }
+#flows .fl-acts-top button.primary { padding: 0 14px; }
+#flows .fl-acts-top .fl-hue { border-color: var(--p-line); color: var(--p); }
+#flows .fl-close { color: rgba(242, 239, 232, 0.75); }
+#flows button.fl-link { height: auto; padding: 0; border: 0; color: var(--p);
+  font-size: 11px; letter-spacing: 0.1em; background: none; }
+
+#flows input, #flows select, #flows textarea {
+  width: 100%; height: 34px; padding: 0 10px; box-sizing: border-box;
+  background: rgba(0, 0, 0, 0.3); color: var(--ink);
+  border: 1px solid rgba(255, 255, 255, 0.18); font: inherit; font-size: 13px;
 }
-#flows input:focus, #flows select:focus { outline: 1px solid var(--accent); }
-#flows h3 { margin: 12px 0 4px; font-family: var(--head); font-size: 11px;
-  letter-spacing: 0.12em; text-transform: uppercase; color: var(--ink-3); }
-#flows .muted { color: var(--ink-3); font-size: 12px; }
+#flows textarea { height: auto; padding: 8px 10px; }
+#flows input:focus, #flows select:focus, #flows textarea:focus {
+  outline: none; border-color: var(--p-line); }
+#flows input[type="checkbox"] { appearance: none; width: 38px; height: 20px; padding: 0;
+  flex: none; position: relative; background: rgba(255, 255, 255, 0.12);
+  border: 1px solid rgba(255, 255, 255, 0.2); cursor: pointer; }
+#flows input[type="checkbox"]::after { content: ''; position: absolute; left: 2px; top: 2px;
+  width: 14px; height: 14px; background: rgba(242, 239, 232, 0.7); transition: left 0.12s; }
+#flows input[type="checkbox"]:checked { background: var(--p-dim); border-color: var(--p-line); }
+#flows input[type="checkbox"]:checked::after { left: 20px; background: var(--p); }
+#flows input[type="radio"] { width: auto; height: auto; accent-color: var(--p); }
+#flows h2 { margin: 0; font-family: var(--head); font-weight: 700; font-size: 18px;
+  letter-spacing: 0.08em; text-transform: uppercase; line-height: 1; }
+#flows h3 { margin: 0 0 6px; font-family: var(--head); font-weight: 600; font-size: 11px;
+  letter-spacing: 0.14em; text-transform: uppercase; color: rgba(242, 239, 232, 0.55); }
+#flows .muted { color: var(--m); font-size: 12px; }
 #flows .mono { font-family: var(--mono); }
+#flows .fl-sr { position: absolute; width: 1px; height: 1px; overflow: hidden;
+  clip-path: inset(50%); white-space: nowrap; }
+#flows .fl-dia { width: 7px; height: 7px; flex: none; transform: rotate(45deg);
+  background: rgba(242, 239, 232, 0.45); display: inline-block; }
+#flows .fl-caret { font-family: var(--mono); font-size: 10px; color: var(--m2); }
+#flows .fl-err { color: var(--r); font-size: 12px; margin: 6px 0; }
+#flows .fl-unknown { color: var(--a); font-size: 12px; margin: 0; }
+#flows [data-tone="good"] { color: var(--g); }
+#flows [data-tone="warn"] { color: var(--a); }
+#flows [data-tone="bad"] { color: var(--r); }
+#flows [data-tone="quiet"] { color: var(--m); }
 
-#flows .fl-left, #flows .fl-right {
-  overflow-y: auto; padding: 10px 12px; background: var(--panel-solid);
-}
-#flows .fl-left { border-right: 1px solid var(--edge); }
-#flows .fl-right { border-left: 1px solid var(--edge); }
+/* ------------------------------------------------------------ the columns */
+#flows .fl-left, #flows .fl-blocks, #flows .fl-right {
+  display: flex; flex-direction: column; min-height: 0; overflow: hidden; }
+#flows .fl-left { border-right: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(14, 16, 20, 0.7); }
+#flows .fl-blocks { border-right: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(14, 16, 20, 0.55); }
+#flows .fl-right { border-left: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(14, 16, 20, 0.7); }
 
+/* The left column's two tabs. */
+#flows .fl-tabs { display: flex; border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  flex: none; }
+#flows .fl-tab { flex: 1; height: 42px; border: 0; border-bottom: 2px solid transparent;
+  color: rgba(242, 239, 232, 0.65); font-size: 14px; letter-spacing: 0.1em; gap: 7px; }
+#flows .fl-tab:hover { background: rgba(255, 255, 255, 0.03); }
+#flows .fl-tab[aria-selected="true"] { border-bottom-color: var(--p); color: var(--p); }
+#flows .fl-tabdot { width: 6px; height: 6px; border-radius: 50%; background: var(--m2); }
+#flows .fl-tabdot[data-state="up"] { background: var(--g); }
+#flows .fl-tabdot[data-state="down"] { background: var(--r); }
+#flows .fl-pane { flex: 1; min-height: 0; display: flex; flex-direction: column; }
+
+/* My flows: land, thing, flow. */
+#flows .fl-tree { flex: 1; overflow-y: auto; min-height: 0; }
+#flows .fl-empty { padding: 12px 16px; margin: 0; }
 #flows .fl-list { margin: 0; padding: 0; list-style: none; }
-#flows .fl-list li { display: flex; gap: 6px; align-items: baseline;
-  padding: 4px 0; }
-#flows .fl-list li button.pick { flex: 1; text-align: left; text-transform: none;
-  font-family: var(--body); font-weight: 400; letter-spacing: 0;
-  border-color: transparent; background: none; font-size: 13px; }
-#flows .fl-list li[data-on="1"] button.pick { border-color: var(--accent);
-  color: var(--accent); }
+#flows .fl-list li.land { display: flex; align-items: center; gap: 8px; padding: 9px 16px;
+  background: rgba(255, 255, 255, 0.03); border-top: 1px solid rgba(255, 255, 255, 0.07);
+  font-family: var(--head); font-weight: 700; font-size: 12px; letter-spacing: 0.12em;
+  text-transform: uppercase; color: rgba(242, 239, 232, 0.75); }
+#flows .fl-land-name { flex: 1; }
+#flows .fl-role { font-size: 10px; letter-spacing: 0.1em; color: var(--g); }
+#flows li.land[data-role="grant"] .fl-role { color: var(--a); }
+#flows .fl-list li.thing { display: flex; align-items: center; gap: 8px;
+  padding: 8px 16px 6px 26px; font-size: 13px; border-top: 1px solid rgba(255, 255, 255, 0.04); }
+#flows .fl-list li.thing .fl-dia { background: oklch(0.78 0.14 200); }
+#flows .fl-list li.loose { padding: 10px 16px 5px 26px; font-size: 12px;
+  border-top: 1px solid rgba(255, 255, 255, 0.04); }
+#flows .fl-list li[data-flow] { display: flex; align-items: center; gap: 8px; min-height: 32px;
+  padding: 0 14px 0 50px; border-left: 2px solid transparent; font-size: 13px; }
+#flows .fl-list li[data-flow][data-loose="1"] { padding-left: 36px; }
+#flows .fl-list li[data-flow]:hover { background: rgba(255, 255, 255, 0.03); }
+#flows .fl-list li[data-flow][data-on="1"] { background: var(--p-dim);
+  border-left-color: var(--p); }
+#flows .fl-list li button.pick { flex: 1; min-width: 0; height: 32px; padding: 0;
+  justify-content: flex-start; border: 0; background: none; text-transform: none;
+  font-family: var(--body); font-weight: 400; letter-spacing: 0; font-size: 13px;
+  color: rgba(242, 239, 232, 0.85); overflow: hidden; text-overflow: ellipsis; }
+#flows .fl-list li[data-flow][data-on="1"] button.pick { color: var(--ink); }
+#flows .fl-was { font-size: 11px; color: rgba(242, 239, 232, 0.5); white-space: nowrap; }
+#flows .fl-chip-run { display: inline-flex; align-items: center; gap: 5px; padding: 1px 6px;
+  font-family: var(--mono); font-size: 10px; white-space: nowrap; border: 1px solid; }
+#flows .fl-chip-run::before { content: ''; width: 6px; height: 6px; border-radius: 50%;
+  background: currentColor; }
+#flows .fl-row-acts { display: none; gap: 8px; }
+#flows li[data-flow]:hover .fl-row-acts, #flows li[data-flow][data-on="1"] .fl-row-acts,
+#flows li[data-flow]:focus-within .fl-row-acts { display: flex; }
+#flows .fl-row-acts button { height: auto; padding: 0; border: 0; background: none;
+  font-size: 11px; color: rgba(242, 239, 232, 0.7); }
+#flows .fl-row-acts button:hover { color: var(--ink); background: none; }
+#flows .fl-row-acts button.del { color: var(--r); }
+#flows .fl-foot { flex: none; display: flex; gap: 8px; align-items: center;
+  padding: 12px 16px; border-top: 1px solid rgba(255, 255, 255, 0.1); }
+#flows .fl-tally { font-size: 11px; color: rgba(242, 239, 232, 0.5); }
 
+/* The blocks. */
+#flows .fl-palette { display: flex; flex-direction: column; height: 100%; min-height: 0; }
+#flows .fl-palette-head { display: flex; align-items: center; justify-content: space-between;
+  padding: 14px 14px 9px; }
+#flows button.fl-icon { width: 28px; height: 28px; padding: 0; border-color: var(--p-line);
+  color: var(--p); }
+#flows .fl-icon svg { width: 14px; height: 14px; fill: none; stroke: currentColor;
+  stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+#flows .fl-searchbox { display: block; padding: 0 14px 10px; position: relative; }
+#flows .fl-searchbox::before { content: ''; position: absolute; left: 25px; top: 11px;
+  width: 8px; height: 8px; border: 1.6px solid var(--m2); border-radius: 50%; }
+#flows .fl-search { height: 32px; padding-left: 30px; background: rgba(255, 255, 255, 0.04); }
+#flows .fl-plist { flex: 1; overflow-y: auto; min-height: 0; }
+#flows .fl-phead { display: flex; justify-content: space-between; align-items: baseline;
+  gap: 8px; padding: 11px 14px 5px; border-top: 1px solid rgba(255, 255, 255, 0.06);
+  font-family: var(--head); font-weight: 600; font-size: 11px; letter-spacing: 0.14em;
+  text-transform: uppercase; color: var(--m); }
+#flows .fl-from { font-family: var(--body); font-size: 10px; letter-spacing: 0;
+  text-transform: none; color: oklch(0.8 0.14 290 / 0.85); white-space: nowrap; }
+#flows .fl-plist ul { margin: 0; padding: 0; list-style: none; }
+#flows .fl-plist li { display: flex; align-items: center; gap: 9px; padding: 7px 14px;
+  font-size: 13px; cursor: grab; user-select: none; }
+#flows .fl-plist li:hover { background: var(--p-dim); color: var(--p); }
+#flows .fl-plist li[data-world="1"] .fl-dia { background: var(--p); }
+#flows .fl-bname { flex: 1; min-width: 0; white-space: nowrap; overflow: hidden;
+  text-overflow: ellipsis; }
+#flows .fl-plist li .group { font-family: var(--mono); font-size: 10px;
+  color: rgba(242, 239, 232, 0.4); }
+#flows .fl-pfoot { flex: none; margin: 0; padding: 10px 14px; font-size: 11px;
+  color: rgba(242, 239, 232, 0.55); border-top: 1px solid rgba(255, 255, 255, 0.1); }
+
+/* ------------------------------------------------------------ the canvas */
 #flows .fl-mid { position: relative; display: flex; flex-direction: column;
-  min-width: 0; min-height: 0; }
-/* The breadcrumb into a filter's or a transformation's inner flow. The element
- * is client/flow/graph/subflow.js's; this is only what it looks like here. */
-#flows .subgraph-breadcrumb { position: absolute; top: 0; left: 0; right: 0;
-  z-index: 3; padding: 6px 12px; background: var(--panel-solid);
-  border-bottom: 1px solid var(--edge); font-size: 12px; color: var(--ink-3);
-  display: flex; gap: 6px; align-items: center; }
-#flows .subgraph-breadcrumb[hidden] { display: none; }
-#flows .subgraph-breadcrumb button { padding: 2px 6px; font-size: 10px; }
-#flows .subgraph-sep { color: var(--ink-3); }
+  min-width: 0; min-height: 0; background: #0e1014; }
 #flows .fl-canvas-wrap { flex: 1; position: relative; min-height: 0; }
 #flows canvas.fl-canvas { position: absolute; inset: 0; width: 100%; height: 100%;
   display: block; }
+#flows .fl-chips { position: absolute; right: 18px; top: 14px; display: flex; gap: 6px;
+  z-index: 2; }
+#flows .fl-chip { height: 28px; padding: 0 10px; background: rgba(14, 16, 20, 0.9);
+  border-color: rgba(255, 255, 255, 0.18); font-size: 11px; gap: 7px; }
+#flows .fl-nets-chip { color: var(--p); }
+#flows .fl-nets-chip small { font-family: var(--mono); font-size: 9px; color: var(--m2); }
+#flows .fl-zoom { font-family: var(--mono); font-weight: 400; letter-spacing: 0; }
+#flows .fl-status { position: absolute; left: 18px; bottom: 14px; display: flex; gap: 14px;
+  align-items: center; height: 30px; padding: 0 12px; background: rgba(14, 16, 20, 0.9);
+  border: 1px solid rgba(255, 255, 255, 0.14); font-size: 11px;
+  color: rgba(242, 239, 232, 0.65); z-index: 2; pointer-events: none; }
+#flows .fl-status b { color: var(--ink); font-weight: 600; }
+#flows .fl-status-missing { color: var(--a); }
+/* The breadcrumb into a filter's or a transformation's inner flow. The element
+ * is client/flow/graph/subflow.js's; this is only what it looks like here. */
+#flows .subgraph-breadcrumb { position: absolute; top: 14px; left: 18px; z-index: 3;
+  padding: 0 10px; height: 28px; background: rgba(14, 16, 20, 0.9);
+  border: 1px solid rgba(255, 255, 255, 0.18); font-size: 12px; color: var(--m);
+  display: flex; gap: 6px; align-items: center; }
+#flows .subgraph-breadcrumb button { height: 20px; padding: 0 6px; font-size: 10px; }
+#flows .subgraph-sep { color: var(--m2); }
 
-/* A fixed height, not one that follows the list: a canvas that changes size
- * as you type in the search box moves every block under the pointer. */
-#flows .fl-bench { flex: 0 0 168px; height: 168px; overflow: hidden;
-  border-bottom: 1px solid var(--edge); background: var(--panel-solid); }
-#flows .fl-palette { padding: 8px 12px; display: flex; flex-direction: column;
-  height: 100%; box-sizing: border-box; }
-#flows .fl-palette ul { margin: 6px 0 0; padding: 0; list-style: none;
-  overflow-y: auto; columns: 2; }
-#flows .fl-palette li { padding: 3px 4px; font-size: 12px; cursor: grab; }
-#flows .fl-palette li:hover { background: var(--accent-dim); }
-#flows .fl-palette li .group { color: var(--ink-3); font-size: 10px;
-  font-family: var(--mono); }
-
-#flows .fl-acts { display: flex; gap: 6px; flex-wrap: wrap; margin: 8px 0; }
-#flows .fl-ports li { display: flex; gap: 6px; align-items: baseline;
-  padding: 3px 0; font-size: 12px; }
-#flows .fl-ports li input { flex: 1; }
-#flows .fl-err { color: var(--bad); font-size: 12px; margin: 6px 0; }
-#flows .fl-unknown { color: var(--warn); font-size: 12px; margin: 6px 0; }
-#flows .fl-problems { border-top: 1px solid var(--edge); margin-top: 12px; }
-#flows .fl-problems[hidden] { display: none; }
+/* ------------------------------------------------------------ the inspector */
+#flows .fl-ihead { display: flex; justify-content: space-between; align-items: baseline;
+  padding: 14px 16px 10px; flex: none; }
+#flows .fl-iid { font-family: var(--mono); font-size: 10px; color: var(--m2);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 160px; }
+#flows .fl-inspect { flex: 1; min-height: 0; overflow-y: auto; display: flex;
+  flex-direction: column; gap: 16px; padding: 0 16px 14px; }
+#flows .fl-isec { display: flex; flex-direction: column; gap: 8px; }
+#flows .fl-iname { margin: 0 -16px; padding: 0 16px 12px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1); }
+#flows .fl-inone { margin: 4px 0 0; line-height: 1.5; }
+#flows .fl-inspect ul { margin: 0; padding: 0; list-style: none; display: flex;
+  flex-direction: column; gap: 8px; }
+#flows .fl-params li { display: flex; align-items: center; justify-content: space-between;
+  gap: 10px; font-size: 13px; }
+#flows .fl-params li > input:not([type="checkbox"]), #flows .fl-params li > select {
+  width: 150px; height: 30px; }
+#flows .fl-stepper { display: flex; width: 110px; height: 30px; flex: none;
+  border: 1px solid rgba(255, 255, 255, 0.18); background: rgba(255, 255, 255, 0.04); }
+#flows .fl-stepper input { height: 28px; border: 0; background: none; text-align: center;
+  font-family: var(--mono); font-size: 12px; padding: 0; -moz-appearance: textfield; }
+#flows .fl-stepper input::-webkit-inner-spin-button { appearance: none; }
+#flows .fl-step { width: 28px; height: 28px; border: 0; color: var(--m); font-family: var(--mono); }
+#flows .fl-consts li, #flows .fl-world li, #flows .fl-groups li { display: flex;
+  align-items: center; gap: 8px; font-size: 13px; }
+#flows .fl-consts li > span:first-child, #flows .fl-world li > span:first-child {
+  width: 66px; flex: none; color: rgba(242, 239, 232, 0.65); overflow: hidden;
+  text-overflow: ellipsis; }
+#flows .fl-consts input { height: 30px; font-family: var(--mono); font-size: 12px;
+  background: rgba(255, 255, 255, 0.04); }
+#flows .fl-wire-from { flex: 1; height: 30px; display: flex; align-items: center;
+  padding: 0 8px; border: 1px dashed rgba(255, 255, 255, 0.22); font-size: 12px;
+  color: rgba(242, 239, 232, 0.5); }
+#flows .fl-world { margin: 0; padding: 0; list-style: none; display: flex;
+  flex-direction: column; gap: 8px; }
+#flows .fl-world select, #flows .fl-world .fl-value { flex: 1; min-width: 0; height: 30px; }
+#flows .fl-world input[type="checkbox"].fl-value { flex: none; height: 20px; }
+#flows .fl-world .fl-pick { flex: none; height: 30px; font-size: 10px; }
+#flows .fl-groups button { width: 26px; height: 26px; padding: 0; }
+#flows .fl-nets li { display: flex; justify-content: space-between; align-items: center;
+  font-size: 13px; }
+#flows .fl-nets button { height: 24px; font-size: 10px; }
+#flows .fl-held { font-size: 10px; flex-basis: 100%; }
+#flows .fl-io { flex: none; margin-top: auto; border-top: 1px solid rgba(255, 255, 255, 0.1);
+  padding: 12px 16px; display: flex; flex-direction: column; gap: 4px; max-height: 40%;
+  overflow-y: auto; }
+#flows .fl-io-head { display: flex; align-items: center; gap: 12px; }
+#flows .fl-io-head h3 { flex: 1; margin: 0; }
+#flows .fl-ports { margin: 0; padding: 0; list-style: none; }
+#flows .fl-ports li { display: flex; flex-wrap: wrap; align-items: center; gap: 8px;
+  padding: 4px 0; border-top: 1px solid rgba(255, 255, 255, 0.06); font-size: 12px; }
+#flows .fl-ports li > b { width: 26px; font-family: var(--head); font-weight: 700;
+  font-size: 10px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--g); }
+#flows .fl-outputs li > b { color: var(--p); }
+#flows .fl-ports .fl-io-name { flex: 1; min-width: 0; height: 26px; padding: 0 4px;
+  border-color: transparent; background: none; font-size: 12px; }
+#flows .fl-ports .fl-io-name:hover { border-color: rgba(255, 255, 255, 0.12); }
+#flows .fl-ports .fl-type { width: 90px; height: 26px; padding: 0 4px; border-color: transparent;
+  background: none; font-family: var(--mono); font-size: 10px; color: var(--m); }
+#flows button.fl-x { width: 22px; height: 22px; padding: 0; border: 0; color: var(--m2); }
+#flows .fl-problems { flex: none; border-top: 1px solid rgba(255, 255, 255, 0.1);
+  padding: 12px 16px; max-height: 30%; overflow-y: auto; }
 #flows .fl-problem-list { margin: 6px 0; padding: 0; list-style: none; }
 #flows .fl-problem-list li { padding: 2px 0; }
-#flows .fl-problem-list button { width: 100%; text-align: left;
-  text-transform: none; font-family: var(--body); font-weight: 400;
-  letter-spacing: 0; font-size: 12px; color: var(--bad);
-  border-color: var(--edge); background: none; }
-#flows .fl-ask { position: absolute; inset: 0; display: grid; place-items: center;
-  background: rgba(0, 0, 0, 0.6); z-index: 8; }
-#flows .fl-ask > div { background: var(--panel-solid); border: 1px solid var(--edge);
-  padding: 16px; width: 360px; }
+#flows .fl-problem-list button { width: 100%; height: auto; min-height: 28px;
+  justify-content: flex-start; text-align: left; white-space: normal; padding: 4px 8px;
+  text-transform: none; font-family: var(--body); font-weight: 400; letter-spacing: 0;
+  font-size: 12px; color: var(--r); border-color: oklch(0.8 0.18 25 / 0.3); }
 
-/* FND.14: a World block's own rows — which object, which port, what to set it
- * to — above the constants the block's other inputs are given. */
-#flows .fl-world { margin: 6px 0; padding: 0; list-style: none; }
-#flows .fl-world li { display: flex; gap: 6px; align-items: baseline;
-  padding: 3px 0; font-size: 12px; }
-#flows .fl-world li > span:first-child { flex: 0 0 56px; color: var(--ink-3); }
-#flows .fl-world select { flex: 1; min-width: 0; }
-#flows .fl-world .fl-value { flex: 1; min-width: 0; }
-#flows .fl-world .fl-pick { flex: 0 0 auto; font-size: 10px; }
-#flows .fl-held { font-size: 10px; }
+/* ------------------------------------------------------------ the Server control */
+#flows .fl-srv { position: relative; display: flex; align-items: center; flex: none; }
+#flows .fl-srv select.fl-server { position: absolute; width: 1px; height: 1px; padding: 0;
+  border: 0; opacity: 0.01; left: 0; bottom: 0; pointer-events: none; }
+#flows button.fl-srv-open { height: 34px; gap: 9px; padding: 0 10px;
+  border-color: rgba(255, 255, 255, 0.25); background: rgba(0, 0, 0, 0.3);
+  text-transform: none; letter-spacing: 0; font-family: var(--body); font-weight: 400; }
+#flows .fl-srv-label { font-family: var(--head); font-weight: 600; font-size: 10px;
+  letter-spacing: 0.14em; text-transform: uppercase; color: rgba(242, 239, 232, 0.55); }
+#flows .fl-srv-name { font-size: 13px; }
+#flows .fl-version { font-size: 10px; color: rgba(242, 239, 232, 0.5); }
+#flows .fl-dot { width: 8px; height: 8px; border-radius: 50%; flex: none;
+  background: rgba(242, 239, 232, 0.35); }
+#flows .fl-dot[data-state="up"] { background: var(--g); box-shadow: 0 0 8px var(--g); }
+#flows .fl-dot[data-state="down"] { background: var(--r); box-shadow: 0 0 8px var(--r); }
+#flows .fl-srv-tip { position: absolute; left: 0; top: 40px; z-index: 6; padding: 7px 10px;
+  background: #181b21; border: 1px solid oklch(0.8 0.18 25 / 0.6); font-size: 12px;
+  white-space: normal; width: max-content; max-width: 440px; }
+#flows .fl-srv-tip[data-tone="warn"] { border-color: oklch(0.82 0.16 80 / 0.6); }
+#flows .fl-srv-menu { position: absolute; left: 0; top: 40px; z-index: 7; width: 340px;
+  background: #16191e; border: 1px solid rgba(255, 255, 255, 0.2);
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.55); display: flex; flex-direction: column; }
+#flows button.fl-srv-item { height: auto; min-height: 48px; justify-content: flex-start;
+  gap: 12px; padding: 8px 12px; border: 0; border-left: 2px solid transparent;
+  text-transform: none; letter-spacing: 0; font-family: var(--body); font-weight: 400;
+  font-size: 13px; text-align: left; }
+#flows button.fl-srv-item[data-on="1"] { background: var(--p-dim); border-left-color: var(--p); }
+#flows .fl-srv-what { flex: 1; display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+#flows .fl-srv-what .mono { font-size: 10px; color: var(--m); overflow: hidden;
+  text-overflow: ellipsis; }
+#flows .fl-srv-side { font-size: 10px; color: var(--m); }
+#flows button.fl-srv-add, #flows button.fl-srv-manage { min-height: 36px;
+  border-top: 1px solid rgba(255, 255, 255, 0.08); }
+#flows button.fl-srv-add { color: var(--p); }
+#flows .fl-version { max-width: 90px; overflow: hidden; text-overflow: ellipsis;
+  white-space: nowrap; }
 
-/* FL.1: the Server control in the bar, and its two dialogs
- * (docs/design/flows-servers.md §1). Until an artboard draws them. */
-#flows .fl-srv { display: flex; gap: 6px; align-items: center; margin-left: 8px; }
-#flows .fl-srv select { width: auto; max-width: 180px; }
-#flows .fl-dot { width: 9px; height: 9px; border-radius: 50%; flex: 0 0 9px;
-  background: var(--ink-3); }
-#flows .fl-dot[data-state="up"] { background: oklch(0.78 0.15 150); }
-#flows .fl-dot[data-state="down"] { background: var(--bad); }
-#flows .fl-version { font-size: 11px; }
-#flows .fl-field { display: block; margin: 6px 0; font-size: 12px; }
-#flows .fl-field > span { display: block; color: var(--ink-3); margin-bottom: 2px; }
-#flows .fl-srv-dialog > div { width: 440px; }
-#flows .fl-srv-row { flex-wrap: wrap; }
-#flows .fl-srv-row .pick { flex: 1; }
-
-/* FL.2: the Refresh blocks button beside the palette's search. */
-#flows .fl-palette-head { display: flex; gap: 6px; }
-#flows .fl-palette-head .fl-search { flex: 1; }
-#flows .fl-palette-head button { flex: 0 0 auto; font-size: 10px; }
-#flows .fl-palette-head button[hidden] { display: none; }
-
-/* FL.3–FL.5: the left column's two tabs, the sections of "On <server>", the
- * service and job dialogs, and the run panel under the canvas
- * (docs/design/flows-servers.md §3). Until an artboard draws them. */
-#flows .fl-tabs { display: flex; gap: 4px; margin-bottom: 8px; }
-#flows .fl-tab { flex: 1; }
-#flows .fl-tab[aria-selected="true"] { border-color: var(--accent); color: var(--accent); }
-#flows .fl-pane[hidden] { display: none; }
-#flows .fl-section { border-top: 1px solid var(--edge); padding: 6px 0; }
-#flows .fl-section > summary { cursor: pointer; font-family: var(--head);
-  font-size: 11px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--ink-3); }
-#flows .fl-remote { flex-wrap: wrap; }
-#flows .fl-remote .pick { flex: 1 1 100%; font-size: 13px; }
-#flows .fl-remote button { padding: 3px 6px; font-size: 10px; }
-#flows .fl-svc-dialog > div, #flows .fl-job-dialog > div { width: 480px;
-  max-height: 80vh; overflow-y: auto; }
-#flows .fl-trigger { border: 1px solid var(--edge); padding: 6px 8px; margin: 6px 0; }
-#flows .fl-cron-next { margin: 4px 0; padding-left: 16px; font-size: 11px; }
-#flows .fl-run { flex: 0 0 200px; overflow-y: auto; border-top: 1px solid var(--edge);
-  background: var(--panel-solid); padding: 6px 12px; font-size: 12px; }
-#flows .fl-run[hidden] { display: none; }
-#flows .fl-run-head { display: flex; gap: 8px; align-items: center; }
-#flows .fl-run-title { flex: 1; font-family: var(--head); font-weight: 700; }
-#flows .fl-tree details { margin-left: 12px; }
-#flows .fl-tree .fl-leaf { margin-left: 12px; }
-#flows .fl-ro { border: 1px solid var(--edge); padding: 2px 6px; font-family: var(--head);
-  font-size: 10px; letter-spacing: 0.12em; text-transform: uppercase; }
-#flows .fl-ro[hidden] { display: none; }
+/* A window narrower than the artboard's 1920: the side columns give way first. */
+@media (max-width: 1600px) {
+  #flows { grid-template-columns: 270px 220px minmax(0, 1fr) 280px; }
+  #flows .fl-top { gap: 8px; padding: 0 10px; }
+  #flows .fl-where, #flows .fl-kicker, #flows kbd { display: none; }
+  #flows .fl-acts-top button { padding: 0 8px; font-size: 12px; }
+}
+@media (max-width: 1400px) {
+  #flows { grid-template-columns: 240px 200px minmax(0, 1fr) 260px; }
+  #flows .fl-plist li .group { display: none; }
+}

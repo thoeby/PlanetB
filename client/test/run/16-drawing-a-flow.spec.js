@@ -164,7 +164,7 @@ async function renames(a) {
     const name = a.page.locator('#flows .fl-name');
     await name.fill('From String');
     await name.blur();
-    await expect(a.page.locator('#flows .fl-err'))
+    await expect(a.page.locator('#flows .fl-inspect .fl-err'))
         .toContainText('is already used in this flow', { timeout: UI });
     await name.fill('Is it dusk');
     await name.blur();

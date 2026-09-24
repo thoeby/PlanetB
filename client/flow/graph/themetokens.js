@@ -41,18 +41,33 @@ export function palette() {
     /** Values are monospace, everywhere in this world. */
     mono: cssToken({ name: "--mono", fallback: "ui-monospace, Menlo, monospace" }),
     head: cssToken({ name: "--head", fallback: "'Rajdhani', sans-serif" }),
+    body: cssToken({ name: "--body", fallback: "'Sora', sans-serif" }),
   };
 }
 
-/** Per-design-rule constants. Unchanged from the reference editor. */
-export const TITLE_HEIGHT = 22;
-export const TITLE_PAD_LEFT = 12;
-export const PORT_SIZE = 10;
-export const PORT_HOVER_SIZE = 12;
-export const SELECT_BORDER_WIDTH = 3;
+/**
+ * Design v10 (docs/design/splatworld-v10.dc.html, 10a): a dark block with a
+ * 26px head, a Rajdhani title, the plugin id in mono at the right, diamond
+ * ports, and a hue that glows when the block is selected.
+ */
+export const BODY = "rgba(18, 21, 26, 0.97)";
+export const HEAD = "rgba(255, 255, 255, 0.06)";
+export const LINE = "rgba(255, 255, 255, 0.16)";
+export const DIM = "rgba(242, 239, 232, 0.45)";
+export const SOFT = "rgba(242, 239, 232, 0.8)";
+export const CANVAS = "#0e1014";
+export const GRID = "rgba(255, 255, 255, 0.045)";
+export const GRID_STEP = 40;
+export const TITLE_HEIGHT = 26;
+export const TITLE_PAD_LEFT = 8;
+export const PORT_SIZE = 7;
+export const PORT_HOVER_SIZE = 10;
+export const SELECT_BORDER_WIDTH = 1;
 export const WIRE_WIDTH = 2;
 export const HATCH_STEP = 4;
 
 /** The two fonts, built from the page's families at the reference's sizes. */
-export const titleFont = () => `600 13px ${palette().head}`;
-export const slotFont = () => `500 12px ${palette().mono}`;
+export const titleFont = () => `700 12px ${palette().head}`;
+export const slotFont = () => `400 11px ${palette().body}`;
+export const idFont = () => `400 9px ${palette().mono}`;
+export const valueFont = () => `400 10px ${palette().mono}`;

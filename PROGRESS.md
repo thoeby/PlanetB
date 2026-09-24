@@ -3012,3 +3012,30 @@ the same brush revision. The autotune patch resolves a tune with one sample
 and turns the wasm logger on in release, so CubeCL's "Tuning <key>" lines
 reach the console. Proof is a run: no panic on a tile seen whole, and the
 `train` line's `GPU busy` and step time.
+
+## Automate drawn as design v10 says
+
+Automate had the F10 functions but not the v10 layout. It now matches
+artboards 10a–10k:
+- Four columns under a 52px bar: My flows (land, thing and flow, each flow
+  showing where it runs), Blocks (grouped by plugin, with where each group
+  came from), the canvas and the Inspector.
+- Blocks are drawn dark, with a 26px head, the title in capitals, the plugin
+  id beside it and diamond ports. World blocks and their wires take the hue.
+  The canvas has a grid, and litegraph's debug readout is gone.
+- The canvas shows a Nets chip, the zoom, a status line (blocks, wires, and
+  blocks the server does not know) and, over a process opened from a server,
+  a read-only banner.
+- The Server control is a dropdown (10d). Each server shows its dot, address
+  and version, and one that does not answer says why under the control.
+- The On alpha tab has section headings with counts and actions. The run
+  panel sits under the canvas, with a log table and All / Info / Warn / Error.
+- The job dialog is laid out in sections with a segmented log level and
+  store-report choice (10h). New flow asks for the name, land and object
+  (10j).
+- A thing's flows in the Place panel (10c) show a chip for where each runs.
+  Run on… is a dialog over the world with start cards (10k).
+- Screenshots of each state sit next to the artboards (not committed).
+- Alpha, in the player-run, now has the world plugin, as a server that runs
+  World blocks does.
+- Auto-layout spaces layers 300 apart, because blocks are wider.

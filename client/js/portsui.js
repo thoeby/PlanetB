@@ -98,7 +98,7 @@ function row(state, port, on) {
     const waiting = state.live?.[port.name]?.pending;
     li.append(el('span', { className: 'pt-name', textContent: words(port) }), input,
         waiting ? el('span', { className: 'pt-waiting muted',
-            textContent: 'waiting for approval' }) : null);
+            textContent: 'waiting for approval' }) : '');
     return li;
 }
 

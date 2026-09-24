@@ -5,7 +5,9 @@
 // layer; there is nothing here but the things a player does to a flow — open
 // it, save it, import one, export one, and ask whether it would run.
 
+import * as api from './api.js';
 import * as flows from './flows.js';
+import { servers } from './processservers.js';
 import { importElx, download } from './flowfiles.js';
 import { localProblems, askServer, checkingServer } from './flowcheck.js';
 import { addWorldInputs, setConstant } from './flowworld.js';
@@ -33,11 +35,36 @@ export function bindKeys(root, canvas, save) {
     });
 }
 
+// FL.7, design 10a: which server each flow runs on, and whether it changed
+// since it was sent there.
+async function sentTo(rows) {
+    const runs = await api.select('flow_deployment', { select: 'flow_id,server_id,elx_sha256',
+        revoked_at: 'is.null' }).catch(() => []);
+    if (!runs.length) return new Map();
+    const names = new Map((await servers()).map((s) => [s.id, s.name]));
+    const out = new Map();
+    for (const r of runs) {
+        const flow = rows.find((f) => f.id === r.flow_id);
+        if (!flow) continue;
+        out.set(r.flow_id, { server: names.get(r.server_id) ?? 'a server',
+            changed: r.elx_sha256 !== flow.elx_sha256 });
+    }
+    return out;
+}
+
 export async function refresh(ctx) {
     const rows = await flows.listFlows();
     const things = await flows.thingNames(
         [...new Set(rows.map((r) => r.instance_id).filter(Boolean))]);
-    ctx.list.set(rows, await ctx.lands(), ctx.state.open?.id ?? null, things);
+    const [lands, runs] = await Promise.all([ctx.lands(), sentTo(rows)]);
+    ctx.list.set(rows, lands, ctx.state.open?.id ?? null, things, runs);
+    // Design 10a: beside the flow's name, the land and the thing it is on.
+    const open = ctx.state.open;
+    if (open) {
+        const land = lands.find((a) => a.id === open.area_id)?.name;
+        const thing = open.instance_id && things.get(open.instance_id)?.name;
+        ctx.bar.where.textContent = [land, thing].filter(Boolean).join(' \u00b7 ');
+    } else if (!ctx.state.remote) ctx.bar.where.textContent = '';
     return rows;
 }
 

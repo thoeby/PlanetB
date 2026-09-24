@@ -8,6 +8,7 @@
 // does not — every one this page has met — is said to, and its report shown.
 
 import { el } from './poolui.js';
+import { runLog } from './runlog.js';
 import { ask } from './flowlist.js';
 import { recordsApi } from '../flow/server/records.js';
 import { failWords } from '../flow/server/client.js';
@@ -45,10 +46,12 @@ export function mountRunPanel(host) {
     const note = el('p', { className: 'muted fl-run-note' });
     const body = el('div', { className: 'fl-run-body' });
     const close = el('button', { type: 'button', textContent: 'Close' });
+    const log = runLog();
     const node = el('div', { className: 'fl-run', hidden: true },
         el('div', { className: 'fl-run-head' },
-            el('span', { className: 'muted', textContent: 'Run' }), title, state, close),
-        note, body);
+            el('span', { className: 'fl-run-kicker', textContent: 'Run' }), title, state,
+            log.filter, el('span', { className: 'spacer' }), close),
+        note, log.table, body);
     close.onclick = () => { node.hidden = true; };
     host.append(node);
     return {
@@ -61,10 +64,17 @@ export function mountRunPanel(host) {
                 + (at ? ` \u00b7 ${at}` : '');
             state.textContent = summary.ok === undefined ? 'running' : summary.ok ? 'done'
                 : `failed · ${summary.code}`;
+            state.dataset.tone = summary.ok === undefined ? '' : summary.ok ? 'good' : 'bad';
             note.textContent = words;
+            note.hidden = !words;
             body.replaceChildren();
+            log.set('');
             try {
-                body.append(xmlTree(await recordsApi(server.url).reportXml(summary.id)));
+                const xml = await recordsApi(server.url).reportXml(summary.id);
+                log.set(typeof xml === 'string' ? xml : '');
+                body.append(el('details', { className: 'fl-run-xml' },
+                    el('summary', { textContent: 'The report as alpha keeps it'
+                        .replace('alpha', server.name) }), xmlTree(xml)));
             } catch (e) {
                 body.append(el('p', { className: 'fl-err',
                     textContent: failWords(e, server.name) }));

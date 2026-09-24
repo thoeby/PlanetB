@@ -12,8 +12,9 @@ import { el } from './poolui.js';
 // The two tabs over the left column: My flows, and On <server>.
 export function leftTabs(host) {
     const mine = el('button', { type: 'button', className: 'fl-tab', textContent: 'My flows' });
-    const remote = el('button', { type: 'button', className: 'fl-tab',
-        textContent: 'On a server' });
+    const word = el('span', { textContent: 'On a server' });
+    const dot = el('i', { className: 'fl-tabdot' });
+    const remote = el('button', { type: 'button', className: 'fl-tab' }, word, dot);
     for (const b of [mine, remote]) b.setAttribute('role', 'tab');
     const bar = el('div', { className: 'fl-tabs', role: 'tablist' }, mine, remote);
     const minePane = el('div', { className: 'fl-pane' });
@@ -29,10 +30,10 @@ export function leftTabs(host) {
     remote.onclick = () => show('remote');
     show('mine');
     return {
-        minePane, remotePane, show,
+        minePane, remotePane, show, dot,
         // The tab is named for the server, and cannot be opened without one.
         server(s) {
-            remote.textContent = s ? `On ${s.name}` : 'On a server';
+            word.textContent = s ? `On ${s.name}` : 'On a server';
             remote.disabled = !s;
             remote.title = s ? '' : 'Choose a server first';
             if (!s && !remotePane.hidden) show('mine');
@@ -47,15 +48,23 @@ export function section(host, title, { load, draw, head = [] }) {
     const rows = el('ul', { className: 'fl-list fl-remote-list' });
     const err = el('p', { className: 'fl-err', hidden: true });
     const again = el('button', { type: 'button', className: 'fl-again', textContent: 'Refresh' });
-    const details = el('details', { className: 'fl-section', open: true },
-        el('summary', { textContent: title }),
-        el('div', { className: 'fl-acts' }, ...head, again), err, rows);
+    const count = el('small', { className: 'fl-count' });
+    // Design 10b: the heading, its count, and the section's actions on one line.
+    const summary = el('summary', {}, el('span', { className: 'fl-caret', textContent: '\u25be' }),
+        el('span', { className: 'fl-sec-title', textContent: title }), count,
+        el('span', { className: 'fl-acts fl-sec-acts' }, ...head, again));
+    // A press on an action is the action's, not the heading's.
+    summary.addEventListener('click', (e) => {
+        if (e.target.closest('button, select')) e.preventDefault();
+    });
+    const details = el('details', { className: 'fl-section', open: true }, summary, err, rows);
     host.append(details);
     const run = async () => {
         err.hidden = true;
         try {
             const list = await load();
             rows.replaceChildren();
+            count.textContent = Array.isArray(list) ? String(list.length) : '';
             draw(rows, list);
         } catch (e) {
             rows.replaceChildren();

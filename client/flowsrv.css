@@ -1,0 +1,179 @@
+/* flowsrv.css — what Automate shows of a process server, design v10: the "On
+ * alpha" tab (10b), the run panel under the canvas (10b/10i), and the dialogs
+ * (10e–10h, 10j). The shell is flow.css; the tokens (--p, --g, --r, --a, --m)
+ * are set on #flows there.
+ */
+
+/* ------------------------------------------------------------ On alpha */
+#flows .fl-pane { overflow-y: auto; }
+#flows .fl-section { border-top: 1px solid rgba(255, 255, 255, 0.07); }
+#flows .fl-section > summary { list-style: none; display: flex; align-items: center;
+  gap: 8px; padding: 10px 16px; cursor: pointer; background: rgba(255, 255, 255, 0.03); }
+#flows .fl-section > summary::-webkit-details-marker { display: none; }
+#flows .fl-section:not([open]) > summary .fl-caret { display: inline-block;
+  transform: rotate(-90deg); }
+#flows .fl-sec-title { font-family: var(--head); font-weight: 700; font-size: 14px;
+  letter-spacing: 0.12em; text-transform: uppercase; }
+#flows .fl-count { font-family: var(--mono); font-size: 10px; color: var(--m2); }
+#flows .fl-sec-acts { margin-left: auto; display: flex; gap: 12px; align-items: center; }
+#flows .fl-sec-acts button { height: auto; padding: 0; border: 0; background: none;
+  font-size: 11px; letter-spacing: 0.1em; color: var(--p); }
+#flows .fl-sec-acts button.fl-again { color: var(--m); }
+#flows .fl-sec-acts select { width: 120px; height: 24px; padding: 0 4px; font-size: 11px; }
+#flows .fl-section > .fl-err { padding: 0 16px; }
+#flows .fl-remote-list > li.muted { padding: 8px 16px; }
+#flows .fl-list li.fl-remote { display: flex; flex-wrap: wrap; align-items: center;
+  column-gap: 8px; row-gap: 2px; padding: 8px 16px; min-height: 32px;
+  border-left: 2px solid transparent; border-top: 1px solid rgba(255, 255, 255, 0.04);
+  font-size: 13px; }
+#flows .fl-list li.fl-remote:hover { background: rgba(255, 255, 255, 0.03); }
+#flows .fl-list li.fl-remote[data-on="1"] { background: var(--p-dim); border-left-color: var(--p); }
+/* Design 10b: the name and the main action on the first line, the rest under
+ * them. */
+#flows .fl-list li.fl-remote::after { content: ''; flex-basis: 100%; order: 2; }
+#flows .fl-remote > * { order: 3; }
+#flows .fl-remote > .pick, #flows .fl-remote > span:first-child { order: 0; }
+#flows .fl-remote > .muted, #flows .fl-remote > .mono { order: 0; }
+#flows .fl-remote:has(> .run) > .muted, #flows .fl-remote:has(> .run) > .fl-trig { order: 3; }
+#flows .fl-remote > button.open, #flows .fl-remote > button.run { order: 1; }
+#flows .fl-remote:not(:has(> .run)) > .fl-result { order: 0; }
+#flows .fl-remote:not(:has(> .run)):not(:has(> .open)) > .edit { order: 1; margin-left: auto; }
+#flows .fl-remote:not(:has(> .run)):not(:has(> .open)) > .del { order: 1; }
+#flows .fl-remote:has(> .fl-result) > .del { order: 1; }
+#flows .fl-remote:has(> .run) > .edit { margin-left: auto; }
+#flows .fl-remote:has(> .open):not(:has(> .fl-result)) > .keep { margin-right: auto; }
+#flows .fl-remote > .pick { flex: 0 1 auto; min-width: 0; overflow: hidden;
+  text-overflow: ellipsis; white-space: nowrap; }
+#flows .fl-remote > .muted { font-size: 11px; }
+#flows .fl-remote > .mono { font-size: 10px; color: var(--m); }
+#flows .fl-remote > button { height: auto; padding: 0; border: 0; background: none;
+  font-size: 11px; letter-spacing: 0.08em; color: rgba(242, 239, 232, 0.7); }
+#flows .fl-remote > button:hover { color: var(--ink); background: none; }
+#flows .fl-remote > button.open { margin-left: auto; color: var(--p); }
+#flows .fl-remote > button.del { color: var(--r); }
+#flows .fl-remote > button.keep { color: var(--p); }
+#flows .fl-remote > button.run { margin-left: auto; height: 26px; padding: 0 10px;
+  border: 1px solid var(--p-line); color: var(--p); }
+#flows .fl-remote > button.run:hover { background: var(--p-dim); }
+#flows .fl-remote .fl-trig { font-size: 10px; }
+#flows .fl-remote .fl-result { font-family: var(--mono); font-size: 11px; margin-left: auto; }
+
+/* ------------------------------------------------------------ read-only */
+#flows .fl-ro { padding: 3px 8px; border: 1px solid rgba(255, 255, 255, 0.3);
+  font-family: var(--head); font-weight: 700; font-size: 11px; letter-spacing: 0.12em;
+  text-transform: uppercase; }
+#flows .fl-ro-banner { position: absolute; left: 18px; top: 14px; z-index: 2; height: 28px;
+  display: flex; align-items: center; gap: 8px; padding: 0 12px; font-size: 12px;
+  color: rgba(242, 239, 232, 0.75); background: rgba(14, 16, 20, 0.9);
+  border: 1px solid rgba(255, 255, 255, 0.18); }
+#flows .fl-ro-banner::before { content: ''; width: 8px; height: 7px; margin-top: 3px;
+  border: 1.5px solid currentColor; border-radius: 1px; }
+
+/* ------------------------------------------------------------ the run panel */
+#flows .fl-run { order: 2; flex: 0 0 260px; display: flex; flex-direction: column; min-height: 0;
+  border-top: 1px solid var(--p-line); background: #0d0f13; font-size: 12px; }
+#flows .fl-run-head { display: flex; gap: 12px; align-items: center; padding: 10px 16px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08); flex: none; }
+#flows .fl-run-head .spacer { flex: 1; }
+#flows .fl-run-kicker { font-family: var(--head); font-weight: 700; font-size: 11px;
+  letter-spacing: 0.14em; text-transform: uppercase; color: var(--m); }
+#flows .fl-run-title { font-family: var(--head); font-weight: 700; font-size: 18px;
+  letter-spacing: 0.06em; text-transform: uppercase; }
+#flows .fl-run-state { padding: 2px 8px; border: 1px solid currentColor; font-size: 10px;
+  text-transform: uppercase; letter-spacing: 0.1em; color: var(--p); }
+#flows .fl-run-note { margin: 6px 16px 0; }
+#flows .fl-log { width: 100%; border-collapse: collapse; font-family: var(--mono);
+  font-size: 11px; }
+#flows .fl-run > .fl-log { flex: none; }
+#flows .fl-log td { padding: 3px 16px 3px 0; vertical-align: top; white-space: nowrap; }
+#flows .fl-log td:first-child { padding-left: 16px; color: var(--m); }
+#flows .fl-log td:nth-child(2) { color: var(--m); width: 60px; }
+#flows .fl-log td:nth-child(3) { width: 200px; }
+#flows .fl-log td:last-child { white-space: normal; width: 100%; }
+#flows .fl-log tr[data-level="warn"] td { color: var(--a); }
+#flows .fl-log tr[data-level="error"] td { color: var(--r); }
+#flows .fl-run-body { flex: 1; overflow-y: auto; padding: 6px 16px 10px; min-height: 0; }
+#flows .fl-run-xml > summary { cursor: pointer; color: var(--m); font-size: 11px; }
+#flows .fl-tree { font-size: 11px; }
+#flows .fl-tree details { margin-left: 12px; }
+#flows .fl-tree .fl-leaf { margin-left: 12px; }
+#flows .fl-tree summary { cursor: pointer; }
+
+/* The level filter, and every other row of words-as-buttons. */
+#flows .fl-seg { display: inline-flex; border: 1px solid rgba(255, 255, 255, 0.18); }
+#flows .fl-seg button { height: 30px; border: 0; padding: 0 12px; font-size: 11px;
+  letter-spacing: 0.1em; color: rgba(242, 239, 232, 0.75); }
+#flows .fl-seg button + button { border-left: 1px solid rgba(255, 255, 255, 0.08); }
+#flows .fl-seg button[aria-pressed="true"] { background: var(--p-dim); color: var(--p); }
+
+/* ------------------------------------------------------------ dialogs */
+#flows .fl-ask { position: absolute; inset: 0; display: grid; place-items: center;
+  background: rgba(4, 5, 7, 0.66); z-index: 8; }
+#flows .fl-ask > div { background: #121418; border: 1px solid rgba(255, 255, 255, 0.16);
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.6); padding: 20px; width: 400px;
+  max-height: 86vh; overflow-y: auto; display: flex; flex-direction: column; gap: 10px; }
+#flows .fl-ask > div > h3:first-child { margin: 0; font-family: var(--head); font-weight: 700;
+  font-size: 22px; letter-spacing: 0.06em; text-transform: uppercase; color: var(--ink);
+  line-height: 1.15; }
+#flows .fl-ask .fl-sub { margin: -6px 0 4px; font-size: 12px; color: var(--m); }
+#flows .fl-ask > div > .fl-acts:last-child { display: flex; justify-content: flex-end;
+  gap: 8px; margin: 6px -20px -20px; padding: 14px 20px;
+  border-top: 1px solid rgba(255, 255, 255, 0.1); }
+#flows .fl-ask .fl-acts { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+#flows .fl-ask .fl-acts button { height: 34px; padding: 0 14px; font-size: 13px; }
+#flows .fl-ask .fl-acts button.primary { order: 2; }
+#flows .fl-ask .fl-discard { color: var(--r); border-color: oklch(0.8 0.18 25 / 0.5); }
+#flows .fl-field { display: flex; flex-direction: column; gap: 5px; font-size: 13px; }
+#flows .fl-field > span { font-family: var(--head); font-weight: 600; font-size: 11px;
+  letter-spacing: 0.14em; text-transform: uppercase; color: rgba(242, 239, 232, 0.55); }
+#flows .fl-field > input[type="checkbox"] { align-self: flex-start; }
+#flows .fl-ask select, #flows .fl-ask input:not([type="checkbox"]):not([type="radio"]) {
+  background: rgba(0, 0, 0, 0.4); }
+#flows .fl-ask p { margin: 0; font-size: 13px; line-height: 1.5; }
+#flows .fl-srv-answer { min-height: 20px; }
+#flows .fl-srv-dialog > div { width: 460px; }
+#flows .fl-srv-list li { display: flex; flex-wrap: wrap; align-items: center; gap: 10px;
+  padding: 10px 0; border-top: 1px solid rgba(255, 255, 255, 0.06); font-size: 13px; }
+#flows .fl-srv-list li .pick { flex: 0 0 auto; }
+#flows .fl-srv-list li .mono { flex: 1; font-size: 11px; overflow: hidden;
+  text-overflow: ellipsis; }
+#flows .fl-srv-list li button { height: 26px; font-size: 11px; }
+#flows .fl-srv-say { flex-basis: 100%; display: flex; flex-wrap: wrap; gap: 8px;
+  align-items: center; padding: 8px 10px; border: 1px solid oklch(0.8 0.18 25 / 0.4); }
+#flows .fl-srv-say[data-tone="warn"] { border-color: oklch(0.82 0.16 80 / 0.5); }
+#flows .fl-srv-say p { flex-basis: 100%; font-size: 12px; }
+
+/* The service and job dialogs (10g, 10h): sections under a big title. */
+#flows .fl-svc-dialog > div { width: 520px; }
+#flows .fl-job-dialog > div { width: 700px; gap: 0; }
+#flows .fl-dsec { display: flex; flex-direction: column; gap: 10px; margin: 0 -20px;
+  padding: 14px 20px; border-top: 1px solid rgba(255, 255, 255, 0.1); }
+#flows .fl-ask h4, #flows .fl-dsec h4 { margin: 0; font-family: var(--head); font-weight: 700;
+  font-size: 15px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--p); }
+#flows .fl-dsec-head { display: flex; align-items: center; gap: 8px; }
+#flows .fl-dsec-head h4 { flex: 1; }
+#flows .fl-dsec-head select { width: 140px; height: 30px; }
+#flows .fl-dsec-head button { height: 30px; font-size: 11px; }
+#flows .fl-grid3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+#flows .fl-grid2 { display: grid; grid-template-columns: auto auto; justify-content: start;
+  gap: 28px; }
+#flows .fl-job-inputs { display: flex; flex-direction: column; gap: 8px; }
+#flows .fl-job-inputs .fl-field { flex-direction: row; align-items: center; }
+#flows .fl-job-inputs .fl-field > span { width: 200px; flex: none; font-family: var(--body);
+  font-weight: 400; font-size: 13px; letter-spacing: 0; text-transform: none; color: var(--ink); }
+#flows .fl-job-inputs input[readonly], #flows .fl-job-inputs input:disabled {
+  border-style: dashed; color: var(--m); background: none; }
+#flows .fl-job-triggers { display: flex; flex-direction: column; gap: 10px; }
+#flows .fl-trigger { border: 1px solid rgba(255, 255, 255, 0.16); padding: 12px 14px;
+  display: grid; grid-template-columns: 1fr 1fr; gap: 8px 18px; background: rgba(255, 255, 255, 0.02); }
+#flows .fl-trigger > h3 { grid-column: 1; grid-row: 1; margin: 0; font-family: var(--mono);
+  font-weight: 400; font-size: 11px; letter-spacing: 0; text-transform: none; color: var(--p); }
+#flows .fl-trigger > button { grid-column: 2; grid-row: 1; justify-self: end; height: auto; padding: 0;
+  border: 0; font-size: 11px; color: var(--r); }
+#flows .fl-cron { grid-column: 2; grid-row: 2 / span 3; }
+#flows .fl-cron h4 { font-family: var(--head); font-size: 11px; letter-spacing: 0.14em;
+  color: rgba(242, 239, 232, 0.55); }
+#flows .fl-cron-next { margin: 6px 0; padding: 0; list-style: none; font-family: var(--mono);
+  font-size: 12px; color: var(--ink); line-height: 1.5; }
+#flows .fl-cron .muted { font-size: 11px; }
+#flows .fl-trigger input:not([type="checkbox"]) { font-family: var(--mono); }

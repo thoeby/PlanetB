@@ -29,7 +29,8 @@
  * `main.js` right after constructing the canvas.
  */
 
-import { palette, TITLE_HEIGHT, WIRE_WIDTH, titleFont, slotFont }
+import { palette, TITLE_HEIGHT, WIRE_WIDTH, titleFont, slotFont, idFont, CANVAS, GRID,
+  GRID_STEP }
   from "./themetokens.js";
 import { wireonDrawNodeShape, wireonDrawNode, wireonRenderLink, updateHoveredSlot }
   from "./themedraw.js";
@@ -120,10 +121,14 @@ function applyGlobalConstants(LiteGraph) {
  * @param {any} canvas
  */
 function applyCanvasInstanceSettings(canvas) {
-  const { fg: FG, bg: BG } = palette();
+  const { fg: FG } = palette();
   // Solid white. No grid, no border, no shadows.
   canvas.clear_background = true;
-  canvas.clear_background_color = BG;
+  // Design 10a: the canvas is its own dark ground with a 40px grid, and
+  // litegraph's debug readout (T / I / N / V / FPS) is not shown.
+  canvas.clear_background_color = CANVAS;
+  canvas.show_info = false;
+  canvas.onDrawBackground = drawGrid;
   canvas.background_image = null;           // disables the dot-grid pattern
   canvas._pattern = null;
   canvas._pattern_img = null;
@@ -149,6 +154,24 @@ function applyCanvasInstanceSettings(canvas) {
   canvas.editor_alpha = 1;
 }
 
+/**
+ * The grid, in graph space so it moves and scales with the blocks.
+ *
+ * @param {CanvasRenderingContext2D} ctx
+ * @param {number[]} area  [x, y, w, h] of what is visible, in graph space
+ */
+function drawGrid(ctx, area) {
+  if (!area) return;
+  const [x, y, w, h] = area;
+  ctx.save();
+  ctx.fillStyle = GRID;
+  const x0 = Math.floor(x / GRID_STEP) * GRID_STEP;
+  const y0 = Math.floor(y / GRID_STEP) * GRID_STEP;
+  for (let gx = x0; gx < x + w; gx += GRID_STEP) ctx.fillRect(gx, y, 1, h);
+  for (let gy = y0; gy < y + h; gy += GRID_STEP) ctx.fillRect(x, gy, w, 1);
+  ctx.restore();
+}
+
 /* ----------------------------- nodes -------------------------------- */
 
 /**
@@ -165,6 +188,45 @@ function patchNodePrototype(LGraphNode, LiteGraph) {
   // Original litegraph offsets by NODE_SLOT_HEIGHT/2 *into* the node;
   // we override so the connection point sits *on* the edge.
   LGraphNode.prototype.getConnectionPos = wireonGetConnectionPos;
+  // Design 10a draws a block wide enough for its title in capitals and its
+  // plugin id beside it; litegraph's own measure is for a smaller font.
+  const measure = LGraphNode.prototype.computeSize;
+  LGraphNode.prototype.computeSize = function (/** @type {any} */ out) {
+    const size = measure.call(this, out);
+    size[0] = Math.max(size[0], wanted(this));
+    return size;
+  };
+}
+
+/** @type {CanvasRenderingContext2D | null} */
+let ruler = null;
+
+/**
+ * How wide a block has to be for its head and its widest row, in the fonts
+ * themedraw.js uses.
+ *
+ * @param {any} node
+ */
+function wanted(node) {
+  ruler = ruler || document.createElement("canvas").getContext("2d");
+  if (!ruler) return 180;
+  const width = (/** @type {string} */ font, /** @type {string} */ text) => {
+    /** @type {CanvasRenderingContext2D} */ (ruler).font = font;
+    return /** @type {CanvasRenderingContext2D} */ (ruler).measureText(text).width;
+  };
+  const id = node._irPlugin && node._irNodeId ? `${node._irPlugin}/${node._irNodeId}` : "";
+  const title = String(node.title ?? "").toUpperCase();
+  const head = width(titleFont(), title) + title.length * 0.9
+    + (id ? Math.min(width(idFont(), id), 150) + 8 : 0) + 16;
+  let rows = 0;
+  const n = Math.max(node.inputs?.length ?? 0, node.outputs?.length ?? 0);
+  for (let i = 0; i < n; i++) {
+    const a = node.inputs?.[i];
+    const b = node.outputs?.[i];
+    rows = Math.max(rows, (a ? width(slotFont(), a.label ?? a.name ?? "") : 0)
+      + (b ? width(slotFont(), b.label ?? b.name ?? "") : 60) + 40);
+  }
+  return Math.min(Math.max(180, head, rows), 260);
 }
 
 /**

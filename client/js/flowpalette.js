@@ -21,16 +21,18 @@ function lines(source = ALL) {
         block: b,
         group: source.from(b.plugin) ? `${path(b)} \u00b7 ${source.from(b.plugin)}`
             : path(b),
+        from: source.from(b.plugin),
         label: b.name || b.id,
         hay: `${b.name} ${b.id} ${path(b)}`.toLowerCase().replaceAll(/[-_.]/g, ' '),
-    })).sort((a, b) => a.label.localeCompare(b.label));
+    })).sort((a, b) => a.block.plugin.localeCompare(b.block.plugin)
+        || a.label.localeCompare(b.label));
 }
 
 const needle = (text) => text.toLowerCase().replaceAll(/[-_.]/g, ' ').trim();
 
 export function matching(all, text) {
     const want = needle(text);
-    if (!want) return all.slice(0, 40);
+    if (!want) return all;
     const words = want.split(/\s+/);
     return all.filter((l) => words.every((w) => l.hay.includes(w))).slice(0, 40);
 }
@@ -59,17 +61,68 @@ function carry(li, block, host, onDrop) {
     };
 }
 
+const REFRESH = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 11a8 8 0 1 0'
+    + '-2.3 5.7"/><path d="M20 4v7h-7"/></svg>';
+
+// One line: a diamond, the name, and the plugin it belongs to. Where the chosen
+// server gave it, the line says so too, for anyone not reading the heading.
+function drawLine(line, host, onDrop) {
+    const li = el('li', { draggable: true, title: line.group },
+        el('i', { className: 'fl-dia' }),
+        el('span', { className: 'fl-bname', textContent: line.label }),
+        el('span', { className: 'group', textContent: line.block.plugin }),
+        line.from ? el('span', { className: 'fl-sr', textContent: ` \u00b7 ${line.from}` })
+            : '');
+    li.dataset.block = `${line.block.plugin}.${line.block.id}`;
+    li.dataset.world = line.block.plugin === 'world' ? '1' : '';
+    li.ondragstart = (e) => {
+        e.dataTransfer.setData('text/plain', li.dataset.block);
+        e.dataTransfer.effectAllowed = 'copy';
+    };
+    // A double-click drops it in the middle, for anyone not dragging.
+    li.ondblclick = () => onDrop(line.block, null);
+    carry(li, line.block, host, onDrop);
+    return li;
+}
+
+// Design 10a: the blocks under a heading per plugin, the plugin's source at
+// the heading's right.
+function drawGroups(list, found, host, onDrop) {
+    let plugin = null;
+    let ul = null;
+    for (const line of found) {
+        if (line.block.plugin !== plugin) {
+            plugin = line.block.plugin;
+            const world = plugin === 'world';
+            const name = world && line.from ? `World \u2014 ${line.from}` : plugin;
+            const from = world ? '' : line.from;
+            ul = el('ul');
+            list.append(el('div', { className: 'fl-pgroup' },
+                el('div', { className: 'fl-phead' },
+                    el('span', { textContent: name }),
+                    el('span', { className: 'fl-from', textContent: from })), ul));
+        }
+        ul.append(drawLine(line, host, onDrop));
+    }
+}
+
 // The list, and the drag.
 export function mountPalette(host, { onDrop, onRefresh }) {
-    const search = el('input', { type: 'search', placeholder: 'Search blocks…',
+    const search = el('input', { type: 'search', placeholder: 'search blocks',
         className: 'fl-search' });
-    const again = el('button', { type: 'button', className: 'fl-blocks-again',
-        textContent: 'Refresh blocks', title: 'Ask the process server for its blocks again' });
+    search.setAttribute('aria-label', 'Search blocks');
+    const again = el('button', { type: 'button', className: 'fl-blocks-again fl-icon',
+        title: 'Ask the process server for its blocks again' });
+    again.setAttribute('aria-label', 'Refresh blocks');
+    again.innerHTML = REFRESH;
     again.onclick = () => onRefresh?.();
     again.hidden = !onRefresh;
-    const list = el('ul');
+    const list = el('div', { className: 'fl-plist' });
     const node = el('div', { className: 'fl-palette' },
-        el('div', { className: 'fl-palette-head' }, search, again), list);
+        el('div', { className: 'fl-palette-head' },
+            el('h2', { textContent: 'Blocks' }), again),
+        el('label', { className: 'fl-searchbox' }, search), list,
+        el('p', { className: 'fl-pfoot', textContent: 'Drag onto the canvas.' }));
     host.append(node);
 
     let all = [];
@@ -78,27 +131,13 @@ export function mountPalette(host, { onDrop, onRefresh }) {
         list.replaceChildren();
         const found = matching(all, search.value);
         if (!found.length) {
-            list.append(el('li', { className: 'muted',
-                textContent: 'No block of that name.' }));
+            list.append(el('ul', {}, el('li', { className: 'muted',
+                textContent: 'No block of that name.' })));
             return;
         }
-        for (const line of found) {
-            const li = el('li', { draggable: true, title: line.group },
-                el('span', { textContent: line.label }), ' ',
-                el('span', { className: 'group', textContent: line.group }));
-            li.dataset.block = `${line.block.plugin}.${line.block.id}`;
-            li.ondragstart = (e) => {
-                e.dataTransfer.setData('text/plain', li.dataset.block);
-                e.dataTransfer.effectAllowed = 'copy';
-            };
-            // A double-click drops it in the middle, for anyone not dragging.
-            li.ondblclick = () => onDrop(line.block, null);
-            carry(li, line.block, node, onDrop);
-            list.append(li);
-        }
+        drawGroups(list, found, node, onDrop);
     };
     search.oninput = draw;
-
     return {
         node,
         // Called once the plugins are registered, and again if they change.

@@ -62,15 +62,19 @@ async function attachExisting(state, { acts, said }, attach) {
 
 // One flow's line: Open for whoever may read it; for a builder also where it
 // runs, Run on… and Stop (FL.7, rundialog.js), and Detach.
+// Design 10c: the name and where it runs on top, the actions under them.
 function flowLine(r, thing, { on, acts, said, reload, attach }) {
-    const li = el('li', {}, el('span', { className: 'name', textContent: r.name }));
-    li.dataset.flow = r.name;
-    li.append(button('Open', 'open', () => on.open?.(r)));
+    const top = el('div', { className: 'bf-top' }, el('span', { className: 'name',
+        textContent: r.name }));
+    const row = el('div', { className: 'bf-acts' }, button('Open', 'open', () => on.open?.(r)));
     if (thing.mine) {
-        li.append(...runControls(r, thing, { host: acts, reload,
-            say: (t) => { said.textContent = t; said.dataset.tone = ''; } }),
-        button('Detach', 'detach', () => attach(r.id, null)));
+        const [chip, run, stop] = runControls(r, thing, { host: acts, reload,
+            say: (t) => { said.textContent = t; said.dataset.tone = ''; } });
+        top.append(chip);
+        row.append(run, stop, button('Detach', 'detach', () => attach(r.id, null)));
     }
+    const li = el('li', { className: 'bf-flow' }, top, row);
+    li.dataset.flow = r.name;
     return li;
 }
 
@@ -79,10 +83,12 @@ export function mountObjectFlows(host, on = {}) {
     const list = host.querySelector('.build-flows');
     const acts = host.querySelector('.build-flows-acts');
     const said = host.querySelector('.build-flows-said');
+    const count = host.querySelector('.build-flows-count');
     const state = { thing: null, rows: [] };
 
     const draw = () => {
         const { thing, rows } = state;
+        if (count) count.textContent = String(rows.length);
         list.replaceChildren(...rows.map((r) =>
             flowLine(r, thing, { on, acts, said, reload, attach })));
         if (!rows.length) {

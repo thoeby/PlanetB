@@ -10,14 +10,45 @@
  */
 
 import {
-  palette, TITLE_PAD_LEFT, PORT_SIZE, PORT_HOVER_SIZE, SELECT_BORDER_WIDTH,
-  HATCH_STEP, WIRE_WIDTH, titleFont, slotFont,
+  palette, TITLE_PAD_LEFT, PORT_SIZE, PORT_HOVER_SIZE, WIRE_WIDTH,
+  BODY, HEAD, LINE, DIM, SOFT, titleFont, slotFont, idFont, valueFont,
 } from "./themetokens.js";
 
 /**
- * Custom node shape: white rect, 2px (or 3px when selected) black
- * border, full-width black title bar 22px tall. Implements the design
- * rules under "Nodes" in docs/DESIGN.md.
+ * A colour at an opacity. The hue comes from the page as `oklch(L C H)` or a
+ * hex, and a canvas takes the slash form of either.
+ *
+ * @param {string} c
+ * @param {number} a
+ */
+export function withAlpha(c, a) {
+  if (/^(oklch|oklab|lch|lab|rgb|hsl)\(/.test(c) && !c.includes("/")) {
+    return c.replace(/\)\s*$/, ` / ${a})`);
+  }
+  return c;
+}
+
+/** The world's own blocks wear the view's hue; every other block is grey. */
+const isWorld = (/** @type {any} */ node) => node && node._irPlugin === "world";
+
+/**
+ * Text cut to a width, with an ellipsis.
+ *
+ * @param {CanvasRenderingContext2D} ctx
+ * @param {string} text
+ * @param {number} w
+ */
+function fit(ctx, text, w) {
+  if (ctx.measureText(text).width <= w) return text;
+  let t = text;
+  while (t.length > 1 && ctx.measureText(`${t}\u2026`).width > w) t = t.slice(0, -1);
+  return `${t}\u2026`;
+}
+
+/**
+ * The block, design 10a: a dark body, a 26px head with the title in capitals
+ * and the plugin id in mono at the right, a thin line round it that takes the
+ * hue — and glows — when the block is selected.
  *
  * @this {any}
  * @param {any} node
@@ -28,51 +59,75 @@ import {
  * @param {boolean} selected
  */
 export function wireonDrawNodeShape(node, ctx, size, _fgcolor, _bgcolor, selected) {
-  const { fg: FG, bg: BG, accent: ACCENT, on: ON } = palette();
-  const g = /** @type {any} */ (globalThis);
-  const LiteGraph = g.LiteGraph;
+  const { accent: P, fg: INK } = palette();
+  const LiteGraph = /** @type {any} */ (globalThis).LiteGraph;
   const titleH = LiteGraph.NODE_TITLE_HEIGHT;
-  const w = size[0];
-  const h = size[1];
-
-  // Optional hatch pattern for placeholder nodes (design rule
-  // "Unknown-block render"). Drawn behind the white fill so the
-  // border still wins.
-  // FL.2: a block the chosen process server does not have is hatched too.
-  if (node._irPlaceholder || node._irMissingOn) {
-    drawHatchedRect(ctx, 0, -titleH, w, h + titleH);
+  const [w, h] = [size[0], size[1]];
+  const world = isWorld(node);
+  const missing = node._irPlaceholder || node._irMissingOn;
+  ctx.save();
+  if (selected) {
+    ctx.shadowColor = withAlpha(P, 0.45);
+    ctx.shadowBlur = 26 * (this?.ds?.scale ?? 1);
   } else {
-    ctx.fillStyle = BG;
-    ctx.fillRect(0, -titleH, w, h + titleH);
+    ctx.shadowColor = "rgba(0, 0, 0, 0.45)";
+    ctx.shadowBlur = 24 * (this?.ds?.scale ?? 1);
+    ctx.shadowOffsetY = 8 * (this?.ds?.scale ?? 1);
   }
-
-  // Title bar.
-  // The title bar is the view's hue (FND.1: accent = the app hue), not ink.
-  ctx.fillStyle = node.color || node.constructor.color || ACCENT;
+  ctx.fillStyle = BODY;
+  ctx.fillRect(0, -titleH, w, h + titleH);
+  ctx.restore();
+  // FL.2: a block the chosen process server does not have — or this world
+  // has no plugin for — is hatched and drawn with a broken line.
+  if (missing) drawHatchedRect(ctx, 0, -titleH, w, h + titleH);
+  ctx.fillStyle = world ? withAlpha(P, 0.22) : HEAD;
   ctx.fillRect(0, -titleH, w, titleH);
-
-  // Title text. 600 13px Inter, 12px padding-left, baseline mid-bar.
-  ctx.font = titleFont();
-  ctx.fillStyle = ON;
-  ctx.textAlign = "left";
-  ctx.textBaseline = "middle";
-  const title = node.getTitle ? node.getTitle() : node.title;
-  if (title) ctx.fillText(String(title), TITLE_PAD_LEFT, -titleH * 0.5);
-  ctx.textBaseline = "alphabetic";
-
-  // Border. 2px normally, 3px when selected (replaces the colored glow).
-  ctx.strokeStyle = selected ? ACCENT : FG;
-  ctx.lineWidth = selected ? SELECT_BORDER_WIDTH : 2;
-  // strokeRect strokes on the centerline; the offset keeps the border
-  // visually flush with the body fill rather than half outside it.
-  const off = ctx.lineWidth * 0.5;
-  ctx.strokeRect(off, -titleH + off, w - ctx.lineWidth, h + titleH - ctx.lineWidth);
+  const line = selected || world ? P : missing ? "rgba(242, 239, 232, 0.35)" : LINE;
+  ctx.strokeStyle = line;
+  ctx.lineWidth = 1;
+  ctx.setLineDash(missing && !selected ? [4, 3] : []);
+  ctx.beginPath();
+  ctx.moveTo(0, -0.5);
+  ctx.lineTo(w, -0.5);
+  ctx.stroke();
+  ctx.strokeRect(0.5, -titleH + 0.5, w - 1, h + titleH - 1);
+  if (selected) ctx.strokeRect(1.5, -titleH + 1.5, w - 3, h + titleH - 3);
+  ctx.setLineDash([]);
+  drawHead(ctx, node, w, titleH, world ? P : INK);
 }
 
 /**
- * 4px diagonal hatch (design rule under "Nodes"). Drawn directly
- * rather than via createPattern so the hatch doesn't anti-alias
- * differently as the canvas zooms.
+ * @param {CanvasRenderingContext2D} ctx
+ * @param {any} node
+ * @param {number} w
+ * @param {number} titleH
+ * @param {string} colour
+ */
+function drawHead(ctx, node, w, titleH, colour) {
+  const title = String((node.getTitle ? node.getTitle() : node.title) ?? "").toUpperCase();
+  const id = node._irPlugin && node._irNodeId ? `${node._irPlugin}/${node._irNodeId}` : "";
+  ctx.textBaseline = "middle";
+  ctx.font = idFont();
+  const idW = id ? Math.min(ctx.measureText(id).width, w * 0.5) : 0;
+  ctx.font = titleFont();
+  if ("letterSpacing" in ctx) /** @type {any} */ (ctx).letterSpacing = "0.9px";
+  ctx.fillStyle = colour;
+  ctx.textAlign = "left";
+  const room = w - TITLE_PAD_LEFT * 2 - (idW ? idW + 8 : 0);
+  ctx.fillText(fit(ctx, title, room), TITLE_PAD_LEFT, -titleH * 0.5 + 1);
+  if ("letterSpacing" in ctx) /** @type {any} */ (ctx).letterSpacing = "0px";
+  if (id) {
+    ctx.font = idFont();
+    ctx.fillStyle = DIM;
+    ctx.textAlign = "right";
+    ctx.fillText(fit(ctx, id, idW), w - TITLE_PAD_LEFT, -titleH * 0.5 + 1);
+  }
+  ctx.textAlign = "left";
+  ctx.textBaseline = "alphabetic";
+}
+
+/**
+ * The hatch of design 10a: faint stripes at 135 degrees, 6px on 6px off.
  *
  * @param {CanvasRenderingContext2D} ctx
  * @param {number} x
@@ -81,19 +136,16 @@ export function wireonDrawNodeShape(node, ctx, size, _fgcolor, _bgcolor, selecte
  * @param {number} h
  */
 function drawHatchedRect(ctx, x, y, w, h) {
-  const { fg: FG, bg: BG } = palette();
   ctx.save();
-  ctx.fillStyle = BG;
-  ctx.fillRect(x, y, w, h);
   ctx.beginPath();
   ctx.rect(x, y, w, h);
   ctx.clip();
-  ctx.strokeStyle = FG;
-  ctx.lineWidth = 1;
-  for (let d = -h; d < w + h; d += HATCH_STEP) {
+  ctx.strokeStyle = "rgba(242, 239, 232, 0.07)";
+  ctx.lineWidth = 6 / Math.SQRT2 * 1.4;
+  for (let d = -h; d < w + h; d += 12) {
     ctx.beginPath();
-    ctx.moveTo(x + d, y);
-    ctx.lineTo(x + d + h, y + h);
+    ctx.moveTo(x + d, y + h);
+    ctx.lineTo(x + d + h, y);
     ctx.stroke();
   }
   ctx.restore();
@@ -173,8 +225,39 @@ export function wireonDrawNode(node, ctx) {
 }
 
 /**
- * Draw the input or output slot column for a node. Per design: 10×10
- * black squares centered on the node edge, growing to 12×12 on hover.
+ * A diamond, centred on a point.
+ *
+ * @param {CanvasRenderingContext2D} ctx
+ * @param {number} x
+ * @param {number} y
+ * @param {number} sz
+ */
+function diamond(ctx, x, y, sz) {
+  const r = sz * 0.72;
+  ctx.beginPath();
+  ctx.moveTo(x, y - r);
+  ctx.lineTo(x + r, y);
+  ctx.lineTo(x, y + r);
+  ctx.lineTo(x - r, y);
+  ctx.closePath();
+  ctx.fill();
+}
+
+/**
+ * What is typed onto an unwired input, as the ELX keeps it.
+ *
+ * @param {any} node
+ * @param {string} port
+ */
+function constantOf(node, port) {
+  const c = (node._irConstants ?? []).find((/** @type {any} */ k) => k.port === port);
+  const v = c?.value?.value?.data;
+  return v === undefined || v === "" ? "" : `"${v}"`;
+}
+
+/**
+ * The input or output column: a diamond on the edge, the name inside, and —
+ * on an input nothing is wired to — the constant it is given, in mono.
  *
  * @param {CanvasRenderingContext2D} ctx
  * @param {any} node
@@ -182,37 +265,38 @@ export function wireonDrawNode(node, ctx) {
  * @param {{node:any,isInput:boolean,index:number}|null} hovered
  */
 function drawSlots(ctx, node, isInput, hovered) {
-  const { fg: FG } = palette();
   const slots = isInput ? node.inputs : node.outputs;
   if (!slots) return;
+  const hue = isWorld(node) ? palette().accent : "rgba(242, 239, 232, 0.7)";
   const tmp = new Float32Array(2);
   for (let i = 0; i < slots.length; i++) {
     const slot = slots[i];
     if (!slot) continue;
     const isHovered =
       hovered && hovered.node === node && hovered.isInput === isInput && hovered.index === i;
-    const sz = isHovered ? PORT_HOVER_SIZE : PORT_SIZE;
     const pos = node.getConnectionPos(isInput, i, tmp);
     const x = pos[0] - node.pos[0];
     const y = pos[1] - node.pos[1];
-    ctx.fillStyle = FG;
-    ctx.fillRect(x - sz * 0.5, y - sz * 0.5, sz, sz);
-
-    // Slot label inside the body. Skip when the label is empty so the
-    // pseudo-input "port" name doesn't get drawn.
+    const wired = isInput ? slot.link != null : (slot.links ?? []).length > 0;
+    ctx.fillStyle = wired || !isInput ? hue : "rgba(242, 239, 232, 0.3)";
+    diamond(ctx, x, y, isHovered ? PORT_HOVER_SIZE : PORT_SIZE);
     const text = slot.label != null ? slot.label : slot.name;
+    ctx.textBaseline = "middle";
     if (text) {
-      ctx.fillStyle = FG;
-      ctx.textBaseline = "middle";
-      if (isInput) {
-        ctx.textAlign = "left";
-        ctx.fillText(text, x + PORT_SIZE, y);
-      } else {
-        ctx.textAlign = "right";
-        ctx.fillText(text, x - PORT_SIZE, y);
-      }
-      ctx.textBaseline = "alphabetic";
+      ctx.font = slotFont();
+      ctx.fillStyle = SOFT;
+      ctx.textAlign = isInput ? "left" : "right";
+      ctx.fillText(text, isInput ? x + 10 : x - 10, y);
     }
+    const value = isInput && !wired ? constantOf(node, slot.name) : "";
+    if (value && !(node.outputs && node.outputs[i])) {
+      ctx.font = valueFont();
+      ctx.fillStyle = "rgba(242, 239, 232, 0.6)";
+      ctx.textAlign = "right";
+      ctx.fillText(fit(ctx, value, node.size[0] * 0.45), node.size[0] - 10, y);
+    }
+    ctx.textAlign = "left";
+    ctx.textBaseline = "alphabetic";
   }
 }
 
@@ -281,8 +365,12 @@ export function updateHoveredSlot(canvas, _e) {
  * @param {any} link
  */
 export function wireonRenderLink(ctx, a, b, link /*, skip_border, flow, color, start_dir, end_dir, num_sublines */) {
-  const { fg: FG } = palette();
+  const { accent: P } = palette();
   if (link) this.visible_links.push(link);
+  // Design 10a: a wire out of a World block takes the hue; the rest are ink.
+  const from = link && this.graph && this.graph.getNodeById
+    ? this.graph.getNodeById(link.origin_id) : null;
+  const FG = isWorld(from) ? P : "rgba(242, 239, 232, 0.45)";
 
   ctx.save();
   ctx.shadowColor = "transparent";

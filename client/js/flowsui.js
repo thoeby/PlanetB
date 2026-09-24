@@ -29,24 +29,28 @@ import { mountServices } from './serverservices.js';
 import { mountJobs } from './serverjobs.js';
 import { mountReports, mountRunPanel } from './serverreports.js';
 import { mountPlanner } from './plannerui.js';
+import { mountStatus } from './flowstatus.js';
+import { openRunDialog } from './rundialog.js';
 import { openRemote, intoLand, sendFlow } from './serverdo.js';
 import { bindKeys, refresh, create, openFlow, save, importFiles, exportFlow, validate }
     from './flowsdo.js';
 
-// The columns, once. Everything below fills them.
+// The columns, once (design 10a): my flows, the blocks, the canvas and the
+// inspector, under one bar. Everything below fills them.
 function frame(doc) {
     const root = el('div', { id: 'flows' });
     root.hidden = true;
     const left = el('div', { className: 'fl-left' });
+    const blocks = el('div', { className: 'fl-blocks' });
     const mid = el('div', { className: 'fl-mid' });
     const right = el('div', { className: 'fl-right' });
     const bar = topBar();
-    root.append(bar.node, left, mid, right);
+    root.append(bar.node, left, blocks, mid, right);
     // Inside the chrome, not beside it: the apps drawer and the top strip hang
     // off #hud and have to stay over the view, or the key that opened Automate
     // cannot be used to leave it.
     (doc.getElementById('hud') ?? doc.body).append(root);
-    return { root, left, mid, right, bar };
+    return { root, left, blocks, mid, right, bar };
 }
 
 // litegraph, the canvas, the inspector and the keys — the first time somebody
@@ -64,10 +68,12 @@ async function building(ctx) {
     const lg = await bootFlow(bundled);
     ctx.blocks = flowBlocks({ LiteGraph: lg.LiteGraph, bundled, say: ctx.say });
     ctx.canvas = mountCanvas(ctx.mid, lg, {
+        bench: ctx.blocksCol,
         changed: () => {
             ctx.mark(true);
             ctx.blocks.mark(ctx.canvas?.graph);
             ctx.inspector?.show(ctx.canvas.selected());
+            ctx.status?.draw();
         },
         refreshBlocks: () => ctx.blocks.again().then(() => repaint(ctx)),
         // FL.6: a World block dropped into a flow that belongs to a thing
@@ -86,6 +92,8 @@ async function building(ctx) {
     });
     ctx.inspector = mountInspector(ctx.right, ctx.canvas,
         { changed: () => ctx.mark(true), world: ctx.world });
+    ctx.status = mountStatus(ctx.canvas, { server: () => ctx.server.current(),
+        showNets: () => ctx.canvas.select(null) });
     ctx.bar.wire(ctx.canvas, ctx.acts);
     bindKeys(ctx.root, ctx.canvas, ctx.acts.save);
     ctx.server.onChange((server) => ctx.blocks.use(server).then(() => repaint(ctx)));
@@ -98,6 +106,7 @@ function repaint(ctx) {
         server: ctx.blocks.server()?.name });
     ctx.blocks.mark(ctx.canvas.graph);
     ctx.inspector?.show(ctx.canvas.selected());
+    ctx.status?.draw();
 }
 
 // The server picker is started once the canvas is there, so the first server
@@ -187,7 +196,8 @@ function remoteLists(ctx, tabs) {
     const run = () => (bag.server() ? Promise.all(parts.map((p) => p.run())) : null);
     ctx.server.onChange((s) => {
         tabs.server(s);
-        ctx.bar.send.textContent = s ? `Send to ${s.name}` : 'Send';
+        ctx.bar.send.setAttribute('aria-label', s ? `Send to ${s.name}` : 'Send');
+        ctx.bar.send.title = s ? `Send to ${s.name}` : 'Choose a server first';
         ctx.bar.send.disabled = !s;
         run();
         if (s && bag.planner && !bag.planner.node.hidden) bag.planner.open();
@@ -195,11 +205,23 @@ function remoteLists(ctx, tabs) {
     return { run, parts, bag, tabs };
 }
 
+// Run on… for the open flow (design 10a's Run): saved first, because what is
+// sent is what the world keeps.
+async function runOpen(ctx) {
+    const open = ctx.state.open;
+    if (!open) return;
+    if (ctx.state.dirty) { ctx.say('save first'); return; }
+    const land = (await ctx.lands()).find((a) => a.id === open.area_id);
+    await openRunDialog(ctx.root, open, { land: land?.name ?? 'this land' },
+        () => refresh(ctx), ctx.say);
+}
+
 // Everything the view holds, in one bag the actions in flowsdo.js are handed.
 function context(parts, { onClose, onStay, lands, pickObject }) {
     const { root, mid, right, bar } = parts;
     const ctx = {
         root, mid, right, bar, lands, canvas: null, inspector: null,
+        blocksCol: parts.blocks,
         state: { open: null, dirty: false, said: '', problems: [] },
         parse: parseElx, empty: EMPTY_FLOW,
         say: (text) => { ctx.state.said = text; bar.said.textContent = text; },
@@ -217,6 +239,9 @@ function context(parts, { onClose, onStay, lands, pickObject }) {
             bar.save.hidden = Boolean(remote);
             bar.keep.hidden = !remote;
             bar.ro.hidden = !remote;
+            bar.run.hidden = Boolean(remote);
+            ctx.status?.readOnly(remote?.server?.name ?? null);
+            bar.run.disabled = !ctx.state.open;
             bar.undo.disabled = !ctx.canvas?.canUndo();
             bar.redo.disabled = !ctx.canvas?.canRedo();
         },
@@ -239,22 +264,30 @@ function context(parts, { onClose, onStay, lands, pickObject }) {
     return ctx;
 }
 
+// What the bar's buttons do.
+const actions = (ctx, picker) => ({
+    save: () => save(ctx), close: () => closing(ctx),
+    validate: () => validate(ctx),
+    exportElx: () => exportFlow(ctx),
+    importElx: () => picker.click(),
+    send: () => sendFlow(ctx),
+    run: () => runOpen(ctx),
+    keep: () => ctx.state.remote
+        && intoLand(ctx, ctx.state.remote.server, ctx.state.remote.row),
+});
+
 export function mountFlows(doc, opts) {
     const parts = frame(doc);
     const { root, left } = parts;
     const ctx = context(parts, opts);
     const picker = filePicker(ctx);
     root.append(picker);
-    ctx.acts = {
-        save: () => save(ctx), close: () => closing(ctx),
-        validate: () => validate(ctx),
-        exportElx: () => exportFlow(ctx),
-        importElx: () => picker.click(),
-        send: () => sendFlow(ctx),
-        keep: () => ctx.state.remote
-            && intoLand(ctx, ctx.state.remote.server, ctx.state.remote.row),
-    };
+    ctx.acts = actions(ctx, picker);
     const tabs = leftTabs(left);
+    // The tab's dot says what the bar's dot says (design 10a).
+    const barDot = ctx.bar.server.querySelector('.fl-dot');
+    new window.MutationObserver(() => { tabs.dot.dataset.state = barDot.dataset.state; })
+        .observe(barDot, { attributes: true, attributeFilter: ['data-state'] });
     ctx.remoteLists = remoteLists(ctx, tabs);
     ctx.list = mountFlowList(tabs.minePane, {
         create: (areaId, name, instance) => create(ctx, areaId, name, instance),

@@ -36,6 +36,29 @@ const choice = (values, value) => {
     return s;
 };
 
+// A choice of a few words as a row of buttons (design 10h). The select stays,
+// out of sight, as what is read and what a keyboard reaches.
+function segmented(label, select) {
+    select.setAttribute('aria-label', label);
+    select.classList.add('fl-sr');
+    const buttons = [...select.options].map((o) => {
+        const b = el('button', { type: 'button', textContent: o.textContent });
+        b.setAttribute('aria-pressed', String(select.value === o.value));
+        b.onclick = () => {
+            select.value = o.value;
+            buttons.forEach((x, i) => x.setAttribute('aria-pressed',
+                String(select.options[i].value === o.value)));
+        };
+        return b;
+    });
+    return el('div', { className: 'fl-field' }, el('span', { textContent: label }),
+        el('div', { className: 'fl-seg' }, select, ...buttons));
+}
+
+// "Thu 24 Sep · 18:05", in the world's time, as the design writes a firing.
+const firing = (d) => `${d.toUTCString().slice(0, 11).replace(',', '')} \u00b7 `
+    + d.toISOString().slice(11, 16);
+
 // The five times a cron expression next fires, or the sentence that says it
 // is not one.
 function cronPreview(input) {
@@ -43,14 +66,15 @@ function cronPreview(input) {
     const draw = () => {
         try {
             out.replaceChildren(...cronNextFirings(input.value.trim()).map((d) =>
-                el('li', { textContent: d.toISOString().slice(0, 16).replace('T', ' ') })));
+                el('li', { textContent: firing(d) })));
         } catch {
             out.replaceChildren(el('li', { className: 'fl-err', textContent: BAD_CRON }));
         }
     };
     input.addEventListener('input', draw);
     draw();
-    return el('div', {}, out, el('p', { className: 'muted', textContent: CRON_NOTE }));
+    return el('div', { className: 'fl-cron' }, el('h4', { textContent: 'Next 5 firings' }), out,
+        el('p', { className: 'muted', textContent: CRON_NOTE }));
 }
 
 // One trigger's fields. Services are offered by name, from the server's list.
@@ -147,13 +171,18 @@ export function jobDialog(bag, { job, processes, services, locked = new Set() },
         }
     });
     wrap.append(el('div', {},
-        el('h3', { textContent: job ? `${job.name} on ${s.name}` : `A new job on ${s.name}` }),
-        labelled('Job name', f.name), labelled('Group', f.group), labelled('Process', f.process),
-        labelled('Log level', f.level), labelled('Store report', f.store),
-        el('h3', { textContent: 'Inputs' }), inputs,
-        el('h3', { textContent: 'Triggers' }), triggers,
-        el('div', { className: 'fl-acts' }, kind, act('Add trigger', 'fl-trigger-add',
-            () => add({ type: kind.value }))),
+        el('h3', { textContent: job ? 'Edit job' : 'New job' }),
+        el('p', { className: 'fl-sub',
+            textContent: job ? `${job.name} \u00b7 on ${s.name}` : `on ${s.name}` }),
+        el('section', { className: 'fl-dsec' }, el('h4', { textContent: 'Job' }),
+            el('div', { className: 'fl-grid3' }, labelled('Job name', f.name),
+                labelled('Group', f.group), labelled('Process', f.process)),
+            el('div', { className: 'fl-grid2' }, segmented('Log level', f.level),
+                segmented('Store report', f.store))),
+        el('section', { className: 'fl-dsec' }, el('h4', { textContent: 'Inputs' }), inputs),
+        el('section', { className: 'fl-dsec' }, el('div', { className: 'fl-dsec-head' },
+            el('h4', { textContent: 'Triggers' }), kind, act('Add trigger', 'fl-trigger-add',
+                () => add({ type: kind.value }))), triggers),
         err, el('div', { className: 'fl-acts' }, save, act('Cancel', '', () => wrap.remove()))));
     bag.dialogs().append(wrap);
     load().catch((e) => {

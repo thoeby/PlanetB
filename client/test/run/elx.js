@@ -18,8 +18,10 @@ const PORTS = { alpha: Number(process.env.RUN_ALPHA_PORT ?? 8091),
     // the relay a player runs beside it (tools/elx-relay.py).
     gamma: Number(process.env.RUN_GAMMA_PORT ?? 8093) };
 const RELAY_PORT = Number(process.env.RUN_RELAY_PORT ?? 8094);
-const EXTRA = { alpha: [join(REPO, 'client/test/run/fixtures/weather.xml')], beta: [],
-    gamma: [] };
+// alpha also has the world's own plugin, as a server that runs World blocks
+// does (design 10a: "World — alpha knows these blocks"); beta does not.
+const EXTRA = { alpha: [join(REPO, 'client/test/run/fixtures/weather.xml'),
+    join(REPO, 'client/flow/world/plugin.xml')], beta: [], gamma: [] };
 // What alpha already has when it starts: one of the reference samples, which
 // story 34 saves into a land and exports again.
 export const SAMPLE = join(REPO, 'client/flow/samples/file-response.elx');

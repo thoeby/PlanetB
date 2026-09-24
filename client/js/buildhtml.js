@@ -56,9 +56,8 @@ export const HTML = `
 </div>
 
 <div class="section build-flows-section" hidden>
-  <span class="label">Flows</span>
-  <div class="note">The logic that belongs to this thing: what a process
-    server runs for it (TASKS-flows.md FL.6).</div>
+  <div class="build-flows-head"><span class="label">Flows</span>
+    <span class="build-flows-count"></span></div>
   <ul class="build-flows rows"></ul>
   <div class="build-flows-acts row"></div>
   <p class="build-flows-said status"></p>

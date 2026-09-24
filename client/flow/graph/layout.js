@@ -1,5 +1,5 @@
 // @ts-check
-// Copied from wireon-process-editor src/graph/layout.js at ab525305d8ddd7dba7a5592e5cb79d3dbb159e8b; changes: none
+// Copied from wireon-process-editor src/graph/layout.js at ab525305d8ddd7dba7a5592e5cb79d3dbb159e8b; changes: LAYER_WIDTH 220 -> 300, because design 10a draws blocks up to 260 wide
 /**
  * Layered auto-layout for one flow scope.
  *
@@ -21,7 +21,7 @@ import { classifyNets, buildScopeIndex } from "../elx/nets.js";
 /** @typedef {import("../elx/ir.js").Flow} Flow */
 /** @typedef {import("../elx/nets.js").GetBlock} GetBlock */
 
-const LAYER_WIDTH = 220;
+const LAYER_WIDTH = 300;
 const ROW_HEIGHT = 80;
 const TOP_PAD = 40;
 const LEFT_PAD = 40;

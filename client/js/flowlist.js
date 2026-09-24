@@ -96,15 +96,24 @@ function line(row, state, on) {
             },
         });
     };
-    li.append(pick, rename, dup, del);
+    // Design 10a: where the flow runs, and whether it changed since it was sent.
+    const run = state.runs?.get(row.id);
+    const chip = run ? el('span', { className: 'fl-chip-run', textContent: run.changed
+        ? `${run.server} \u00b7 changed since sent` : run.server }) : '';
+    if (run) chip.dataset.tone = run.changed ? 'warn' : 'good';
+    li.append(pick, chip, el('span', { className: 'fl-row-acts' }, rename, dup, del));
     return li;
 }
 
 // A land, then each thing on it that has flows, then the flows that belong
 // to no thing — among them any whose thing was taken away (FL.6).
 function drawLand(list, state, on, a, mine) {
-    list.append(el('li', { className: 'muted land',
-        textContent: a.name || 'unnamed land' }));
+    const land = el('li', { className: 'land' },
+        el('span', { className: 'fl-caret', textContent: '\u25be' }),
+        el('span', { className: 'fl-land-name', textContent: a.name || 'unnamed land' }),
+        el('span', { className: 'fl-role', textContent: a.mine ? 'Owner' : 'Build grant' }));
+    land.dataset.role = a.mine ? 'owner' : 'grant';
+    list.append(land);
     const byThing = new Map();
     const loose = [];
     for (const r of mine) {
@@ -115,24 +124,47 @@ function drawLand(list, state, on, a, mine) {
         } else loose.push(r);
     }
     for (const [id, rs] of byThing) {
-        const head = el('li', { className: 'muted thing',
-            textContent: state.things.get(id).name });
+        const head = el('li', { className: 'thing' },
+            el('span', { className: 'fl-caret', textContent: '\u25be' }),
+            el('i', { className: 'fl-dia' }),
+            el('span', { textContent: state.things.get(id).name }));
         head.dataset.thing = id;
         list.append(head);
         for (const r of rs) list.append(line(r, state, on));
     }
     if (loose.length && byThing.size) {
-        list.append(el('li', { className: 'muted thing',
+        list.append(el('li', { className: 'muted loose',
             textContent: 'Flows without a thing' }));
     }
     for (const r of loose) {
         const li = line(r, state, on);
+        li.dataset.loose = byThing.size ? '1' : '';
         const was = r.instance_id && state.things.get(r.instance_id);
         if (was) {
-            li.append(el('span', { className: 'muted', textContent: `was on ${was.name}` }));
+            li.insertBefore(el('span', { className: 'muted fl-was',
+                textContent: `was on ${was.name}` }), li.children[1]);
         }
         list.append(li);
     }
+}
+
+// Design 10j: name, land, and the thing it is for, each labelled.
+function newFlowDialog(state, on) {
+    const picker = landPicker(state.lands);
+    const thing = thingPicker(picker, on.objectsOn);
+    const box = ask(state.where(), {
+        title: 'New flow', value: '', ok: 'Create',
+        onOk: (name) => {
+            if (!name) throw new Error('A flow needs a name.');
+            return on.create(picker.value, name, thing.value || null);
+        },
+    });
+    const label = (text, input) => el('label', { className: 'fl-field' },
+        el('span', { textContent: text }), input);
+    box.input.setAttribute('aria-label', 'Flow name');
+    box.err.before(label('Name', box.input), label('Land', picker),
+        label('Object \u00b7 optional', thing));
+    box.input.focus();
 }
 
 export function mountFlowList(host, on) {
@@ -140,25 +172,14 @@ export function mountFlowList(host, on) {
     const empty = el('p', { className: 'muted fl-empty' });
     const newBtn = el('button', { type: 'button', className: 'primary fl-new',
         textContent: 'New flow' });
-    host.append(el('h3', { textContent: 'Flows' }),
-        el('div', { className: 'fl-acts' }, newBtn), empty, list);
+    const tally = el('span', { className: 'fl-tally' });
+    host.append(el('div', { className: 'fl-tree' }, empty, list),
+        el('div', { className: 'fl-foot' }, newBtn, tally));
 
-    const state = { rows: [], lands: [], openId: null, things: new Map(),
+    const state = { rows: [], lands: [], openId: null, things: new Map(), runs: new Map(),
         where: () => host.closest('#flows') ?? host };
 
-    newBtn.onclick = () => {
-        const picker = landPicker(state.lands);
-        const thing = thingPicker(picker, on.objectsOn);
-        const box = ask(state.where(), {
-            title: 'A new flow', value: '', ok: 'Create',
-            onOk: (name) => {
-                if (!name) throw new Error('A flow needs a name.');
-                return on.create(picker.value, name, thing.value || null);
-            },
-        });
-        box.node.querySelector('div').insertBefore(picker, box.input);
-        box.node.querySelector('div').insertBefore(thing, box.input);
-    };
+    newBtn.onclick = () => newFlowDialog(state, on);
 
     function draw() {
         const { rows, lands } = state;
@@ -174,11 +195,15 @@ export function mountFlowList(host, on) {
             ? 'You build on no land yet, so there is nowhere to put a flow.'
             : (rows.length ? '' : `No flows on ${lands[0].name || 'your land'} yet — New flow`);
         empty.hidden = !empty.textContent;
+        const used = new Set(rows.map((r) => r.area_id)).size;
+        tally.textContent = `${rows.length} flow${rows.length === 1 ? '' : 's'} on ${used}`
+            + ` land${used === 1 ? '' : 's'} \u00b7 ${state.runs.size} sent`;
     }
 
     return {
         node: host,
-        set(nextRows, nextLands, nextOpen, things = new Map()) {
+        set(nextRows, nextLands, nextOpen, things = new Map(), runs = new Map()) {
+            state.runs = runs;
             state.rows = nextRows ?? [];
             state.lands = nextLands ?? [];
             state.openId = nextOpen ?? null;

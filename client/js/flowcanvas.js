@@ -64,15 +64,16 @@ function newNode(graph, block, LiteGraph, at) {
 
 // The canvas element, sized to whatever it is given. litegraph does not watch
 // its own container, so this does.
-function makeCanvas(host) {
-    // The palette is a strip above the canvas rather than a panel floating on
-    // it: a list that covers the drawing is a list you cannot drag past, and
-    // the first wire drawn under one started by picking up a palette line.
-    const bench = el('div', { className: 'fl-bench' });
+function makeCanvas(host, benchHost) {
+    // The palette is a column of its own beside the canvas (design 10a) rather
+    // than a panel floating on it: a list that covers the drawing is a list you
+    // cannot drag past, and the first wire drawn under one started by picking
+    // up a palette line.
+    const bench = benchHost ?? el('div', { className: 'fl-bench' });
     const wrap = el('div', { className: 'fl-canvas-wrap' });
     const canvasEl = el('canvas', { className: 'fl-canvas' });
     wrap.append(canvasEl);
-    host.append(bench, wrap);
+    host.append(...(benchHost ? [] : [bench]), wrap);
     return { bench, wrap, canvasEl };
 }
 
@@ -192,14 +193,17 @@ function handle(parts, on) {
 // A flow's own input or output. The pseudo types are registered by importFlow
 // the first time a flow is opened, which has always happened by the time
 // anybody can press the button that calls this.
-function newPseudo(graph, kind, LiteGraph) {
+function newPseudo(graph, kind, LiteGraph, view) {
     const node = LiteGraph.createNode(
         kind === 'input' ? 'wireon/flow-input' : 'wireon/flow-output');
     if (!node) throw new Error('open a flow first');
     node._irKind = `pseudo-${kind}`;
     node._irName = freeName(graph, kind === 'input' ? 'Input' : 'Output');
     node.title = node._irName;
-    node.pos = [kind === 'input' ? 40 : 640, 40 + (graph._nodes?.length ?? 0) * 20];
+    // Inside what is shown: an input at the left edge, an output at the right.
+    const [x, y, w] = view?.visible_area ?? [0, 0, 840];
+    node.pos = [kind === 'input' ? x + 40 : x + Math.max(240, w - 220),
+        y + 40 + (graph._nodes?.length ?? 0) * 50];
     graph.add(node);
     markGraphDirty(graph);
     return node;
@@ -223,7 +227,7 @@ function selecting(view, on) {
 }
 
 export function mountCanvas(host, { LiteGraph, LGraph, LGraphCanvas }, on = {}) {
-    const { bench, wrap, canvasEl } = makeCanvas(host);
+    const { bench, wrap, canvasEl } = makeCanvas(host, on.bench);
     const graph = new LGraph();
     const view = new LGraphCanvas(canvasEl, graph);
     dress(view, graph);
@@ -241,7 +245,7 @@ export function mountCanvas(host, { LiteGraph, LGraph, LGraphCanvas }, on = {}) 
 
 
     const select = selecting(view, on);
-    const addPseudo = (kind) => newPseudo(graph, kind, LiteGraph);
+    const addPseudo = (kind) => newPseudo(graph, kind, LiteGraph, view);
     const put = (block, point) => {
         // A drop is a pointer event's doing, so anything thrown in here has
         // nowhere to go but the bar: a block that cannot be made must say so
@@ -286,5 +290,5 @@ export function mountCanvas(host, { LiteGraph, LGraph, LGraphCanvas }, on = {}) 
     // The breadcrumb into a subflow is attachSubgraphChrome's own element,
     // appended to the wrapper it was given (`.subgraph-breadcrumb`).
     return handle({ node: host, graph, view, palette, history, load, select, LiteGraph,
-        fit, addPseudo, crumb: () => wrap.querySelector('.subgraph-breadcrumb') }, on);
+        fit, addPseudo, wrap, crumb: () => wrap.querySelector('.subgraph-breadcrumb') }, on);
 }

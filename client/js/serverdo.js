@@ -21,6 +21,7 @@ export async function openRemote(ctx, server, row) {
     ctx.state.open = null;
     ctx.state.remote = { server, row, elx };
     ctx.bar.name.textContent = `${row.name} · on ${server.name}`;
+    ctx.bar.where.textContent = '';
     ctx.mark(false);
     ctx.say(`${row.name} is on ${server.name}; Save into my land… to change it`);
 }

@@ -110,35 +110,93 @@ function manageDialog(host, list, on) {
     host.append(wrap);
 }
 
-// The three things on the bar: the dropdown, the dot, and the words after it.
+// The bar's control, design 10a/10d: a box that says SERVER, the dot, the
+// name and the version, and opens a list of the servers with their addresses.
+// The native select stays, out of sight, for the keyboard and the tests.
 function barParts(host) {
     const select = el('select', { className: 'fl-server' });
     select.setAttribute('aria-label', 'Server');
     const dot = el('span', { className: 'fl-dot', title: 'checking' });
     dot.dataset.state = 'checking';
-    const words = el('span', { className: 'muted mono fl-version' });
-    host.append(el('span', { className: 'muted', textContent: 'Server' }), select, dot, words);
-    return { select, dot, words };
+    const name = el('span', { className: 'fl-srv-name' });
+    const words = el('span', { className: 'mono fl-version' });
+    const open = el('button', { type: 'button', className: 'fl-srv-open',
+        title: 'Choose a process server' },
+    el('span', { className: 'fl-srv-label', textContent: 'Server' }), dot, name, words,
+    el('span', { className: 'fl-caret', textContent: '\u25be' }));
+    open.setAttribute('aria-haspopup', 'listbox');
+    const tip = el('span', { className: 'fl-srv-tip', hidden: true });
+    const menu = el('div', { className: 'fl-srv-menu', hidden: true });
+    host.append(open, select, tip, menu);
+    return { select, dot, words, name, open, tip, menu };
+}
+
+// One row of the open list: the dot, the name and address, and the version or
+// "read-only" for the operator's own.
+function menuRow(s, state, pick) {
+    const dot = el('span', { className: 'fl-dot' });
+    const side = el('span', { className: 'mono fl-srv-side',
+        textContent: s.fixed ? 'read-only' : '' });
+    reach(s.url).then((r) => {
+        dot.dataset.state = r.state === 'up' ? 'up' : 'down';
+        if (!s.fixed && r.state === 'up') side.textContent = r.version ?? '';
+        if (r.state !== 'up') row.title = reachWords(r, location.origin);
+    });
+    const row = el('button', { type: 'button', className: 'fl-srv-item' }, dot,
+        el('span', { className: 'fl-srv-what' }, el('span', { textContent: s.name }),
+            el('span', { className: 'mono', textContent: s.url.replace(/^https?:\/\//, '') })),
+        side);
+    row.dataset.on = state.current?.id === s.id ? '1' : '';
+    row.onclick = () => pick(s.id);
+    return row;
+}
+
+function drawMenu(parts, state, pick) {
+    const add = el('button', { type: 'button', className: 'fl-srv-item fl-srv-add',
+        textContent: 'Add a server\u2026' });
+    add.onclick = () => pick(ADD);
+    const manage = el('button', { type: 'button', className: 'fl-srv-item fl-srv-manage',
+        textContent: 'Manage servers\u2026' });
+    manage.onclick = () => pick(MANAGE);
+    parts.menu.replaceChildren(...state.list.map((s) => menuRow(s, state, pick)), add, manage);
 }
 
 // Ask the chosen server whether it is there. Up, the bar shows its version;
 // not up, the sentence that says why — where the player is looking, not only
 // in a tooltip.
-function prober(state, { dot, words }) {
+function prober(state, { dot, words, name, tip }) {
     return async () => {
         const s = state.current;
+        name.textContent = s?.name ?? 'none';
         if (!s) {
             dot.dataset.state = 'none';
             words.textContent = '';
+            tip.hidden = true;
             return;
         }
         const r = await reach(s.url);
         if (state.current !== s) return;
         dot.dataset.state = r.state === 'up' ? 'up' : 'down';
         dot.title = reachWords(r, location.origin);
-        words.textContent = r.state === 'up' ? r.version ?? '' : dot.title;
-        words.dataset.tone = { up: 'quiet', cors: 'warn' }[r.state] ?? 'bad';
+        words.textContent = r.state === 'up' ? r.version ?? '' : '';
+        tip.textContent = r.state === 'up' ? '' : dot.title;
+        tip.dataset.tone = r.state === 'cors' ? 'warn' : 'bad';
+        tip.hidden = r.state === 'up';
     };
+}
+
+// The list opens under the control and closes on a choice or a press
+// elsewhere; closed, it holds nothing, so its dots are not the bar's.
+function dropdown(host, parts, state, choose) {
+    const close = () => { parts.menu.hidden = true; parts.menu.replaceChildren(); };
+    parts.open.onclick = () => {
+        if (!parts.menu.hidden) { close(); return; }
+        drawMenu(parts, state, (v) => { close(); choose(v); });
+        parts.menu.hidden = false;
+    };
+    document.addEventListener('pointerdown', (e) => {
+        if (!parts.menu.hidden && !host.contains(e.target)) close();
+    });
 }
 
 export function mountServerPicker(host, dialogs, on = {}) {
@@ -167,9 +225,7 @@ export function mountServerPicker(host, dialogs, on = {}) {
         if (next?.id !== state.current?.id || next?.url !== state.current?.url) set(next);
         else { state.current = next; draw(); }
     }
-    select.onchange = () => {
-        const v = select.value;
-        select.value = state.current?.id ?? ADD;
+    const choose = (v) => {
         if (v === ADD) editDialog(dialogs(), null, refresh);
         else if (v === MANAGE) {
             manageDialog(dialogs(), state.list, {
@@ -179,6 +235,12 @@ export function mountServerPicker(host, dialogs, on = {}) {
             });
         } else set(state.list.find((s) => s.id === v) ?? null);
     };
+    select.onchange = () => {
+        const v = select.value;
+        select.value = state.current?.id ?? ADD;
+        choose(v);
+    };
+    dropdown(host, parts, state, choose);
     return {
         current: () => state.current,
         onChange: (fn) => state.listeners.push(fn),
