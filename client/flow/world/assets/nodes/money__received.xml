@@ -1,0 +1,62 @@
+<elx>
+    <engine type="flow"/>
+    <input name="World"/>
+    <input name="World Key"/>
+    <input name="Wallet"/>
+    <output name="Payments"/>
+    <output name="Error"/>
+    <net name="N000">
+        <connection node="World"/>
+        <connection node="Where" port="in"/>
+    </net>
+    <net name="N001">
+        <connection node="Where" port="out"/>
+        <connection node="And Wallet" port="in"/>
+    </net>
+    <net name="N002">
+        <connection node="Wallet"/>
+        <connection node="And Wallet" port="append"/>
+    </net>
+    <net name="N003">
+        <connection node="And Wallet" port="out"/>
+        <connection node="Request" port="Request URL"/>
+    </net>
+    <net name="N004">
+        <connection node="World Key"/>
+        <connection node="Bearer" port="in"/>
+    </net>
+    <net name="N005">
+        <connection node="Bearer" port="out"/>
+        <connection node="Headers" port="value"/>
+    </net>
+    <net name="N006">
+        <connection node="Headers" port="out"/>
+        <connection node="Request" port="Request Headers"/>
+    </net>
+    <net name="N007">
+        <connection node="Request" port="Response Body"/>
+        <connection node="Answer" port="string"/>
+    </net>
+    <net name="N008">
+        <connection node="Answer" port="json"/>
+        <connection node="Payments"/>
+    </net>
+    <net name="N009">
+        <connection node="Request" port="Error"/>
+        <connection node="Error"/>
+    </net>
+    <node id="append" name="Where" plugin="strings">
+        <parameter id="append"><value id="string">/rpc/money_received?w=</value></parameter>
+    </node>
+    <node id="append" name="And Wallet" plugin="strings"/>
+    <node id="prepend" name="Bearer" plugin="strings">
+        <parameter id="prepend"><value id="string">Bearer </value></parameter>
+    </node>
+    <node id="structures.map.insert-or-assign" name="Headers" plugin="builtin">
+        <parameter id="key"><value id="string">Authorization</value></parameter>
+    </node>
+    <node id="client.make-request-simple" name="Request" plugin="http">
+        <parameter id="Request Method"><value id="string">GET</value></parameter>
+    </node>
+    <node id="from-string" name="Answer" plugin="json"/>
+</elx>

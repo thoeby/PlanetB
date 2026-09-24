@@ -4,12 +4,12 @@
 // It reads the pool row it was handed (db/0146 pool_row, which carries the
 // tile's last events) and the job's atoms, which are public (db/0003_rls). It
 // writes nothing except through the same RPCs the cards use — claim_for,
-// retry_job, drop_job, redo_renders — and setBounty.
+// retry_job, drop_job, redo_renders — and set_price / withdraw_price.
 
 import { tileCenter } from '../lib/tilemath.js';
 import { drawWhere } from './hudmap.js';
 import { cr, el, far } from './poolui.js';
-import { setBounty } from './wallet.js';
+import { setPrice, withdrawPrice } from './wallet.js';
 import { jobButtons, logRows, pieces, shotCanvas, statusOf, stepLine } from './poolcard.js';
 import { shotWords } from './workshots.js';
 
@@ -38,38 +38,44 @@ function placeRows(e, span) {
         ['From you', far(e.metres) || 'unknown'],
         ['Version', `${e.version} · what this job compiles`],
         ['Beside it', `${e.siblings_published ?? 0} of ${e.siblings ?? 0} published`],
-        ['Payout pool', Number(e.bounty) > 0 ? `${cr(e.bounty)} cr` : 'free · nobody pays'],
+        ['Price', Number(e.bounty) > 0 ? `${cr(e.bounty)} held for it` : 'free · nobody pays'],
     ].map(([k, v]) => el('div', { className: 'jd-fact' },
         el('span', { textContent: k }), el('span', { className: 'mono', textContent: v })));
 }
 
-// What to pay for this tile. It was on the wallet panel, where nothing ever
-// told it which tile was meant; a price is a thing you put on a job, so it
-// lives on the job.
+// What to pay for this tile (PLAN-money.md §2). The price is cash, paid out of
+// your wallet into a payment held with the job: the renderer's wallet collects
+// it when the tile publishes, and uncollected it comes back by itself in a
+// week. Withdrawing it is letting it come back now.
 function priceCard(e, { say, refresh }) {
-    const amount = el('input', { type: 'number', min: '0', step: '1', value: '10',
-        className: 'po-amount' });
-    const set = el('button', { type: 'button', className: 'po-set primary',
-        textContent: 'Raise the price' });
-    set.onclick = async () => {
-        set.disabled = true;
+    const amount = el('input', { type: 'number', min: '0.01', step: '0.01', value: '10',
+        className: 'po-amount', ariaLabel: 'price' });
+    const priced = Number(e.bounty) > 0;
+    const go = el('button', { type: 'button', className: 'po-set primary',
+        textContent: priced ? 'Withdraw the price' : 'Put a price on it' });
+    go.onclick = async () => {
+        go.disabled = true;
         try {
-            await setBounty(e.job, Number(amount.value));
-            say('held until the tile publishes');
+            if (priced) await withdrawPrice(e.job);
+            else await setPrice(e.job, Number(amount.value));
+            say(priced ? 'the price is coming back to your wallet'
+                : 'paid from your wallet and held until the tile publishes');
         } catch (err) {
             say(String(err.body?.message ?? err.message ?? err), true);
         }
-        set.disabled = false;
+        go.disabled = false;
         await refresh();
     };
     return el('div', { className: 'jd-card' },
         el('div', { className: 'wk-card-head' },
             el('span', { className: 'label', textContent: 'What to pay for it' })),
-        el('div', { className: 'jd-price' }, amount, set),
+        el('div', { className: 'jd-price' }, priced ? null : amount, go),
         el('p', { className: 'note',
-            textContent: `It pays ${cr(e.bounty)} cr now. What you add is held from`
-                + ' your credits until the tile publishes, and is then shared out'
-                + ' by the time each tab reported.' }));
+            textContent: priced ? `${cr(e.bounty)} is held for it. The renderer's wallet`
+                + ' collects it when the tile publishes; nobody collects it in a week and'
+                + ' it comes back to you.'
+                : 'What you put on it leaves your wallet now and is held with the job.'
+                + ' The renderer\'s wallet collects it when the tile publishes.' }));
 }
 
 // The list down the left: every job in the queue this was opened from, so

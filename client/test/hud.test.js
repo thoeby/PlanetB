@@ -61,7 +61,8 @@ test('the groups hold what the design puts in them', () => {
     const of = (g) => TABS.filter((t) => t.group === g).map((t) => t.name);
     assert.deepEqual(of('bar'),
         ['Place', 'Catalog', 'Your land', 'Publish', 'Terrain']);
-    assert.deepEqual(of('top'), ['Profile', 'Wallet', 'Settings']);
+    // Admin since PLAN-identity.md and PLAN-money.md: Players and World.
+    assert.deepEqual(of('top'), ['Profile', 'Wallet', 'Settings', 'Admin']);
 });
 
 // The plinth is the view's own, and every surface on it belongs to a view.

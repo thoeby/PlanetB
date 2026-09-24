@@ -1,4 +1,4 @@
-// playersui.js — Settings → Players, for an admin (PLAN-identity.md §1).
+// playersui.js — Admin → Players, for an admin (PLAN-identity.md §1).
 //
 // The requests to be verified without e-ID, each with the name and birth date
 // as the player typed them — which the world forgets as soon as the admin

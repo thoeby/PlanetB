@@ -3,6 +3,7 @@
     splatworld init     create the database and apply the schema
     splatworld run      start the API and the file store, and open the browser
     splatworld doctor   say what is and is not ready, and why
+    splatworld walletd  keep the wallets' cash (PLAN-money.md), next to the issuer
 
 The same command runs a laptop and a server: `--host 0.0.0.0` is the only
 difference, plus a real JWT_SECRET and real passwords in .env.
@@ -54,6 +55,8 @@ def parse(argv: list[str]) -> argparse.Namespace:
     _common(gnd)
 
     _common(sub.add_parser("doctor", help="check what is ready"))
+    _common(sub.add_parser("walletd",
+        help="keep each wallet's cash, and carry out what its holder asks"))
     return parser.parse_args(argv)
 
 
@@ -248,9 +251,15 @@ def cmd_qgis(args: argparse.Namespace) -> int:
     return 0
 
 
+def cmd_walletd(args: argparse.Namespace) -> int:
+    from . import walletd
+    return walletd.main(_cfg(args))
+
+
 def main(argv: list[str] | None = None) -> int:
     args = parse(argv if argv is not None else sys.argv[1:])
     commands = {"init": cmd_init, "run": cmd_run, "doctor": cmd_doctor,
+                "walletd": cmd_walletd,
                 "import": cmd_import, "qgis": cmd_qgis, "ground": cmd_ground}
     try:
         return commands[args.command](args)

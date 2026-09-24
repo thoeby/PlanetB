@@ -82,6 +82,7 @@
   import { mountProfile } from './js/profileui.js';
   import { mountVerify } from './js/verify.js';
   import { mountPlayers } from './js/playersui.js';
+  import { mountWorldCash } from './js/worldcash.js';
   import { nearbyInstances } from './js/build.js';
   import { InstancePreview } from './js/preview.js';
   import { LiveWorld, EVERY_MS, NEAR_M } from './js/live.js';
@@ -97,7 +98,8 @@
   import { mountSymbols } from './js/symbolsui.js';
   import { mountCover } from './js/coverui.js';
   import { mountCatalogPanel } from './js/catalogpanel.js';
-  import { drawAreas, labelAreas, labelObjects, mountLand, ringsOf } from './js/land.js';
+  import { drawAreas, labelAreas, labelItems, labelObjects, mountLand, ringsOf } from './js/land.js';
+  import { mountInventory } from './js/inventory.js';
   import { mountGetLand } from './js/getland.js';
   import { mountSculpt } from './js/sculptui.js';
   import { mountAssignLand } from './js/assignland.js';
@@ -409,11 +411,18 @@
   // that changed because a bounty was paid does not wait for a sign-in.
   let held = null;
   let profile = null;
+  // Where the player stands, as the last frame had it: what "within reach"
+  // is measured from (db/0199).
+  let whereNow = null;
+  // PLAN-money.md: the cash in the wallet you hold, and its currency.
   const wallet = mountWallet(panelFor('Wallet', 'wallet'), {
-      onBalance: (account) => {
-          held = account ? Number(account.amount) : null;
-          hud.stat('credits', held === null ? '—' : held.toFixed(2));
-          profile?.refresh();
+      open: (name) => hud.show(name),
+      onBalance: (w) => {
+          const was = held;
+          held = w && w.amount !== null ? Number(w.amount) : null;
+          hud.stat('credits', { amount: held === null ? '—' : held.toFixed(2),
+              unit: w?.unit ?? '' });
+          if (was !== held) profile?.refresh();
       },
   });
   const showCredits = () => wallet.refresh();
@@ -557,7 +566,17 @@
   });
   hud.whenShown('Verify', () => verify.refresh());
   const players = mountPlayers(hud.panel('Players'));
+  // PLAN-money.md §3: what you hold, and what lies near where you stand.
+  const inventory = mountInventory(hud.panel('Inventory'), {
+      where: () => whereNow,
+      open: (name) => hud.show(name),
+      onChange: () => wallet.refresh(),
+  });
+  hud.whenShown('Inventory', () => inventory.refresh());
   hud.whenShown('Players', () => players.refresh());
+  // PLAN-money.md M5, O3: Admin → World (the part is named Cash).
+  const worldCash = mountWorldCash(hud.panel('Cash'));
+  hud.whenShown('Cash', () => worldCash.refresh());
   // Survey is the F6 view now, not a tab of Settings: opening it is somebody
   // asking who is waiting for land and where it is, and both go stale while
   // the view is closed.
@@ -738,7 +757,7 @@
         catalog.refresh(); admin.refresh(); symbols.list(); setup.refresh();
         cover.refresh();
         land.refresh(); assignLand.refresh(); attention.refresh();
-        verify.refresh(); players.refresh();
+        verify.refresh(); players.refresh(); inventory.refresh();
         submit.refresh(); pool.refresh(); permission.refresh(); sculpt.refresh();
         showWho();
     },
@@ -1039,6 +1058,7 @@
     // exactly "something here changed since the last publish".
     labelObjects({ pc, app, origin, terrain },
         [...preview.rows.values()].filter(unrendered), labels);
+    labelItems({ pc, app, origin, terrain }, inventory.lying(), labels);
     const r = camera.getRotation();
     const pose = `${p.x.toFixed(1)} ${p.y.toFixed(1)} ${p.z.toFixed(1)} `
       + `${r.x.toFixed(3)} ${r.y.toFixed(3)} ${r.z.toFixed(3)} ${r.w.toFixed(3)}`;
@@ -1054,6 +1074,7 @@
     // coordinates are the real ones, and the land under you is asked for only
     // when you have actually walked somewhere else.
     const here = origin.geodeticOf({ x: p.x, y: p.y, z: p.z });
+    whereNow = here;
     const heading = player.heading;
     hud.at(here.lon, here.lat, here.h, heading);
     // The altimeter: how high you are above the sea, and how far that is above

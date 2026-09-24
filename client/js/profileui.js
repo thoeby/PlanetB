@@ -58,7 +58,7 @@ export function mountProfile(host, { claims = () => null, balance = () => null,
         const mine = lands() ?? [];
         counts.replaceChildren(
             tile(amount === null || amount === undefined ? '—'
-                : Number(amount).toFixed(2), 'Credits', 'accent'),
+                : Number(amount).toFixed(2), 'Cash', 'accent'),
             tile(String(mine.length), 'Lands'),
             tile(String((things() ?? []).length), 'Things placed'));
         landLabel.textContent = mine.length ? 'Your land' : 'No land yet';

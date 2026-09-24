@@ -11,6 +11,8 @@ import { chmodSync, existsSync, mkdirSync, openSync, readFileSync, rmSync } from
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
+import { startCash } from './cash.js';
+
 export const REPO = join(dirname(fileURLToPath(import.meta.url)), '../../..');
 export const SEED_DEM = join(REPO, 'infra/seed/dem-visp.tif');
 export const FILES_ROOT = join(REPO, 'infra/files');
@@ -279,6 +281,9 @@ export async function startWorld() {
     const geoserver = switchable(await startGeoServer());
     stops.push(() => geoserver.stop());
     stops.push(startServer());
+    // PLAN-money.md: the issuer, its bank, and walletd.
+    const cash = startCash(REPO, { keep: keepingTheWorld() });
+    stops.push(() => cash.stop());
     const apiUrl = `http://localhost:${API_PORT}`;
     try {
         await waitFor(`http://localhost:${PORT}/healthz`, 60, 'the splatworld server');
@@ -302,6 +307,7 @@ export async function startWorld() {
         geoserverUrl: geoserver.url,
         geoserverKind: geoserver.kind,
         geoserver,
+        cash,
         forgetGround,
         stop: () => stops.forEach((s) => s()),
     };

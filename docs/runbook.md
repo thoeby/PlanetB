@@ -345,3 +345,28 @@ does not need the argument at all.
 `tools/backup.sh` and `tools/restore.sh` prefer; both fall back to `cp -al` plus
 a non-overwriting `cp` if it is missing, which is slower and does the same
 thing. On Debian/Ubuntu: `apt-get install -y rsync`.
+
+## 9. The world's cash (PLAN-money.md)
+
+Cash is not in the world's database. It is in three places, and a backup
+that leaves one out loses money:
+
+- **the wallet files** — one `wallets/<item>.sqlite3` per wallet item, in
+  walletd's home (`WALLETD_HOME`; the `walletd-data` volume under compose).
+  The coins are these files. Lose one and whoever held that wallet has
+  nothing, whatever `wallet.balance` says.
+- **the issuer's database** (`taler_exchange`) and its key directory
+  (`TALER_HOME`, the `cash-data` volume): which coins exist and which were
+  spent. The offline master key is `TALER_HOME/.local/share/taler-exchange/
+  offline/master.priv` — whoever has it can sign coins.
+- **the bank's database** (`libeufin`): the admin account's debt is every
+  unit of cash the world has ever issued.
+
+`tools/backup.sh` does not carry them yet: copy walletd's home and `pg_dump`
+both databases beside its dump, at the same moment. A wallet file restored
+from before a payment it made cannot spend those coins again — the issuer
+knows they were spent — so a late copy loses cash rather than making it.
+
+`tools/taler-up.sh` starts the issuer and the bank from the binaries on PATH;
+`splatworld walletd` keeps the wallets. `make taler-step0` proves, in a
+minute, that the issuer does what the world needs of it.

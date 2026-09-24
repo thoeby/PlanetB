@@ -20,11 +20,12 @@ export const WORLD_INPUTS = ['world', 'world_key'];
 const OBJECT = 'Object';
 const PORT = 'Port';
 const VALUE = 'Value';
+const WALLET = 'Wallet';
 
 // The three the World section answers for. Everything else a World block takes
 // — the world's url, its key, a mover's fields — is a constant like any other,
 // so the generic list keeps them.
-export const WORLD_PORTS = new Set([OBJECT, PORT, VALUE]);
+export const WORLD_PORTS = new Set([OBJECT, PORT, VALUE, WALLET]);
 
 export const isWorldBlock = (node) => node?._irPlugin === WORLD_PLUGIN;
 
@@ -140,11 +141,34 @@ function fill(node, list, found, world, changed) {
         valueField(node, ports.find((p) => p.name === constantOf(node, PORT)), changed));
 }
 
+// PLAN-money.md §5: a Money block names a wallet the flow holds, picked from
+// the ones it does (db/0202 flow_wallets) — a flow can only spend its own.
+function walletRow(node, list, world, changed) {
+    const li = el('li', {}, el('span', { textContent: WALLET }),
+        el('span', { className: 'muted', textContent: 'asking the world…' }));
+    list.append(li);
+    Promise.resolve(world.wallets?.() ?? []).catch(() => []).then((held) => {
+        const sel = el('select', { className: 'fl-wallet' });
+        sel.append(el('option', { value: '',
+            textContent: held.length ? 'nothing yet' : 'this flow holds no wallet' }));
+        held.forEach((w, n) => sel.append(el('option', { value: w.id,
+            textContent: `Wallet ${n + 1} · ${Number(w.balance ?? 0).toFixed(2)}` })));
+        sel.value = constantOf(node, WALLET);
+        sel.onchange = () => { setConstant(node, WALLET, sel.value); changed(); };
+        li.replaceChildren(el('span', { textContent: WALLET }), sel);
+    });
+}
+
 // The World section of the inspector. The land's objects are asked for as this
 // is drawn and the rows are filled when the answer arrives — the inspector is
 // redrawn on every change, so there is nothing to keep in the meantime.
 export function worldFields(node, world, changed) {
     const slots = slotsOf(node);
+    if (world && slots.has(WALLET)) {
+        const list = el('ul', { className: 'fl-world' });
+        walletRow(node, list, world, changed);
+        return [el('h3', { textContent: 'Money' }), list];
+    }
     if (!world || !slots.has(OBJECT)) return [];
     const list = el('ul', { className: 'fl-world' });
     for (const port of [OBJECT, PORT, VALUE]) {

@@ -1,6 +1,7 @@
 -- WP0.8 acceptance: CAS publish bumps the parent, a stale publish changes
--- nothing, a double publish is a no-op, a bounty of 10 splits 6/4 by
--- gpu_seconds, and a repeated pay ref raises without moving money.
+-- nothing, a double publish is a no-op, and a repeated pay ref raises without
+-- moving money. (A bounty of 10 used to split 6/4 by gpu_seconds; since
+-- PLAN-money.md the price is cash, db/0200, and the ledger is history.)
 BEGIN;
 SELECT plan(26);
 
@@ -101,12 +102,15 @@ SELECT ok(NOT (SELECT t.dirty FROM tile t, tt
 SELECT is((SELECT state FROM job WHERE id = (SELECT jid FROM jobs)), 'done',
     'the job is done');
 
--- escrow split ----------------------------------------------------------
+-- escrow ------------------------------------------------------------------
+-- PLAN-money.md: a price is cash held for the job now (db/0200), and the
+-- ledger is history. Publishing moves nothing in it.
 SELECT is((SELECT account_balance(id) FROM account WHERE owner_id = ids.wa_id),
-    6::numeric, 'worker A is paid 6 of 10 by gpu_seconds') FROM ids;
+    0::numeric, 'worker A is paid nothing out of the ledger') FROM ids;
 SELECT is((SELECT account_balance(id) FROM account WHERE owner_id = ids.wb_id),
-    4::numeric, 'worker B is paid 4 of 10') FROM ids;
-SELECT is(account_balance(escrow_account()), 0::numeric, 'escrow is empty again');
+    0::numeric, 'nor is worker B') FROM ids;
+SELECT is(account_balance(escrow_account()), 10::numeric,
+    'what the ledger escrowed stays where it was');
 
 -- double publish ---------------------------------------------------------
 -- back to the worker: publishing is the worker's act, approving is the owner's.
@@ -134,6 +138,8 @@ SELECT is((SELECT t.published_version FROM tile t, tt
     'and the tile is unchanged');
 
 -- ledger idempotency -------------------------------------------------------
+SELECT transfer(treasury_account(), (SELECT id FROM account WHERE owner_id = ids.wb_id),
+                4, 'seed:tip') FROM ids;
 SELECT lives_ok(
     $$SELECT pay((SELECT id FROM account WHERE owner_id = (SELECT owner_id FROM ids)),
                  1, 'tip:1')$$, 'a tip goes through');

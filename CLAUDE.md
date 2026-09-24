@@ -7,7 +7,9 @@ decisions it implements are in `PLAN-foundation.md`): the stories of
 story = one commit. Do not start a story whose predecessor is not green on the
 same run. `TASKS.md` and `TASKS-usable.md` are history.
 
-State of the work so far: `PROGRESS.md`. Environment setup and the traps already paid for: `HANDOFF.md`.
+The world's cash and who a player is: **`PLAN-money.md`** and
+**`PLAN-identity.md`** (the owner's decisions and their stories, 32–40 of the
+run). State of the work so far: `PROGRESS.md`. Environment setup and the traps already paid for: `HANDOFF.md`.
 
 What the player meets, and what it looks like: `docs/SPEC.md` (the product specification) and `docs/design/` (eleven artboards, with `docs/design/README.md` mapping each part of the design to the file that holds it). Read them before changing anything anyone sees.
 
@@ -21,12 +23,12 @@ A persistent digital world on real geography, compiled into Gaussian-splat LOD t
 2. Every atom has immutable inputs (artifact hashes + params + seed) and an `algo_version`. A tile's snapshot pins the symbol version and the cover-mapping version it was built with.
 3. `publish_tile` is a compare-and-swap on `tile.expected_version`. A stale worker can never publish.
 4. Triggers only mark `tile.dirty`. Job/atom creation happens only through idempotent `ensure_job()`.
-5. Money, rights, editions: one SQL transaction each, `ref`-idempotent, ledger append-only.
-6. All client writes are authorised by row-level security, never by client code.
+5. Rights and editions: one SQL transaction each, `ref`-idempotent. Money is GNU Taler cash in wallets, which walletd keeps, not rows in Postgres (PLAN-money.md): Postgres holds each payment's reference (`wallet_order`) next to what it paid for. The old `ledger` is append-only history that nothing writes any more.
+6. All client writes are authorised by row-level security, never by client code. "Verified" (PLAN-identity.md) is a database fact checked on every action it unlocks.
 7. Merged tiles (z ≤ 14) are deterministically reproducible → verified by hash equality.
 8. Trained tiles (z16/z18) are verified probabilistically (structural → 3 independent perceptual checks). Say so in code comments; do not call it "proof".
-9. Server never decides or performs rendering. Outside participants — QGIS, process servers — act as players with logins of their own, under RLS; the server decides and computes nothing, and sends nothing out. No server-side worker, no cron that computes. GeoServer publishes the operator's elevation over WCS and nothing else; QGIS edits the database as the player, under RLS.
-10. No new server components. Allowed processes: postgres, postgrest, geoserver, nginx — or, in place of nginx, the `splatworld` server in `server/` (Python stdlib + psycopg), which serves the file store and the static client and supervises PostgREST. It exists because nginx cannot be had with `--with-http_dav_module` on Windows without compiling it, and it is held to the same contract by `tools/files-test.sh`, nginx's own gate, which it passes unmodified. It computes nothing about the world. (Optional later: a dependency-free `ws` presence relay — not in v1.)
+9. Server never decides or performs rendering. Outside participants — QGIS, process servers — act as players with logins of their own, under RLS; the server decides and computes nothing, and sends nothing out. No server-side worker, no cron that computes. GeoServer publishes the operator's elevation over WCS and nothing else; QGIS edits the database as the player, under RLS. walletd spends a wallet only on an order its holder wrote, and decides nothing; the issuer and its bank talk only to walletd and to wallets. (Planned, not built: the swiyu verifier, which talks to the swiyu registries to check a presented e-ID.)
+10. No new server components. Allowed processes: postgres, postgrest, geoserver, nginx, and the world's cash — GNU Taler's issuer (`taler-exchange` with its key helpers, wirewatch and expire) and the libeufin-bank it reads from, run as `cash`, and `walletd` (`splatworld walletd`), each with a database of its own on the same Postgres server (PLAN-money.md §1) — or, in place of nginx, the `splatworld` server in `server/` (Python stdlib + psycopg), which serves the file store and the static client and supervises PostgREST. It exists because nginx cannot be had with `--with-http_dav_module` on Windows without compiling it, and it is held to the same contract by `tools/files-test.sh`, nginx's own gate, which it passes unmodified. It computes nothing about the world. (Optional later: a dependency-free `ws` presence relay — not in v1.)
 
 ## Stack rules
 

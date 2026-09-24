@@ -12,6 +12,7 @@
 // back with is the one shown.
 
 import { el } from './poolui.js';
+import * as api from './api.js';
 import * as flows from './flows.js';
 import { bootFlow } from '../flow/boot.js';
 import { mountCanvas, EMPTY_FLOW } from './flowcanvas.js';
@@ -100,6 +101,11 @@ function filePicker(ctx) {
 function worldBag(ctx, pickObject) {
     let cache = { area: null, rows: null };
     return {
+        // The wallets the open flow holds (PLAN-money.md M6).
+        wallets() {
+            const id = ctx.state.open?.id ?? null;
+            return id ? api.rpc('flow_wallets', { flow: id }).catch(() => []) : Promise.resolve([]);
+        },
         objects() {
             const area = ctx.state.open?.area_id ?? null;
             if (!area) return Promise.resolve([]);

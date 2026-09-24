@@ -49,6 +49,54 @@ Two acceptances are unrun for want of hardware and are marked as such: WP3.1's
 headset). WP5.1's raster seed has been run over a region, not over the whole of
 Switzerland — the sources for that are outside this container's egress policy.
 
+## Who a player is, and the world's cash (PLAN-identity.md, PLAN-money.md)
+
+The owner's two plans, built as far as this box lets them run. Stories 32–40
+of the run, `PLAYER-RUN.md` has the table.
+
+| what | where | state |
+|---|---|---|
+| money step 0: Taler funds, pays, requests, holds, returns | `tools/taler-step0.sh` (`make taler-step0`) | green, 12 checks |
+| the issuer, its bank, one currency, no fees | `tools/taler-up.sh`, `infra/taler/`, compose `cash` | runs here natively and in its image |
+| walletd: each wallet's cash, orders carried out and said | `server/splatworld/walletd.py`, `walletorders.py`, `talerwallet.py` | runs here natively and in its image |
+| a player is a verified person, manually by an admin | db/0195, `client/js/verify.js`, `playersui.js` | stories 2, 4, 32, 40 green |
+| with the Swiss e-ID (swiyu) | — | not built: ID.0 blocked, the swiyu beta is unreachable here |
+| a wallet is an item: held, handed over, dropped, picked up | db/0196, db/0199, `inventory.js`, `walletui.js` | stories 33–35 green |
+| credits become cash (MN.0) | db/0197 `credits_become_cash()` | pgTAP; nothing to switch in a run from empty |
+| the starting amount and the money's name (M5, O3) | Admin → World (`worldcash.js`), `app_setting` | story 33 green |
+| pay and request | db/0198 | story 34 green |
+| a price on a render job is cash | db/0200 (`release_escrow`, `refund_bounty` move cash now) | story 36 green up to the render |
+| buying a product | db/0201 `buy` | story 37 green |
+| a flow holds a wallet; Money blocks | db/0202, `client/flow/world` money group | pgTAP and unit tests; no process server here to run a flow |
+| failure: the issuer away | walletd touches no wallet while it is away | story 39 green |
+
+What changed for everything else:
+
+- **Verification gates land, building and products** (V5). Every pgTAP file,
+  e2e spec and tool that creates a player who builds now verifies them
+  (`player_verification`, method `manual`, how `fixture`); api-test proves the
+  refusal first. The first account, the operator, is verified by being it.
+- **The ledger is history.** `pay`, `set_bounty` and `buy_asset` are nobody's
+  (db/0197); `release_escrow` and `refund_bounty` move held cash (db/0200).
+  `client/test/e2e/money.spec.js`, WP4.4's acceptance over the ledger, is
+  gone: stories 34–37 and db/test/0196–0202 prove the cash in its place.
+  db/test/0006 and 0026 assert that the ledger no longer moves.
+- **The bar's balance** is the cash in the wallet you hold, in the currency
+  the admin named (`currency_symbol`/`currency_name`, else the code).
+
+Found on untouched HEAD while doing this, not caused by it and not fixed:
+story 8's render does not finish here on SwiftShader, so the run stops there
+(stories 8–31 are unrun on this box); db/test/0179 and 0186 fail; story 14's
+`.land-again` now matches two buttons. Fixed because the new stories needed
+them: `panel()` opens a view asked for by its own name (Work), story 2
+counts its land's tiles rather than expecting exactly one, and api-test
+expects a z14 job's first piece to be the `dataset` atom db/0183 made it.
+
+Proven here, in one run from an empty database: stories 0–7, 32–35, 37, 39
+and 40, fifteen of fifteen; story 36 up to its render. `make db-test`: 1403
+tests, the only failures db/test/0179 and 0186, as on untouched HEAD. `make
+api-test`, `make lint`, `make taler-step0`: green.
+
 ## One tile, one folder (FND.5, db/0178–0183)
 
 What a week of "the pool is broken" turned out to be, and what was done:

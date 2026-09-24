@@ -100,7 +100,9 @@ export function state(f) {
         // not worth a strip along the top.
         stat(key, value) {
             if (key === 'credits') {
-                credits.replaceChildren(value ?? '\u2014', el('i', { textContent: 'CR' }));
+                // The cash in the wallet you hold, in the world's own currency.
+                credits.replaceChildren(value?.amount ?? '\u2014',
+                    el('i', { textContent: value?.unit ?? '' }));
             } else if (stats[key]) stats[key].textContent = value;
         },
         // How high you are, how far that is above the ground, and where you

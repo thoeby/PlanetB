@@ -14,8 +14,8 @@ BANK_URL=${TALER_BANK_URL:-http://localhost:$BANK_PORT/}
 BIND=${TALER_BIND:-127.0.0.1}
 PGU=${PGUSER:-postgres}; PGW=${PGPASSWORD:-postgres}
 PGH=${TALER_PGHOST:-${PGHOST:-localhost}}; PGP=${PGPORT:-5432}
-EXCHANGE_DB=${TALER_EXCHANGE_DB:-postgres://$PGU:$PGW@$PGH:$PGP/taler_exchange}
-BANK_DB=${TALER_BANK_DB:-postgresql://$PGH:$PGP/libeufin?user=$PGU&password=$PGW}
+EXCHANGE_DB=${TALER_EXCHANGE_DB:-postgres://$PGU:$PGW@$PGH:$PGP/${TALER_EXCHANGE_DBNAME:-taler_exchange}}
+BANK_DB=${TALER_BANK_DB:-postgresql://$PGH:$PGP/${TALER_BANK_DBNAME:-libeufin}?user=$PGU&password=$PGW}
 EXCHANGE_BANK_PASSWORD=${TALER_EXCHANGE_BANK_PASSWORD:-exchange-password}
 TERMS_DIR=${TALER_TERMS_DIR:-$PWD/infra/taler/terms/}
 SECRET=${TALER_SECRET:-${JWT_SECRET:-dev-secret-change-me-0123456789abcdef}}

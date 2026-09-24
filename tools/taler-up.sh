@@ -5,7 +5,10 @@
 # for a machine without Docker. Nothing here computes anything for the world.
 #
 #   tools/taler-up.sh          start what is not running; print <<READY>>
+#   tools/taler-up.sh serve    the same, then stay in front until stopped
+#                              (infra/compose.yml's `cash` service)
 #   tools/taler-up.sh stop     stop what this script started
+#   tools/taler-up.sh stop-issuer   stop the issuer only (PLAN-money.md MN.7)
 #   tools/taler-up.sh reset    stop, drop both databases and the keys
 set -euo pipefail
 cd "$(dirname "$0")/.."
@@ -17,6 +20,8 @@ BANK_URL=${TALER_BANK_URL:-http://localhost:${TALER_BANK_PORT:-8092}/}
 ISSUER_PASSWORD=${TALER_ISSUER_PASSWORD:-issuer-password}
 EXCHANGE_BANK_PASSWORD=${TALER_EXCHANGE_BANK_PASSWORD:-exchange-password}
 PSQL="psql -v ON_ERROR_STOP=1 --no-psqlrc -q -t -A -d postgres"
+XDB=${TALER_EXCHANGE_DBNAME:-taler_exchange}
+BDB=${TALER_BANK_DBNAME:-libeufin}
 
 stop () {
     for f in "$RUN"/*.pid; do
@@ -27,10 +32,15 @@ stop () {
 }
 case ${1:-} in
     stop) stop; exit 0 ;;
+    stop-issuer)
+        for n in exchange wirewatch expire secmod-rsa secmod-eddsa secmod-cs; do
+            [ -e "$RUN/$n.pid" ] && { kill "$(cat "$RUN/$n.pid")" 2>/dev/null || true; rm -f "$RUN/$n.pid"; }
+        done
+        exit 0 ;;
     reset)
         stop
-        $PSQL -c 'DROP DATABASE IF EXISTS taler_exchange WITH (FORCE)'
-        $PSQL -c 'DROP DATABASE IF EXISTS libeufin WITH (FORCE)'
+        $PSQL -c "DROP DATABASE IF EXISTS $XDB WITH (FORCE)"
+        $PSQL -c "DROP DATABASE IF EXISTS $BDB WITH (FORCE)"
         rm -rf "$TALER_HOME"
         exit 0 ;;
 esac
@@ -51,8 +61,8 @@ start () { # name command...
 }
 
 # ------------------------------------------------------------------ the bank
-if [ -z "$($PSQL -c "SELECT 1 FROM pg_database WHERE datname = 'libeufin'")" ]; then
-    $PSQL -c 'CREATE DATABASE libeufin'
+if [ -z "$($PSQL -c "SELECT 1 FROM pg_database WHERE datname = '$BDB'")" ]; then
+    $PSQL -c "CREATE DATABASE $BDB"
 fi
 libeufin-bank dbinit -c "$conf" > "$RUN/bank-dbinit.log" 2>&1
 if ! up "${BANK_URL}config"; then
@@ -69,8 +79,8 @@ libeufin-bank create-account -c "$conf" --username exchange --password "$EXCHANG
     >> "$RUN/bank-setup.log" 2>&1 || libeufin-bank passwd -c "$conf" exchange "$EXCHANGE_BANK_PASSWORD" >> "$RUN/bank-setup.log" 2>&1
 
 # ---------------------------------------------------------------- the issuer
-if [ -z "$($PSQL -c "SELECT 1 FROM pg_database WHERE datname = 'taler_exchange'")" ]; then
-    $PSQL -c 'CREATE DATABASE taler_exchange'
+if [ -z "$($PSQL -c "SELECT 1 FROM pg_database WHERE datname = '$XDB'")" ]; then
+    $PSQL -c "CREATE DATABASE $XDB"
 fi
 taler-exchange-dbinit -c "$conf" > "$RUN/exchange-dbinit.log" 2>&1
 if ! up "${EXCHANGE_URL}config"; then
@@ -97,3 +107,11 @@ taler-exchange-offline -c "$conf" download sign \
     upload > "$RUN/offline.log" 2>&1 || true
 wait_for "${EXCHANGE_URL}keys" "issuer's /keys"
 echo '<<READY>>'
+if [ "${1:-}" = serve ]; then
+    trap 'stop; exit 0' TERM INT
+    while sleep 5; do
+        for f in "$RUN"/*.pid; do
+            kill -0 "$(cat "$f")" 2>/dev/null || { echo "taler-up: $(basename "$f" .pid) stopped" >&2; stop; exit 1; }
+        done
+    done
+fi

@@ -2,7 +2,7 @@
 //
 // The plugin and its composites are static files (client/flow/world/). This
 // reads them the way the palette does and holds them to what the editor and
-// the process server both need: the five blocks, their ports, and composites
+// the process server both need: the nine blocks, their ports, and composites
 // that name only blocks the bundled palette already has.
 
 import test from 'node:test';
@@ -43,11 +43,23 @@ function blocksIn(text) {
 const plugin = { id: /<plugin[^>]*id="([^"]+)"/.exec(xml)[1] };
 const blocks = () => blocksIn(xml);
 
-test('the world is a plugin with five blocks in four groups', () => {
+test('the world is a plugin with nine blocks in five groups', () => {
     assert.equal(plugin.id, 'world');
     const found = blocks();
     assert.deepEqual([...found.keys()].sort(),
-        ['clock.now', 'events.since', 'mover.set', 'port.read', 'port.write']);
+        ['clock.now', 'events.since', 'money.balance', 'money.pay', 'money.received',
+            'money.request', 'mover.set', 'port.read', 'port.write']);
+});
+
+// PLAN-money.md §5: Balance, Pay, Request, Money received, each naming the
+// wallet it acts on.
+test('every Money block names the wallet it acts on', () => {
+    for (const [id, node] of blocks()) {
+        if (!id.startsWith('money.')) continue;
+        assert.ok(node.inputs.some((i) => i.name === 'Wallet'), `${id} names a wallet`);
+    }
+    assert.deepEqual(blocks().get('money.pay').inputs.map((i) => i.name),
+        ['World', 'World Key', 'Wallet', 'To', 'Amount', 'Message']);
 });
 
 test('writing a port takes what it needs and says whether it took', () => {
@@ -72,7 +84,8 @@ test('every block says where the world is and who it is', () => {
 test('there is a composite for every block, and one block for every composite', () => {
     const files = readdirSync(join(WORLD, 'assets/nodes')).filter((f) => f.endsWith('.xml'));
     assert.deepEqual(files.sort(),
-        ['clock__now.xml', 'events__since.xml', 'mover__set.xml',
+        ['clock__now.xml', 'events__since.xml', 'money__balance.xml', 'money__pay.xml',
+            'money__received.xml', 'money__request.xml', 'mover__set.xml',
             'port__read.xml', 'port__write.xml']);
     for (const id of blocks().keys()) {
         assert.ok(files.includes(`${id.replace('.', '__')}.xml`), `${id} has its ELX`);

@@ -83,6 +83,7 @@ export const TABS = [
     { name: 'Profile', group: 'top', key: 'p', width: 470,
         parts: [{ name: 'Profile', label: 'You' },
             { name: 'Verify', label: 'Verify' },
+            { name: 'Inventory', label: 'Inventory' },
             { name: 'Share', label: 'Share', key: '9' }] },
     { name: 'Wallet', group: 'top', key: '6', width: 500,
         lede: 'What you have, and what moved.' },
@@ -95,8 +96,13 @@ export const TABS = [
         parts: [{ name: 'Setup', label: 'Setup' },
             { name: 'Vocabulary', label: 'Vocabulary', wide: true },
             { name: 'Symbols', label: 'Symbols', wide: true },
-            { name: 'Ground cover', label: 'Ground cover', wide: true },
-            { name: 'Players', label: 'Players' }] },
+            { name: 'Ground cover', label: 'Ground cover', wide: true }] },
+    // PLAN-identity.md and PLAN-money.md: what only an admin does to players
+    // and to the world's cash — Admin → Players, Admin → World. `Cash` is the
+    // part's name because World is already the name of no panel at all.
+    { name: 'Admin', group: 'top', key: '8', width: 520,
+        parts: [{ name: 'Players', label: 'Players' },
+            { name: 'Cash', label: 'World' }] },
     // Survey is top-down: who is waiting for land, and the map it is drawn on
     // (SPEC §2.1). It is the F6 view and nothing else — it has no button on
     // either bar, because a map of the whole world is a workspace rather than
@@ -121,6 +127,8 @@ export const PART_LEDE = {
     Profile: 'Who you are in the world, and what you hold.',
     Share: 'A link that puts somebody else where you are standing.',
     Verify: 'A player is a verified person. The world keeps that you are, not who.',
+    Inventory: 'What you hold, and what lies near you.',
+    Cash: 'What every new player starts with, and what the money is called.',
     Players: 'Who is waiting to be verified, and every player there is.',
     Setup: 'Your account, your GeoServer, and the ground the world sits on.',
     Submit: 'Send what you placed to be rendered.',

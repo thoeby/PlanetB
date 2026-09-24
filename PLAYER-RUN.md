@@ -117,6 +117,29 @@ Each line is what the script does; the acceptance is the spec's story.
     page says so in place and keeps working; restarted: ground resumes. A
     render job is abandoned: it returns to the pool with the sentence.
 
+## Stories 32–40: who a player is, and the world's cash
+
+`PLAN-identity.md` and `PLAN-money.md` are the owner's decisions; these are
+their stories, proven the same way and appended to the run. Players A–C are
+the run's own; E (Emil) arrives in story 32. From story 2 on, every player who
+gets land, builds or registers a product is verified first (ID.4, through the
+page: the player asks on Profile → Verify, A confirms on Admin → Players).
+
+| story | plan | what it proves | state here |
+|---|---|---|---|
+| 32 | ID.1, ID.4 | E is not verified and is told what that unlocks; land says verify first; the e-ID path says swiyu is not reachable and points to the other; A refuses a request with a note E reads; somebody already verified cannot be verified again under another account; A confirms E on a call; the name E typed is not kept | green |
+| 33 | MN.0, MN.1, M5, O3 | A names the money on Admin → World; C holds one wallet with the starting amount, issued when C was verified; the Wallet, the bar (in A's symbol) and the Inventory all say so | green |
+| 34 | MN.2 | A pays B 5 with a message, B reads it; B asks A for 3, A pays the ask; a payment the wallet cannot cover is refused in words | green |
+| 35 | MN.3 | A hands their wallet to B, B takes it, A cannot spend it; B drops it off his land, it is marked on the ground; C picks it up and can spend it, B cannot | green |
+| 36 | MN.4 | B puts 10 on a job, it leaves his wallet and the pool shows it; B withdraws it and it comes back; C renders the job and is paid | green up to the render, which needs a GPU (story 8) |
+| 37 | MN.5 | C sells a product for 12; B buys it; the licence is B's when the cash is in; C has 12 more and is told | green |
+| 38 | MN.6 | a flow holds a wallet, a till asks for 2, pays half on | not written: a flow runs on a process server, which this box has not got (story 29); built and pgTAP-proven: giving a flow a wallet and taking it back (Inventory), the flow's own key, the Money blocks | 
+| 39 | MN.7 | with the issuer stopped, a payment says so on the payment and nothing leaves the wallet; with it back, it goes through by itself and says so | green |
+| 40 | ID.5, V4 | A revokes E with a note; E reads it; land and paying say verify first; E still holds the wallet and may hand it over | green |
+
+ID.0, ID.2, ID.3 and ID.6 need the swiyu public beta: see `PLAN-identity.md`,
+Blocked.
+
 ## Work already known, and which story it belongs to
 
 The stories force these; they are not optional and not to be done "later".

@@ -1,20 +1,17 @@
-// walletui.js — the wallet panel (design 3h): what you have, what is held
-// against work you asked for, what you paid, what you earned, and every
-// movement that touched your account. It reports and does nothing else.
+// walletui.js — the Wallet panel: the cash in the wallet you hold, what it
+// has done, and the two things a wallet does from here: Pay and Request
+// (PLAN-money.md M4). Handing it over and dropping it are the Inventory's.
 //
-// Putting a price on a tile used to be here too, on a card that asked which
-// tile you were looking at. Nothing ever answered — no caller anywhere told it
-// — so it said "no tile in front of you" for the life of the page. A price
-// goes on a job in the queue, and it is on the queue now
-// (client/js/renderpool.js).
+// The balance is what the wallet itself last said (walletd writes it down);
+// only its holder sees it. What this panel sends is an ask — whether the cash
+// moves is the wallet's answer, and the panel shows it as it comes.
 //
-// A bounty is escrowed the moment it is set (db/0006_publish.sql) and paid out
-// pro rata by reported GPU time when the tile publishes. That is why "held"
-// is its own number and not part of "paid": the money is out of the wallet and
-// not yet anybody else's.
+// The fields are made once and never redrawn (HANDOFF §2); the lists are
+// redrawn only when what they say has changed.
 
 import * as api from './api.js';
-import { myAccount, myLedger } from './wallet.js';
+import { answer, currency, history, money, myItems, pay, request } from './wallet.js';
+import { errorText, verifyFirst } from './verify.js';
 
 const el = (tag, props = {}, ...kids) => {
     const node = Object.assign(document.createElement(tag), props);
@@ -22,126 +19,124 @@ const el = (tag, props = {}, ...kids) => {
     return node;
 };
 
-const cr = (n) => (Number(n) || 0).toFixed(2);
-const signed = (n) => `${n > 0 ? '+' : n < 0 ? '−' : ''}${cr(Math.abs(n))}`;
+const signed = (n) => `${n > 0 ? '+' : n < 0 ? '−' : ''}${money(Math.abs(n))}`;
+const when = (at) => (at ? new Date(at).toLocaleString(undefined,
+    { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }) : '');
 
-// The ref is the world's own word for what a movement was for
-// (bounty:{job}, pay:{job}:{worker}, buy:{san}:{user}).
-const WORDS = {
-    bounty: 'Held · render pool',
-    pay: 'Rendered a tile',
-    buy: 'Product licence',
-    topup: 'Added credits',
-    refund: 'Returned · render pool',
-};
+const STATE = { queued: 'on its way', asked: 'asked', confirmed: 'being paid',
+    held: 'held', releasing: 'coming back', done: '', returned: 'came back',
+    failed: 'did not go through', refused: 'refused' };
 
-function title(row) {
-    const kind = String(row.ref ?? '').split(':')[0];
-    const words = WORDS[kind];
-    if (words) return row.delta > 0 && kind === 'pay' ? 'Earned · rendered a tile' : words;
-    return row.delta > 0 ? 'Earned' : 'Paid';
+function field(label, props) {
+    const input = el('input', props);
+    return [input, el('label', {}, el('span', { textContent: label }), input)];
 }
 
-const when = (at) => (at
-    ? new Date(at).toLocaleDateString(undefined, { day: 'numeric', month: 'short' })
-    : '');
+// One form: who, how much, and what for.
+function form(name, verb, whoLabel, act) {
+    const [who, wl] = field(whoLabel, { type: 'text', placeholder: 'a player\'s name' });
+    const [amount, al] = field('amount', { type: 'number', min: '0.01', step: '0.01' });
+    const [note, nl] = field(name === 'pay' ? 'message' : 'what for', { type: 'text' });
+    const go = el('button', { type: 'button', className: 'primary', textContent: verb });
+    go.onclick = () => act({ who: who.value, amount: Number(amount.value), note: note.value });
+    return el('div', { className: `section wallet-${name}` },
+        el('span', { className: 'label', textContent: verb }), wl, al, nl, go);
+}
 
-const tile = (v, l, tone, cls) => el('div',
-    { className: `tile${cls ? ` ${cls}` : ''}`, 'data-tone': tone ?? '' },
-    el('div', { className: 'v', textContent: v }),
-    el('div', { className: 'l', textContent: l }));
-
-// What the pool still owes back: the bounties on jobs that are open, which are
-// the ones this wallet is holding money against.
-function heldFor(rows, open) {
-    const jobs = new Set((open ?? []).map((j) => String(j.job)));
-    let held = 0;
-    let n = 0;
-    for (const r of rows) {
-        const [kind, job] = String(r.ref ?? '').split(':');
-        if (kind === 'bounty' && jobs.has(job)) {
-            held += Math.abs(r.delta);
-            n += 1;
-        }
+function row(h, act) {
+    const kids = [el('div', { className: 'who' },
+        el('div', { className: 'name', textContent: h.with }),
+        el('div', { className: 'sub', textContent: [h.message, STATE[h.state], h.said]
+            .filter(Boolean).join(' · ') }))];
+    const end = el('div', { className: 'end' },
+        el('span', { className: 'amount', textContent: signed(Number(h.amount)),
+            style: `color: var(--${Number(h.amount) > 0 ? 'accent' : 'ink'})` }),
+        el('span', { className: 'muted', textContent: when(h.at) }));
+    if (h.asks_me) {
+        const yes = el('button', { type: 'button', className: 'primary', textContent: 'Pay' });
+        const no = el('button', { type: 'button', textContent: 'Refuse' });
+        yes.onclick = () => act(() => answer(h.id, true), 'Paying.');
+        no.onclick = () => act(() => answer(h.id, false), 'Refused.');
+        end.append(yes, no);
     }
-    return { held, n };
+    return el('li', { className: `wallet-row${h.asks_me ? ' wallet-ask' : ''}` }, ...kids, end);
 }
 
-export function mountWallet(host, { onBalance = () => {} } = {}) {
+export function mountWallet(host, { onBalance = () => {}, open = () => {} } = {}) {
+    const pick = el('select', { className: 'wallet-pick', ariaLabel: 'wallet' });
     const totals = el('div', { className: 'tiles' });
-    const head = el('div', { className: 'spread' });
-    const rows = el('ul', { className: 'rows' });
     const status = el('p', { className: 'wallet-status status' });
-    host.append(totals, head, rows, status);
-
-    const state = { account: null, rows: [], open: [], filter: 'All' };
-    const say = (msg, bad = false) => {
-        status.textContent = msg;
-        status.dataset.bad = bad ? '1' : '';
+    const rows = el('ul', { className: 'rows wallet-history' });
+    const state = { items: [], wallet: null, drawn: '', unit: '' };
+    const say = (msg, bad = false) => Object.assign(status,
+        { textContent: msg }).dataset.bad = bad ? '1' : '';
+    const act = async (fn, done) => {
+        try {
+            await fn();
+            say(done);
+        } catch (err) {
+            if (/Verify first/.test(errorText(err))) verifyFirst(status, open, errorText(err));
+            else say(errorText(err), true);
+        }
+        refresh();
     };
-
-    const draw = () => {
-        drawTotals(totals, state);
-        drawHead(head, state, draw);
-        drawRows(rows, state);
-    };
+    const forms = el('div', { className: 'wallet-forms' },
+        form('pay', 'Pay', 'pay to', ({ who, amount, note }) => act(
+            () => pay(state.wallet, who, amount, note), `Paying ${who} ${money(amount)}.`)),
+        form('request', 'Request', 'ask', ({ who, amount, note }) => act(
+            () => request(state.wallet, who, amount, note), `Asked ${who} for ${money(amount)}.`)));
+    const none = el('p', { className: 'muted wallet-none' });
+    host.append(el('div', { className: 'wallet' }, pick, totals, none, forms, status,
+        el('span', { className: 'label', textContent: 'What moved' }), rows));
+    pick.onchange = () => { state.wallet = pick.value; state.drawn = ''; refresh(); };
 
     async function refresh() {
-        state.account = await myAccount();
-        state.rows = state.account ? await myLedger(state.account.id, 60) : [];
-        state.open = await api.rpc('render_pool', { limit: 200 }).catch(() => []);
-        draw();
-        onBalance(state.account);
-        return state.account;
+        const signedIn = Boolean(api.userId());
+        state.unit = await currency();
+        state.items = signedIn
+            ? (await myItems()).filter((i) => i.kind === 'wallet' && i.held) : [];
+        if (!state.items.some((i) => i.id === state.wallet)) {
+            state.wallet = state.items[0]?.id ?? null;
+        }
+        const w = state.items.find((i) => i.id === state.wallet) ?? null;
+        drawTotals(totals, w, state.unit);
+        drawPick(pick, state);
+        forms.hidden = !w;
+        none.hidden = Boolean(w);
+        none.textContent = signedIn ? 'You hold no wallet. A verified player is given one'
+            + ' with the starting amount; a wallet can also be handed to you, or picked up.'
+            : 'Sign in to see your wallet.';
+        const h = w ? await history(w.id) : [];
+        const seen = JSON.stringify(h);
+        if (seen !== state.drawn) {
+            state.drawn = seen;
+            rows.replaceChildren(...(h.length ? h.map((x) => row(x, act)) : [el('li',
+                { className: 'muted', textContent: w ? 'Nothing has moved yet.' : '' })]));
+        }
+        onBalance(w ? { amount: w.balance, unit: state.unit } : null);
+        return w;
     }
 
+    // The balance on the bar follows the wallet whether the panel is open or not.
+    setInterval(refresh, 4000);
     refresh();
     return { refresh, state, say };
 }
 
-function drawTotals(host, state) {
-    if (!state.account) {
-        host.replaceChildren(el('div', { className: 'muted',
-            textContent: 'Sign in to see your wallet.' }));
-        return;
-    }
-    const { held, n } = heldFor(state.rows, state.open);
-    const sum = (f) => state.rows.filter(f).reduce((a, r) => a + Math.abs(r.delta), 0);
+function drawPick(pick, state) {
+    pick.hidden = state.items.length < 2;
+    pick.replaceChildren(...state.items.map((i, n) => el('option', { value: i.id,
+        textContent: `Wallet ${n + 1} · ${money(i.balance)}`, selected: i.id === state.wallet })));
+}
+
+function drawTotals(host, w, unit) {
+    if (!w) { host.replaceChildren(); return; }
     host.replaceChildren(
         // .wallet-balance is what anything outside this panel looks for.
-        tile(cr(state.account.amount), 'credits available', 'accent', 'wallet-balance'),
-        tile(cr(held), `held for ${n} open job${n === 1 ? '' : 's'}`, 'warn'),
-        tile(signed(-sum((r) => r.delta < 0)), 'paid'),
-        tile(signed(sum((r) => r.delta > 0)), 'earned', 'accent'));
+        el('div', { className: 'tile wallet-balance' },
+            el('div', { className: 'v', textContent: money(w.balance) }),
+            el('div', { className: 'l', textContent: `${unit || 'cash'} in this wallet` })),
+        el('div', { className: 'tile' },
+            el('div', { className: 'v', textContent: w.pending ? 'yes' : 'no' }),
+            el('div', { className: 'l', textContent: 'on its way' })));
 }
-
-function drawHead(host, state, draw) {
-    const chip = (f) => {
-        const b = el('button', { type: 'button', textContent: f });
-        if (f === state.filter) b.dataset.on = '1';
-        b.onclick = () => { state.filter = f; draw(); };
-        return b;
-    };
-    host.replaceChildren(
-        el('span', { className: 'label', textContent: 'All movements' }),
-        el('div', { className: 'row' }, chip('All'), chip('Paid'), chip('Earned')));
-}
-
-function drawRows(host, state) {
-    const shown = state.rows.filter((r) => state.filter === 'All'
-        || (state.filter === 'Earned' ? r.delta > 0 : r.delta < 0));
-    host.replaceChildren(...shown.map((r) => el('li', {},
-        el('div', { className: 'who' },
-            el('div', { className: 'name', textContent: title(r) }),
-            el('div', { className: 'sub', textContent: r.ref })),
-        el('div', { className: 'end' },
-            el('span', { style: `color: var(--${r.delta > 0 ? 'accent' : 'ink'})`,
-                textContent: signed(r.delta) }),
-            el('span', { className: 'muted', textContent: when(r.at) })))));
-    if (!shown.length) {
-        host.append(el('li', { className: 'muted',
-            textContent: state.account ? 'Nothing has moved yet.'
-                : 'Your movements are private — sign in to see them.' }));
-    }
-}
-

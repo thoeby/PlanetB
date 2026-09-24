@@ -17,9 +17,13 @@ import os
 import shutil
 import socket
 import subprocess
+import tempfile
 import threading
 import time
 from pathlib import Path
+
+
+_socks = itertools.count(1)
 
 
 class WalletError(Exception):
@@ -41,7 +45,12 @@ def cli() -> str:
 
 
 class WalletCore:
-    def __init__(self, db: Path, sock: Path, on_notify=None, log: Path | None = None):
+    def __init__(self, db: Path, sock: Path | None = None, on_notify=None,
+                 log: Path | None = None):
+        # A Unix socket's path is at most 107 bytes, which a wallet's own
+        # folder easily is not: by default it goes in the temp folder.
+        if sock is None:
+            sock = Path(tempfile.gettempdir()) / f"twc-{os.getpid()}-{next(_socks)}.sock"
         self.db, self.sock, self.log = Path(db), Path(sock), log
         self.on_notify = on_notify or (lambda n: None)
         self.proc: subprocess.Popen | None = None

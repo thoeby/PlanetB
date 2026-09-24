@@ -137,3 +137,5 @@ expiry. Any that fails: one sentence under Blocked, stop.
 ## Blocked
 
 (Agent writes here, one sentence per item, and stops.)
+
+- MN.6's story is not run: a flow runs on a process server and none is reachable from this container (as for story 29); what it stands on — a flow holding a wallet, its own key, the Money blocks — is built and proven by db/test/0202 and client/test/world-plugin.test.js.

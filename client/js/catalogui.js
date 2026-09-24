@@ -5,7 +5,7 @@
 // (Invariant 6).
 
 import * as api from './api.js';
-import { buyAsset, myRights, offerOf } from './wallet.js';
+import { buy as buyIt, myBuys, myRights, offerOf } from './wallet.js';
 import { CATEGORIES, LICENSES, TYPES, getAsset, glbUrl,
     searchAssets, thumbUrl, typeWords } from './catalog.js';
 import { mountMarksForm } from './catalogmarks.js';
@@ -104,19 +104,22 @@ function detailOf(asset) {
     return dl;
 }
 
-// WP4.4: a licence is bought here. What it costs and whether there is one left
-// is the asset's own business; buy_asset is one transaction and refuses the
-// rest (Invariant 5), so the button only has to show what it said.
-function buyButton(asset, held, status, reopen) {
-    const offer = offerOf(asset, held.has(asset.san));
+// A licence is bought here (PLAN-money.md MN.5): the creator's wallet asks for
+// the price, pressing Buy is paying it, and the licence is handed over when the
+// cash is in. Editions and rights stay the database's (Invariant 5, db/0201),
+// so the button only has to show what it said.
+function buyButton(asset, held, status, reopen, buying = {}) {
+    const offer = offerOf(asset, held.has(asset.san), buying[asset.san]);
     const buy = el('button', { type: 'button', className: 'buy',
         textContent: offer.label, disabled: offer.state !== 'buy' || !api.claims() });
     buy.onclick = async () => {
         buy.disabled = true;
         try {
-            await buyAsset(asset.san);
-            held.add(asset.san);
-            status.textContent = `licensed ${asset.san}`;
+            const r = await buyIt(asset.san);
+            if (r.state === 'held') held.add(asset.san);
+            status.textContent = r.state === 'held' ? `licensed ${asset.san}`
+                : `paying ${r.to} ${Number(r.price).toFixed(2)} — the licence is yours`
+                    + ' when the payment is in';
             await reopen(asset.san);
         } catch (err) {
             buy.textContent = String(err.body?.message ?? err.message ?? err);
@@ -219,8 +222,10 @@ export function mountCatalog(doc, { mountAuth, choices } = {}) {
         detail.hidden = !asset;
         if (!asset) return;
         detail.innerHTML = '';
+        const buying = api.claims() ? await myBuys() : {};
+        if (buying[san]?.state === 'done') held.add(san);
         detail.append(el('h2', { textContent: asset.name }), detailOf(asset),
-            el('p', {}, buyButton(asset, held, status, open), ' ',
+            el('p', {}, buyButton(asset, held, status, open, buying), ' ',
                 el('a', { href: glbUrl(asset), textContent: 'canonical glb' })));
     };
 

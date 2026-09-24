@@ -131,6 +131,14 @@ export function labelObjects(ctx, objects, host) {
     return labelWorld(ctx, marks, host, 'object');
 }
 
+// PLAN-money.md §3: an item is never baked; one lying on the ground is marked
+// over the splats where it lies, the way a mover is drawn over them.
+export function labelItems(ctx, items, host) {
+    const marks = (items ?? []).map((i) => ({ key: `item:${i.id}`, words: 'Wallet',
+        at: { lon: i.lon, lat: i.lat, h: i.h }, up: 0.4 }));
+    return labelWorld(ctx, marks, host, 'item');
+}
+
 // The words, held over the spot they belong to. A line in the world cannot
 // carry letters, so the letters are HTML over the canvas: it moves with the
 // camera and disappears when the spot is behind you.

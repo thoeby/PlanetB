@@ -27,7 +27,8 @@ export const test = base.extend({
         // Which GeoServer answered, in the run's output: a story that passed
         // against the fixture has passed against the fixture only.
         process.stdout.write(`\n  world: ${world.pageUrl}`
-            + `\n  geoserver (${world.geoserverKind}): ${world.geoserverUrl}\n\n`);
+            + `\n  geoserver (${world.geoserverKind}): ${world.geoserverUrl}`
+            + `\n  cash: ${world.cash.kind}${world.cash.why ? ` — ${world.cash.why}` : ''}\n\n`);
         await use(world);
         world.stop();
     }, { scope: 'worker', auto: false, timeout: 900_000 }],
@@ -180,7 +181,7 @@ export async function panelApp(where, name) {
 }
 
 // PLAN-identity.md ID.4: a player verified without e-ID. They type who they
-// are on Profile → Verify; the admin reads it on Settings → Players, checks it
+// are on Profile → Verify; the admin reads it on Admin → Players, checks it
 // the way the player said, and confirms. Every player who gets land, builds
 // or registers a product in these stories has been through this first.
 export async function verifies(player, admin, { given, family, born, how }) {

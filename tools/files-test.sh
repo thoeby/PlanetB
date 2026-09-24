@@ -72,6 +72,9 @@ JWT=$(curl -s -X POST "$API_URL/rpc/register" -H 'Content-Type: application/json
       curl -s -X POST "$API_URL/rpc/login" -H 'Content-Type: application/json' \
         -d "{\"email\":\"files$STAMP@example.com\",\"pw\":\"password12\"}" | tr -d '"')
 UID_=$($PSQL -c "SELECT id FROM auth.user WHERE email = 'files$STAMP@example.com'")
+# PLAN-identity.md: a player who opens work on their land is a verified person.
+$PSQL -c "INSERT INTO player_verification (player_id, state, method, how)
+          VALUES ('$UID_', 'verified', 'manual', 'fixture')" > /dev/null
 
 # An area, a feature, a job and a claimed atom, so /jobs/{atom}/ is reserved.
 # The area sits at a per-run offset so repeated runs never share a tile.

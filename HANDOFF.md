@@ -183,6 +183,64 @@ yours for …". `make db-reset` then `bash tools/test-tiles.sh`, before
 `make gate` on a seeded box fails here and the viewer tests then skip for want
 of published tiles.
 
+## 1a. Cash: GNU Taler, and who a player is
+
+`PLAN-money.md` and `PLAN-identity.md` are the owner's decisions; stories 32–40
+of the run prove them. What the world's cash needs on a machine:
+
+**The Taler binaries.** No Taler is reachable here from deb.taler.net,
+ftp.gnu.org or git.taler.net, and Ubuntu has no package; the Nix binary cache
+has them. Nix single-user, then the exact builds everything was proven with:
+
+```sh
+curl -sL https://releases.nixos.org/nix/nix-2.24.9/nix-2.24.9-x86_64-linux.tar.xz | tar xJ
+mkdir -p /nix /etc/nix && printf 'build-users-group =\nexperimental-features = nix-command\n' > /etc/nix/nix.conf
+(cd nix-2.24.9-x86_64-linux && USER=root ./install --no-daemon)
+export USER=root PATH=/root/.nix-profile/bin:$PATH
+nix-env -i /nix/store/9sc42nm9lq15wm08199wa5380ii5h6v2-taler-exchange-1.3.0 \
+           /nix/store/c4frklddl48p360bn4wbx601qv8ivvvv-taler-wallet-core-1.5.10 \
+           /nix/store/impawclqkdq0qka7iqgla0vzqs96jqc8-libeufin-1.3.0
+make taler-step0      # 12 checks, a minute: the issuer does what the plan needs
+```
+
+`tools/taler-up.sh` starts the issuer and libeufin-bank from those binaries
+(`stop`, `stop-issuer`, `reset`); `splatworld walletd` keeps the wallets. The
+player-run starts all three by itself when `taler-exchange-httpd` is on PATH,
+and prints `cash: taler` beside the GeoServer line — or `cash: none`, and then
+every money story fails on that sentence.
+
+**Windows, or any machine with Docker.** Neither the issuer nor wallet-core's
+socket server runs on Windows itself. `infra/taler/Dockerfile` is one image
+with the same pinned builds (from the Nix cache) and walletd; `infra/compose.yml`
+runs it as `cash` and `walletd`. The image was built and both services run
+here against the local Postgres; compose's own networking was not.
+
+Traps already paid for:
+
+- `taler-wallet-cli --no-http` *requires* TLS. Leave it off for a local issuer.
+- A bank `request_uid` is 32 bytes of Crockford base32. The reserve public key
+  is one, and is the natural key: one reserve, one transfer.
+- A request's `taler://` URI exists before its contract is at the issuer;
+  paying it then says "unknown P2P contract". Wait for `txState.minor ==
+  "ready"` (`talerwallet.WalletCore.uri_of`).
+- A Unix socket path is at most 107 bytes. wallet-core's sockets live in the
+  temp folder, not beside the wallet files.
+- `make` reads `.env` and it wins over the environment: `PGDATABASE=x make
+  db-reset` resets the run's own database. Say `make PGDATABASE=x db-reset`.
+- `pay`, `set_bounty` and `buy_asset` were executable through PUBLIC as well
+  as through `player`; db/0197 revokes both.
+- `el('li', { dataset: {...} })` throws in a module: `dataset` has no setter.
+  The panel then draws nothing and says nothing.
+
+**Stories 8 and later render on this box only as far as story 7.** On
+untouched HEAD, story 8's z14 render does not finish in its ten minutes on
+SwiftShader. The new stories run on a world that got through story 7 (§0):
+
+```sh
+make player-run RUN_ARGS="$(ls client/test/run/0[0-7]-*.spec.js client/test/run/3[2-5]-*.spec.js \
+    client/test/run/3[79]-*.spec.js client/test/run/40-*.spec.js | tr '\n' ' ')"
+```
+
 ## 2. Traps already paid for
 
 Things that cost time once. Do not rediscover them.

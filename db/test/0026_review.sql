@@ -78,10 +78,12 @@ CREATE TEMP TABLE j2 AS
 SELECT ensure_job(12, (SELECT x FROM tt), (SELECT y FROM tt)) AS jid;
 SELECT is((SELECT state FROM job WHERE id = (SELECT jid FROM j1)), 'cancelled',
           'the older job is cancelled');
-SELECT is(account_balance(escrow_account()), 0::numeric,
-          'and its bounty is refunded');
-SELECT is(account_balance(my_account()), 99::numeric,
-          'to whoever paid it');
+-- PLAN-money.md: a cancelled job gives back cash held for it (db/0200); the
+-- ledger is history, and nothing moves in it.
+SELECT is((SELECT bounty FROM job WHERE id = (SELECT jid FROM j1)), 0::numeric,
+          'and it carries no price');
+SELECT is(account_balance(escrow_account()), 15::numeric,
+          'and the ledger is left as it was');
 
 -- ----------------------------------------------------- two payouts, one txn
 

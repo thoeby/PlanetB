@@ -171,4 +171,140 @@
             </output>
         </node>
     </group>
+
+    <group id="money">
+        <name>Money</name>
+
+        <node id="balance">
+            <name>Balance</name>
+            <description type="short">What a wallet the flow holds has in it</description>
+            <description type="long">The cash in one wallet this flow holds, as the wallet last said (PLAN-money.md
+                M6). Only the holder reads it: the flow, with its own key.</description>
+            <input name="World">
+                <structure id="droplet"/>
+                <value id="url"/>
+            </input>
+            <input name="World Key">
+                <structure id="droplet"/>
+                <value id="string"/>
+            </input>
+            <input name="Wallet">
+                <structure id="droplet"/>
+                <value id="string"/>
+            </input>
+            <output name="Balance">
+                <structure id="droplet"/>
+                <value id="real"/>
+            </output>
+            <output name="Error">
+                <structure id="droplet"/>
+                <value id="error-code"/>
+            </output>
+        </node>
+
+        <node id="pay">
+            <name>Pay</name>
+            <description type="short">Send cash from the flow's wallet</description>
+            <description type="long">Pays a wallet — a player's, by name, or a wallet's id — from a wallet this
+                flow holds, with a message. The wallet says whether it could.</description>
+            <input name="World">
+                <structure id="droplet"/>
+                <value id="url"/>
+            </input>
+            <input name="World Key">
+                <structure id="droplet"/>
+                <value id="string"/>
+            </input>
+            <input name="Wallet">
+                <structure id="droplet"/>
+                <value id="string"/>
+            </input>
+            <input name="To">
+                <structure id="droplet"/>
+                <value id="string"/>
+            </input>
+            <input name="Amount">
+                <structure id="droplet"/>
+                <value id="real"/>
+            </input>
+            <input name="Message">
+                <structure id="droplet"/>
+                <value id="string"/>
+            </input>
+            <output name="OK">
+                <structure id="droplet"/>
+                <value id="boolean"/>
+            </output>
+            <output name="Error">
+                <structure id="droplet"/>
+                <value id="error-code"/>
+            </output>
+        </node>
+
+        <node id="request">
+            <name>Request</name>
+            <description type="short">Ask a wallet to pay the flow's</description>
+            <description type="long">Asks a player's wallet for cash into a wallet this flow holds; the payer
+                confirms it in their wallet. A till is this block.</description>
+            <input name="World">
+                <structure id="droplet"/>
+                <value id="url"/>
+            </input>
+            <input name="World Key">
+                <structure id="droplet"/>
+                <value id="string"/>
+            </input>
+            <input name="Wallet">
+                <structure id="droplet"/>
+                <value id="string"/>
+            </input>
+            <input name="From">
+                <structure id="droplet"/>
+                <value id="string"/>
+            </input>
+            <input name="Amount">
+                <structure id="droplet"/>
+                <value id="real"/>
+            </input>
+            <input name="Message">
+                <structure id="droplet"/>
+                <value id="string"/>
+            </input>
+            <output name="OK">
+                <structure id="droplet"/>
+                <value id="boolean"/>
+            </output>
+            <output name="Error">
+                <structure id="droplet"/>
+                <value id="error-code"/>
+            </output>
+        </node>
+
+        <node id="received">
+            <name>Money Received</name>
+            <description type="short">What has come into the flow's wallet</description>
+            <description type="long">Every payment into a wallet this flow holds: how much, from whom, with what
+                message and when. What came in since the last look fires the rest.</description>
+            <input name="World">
+                <structure id="droplet"/>
+                <value id="url"/>
+            </input>
+            <input name="World Key">
+                <structure id="droplet"/>
+                <value id="string"/>
+            </input>
+            <input name="Wallet">
+                <structure id="droplet"/>
+                <value id="string"/>
+            </input>
+            <output name="Payments">
+                <structure id="droplet"/>
+                <value id="json"/>
+            </output>
+            <output name="Error">
+                <structure id="droplet"/>
+                <value id="error-code"/>
+            </output>
+        </node>
+    </group>
 </plugin>

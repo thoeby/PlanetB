@@ -1,5 +1,8 @@
-# Four processes, no more (Invariant 10): postgres, postgrest, nginx, geoserver.
-# None of them computes anything for the world — every atom runs in a browser.
+# The processes Invariant 10 allows: postgres, postgrest, nginx, geoserver, and
+# since PLAN-money.md the world's cash — the issuer with the bank it reads
+# from (`cash`), and walletd. None of them computes anything for the world:
+# every atom runs in a browser, and walletd carries out only what the holder
+# of a wallet asked (Invariant 9).
 name: splatworld
 
 services:
@@ -67,6 +70,55 @@ services:
     volumes:
       - geoserver-data:/opt/geoserver_data
 
+  # PLAN-money.md §1: GNU Taler's issuer and libeufin-bank, one currency, no
+  # fees. Each keeps a database of its own on the same Postgres server.
+  cash:
+    build:
+      context: .
+      dockerfile: infra/taler/Dockerfile
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      PGHOST: db
+      PGUSER: postgres
+      PGPASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env}
+      TALER_HOME: /data/taler
+      TALER_BIND: 0.0.0.0
+      TALER_CURRENCY: ${TALER_CURRENCY:-PLANETB}
+      TALER_EXCHANGE_URL: http://cash:${TALER_EXCHANGE_PORT:-8091}/
+      TALER_BANK_URL: http://cash:${TALER_BANK_PORT:-8092}/
+      TALER_ISSUER_PASSWORD: ${TALER_ISSUER_PASSWORD:-issuer-password}
+      TALER_EXCHANGE_BANK_PASSWORD: ${TALER_EXCHANGE_BANK_PASSWORD:-exchange-password}
+    ports:
+      - "127.0.0.1:${TALER_EXCHANGE_PORT:-8091}:${TALER_EXCHANGE_PORT:-8091}"
+    volumes:
+      - cash-data:/data
+
+  # Keeps each wallet item's cash (server/splatworld/walletd.py).
+  walletd:
+    build:
+      context: .
+      dockerfile: infra/taler/Dockerfile
+    restart: unless-stopped
+    depends_on:
+      - cash
+    command: ["splatworld", "walletd"]
+    environment:
+      PGHOST: db
+      PGUSER: postgres
+      PGPASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env}
+      PGDATABASE: ${PGDATABASE:-splatworld}
+      WALLETD_HOME: /data/walletd
+      TALER_EXCHANGE_URL: http://cash:${TALER_EXCHANGE_PORT:-8091}/
+      TALER_BANK_URL: http://cash:${TALER_BANK_PORT:-8092}/
+      TALER_ISSUER_PASSWORD: ${TALER_ISSUER_PASSWORD:-issuer-password}
+    volumes:
+      - walletd-data:/data
+
 volumes:
   db-data:
   geoserver-data:
+  cash-data:
+  walletd-data:

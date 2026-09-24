@@ -51,7 +51,7 @@ function profileChip(onPick) {
 // balance and it should never need opening to be read.
 function walletChip(onPick) {
     const credits = el('span', { className: 'credits', textContent: '—' },
-        el('i', { textContent: 'CR' }));
+        el('i', { textContent: '' }));
     const b = tabButton(TABS.find((t) => t.name === 'Wallet'), onPick,
         icon('Wallet'), credits);
     b.classList.add('money');
@@ -129,8 +129,10 @@ export function topBar(show, { onApps, onTray }) {
     const money = walletChip(show);
     const settings = tabButton(TABS.find((t) => t.name === 'Settings'), show,
         icon('Settings'));
+    const admin = tabButton(TABS.find((t) => t.name === 'Admin'), show, icon('Admin'));
     buttons.set('Profile', you.b);
     buttons.set('Wallet', money.b);
+    buttons.set('Admin', admin);
     buttons.set('Settings', settings);
     // SPEC §2.1: how many things are waiting for you, beside the bell that
     // says what they were. js/attention.js fills it.
@@ -141,7 +143,7 @@ export function topBar(show, { onApps, onTray }) {
         strip('top-left', appsBtn,
             el('span', { className: 'mark', textContent: 'splatworld' }), apps.node),
         strip('top-right', machine.b, waiting, stats.node, clock, money.b, bell,
-            you.b, settings));
+            you.b, admin, settings));
     setInterval(() => {
         clock.firstChild.textContent = clockText();
     }, CLOCK_MS);

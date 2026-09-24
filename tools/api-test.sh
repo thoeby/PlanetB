@@ -123,10 +123,10 @@ is "anon cannot claim work" 401 "$(code POST /rpc/claim_atom '{"caps":{}}')"
 # somebody else's tile. The pool's own call takes the job this test opened.
 is "a player can claim an atom" 200 \
     "$(code POST /rpc/claim_for "{\"job_id\":$JOB,\"caps\":{\"webgpu\":true,\"vram_gb\":8}}" "$OWNER_JWT")"
-# Since db/0016_sample.sql a z14 job starts with the assemble atom: the
-# baseline tile is built from the world, not merged from children it has none of.
-grep -q '"op" *: *"assemble"' "$body" && ok "the claimed atom is the assemble" \
-    || no "the claimed atom is the assemble ($(head -c 120 "$body"))"
+# A z14 job starts from the world, not from children it has none of: since
+# db/0183 that first piece is one `dataset` atom (it was `assemble`).
+grep -q '"op" *: *"dataset"' "$body" && ok "the claimed atom is the dataset" \
+    || no "the claimed atom is the dataset ($(head -c 120 "$body"))"
 ATOM=$(sed 's/.*"id":\([0-9]*\).*/\1/' "$body")
 is "heartbeat on my claim" 204 "$(code POST /rpc/heartbeat "{\"atom_id\":$ATOM}" "$OWNER_JWT")"
 

@@ -84,7 +84,7 @@ test('the chrome says where you are and what the world is doing', async ({ page 
     await expect(page.locator('#tabs .tab .label'))
         .toHaveText(['Place', 'Catalog', 'Land', 'Publish', 'Work']);
     await expect(page.locator('#tabs .tab .key')).toHaveText(['1', '2', '3', '4', '5']);
-    await expect(page.locator('#top button[data-tab]')).toHaveCount(3);
+    await expect(page.locator('#top button[data-tab]')).toHaveCount(4);
 
     // How high you are, and how far that is above the ground.
     await expect(page.locator('#alt .read .v')).toHaveText(/[\d,—]/);
@@ -167,8 +167,8 @@ test('every panel has something in it', async ({ page }) => {
         [...document.querySelectorAll('#tabs .tab, #top button[data-tab]')]
             .flatMap((n) => n.dataset.parts?.split(',').filter(Boolean) ?? [n.dataset.tab]));
     // The strip comes first in the page, then the plinth.
-    expect(tabs).toEqual(['Wallet', 'Profile', 'Verify', 'Share', 'Setup', 'Land',
-        'Vocabulary', 'Symbols', 'Ground cover', 'Players', 'Place', 'Catalog',
+    expect(tabs).toEqual(['Wallet', 'Profile', 'Verify', 'Inventory', 'Share', 'Players',
+        'Cash', 'Setup', 'Land', 'Vocabulary', 'Symbols', 'Ground cover', 'Place', 'Catalog',
         'Your land', 'Shape', 'Submit', 'Permission', 'Every job',
         'Render jobs', 'Training', 'Publishing', 'Machine']);
     // A world with no ground opens on Setup by itself, so close whatever is

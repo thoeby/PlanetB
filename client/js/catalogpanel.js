@@ -82,7 +82,7 @@ const HTML = `
       <span class="head">Price and editions</span>
       <div class="row">
         <input id="price" type="number" min="0" step="0.01" value="0"
-          placeholder="cr per placement">
+          placeholder="price, in the world's cash">
         <input id="editions" type="number" min="1" step="1"
           placeholder="editions — blank is unlimited">
       </div>
