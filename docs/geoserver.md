@@ -26,7 +26,7 @@ layers, which needs no configuration either.
 ## Pointing the world at it
 
 In the page: **Setup → GeoServer**. The address is whatever opens its pages —
-`localhost:8082/geoserver`, or the full URL of a workspace. Press **Connect**:
+`localhost:8083/geoserver`, or the full URL of a workspace. Press **Connect**:
 the world asks the WCS what it publishes, and refuses to go on if the answer
 is nothing. Pick the coverage in **Ground** and press **Use this ground**.
 

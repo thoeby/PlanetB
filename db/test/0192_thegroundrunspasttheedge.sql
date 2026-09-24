@@ -1,6 +1,6 @@
--- The ground runs past the tile's edge and alpha counts for more (db/0192).
+-- The ground runs past the tile's edge (db/0192; its alpha weight went in db/0193).
 BEGIN;
-SELECT plan(3);
+SELECT plan(2);
 
 SET client_min_messages = warning;
 
@@ -22,12 +22,9 @@ CREATE TEMP TABLE j AS
 SELECT ensure_job(14, tile_x(7.885, 14), tile_y(46.295, 14)) AS jid;
 
 SELECT is((SELECT algo_version FROM atom
-           WHERE job_id = (SELECT jid FROM j) AND op = 'dataset'), 'dataset-v6',
+           WHERE job_id = (SELECT jid FROM j) AND op = 'dataset'), 'dataset-v7',
     'the dataset carries the skirt');
-SELECT is((SELECT (params -> 'brush' ->> 'match-alpha-weight')::numeric FROM atom
-           WHERE job_id = (SELECT jid FROM j) AND op = 'train'), 0.5,
-    'the frames'' alpha counts at half the colour');
-SELECT is(algo_current('dataset'), 'dataset-v6', 'and the pool hands that out');
+SELECT is(algo_current('dataset'), 'dataset-v7', 'and the pool hands that out');
 
 SELECT * FROM finish();
 ROLLBACK;

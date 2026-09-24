@@ -20,7 +20,7 @@ SELECT register('draw@example.com', 'password12') AS owner_id;
 GRANT SELECT ON ids TO player;
 DELETE FROM ground;
 INSERT INTO ground (geoserver_url, coverage, extent, set_by)
-SELECT 'http://localhost:8082/geoserver', 'test:ground',
+SELECT 'http://localhost:8083/geoserver', 'test:ground',
        st_makeenvelope(6.9, 45.9, 7.6, 46.6, world_srid()), ids.owner_id FROM ids;
 INSERT INTO area (id, geom, owner_id, detail)
 SELECT '00000000-0000-0000-0000-0000000000e1'::uuid,

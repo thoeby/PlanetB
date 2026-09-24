@@ -151,12 +151,12 @@ events yet — flows do, from F10 — but they are written now.
 ## Process servers (F10)
 
 `TASKS-flows.md` FL.1–FL.7. A player keeps process servers of their own
-(`process_server`, db/0193) and Automate talks to the chosen one directly from
+(`process_server`, db/0195) and Automate talks to the chosen one directly from
 the tab: its blocks join the palette, and its processes, services, jobs and
 reports are listed and edited under **On <server>**. A flow may belong to a
-placed thing (`flow.instance_id`, db/0194), and **Run on…** in that thing's
+placed thing (`flow.instance_id`, db/0196), and **Run on…** in that thing's
 panel sends the flow, makes a job on the server and gives it a key of its own
-(`deploy_flow`, db/0195) that can set ports on that land only. The client for
+(`deploy_flow`, db/0197) that can set ports on that land only. The client for
 all of it is `client/flow/server/`; the stand-in server the stories use is
 `tools/elx-fixture.py`.
 

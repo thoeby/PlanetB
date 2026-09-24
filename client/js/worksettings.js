@@ -59,7 +59,10 @@ export function machineRows(caps, work, onLanes = null, standing = null) {
     const rows = [
         ['Renderer', caps?.webgpu
             ? `WebGPU · ${caps.adapter?.vendor ?? 'gpu'}`
-            : `WebGL2 only · ${caps?.renderer ?? 'unknown renderer'}`],
+            : caps?.webgpu_missing
+                ? `WebGPU · ${caps.adapter?.vendor ?? 'gpu'}`
+                    + ` · no ${caps.webgpu_missing.join(', ')}: cannot train`
+                : `WebGL2 only · ${caps?.renderer ?? 'unknown renderer'}`],
         ['Buffers', caps?.webgpu ? `up to ${caps.max_buffer_mb} MB` : 'not asked for'],
         ['Pieces at once', lanesBox(work, onLanes)],
         ['Done', String(work?.done ?? 0), 'accent'],

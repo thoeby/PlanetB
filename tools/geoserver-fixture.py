@@ -15,7 +15,7 @@ It answers nothing else. It is a stand-in for a service the player is given,
 not for anything a player does: no story step touches it, and every story that
 passes here passes against the container too or it is not passing.
 
-    python3 tools/geoserver-fixture.py --tif infra/seed/dem-visp.tif --port 8082
+    python3 tools/geoserver-fixture.py --tif infra/seed/dem-visp.tif --port 8083
 
 The ground-cover fixtures of TASKS-foundation.md FND.0 are published the same
 way, as WMS layers painted by the class style of tools/geoserver_cover.py:
@@ -283,7 +283,7 @@ def main(argv: list[str]) -> int:
     global VERBOSE
     ap = argparse.ArgumentParser(description=__doc__)
     ap.add_argument("--tif", default="infra/seed/dem-visp.tif")
-    ap.add_argument("--port", type=int, default=8082)
+    ap.add_argument("--port", type=int, default=8083)
     ap.add_argument("--host", default="127.0.0.1")
     ap.add_argument("--name", default="splatworld:visp",
                     help="how the coverage is named in the capabilities")

@@ -1,4 +1,4 @@
--- 0195_aflowrunsunderakeyofitsown.sql — a flow sent to a process server, and
+-- 0197_aflowrunsunderakeyofitsown.sql — a flow sent to a process server, and
 -- the key it writes to the world with.
 --
 -- TASKS-flows.md FL.7, which approves the table, the role and the two RPCs.
@@ -115,7 +115,7 @@ BEGIN
         RAISE EXCEPTION '% cannot be told "%"', inst.san, p_port
             USING errcode = '22023';
     END IF;
-    -- A flow says everything in words (0195, port_value_of).
+    -- A flow says everything in words (0197, port_value_of).
     p_value := port_value_of(decl ->> 'type', p_value);
     PERFORM check_port_value(decl ->> 'type', p_value);
     -- A picture the world already holds, registered as one: a screen is not a

@@ -9,7 +9,7 @@ import assert from 'node:assert/strict';
 
 import * as tm from '../lib/tilemath.js';
 import { FloatingOrigin } from '../js/origin.js';
-import { selectTiles, key, LIMITS, sphereVisible, tileRadius } from '../js/tiles.js';
+import { selectTiles, key, LIMITS, sphereVisible, tileRadius, TileStreamer } from '../js/tiles.js';
 
 // The tiles tools/make-test-tiles.mjs publishes, with the manifests it writes.
 const GRID = { 6: 24, 8: 32, 10: 48 };
@@ -108,15 +108,29 @@ test('no entity is placed further than 1e5 m from the floating origin', () => {
     assert.ok(worst < 1e5, `worst entity offset ${worst.toFixed(0)} m`);
 });
 
-test('a level with an unpublished hole keeps its parent under the children it has', () => {
-    // Take one z10 away: its published siblings are drawn, and the z8 parent
-    // stays under them so the hole is not a gap.
+test('a level with an unpublished child does not draw its parent under the rest', () => {
+    // Take one z10 away: its published siblings are drawn, and the z8 parent,
+    // which is only ever merged from them, is not drawn under them as a
+    // blurred second copy — it holds nothing for the child never published.
     const holed = world();
     holed.tiles.set('10/535/362', row(10, 535, 362, false));
     settle(holed, camera(1e6));
     assert.deepEqual(sorted(holed.loaded.keys()),
-        ['10/535/361', '10/536/361', '10/536/362', '8/133/90'],
-        'the published children show, the parent of the hole stays');
+        ['10/535/361', '10/536/361', '10/536/362'],
+        'the published children show, and only they');
+});
+
+test('a dirty parent gives way to its children at any distance', () => {
+    // From 20 000 km the z6 alone is drawn — but a dirty one had a child
+    // published since it was merged, so its children are drawn instead.
+    const far = world();
+    settle(far, camera(2e7));
+    assert.deepEqual(sorted(far.loaded.keys()), ['6/33/22'], 'the clean parent is drawn');
+    const w = world();
+    w.tiles.get('6/33/22').dirty = true;
+    settle(w, camera(2e7));
+    assert.deepEqual(sorted(w.loaded.keys()), ['8/133/90', '8/134/90'],
+        'the dirty one gives way to its published children, until it is merged again');
 });
 
 test('children that do not exist are not holes', () => {
@@ -276,4 +290,19 @@ test('a tile that failed to load is left alone until its retry time', () => {
     w.failed = new Map();
     settle(w, camera(1e6));
     assert.ok(w.loaded.has('10/535/362'), 'and is tried again once the backoff is over');
+});
+
+test('a tile published after the page loaded, over uncovered ground, becomes a root', async () => {
+    // The roots were worked out once, from the rows the page loaded with, and
+    // a tile trained later where nothing above it is published was never drawn.
+    const later = row(10, 540, 370);
+    const s = new TileStreamer(null, null, {
+        origin: new FloatingOrigin(tm.tileFrame(10, 535, 361, 0)),
+        fetchRows: async () => [later],
+    });
+    s.setTiles([row(10, 535, 361)]);
+    assert.deepEqual(s.roots, [{ z: 10, x: 535, y: 361 }]);
+    await s.poll();
+    assert.deepEqual(s.roots.map((r) => key(r.z, r.x, r.y)).sort(),
+        ['10/535/361', '10/540/370']);
 });

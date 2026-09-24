@@ -1,4 +1,4 @@
--- A flow may belong to one placed thing on its land (db/0194).
+-- A flow may belong to one placed thing on its land (db/0196).
 BEGIN;
 SELECT plan(7);
 

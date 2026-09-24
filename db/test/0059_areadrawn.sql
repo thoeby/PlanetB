@@ -7,7 +7,7 @@ INSERT INTO auth.user (id, email, pw_hash, role) VALUES
 ('00000000-0000-0000-0000-00000000f101', 'drawn@example.com', 'x', 'admin');
 DELETE FROM ground;
 INSERT INTO ground (geoserver_url, coverage, extent, set_by)
-VALUES ('http://localhost:8082/geoserver', 'demo:dem',
+VALUES ('http://localhost:8083/geoserver', 'demo:dem',
         st_makeenvelope(6.9, 45.9, 9.2, 48.2, world_srid()),
         '00000000-0000-0000-0000-00000000f101');
 

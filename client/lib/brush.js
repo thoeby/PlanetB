@@ -151,6 +151,12 @@ export async function brushDevice(gpu = globalThis.navigator?.gpu) {
     if (!adapter.features.has('subgroups')) {
         throw new Error('this GPU offers no subgroups, which brush needs to train');
     }
+    // And its rasteriser keeps colours in f16 (brush-render helpers.wgsl), in
+    // buffers sized for it: without the feature every kernel is refused.
+    if (!adapter.features.has('shader-f16')) {
+        throw new Error('this browser offers no shader-f16 on this GPU, which brush needs'
+            + ' to train');
+    }
     const requiredFeatures = [...adapter.features].filter((f) => f !== 'mappable-primary-buffers');
     const requiredLimits = {};
     for (const k in adapter.limits) {

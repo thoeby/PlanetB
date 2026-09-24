@@ -1,4 +1,4 @@
--- A player keeps a list of process servers (db/0193).
+-- A player keeps a list of process servers (db/0195).
 BEGIN;
 SELECT plan(10);
 

@@ -283,7 +283,7 @@
   // is what the parent refines into next. PostgREST takes the set as one
   // `or=(...)` filter, so it is one request however many tiles are on screen.
   const fetchRows = (loaded, since) => api.select('tile', {
-    select: 'z,x,y,published_version,sog_sha256,manifest,'
+    select: 'z,x,y,dirty,published_version,sog_sha256,manifest,'
       + 'candidate_version,candidate_sha256,candidate_manifest',
     or: `(${[...loaded.map((t) => `and(z.eq.${t.z},x.eq.${t.x},y.eq.${t.y})`),
       `published_at.gt.${encodeURIComponent(since)}`].join(',')})`,

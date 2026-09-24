@@ -19,7 +19,7 @@ SELECT id FROM job WHERE state = 'open' AND z = 14 ORDER BY id LIMIT 1;
 -- from claimed (db/0005_state.sql atom_state_guard).
 CREATE TEMP TABLE w AS SELECT my_worker('{}'::jsonb) AS id;
 INSERT INTO artifact (sha256, kind, bytes, algo_version)
-VALUES (repeat('a', 64), 'dataset', 4096, 'dataset-v6');
+VALUES (repeat('a', 64), 'dataset', 4096, 'dataset-v7');
 UPDATE atom SET state = 'claimed', worker_id = (SELECT id FROM w), claimed_at = now()
 WHERE job_id = (SELECT id FROM j) AND op = 'dataset' AND state = 'ready';
 UPDATE atom SET state = 'verified', output_sha256 = repeat('a', 64),

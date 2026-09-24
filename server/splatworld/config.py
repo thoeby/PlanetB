@@ -3,7 +3,8 @@
 Values come from the environment, from a .env file beside the repo, or from the
 command line — in that order of increasing precedence. The defaults are the
 ones the rest of the repo already assumes (localhost:5432, files on 8081, API on
-3000), so a checkout that worked with the Makefile works here unchanged.
+3000). 8081 and not 8080: 8080 is where a GeoServer or another dev server
+usually already is; SPLATWORLD_PORT or --port says otherwise.
 """
 from __future__ import annotations
 

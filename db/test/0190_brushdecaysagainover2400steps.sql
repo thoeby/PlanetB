@@ -22,17 +22,16 @@ CREATE TEMP TABLE j AS
 SELECT ensure_job(14, tile_x(7.885, 14), tile_y(46.295, 14)) AS jid;
 
 SELECT is((SELECT algo_version FROM atom
-           WHERE job_id = (SELECT jid FROM j) AND op = 'train'), 'train-v20',
-    'the tile trains with train-v20');
+           WHERE job_id = (SELECT jid FROM j) AND op = 'train'), 'train-v21',
+    'the tile trains with train-v21');
 SELECT is((SELECT params -> 'brush' FROM atom
            WHERE job_id = (SELECT jid FROM j) AND op = 'train'),
-    '{"growth-grad-threshold": 0.0015, "growth-select-fraction": 0.4,
-      "match-alpha-weight": 0.5}'::jsonb,
+    '{"growth-grad-threshold": 0.0015, "growth-select-fraction": 0.4}'::jsonb,
     'brush keeps its own decays and grows more');
 SELECT is((SELECT (params ->> 'iters')::int FROM atom
            WHERE job_id = (SELECT jid FROM j) AND op = 'train'), 2400,
     'back to 2400 steps');
-SELECT is(algo_current('train'), 'train-v20', 'and the pool hands that out');
+SELECT is(algo_current('train'), 'train-v21', 'and the pool hands that out');
 
 SELECT * FROM finish();
 ROLLBACK;

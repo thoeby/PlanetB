@@ -1,4 +1,4 @@
-// assemble.js — `assemble-v15`. The world, as geometry, in one tile's own frame.
+// assemble.js — `assemble-v16`. The world, as geometry, in one tile's own frame.
 //
 // Terrain from the seeded DEM, cut by terrainmods and roads; footprints
 // extruded; forests scattered; water laid flat; the ground coloured by its own
@@ -48,8 +48,10 @@ import { localFromLonLat, lonLatFromLocal } from '../lib/tilemath.js';
 // builds the ground from the cuts one zoom deeper (`dem_deeper`, geo.js
 // loadDemDeeper) over a mesh twice as fine (gridFor). v14 lets that mesh
 // reach 2049 across, for a z14 ground cut from z16 (db/0188). v15 carries the
-// ground past the tile's edge (client/lib/skirt.js, skirtWidth).
-export const ALGO = 'assemble-v15';
+// ground past the tile's edge (client/lib/skirt.js, skirtWidth). v16 takes the
+// skirt's slope over eight cells and caps it, and the share from the atom's
+// `skirt` param (db/0194), 0 for none.
+export const ALGO = 'assemble-v16';
 
 // How far the ground the frames draw runs past the tile's edge, as a share of
 // the tile's width, so a smaller tile gets a smaller skirt. Trained splats
@@ -59,8 +61,8 @@ export const ALGO = 'assemble-v15';
 // tile ten metres past its edge (db/0015_structural.sql), which a z14's 1 %
 // would exceed.
 export const SKIRT_SHARE = 0.01;
-export const skirtWidth = (sw, ne) => Math.min(SKIRT_SHARE * Math.abs(ne.x - sw.x),
-    CLIP_M - 0.5);
+export const skirtWidth = (sw, ne, share = SKIRT_SHARE) => Math.min(
+    share * Math.abs(ne.x - sw.x), CLIP_M - 0.5);
 
 // How big the cover picture a tile carries is (FND.13). A map tile, not a
 // texture: 256 is what every slippy map in the world serves.
@@ -171,7 +173,7 @@ function colliderOf(meshes, at) {
 // feature is put through the first symbol that matches it, and that symbol's
 // layers draw it (client/lib/gen/).
 function build({ z, sw, ne, dem, frame, world, random, assets, products, tile,
-    ground = [], colourAt = null, coverImg = null, materials = null }) {
+    ground = [], colourAt = null, coverImg = null, materials = null, skirtShare }) {
     const symbols = world.symbols ?? [];
     const feats = (world.features ?? []).map((f) => toLocal(frame, f));
     const terrain = new Terrain({ sw, ne, size: gridFor(z, dem), dem });
@@ -227,7 +229,7 @@ function build({ z, sw, ne, dem, frame, world, random, assets, products, tile,
     // (db/0106) carries its own.
     const meshes = clip([
         skirt(terrainMesh(terrain, 'terrain', painted, placed.openings,
-            { tile, mottle: !colourAt }), terrain.size, skirtWidth(sw, ne)),
+            { tile, mottle: !colourAt }), terrain.size, skirtWidth(sw, ne, skirtShare)),
         ...drawn.meshes, ...placed.meshes], sw, ne);
     const boxes = [...drawn.boxes, ...placed.boxes]
         .filter((b) => b.center[0] >= sw.x - CLIP_M
@@ -260,10 +262,10 @@ export async function run({ atom, log, apiUrl, filesUrl }) {
     const products = await loadProducts(world.symbol_files, filesUrl);
     const materials = await loadMaterials(products);
     const ground = await loadGround(world.height_edits, frame, filesUrl);
-    const { terrain, meshes, boxes, trees, flags, roads, placed, openings, cover,
-        painted } =
+    const { terrain, meshes, boxes, trees, flags, roads, placed, openings, cover, painted } =
         build({ z, sw, ne, dem, frame, world, random: rngOf(atom, z, x, y),
-            assets, products, ground, colourAt, coverImg, materials, tile: { z, x, y } });
+            assets, products, ground, colourAt, coverImg, materials, tile: { z, x, y },
+            skirtShare: Number(atom.params.skirt ?? SKIRT_SHARE) });
     log?.({ event: 'assembled', z, x, y, meshes: meshes.length, trees,
         cover: cover?.classes?.length ?? 0, unmapped: cover?.unmapped?.length ?? 0,
         buildings: boxes.length, roads: roads.length,

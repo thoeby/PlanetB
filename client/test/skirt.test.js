@@ -47,3 +47,21 @@ test('a skirt vertex has the colour of the edge it continues', () => {
 test('no width, no skirt', () => {
     assert.equal(skirt(slope(), 3, 0).vertexCount, 9);
 });
+
+// One steep cell at the edge — a cliff, or a noisy sample — must not become a
+// wall: the slope is measured over several cells and capped.
+test('a spike at the edge is not carried out as a wall', () => {
+    const n = 12;
+    const m = new Mesh('terrain');
+    for (let j = 0; j < n; j++) {
+        for (let i = 0; i < n; i++) {
+            m.vertex([i, j === 0 && i === 5 ? 30 : 0, j], [0, 1, 0], [0, 0, 0]);
+        }
+    }
+    skirt(m, n, 8);
+    const ys = m.positions.filter((_, k) => k % 3 === 1);
+    const top = Math.max(...ys);
+    assert.ok(top <= 30 + 8 * 2, `the skirt stays within MAX_SLOPE: ${top}`);
+    // Over 8 cells the spike's rise is 30 / 8 = 3.75, capped at 2: 30 + 16.
+    // From the next cell in it would have been 30 + 30 * 8 = 270.
+});

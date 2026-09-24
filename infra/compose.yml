@@ -63,7 +63,7 @@ services:
       GEOSERVER_ADMIN_PASSWORD: ${GEOSERVER_ADMIN_PASSWORD:?set GEOSERVER_ADMIN_PASSWORD in .env}
       SKIP_DEMO_DATA: "true"
     ports:
-      - "127.0.0.1:8082:8080"
+      - "127.0.0.1:8083:8080"
     volumes:
       - geoserver-data:/opt/geoserver_data
 

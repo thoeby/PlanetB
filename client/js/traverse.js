@@ -131,21 +131,26 @@ function candidate(world, t) {
     return new Candidate(t.z, t.x, t.y, row, world.origin, world.candidates);
 }
 
-// A tile refines into the children that are published. A child with no
-// `tile` row at all lies outside any compiled area and is not a hole; a child
-// that exists and is unpublished is one — and rather than wait for every one
-// of sixteen to be published before any is drawn, the parent stays under the
-// ones that are. `whole` says whether it may go. That is why the streamer is
-// given every tile row, not only the published ones.
+// A tile refines into the children that are published. A tile that has
+// children is never trained, only merged from them (db/0070 build_dag,
+// child_sogs), so it holds nothing its published children do not hold
+// better, and nothing at all where a child was never published. It used to
+// stay drawn under the children it had whenever one was missing, and was then
+// a coarse, widened copy of those same children over them: the first z14 of an
+// area went soft the moment a second one merged a z12 above it. It stays under
+// them only for a child that is published but failed to load (`cover`): that
+// child's splats are in the parent, and the parent is all there is of it
+// until the retry. That is why the streamer is given every tile row, not only
+// the published ones.
 function refinableInto(world, c) {
     const rows = tm.children(c.z, c.x, c.y)
         .map((t) => ({ t, row: world.tiles.get(key(t.z, t.x, t.y)) }))
         .filter((e) => e.row);
-    const ready = rows.filter((e) => published(e.row, world)
-        && loadable(world, key(e.t.z, e.t.x, e.t.y)));
+    const shown = rows.filter((e) => published(e.row, world));
+    const ready = shown.filter((e) => loadable(world, key(e.t.z, e.t.x, e.t.y)));
     if (!ready.length) return null;
     return {
-        whole: ready.length === rows.length,
+        cover: ready.length < shown.length,
         kids: ready.map((e) => new Candidate(e.t.z, e.t.x, e.t.y, e.row, world.origin,
             world.candidates)),
     };
@@ -166,9 +171,13 @@ function traverse(world, camera) {
         const isRefined = !world.loaded.has(c.key)
             && kids?.some((k) => world.loaded.has(k.key));
         const threshold = isRefined ? REFINE_PX / HYSTERESIS : REFINE_PX;
-        if (kids && c.sse > threshold) {
+        // A dirty parent is older than the children it is merged from: one of
+        // them was published since (db/0070 publish_sog), and until the merge
+        // is redone it does not have it. Its children are drawn instead, at
+        // any distance, or a tile just trained would not show until then.
+        if (kids && (c.sse > threshold || c.row?.dirty)) {
             stack.push(...kids);
-            if (!into.whole) out.push(c);
+            if (into.cover) out.push(c);
         } else {
             out.push(c);
         }

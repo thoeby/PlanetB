@@ -72,7 +72,7 @@ Stuck? `splatworld doctor` prints everything it resolved and what is missing.
 | | |
 |---|---|
 | **1 · Your account** | an email and a password (8+ characters). You sign in with it, and QGIS draws as it. |
-| **2 · Your GeoServer** | the address that opens its pages, e.g. `localhost:8082/geoserver`, and a login that may read your elevation. **Connect** asks its WCS what it publishes. Nothing is created on it: it serves the elevation and nothing else. |
+| **2 · Your GeoServer** | the address that opens its pages, e.g. `localhost:8083/geoserver`, and a login that may read your elevation. **Connect** asks its WCS what it publishes. Nothing is created on it: it serves the elevation and nothing else. |
 | **3 · Elevation** | after you have drawn an area, this works out the region from what you drew and fetches free Copernicus elevation for exactly that. Nothing to type. |
 
 You need a GeoServer for step 2 — [it's a zip and a script](https://geoserver.org/download/),

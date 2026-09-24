@@ -11,7 +11,7 @@
 // database's own algo_current(): the one time it drifted, every train piece
 // in the world was claimed, refused and counted as a failed attempt.
 export const ALGO = {
-    dataset: 'dataset-v6', train: 'train-v20',
+    dataset: 'dataset-v7', train: 'train-v21',
     merge: 'merge-v1', sog: 'sog-v3', verify: 'verify-v1',
 };
 
@@ -28,12 +28,24 @@ function webglRenderer() {
 // maxBufferSize is a cap the browser sets, not the card's memory — so an atom
 // asking for 4 GB was unclaimable everywhere. The limit is reported as itself
 // now, and the atom asks for the buffer it will actually allocate.
+//
+// `webgpu` is what training needs, not only that WebGPU exists: brush's
+// rasteriser is written with f16 and its sort on subgroups
+// (client/lib/brush.js brushDevice), and a GPU whose browser offers either not
+// was handed train atoms and failed each one at iteration 0 ("extension 'f16'
+// is not allowed"). Such a tab says `webgpu: false` and which feature it
+// lacks, is handed everything but training, and the panel says why.
+export const BRUSH_FEATURES = ['subgroups', 'shader-f16'];
+
 export async function probeCaps(over = {}) {
     const caps = { webgpu: false, max_buffer_mb: 0, algo: ALGO };
-    const adapter = await globalThis.navigator?.gpu?.requestAdapter?.().catch(() => null);
+    const adapter = await globalThis.navigator?.gpu?.requestAdapter?.(
+        { powerPreference: 'high-performance' }).catch(() => null);
     if (adapter) {
         const info = adapter.info ?? await adapter.requestAdapterInfo?.() ?? {};
-        caps.webgpu = true;
+        const missing = BRUSH_FEATURES.filter((f) => !adapter.features?.has?.(f));
+        caps.webgpu = !missing.length;
+        if (missing.length) caps.webgpu_missing = missing;
         caps.adapter = {
             vendor: info.vendor ?? null, architecture: info.architecture ?? null,
             device: info.device ?? null, description: info.description ?? null,
