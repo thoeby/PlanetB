@@ -40,6 +40,10 @@ class Handler(BaseHTTPRequestHandler):
         pass
 
     def cors(self):
+        # --no-cors: as the real elx server is, which says nothing about who
+        # may read its answers (docs/flow.md "Reaching a real process server").
+        if STATE.get('no_cors'):
+            return
         self.send_header('Access-Control-Allow-Origin', '*')
         self.send_header('Access-Control-Allow-Methods', 'GET, POST, PUT, PATCH, DELETE, OPTIONS')
         self.send_header('Access-Control-Allow-Headers', 'Content-Type, Authorization')
@@ -54,6 +58,8 @@ class Handler(BaseHTTPRequestHandler):
         self.wfile.write(body)
 
     def do_OPTIONS(self):
+        if STATE.get('no_cors'):
+            return self.send(400, envelope(code=1, message='unknown request'))
         self.send_response(204)
         self.cors()
         self.end_headers()
@@ -118,11 +124,14 @@ def main():
     ap.add_argument('--plugins', action='append', default=[])
     ap.add_argument('--extra', action='append', default=[])
     ap.add_argument('--without', action='append', default=[])
+    ap.add_argument('--no-cors', action='store_true',
+                    help='send no CORS headers, as the real elx server does not')
     ap.add_argument('--process', action='append', default=[],
                     help='name=path: a process the server already has')
     a = ap.parse_args()
     STATE['version'] = 'fixture-1 (%s)' % a.name
     STATE['plugins'] = load_plugins(a.plugins, a.extra, set(a.without))
+    STATE['no_cors'] = a.no_cors
     for spec in a.process:
         name, path = spec.split('=', 1)
         pid = new_id()

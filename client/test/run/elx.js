@@ -13,12 +13,17 @@ import { fileURLToPath } from 'node:url';
 const REPO = join(dirname(fileURLToPath(import.meta.url)), '../../..');
 
 const PORTS = { alpha: Number(process.env.RUN_ALPHA_PORT ?? 8091),
-    beta: Number(process.env.RUN_BETA_PORT ?? 8092) };
-const EXTRA = { alpha: [join(REPO, 'client/test/run/fixtures/weather.xml')], beta: [] };
+    beta: Number(process.env.RUN_BETA_PORT ?? 8092),
+    // gamma is like the real elx server: no CORS headers (docs/flow.md), and
+    // the relay a player runs beside it (tools/elx-relay.py).
+    gamma: Number(process.env.RUN_GAMMA_PORT ?? 8093) };
+const RELAY_PORT = Number(process.env.RUN_RELAY_PORT ?? 8094);
+const EXTRA = { alpha: [join(REPO, 'client/test/run/fixtures/weather.xml')], beta: [],
+    gamma: [] };
 // What alpha already has when it starts: one of the reference samples, which
 // story 34 saves into a land and exports again.
 export const SAMPLE = join(REPO, 'client/flow/samples/file-response.elx');
-const PROCESSES = { alpha: [`file-response=${SAMPLE}`], beta: [] };
+const PROCESSES = { alpha: [`file-response=${SAMPLE}`], beta: [], gamma: [] };
 
 const answers = (url) => fetch(`${url}/api/v1/system/status`)
     .then((r) => r.ok).catch(() => false);
@@ -29,7 +34,8 @@ async function up(name) {
     const args = [join(REPO, 'tools/elx-fixture.py'), '--port', String(port), '--name', name,
         '--plugins', join(REPO, 'client/flow/palette/plugins'),
         ...EXTRA[name].flatMap((f) => ['--extra', f]),
-        ...PROCESSES[name].flatMap((p) => ['--process', p])];
+        ...PROCESSES[name].flatMap((p) => ['--process', p]),
+        ...(name === 'gamma' ? ['--no-cors'] : [])];
     const p = spawn('python3', args, { cwd: REPO, stdio: 'ignore', detached: true });
     const until = Date.now() + 15_000;
     while (!(await answers(url))) {
@@ -58,8 +64,24 @@ async function switchable(name) {
     };
 }
 
+// The relay a player runs beside a server that sends no CORS headers.
+async function relayTo(url) {
+    const p = spawn('python3', [join(REPO, 'tools/elx-relay.py'), '--to', url,
+        '--port', String(RELAY_PORT)], { cwd: REPO, stdio: 'ignore', detached: true });
+    const at = `http://127.0.0.1:${RELAY_PORT}`;
+    const until = Date.now() + 15_000;
+    while (!(await answers(at))) {
+        if (Date.now() > until) throw new Error('the relay did not come up');
+        await new Promise((r) => setTimeout(r, 100));
+    }
+    return { url: at, stop: () => { try { process.kill(-p.pid); } catch { p.kill(); } } };
+}
+
 export async function startProcessServers() {
     const alpha = await switchable('alpha');
     const beta = await switchable('beta');
-    return { alpha, beta, stop: () => { alpha.stop(); beta.stop(); } };
+    const gamma = await up('gamma');
+    const relay = await relayTo(gamma.url);
+    return { alpha, beta, gamma, relay,
+        stop: () => { alpha.stop(); beta.stop(); gamma.stop(); relay.stop(); } };
 }

@@ -179,3 +179,31 @@ Record the first real run here:
 | date | server version | FL stories | what differed |
 |---|---|---|---|
 | — | — | fixture only | — |
+
+## Reaching a real process server
+
+**The elx server sends no CORS headers.** It answers every request, but it does
+not say which pages may read its answers, so the browser shows a splatworld
+page nothing: the server dot goes red and every list says the server "did not
+answer", or, where the page can tell, "It answered, but this page is not
+allowed to read it (CORS)". The reference editor has the same gap
+(wireon-process-editor `TASKS-V1.md` 14.3) and asks the server author for the
+headers. Until the server sends them, run the relay beside it:
+
+```
+python3 tools/elx-relay.py --to http://127.0.0.1:8080 --port 8090
+```
+
+and in Automate add the server as `http://127.0.0.1:8090` (Server → Add a
+server…; Test should say "Answered"). The relay forwards every request
+unchanged and adds `Access-Control-Allow-Origin` on the way back; `--origin`
+narrows it to the page's own origin. It is the player's, run on their machine
+like the process server itself — the world runs none of it (Invariant 9).
+
+The operator's checking server (Settings → Setup, `elx_url`), shown as
+*World's server*, is reached the same way: set it to a relay's address.
+
+The player-run proves the page with `tools/elx-fixture.py`, which sends the
+headers; `tools/elx-fixture.py --no-cors` behaves like the real server. Story
+32 adds one of those (`gamma`) and is told the CORS sentence, then adds it
+again through `tools/elx-relay.py` and is told it answered.
