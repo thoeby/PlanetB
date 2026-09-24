@@ -8,7 +8,7 @@
 import { test as base, expect } from '@playwright/test';
 
 import { startWorld } from './world.js';
-import { viewOf } from '../../js/tabbar.js';
+import { surfaceOf, viewOf } from '../../js/tabbar.js';
 
 // A player waits on the world changing, never on the clock.
 export const UI = 30_000;
@@ -154,7 +154,11 @@ export async function panel(player, name) {
         if (!view) throw new Error(`no surface, part or view holds "${name}"`);
         await panelApp(player, view);
     }
-    const part = page.locator(`#panel .parts button[data-tab="${name}"]`);
+    // A surface asked for by its own name opens its first part: Work became a
+    // window of queues ('Every job' first, tabbar.js), and the stories that
+    // ask for "Work" mean the pool as a whole.
+    const leaf = surfaceOf(name)?.part ?? name;
+    const part = page.locator(`#panel .parts button[data-tab="${leaf}"]`);
     if (await part.getAttribute('aria-selected') !== 'true') await part.click();
 }
 
