@@ -28,7 +28,7 @@ DB_TEST_SCRIPTS := $(sort $(wildcard db/test/[0-9]*.sh))
 # the repo, where every tool and .env.example root them too.
 COMPOSE := docker compose -f infra/compose.yml --project-directory . --env-file .env
 
-.PHONY: help up down logs db-reset db-migrate db-test api-test client-test flow-test lint gate vendor player-run
+.PHONY: help up down logs db-reset db-migrate db-test api-test client-test flow-test lint gate vendor player-run taler-step0
 
 help:
 	@echo 'targets: up down logs vendor db-reset db-migrate db-test api-test client-test flow-test lint gate player-run'
@@ -97,3 +97,7 @@ lint:
 
 gate: db-test api-test client-test lint
 	@echo 'gate: green'
+
+# PLAN-money.md §6: GNU Taler does what the plan needs, before it is used.
+taler-step0:
+	@bash tools/taler-step0.sh

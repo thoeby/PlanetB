@@ -1,0 +1,75 @@
+# The world's cash (PLAN-money.md): a GNU Taler issuer ("exchange") and the
+# libeufin-bank it reads its incoming transfers from. One closed currency, no
+# conversion, no fees. tools/taler-conf.sh fills in the @...@ from .env.
+#
+# The bank is not a bank players meet: its "admin" account is where the world
+# issues the starting amount from, and its "exchange" account is the issuer's.
+# The admin account's debt is the total cash the world ever issued.
+
+[paths]
+TALER_HOME = @TALER_HOME@
+TALER_RUNTIME_DIR = @TALER_HOME@/runtime/
+
+[taler]
+CURRENCY = @CURRENCY@
+CURRENCY_ROUND_UNIT = @CURRENCY@:0.01
+
+[currency-world]
+ENABLED = YES
+CODE = @CURRENCY@
+NAME = "@CURRENCY@"
+FRACTIONAL_INPUT_DIGITS = 2
+FRACTIONAL_NORMAL_DIGITS = 2
+FRACTIONAL_TRAILING_ZERO_DIGITS = 0
+ALT_UNIT_NAMES = {"0":"@CURRENCY@"}
+
+[exchange]
+CURRENCY = @CURRENCY@
+CURRENCY_ROUND_UNIT = @CURRENCY@:0.01
+MASTER_PUBLIC_KEY = @MASTER_PUB@
+BASE_URL = @EXCHANGE_URL@
+SERVE = tcp
+PORT = @EXCHANGE_PORT@
+BIND_TO = @BIND@
+ENABLE_KYC = NO
+ASSET_TYPE = "regional"
+ATTRIBUTE_ENCRYPTION_KEY = @SECRET@
+AGGREGATOR_IDLE_SLEEP_INTERVAL = 5 s
+WIREWATCH_IDLE_SLEEP_INTERVAL = 1 s
+TERMS_DIR = @TERMS_DIR@
+TERMS_ETAG = world-tos-v0
+PRIVACY_DIR = @TERMS_DIR@
+PRIVACY_ETAG = world-tos-v0
+
+[exchangedb-postgres]
+CONFIG = @EXCHANGE_DB@
+
+[exchange-account-1]
+PAYTO_URI = @EXCHANGE_PAYTO@
+ENABLE_DEBIT = YES
+ENABLE_CREDIT = YES
+
+[exchange-accountcredentials-1]
+WIRE_GATEWAY_URL = @BANK_URL@accounts/exchange/taler-wire-gateway/
+WIRE_GATEWAY_AUTH_METHOD = basic
+USERNAME = exchange
+PASSWORD = @EXCHANGE_BANK_PASSWORD@
+
+[libeufin-bank]
+CURRENCY = @CURRENCY@
+WIRE_TYPE = x-taler-bank
+BASE_URL = @BANK_URL@
+SERVE = tcp
+PORT = @BANK_PORT@
+BIND_TO = @BIND@
+ALLOW_REGISTRATION = no
+DEFAULT_DEBT_LIMIT = @CURRENCY@:0
+REGISTRATION_BONUS = @CURRENCY@:0
+PWD_CHECK = no
+PWD_AUTH_COMPAT = yes
+SUGGESTED_WITHDRAWAL_EXCHANGE = @EXCHANGE_URL@
+
+[libeufin-bankdb-postgres]
+CONFIG = @BANK_DB@
+
+# Coins: powers of two from 0.01 to 8192. No fees anywhere (M1).

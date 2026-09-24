@@ -1,0 +1,9 @@
+Cash of this world
+
+This is the issuer of the world's own cash. It signs the cash in players'
+wallets and makes sure no coin is spent twice. Nothing else.
+
+The cash exists only in this world. It cannot be bought with or exchanged for
+Swiss francs or any other money, and it is worth nothing outside the world.
+
+The issuer keeps no record of who holds which coins.

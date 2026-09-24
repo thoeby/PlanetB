@@ -102,6 +102,28 @@ pays wallet with a message; wallet requests from wallet; a payment held with
 expiry is collected by a third wallet, and a second one returns by itself on
 expiry. Any that fails: one sentence under Blocked, stop.
 
+**Done** — `tools/taler-step0.sh`, 12 checks, about a minute. What it runs on:
+
+- `taler-exchange` 1.3.0 and `taler-wallet-core` 1.5.10, the builds in the Nix
+  binary cache (there is no exchange 1.5; the wallet is 1.5). Each wallet is
+  one `taler-wallet-cli advanced serve` over its own file
+  (`server/splatworld/talerwallet.py`).
+- An issuer credits cash only from a wire gateway's incoming history, so the
+  world runs **libeufin-bank** as a third process (owner, 2026-09-24): its
+  `admin` account may go into debt, and that debt is all the cash ever
+  issued; its `exchange` account is the issuer's. Players never meet it. The
+  same bank can later take real money in for world cash (libeufin's regional
+  currency conversion) — not built.
+- The starting amount: the wallet asks the issuer for a reserve, the world's
+  admin account wires the amount to the issuer with the reserve as subject and
+  as `request_uid` (one reserve, one transfer).
+- Pay = a push payment the payee's wallet collects at once; Request = a pull
+  payment; held = a push payment with an expiry that the issuer's `expire`
+  process returns uncollected.
+- `tools/taler-up.sh` starts all of it from the binaries on PATH;
+  `tools/taler-conf.sh` writes the one config from `infra/taler/taler.conf.in`
+  and `.env` (`TALER_CURRENCY`, default `PLANETB`).
+
 ## 7. Open (defaults are built until the owner decides)
 
 - **O1** Items lying on land: can anyone pick them up? *Default:* dropped
@@ -115,6 +137,3 @@ expiry. Any that fails: one sentence under Blocked, stop.
 ## Blocked
 
 (Agent writes here, one sentence per item, and stops.)
-
-- Step 0 is not run: no Taler is reachable from this container — deb.taler.net, ftp.gnu.org and git.taler.net are refused by the egress proxy, Ubuntu has no taler package and Docker Hub no official image; the Nix binary cache has `taler-exchange` 1.3.0 and `taler-wallet-core` 1.5.10 (no exchange 1.5), and installing Nix here was refused without the operator's permission.
-- To be decided with step 0: a Taler issuer credits cash only from a wire gateway's incoming history (libeufin-bank, libeufin-nexus or `taler-fakebank-run`), so the starting amount needs one of those as a third process, or the world's own Postgres serving that history of issuances — M1 and §1 say "no bank".
