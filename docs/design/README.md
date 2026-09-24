@@ -211,7 +211,12 @@ once), read what is in it, say what each class is, keep it. The class table has
 headings and shows how much of the ground each class is, which was counted and
 never drawn.
 
-**F10 (process servers, flows on objects) has no artboard yet.** `flows-servers.md`
-lists every screen, control, state and sentence `TASKS-flows.md` needs, for
-the designer to draw from; the build uses the existing Automate styles until
-then.
+**`splatworld-v10.dc.html` is the design of record for F10** — process
+servers, and flows on things (`TASKS-flows.md`) — on `chrome8.dc.html`. It
+was drawn from `flows-servers.md`, which lists every screen, control, state
+and sentence the stories need: 10a–10c are the three whole screens (Automate
+drawing a flow with the server picker, Automate on a server with a run in the
+bottom panel, and a lamp's card with its flows and Run on…), 10d–10k the
+dialogs and the other states, and 10l every sentence with the colour it
+takes. `splatworld-v9.dc.html` is the turn before it, the whole page in one
+file. Where the build and 10l differ in a word, 10l wins.

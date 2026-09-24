@@ -1,0 +1,1087 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <meta name="design_doc_mode" content="canvas">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@600;700&family=Sora:wght@400;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <style>
+    body{margin:0;background:#0b0d10;font-family:'Sora',sans-serif;color:#f2efe8}
+    a{color:#f2efe8}a:hover{color:oklch(0.78 0.14 200)}
+    *{box-sizing:border-box}
+  </style>
+</helmet>
+
+<section style="display:flex;flex-wrap:wrap;gap:56px;padding:56px;width:max-content;max-width:3960px;font-family:'Sora',sans-serif;color:#f2efe8">
+
+  <div style="flex:0 0 100%;display:flex;flex-direction:column;gap:10px"><div style="max-width:1400px;display:flex;flex-direction:column;gap:10px">
+    <div style="font-family:'Rajdhani',sans-serif;font-weight:700;font-size:28px;text-transform:uppercase;letter-spacing:0.1em">Turn 9 · one file</div>
+    <div style="color:rgba(242,239,232,0.7);font-size:15px;line-height:1.5">The kept screens in one place, on one chrome. The app bar is now Build, Flows, Work, Trade &amp; Sell, Play and Survey (F1–F6). Build's bottom bar is Place, Catalog, Land, Publish, Terrain; Work left it to become its own full-screen app. Play is the world with nothing to build. New here: the Terrain editor, the Place tools with a catalog beside them, the Catalog as a library inside Build, and the same catalog as a shop in Trade &amp; Sell.</div>
+  </div></div>
+
+  <!-- 9a -->
+  <div id="9a" style="display:flex;flex-direction:column;gap:12px">
+    <div style="display:flex;gap:12px;align-items:baseline;font-size:15px"><a href="#9a" style="font-family:'JetBrains Mono',monospace;font-size:12px;padding:3px 8px;background:oklch(0.78 0.14 200);color:#0b0d10;text-decoration:none">9a</a><span style="font-family:'Rajdhani',sans-serif;font-weight:700;font-size:20px;text-transform:uppercase;letter-spacing:0.08em">Play</span><span style="color:rgba(242,239,232,0.6)">just the world · instruments, controls and map stay · no build bar, no legend</span></div>
+    <div style="position:relative;width:1920px;height:1080px;overflow:hidden;background:#0b0d10;font-size:14px">
+      <img src="assets/world.webp" alt="" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover">
+      <dc-import name="Chrome8" app="Play" toast2="C-2291 needs your decision · M. Ruch" toast2-age="19 s" hint-size="100%,100%" style="position:absolute;inset:0"></dc-import>
+    </div>
+  </div>
+
+  <!-- 9b -->
+  <div id="9b" style="display:flex;flex-direction:column;gap:12px">
+    <div style="display:flex;gap:12px;align-items:baseline;font-size:15px"><a href="#9b" style="font-family:'JetBrains Mono',monospace;font-size:12px;padding:3px 8px;background:oklch(0.78 0.14 200);color:#0b0d10;text-decoration:none">9b</a><span style="font-family:'Rajdhani',sans-serif;font-weight:700;font-size:20px;text-transform:uppercase;letter-spacing:0.08em">Build · Terrain</span><span style="color:rgba(242,239,232,0.6)">tool bar with undo / redo / save · small brush panel · the brush drawn on the ground · stroke history</span></div>
+    <div style="position:relative;width:1920px;height:1080px;overflow:hidden;background:#0b0d10;font-size:14px">
+      <img src="assets/world.webp" alt="" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover">
+
+      <div style="position:absolute;left:560px;top:600px;width:420px;height:170px;border-radius:50%;background:radial-gradient(closest-side,oklch(0.82 0.16 80 / 0.34),oklch(0.82 0.16 80 / 0.12) 70%,transparent)"></div>
+      <span style="position:absolute;left:720px;top:676px;padding:2px 7px;background:rgba(10,12,15,0.8);font-family:'JetBrains Mono',monospace;font-size:10px;color:oklch(0.82 0.16 80)">+0.80 m · stroke 3</span>
+      <div style="position:absolute;left:960px;top:560px;width:0;height:0">
+        <div style="position:absolute;left:-330px;top:-128px;width:660px;height:264px;border-radius:50%;border:1px solid rgba(242,239,232,0.16)"></div>
+        <div style="position:absolute;left:-270px;top:-112px;width:540px;height:216px;border-radius:50%;border:1px solid rgba(242,239,232,0.2)"></div>
+        <div style="position:absolute;left:-200px;top:-94px;width:400px;height:164px;border-radius:50%;border:1px solid rgba(242,239,232,0.24)"></div>
+        <div style="position:absolute;left:-120px;top:-72px;width:240px;height:104px;border-radius:50%;border:1px solid rgba(242,239,232,0.3)"></div>
+        <div style="position:absolute;left:-230px;top:-92px;width:460px;height:184px;border-radius:{{ brushRadius }};border:1.5px dashed oklch(0.78 0.14 200 / 0.85);background:radial-gradient(closest-side,oklch(0.78 0.14 200 / 0.26),oklch(0.78 0.14 200 / 0.1) 60%,transparent)"></div>
+        <div style="position:absolute;left:-138px;top:-55px;width:276px;height:110px;border-radius:{{ brushRadius }};border:2px solid oklch(0.78 0.14 200);box-shadow:0 0 18px oklch(0.78 0.14 200 / 0.55),inset 0 0 18px oklch(0.78 0.14 200 / 0.3)"></div>
+        <div style="position:absolute;left:-5px;top:-5px;width:10px;height:10px;background:#f2efe8;border:2px solid #0b0d10;transform:rotate(45deg)"></div>
+        <div style="position:absolute;left:-1px;top:-86px;width:2px;height:80px;background:oklch(0.82 0.16 80);box-shadow:0 0 8px oklch(0.82 0.16 80)"></div>
+        <div style="position:absolute;left:-8px;top:-100px;width:0;height:0;border-left:8px solid transparent;border-right:8px solid transparent;border-bottom:14px solid oklch(0.82 0.16 80)"></div>
+        <span style="position:absolute;left:14px;top:-110px;font-family:'Rajdhani',sans-serif;font-weight:700;font-size:20px;line-height:1;white-space:nowrap;color:oklch(0.82 0.16 80);text-shadow:0 1px 8px rgba(0,0,0,0.8)">+1.20 m</span>
+        <div style="position:absolute;left:-230px;top:112px;width:460px;height:1px;background:rgba(242,239,232,0.7)"></div>
+        <div style="position:absolute;left:-230px;top:106px;width:1px;height:13px;background:rgba(242,239,232,0.7)"></div>
+        <div style="position:absolute;left:229px;top:106px;width:1px;height:13px;background:rgba(242,239,232,0.7)"></div>
+        <span style="position:absolute;left:-28px;top:103px;padding:1px 8px;background:rgba(10,12,15,0.92);font-family:'JetBrains Mono',monospace;font-size:11px;white-space:nowrap;color:#f2efe8">24 m</span>
+        <span style="position:absolute;left:142px;top:-12px;font-family:'JetBrains Mono',monospace;font-size:10px;white-space:nowrap;color:oklch(0.78 0.14 200);text-shadow:0 1px 6px rgba(0,0,0,0.9)">core 60 %</span>
+        <span style="position:absolute;left:234px;top:-12px;font-family:'JetBrains Mono',monospace;font-size:10px;white-space:nowrap;color:rgba(242,239,232,0.7);text-shadow:0 1px 6px rgba(0,0,0,0.9)">falloff</span>
+        <div style="position:absolute;left:260px;top:-150px;display:flex;flex-direction:column;gap:4px;padding:8px 10px;background:rgba(14,16,20,0.9);border:1px solid rgba(255,255,255,0.14);font-size:11px;white-space:nowrap">
+          <span style="display:flex;justify-content:space-between;gap:18px"><span style="color:rgba(242,239,232,0.6)">ground</span><span style="font-family:'JetBrains Mono',monospace">1 812.4 m</span></span>
+          <span style="display:flex;justify-content:space-between;gap:18px"><span style="color:rgba(242,239,232,0.6)">this stroke</span><span style="font-family:'JetBrains Mono',monospace;color:oklch(0.82 0.16 80)">+1.20 m</span></span>
+          <span style="display:flex;justify-content:space-between;gap:18px"><span style="color:rgba(242,239,232,0.6)">off the service ground</span><span style="font-family:'JetBrains Mono',monospace">+2.00 m</span></span>
+          <span style="display:flex;justify-content:space-between;gap:18px"><span style="color:rgba(242,239,232,0.6)">slope</span><span style="font-family:'JetBrains Mono',monospace">14°</span></span>
+        </div>
+      </div>
+
+      <dc-import name="Chrome8" app="Build" active="Terrain" toast="The elevation service is not answering — 502 · strokes are kept as metres off the ground" toast-kind="error" toast-action="Retry" toast-age="6 s" toast-progress="25%" hint-size="100%,100%" style="position:absolute;inset:0"></dc-import>
+
+      <div style="position:absolute;left:24px;top:56px;display:flex;align-items:stretch;background:rgba(14,16,20,0.92);backdrop-filter:blur(14px);border:1px solid rgba(255,255,255,0.14);clip-path:polygon(8px 0,100% 0,100% calc(100% - 8px),calc(100% - 8px) 100%,0 100%,0 8px)">
+        <div style="display:flex;gap:2px;padding:4px">
+          <sc-for list="{{ terrainTools }}" as="t" hint-placeholder-count="7">
+            <div style="position:relative;width:46px;height:46px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;background:{{ t.bg }};border:1px solid {{ t.border }};color:{{ t.fg }}">
+              <svg viewBox="0 0 24 24" style="width:19px;height:19px;fill:none;stroke:currentColor;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round"><path d="{{ t.icon }}"></path></svg>
+              <span style="font-family:'JetBrains Mono',monospace;font-size:9px;opacity:0.7">{{ t.key }}</span>
+            </div>
+          </sc-for>
+        </div>
+        <span style="width:1px;background:rgba(255,255,255,0.12)"></span>
+        <div style="display:flex;gap:2px;padding:4px">
+          <div style="width:46px;height:46px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;color:rgba(242,239,232,0.85)"><svg viewBox="0 0 24 24" style="width:19px;height:19px;fill:none;stroke:currentColor;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round"><path d="M9 14 4 9l5-5"></path><path d="M4 9h10.5a5.5 5.5 0 0 1 0 11H11"></path></svg><span style="font-family:'JetBrains Mono',monospace;font-size:9px;opacity:0.7">⌘Z</span></div>
+          <div style="width:46px;height:46px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;color:rgba(242,239,232,0.85)"><svg viewBox="0 0 24 24" style="width:19px;height:19px;fill:none;stroke:currentColor;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round"><path d="m15 14 5-5-5-5"></path><path d="M20 9H9.5a5.5 5.5 0 0 0 0 11H13"></path></svg><span style="font-family:'JetBrains Mono',monospace;font-size:9px;opacity:0.7">⇧⌘Z</span></div>
+          <div style="width:46px;height:46px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;color:rgba(242,239,232,0.85)"><svg viewBox="0 0 24 24" style="width:19px;height:19px;fill:none;stroke:currentColor;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round"><path d="M3 12a9 9 0 1 0 3-6.7L3 8"></path><path d="M3 3v5h5"></path></svg><span style="font-family:'JetBrains Mono',monospace;font-size:9px;opacity:0.7">put back</span></div>
+        </div>
+        <span style="width:1px;background:rgba(255,255,255,0.12)"></span>
+        <div style="display:flex;align-items:center;gap:10px;padding:0 12px">
+          <span style="display:flex;align-items:center;gap:7px;font-family:'Rajdhani',sans-serif;font-weight:700;font-size:12px;letter-spacing:0.1em;text-transform:uppercase;color:oklch(0.82 0.16 80)"><span style="width:6px;height:6px;background:oklch(0.82 0.16 80);transform:rotate(45deg)"></span>3 strokes unsaved</span>
+          <span style="height:34px;padding:0 15px;background:oklch(0.78 0.14 200);color:#0b0d10;font-family:'Rajdhani',sans-serif;font-weight:700;font-size:13px;letter-spacing:0.08em;text-transform:uppercase;display:inline-flex;align-items:center;gap:8px;clip-path:polygon(6px 0,100% 0,100% calc(100% - 6px),calc(100% - 6px) 100%,0 100%,0 6px)">Save<span style="font-family:'JetBrains Mono',monospace;font-size:10px;opacity:0.7">⌘S</span></span>
+        </div>
+      </div>
+
+      <div style="position:absolute;left:24px;top:122px;bottom:150px;width:340px;display:flex;flex-direction:column;background:rgba(14,16,20,0.92);backdrop-filter:blur(14px);border:1px solid rgba(255,255,255,0.12);clip-path:polygon(0 0,100% 0,100% calc(100% - 10px),calc(100% - 10px) 100%,0 100%);overflow:hidden">
+        <div style="padding:14px 16px 12px;display:flex;flex-direction:column;gap:6px;border-bottom:1px solid rgba(255,255,255,0.1)">
+          <div style="display:flex;justify-content:space-between;align-items:baseline"><span style="font-family:'Rajdhani',sans-serif;font-weight:700;font-size:20px;text-transform:uppercase;letter-spacing:0.08em;line-height:1;color:oklch(0.78 0.14 200)">{{ toolTitle }}</span><span style="font-family:'JetBrains Mono',monospace;font-size:11px;color:rgba(242,239,232,0.5)">{{ toolKey }}</span></div>
+          <span style="font-size:12px;line-height:1.45;color:rgba(242,239,232,0.7)">{{ toolWhat }}</span>
+        </div>
+        <div style="padding:12px 16px;display:flex;flex-direction:column;gap:12px;border-bottom:1px solid rgba(255,255,255,0.1)">
+          <div style="display:flex;align-items:center;justify-content:space-between;gap:10px"><span style="font-family:'Rajdhani',sans-serif;font-weight:600;font-size:11px;letter-spacing:0.14em;text-transform:uppercase;color:rgba(242,239,232,0.55)">Shaping</span><div style="flex:1;max-width:200px;height:30px;border:1px solid rgba(255,255,255,0.18);background:rgba(255,255,255,0.04);display:flex;align-items:center;justify-content:space-between;padding:0 9px;font-size:12px">Maloja Nord · yours<span style="color:rgba(242,239,232,0.5)">▾</span></div></div>
+          <sc-for list="{{ brushSliders }}" as="s" hint-placeholder-count="3">
+            <div style="display:flex;flex-direction:column;gap:6px">
+              <div style="display:flex;justify-content:space-between;align-items:baseline"><span style="font-family:'Rajdhani',sans-serif;font-weight:600;font-size:11px;letter-spacing:0.14em;text-transform:uppercase;color:rgba(242,239,232,0.55)">{{ s.label }}</span><span style="display:flex;gap:10px;align-items:baseline"><span style="font-family:'JetBrains Mono',monospace;font-size:10px;color:rgba(242,239,232,0.4)">{{ s.keys }}</span><span style="font-family:'JetBrains Mono',monospace;font-size:12px">{{ s.value }}</span></span></div>
+              <div style="position:relative;height:4px;background:rgba(255,255,255,0.12)"><div style="width:{{ s.pct }};height:100%;background:oklch(0.78 0.14 200)"></div><span style="position:absolute;left:{{ s.pct }};top:-5px;width:10px;height:14px;background:#f2efe8;transform:translateX(-50%)"></span></div>
+            </div>
+          </sc-for>
+          <div style="display:flex;flex-direction:column;gap:6px">
+            <span style="font-family:'Rajdhani',sans-serif;font-weight:600;font-size:11px;letter-spacing:0.14em;text-transform:uppercase;color:rgba(242,239,232,0.55)">Falloff curve</span>
+            <div style="position:relative;height:54px;background:rgba(0,0,0,0.3);border:1px solid rgba(255,255,255,0.08)">
+              <svg viewBox="0 0 300 54" preserveAspectRatio="none" style="position:absolute;inset:0;width:100%;height:100%;fill:none;stroke:oklch(0.78 0.14 200);stroke-width:2"><path d="M0 50C50 50 70 8 110 8H190C230 8 250 50 300 50"></path></svg>
+              <div style="position:absolute;left:36.6%;right:36.6%;top:0;bottom:0;border-left:1px dashed rgba(242,239,232,0.3);border-right:1px dashed rgba(242,239,232,0.3)"></div>
+            </div>
+            <div style="display:flex;gap:4px">
+              <sc-for list="{{ falloffs }}" as="f" hint-placeholder-count="4">
+                <span style="flex:1;height:26px;display:inline-flex;align-items:center;justify-content:center;background:{{ f.bg }};border:1px solid {{ f.border }};color:{{ f.fg }};font-family:'Rajdhani',sans-serif;font-weight:700;font-size:11px;letter-spacing:0.08em;text-transform:uppercase">{{ f.name }}</span>
+              </sc-for>
+            </div>
+          </div>
+          <div style="display:flex;align-items:center;justify-content:space-between;gap:10px">
+            <span style="font-family:'Rajdhani',sans-serif;font-weight:600;font-size:11px;letter-spacing:0.14em;text-transform:uppercase;color:rgba(242,239,232,0.55)">Shape</span>
+            <div style="display:flex;gap:4px">
+              <sc-for list="{{ shapes }}" as="f" hint-placeholder-count="2">
+                <span style="width:72px;height:26px;display:inline-flex;align-items:center;justify-content:center;background:{{ f.bg }};border:1px solid {{ f.border }};color:{{ f.fg }};font-family:'Rajdhani',sans-serif;font-weight:700;font-size:11px;letter-spacing:0.08em;text-transform:uppercase">{{ f.name }}</span>
+              </sc-for>
+            </div>
+          </div>
+        </div>
+        <div style="padding:10px 16px;display:flex;flex-direction:column;gap:7px;border-bottom:1px solid rgba(255,255,255,0.1)">
+          <span style="font-family:'Rajdhani',sans-serif;font-weight:600;font-size:11px;letter-spacing:0.14em;text-transform:uppercase;color:rgba(242,239,232,0.55)">On the ground</span>
+          <sc-for list="{{ groundViews }}" as="v" hint-placeholder-count="4">
+            <div style="display:flex;align-items:center;justify-content:space-between;font-size:12px"><span>{{ v.name }}</span><span style="width:36px;height:18px;flex:none;position:relative;background:{{ v.trackBg }};border:1px solid {{ v.trackBorder }}"><span style="position:absolute;left:{{ v.knobLeft }};top:2px;width:12px;height:12px;background:{{ v.knob }}"></span></span></div>
+          </sc-for>
+        </div>
+        <div style="flex:1;min-height:0;display:flex;flex-direction:column;overflow:hidden">
+          <div style="padding:10px 16px 6px;display:flex;justify-content:space-between;align-items:baseline"><span style="font-family:'Rajdhani',sans-serif;font-weight:600;font-size:11px;letter-spacing:0.14em;text-transform:uppercase;color:rgba(242,239,232,0.55)">Strokes</span><span style="font-size:11px;color:rgba(242,239,232,0.5)">click one to undo back to it</span></div>
+          <sc-for list="{{ strokes }}" as="s" hint-placeholder-count="4">
+            <div style="display:flex;align-items:center;gap:10px;padding:7px 16px;border-top:1px solid rgba(255,255,255,0.05);border-left:2px solid {{ s.mark }};background:{{ s.bg }};font-size:12px">
+              <span style="flex:1;min-width:0;color:{{ s.fg }};text-decoration:{{ s.deco }};white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ s.what }}</span>
+              <span style="font-family:'JetBrains Mono',monospace;font-size:11px;color:{{ s.dcol }}">{{ s.delta }}</span>
+              <span style="width:38px;text-align:right;font-family:'JetBrains Mono',monospace;font-size:10px;color:rgba(242,239,232,0.45)">{{ s.when }}</span>
+            </div>
+          </sc-for>
+        </div>
+        <div style="border-top:1px solid rgba(255,255,255,0.1);padding:10px 16px;font-size:11px;line-height:1.45;color:rgba(242,239,232,0.6)">Nothing reaches the world until Save. Put back returns the land to the ground the elevation service gives.</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 9c -->
+  <div id="9c" style="display:flex;flex-direction:column;gap:12px">
+    <div style="display:flex;gap:12px;align-items:baseline;font-size:15px"><a href="#9c" style="font-family:'JetBrains Mono',monospace;font-size:12px;padding:3px 8px;background:oklch(0.78 0.14 200);color:#0b0d10;text-decoration:none">9c</a><span style="font-family:'Rajdhani',sans-serif;font-weight:700;font-size:20px;text-transform:uppercase;letter-spacing:0.08em">Build · Catalog</span><span style="color:rgba(242,239,232,0.6)">the asset library · find, filter, kinds on the left · Place takes it straight into your hand</span></div>
+    <div style="position:relative;width:1920px;height:1080px;overflow:hidden;background:#0b0d10;font-size:14px">
+      <img src="assets/world.webp" alt="" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover">
+      <dc-import name="Chrome8" app="Build" active="Catalog" toast="" hint-size="100%,100%" style="position:absolute;inset:0"></dc-import>
+
+      <div style="position:absolute;left:24px;top:80px;bottom:130px;width:1240px;display:flex;flex-direction:column;background:rgba(12,14,18,0.97);backdrop-filter:blur(14px);border:1px solid rgba(255,255,255,0.12);clip-path:polygon(12px 0,100% 0,100% calc(100% - 12px),calc(100% - 12px) 100%,0 100%,0 12px);overflow:hidden">
+        <div style="padding:18px 20px 0;display:flex;justify-content:space-between;align-items:flex-start">
+          <div style="display:flex;flex-direction:column;gap:4px">
+            <span style="font-family:'Rajdhani',sans-serif;font-weight:700;font-size:26px;text-transform:uppercase;letter-spacing:0.08em;line-height:1">Catalog</span>
+            <span style="font-size:12px;color:rgba(242,239,232,0.6)">Products anyone may build with. Register your own.</span>
+          </div>
+          <div style="display:flex;align-items:center;gap:14px">
+            <div style="display:flex;font-family:'Rajdhani',sans-serif;font-weight:700;font-size:13px;letter-spacing:0.1em;text-transform:uppercase">
+              <sc-for list="{{ catTabs }}" as="t" hint-placeholder-count="3">
+                <span style="height:32px;padding:0 13px;display:inline-flex;align-items:center;gap:6px;border-bottom:2px solid {{ t.line }};color:{{ t.fg }}">{{ t.name }}<span style="font-family:'JetBrains Mono',monospace;font-size:10px;opacity:0.7">{{ t.count }}</span></span>
+              </sc-for>
+            </div>
+            <span style="font-size:18px;color:rgba(242,239,232,0.5)">✕</span>
+          </div>
+        </div>
+        <div style="padding:14px 20px;display:flex;gap:10px;align-items:flex-end;border-bottom:1px solid rgba(255,255,255,0.08)">
+          <div style="flex:1;display:flex;flex-direction:column;gap:6px"><span style="font-family:'Rajdhani',sans-serif;font-weight:600;font-size:11px;letter-spacing:0.14em;text-transform:uppercase;color:rgba(242,239,232,0.55)">Find</span><div style="height:36px;border:1px solid rgba(255,255,255,0.18);background:rgba(0,0,0,0.3);display:flex;align-items:center;padding:0 12px;font-size:13px;color:rgba(242,239,232,0.45)">search by name, maker or property</div></div>
+          <div style="width:180px;display:flex;flex-direction:column;gap:6px"><span style="font-family:'Rajdhani',sans-serif;font-weight:600;font-size:11px;letter-spacing:0.14em;text-transform:uppercase;color:rgba(242,239,232,0.55)">Kind of thing</span><div style="height:36px;border:1px solid rgba(255,255,255,0.18);background:rgba(0,0,0,0.3);display:flex;align-items:center;justify-content:space-between;padding:0 10px;font-size:13px">Model<span style="color:rgba(242,239,232,0.5)">▾</span></div></div>
+          <div style="width:160px;display:flex;flex-direction:column;gap:6px"><span style="font-family:'Rajdhani',sans-serif;font-weight:600;font-size:11px;letter-spacing:0.14em;text-transform:uppercase;color:rgba(242,239,232,0.55)">Licence</span><div style="height:36px;border:1px solid rgba(255,255,255,0.18);background:rgba(0,0,0,0.3);display:flex;align-items:center;justify-content:space-between;padding:0 10px;font-size:13px">any<span style="color:rgba(242,239,232,0.5)">▾</span></div></div>
+          <div style="width:160px;display:flex;flex-direction:column;gap:6px"><span style="font-family:'Rajdhani',sans-serif;font-weight:600;font-size:11px;letter-spacing:0.14em;text-transform:uppercase;color:rgba(242,239,232,0.55)">Price</span><div style="height:36px;border:1px solid rgba(255,255,255,0.18);background:rgba(0,0,0,0.3);display:flex;align-items:center;justify-content:space-between;padding:0 10px;font-size:13px">free and paid<span style="color:rgba(242,239,232,0.5)">▾</span></div></div>
+          <span style="height:36px;padding:0 16px;border:1px solid rgba(255,255,255,0.25);font-family:'Rajdhani',sans-serif;font-weight:700;font-size:13px;letter-spacing:0.1em;text-transform:uppercase;display:inline-flex;align-items:center">Find</span>
+        </div>
+        <div style="flex:1;min-height:0;display:flex">
+          <div style="width:210px;flex:none;display:flex;flex-direction:column;border-right:1px solid rgba(255,255,255,0.08);padding-top:8px">
+            <sc-for list="{{ catCats }}" as="c" hint-placeholder-count="9">
+              <div style="display:flex;justify-content:space-between;align-items:center;padding:8px 16px;border-left:2px solid {{ c.mark }};background:{{ c.bg }};font-size:13px;color:{{ c.fg }}"><span>{{ c.name }}</span><span style="font-family:'JetBrains Mono',monospace;font-size:10px;color:rgba(242,239,232,0.45)">{{ c.count }}</span></div>
+            </sc-for>
+          </div>
+          <div style="flex:1;min-width:0;overflow:hidden;padding:16px 20px;display:grid;grid-template-columns:repeat(4,1fr);gap:14px;align-content:start">
+            <sc-for list="{{ catProducts }}" as="o" hint-placeholder-count="8">
+              <div style="display:flex;flex-direction:column;background:{{ o.bg }};border:1px solid {{ o.border }};box-shadow:{{ o.glow }}">
+                <div style="position:relative;height:150px;background:repeating-linear-gradient(135deg,rgba(242,239,232,0.055) 0 6px,transparent 6px 12px),#12151a;border-bottom:1px solid rgba(255,255,255,0.08);display:flex;align-items:center;justify-content:center">
+                  <span style="font-family:'JetBrains Mono',monospace;font-size:11px;color:rgba(242,239,232,0.4)">{{ o.thumb }}</span>
+                  <span style="position:absolute;left:8px;top:8px;padding:2px 7px;background:rgba(10,12,15,0.85);border:1px solid rgba(255,255,255,0.2);font-family:'Rajdhani',sans-serif;font-weight:700;font-size:10px;letter-spacing:0.12em;text-transform:uppercase;color:rgba(242,239,232,0.8)">{{ o.kind }}</span>
+                  <span style="position:absolute;right:8px;top:8px;padding:2px 7px;background:rgba(10,12,15,0.85);font-family:'JetBrains Mono',monospace;font-size:11px;color:{{ o.priceColor }}">{{ o.priceLabel }}</span>
+                </div>
+                <div style="padding:10px 12px;display:flex;flex-direction:column;gap:4px;flex:1">
+                  <span style="font-family:'Rajdhani',sans-serif;font-weight:700;font-size:17px;letter-spacing:0.03em;line-height:1.1">{{ o.name }}</span>
+                  <span style="font-size:12px;color:rgba(242,239,232,0.6)">{{ o.maker }} · {{ o.lic }}</span>
+                  <span style="font-family:'JetBrains Mono',monospace;font-size:10px;color:rgba(242,239,232,0.45)">placed {{ o.placed }} · ports {{ o.ports }}</span>
+                </div>
+                <div style="display:flex;align-items:center;gap:8px;padding:8px 12px;border-top:1px solid rgba(255,255,255,0.08)">
+                  <span style="height:28px;padding:0 12px;background:oklch(0.78 0.14 200);color:#0b0d10;font-family:'Rajdhani',sans-serif;font-weight:700;font-size:12px;letter-spacing:0.1em;text-transform:uppercase;display:inline-flex;align-items:center;clip-path:polygon(5px 0,100% 0,100% calc(100% - 5px),calc(100% - 5px) 100%,0 100%,0 5px)">Place</span>
+                  <span style="margin-left:auto;font-family:'Rajdhani',sans-serif;font-weight:700;font-size:11px;letter-spacing:0.1em;text-transform:uppercase;color:rgba(242,239,232,0.6)">Details ›</span>
+                </div>
+              </div>
+            </sc-for>
+          </div>
+        </div>
+        <div style="border-top:1px solid rgba(255,255,255,0.1);padding:10px 20px;display:flex;justify-content:space-between;align-items:center;font-size:12px;color:rgba(242,239,232,0.6)">
+          <span>A product is a model anybody may build with. Register one and it is here for everybody to build with.</span>
+          <span style="height:30px;padding:0 13px;border:1px solid oklch(0.78 0.14 200);color:oklch(0.78 0.14 200);font-family:'Rajdhani',sans-serif;font-weight:700;font-size:12px;letter-spacing:0.1em;text-transform:uppercase;display:inline-flex;align-items:center">Register a product</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 9d -->
+  <div id="9d" style="display:flex;flex-direction:column;gap:12px">
+    <div style="display:flex;gap:12px;align-items:baseline;font-size:15px"><a href="#9d" style="font-family:'JetBrains Mono',monospace;font-size:12px;padding:3px 8px;background:oklch(0.78 0.13 320);color:#0b0d10;text-decoration:none">9d</a><span style="font-family:'Rajdhani',sans-serif;font-weight:700;font-size:20px;text-transform:uppercase;letter-spacing:0.08em">Trade &amp; Sell · Shop</span><span style="color:rgba(242,239,232,0.6)">the same catalog as a store · filters left · grid · the product opened on the right</span></div>
+    <div style="position:relative;width:1920px;height:1080px;overflow:hidden;background:#0b0d10;font-size:14px">
+      <img src="assets/world.webp" alt="" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover">
+      <div style="position:absolute;inset:0;background:rgba(6,8,10,0.72)"></div>
+      <dc-import name="Chrome8" app="Trade &amp; Sell" toast="" hint-size="100%,100%" style="position:absolute;inset:0"></dc-import>
+
+      <div style="position:absolute;left:0;right:0;top:44px;bottom:0;display:flex;flex-direction:column;background:rgba(10,12,15,0.95);border-top:1px solid rgba(255,255,255,0.1)">
+        <div style="height:56px;flex:none;display:flex;align-items:center;gap:22px;padding:0 20px;border-bottom:1px solid rgba(255,255,255,0.12);background:linear-gradient(180deg,rgba(24,27,33,0.95),rgba(14,16,20,0.95))">
+          <span style="font-family:'Rajdhani',sans-serif;font-weight:700;font-size:22px;text-transform:uppercase;letter-spacing:0.08em;line-height:1">Trade &amp; Sell</span>
+          <div style="display:flex;align-self:stretch;font-family:'Rajdhani',sans-serif;font-weight:700;font-size:14px;letter-spacing:0.1em;text-transform:uppercase">
+            <sc-for list="{{ tradeTabs }}" as="t" hint-placeholder-count="4">
+              <span style="padding:0 16px;display:inline-flex;align-items:center;gap:7px;border-bottom:2px solid {{ t.line }};color:{{ t.fg }}">{{ t.name }}<span style="font-family:'JetBrains Mono',monospace;font-size:10px;opacity:0.7">{{ t.count }}</span></span>
+            </sc-for>
+          </div>
+          <div style="margin-left:auto;display:flex;align-items:center;gap:12px">
+            <span style="font-size:12px;color:rgba(242,239,232,0.6)">You have <b style="font-family:'JetBrains Mono',monospace;font-weight:500;color:#f2efe8">248.40 cr</b> · earned 14.60 cr this month</span>
+            <span style="height:34px;padding:0 15px;background:oklch(0.78 0.13 320);color:#0b0d10;font-family:'Rajdhani',sans-serif;font-weight:700;font-size:13px;letter-spacing:0.08em;text-transform:uppercase;display:inline-flex;align-items:center;clip-path:polygon(6px 0,100% 0,100% calc(100% - 6px),calc(100% - 6px) 100%,0 100%,0 6px)">Sell a product</span>
+          </div>
+        </div>
+
+        <div style="flex:1;min-height:0;display:flex">
+          <div style="width:280px;flex:none;display:flex;flex-direction:column;gap:16px;padding:16px 18px;border-right:1px solid rgba(255,255,255,0.1);background:rgba(14,16,20,0.6);overflow:hidden">
+            <div style="display:flex;flex-direction:column;gap:6px"><span style="font-family:'Rajdhani',sans-serif;font-weight:600;font-size:11px;letter-spacing:0.14em;text-transform:uppercase;color:rgba(242,239,232,0.55)">Find</span><div style="height:34px;border:1px solid rgba(255,255,255,0.18);background:rgba(0,0,0,0.3);display:flex;align-items:center;padding:0 10px;font-size:13px;color:rgba(242,239,232,0.45)">name, maker or property</div></div>
+            <div style="display:flex;flex-direction:column;gap:6px">
+              <span style="font-family:'Rajdhani',sans-serif;font-weight:600;font-size:11px;letter-spacing:0.14em;text-transform:uppercase;color:rgba(242,239,232,0.55)">Kind of thing</span>
+              <sc-for list="{{ fKind }}" as="f" hint-placeholder-count="5">
+                <div style="display:flex;align-items:center;gap:9px;font-size:13px;color:{{ f.fg }}"><span style="width:13px;height:13px;flex:none;background:{{ f.box }};border:1px solid {{ f.boxBorder }}"></span><span style="flex:1">{{ f.name }}</span><span style="font-family:'JetBrains Mono',monospace;font-size:10px;color:rgba(242,239,232,0.45)">{{ f.count }}</span></div>
+              </sc-for>
+            </div>
+            <div style="display:flex;flex-direction:column;gap:6px">
+              <span style="font-family:'Rajdhani',sans-serif;font-weight:600;font-size:11px;letter-spacing:0.14em;text-transform:uppercase;color:rgba(242,239,232,0.55)">Licence</span>
+              <sc-for list="{{ fLic }}" as="f" hint-placeholder-count="3">
+                <div style="display:flex;align-items:center;gap:9px;font-size:13px;color:{{ f.fg }}"><span style="width:13px;height:13px;flex:none;background:{{ f.box }};border:1px solid {{ f.boxBorder }}"></span><span style="flex:1">{{ f.name }}</span><span style="font-family:'JetBrains Mono',monospace;font-size:10px;color:rgba(242,239,232,0.45)">{{ f.count }}</span></div>
+              </sc-for>
+            </div>
+            <div style="display:flex;flex-direction:column;gap:6px">
+              <span style="font-family:'Rajdhani',sans-serif;font-weight:600;font-size:11px;letter-spacing:0.14em;text-transform:uppercase;color:rgba(242,239,232,0.55)">What it is</span>
+              <sc-for list="{{ fWhat }}" as="f" hint-placeholder-count="4">
+                <div style="display:flex;align-items:center;gap:9px;font-size:13px;color:{{ f.fg }}"><span style="width:13px;height:13px;flex:none;background:{{ f.box }};border:1px solid {{ f.boxBorder }}"></span><span style="flex:1">{{ f.name }}</span><span style="font-family:'JetBrains Mono',monospace;font-size:10px;color:rgba(242,239,232,0.45)">{{ f.count }}</span></div>
+              </sc-for>
+            </div>
+            <div style="display:flex;flex-direction:column;gap:8px">
+              <div style="display:flex;justify-content:space-between;align-items:baseline"><span style="font-family:'Rajdhani',sans-serif;font-weight:600;font-size:11px;letter-spacing:0.14em;text-transform:uppercase;color:rgba(242,239,232,0.55)">Price</span><span style="font-family:'JetBrains Mono',monospace;font-size:11px">free – 5.00 cr</span></div>
+              <div style="position:relative;height:4px;background:rgba(255,255,255,0.12)"><div style="position:absolute;left:0;width:28%;height:100%;background:oklch(0.78 0.13 320)"></div><span style="position:absolute;left:0;top:-5px;width:10px;height:14px;background:#f2efe8"></span><span style="position:absolute;left:28%;top:-5px;width:10px;height:14px;background:#f2efe8;transform:translateX(-50%)"></span></div>
+            </div>
+            <div style="margin-top:auto;display:flex;align-items:center;justify-content:space-between;gap:10px;padding-top:12px;border-top:1px solid rgba(255,255,255,0.08);font-size:12px"><span>Only what I may place where I stand</span><span style="width:36px;height:18px;flex:none;position:relative;background:rgba(255,255,255,0.12);border:1px solid rgba(255,255,255,0.2)"><span style="position:absolute;left:2px;top:2px;width:12px;height:12px;background:rgba(242,239,232,0.7)"></span></span></div>
+          </div>
+
+          <div style="flex:1;min-width:0;display:flex;flex-direction:column">
+            <div style="display:flex;align-items:center;gap:10px;padding:12px 20px;border-bottom:1px solid rgba(255,255,255,0.08)">
+              <span style="font-family:'Rajdhani',sans-serif;font-weight:600;font-size:11px;letter-spacing:0.14em;text-transform:uppercase;color:rgba(242,239,232,0.5)">Sort</span>
+              <sc-for list="{{ sortShop }}" as="c" hint-placeholder-count="3">
+                <span style="height:26px;padding:0 10px;display:inline-flex;align-items:center;gap:6px;background:{{ c.bg }};border:{{ c.border }};color:{{ c.fg }};font-family:'Rajdhani',sans-serif;font-weight:700;font-size:12px;letter-spacing:0.08em;text-transform:uppercase">{{ c.label }}<span style="font-family:'JetBrains Mono',monospace;font-size:10px;opacity:0.7">{{ c.dir }}</span></span>
+              </sc-for>
+              <span style="margin-left:auto;font-size:12px;color:rgba(242,239,232,0.55)">52 street furniture · models · CC0 or CC-BY</span>
+            </div>
+            <div style="flex:1;min-height:0;overflow:hidden;padding:16px 20px;display:grid;grid-template-columns:repeat(4,1fr);gap:14px;align-content:start">
+              <sc-for list="{{ shopProducts }}" as="o" hint-placeholder-count="10">
+                <div style="display:flex;flex-direction:column;background:{{ o.bg }};border:1px solid {{ o.border }};box-shadow:{{ o.glow }}">
+                  <div style="position:relative;height:140px;background:repeating-linear-gradient(135deg,rgba(242,239,232,0.055) 0 6px,transparent 6px 12px),#12151a;border-bottom:1px solid rgba(255,255,255,0.08);display:flex;align-items:center;justify-content:center">
+                    <span style="font-family:'JetBrains Mono',monospace;font-size:11px;color:rgba(242,239,232,0.4)">{{ o.thumb }}</span>
+                    <span style="position:absolute;left:8px;top:8px;padding:2px 7px;background:rgba(10,12,15,0.85);border:1px solid rgba(255,255,255,0.2);font-family:'Rajdhani',sans-serif;font-weight:700;font-size:10px;letter-spacing:0.12em;text-transform:uppercase;color:rgba(242,239,232,0.8)">{{ o.kind }}</span>
+                  </div>
+                  <div style="padding:10px 12px;display:flex;flex-direction:column;gap:4px">
+                    <div style="display:flex;justify-content:space-between;align-items:baseline;gap:8px"><span style="font-family:'Rajdhani',sans-serif;font-weight:700;font-size:16px;letter-spacing:0.03em;line-height:1.1">{{ o.name }}</span><span style="font-family:'JetBrains Mono',monospace;font-size:12px;color:{{ o.priceColor }};white-space:nowrap">{{ o.priceLabel }}</span></div>
+                    <span style="font-size:12px;color:rgba(242,239,232,0.6)">{{ o.maker }} · {{ o.lic }}</span>
+                    <span style="font-family:'JetBrains Mono',monospace;font-size:10px;color:rgba(242,239,232,0.45)">placed {{ o.placed }}</span>
+                  </div>
+                </div>
+              </sc-for>
+            </div>
+          </div>
+
+          <div style="width:440px;flex:none;display:flex;flex-direction:column;border-left:1px solid rgba(255,255,255,0.12);background:rgba(14,16,20,0.7)">
+            <div style="position:relative;margin:16px 16px 0;height:260px;flex:none;background:repeating-linear-gradient(135deg,rgba(242,239,232,0.055) 0 6px,transparent 6px 12px),#12151a;border:1px solid rgba(255,255,255,0.12);display:flex;align-items:center;justify-content:center">
+              <span style="font-family:'JetBrains Mono',monospace;font-size:12px;color:rgba(242,239,232,0.4)">product render · orbit</span>
+              <span style="position:absolute;left:10px;top:8px;font-family:'Rajdhani',sans-serif;font-weight:600;font-size:10px;letter-spacing:0.14em;text-transform:uppercase;color:rgba(242,239,232,0.6)">Drag to turn</span>
+            </div>
+            <div style="display:flex;gap:6px;padding:8px 16px 0">
+              <sc-for list="{{ shopThumbs }}" as="s" hint-placeholder-count="4">
+                <div style="flex:1;height:52px;background:repeating-linear-gradient(135deg,rgba(242,239,232,0.055) 0 5px,transparent 5px 10px),#12151a;border:1px solid {{ s.border }};display:flex;align-items:flex-end;padding:3px 5px"><span style="font-family:'JetBrains Mono',monospace;font-size:9px;color:rgba(242,239,232,0.5)">{{ s.name }}</span></div>
+              </sc-for>
+            </div>
+            <div style="padding:14px 16px;display:flex;flex-direction:column;gap:6px;border-bottom:1px solid rgba(255,255,255,0.1)">
+              <span style="font-family:'Rajdhani',sans-serif;font-weight:700;font-size:24px;letter-spacing:0.04em;line-height:1">Strassenlampe 4 m</span>
+              <span style="font-size:12px;line-height:1.5;color:rgba(242,239,232,0.7)">A cast mast with one warm head. The head is a light you can switch, colour and dim from a flow.</span>
+            </div>
+            <div style="display:flex;flex-direction:column">
+              <sc-for list="{{ shopDetail }}" as="d" hint-placeholder-count="6">
+                <div style="display:flex;justify-content:space-between;gap:12px;padding:8px 16px;border-bottom:1px solid rgba(255,255,255,0.05);font-size:12px"><span style="color:rgba(242,239,232,0.6)">{{ d.k }}</span><span style="font-family:'JetBrains Mono',monospace;font-size:11px">{{ d.v }}</span></div>
+              </sc-for>
+            </div>
+            <div style="margin-top:auto;padding:14px 16px;display:flex;flex-direction:column;gap:10px;border-top:1px solid rgba(255,255,255,0.1)">
+              <div style="display:flex;align-items:baseline;justify-content:space-between"><span style="font-family:'Rajdhani',sans-serif;font-weight:700;font-size:30px;line-height:1;color:oklch(0.78 0.13 320)">1.20 <span style="font-size:14px;letter-spacing:0.1em">cr</span></span><span style="font-size:12px;color:rgba(242,239,232,0.6)">each time it is placed · paid on Save</span></div>
+              <div style="display:flex;gap:8px">
+                <span style="flex:1;height:38px;background:oklch(0.78 0.13 320);color:#0b0d10;font-family:'Rajdhani',sans-serif;font-weight:700;font-size:14px;letter-spacing:0.08em;text-transform:uppercase;display:inline-flex;align-items:center;justify-content:center;clip-path:polygon(6px 0,100% 0,100% calc(100% - 6px),calc(100% - 6px) 100%,0 100%,0 6px)">Place it in Build</span>
+                <span style="height:38px;padding:0 14px;border:1px solid rgba(255,255,255,0.25);font-family:'Rajdhani',sans-serif;font-weight:700;font-size:13px;letter-spacing:0.08em;text-transform:uppercase;display:inline-flex;align-items:center">Save for later</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 9e -->
+  <div id="9e" style="display:flex;flex-direction:column;gap:12px">
+    <div style="display:flex;gap:12px;align-items:baseline;font-size:15px"><a href="#9e" style="font-family:'JetBrains Mono',monospace;font-size:12px;padding:3px 8px;background:oklch(0.78 0.14 200);color:#0b0d10;text-decoration:none">9e</a><span style="font-family:'Rajdhani',sans-serif;font-weight:700;font-size:20px;text-transform:uppercase;letter-spacing:0.08em">Build · Place</span><span style="color:rgba(242,239,232,0.6)">catalog in the side panel · ghost with gizmo and footprint · transform bar above the dock · selection card</span></div>
+    <div style="position:relative;width:1920px;height:1080px;overflow:hidden;background:#0b0d10;font-size:14px">
+      <img src="assets/world.webp" alt="" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover">
+
+      <div style="position:absolute;left:760px;top:520px;width:400px;height:200px;background:repeating-linear-gradient(0deg,rgba(242,239,232,0.28) 0 1px,transparent 1px 20px),repeating-linear-gradient(90deg,rgba(242,239,232,0.28) 0 1px,transparent 1px 20px);transform:perspective(600px) rotateX(62deg);-webkit-mask:radial-gradient(closest-side,#000 40%,transparent);mask:radial-gradient(closest-side,#000 40%,transparent)"></div>
+      <div style="position:absolute;left:960px;top:620px;width:0;height:0">
+        <div style="position:absolute;left:-150px;top:-55px;width:300px;height:110px;border-radius:50%;border:2px solid oklch(0.82 0.16 80 / 0.55)"></div>
+        <div style="position:absolute;left:-150px;top:-55px;width:300px;height:110px;border-radius:50%;border:4px solid transparent;border-right-color:oklch(0.82 0.16 80);border-bottom-color:oklch(0.82 0.16 80);box-shadow:0 0 16px oklch(0.82 0.16 80 / 0.3)"></div>
+        <span style="position:absolute;left:150px;top:10px;padding:2px 8px;background:rgba(10,12,15,0.92);border:1px solid oklch(0.82 0.16 80);font-family:'JetBrains Mono',monospace;font-size:11px;white-space:nowrap;color:oklch(0.82 0.16 80)">90° · snaps 15°</span>
+        <div style="position:absolute;left:-75px;top:-28px;width:150px;height:56px;border-radius:50%;background:{{ ghostFill }};border:1.5px solid {{ ghostColor }}"></div>
+        <div style="position:absolute;left:0;top:0;width:110px;height:2px;background:oklch(0.8 0.18 25)"></div>
+        <div style="position:absolute;left:108px;top:-5px;width:0;height:0;border-top:6px solid transparent;border-bottom:6px solid transparent;border-left:12px solid oklch(0.8 0.18 25)"></div>
+        <span style="position:absolute;left:124px;top:-9px;font-family:'Rajdhani',sans-serif;font-weight:700;font-size:12px;white-space:nowrap;color:oklch(0.8 0.18 25)">X</span>
+        <div style="position:absolute;left:0;top:0;width:80px;height:2px;background:oklch(0.72 0.12 250);transform-origin:0 0;transform:rotate(150deg)"></div>
+        <span style="position:absolute;left:-86px;top:38px;font-family:'Rajdhani',sans-serif;font-weight:700;font-size:12px;color:oklch(0.72 0.12 250)">Z</span>
+        <div style="position:absolute;left:-13px;top:-230px;width:26px;height:230px;background:repeating-linear-gradient(135deg,oklch(0.78 0.14 200 / 0.22) 0 5px,transparent 5px 10px),rgba(14,16,20,0.35);border:1.5px dashed oklch(0.78 0.14 200)"></div>
+        <div style="position:absolute;left:-40px;top:-252px;width:80px;height:22px;background:repeating-linear-gradient(135deg,oklch(0.78 0.14 200 / 0.22) 0 5px,transparent 5px 10px),rgba(14,16,20,0.35);border:1.5px dashed oklch(0.78 0.14 200)"></div>
+        <div style="position:absolute;left:-2px;top:-320px;width:4px;height:320px;background:oklch(0.8 0.15 145);box-shadow:0 0 10px oklch(0.8 0.15 145)"></div>
+        <div style="position:absolute;left:-8px;top:-334px;width:0;height:0;border-left:8px solid transparent;border-right:8px solid transparent;border-bottom:14px solid oklch(0.8 0.15 145)"></div>
+        <span style="position:absolute;left:12px;top:-334px;font-family:'Rajdhani',sans-serif;font-weight:700;font-size:12px;white-space:nowrap;color:oklch(0.8 0.15 145)">UP · turning around this</span>
+        <span style="position:absolute;left:-60px;top:-282px;font-family:'JetBrains Mono',monospace;font-size:10px;color:rgba(242,239,232,0.75);white-space:nowrap;text-shadow:0 1px 6px rgba(0,0,0,0.9)">Strassenlampe 4 m · ghost</span>
+        <span style="position:absolute;left:-150px;top:66px;width:300px;text-align:center;font-family:'Rajdhani',sans-serif;font-weight:700;font-size:12px;letter-spacing:0.08em;text-transform:uppercase;color:{{ ghostColor }};text-shadow:0 1px 8px rgba(0,0,0,0.9)">{{ ghostText }}</span>
+      </div>
+
+      <dc-import name="Chrome8" app="Build" active="Place" toast="" hint-size="100%,100%" style="position:absolute;inset:0"></dc-import>
+
+      <div style="position:absolute;left:24px;top:56px;bottom:150px;width:400px;display:flex;flex-direction:column;background:rgba(14,16,20,0.92);backdrop-filter:blur(14px);border:1px solid rgba(255,255,255,0.12);clip-path:polygon(12px 0,100% 0,100% calc(100% - 12px),calc(100% - 12px) 100%,0 100%,0 12px);overflow:hidden">
+        <div style="padding:16px 18px 12px;display:flex;flex-direction:column;gap:10px;border-bottom:1px solid rgba(255,255,255,0.1)">
+          <div style="display:flex;justify-content:space-between;align-items:flex-start"><div style="display:flex;flex-direction:column;gap:4px"><span style="font-family:'Rajdhani',sans-serif;font-weight:700;font-size:24px;text-transform:uppercase;letter-spacing:0.08em;line-height:1">Place</span><span style="font-size:12px;color:rgba(242,239,232,0.6)">Put a product from the catalog on your own land.</span></div><span style="font-size:18px;color:rgba(242,239,232,0.5)">✕</span></div>
+          <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;font-size:12px"><span>Build mode · click the ground to drop · Esc to leave</span><span style="width:36px;height:18px;flex:none;position:relative;background:oklch(0.78 0.14 200);border:1px solid oklch(0.78 0.14 200)"><span style="position:absolute;left:18px;top:2px;width:12px;height:12px;background:#0b0d10"></span></span></div>
+        </div>
+        <div style="padding:12px 18px;display:flex;flex-direction:column;gap:10px">
+          <div style="height:34px;border:1px solid rgba(255,255,255,0.18);background:rgba(0,0,0,0.3);display:flex;align-items:center;padding:0 10px;font-size:13px;color:rgba(242,239,232,0.45)">Search the catalog to pick a product…</div>
+          <div style="display:flex;flex-wrap:wrap;gap:5px">
+            <sc-for list="{{ placeCats }}" as="c" hint-placeholder-count="6">
+              <span style="height:26px;padding:0 10px;display:inline-flex;align-items:center;background:{{ c.bg }};border:1px solid {{ c.border }};color:{{ c.fg }};font-family:'Rajdhani',sans-serif;font-weight:700;font-size:11px;letter-spacing:0.08em;text-transform:uppercase">{{ c.name }}</span>
+            </sc-for>
+          </div>
+          <div style="display:flex;flex-direction:column;gap:6px">
+            <span style="font-family:'Rajdhani',sans-serif;font-weight:600;font-size:11px;letter-spacing:0.14em;text-transform:uppercase;color:rgba(242,239,232,0.55)">Recent</span>
+            <div style="display:flex;gap:6px">
+              <sc-for list="{{ recent }}" as="r" hint-placeholder-count="5">
+                <div style="flex:1;height:48px;background:repeating-linear-gradient(135deg,rgba(242,239,232,0.055) 0 5px,transparent 5px 10px),#12151a;border:1px solid {{ r.border }}"></div>
+              </sc-for>
+            </div>
+          </div>
+        </div>
+        <div style="flex:1;min-height:0;overflow:hidden;padding:0 18px 12px;display:grid;grid-template-columns:repeat(3,1fr);gap:8px;align-content:start">
+          <sc-for list="{{ placeProducts }}" as="o" hint-placeholder-count="9">
+            <div style="display:flex;flex-direction:column;background:{{ o.bg }};border:1px solid {{ o.border }};box-shadow:{{ o.glow }}">
+              <div style="position:relative;height:84px;background:repeating-linear-gradient(135deg,rgba(242,239,232,0.055) 0 5px,transparent 5px 10px),#12151a;display:flex;align-items:flex-end;padding:4px 5px">
+                <span style="font-family:'JetBrains Mono',monospace;font-size:9px;color:rgba(242,239,232,0.4)">{{ o.kind }}</span>
+                <span style="display:{{ o.tagDisplay }};position:absolute;left:4px;top:4px;padding:1px 5px;background:oklch(0.78 0.14 200);color:#0b0d10;font-family:'Rajdhani',sans-serif;font-weight:700;font-size:9px;letter-spacing:0.1em;text-transform:uppercase">{{ o.tag }}</span>
+              </div>
+              <div style="padding:6px 7px 7px;display:flex;flex-direction:column;gap:2px">
+                <span style="font-size:11.5px;line-height:1.25;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ o.name }}</span>
+                <span style="font-family:'JetBrains Mono',monospace;font-size:10px;color:{{ o.priceColor }}">{{ o.priceLabel }}</span>
+              </div>
+            </div>
+          </sc-for>
+        </div>
+        <div style="border-top:1px solid rgba(255,255,255,0.1);padding:10px 18px;font-size:11px;line-height:1.45;color:rgba(242,239,232,0.6)">Q E turn by 15° · Shift-drag copies · the whole catalog is in <span style="color:oklch(0.78 0.14 200)">Catalog</span></div>
+      </div>
+
+      <div style="position:absolute;left:1180px;top:330px;width:290px;display:flex;flex-direction:column;background:rgba(14,16,20,0.92);backdrop-filter:blur(14px);border:1px solid oklch(0.78 0.14 200 / 0.5);clip-path:polygon(10px 0,100% 0,100% 100%,0 100%,0 10px)">
+        <div style="padding:10px 12px;display:flex;flex-direction:column;gap:3px;border-bottom:1px solid rgba(255,255,255,0.1)"><span style="font-family:'Rajdhani',sans-serif;font-weight:600;font-size:10px;letter-spacing:0.14em;text-transform:uppercase;color:rgba(242,239,232,0.55)">Selected · 1 · 3 undoable</span><span style="font-family:'Rajdhani',sans-serif;font-weight:700;font-size:17px;letter-spacing:0.04em;line-height:1">Strassenlampe 4 m</span></div>
+        <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:6px;padding:10px 12px;border-bottom:1px solid rgba(255,255,255,0.08)">
+          <div style="display:flex;flex-direction:column;gap:3px"><span style="font-family:'Rajdhani',sans-serif;font-weight:700;font-size:10px;letter-spacing:0.1em;color:oklch(0.8 0.18 25)">X</span><span style="height:26px;border:1px solid rgba(255,255,255,0.16);display:flex;align-items:center;padding:0 6px;font-family:'JetBrains Mono',monospace;font-size:11px">12.25</span></div>
+          <div style="display:flex;flex-direction:column;gap:3px"><span style="font-family:'Rajdhani',sans-serif;font-weight:700;font-size:10px;letter-spacing:0.1em;color:oklch(0.8 0.15 145)">UP</span><span style="height:26px;border:1px solid rgba(255,255,255,0.16);display:flex;align-items:center;padding:0 6px;font-family:'JetBrains Mono',monospace;font-size:11px">0.00</span></div>
+          <div style="display:flex;flex-direction:column;gap:3px"><span style="font-family:'Rajdhani',sans-serif;font-weight:700;font-size:10px;letter-spacing:0.1em;color:oklch(0.72 0.12 250)">Z</span><span style="height:26px;border:1px solid rgba(255,255,255,0.16);display:flex;align-items:center;padding:0 6px;font-family:'JetBrains Mono',monospace;font-size:11px">−4.50</span></div>
+          <div style="display:flex;flex-direction:column;gap:3px"><span style="font-family:'Rajdhani',sans-serif;font-weight:700;font-size:10px;letter-spacing:0.1em;color:oklch(0.82 0.16 80)">TURN</span><span style="height:26px;border:1px solid oklch(0.82 0.16 80 / 0.6);display:flex;align-items:center;padding:0 6px;font-family:'JetBrains Mono',monospace;font-size:11px">90°</span></div>
+          <div style="display:flex;flex-direction:column;gap:3px"><span style="font-family:'Rajdhani',sans-serif;font-weight:700;font-size:10px;letter-spacing:0.1em;color:rgba(242,239,232,0.6)">SIZE</span><span style="height:26px;border:1px solid rgba(255,255,255,0.16);display:flex;align-items:center;padding:0 6px;font-family:'JetBrains Mono',monospace;font-size:11px">1.00</span></div>
+          <div style="display:flex;flex-direction:column;gap:3px"><span style="font-family:'Rajdhani',sans-serif;font-weight:700;font-size:10px;letter-spacing:0.1em;color:rgba(242,239,232,0.6)">GROUND</span><span style="height:26px;border:1px solid rgba(255,255,255,0.16);display:flex;align-items:center;padding:0 6px;font-family:'JetBrains Mono',monospace;font-size:11px">follow</span></div>
+        </div>
+        <div style="padding:9px 12px 10px;display:flex;flex-direction:column;gap:6px">
+          <span style="font-family:'Rajdhani',sans-serif;font-weight:600;font-size:10px;letter-spacing:0.14em;text-transform:uppercase;color:rgba(242,239,232,0.55)">Ports · what it can be told</span>
+          <sc-for list="{{ selPorts }}" as="s" hint-placeholder-count="3">
+            <div style="display:flex;align-items:center;justify-content:space-between;font-size:12px"><span>{{ s.name }}</span><span style="display:flex;gap:8px;align-items:baseline"><span style="font-family:'JetBrains Mono',monospace;font-size:10px;color:rgba(242,239,232,0.45)">{{ s.type }}</span><span style="font-family:'JetBrains Mono',monospace;font-size:11px">{{ s.value }}</span></span></div>
+          </sc-for>
+        </div>
+      </div>
+
+      <div style="position:absolute;left:50%;bottom:114px;transform:translateX(-50%);display:flex;align-items:stretch;background:rgba(14,16,20,0.94);backdrop-filter:blur(14px);border:1px solid rgba(255,255,255,0.16);clip-path:polygon(8px 0,calc(100% - 8px) 0,100% 8px,100% 100%,0 100%,0 8px);box-shadow:0 10px 30px rgba(0,0,0,0.45)">
+        <div style="display:flex;gap:2px;padding:4px">
+          <sc-for list="{{ placeModes }}" as="m" hint-placeholder-count="3">
+            <span style="height:38px;padding:0 13px;display:inline-flex;align-items:center;gap:7px;background:{{ m.bg }};border:1px solid {{ m.border }};color:{{ m.fg }};font-family:'Rajdhani',sans-serif;font-weight:700;font-size:13px;letter-spacing:0.1em;text-transform:uppercase">{{ m.name }}<span style="font-family:'JetBrains Mono',monospace;font-size:9px;opacity:0.6">{{ m.key }}</span></span>
+          </sc-for>
+        </div>
+        <span style="width:1px;background:rgba(255,255,255,0.12)"></span>
+        <div style="display:flex;gap:2px;padding:4px">
+          <sc-for list="{{ axes }}" as="a" hint-placeholder-count="3">
+            <span style="width:42px;height:38px;display:inline-flex;align-items:center;justify-content:center;background:{{ a.bg }};border:1px solid {{ a.border }};color:{{ a.fg }};font-family:'Rajdhani',sans-serif;font-weight:700;font-size:13px;letter-spacing:0.08em;text-transform:uppercase">{{ a.name }}</span>
+          </sc-for>
+        </div>
+        <span style="width:1px;background:rgba(255,255,255,0.12)"></span>
+        <div style="display:flex;align-items:center;gap:4px;padding:4px 8px">
+          <span style="width:30px;height:30px;display:inline-flex;align-items:center;justify-content:center;border:1px solid rgba(255,255,255,0.18);font-family:'JetBrains Mono',monospace">⟲</span>
+          <span style="font-family:'JetBrains Mono',monospace;font-size:11px;color:rgba(242,239,232,0.75);padding:0 4px">step 15°</span>
+          <span style="width:30px;height:30px;display:inline-flex;align-items:center;justify-content:center;border:1px solid rgba(255,255,255,0.18);font-family:'JetBrains Mono',monospace">⟳</span>
+        </div>
+        <span style="width:1px;background:rgba(255,255,255,0.12)"></span>
+        <div style="display:flex;align-items:center;gap:8px;padding:0 12px;font-size:12px"><span>Snap</span><span style="width:36px;height:18px;position:relative;background:oklch(0.78 0.14 200);border:1px solid oklch(0.78 0.14 200)"><span style="position:absolute;left:18px;top:2px;width:12px;height:12px;background:#0b0d10"></span></span></div>
+        <span style="width:1px;background:rgba(255,255,255,0.12)"></span>
+        <div style="display:flex;gap:2px;padding:4px">
+          <span style="height:38px;padding:0 11px;display:inline-flex;align-items:center;gap:6px;font-family:'Rajdhani',sans-serif;font-weight:700;font-size:12px;letter-spacing:0.1em;text-transform:uppercase;color:rgba(242,239,232,0.85)">Copy<span style="font-family:'JetBrains Mono',monospace;font-size:9px;opacity:0.6">D</span></span>
+          <span style="height:38px;padding:0 11px;display:inline-flex;align-items:center;gap:6px;font-family:'Rajdhani',sans-serif;font-weight:700;font-size:12px;letter-spacing:0.1em;text-transform:uppercase;color:oklch(0.8 0.18 25)">Delete<span style="font-family:'JetBrains Mono',monospace;font-size:9px;opacity:0.6">Del</span></span>
+          <span style="width:40px;height:38px;display:inline-flex;align-items:center;justify-content:center;color:rgba(242,239,232,0.85)"><svg viewBox="0 0 24 24" style="width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round"><path d="M9 14 4 9l5-5"></path><path d="M4 9h10.5a5.5 5.5 0 0 1 0 11H11"></path></svg></span>
+          <span style="width:40px;height:38px;display:inline-flex;align-items:center;justify-content:center;color:rgba(242,239,232,0.45)"><svg viewBox="0 0 24 24" style="width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round"><path d="m15 14 5-5-5-5"></path><path d="M20 9H9.5a5.5 5.5 0 0 0 0 11H13"></path></svg></span>
+        </div>
+        <div style="display:flex;align-items:center;padding:4px 6px 4px 2px">
+          <span style="height:38px;padding:0 16px;background:oklch(0.78 0.14 200);color:#0b0d10;font-family:'Rajdhani',sans-serif;font-weight:700;font-size:13px;letter-spacing:0.1em;text-transform:uppercase;display:inline-flex;align-items:center;clip-path:polygon(6px 0,100% 0,100% calc(100% - 6px),calc(100% - 6px) 100%,0 100%,0 6px)">Save</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+
+  <!-- 9f · All -->
+  <div id="9f" style="display:flex;flex-direction:column;gap:12px">
+    <div style="display:flex;gap:12px;align-items:baseline;font-size:15px"><a href="#9f" style="font-family:'JetBrains Mono',monospace;font-size:12px;padding:3px 8px;background:oklch(0.78 0.14 200);color:#0b0d10;text-decoration:none">9f</a><span style="font-family:'Rajdhani',sans-serif;font-weight:700;font-size:20px;text-transform:uppercase;letter-spacing:0.08em">Work · all jobs</span><span style="color:rgba(242,239,232,0.6)">its own app now (F3), full screen · the world dimmed behind it</span></div>
+    <div style="position:relative;width:1920px;height:1080px;overflow:hidden;background:#0b0d10;font-size:14px">
+      <img src="assets/world.webp" alt="" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover">
+      <div style="position:absolute;inset:0;background:rgba(6,8,10,0.72)"></div>
+      <dc-import name="Chrome8" app="Work" toast="" hint-size="100%,100%" style="position:absolute;inset:0"></dc-import>
+
+      <div style="position:absolute;left:0;right:0;top:44px;bottom:0;display:flex;flex-direction:column;background:rgba(10,12,15,0.95);border-top:1px solid rgba(255,255,255,0.1);overflow:hidden">
+        <div style="padding:18px 20px 0;display:flex;flex-direction:column;gap:12px">
+          <div style="display:flex;justify-content:space-between;align-items:flex-start">
+            <div style="display:flex;flex-direction:column;gap:4px">
+              <span style="font-family:'Rajdhani',sans-serif;font-weight:700;font-size:26px;text-transform:uppercase;letter-spacing:0.08em;line-height:1">Work</span>
+              <span style="font-size:12px;color:rgba(242,239,232,0.6)">What this machine can compute for the world. Nine jobs in reach.</span>
+            </div>
+            <div style="display:flex;align-items:center;gap:10px">
+              <span style="display:flex;align-items:center;gap:8px;height:28px;padding:0 11px;border:1px solid rgba(255,255,255,0.2);font-family:'Rajdhani',sans-serif;font-weight:700;font-size:12px;letter-spacing:0.1em;text-transform:uppercase;color:rgba(242,239,232,0.75)"><span style="width:7px;height:7px;border-radius:50%;background:rgba(242,239,232,0.5)"></span>idle — 34 done, 12 failed</span>
+            </div>
+          </div>
+          <div style="display:flex;align-items:center;gap:16px;padding:9px 12px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.09);font-size:12px;color:rgba(242,239,232,0.7)">
+            <span style="font-family:'Rajdhani',sans-serif;font-weight:600;font-size:11px;letter-spacing:0.14em;text-transform:uppercase;color:rgba(242,239,232,0.5)">This machine</span>
+            <span><b style="color:#f2efe8;font-weight:600">17/354</b> tiles drawn</span>
+            <span><b style="color:#f2efe8;font-weight:600">633</b> atoms waiting</span>
+            <span style="font-family:'JetBrains Mono',monospace;font-size:11px;color:rgba(242,239,232,0.5)">WebGPU · nvidia · buffers to 2047 MB</span>
+            <div style="margin-left:auto;display:flex;align-items:center;gap:8px">
+              <div style="width:110px;height:4px;background:rgba(255,255,255,0.12)"><div style="width:21%;height:100%;background:oklch(0.78 0.14 200)"></div></div>
+              <span style="font-family:'JetBrains Mono',monospace;font-size:11px">4.2 / 20 GB</span>
+            </div>
+          </div>
+        </div>
+
+        <div style="margin-top:12px;display:flex;font-family:'Rajdhani',sans-serif;font-weight:700;font-size:14px;letter-spacing:0.1em;text-transform:uppercase">
+          <sc-for list="{{ tabsAll }}" as="t" hint-placeholder-count="5">
+            <span style="flex:1;height:42px;display:inline-flex;align-items:center;justify-content:center;gap:7px;border-bottom:{{ t.border }};background:{{ t.bg }};color:{{ t.fg }}">{{ t.name }}<span style="font-family:'JetBrains Mono',monospace;font-size:11px;opacity:0.75">{{ t.count }}</span></span>
+          </sc-for>
+        </div>
+
+        <div style="display:flex;align-items:center;gap:10px;padding:12px 20px;border-bottom:1px solid rgba(255,255,255,0.08)">
+          <span style="font-family:'Rajdhani',sans-serif;font-weight:600;font-size:11px;letter-spacing:0.14em;text-transform:uppercase;color:rgba(242,239,232,0.5)">Show</span>
+          <sc-for list="{{ showChips }}" as="c" hint-placeholder-count="3">
+            <span style="height:26px;padding:0 10px;display:inline-flex;align-items:center;background:{{ c.bg }};border:{{ c.border }};color:{{ c.fg }};font-family:'Rajdhani',sans-serif;font-weight:700;font-size:12px;letter-spacing:0.08em;text-transform:uppercase">{{ c.label }}</span>
+          </sc-for>
+          <span style="width:1px;height:20px;background:rgba(255,255,255,0.15);margin:0 4px"></span>
+          <span style="font-family:'Rajdhani',sans-serif;font-weight:600;font-size:11px;letter-spacing:0.14em;text-transform:uppercase;color:rgba(242,239,232,0.5)">Sort</span>
+          <sc-for list="{{ sortChips }}" as="c" hint-placeholder-count="2">
+            <span style="height:26px;padding:0 10px;display:inline-flex;align-items:center;gap:6px;background:{{ c.bg }};border:{{ c.border }};color:{{ c.fg }};font-family:'Rajdhani',sans-serif;font-weight:700;font-size:12px;letter-spacing:0.08em;text-transform:uppercase">{{ c.label }}<span style="font-family:'JetBrains Mono',monospace;font-size:10px;opacity:0.7">{{ c.dir }}</span></span>
+          </sc-for>
+          <span style="margin-left:auto;font-size:12px;color:rgba(242,239,232,0.55)">6 of 9 shown · 3 completed hidden</span>
+        </div>
+
+        <div style="flex:1;min-height:0;overflow:auto;padding:16px 20px;display:grid;grid-template-columns:repeat(4,1fr);gap:14px;align-content:start">
+          <sc-for list="{{ cardsAll }}" as="j" hint-placeholder-count="6">
+            <div style="display:flex;flex-direction:column;background:{{ j.bg }};border:1px solid {{ j.border }};box-shadow:{{ j.glow }}">
+              <div style="position:relative;height:{{ previewH }};background:repeating-linear-gradient(135deg,rgba(242,239,232,0.055) 0 6px,transparent 6px 12px),#12151a;border-bottom:1px solid {{ j.border }};display:flex;align-items:center;justify-content:center">
+                <span style="font-family:'JetBrains Mono',monospace;font-size:11px;color:rgba(242,239,232,0.4)">{{ j.thumb }}</span>
+                <span style="position:absolute;left:8px;top:8px;padding:2px 7px;background:rgba(10,12,15,0.85);border:1px solid {{ j.kindColor }};color:{{ j.kindColor }};font-family:'Rajdhani',sans-serif;font-weight:700;font-size:10px;letter-spacing:0.12em;text-transform:uppercase">{{ j.kind }}</span>
+                <span style="display:{{ payDisplay }};position:absolute;right:8px;top:8px;padding:2px 7px;background:rgba(10,12,15,0.85);font-family:'JetBrains Mono',monospace;font-size:11px;color:{{ j.payColor }}">{{ j.pay }}</span>
+                <span style="position:absolute;left:8px;bottom:8px;font-family:'JetBrains Mono',monospace;font-size:10px;color:rgba(242,239,232,0.55)">{{ j.overlay }}</span>
+              </div>
+              <div style="padding:11px 12px 12px;display:flex;flex-direction:column;gap:7px;flex:1">
+                <div style="display:flex;justify-content:space-between;align-items:baseline;gap:8px">
+                  <span style="font-family:'Rajdhani',sans-serif;font-weight:700;font-size:18px;letter-spacing:0.04em;line-height:1">{{ j.tile }}</span>
+                  <span style="font-family:'JetBrains Mono',monospace;font-size:11px;color:rgba(242,239,232,0.5)">{{ j.dist }}</span>
+                </div>
+                <span style="font-size:12px;color:{{ j.statusColor }};line-height:1.4">{{ j.status }}</span>
+                <span style="font-size:12px;color:rgba(242,239,232,0.55);line-height:1.4">{{ j.pieces }}</span>
+                <div style="margin-top:auto;display:flex;flex-direction:column;gap:5px">
+                  <div style="height:4px;background:rgba(255,255,255,0.1)"><div style="width:{{ j.bar }};height:100%;background:{{ j.barColor }}"></div></div>
+                  <span style="font-family:'JetBrains Mono',monospace;font-size:10px;color:rgba(242,239,232,0.55)">{{ j.frames }}</span>
+                </div>
+              </div>
+              <div style="display:flex;align-items:center;gap:8px;padding:9px 12px;border-top:1px solid rgba(255,255,255,0.08);background:rgba(255,255,255,0.02)">
+                <span style="height:28px;padding:0 12px;background:{{ j.actionBg }};border:1px solid {{ j.kindColor }};color:{{ j.actionFg }};font-family:'Rajdhani',sans-serif;font-weight:700;font-size:12px;letter-spacing:0.1em;text-transform:uppercase;display:inline-flex;align-items:center;clip-path:polygon(5px 0,100% 0,100% calc(100% - 5px),calc(100% - 5px) 100%,0 100%,0 5px)">{{ j.action }}</span>
+                <span style="height:28px;padding:0 10px;border:1px solid rgba(255,255,255,0.2);color:rgba(242,239,232,0.8);font-family:'Rajdhani',sans-serif;font-weight:700;font-size:12px;letter-spacing:0.1em;text-transform:uppercase;display:inline-flex;align-items:center">{{ j.second }}</span>
+                <span style="margin-left:auto;font-family:'Rajdhani',sans-serif;font-weight:700;font-size:11px;letter-spacing:0.1em;text-transform:uppercase;color:rgba(242,239,232,0.6)">Details ›</span>
+              </div>
+              <sc-if value="{{ j.hasNote }}" hint-placeholder-val="{{ false }}">
+                <div style="display:flex;gap:9px;padding:9px 12px;border-top:1px solid rgba(255,255,255,0.08);background:oklch(0.8 0.18 25 / 0.07)">
+                  <span style="flex:none;padding:2px 6px;border:1px solid oklch(0.8 0.18 25);color:oklch(0.8 0.18 25);font-family:'Rajdhani',sans-serif;font-weight:700;font-size:10px;letter-spacing:0.1em;text-transform:uppercase;height:20px">gave up</span>
+                  <span style="font-size:11px;line-height:1.45;color:rgba(242,239,232,0.7)">{{ j.note }}</span>
+                  <span style="flex:none;font-family:'JetBrains Mono',monospace;font-size:10px;color:rgba(242,239,232,0.45)">{{ j.noteAge }}</span>
+                </div>
+              </sc-if>
+            </div>
+          </sc-for>
+        </div>
+
+        <div style="border-top:1px solid rgba(255,255,255,0.1);padding:10px 20px;display:flex;justify-content:space-between;align-items:center;font-size:12px;color:rgba(242,239,232,0.6)">
+          <span>Payouts are what the owner put in the pool. <b style="color:#f2efe8;font-weight:600">free</b> means nobody pays — you can still draw it.</span>
+          <span style="display:flex;gap:8px"><span style="height:28px;padding:0 11px;border:1px solid rgba(255,255,255,0.22);color:#f2efe8;font-family:'Rajdhani',sans-serif;font-weight:700;font-size:12px;letter-spacing:0.1em;text-transform:uppercase;display:inline-flex;align-items:center">Take next 3</span><span style="height:28px;padding:0 11px;border:1px solid rgba(255,255,255,0.22);color:rgba(242,239,232,0.75);font-family:'Rajdhani',sans-serif;font-weight:700;font-size:12px;letter-spacing:0.1em;text-transform:uppercase;display:inline-flex;align-items:center">Drop all</span></span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 9g -->
+  <div id="9g" style="display:flex;flex-direction:column;gap:12px">
+    <div style="display:flex;gap:12px;align-items:baseline;font-size:15px"><a href="#9g" style="font-family:'JetBrains Mono',monospace;font-size:12px;padding:3px 8px;background:oklch(0.8 0.14 290);color:#0b0d10;text-decoration:none">9g</a><span style="font-family:'Rajdhani',sans-serif;font-weight:700;font-size:20px;text-transform:uppercase;letter-spacing:0.08em">Flows · drawing a flow</span><span style="color:rgba(242,239,232,0.6)">my flows per land · palette · canvas with a subflow open · inspector · dirty</span></div>
+    <div style="position:relative;width:1920px;height:1080px;overflow:hidden;background:#0b0d10;font-size:14px">
+      <img src="assets/world.webp" alt="" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover">
+      <div style="position:absolute;inset:0;background:rgba(6,8,10,0.72)"></div>
+      <dc-import name="Chrome8" app="Flows" toast="" toast-action="" toast-age="" toast-progress="0%" hint-size="100%,100%" style="position:absolute;inset:0"></dc-import>
+
+      <div style="position:absolute;left:0;right:0;top:44px;bottom:0;display:flex;flex-direction:column;background:rgba(10,12,15,0.94);border-top:1px solid rgba(255,255,255,0.1)">
+        <div style="height:48px;flex:none;display:flex;align-items:center;gap:14px;padding:0 18px;border-bottom:1px solid rgba(255,255,255,0.12);background:linear-gradient(180deg,rgba(24,27,33,0.95),rgba(14,16,20,0.95))">
+          <span style="font-family:'Rajdhani',sans-serif;font-weight:700;font-size:20px;text-transform:uppercase;letter-spacing:0.08em;line-height:1">lamp at dusk</span>
+          <span style="font-size:12px;color:rgba(242,239,232,0.6)">Bergli · yours</span>
+          <span style="display:flex;align-items:center;gap:7px;padding:3px 9px;border:1px solid oklch(0.82 0.16 80 / 0.6);color:oklch(0.82 0.16 80);font-family:'Rajdhani',sans-serif;font-weight:700;font-size:11px;letter-spacing:0.12em;text-transform:uppercase"><span style="width:6px;height:6px;background:oklch(0.82 0.16 80);transform:rotate(45deg)"></span>unsaved changes</span>
+          <div style="margin-left:auto;display:flex;gap:8px;align-items:center">
+            <span style="height:34px;padding:0 15px;background:oklch(0.8 0.14 290);color:#0b0d10;font-family:'Rajdhani',sans-serif;font-weight:700;font-size:13px;letter-spacing:0.08em;text-transform:uppercase;display:inline-flex;align-items:center;gap:8px;clip-path:polygon(6px 0,100% 0,100% calc(100% - 6px),calc(100% - 6px) 100%,0 100%,0 6px)">Save<span style="font-family:'JetBrains Mono',monospace;font-size:10px;opacity:0.7">⌘S</span></span>
+            <span style="height:34px;padding:0 13px;border:1px solid rgba(255,255,255,0.25);font-family:'Rajdhani',sans-serif;font-weight:700;font-size:13px;letter-spacing:0.08em;text-transform:uppercase;display:inline-flex;align-items:center">Validate</span>
+            <span style="height:34px;padding:0 13px;border:1px solid rgba(255,255,255,0.25);font-family:'Rajdhani',sans-serif;font-weight:700;font-size:13px;letter-spacing:0.08em;text-transform:uppercase;display:inline-flex;align-items:center">Export .elx</span>
+            <span style="height:34px;padding:0 13px;border:1px solid rgba(255,255,255,0.25);font-family:'Rajdhani',sans-serif;font-weight:700;font-size:13px;letter-spacing:0.08em;text-transform:uppercase;display:inline-flex;align-items:center">Import</span>
+            <span style="width:1px;height:26px;background:rgba(255,255,255,0.15)"></span>
+            <span style="height:34px;padding:0 13px;border:1px solid rgba(255,255,255,0.25);font-family:'Rajdhani',sans-serif;font-weight:700;font-size:13px;letter-spacing:0.08em;text-transform:uppercase;display:inline-flex;align-items:center;color:rgba(242,239,232,0.75)">Close · Esc</span>
+          </div>
+        </div>
+
+        <div style="flex:1;display:flex;min-height:0">
+          <div style="width:300px;flex:none;display:flex;flex-direction:column;border-right:1px solid rgba(255,255,255,0.12);background:rgba(14,16,20,0.7)">
+            <div style="padding:14px 16px 10px;display:flex;justify-content:space-between;align-items:baseline"><span style="font-family:'Rajdhani',sans-serif;font-weight:700;font-size:18px;text-transform:uppercase;letter-spacing:0.08em;line-height:1">My flows</span><span style="font-size:11px;color:rgba(242,239,232,0.5)">4 on 2 lands</span></div>
+            <sc-for list="{{ flowGroups }}" as="g" hint-placeholder-count="3">
+              <div style="display:flex;flex-direction:column">
+                <div style="display:flex;justify-content:space-between;align-items:center;padding:8px 16px;background:rgba(255,255,255,0.03);border-top:1px solid rgba(255,255,255,0.07)"><span style="font-family:'Rajdhani',sans-serif;font-weight:600;font-size:11px;letter-spacing:0.14em;text-transform:uppercase;color:rgba(242,239,232,0.55)">{{ g.land }}</span><span style="font-family:'Rajdhani',sans-serif;font-weight:700;font-size:10px;letter-spacing:0.1em;text-transform:uppercase;color:{{ g.rightColor }}">{{ g.right }}</span></div>
+                <sc-for list="{{ g.flows }}" as="f" hint-placeholder-count="2">
+                  <div style="display:flex;align-items:center;gap:10px;padding:9px 16px;border-top:1px solid rgba(255,255,255,0.05);background:{{ f.bg }};border-left:2px solid {{ f.mark }};font-size:13px;color:{{ f.fg }}">
+                    <span style="flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ f.name }}</span>
+                    <span style="font-family:'JetBrains Mono',monospace;font-size:10px;color:rgba(242,239,232,0.45)">{{ f.blocks }}</span>
+                  </div>
+                </sc-for>
+                <sc-if value="{{ g.empty }}" hint-placeholder-val="{{ false }}">
+                  <div style="padding:9px 16px;border-top:1px solid rgba(255,255,255,0.05);font-size:12px;color:rgba(242,239,232,0.55)">No flows on {{ g.short }} yet — <span style="color:oklch(0.8 0.14 290)">New flow</span></div>
+                </sc-if>
+              </div>
+            </sc-for>
+            <div style="margin-top:auto;border-top:1px solid rgba(255,255,255,0.1);padding:12px 16px;display:flex;flex-wrap:wrap;gap:6px">
+              <span style="height:30px;padding:0 11px;background:oklch(0.8 0.14 290);color:#0b0d10;font-family:'Rajdhani',sans-serif;font-weight:700;font-size:12px;letter-spacing:0.08em;text-transform:uppercase;display:inline-flex;align-items:center;clip-path:polygon(5px 0,100% 0,100% calc(100% - 5px),calc(100% - 5px) 100%,0 100%,0 5px)">New flow</span>
+              <span style="height:30px;padding:0 11px;border:1px solid rgba(255,255,255,0.22);font-family:'Rajdhani',sans-serif;font-weight:700;font-size:12px;letter-spacing:0.08em;text-transform:uppercase;display:inline-flex;align-items:center">Duplicate</span>
+              <span style="height:30px;padding:0 11px;border:1px solid rgba(255,255,255,0.22);font-family:'Rajdhani',sans-serif;font-weight:700;font-size:12px;letter-spacing:0.08em;text-transform:uppercase;display:inline-flex;align-items:center">Rename</span>
+              <span style="height:30px;padding:0 11px;border:1px solid oklch(0.8 0.18 25 / 0.5);color:oklch(0.8 0.18 25);font-family:'Rajdhani',sans-serif;font-weight:700;font-size:12px;letter-spacing:0.08em;text-transform:uppercase;display:inline-flex;align-items:center">Delete</span>
+            </div>
+          </div>
+
+          <div style="width:260px;flex:none;display:flex;flex-direction:column;border-right:1px solid rgba(255,255,255,0.12);background:rgba(14,16,20,0.55)">
+            <div style="padding:14px 14px 10px;display:flex;flex-direction:column;gap:9px">
+              <span style="font-family:'Rajdhani',sans-serif;font-weight:700;font-size:18px;text-transform:uppercase;letter-spacing:0.08em;line-height:1">Blocks</span>
+              <div style="height:32px;border:1px solid rgba(255,255,255,0.18);background:rgba(255,255,255,0.04);display:flex;align-items:center;gap:8px;padding:0 10px;font-size:13px">
+                <svg viewBox="0 0 24 24" style="width:14px;height:14px;flex:none;fill:none;stroke:rgba(242,239,232,0.5);stroke-width:2;stroke-linecap:round"><path d="M11 11a6 6 0 1 0-12 0 6 6 0 0 0 12 0zM15 15l-4-4" transform="translate(4 3)"></path></svg>
+                <span>string</span><span style="margin-left:auto;font-family:'JetBrains Mono',monospace;font-size:10px;color:rgba(242,239,232,0.45)">11</span>
+              </div>
+            </div>
+            <div style="flex:1;overflow:hidden;display:flex;flex-direction:column">
+              <sc-for list="{{ palette }}" as="p" hint-placeholder-count="12">
+                <div style="display:flex;align-items:center;gap:9px;padding:{{ p.pad }};border-top:1px solid rgba(255,255,255,0.05);background:{{ p.bg }};font-size:{{ p.size }};color:{{ p.fg }};font-family:{{ p.font }};font-weight:{{ p.weight }};letter-spacing:{{ p.tracking }};text-transform:{{ p.transform }}">
+                  <span style="width:7px;height:7px;flex:none;background:{{ p.dot }};transform:rotate(45deg)"></span>
+                  <span style="flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ p.name }}</span>
+                  <span style="font-family:'JetBrains Mono',monospace;font-size:10px;color:rgba(242,239,232,0.4);text-transform:none;letter-spacing:0">{{ p.plugin }}</span>
+                </div>
+              </sc-for>
+            </div>
+            <div style="border-top:1px solid rgba(255,255,255,0.1);padding:10px 14px;font-size:11px;color:rgba(242,239,232,0.55);line-height:1.45">Drag onto the canvas. Groups come from the plugins the process servers report.</div>
+          </div>
+
+          <div style="flex:1;position:relative;min-width:0;overflow:hidden;background:#0e1014">
+            <div style="position:absolute;inset:0;background:repeating-linear-gradient(0deg,rgba(255,255,255,0.045) 0 1px,transparent 1px 40px),repeating-linear-gradient(90deg,rgba(255,255,255,0.045) 0 1px,transparent 1px 40px)"></div>
+            <svg viewBox="0 0 1000 988" preserveAspectRatio="none" style="position:absolute;inset:0;width:100%;height:100%;fill:none;stroke:oklch(0.8 0.14 290);stroke-width:2">
+              <path d="M240 157C286 157 274 187 320 187"></path>
+              <path d="M510 187C566 187 544 277 600 277"></path>
+              <path d="M240 337C286 337 274 367 320 367" stroke="rgba(242,239,232,0.45)"></path>
+              <path d="M510 367C560 367 550 299 600 299" stroke="rgba(242,239,232,0.45)"></path>
+            </svg>
+            <div style="position:absolute;left:530px;top:126px;display:flex;align-items:center;gap:6px;padding:2px 8px;background:rgba(14,16,20,0.9);border:1px solid oklch(0.8 0.14 290 / 0.6);font-family:'JetBrains Mono',monospace;font-size:10px;color:oklch(0.8 0.14 290)">net · dusk</div>
+
+            <sc-for list="{{ nodes }}" as="n" hint-placeholder-count="5">
+              <div style="position:absolute;left:{{ n.left }};top:{{ n.top }};width:{{ n.w }};background:rgba(18,21,26,0.97);border:1px solid {{ n.border }};box-shadow:{{ n.glow }}">
+                <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;height:26px;padding:0 8px;background:{{ n.head }};border-bottom:1px solid {{ n.border }}">
+                  <span style="font-family:'Rajdhani',sans-serif;font-weight:700;font-size:12px;letter-spacing:0.08em;text-transform:uppercase;line-height:1;color:{{ n.fg }}">{{ n.title }}</span>
+                  <span style="font-family:'JetBrains Mono',monospace;font-size:9px;color:rgba(242,239,232,0.45)">{{ n.plugin }}</span>
+                </div>
+                <div style="display:flex;flex-direction:column;padding:5px 0;background:{{ n.body }}">
+                  <sc-for list="{{ n.rows }}" as="r" hint-placeholder-count="2">
+                    <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;height:22px;padding:0 7px;font-size:11px">
+                      <span style="display:flex;align-items:center;gap:6px;color:rgba(242,239,232,0.8)"><span style="width:7px;height:7px;flex:none;background:{{ r.inDot }};transform:rotate(45deg)"></span>{{ r.in }}</span>
+                      <span style="display:flex;align-items:center;gap:6px;font-family:'JetBrains Mono',monospace;font-size:10px;color:{{ r.valColor }}">{{ r.val }}<span style="width:7px;height:7px;flex:none;background:{{ r.outDot }};transform:rotate(45deg)"></span></span>
+                    </div>
+                  </sc-for>
+                </div>
+              </div>
+            </sc-for>
+
+            <div style="position:absolute;left:600px;top:560px;width:200px;background:repeating-linear-gradient(135deg,rgba(242,239,232,0.07) 0 6px,transparent 6px 12px),rgba(18,21,26,0.95);border:1px dashed rgba(242,239,232,0.35);padding:8px 9px;display:flex;flex-direction:column;gap:4px">
+              <span style="font-family:'Rajdhani',sans-serif;font-weight:700;font-size:12px;letter-spacing:0.08em;text-transform:uppercase;color:rgba(242,239,232,0.8)">unknown block</span>
+              <span style="font-family:'JetBrains Mono',monospace;font-size:10px;color:rgba(242,239,232,0.6)">opencv/threshold</span>
+              <span style="font-size:11px;color:rgba(242,239,232,0.55);line-height:1.4">Kept exactly as it is. It will run where that plugin is installed.</span>
+            </div>
+
+            <div style="position:absolute;left:18px;top:14px;display:flex;align-items:center;gap:8px;font-size:12px">
+              <span style="color:rgba(242,239,232,0.55)">lamp at dusk</span>
+              <span style="color:rgba(242,239,232,0.4)">›</span>
+              <span style="font-family:'Rajdhani',sans-serif;font-weight:700;font-size:13px;letter-spacing:0.08em;text-transform:uppercase;color:oklch(0.8 0.14 290)">For-Each · lamps</span>
+              <span style="height:24px;padding:0 9px;border:1px solid rgba(255,255,255,0.22);font-family:'Rajdhani',sans-serif;font-weight:700;font-size:11px;letter-spacing:0.08em;text-transform:uppercase;display:inline-flex;align-items:center;color:rgba(242,239,232,0.7)">Back</span>
+            </div>
+            <div style="position:absolute;right:18px;top:14px;display:flex;gap:6px">
+              <sc-for list="{{ canvasTools }}" as="t" hint-placeholder-count="4">
+                <span style="height:28px;padding:0 10px;background:rgba(14,16,20,0.9);border:1px solid rgba(255,255,255,0.18);font-family:'Rajdhani',sans-serif;font-weight:700;font-size:11px;letter-spacing:0.08em;text-transform:uppercase;display:inline-flex;align-items:center;gap:7px;color:{{ t.fg }}">{{ t.name }}<span style="font-family:'JetBrains Mono',monospace;font-size:9px;color:rgba(242,239,232,0.45);text-transform:none;letter-spacing:0">{{ t.key }}</span></span>
+              </sc-for>
+            </div>
+            <div style="position:absolute;left:18px;bottom:14px;display:flex;align-items:center;gap:14px;height:30px;padding:0 12px;background:rgba(14,16,20,0.9);border:1px solid rgba(255,255,255,0.14);font-size:11px;color:rgba(242,239,232,0.65)">
+              <span><b style="color:#f2efe8;font-weight:600">5</b> blocks</span>
+              <span><b style="color:#f2efe8;font-weight:600">4</b> wires</span>
+              <span>1 named net</span>
+              <span style="color:rgba(242,239,232,0.5)">Layout is kept beside the flow, never in the ELX</span>
+            </div>
+          </div>
+
+          <div style="width:360px;flex:none;display:flex;flex-direction:column;border-left:1px solid rgba(255,255,255,0.12);background:rgba(14,16,20,0.7)">
+            <div style="padding:14px 16px 12px;border-bottom:1px solid rgba(255,255,255,0.1);display:flex;flex-direction:column;gap:10px">
+              <div style="display:flex;justify-content:space-between;align-items:baseline"><span style="font-family:'Rajdhani',sans-serif;font-weight:700;font-size:18px;text-transform:uppercase;letter-spacing:0.08em;line-height:1">Inspector</span><span style="font-family:'JetBrains Mono',monospace;font-size:10px;color:rgba(242,239,232,0.45)">strings/contains</span></div>
+              <div style="display:flex flex-direction:column;gap:6px;flex-direction:column;display:flex">
+                <span style="font-family:'Rajdhani',sans-serif;font-weight:600;font-size:11px;letter-spacing:0.14em;text-transform:uppercase;color:rgba(242,239,232,0.55)">Name · identity in this flow</span>
+                <div style="height:34px;border:1px solid oklch(0.8 0.18 25);background:oklch(0.8 0.18 25 / 0.08);display:flex;align-items:center;justify-content:space-between;padding:0 10px;font-size:13px">contains<span style="font-family:'JetBrains Mono',monospace;font-size:10px;color:rgba(242,239,232,0.5)">edit</span></div>
+                <span style="font-size:12px;color:oklch(0.8 0.18 25);line-height:1.4">“contains” is already used in this flow.</span>
+              </div>
+            </div>
+            <div style="flex:1;overflow:hidden;display:flex;flex-direction:column;gap:16px;padding:14px 16px">
+              <div style="display:flex;flex-direction:column;gap:8px">
+                <span style="font-family:'Rajdhani',sans-serif;font-weight:600;font-size:11px;letter-spacing:0.14em;text-transform:uppercase;color:rgba(242,239,232,0.55)">Parameters</span>
+                <div style="display:flex;align-items:center;justify-content:space-between;font-size:13px"><span>Case sensitive</span><span style="width:38px;height:20px;background:rgba(255,255,255,0.12);border:1px solid rgba(255,255,255,0.2);position:relative"><span style="position:absolute;left:2px;top:2px;width:14px;height:14px;background:rgba(242,239,232,0.7)"></span></span></div>
+                <div style="display:flex;align-items:center;justify-content:space-between;font-size:13px"><span>Max matches</span><div style="width:110px;height:30px;border:1px solid rgba(255,255,255,0.18);background:rgba(255,255,255,0.04);display:flex;align-items:center;justify-content:space-between;padding:0 8px;font-family:'JetBrains Mono',monospace;font-size:12px"><span style="color:rgba(242,239,232,0.5)">−</span>1<span style="color:rgba(242,239,232,0.5)">+</span></div></div>
+              </div>
+              <div style="display:flex;flex-direction:column;gap:8px">
+                <div style="display:flex;justify-content:space-between;align-items:baseline"><span style="font-family:'Rajdhani',sans-serif;font-weight:600;font-size:11px;letter-spacing:0.14em;text-transform:uppercase;color:rgba(242,239,232,0.55)">Constants</span><span style="font-size:11px;color:rgba(242,239,232,0.45)">on inputs nothing is wired to</span></div>
+                <div style="display:flex;flex-direction:column;gap:6px">
+                  <div style="display:flex;align-items:center;gap:8px;font-size:13px"><span style="width:66px;flex:none;color:rgba(242,239,232,0.65)">pattern</span><div style="flex:1;height:30px;border:1px solid rgba(255,255,255,0.18);background:rgba(255,255,255,0.04);display:flex;align-items:center;padding:0 8px;font-family:'JetBrains Mono',monospace;font-size:12px">"dusk"</div></div>
+                  <div style="display:flex;align-items:center;gap:8px;font-size:13px"><span style="width:66px;flex:none;color:rgba(242,239,232,0.65)">input</span><div style="flex:1;height:30px;border:1px dashed rgba(255,255,255,0.22);display:flex;align-items:center;padding:0 8px;font-size:12px;color:rgba(242,239,232,0.5)">wired · from World clock</div></div>
+                </div>
+              </div>
+              <div style="display:flex;align-items:center;justify-content:space-between;font-size:13px"><div style="display:flex;flex-direction:column;gap:2px"><span>Port group · inputs</span><span style="font-size:11px;color:rgba(242,239,232,0.55)">how many of them</span></div><div style="display:flex;border:1px solid rgba(255,255,255,0.2);font-family:'JetBrains Mono',monospace;font-size:12px"><span style="width:28px;height:28px;display:inline-flex;align-items:center;justify-content:center">−</span><span style="width:34px;height:28px;display:inline-flex;align-items:center;justify-content:center;border-left:1px solid rgba(255,255,255,0.2);border-right:1px solid rgba(255,255,255,0.2)">2</span><span style="width:28px;height:28px;display:inline-flex;align-items:center;justify-content:center">+</span></div></div>
+            </div>
+            <div style="margin-top:auto;border-top:1px solid rgba(255,255,255,0.1);padding:12px 16px;display:flex;flex-direction:column;gap:8px">
+              <div style="display:flex;justify-content:space-between;align-items:center"><span style="font-family:'Rajdhani',sans-serif;font-weight:600;font-size:11px;letter-spacing:0.14em;text-transform:uppercase;color:rgba(242,239,232,0.55)">Flow inputs and outputs</span><span style="font-family:'Rajdhani',sans-serif;font-weight:700;font-size:11px;letter-spacing:0.1em;text-transform:uppercase;color:oklch(0.8 0.14 290)">Add</span></div>
+              <sc-for list="{{ flowIO }}" as="io" hint-placeholder-count="4">
+                <div style="display:flex;align-items:center;justify-content:space-between;padding:6px 0;border-top:1px solid rgba(255,255,255,0.06);font-size:12px">
+                  <span style="display:flex;align-items:center;gap:8px"><span style="font-family:'Rajdhani',sans-serif;font-weight:700;font-size:10px;letter-spacing:0.1em;text-transform:uppercase;color:{{ io.color }}">{{ io.dir }}</span>{{ io.name }}</span>
+                  <span style="font-family:'JetBrains Mono',monospace;font-size:10px;color:rgba(242,239,232,0.5)">{{ io.type }}</span>
+                </div>
+              </sc-for>
+              <span style="font-size:11px;color:rgba(242,239,232,0.5);line-height:1.4">Nothing selected shows this list on its own.</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 9h -->
+  <div id="9h" style="display:flex;flex-direction:column;gap:12px">
+    <div style="display:flex;gap:12px;align-items:baseline;font-size:15px"><a href="#9h" style="font-family:'JetBrains Mono',monospace;font-size:12px;padding:3px 8px;background:oklch(0.78 0.14 200);color:#0b0d10;text-decoration:none">9h</a><span style="font-family:'Rajdhani',sans-serif;font-weight:700;font-size:20px;text-transform:uppercase;letter-spacing:0.08em">Settings · Symbols</span><span style="color:rgba(242,239,232,0.6)">filter, layer stack, the layer’s form, live preview on a sample, versions</span></div>
+    <div style="position:relative;width:1920px;height:1080px;overflow:hidden;background:#0b0d10;font-size:14px">
+      <img src="assets/world.webp" alt="" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover">
+      <dc-import name="Chrome8" app="Build" active="Settings" toast="Saved as version 4 — not in the world yet" toast-action="" toast-age="3 s" toast-progress="30%" hint-size="100%,100%" style="position:absolute;inset:0"></dc-import>
+
+      <div style="position:absolute;left:24px;right:24px;top:80px;bottom:130px;display:flex;flex-direction:column;background:rgba(14,16,20,0.9);backdrop-filter:blur(14px);border:1px solid rgba(255,255,255,0.12);clip-path:polygon(12px 0,100% 0,100% calc(100% - 12px),calc(100% - 12px) 100%,0 100%,0 12px);overflow:hidden">
+        <div style="flex:none;display:flex;align-items:center;gap:18px;padding:16px 20px 0">
+          <span style="font-family:'Rajdhani',sans-serif;font-weight:700;font-size:26px;text-transform:uppercase;letter-spacing:0.08em;line-height:1">Settings</span>
+          <div style="display:flex;gap:2px;font-family:'Rajdhani',sans-serif;font-weight:700;font-size:13px;letter-spacing:0.1em;text-transform:uppercase">
+            <sc-for list="{{ settingsTabs }}" as="t" hint-placeholder-count="7">
+              <span style="height:32px;padding:0 13px;display:inline-flex;align-items:center;border-bottom:2px solid {{ t.line }};color:{{ t.fg }}">{{ t.name }}</span>
+            </sc-for>
+          </div>
+          <div style="margin-left:auto;display:flex;align-items:center;gap:14px">
+            <span style="font-size:12px;color:oklch(0.82 0.16 80)">3 symbols changed since the last apply · 41 published tiles would be rebuilt</span>
+            <span style="height:34px;padding:0 15px;background:oklch(0.78 0.14 200);color:#0b0d10;font-family:'Rajdhani',sans-serif;font-weight:700;font-size:13px;letter-spacing:0.08em;text-transform:uppercase;display:inline-flex;align-items:center;clip-path:polygon(6px 0,100% 0,100% calc(100% - 6px),calc(100% - 6px) 100%,0 100%,0 6px)">Apply to world</span>
+            <span style="font-size:16px;color:rgba(242,239,232,0.5)">✕</span>
+          </div>
+        </div>
+        <div style="flex:1;display:flex;min-height:0;margin-top:14px;border-top:1px solid rgba(255,255,255,0.1)">
+          <div style="width:320px;flex:none;display:flex;flex-direction:column;border-right:1px solid rgba(255,255,255,0.1)">
+            <div style="padding:12px 16px 10px;display:flex;justify-content:space-between;align-items:baseline"><span style="font-family:'Rajdhani',sans-serif;font-weight:700;font-size:16px;text-transform:uppercase;letter-spacing:0.08em;line-height:1">Symbols</span><span style="font-family:'Rajdhani',sans-serif;font-weight:700;font-size:11px;letter-spacing:0.1em;text-transform:uppercase;color:oklch(0.78 0.14 200)">New symbol</span></div>
+            <div style="flex:1;overflow:hidden;display:flex;flex-direction:column">
+              <sc-for list="{{ symbols }}" as="s" hint-placeholder-count="10">
+                <div style="display:flex;align-items:center;gap:10px;padding:{{ s.pad }};border-top:1px solid rgba(255,255,255,0.06);background:{{ s.bg }};border-left:2px solid {{ s.mark }};font-size:{{ s.size }};font-family:{{ s.font }};font-weight:{{ s.weight }};letter-spacing:{{ s.tracking }};text-transform:{{ s.transform }};color:{{ s.fg }}">
+                  <span style="width:9px;flex:none;font-family:'JetBrains Mono',monospace;font-size:9px;color:rgba(242,239,232,0.35)">{{ s.grip }}</span>
+                  <span style="flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ s.name }}</span>
+                  <span style="font-family:'JetBrains Mono',monospace;font-size:10px;color:rgba(242,239,232,0.4);letter-spacing:0;text-transform:none">{{ s.layers }}</span>
+                  <span style="width:28px;height:15px;flex:none;background:{{ s.swBg }};border:1px solid {{ s.swBorder }};position:relative;display:{{ s.swDisplay }}"><span style="position:absolute;top:1px;{{ s.swSide }}:1px;width:11px;height:11px;background:{{ s.swKnob }}"></span></span>
+                </div>
+              </sc-for>
+            </div>
+            <div style="border-top:1px solid rgba(255,255,255,0.1);padding:10px 16px;font-size:11px;color:rgba(242,239,232,0.55);line-height:1.45">Drag to reorder. The order decides who wins where two symbols match the same feature.</div>
+          </div>
+
+          <div style="flex:1;min-width:0;display:flex;flex-direction:column;overflow:hidden">
+            <div style="padding:14px 20px;display:flex;flex-direction:column;gap:12px;border-bottom:1px solid rgba(255,255,255,0.1)">
+              <div style="display:flex;gap:12px;align-items:center">
+                <div style="flex:1;height:36px;border:1px solid rgba(255,255,255,0.18);background:rgba(255,255,255,0.04);display:flex;align-items:center;padding:0 12px;font-family:'Rajdhani',sans-serif;font-weight:700;font-size:18px;letter-spacing:0.06em;text-transform:uppercase">Kantonsstrasse</div>
+                <span style="font-family:'JetBrains Mono',monospace;font-size:11px;color:rgba(242,239,232,0.55)">kind highway · version 3 in the world</span>
+              </div>
+              <div style="display:flex;flex-direction:column;gap:7px">
+                <div style="display:flex;justify-content:space-between;align-items:baseline"><span style="font-family:'Rajdhani',sans-serif;font-weight:600;font-size:11px;letter-spacing:0.14em;text-transform:uppercase;color:rgba(242,239,232,0.55)">When</span><span style="font-size:11px;color:rgba(242,239,232,0.5)">all conditions must hold</span></div>
+                <div style="display:flex;gap:8px;align-items:center">
+                  <div style="height:32px;padding:0 10px;border:1px solid rgba(255,255,255,0.18);background:rgba(255,255,255,0.04);display:flex;align-items:center;font-size:13px">highway</div>
+                  <div style="height:32px;padding:0 10px;border:1px solid rgba(255,255,255,0.18);background:rgba(255,255,255,0.04);display:flex;align-items:center;font-family:'JetBrains Mono',monospace;font-size:12px">eq</div>
+                  <div style="height:32px;padding:0 10px;border:1px solid rgba(255,255,255,0.18);background:rgba(255,255,255,0.04);display:flex;align-items:center;font-size:13px">secondary</div>
+                  <span style="height:32px;padding:0 10px;border:1px dashed rgba(255,255,255,0.25);display:inline-flex;align-items:center;font-family:'Rajdhani',sans-serif;font-weight:700;font-size:11px;letter-spacing:0.1em;text-transform:uppercase;color:rgba(242,239,232,0.6)">Add condition</span>
+                  <span style="margin-left:auto;font-size:12px;color:rgba(242,239,232,0.6)">matches 1 284 features in the world</span>
+                </div>
+              </div>
+            </div>
+            <div style="flex:1;display:flex;min-height:0">
+              <div style="width:340px;flex:none;display:flex;flex-direction:column;border-right:1px solid rgba(255,255,255,0.1)">
+                <div style="padding:12px 16px 8px;display:flex;justify-content:space-between;align-items:baseline"><span style="font-family:'Rajdhani',sans-serif;font-weight:600;font-size:11px;letter-spacing:0.14em;text-transform:uppercase;color:rgba(242,239,232,0.55)">Layers · in order</span><span style="font-family:'Rajdhani',sans-serif;font-weight:700;font-size:11px;letter-spacing:0.1em;text-transform:uppercase;color:oklch(0.78 0.14 200)">Add layer</span></div>
+                <sc-for list="{{ symLayers }}" as="l" hint-placeholder-count="4">
+                  <div style="display:flex;align-items:center;gap:9px;padding:9px 16px;border-top:1px solid rgba(255,255,255,0.06);background:{{ l.bg }};border-left:2px solid {{ l.mark }}">
+                    <span style="font-family:'JetBrains Mono',monospace;font-size:9px;color:rgba(242,239,232,0.35)">⠿</span>
+                    <div style="display:flex;flex-direction:column;gap:2px;flex:1;min-width:0">
+                      <span style="font-family:'Rajdhani',sans-serif;font-weight:700;font-size:13px;letter-spacing:0.08em;text-transform:uppercase;line-height:1;color:{{ l.fg }}">{{ l.kind }}</span>
+                      <span style="font-size:11px;color:rgba(242,239,232,0.6);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ l.what }}</span>
+                    </div>
+                    <svg viewBox="0 0 24 24" style="width:15px;height:15px;flex:none;fill:none;stroke:{{ l.eye }};stroke-width:1.6"><path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7S1 12 1 12zM15 12a3 3 0 1 1-6 0 3 3 0 0 1 6 0z"></path></svg>
+                  </div>
+                </sc-for>
+                <div style="margin-top:auto;border-top:1px solid rgba(255,255,255,0.1);padding:10px 16px;font-size:11px;color:rgba(242,239,232,0.55);line-height:1.45">The ground is painted first, then these run in this order.</div>
+              </div>
+              <div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:12px;padding:14px 18px;overflow:hidden">
+                <div style="display:flex;justify-content:space-between;align-items:baseline"><span style="font-family:'Rajdhani',sans-serif;font-weight:700;font-size:16px;text-transform:uppercase;letter-spacing:0.08em;line-height:1;color:oklch(0.78 0.14 200)">Repeat · lamps</span><span style="font-family:'JetBrains Mono',monospace;font-size:11px;color:rgba(242,239,232,0.5)">layer 3 of 4</span></div>
+                <div style="display:flex;flex-direction:column;gap:6px">
+                  <span style="font-family:'Rajdhani',sans-serif;font-weight:600;font-size:11px;letter-spacing:0.14em;text-transform:uppercase;color:rgba(242,239,232,0.55)">What to repeat · segments and models</span>
+                  <div style="height:36px;border:1px solid oklch(0.8 0.18 25);background:oklch(0.8 0.18 25 / 0.08);display:flex;align-items:center;justify-content:space-between;padding:0 10px;font-size:13px">Asphalt<span style="font-family:'JetBrains Mono',monospace;font-size:10px;color:rgba(242,239,232,0.5)">surface material</span></div>
+                  <span style="font-size:12px;color:oklch(0.8 0.18 25);line-height:1.4">A repeating piece or a model is needed here — “Asphalt” is a surface material.</span>
+                </div>
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+                  <sc-for list="{{ layerFields }}" as="f" hint-placeholder-count="4">
+                    <div style="display:flex;flex-direction:column;gap:5px">
+                      <span style="font-family:'Rajdhani',sans-serif;font-weight:600;font-size:11px;letter-spacing:0.14em;text-transform:uppercase;color:rgba(242,239,232,0.55)">{{ f.label }}</span>
+                      <div style="height:32px;border:1px solid rgba(255,255,255,0.18);background:rgba(255,255,255,0.04);display:flex;align-items:center;justify-content:space-between;padding:0 10px;font-size:13px">{{ f.value }}<span style="font-family:'JetBrains Mono',monospace;font-size:10px;color:rgba(242,239,232,0.45)">{{ f.unit }}</span></div>
+                    </div>
+                  </sc-for>
+                </div>
+                <div style="display:flex;flex-direction:column;gap:6px;padding:10px 12px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08)">
+                  <span style="font-family:'Rajdhani',sans-serif;font-weight:600;font-size:11px;letter-spacing:0.14em;text-transform:uppercase;color:rgba(242,239,232,0.55)">Only when</span>
+                  <div style="display:flex;gap:8px;align-items:center;font-size:13px"><div style="height:30px;padding:0 10px;border:1px solid rgba(255,255,255,0.18);display:flex;align-items:center">lit</div><div style="height:30px;padding:0 10px;border:1px solid rgba(255,255,255,0.18);display:flex;align-items:center;font-family:'JetBrains Mono',monospace;font-size:12px">eq</div><div style="height:30px;padding:0 10px;border:1px solid rgba(255,255,255,0.18);display:flex;align-items:center">yes</div></div>
+                  <span style="font-size:11px;color:rgba(242,239,232,0.55)">Numbers may also come from a property: <span style="font-family:'JetBrains Mono',monospace">lanes × 3.0, min 6, else 6</span></span>
+                </div>
+                <div style="margin-top:auto;display:flex;align-items:center;gap:10px">
+                  <span style="height:36px;padding:0 15px;background:oklch(0.78 0.14 200);color:#0b0d10;font-family:'Rajdhani',sans-serif;font-weight:700;font-size:13px;letter-spacing:0.08em;text-transform:uppercase;display:inline-flex;align-items:center;clip-path:polygon(6px 0,100% 0,100% calc(100% - 6px),calc(100% - 6px) 100%,0 100%,0 6px)">Save as version 4</span>
+                  <span style="font-size:12px;color:oklch(0.82 0.16 80)">Saved versions do not reach the world until Apply.</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div style="width:420px;flex:none;display:flex;flex-direction:column;border-left:1px solid rgba(255,255,255,0.1)">
+            <div style="padding:12px 16px 10px;display:flex;justify-content:space-between;align-items:baseline"><span style="font-family:'Rajdhani',sans-serif;font-weight:700;font-size:16px;text-transform:uppercase;letter-spacing:0.08em;line-height:1">Preview</span><span style="font-size:11px;color:rgba(242,239,232,0.5)">sample · 60 m S-curve on a gentle slope</span></div>
+            <div style="position:relative;margin:0 16px;height:230px;flex:none;background:linear-gradient(180deg,#151a20,#0d1014);border:1px solid rgba(255,255,255,0.12);overflow:hidden">
+              <div style="position:absolute;inset:0;background:radial-gradient(ellipse 340px 140px at 55% 120%,rgba(120,140,110,0.35),transparent 70%)"></div>
+              <div style="position:absolute;left:-30px;top:120px;width:480px;height:44px;background:linear-gradient(180deg,#45484c,#2e3134);transform:rotate(-7deg) perspective(300px) rotateX(48deg);box-shadow:0 10px 30px rgba(0,0,0,0.5)"></div>
+              <div style="position:absolute;left:-30px;top:118px;width:480px;height:3px;background:rgba(242,239,232,0.5);transform:rotate(-7deg)"></div>
+              <div style="position:absolute;left:-30px;top:160px;width:480px;height:3px;background:rgba(242,239,232,0.5);transform:rotate(-7deg)"></div>
+              <sc-for list="{{ previewLamps }}" as="p" hint-placeholder-count="4">
+                <div style="position:absolute;left:{{ p.left }};top:{{ p.top }};width:2px;height:{{ p.h }};background:rgba(242,239,232,0.6)"><span style="position:absolute;left:-4px;top:-4px;width:10px;height:5px;background:oklch(0.82 0.16 80);box-shadow:0 0 14px oklch(0.82 0.16 80)"></span></div>
+              </sc-for>
+              <span style="position:absolute;left:10px;top:8px;font-family:'Rajdhani',sans-serif;font-weight:600;font-size:10px;letter-spacing:0.14em;text-transform:uppercase;color:rgba(242,239,232,0.6)">Orbit · drag</span>
+              <span style="position:absolute;right:10px;bottom:8px;font-family:'JetBrains Mono',monospace;font-size:10px;color:rgba(242,239,232,0.6)">compiled here, by gen/</span>
+            </div>
+            <div style="padding:12px 16px;display:flex;flex-direction:column;gap:9px;border-bottom:1px solid rgba(255,255,255,0.1)">
+              <span style="font-family:'Rajdhani',sans-serif;font-weight:600;font-size:11px;letter-spacing:0.14em;text-transform:uppercase;color:rgba(242,239,232,0.55)">Try values on the sample</span>
+              <div style="display:flex;align-items:center;justify-content:space-between;font-size:13px"><span>highway</span><div style="width:150px;height:30px;border:1px solid rgba(255,255,255,0.18);background:rgba(255,255,255,0.04);display:flex;align-items:center;padding:0 9px">secondary</div></div>
+              <div style="display:flex;align-items:center;justify-content:space-between;font-size:13px"><span>lit</span><div style="display:flex;align-items:center;gap:9px"><span style="width:38px;height:20px;background:oklch(0.78 0.14 200);position:relative;flex:none"><span style="position:absolute;right:2px;top:2px;width:14px;height:14px;background:#0b0d10"></span></span><span style="font-family:'JetBrains Mono',monospace;font-size:11px;color:rgba(242,239,232,0.6)">yes</span></div></div>
+              <div style="display:flex;align-items:center;justify-content:space-between;font-size:13px"><span>lanes</span><div style="width:150px;height:30px;border:1px solid rgba(255,255,255,0.18);background:rgba(255,255,255,0.04);display:flex;align-items:center;justify-content:space-between;padding:0 9px;font-family:'JetBrains Mono',monospace;font-size:12px"><span style="color:rgba(242,239,232,0.5)">−</span>2<span style="color:rgba(242,239,232,0.5)">+</span></div></div>
+            </div>
+            <div style="flex:1;display:flex;flex-direction:column;overflow:hidden">
+              <div style="padding:12px 16px 8px;font-family:'Rajdhani',sans-serif;font-weight:600;font-size:11px;letter-spacing:0.14em;text-transform:uppercase;color:rgba(242,239,232,0.55)">History</div>
+              <sc-for list="{{ versions }}" as="v" hint-placeholder-count="4">
+                <div style="display:flex;align-items:center;gap:10px;padding:8px 16px;border-top:1px solid rgba(255,255,255,0.06);font-size:12px;background:{{ v.bg }}">
+                  <span style="font-family:'JetBrains Mono',monospace;font-size:11px;color:{{ v.color }};width:22px;flex:none">v{{ v.n }}</span>
+                  <span style="flex:1;min-width:0;color:rgba(242,239,232,0.75);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ v.who }}</span>
+                  <span style="font-family:'Rajdhani',sans-serif;font-weight:700;font-size:10px;letter-spacing:0.1em;text-transform:uppercase;color:{{ v.color }}">{{ v.tag }}</span>
+                </div>
+              </sc-for>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</section>
+
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;terrainTool&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;default&quot;:&quot;Raise&quot;,&quot;options&quot;:[&quot;Pan&quot;,&quot;Raise&quot;,&quot;Lower&quot;,&quot;Smooth&quot;,&quot;Flatten&quot;,&quot;Level&quot;,&quot;Road bed&quot;],&quot;tsType&quot;:&quot;string&quot;,&quot;section&quot;:&quot;Terrain&quot;},&quot;brushShape&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;default&quot;:&quot;circle&quot;,&quot;options&quot;:[&quot;circle&quot;,&quot;square&quot;],&quot;tsType&quot;:&quot;string&quot;,&quot;section&quot;:&quot;Terrain&quot;},&quot;falloff&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;default&quot;:&quot;Smooth&quot;,&quot;options&quot;:[&quot;Smooth&quot;,&quot;Linear&quot;,&quot;Sharp&quot;,&quot;Plateau&quot;],&quot;tsType&quot;:&quot;string&quot;,&quot;section&quot;:&quot;Terrain&quot;},&quot;placeMode&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;default&quot;:&quot;Turn&quot;,&quot;options&quot;:[&quot;Move&quot;,&quot;Turn&quot;,&quot;Size&quot;],&quot;tsType&quot;:&quot;string&quot;,&quot;section&quot;:&quot;Place&quot;},&quot;placeValid&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:true,&quot;tsType&quot;:&quot;boolean&quot;,&quot;section&quot;:&quot;Place&quot;},&quot;density&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;default&quot;:&quot;comfortable&quot;,&quot;options&quot;:[&quot;comfortable&quot;,&quot;compact&quot;],&quot;tsType&quot;:&quot;string&quot;,&quot;section&quot;:&quot;Work&quot;},&quot;payouts&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:true,&quot;tsType&quot;:&quot;boolean&quot;,&quot;section&quot;:&quot;Work&quot;}}">
+class Component extends DCLogic {
+  renderVals() {
+    const p = this.props;
+    const C = 'oklch(0.78 0.14 200)', A = 'oklch(0.82 0.16 80)', G = 'oklch(0.8 0.15 145)', R = 'oklch(0.8 0.18 25)', P = 'oklch(0.8 0.14 290)', V = 'oklch(0.78 0.13 320)';
+    const M = 'rgba(242,239,232,0.6)', dim = M, RAJ = "'Rajdhani',sans-serif", SORA = "'Sora',sans-serif";
+    const flowGroups = [
+      { land: 'Bergli · yours', short: 'Bergli', right: 'owner', rightColor: C, empty: false, flows: [
+        { name: 'lamp at dusk', blocks: '5', on: true },
+        { name: 'barn door at 22:00', blocks: '7' },
+        { name: 'gate when a bus comes', blocks: '11' },
+      ] },
+      { land: 'Maloja Nord', short: 'Maloja Nord', right: 'build grant', rightColor: A, empty: false, flows: [
+        { name: 'snow lamps', blocks: '9' },
+      ] },
+      { land: 'Piz Lunghin', short: 'Piz Lunghin', right: 'approver', rightColor: M, empty: true, flows: [] },
+    ].map(g => ({ ...g, flows: g.flows.map(f => ({ ...f, bg: f.on ? 'oklch(0.8 0.14 290 / 0.16)' : 'transparent', mark: f.on ? P : 'transparent', fg: f.on ? '#f2efe8' : 'rgba(242,239,232,0.8)' })) }));
+
+    const head = (n, g) => ({ pad: g ? '9px 14px 5px' : '8px 14px', bg: 'transparent', size: g ? '11px' : '13px', fg: g ? 'rgba(242,239,232,0.55)' : 'rgba(242,239,232,0.85)', font: g ? RAJ : SORA, weight: g ? 600 : 400, tracking: g ? '0.14em' : '0', transform: g ? 'uppercase' : 'none', dot: g ? 'transparent' : 'rgba(242,239,232,0.35)' });
+    const palette = [
+      { name: 'Strings', group: true, plugin: '' },
+      { name: 'from string', plugin: 'strings' },
+      { name: 'contains', plugin: 'strings', on: true },
+      { name: 'join', plugin: 'strings' },
+      { name: 'Json', group: true, plugin: '' },
+      { name: 'get', plugin: 'json' },
+      { name: 'make object', plugin: 'json' },
+      { name: 'Http', group: true, plugin: '' },
+      { name: 'make-request-simple', plugin: 'http' },
+      { name: 'World', group: true, plugin: '' },
+      { name: 'Read port', plugin: 'world' },
+      { name: 'Write port', plugin: 'world' },
+    ].map(p => {
+      const base = head(p.name, !!p.group);
+      return { ...p, ...base, bg: p.on ? 'oklch(0.8 0.14 290 / 0.14)' : base.bg, fg: p.on ? P : base.fg, dot: p.plugin === 'world' ? P : base.dot };
+    });
+
+    const node = (o) => {
+      const on = !!o.on, col = o.world ? P : 'rgba(255,255,255,0.16)';
+      return {
+        left: o.left + 'px', top: o.top + 'px', w: o.w + 'px', title: o.title, plugin: o.plugin,
+        border: on ? P : col, glow: on ? 'inset 0 0 0 1px ' + P + ', 0 0 26px oklch(0.8 0.14 290 / 0.45)' : '0 8px 24px rgba(0,0,0,0.45)',
+        head: o.world ? 'oklch(0.8 0.14 290 / 0.22)' : 'rgba(255,255,255,0.06)', body: 'transparent', fg: o.world ? P : '#f2efe8',
+        rows: (o.rows || []).map(r => ({ in: r[0], val: r[1] ?? '', inDot: r[2] === 0 ? 'rgba(242,239,232,0.3)' : (o.world ? P : 'rgba(242,239,232,0.7)'), outDot: r[3] ? (o.world ? P : 'rgba(242,239,232,0.7)') : 'transparent', valColor: r[1] ? 'rgba(242,239,232,0.6)' : 'transparent' })),
+      };
+    };
+    const nodes = [
+      node({ left: 60, top: 120, w: 180, title: 'World clock', plugin: 'world/clock.now', world: true, rows: [['world', '', 0], ['now', 's', 1, 1]] }),
+      node({ left: 320, top: 150, w: 190, title: 'contains', plugin: 'strings', on: true, rows: [['input', '', 1], ['pattern', '"dusk"', 0], ['found', 'bool', 0, 1]] }),
+      node({ left: 60, top: 300, w: 180, title: 'Read port · on', plugin: 'world/port.read', world: true, rows: [['object', 'lamp-2', 0], ['value', '', 0, 1]] }),
+      node({ left: 320, top: 330, w: 190, title: 'If', plugin: 'flow', rows: [['condition', '', 1], ['then', '', 0, 1], ['else', '', 0, 1]] }),
+      node({ left: 600, top: 240, w: 200, title: 'Write port', plugin: 'world/port.write', world: true, rows: [['object', 'lamp-2', 0], ['port', '"on"', 0], ['value', 'true', 1], ['ok', 'bool', 0, 1]] }),
+    ];
+
+    const canvasTools = [
+      { name: 'Undo', key: '⌘Z', fg: '#f2efe8' },
+      { name: 'Redo', key: '⇧⌘Z', fg: 'rgba(242,239,232,0.55)' },
+      { name: 'Auto-layout', key: 'L', fg: '#f2efe8' },
+      { name: 'Nets', key: 'N', fg: P },
+    ];
+    const flowIO = [
+      { dir: 'in', name: 'world', type: 'url · bound by the job', color: P },
+      { dir: 'in', name: 'world_key', type: 'string · per run', color: P },
+      { dir: 'in', name: 'Target', type: 'string', color: C },
+      { dir: 'out', name: 'Found', type: 'boolean', color: A },
+    ];
+
+    const setTabs = (active) => ['World', 'Vocabulary', 'Symbols', 'Ground cover', 'Land', 'Setup', 'Admin'].map(n => ({ name: n, line: n === active ? C : 'rgba(255,255,255,0.12)', fg: n === active ? C : 'rgba(242,239,232,0.6)' }));
+
+    const symbols = [
+      { name: 'highway', group: true },
+      { name: 'motorway', layers: '4 layers', enabled: true },
+      { name: 'trunk', layers: '4 layers', enabled: true },
+      { name: 'Kantonsstrasse · secondary', layers: '4 layers', enabled: true, on: true },
+      { name: 'residential', layers: '2 layers', enabled: true },
+      { name: 'track', layers: '1 layer', enabled: false },
+      { name: 'barrier', group: true },
+      { name: 'wall · dry stone', layers: '1 layer', enabled: true },
+      { name: 'fence', layers: '1 layer', enabled: true },
+      { name: 'natural', group: true },
+      { name: 'wood · broadleaved', layers: '2 layers', enabled: true },
+      { name: 'bare_rock', layers: '1 layer', enabled: true },
+    ].map(s => s.group
+      ? { ...s, pad: '10px 16px 5px', bg: 'transparent', mark: 'transparent', size: '11px', font: RAJ, weight: 600, tracking: '0.14em', transform: 'uppercase', fg: 'rgba(242,239,232,0.55)', grip: '', layers: '', swDisplay: 'none', swBg: 'transparent', swBorder: 'transparent', swKnob: 'transparent', swSide: 'left' }
+      : { ...s, pad: '9px 16px', bg: s.on ? 'oklch(0.78 0.14 200 / 0.14)' : 'transparent', mark: s.on ? C : 'transparent', size: '13px', font: SORA, weight: 400, tracking: '0', transform: 'none', fg: s.on ? C : (s.enabled ? '#f2efe8' : M), grip: '⠿', swDisplay: 'block', swBg: s.enabled ? 'oklch(0.78 0.14 200 / 0.5)' : 'rgba(255,255,255,0.08)', swBorder: s.enabled ? C : 'rgba(255,255,255,0.2)', swKnob: s.enabled ? '#0b0d10' : 'rgba(242,239,232,0.5)', swSide: s.enabled ? 'right' : 'left' });
+
+    const symLayers = [
+      { kind: 'Surface', what: 'profile “Strasse 6 m” · lift 0.04 m' },
+      { kind: 'Repeat', what: 'kerb stone 1 m · both sides' },
+      { kind: 'Repeat · lamps', what: 'every 30 m · right side · when lit = yes', on: true },
+      { kind: 'Check', what: 'max cross-slope 8% · flags only' },
+    ].map(l => ({ ...l, bg: l.on ? 'oklch(0.78 0.14 200 / 0.14)' : 'transparent', mark: l.on ? C : 'transparent', fg: l.on ? C : '#f2efe8', eye: l.on ? C : 'rgba(242,239,232,0.5)' }));
+    const layerFields = [
+      { label: 'Spacing', value: '30.0', unit: 'm' },
+      { label: 'Side', value: 'right of the line', unit: '' },
+      { label: 'Offset from centre', value: '3.40', unit: 'm' },
+      { label: 'Follow the ground', value: 'yes', unit: '' },
+    ];
+    const previewLamps = [
+      { left: '90px', top: '96px', h: '38px' },
+      { left: '190px', top: '86px', h: '38px' },
+      { left: '290px', top: '76px', h: '38px' },
+      { left: '386px', top: '66px', h: '38px' },
+    ];
+    const versions = [
+      { n: 4, who: 'you · just now', tag: 'draft', color: A, bg: 'oklch(0.82 0.16 80 / 0.08)' },
+      { n: 3, who: 'you · 12 Sep · applied to the world', tag: 'in world', color: C, bg: 'transparent' },
+      { n: 2, who: 'L. Fasser · 3 Sep', tag: 'open', color: M, bg: 'transparent' },
+      { n: 1, who: 'migrated from build_rule · 28 Aug', tag: 'open', color: M, bg: 'transparent' },
+    ];
+
+    const dense = (p.density ?? 'comfortable') === 'compact';
+    const TABS = [['All', '9'], ['Render jobs', '5'], ['Training', '2'], ['Publish', '3'], ['Settings', '']];
+    const tabs = (active) => TABS.map(([name, count]) => {
+      const on = name === active;
+      return { name, count, fg: on ? C : 'rgba(242,239,232,0.6)', border: on ? '2px solid ' + C : '1px solid rgba(255,255,255,0.12)', bg: on ? 'oklch(0.78 0.14 200 / 0.08)' : 'transparent' };
+    });
+    const chips = (items, on) => items.map((it, i) => {
+      const label = Array.isArray(it) ? it[0] : it, dir = Array.isArray(it) ? it[1] : '';
+      const sel = i === on;
+      return { label, dir, bg: sel ? C : 'transparent', fg: sel ? '#0b0d10' : 'rgba(242,239,232,0.75)', border: sel ? '1px solid ' + C : '1px solid rgba(255,255,255,0.2)' };
+    });
+    const card = (o) => {
+      const kc = o.kind === 'train' ? A : o.kind === 'publish' ? G : o.kind === 'done' ? G : C;
+      const live = !!o.live;
+      return {
+        kind: o.kindLabel || o.kind, kindColor: kc,
+        bg: live ? 'oklch(0.78 0.14 200 / 0.07)' : o.dimmed ? 'rgba(255,255,255,0.015)' : 'rgba(255,255,255,0.03)',
+        border: live ? kc : 'rgba(255,255,255,0.1)',
+        glow: live ? '0 0 26px oklch(0.78 0.14 200 / 0.22)' : 'none',
+        tile: o.tile, dist: o.dist || '', thumb: o.thumb, overlay: o.overlay || '',
+        status: o.status, statusColor: o.statusColor || 'rgba(242,239,232,0.8)',
+        pieces: o.pieces || '', frames: o.frames || '', bar: o.bar || '0%', barColor: o.barColor || kc,
+        pay: o.pay, payColor: o.pay === 'free' ? 'rgba(242,239,232,0.6)' : C,
+        action: o.action, actionBg: o.ghost ? 'transparent' : kc, actionFg: o.ghost ? kc : '#0b0d10', second: o.second || 'Drop',
+        hasNote: !!o.note, note: o.note || '', noteAge: o.noteAge || '',
+        size: o.size || '', checks: o.checks || [], shots: o.shots || [], more: o.more || '', log: o.log || [],
+      };
+    };
+    const shot = (label, state) => ({ label, color: state === 'ready' ? G : state === 'drawing' ? C : 'rgba(242,239,232,0.35)' });
+
+    const cardsAll = [
+      card({ kind: 'render', tile: '14/8548/5801', dist: '2.6 km', pay: 'free', thumb: 'tile preview · 256×256', overlay: '256×256 · at step 2400', status: 'trained · waiting to be drawn', pieces: '1 piece to do · 2 waiting on the rest', frames: '2/3 frames · 1 ready · 2 waiting', bar: '66%', action: 'Render' }),
+      card({ kind: 'render', tile: '14/8545/5800', dist: '2.8 km', pay: 'free', thumb: 'nothing drawn yet', overlay: '256×256 · at step ?', status: 'trained · waiting to be drawn', pieces: '1 piece to do · 5 waiting on the rest', frames: '0/3 frames · 1 ready · 5 waiting', bar: '0%', action: 'Render', note: 'dropped: the job and its pieces are gone, and compiling this tile again computes them rather than adopting them', noteAge: '14 min ago' }),
+      card({ kind: 'train', kindLabel: 'training', tile: '14/8548/5800', dist: '3.0 km', pay: '0.70 cr', thumb: 'splat render preview', overlay: '214 998 splats', status: 'training 600 of 2400', statusColor: A, pieces: '1 waiting on the rest · trained · waiting to be drawn', frames: '3/3 frames · 1 in hand · 1 waiting', bar: '25%', barColor: A, action: 'Pause', second: 'Drop' }),
+      card({ kind: 'render', tile: '14/8551/5810', dist: '0.4 km', pay: '0.70 cr', live: true, thumb: 'drawing now · frame 1 of 3', overlay: '256×256 · at step 2400', status: 'rendering on this machine · merge #19', statusColor: C, pieces: '2 pieces in hand · none waiting', frames: '1/3 frames · 62% · 2:14 left', bar: '62%', action: 'Stop', ghost: true, second: 'Log' }),
+      card({ kind: 'publish', kindLabel: 'publish', tile: '14/8550/5809', pay: '—', dist: '1.2 km', thumb: '8 frames ready', overlay: '8 × 256×256 · 94 MB', status: 'drawn · waiting for your review', statusColor: G, pieces: 'nothing left to compute', frames: '8/8 frames · 8 ready', bar: '100%', barColor: G, action: 'Review', second: 'Discard' }),
+      card({ kind: 'done', kindLabel: 'done', tile: '14/8547/5799', dist: '3.4 km', pay: '0.55 cr', dimmed: true, thumb: 'drawn 13:52', overlay: '3 × 256×256', status: 'drawn and uploaded · approved by R. Keller', statusColor: G, pieces: 'paid 0.55 cr into your wallet', frames: '3/3 frames · all ready', bar: '100%', barColor: G, action: 'Open', ghost: true, second: 'Hide' }),
+    ];
+
+    const T = (color, on) => ({ bg: on ? color.replace(')', ' / 0.18)') : 'transparent', border: on ? color : 'transparent', fg: on ? color : 'rgba(242,239,232,0.8)' });
+    const brushShape = p.brushShape ?? 'circle';
+    const tool = p.terrainTool ?? 'Raise';
+    const terrainTools = [
+      { name: 'Pan', key: 'H', icon: 'M5 9l-3 3 3 3M9 5l3-3 3 3M15 19l-3 3-3-3M19 9l3 3-3 3M2 12h20M12 2v20' },
+      { name: 'Raise', key: 'R', icon: 'M12 17V5M7 10l5-5 5 5M4 21h16' },
+      { name: 'Lower', key: 'F', icon: 'M12 3v12M7 10l5 5 5-5M4 21h16' },
+      { name: 'Smooth', key: 'S', icon: 'M3 15c3 0 4-6 7-6s4 6 7 6 3-2 4-2' },
+      { name: 'Flatten', key: 'G', icon: 'M4 17h16M8 7l4 4 4-4M12 3v8' },
+      { name: 'Level', key: 'L', icon: 'M4 12h16M4 7h6M14 17h6M12 3v4M12 17v4' },
+      { name: 'Road bed', key: 'B', icon: 'M8 21 11 3M16 21 13 3M12 17v-2M12 11V9' },
+    ].map(t => ({ ...t, ...T(C, t.name === tool) }));
+    const toolText = {
+      Pan: ['Pan & zoom', 'Drag to move over the land, the wheel to go in and out. Nothing is shaped while this is in hand.'],
+      Raise: ['Raise', 'Pull the ground up under the brush. Hold longer to go higher. Shift lowers instead.'],
+      Lower: ['Lower', 'Push the ground down under the brush. Shift raises instead.'],
+      Smooth: ['Smooth', 'Evens out bumps and steps under the brush. Heights move toward their neighbours.'],
+      Flatten: ['Flatten', 'Brings the ground toward the height where the stroke began.'],
+      Level: ['Level', 'Sets the ground to one target height. Pick it with the dropper or type it.'],
+      'Road bed': ['Road bed', 'Draw a line; the ground is cut and filled to a bed of this width and gradient.'],
+    }[tool] || ['Raise', ''];
+    const brushSliders = [
+      { label: 'Size', value: '24 m', pct: '32%', keys: '[  ]' },
+      { label: 'Strength', value: '35 %', pct: '35%', keys: '−  +' },
+      { label: 'Falloff', value: '0.60', pct: '60%', keys: '' },
+    ];
+    const seg = (items, on, color) => items.map(n => ({ name: n, bg: n === on ? color.replace(')', ' / 0.18)') : 'transparent', fg: n === on ? color : 'rgba(242,239,232,0.7)', border: n === on ? color : 'rgba(255,255,255,0.16)' }));
+    const falloffs = seg(['Smooth', 'Linear', 'Sharp', 'Plateau'], p.falloff ?? 'Smooth', C);
+    const shapes = seg(['Circle', 'Square'], brushShape === 'square' ? 'Square' : 'Circle', C);
+    const tog = (on) => ({ trackBg: on ? C : 'rgba(255,255,255,0.12)', trackBorder: on ? C : 'rgba(255,255,255,0.2)', knobLeft: on ? '18px' : '2px', knob: on ? '#0b0d10' : 'rgba(242,239,232,0.7)' });
+    const groundViews = [
+      { name: 'Contour lines · 2 m', on: true },
+      { name: 'What you changed, as colour', on: true },
+      { name: 'Grid · 5 m', on: false },
+      { name: 'Slopes above 35°', on: false },
+    ].map(v => ({ ...v, ...tog(v.on) }));
+    const strokes = [
+      { what: 'Raise · 24 m · 35 %', delta: '+1.20 m', when: 'now', cur: true },
+      { what: 'Smooth · 18 m · 50 %', delta: '±0.30 m', when: '1 min' },
+      { what: 'Raise · 24 m · 35 %', delta: '+0.80 m', when: '2 min' },
+      { what: 'Lower · 12 m · 20 %', delta: '−0.40 m', when: '3 min', undone: true },
+    ].map(s => ({ ...s, bg: s.cur ? 'oklch(0.78 0.14 200 / 0.12)' : 'transparent', mark: s.cur ? C : 'transparent', fg: s.undone ? 'rgba(242,239,232,0.4)' : '#f2efe8', deco: s.undone ? 'line-through' : 'none', dcol: s.undone ? 'rgba(242,239,232,0.4)' : s.delta.startsWith('−') ? 'oklch(0.72 0.12 250)' : A }));
+    const brushRadius = brushShape === 'square' ? '0' : '50%';
+
+    const placeMode = p.placeMode ?? 'Turn';
+    const placeModes = [{ name: 'Move', key: 'G' }, { name: 'Turn', key: 'R' }, { name: 'Size', key: 'T' }].map(m => ({ ...m, ...T(C, m.name === placeMode) }));
+    const axes = [{ name: 'X', color: R }, { name: 'Up', color: G }, { name: 'Z', color: 'oklch(0.72 0.12 250)' }].map((a, i) => ({ ...a, bg: i === 1 ? a.color.replace(')', ' / 0.2)') : 'transparent', border: i === 1 ? a.color : 'rgba(255,255,255,0.16)', fg: i === 1 ? a.color : 'rgba(242,239,232,0.8)' }));
+    const placeValid = (p.placeValid ?? true);
+    const ghostColor = placeValid ? G : R;
+    const selPorts = [
+      { name: 'on', type: 'switch', value: 'off' },
+      { name: 'colour', type: 'colour', value: '#ffd9a0' },
+      { name: 'brightness', type: '0–100', value: '70' },
+    ];
+
+    const PRODUCTS = [
+      { name: 'Strassenlampe 4 m', maker: 'Holzbau Fex', kind: 'Model', what: 'Street furniture', lic: 'CC0', price: '1.20', placed: '1 284', ports: 'on · colour · brightness' },
+      { name: 'Engadiner Haus', maker: 'A. Giacometti', kind: 'Model', what: 'Building', lic: 'CC-BY', price: '18.00', placed: '96', ports: 'door · lights' },
+      { name: 'Holzbank Arve', maker: 'Holzbau Fex', kind: 'Model', what: 'Street furniture', lic: 'CC0', price: 'free', placed: '2 410', ports: '—' },
+      { name: 'Trockenmauer 1 m', maker: 'Splatworld', kind: 'Repeating piece', what: 'Barrier', lic: 'CC0', price: 'free', placed: '8 902', ports: '—' },
+      { name: 'Lärche · young', maker: 'Engadin Tourism', kind: 'Collection', what: 'Nature', lic: 'CC-BY', price: '0.40', placed: '5 118', ports: '—' },
+      { name: 'Bushaltestelle', maker: 'M. Ruch', kind: 'Model', what: 'Street furniture', lic: 'Own licence', price: '3.50', placed: '41', ports: 'screen' },
+      { name: 'Strasse 6 m', maker: 'Splatworld', kind: 'Road cross-section', what: 'Road', lic: 'CC0', price: 'free', placed: '312', ports: '—' },
+      { name: 'Granit Pflaster', maker: 'K. Prevost', kind: 'Surface material', what: 'Surface', lic: 'CC-BY', price: '0.80', placed: '77', ports: '—' },
+      { name: 'Billboard 6 × 3 m', maker: 'L. Fasser', kind: 'Model', what: 'Sign', lic: 'CC0', price: '2.00', placed: '19', ports: 'image' },
+      { name: 'Stalltor', maker: 'Holzbau Fex', kind: 'Model', what: 'Building part', lic: 'CC-BY', price: '1.50', placed: '203', ports: 'open' },
+    ];
+    const prods = (list, sel, color) => list.map(o => {
+      const on = o.name === sel, free = o.price === 'free';
+      return { ...o, priceLabel: free ? 'free' : o.price + ' cr', priceColor: free ? 'rgba(242,239,232,0.6)' : color, bg: on ? color.replace(')', ' / 0.1)') : 'rgba(255,255,255,0.03)', border: on ? color : 'rgba(255,255,255,0.1)', glow: on ? '0 0 22px ' + color.replace(')', ' / 0.25)') : 'none', thumb: o.kind.toLowerCase() + ' preview', tag: on ? 'in hand' : '', tagDisplay: on ? 'inline-flex' : 'none' };
+    });
+    const placeProducts = prods(PRODUCTS.slice(0, 9), 'Strassenlampe 4 m', C);
+    const recent = PRODUCTS.slice(0, 5).map((o, i) => ({ name: o.name, border: i === 0 ? C : 'rgba(255,255,255,0.14)' }));
+    const placeCats = seg(['All', 'Buildings', 'Street', 'Nature', 'Lights', 'Signs'], 'Street', C);
+    const catProducts = prods(PRODUCTS.slice(0, 8), 'Engadiner Haus', C);
+    const shopProducts = prods(PRODUCTS, 'Strassenlampe 4 m', V);
+    const cats = (color, on) => [['All', '214'], ['Buildings', '38'], ['Building parts', '26'], ['Street furniture', '52'], ['Lights', '17'], ['Nature', '44'], ['Road pieces', '21'], ['Surfaces', '30'], ['Collections', '12']].map(([n, c]) => ({ name: n, count: c, bg: n === on ? color.replace(')', ' / 0.14)') : 'transparent', mark: n === on ? color : 'transparent', fg: n === on ? color : 'rgba(242,239,232,0.85)' }));
+    const catTabs = [['Browse', ''], ['Mine', '3'], ['Register', '']].map(([n, c], i) => ({ name: n, count: c, fg: i === 0 ? C : 'rgba(242,239,232,0.6)', line: i === 0 ? C : 'rgba(255,255,255,0.12)' }));
+    const tradeTabs = [['Shop', ''], ['Selling', '3'], ['Orders', '12'], ['Earnings', '']].map(([n, c], i) => ({ name: n, count: c, fg: i === 0 ? V : 'rgba(242,239,232,0.6)', line: i === 0 ? V : 'transparent' }));
+    const check = (items, color) => items.map(([n, c, on]) => ({ name: n, count: c, box: on ? color : 'transparent', boxBorder: on ? color : 'rgba(255,255,255,0.3)', fg: on ? '#f2efe8' : 'rgba(242,239,232,0.75)' }));
+    const fKind = check([['Model', '128', true], ['Repeating piece', '21'], ['Road cross-section', '9'], ['Collection', '12'], ['Surface material', '30']], V);
+    const fLic = check([['CC0', '141', true], ['CC-BY', '58', true], ['Own licence', '15']], V);
+    const fWhat = check([['Street furniture', '52', true], ['Building', '38'], ['Nature', '44'], ['Sign', '11']], V);
+    const sortShop = chips([['Most placed', '↓'], ['Price', ''], ['Newest', '']], 0).map(c => ({ ...c, bg: c.bg === C ? V : c.bg, border: c.border.includes('0.78 0.14 200') ? '1px solid ' + V : c.border }));
+    const shopDetail = [
+      { k: 'Maker', v: 'Holzbau Fex' },
+      { k: 'Kind', v: 'Model · 6 nodes' },
+      { k: 'Licence', v: 'CC0 · do anything' },
+      { k: 'Ports', v: 'on · colour · brightness' },
+      { k: 'Placed', v: '1 284 times on 61 lands' },
+      { k: 'Size', v: '0.4 × 0.4 × 4.1 m' },
+    ];
+    const shopThumbs = ['front', 'at dusk', 'top', 'nodes'].map((n, i) => ({ name: n, border: i === 0 ? V : 'rgba(255,255,255,0.14)' }));
+    return {
+      flowGroups, palette, nodes, canvasTools, flowIO,
+      settingsTabs: setTabs('Symbols'), symbols, symLayers, layerFields, previewLamps, versions,
+      tabsAll: tabs('All'), showChips: chips(['Mine', 'Completed', 'All'], 2), sortChips: chips([['Payout', '↓'], ['Distance', '↑']], 1), cardsAll,
+      previewH: dense ? '130px' : '180px',
+      payDisplay: (p.payouts ?? true) ? 'inline-flex' : 'none',
+      terrainTools, toolTitle: toolText[0], toolWhat: toolText[1], toolKey: (terrainTools.find(t => t.name === tool) || {}).key || '', brushSliders, falloffs, shapes, groundViews, strokes, brushRadius,
+      placeModes, axes, ghostColor, ghostFill: ghostColor.replace(')', ' / 0.16)'), ghostText: placeValid ? 'fits · on your land · 1.20 cr on Save' : 'no build rights here · Maloja Nord belongs to A. Giacometti', selPorts,
+      placeProducts, recent, placeCats, catProducts, catCats: cats(C, 'Buildings'), catTabs,
+      shopProducts, shopCats: cats(V, 'Street furniture'), tradeTabs, fKind, fLic, fWhat, sortShop, shopDetail, shopThumbs,
+    };
+  }
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,968 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <meta name="design_doc_mode" content="canvas">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@600;700&family=Sora:wght@400;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <style>
+    body{margin:0;background:#0b0d10;font-family:'Sora',sans-serif;color:#f2efe8}
+    a{color:#f2efe8}a:hover{color:oklch(0.8 0.14 290)}
+    *{box-sizing:border-box}
+  </style>
+</helmet>
+
+<section style="display:flex;flex-wrap:wrap;gap:56px;padding:56px;width:max-content;max-width:3960px;font-family:'Sora',sans-serif;color:#f2efe8;align-items:flex-start">
+
+  <div style="flex:0 0 100%;display:flex;flex-direction:column;gap:10px"><div style="max-width:1400px;display:flex;flex-direction:column;gap:10px">
+    <div style="font-family:'Rajdhani',sans-serif;font-weight:700;font-size:28px;text-transform:uppercase;letter-spacing:0.08em">Turn 10 · Flows on a process server</div>
+    <div style="color:rgba(242,239,232,0.7);font-size:15px;line-height:1.5">9g redrawn for F10 (FL.1–FL.7). The Automate top bar gains the server picker. The left column becomes two tabs: My flows, grouped land → object → flow, and On &lt;server&gt;, with Processes, Services, Jobs and Reports. A run reports into a bottom panel. In the world, a placed object’s card lists its flows and sends them to a server with Run on…. Dialogs are on the smaller boards; <a href="#10l">10l</a> holds every sentence.</div>
+  </div></div>
+
+  <!-- 10a -->
+  <div id="10a" style="display:flex;flex-direction:column;gap:12px">
+    <div style="display:flex;gap:12px;align-items:baseline;font-size:15px"><a href="#10a" style="font-family:'JetBrains Mono',monospace;font-size:12px;padding:3px 8px;background:oklch(0.8 0.14 290);color:#0b0d10;text-decoration:none">10a</a><span style="font-family:'Rajdhani',sans-serif;font-weight:700;font-size:20px;text-transform:uppercase;letter-spacing:0.08em">Flows · drawing a flow</span><span style="color:rgba(242,239,232,0.6)">FL.1 server picker · FL.2 blocks from alpha · FL.6 my flows by object, with where each runs</span></div>
+    <div style="position:relative;width:1920px;height:1080px;overflow:hidden;background:#0b0d10;font-size:14px">
+      <img src="assets/world.webp" alt="" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover">
+      <div style="position:absolute;inset:0;background:rgba(6,8,10,0.72)"></div>
+      <dc-import name="Chrome8" app="Flows" toast="" toast-action="" toast-age="" toast-progress="0%" hint-size="100%,100%" style="position:absolute;inset:0"></dc-import>
+
+      <div style="position:absolute;left:0;right:0;top:44px;bottom:0;display:flex;flex-direction:column;background:rgba(10,12,15,0.95);border-top:1px solid rgba(255,255,255,0.1)">
+        <div style="height:52px;flex:none;display:flex;align-items:center;gap:12px;padding:0 16px;border-bottom:1px solid rgba(255,255,255,0.12);background:linear-gradient(180deg,rgba(24,27,33,0.95),rgba(14,16,20,0.95))">
+          <span style="font-family:'Rajdhani',sans-serif;font-weight:700;font-size:12px;letter-spacing:0.14em;text-transform:uppercase;color:oklch(0.8 0.14 290)">Flows</span>
+          <span style="font-family:'Rajdhani',sans-serif;font-weight:700;font-size:20px;text-transform:uppercase;letter-spacing:0.08em;line-height:1">lamp at dusk</span>
+          <span style="font-size:12px;color:rgba(242,239,232,0.6)">Bergli · Street lamp 2</span>
+          <span style="width:1px;height:26px;background:rgba(255,255,255,0.15)"></span>
+          <div style="display:flex;gap:4px">
+            <span style="height:30px;padding:0 10px;border:1px solid rgba(255,255,255,0.2);font-family:'Rajdhani',sans-serif;font-weight:700;font-size:12px;letter-spacing:0.08em;text-transform:uppercase;display:inline-flex;align-items:center;gap:6px">Undo<span style="font-family:'JetBrains Mono',monospace;font-size:9px;color:rgba(242,239,232,0.45);letter-spacing:0">⌘Z</span></span>
+            <span style="height:30px;padding:0 10px;border:1px solid rgba(255,255,255,0.12);font-family:'Rajdhani',sans-serif;font-weight:700;font-size:12px;letter-spacing:0.08em;text-transform:uppercase;display:inline-flex;align-items:center;gap:6px;color:rgba(242,239,232,0.45)">Redo<span style="font-family:'JetBrains Mono',monospace;font-size:9px;letter-spacing:0">⇧⌘Z</span></span>
+            <span style="height:30px;padding:0 10px;border:1px solid rgba(255,255,255,0.2);font-family:'Rajdhani',sans-serif;font-weight:700;font-size:12px;letter-spacing:0.08em;text-transform:uppercase;display:inline-flex;align-items:center;gap:6px">Auto-layout<span style="font-family:'JetBrains Mono',monospace;font-size:9px;color:rgba(242,239,232,0.45);letter-spacing:0">L</span></span>
+          </div>
+          <span style="width:1px;height:26px;background:rgba(255,255,255,0.15)"></span>
+          <div style="position:relative;height:34px;display:inline-flex;align-items:center;gap:9px;padding:0 10px;border:1px solid rgba(255,255,255,0.25);background:rgba(0,0,0,0.3)">
+            <span style="font-family:'Rajdhani',sans-serif;font-weight:600;font-size:10px;letter-spacing:0.14em;text-transform:uppercase;color:rgba(242,239,232,0.55)">Server</span>
+            <span style="width:8px;height:8px;border-radius:50%;background:{{ dot }};box-shadow:0 0 8px {{ dot }}"></span>
+            <span style="font-size:13px">alpha</span>
+            <span style="font-family:'JetBrains Mono',monospace;font-size:10px;color:rgba(242,239,232,0.5)">1.4</span>
+            <span style="color:rgba(242,239,232,0.5);font-size:11px">▾</span>
+            <sc-if value="{{ showTip }}" hint-placeholder-val="{{ false }}">
+              <div style="position:absolute;left:0;top:40px;z-index:3;padding:7px 10px;background:#181b21;border:1px solid oklch(0.8 0.18 25 / 0.6);font-size:12px;white-space:nowrap;color:oklch(0.8 0.18 25)">That address did not answer.</div>
+            </sc-if>
+          </div>
+          <div style="margin-left:auto;display:flex;align-items:center;gap:10px;font-size:12px">
+            <span style="display:flex;align-items:center;gap:7px;padding:3px 9px;border:1px solid oklch(0.82 0.16 80 / 0.6);color:oklch(0.82 0.16 80);font-family:'Rajdhani',sans-serif;font-weight:700;font-size:11px;letter-spacing:0.12em;text-transform:uppercase"><span style="width:6px;height:6px;background:oklch(0.82 0.16 80);transform:rotate(45deg)"></span>unsaved</span>
+            <span style="color:rgba(242,239,232,0.6)">{{ said }}</span>
+          </div>
+          <div style="display:flex;gap:6px;align-items:center">
+            <span style="height:34px;padding:0 14px;background:oklch(0.8 0.14 290);color:#0b0d10;font-family:'Rajdhani',sans-serif;font-weight:700;font-size:13px;letter-spacing:0.08em;text-transform:uppercase;display:inline-flex;align-items:center;gap:8px;clip-path:polygon(6px 0,100% 0,100% calc(100% - 6px),calc(100% - 6px) 100%,0 100%,0 6px)">Save<span style="font-family:'JetBrains Mono',monospace;font-size:10px;opacity:0.7">⌘S</span></span>
+            <span style="height:34px;padding:0 12px;border:1px solid rgba(255,255,255,0.25);font-family:'Rajdhani',sans-serif;font-weight:700;font-size:13px;letter-spacing:0.08em;text-transform:uppercase;display:inline-flex;align-items:center">Validate</span>
+            <span style="height:34px;padding:0 12px;border:1px solid oklch(0.8 0.14 290 / 0.6);color:oklch(0.8 0.14 290);font-family:'Rajdhani',sans-serif;font-weight:700;font-size:13px;letter-spacing:0.08em;text-transform:uppercase;display:inline-flex;align-items:center">Send</span>
+            <span style="height:34px;padding:0 12px;border:1px solid oklch(0.8 0.14 290 / 0.6);color:oklch(0.8 0.14 290);font-family:'Rajdhani',sans-serif;font-weight:700;font-size:13px;letter-spacing:0.08em;text-transform:uppercase;display:inline-flex;align-items:center">Run</span>
+            <span style="height:34px;padding:0 12px;border:1px solid rgba(255,255,255,0.25);font-family:'Rajdhani',sans-serif;font-weight:700;font-size:13px;letter-spacing:0.08em;text-transform:uppercase;display:inline-flex;align-items:center">Export</span>
+            <span style="height:34px;padding:0 12px;border:1px solid rgba(255,255,255,0.25);font-family:'Rajdhani',sans-serif;font-weight:700;font-size:13px;letter-spacing:0.08em;text-transform:uppercase;display:inline-flex;align-items:center">Import</span>
+            <span style="width:1px;height:26px;background:rgba(255,255,255,0.15)"></span>
+            <span style="height:34px;padding:0 12px;border:1px solid rgba(255,255,255,0.25);font-family:'Rajdhani',sans-serif;font-weight:700;font-size:13px;letter-spacing:0.08em;text-transform:uppercase;display:inline-flex;align-items:center;color:rgba(242,239,232,0.75)">Close · Esc</span>
+          </div>
+        </div>
+
+        <div style="flex:1;display:flex;min-height:0">
+          <div style="width:340px;flex:none;display:flex;flex-direction:column;border-right:1px solid rgba(255,255,255,0.12);background:rgba(14,16,20,0.7)">
+            <div style="display:flex;border-bottom:1px solid rgba(255,255,255,0.1)">
+              <span style="flex:1;height:42px;display:inline-flex;align-items:center;justify-content:center;border-bottom:2px solid oklch(0.8 0.14 290);color:oklch(0.8 0.14 290);font-family:'Rajdhani',sans-serif;font-weight:700;font-size:14px;letter-spacing:0.1em;text-transform:uppercase">My flows</span>
+              <span style="flex:1;height:42px;display:inline-flex;align-items:center;justify-content:center;gap:7px;border-bottom:2px solid transparent;color:rgba(242,239,232,0.65);font-family:'Rajdhani',sans-serif;font-weight:700;font-size:14px;letter-spacing:0.1em;text-transform:uppercase">On alpha<span style="width:6px;height:6px;border-radius:50%;background:{{ dot }}"></span></span>
+            </div>
+            <div style="flex:1;overflow:hidden;display:flex;flex-direction:column">
+              <sc-for list="{{ tree }}" as="r" hint-placeholder-count="14">
+                <div style="display:flex;flex-direction:column">
+                  <sc-if value="{{ r.isLand }}" hint-placeholder-val="{{ false }}">
+                    <div style="display:flex;justify-content:space-between;align-items:center;padding:9px 16px;background:rgba(255,255,255,0.03);border-top:1px solid rgba(255,255,255,0.07)"><span style="display:flex;gap:8px;align-items:center;font-family:'Rajdhani',sans-serif;font-weight:700;font-size:12px;letter-spacing:0.12em;text-transform:uppercase;color:rgba(242,239,232,0.75)"><span style="font-family:'JetBrains Mono',monospace;font-size:10px;color:rgba(242,239,232,0.45)">{{ r.caret }}</span>{{ r.name }}</span><span style="font-family:'Rajdhani',sans-serif;font-weight:700;font-size:10px;letter-spacing:0.1em;text-transform:uppercase;color:{{ r.rc }}">{{ r.right }}</span></div>
+                  </sc-if>
+                  <sc-if value="{{ r.isObj }}" hint-placeholder-val="{{ false }}">
+                    <div style="display:flex;align-items:center;gap:8px;padding:8px 16px 6px 26px;font-size:13px;border-top:1px solid rgba(255,255,255,0.04)"><span style="font-family:'JetBrains Mono',monospace;font-size:10px;color:rgba(242,239,232,0.45)">▾</span><span style="width:7px;height:7px;flex:none;background:oklch(0.78 0.14 200);transform:rotate(45deg)"></span><span style="flex:1">{{ r.name }}</span><span style="font-family:'Rajdhani',sans-serif;font-weight:700;font-size:10px;letter-spacing:0.1em;text-transform:uppercase;color:rgba(242,239,232,0.45)">fly to</span></div>
+                  </sc-if>
+                  <sc-if value="{{ r.isLoose }}" hint-placeholder-val="{{ false }}">
+                    <div style="padding:10px 16px 5px 26px;font-size:12px;color:rgba(242,239,232,0.55);border-top:1px solid rgba(255,255,255,0.04)">Flows without a thing</div>
+                  </sc-if>
+                  <sc-if value="{{ r.isFlow }}" hint-placeholder-val="{{ true }}">
+                    <div style="display:flex;align-items:center;gap:8px;min-height:32px;padding:0 14px 0 {{ r.indent }};background:{{ r.bg }};border-left:2px solid {{ r.mark }};font-size:13px;color:{{ r.fg }}">
+                      <span style="flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ r.name }}</span>
+                      <sc-if value="{{ r.hasWas }}" hint-placeholder-val="{{ false }}"><span style="font-size:11px;color:rgba(242,239,232,0.5);white-space:nowrap">{{ r.was }}</span></sc-if>
+                      <sc-if value="{{ r.hasChip }}" hint-placeholder-val="{{ false }}"><span style="display:inline-flex;align-items:center;gap:5px;padding:1px 6px;border:1px solid {{ r.chipLine }};font-family:'JetBrains Mono',monospace;font-size:10px;white-space:nowrap;color:{{ r.chipC }}"><span style="width:6px;height:6px;border-radius:50%;background:{{ r.chipC }}"></span>{{ r.chip }}</span></sc-if>
+                      <sc-if value="{{ r.sel }}" hint-placeholder-val="{{ false }}"><span style="display:flex;gap:8px;font-family:'Rajdhani',sans-serif;font-weight:700;font-size:11px;letter-spacing:0.08em;text-transform:uppercase;color:rgba(242,239,232,0.7)"><span>Ren</span><span>Dup</span><span style="color:oklch(0.8 0.18 25)">Del</span></span></sc-if>
+                    </div>
+                  </sc-if>
+                </div>
+              </sc-for>
+            </div>
+            <div style="border-top:1px solid rgba(255,255,255,0.1);padding:12px 16px;display:flex;gap:8px;align-items:center">
+              <span style="height:30px;padding:0 12px;background:oklch(0.8 0.14 290);color:#0b0d10;font-family:'Rajdhani',sans-serif;font-weight:700;font-size:12px;letter-spacing:0.08em;text-transform:uppercase;display:inline-flex;align-items:center;clip-path:polygon(5px 0,100% 0,100% calc(100% - 5px),calc(100% - 5px) 100%,0 100%,0 5px)">New flow</span>
+              <span style="font-size:11px;color:rgba(242,239,232,0.5)">7 flows on 3 lands · 3 sent</span>
+            </div>
+          </div>
+
+          <div style="width:260px;flex:none;display:flex;flex-direction:column;border-right:1px solid rgba(255,255,255,0.12);background:rgba(14,16,20,0.55)">
+            <div style="padding:14px 14px 10px;display:flex;flex-direction:column;gap:9px">
+              <div style="display:flex;align-items:center;justify-content:space-between;position:relative">
+                <span style="font-family:'Rajdhani',sans-serif;font-weight:700;font-size:18px;text-transform:uppercase;letter-spacing:0.08em;line-height:1">Blocks</span>
+                <span style="width:28px;height:28px;display:inline-flex;align-items:center;justify-content:center;border:1px solid oklch(0.8 0.14 290 / 0.6);color:oklch(0.8 0.14 290)"><svg viewBox="0 0 24 24" style="width:14px;height:14px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round"><path d="M20 11a8 8 0 1 0-2.3 5.7"></path><path d="M20 4v7h-7"></path></svg></span>
+                <span style="position:absolute;right:0;bottom:34px;z-index:2;padding:5px 8px;background:#181b21;border:1px solid rgba(255,255,255,0.2);font-size:11px;white-space:nowrap">Ask alpha for its blocks again</span>
+              </div>
+              <div style="height:32px;border:1px solid rgba(255,255,255,0.18);background:rgba(255,255,255,0.04);display:flex;align-items:center;gap:8px;padding:0 10px;font-size:13px;color:rgba(242,239,232,0.5)">
+                <svg viewBox="0 0 24 24" style="width:14px;height:14px;flex:none;fill:none;stroke:rgba(242,239,232,0.5);stroke-width:2;stroke-linecap:round"><path d="M11 11a6 6 0 1 0-12 0 6 6 0 0 0 12 0zM15 15l-4-4" transform="translate(4 3)"></path></svg>
+                <span>search blocks</span>
+              </div>
+              <sc-if value="{{ palNote }}" hint-placeholder-val="{{ false }}">
+                <div style="font-size:12px;line-height:1.4;color:{{ palNoteC }}">{{ palNoteText }}</div>
+              </sc-if>
+            </div>
+            <div style="flex:1;overflow:hidden;display:flex;flex-direction:column">
+              <sc-for list="{{ palette }}" as="p" hint-placeholder-count="14">
+                <div style="display:flex;flex-direction:column">
+                  <sc-if value="{{ p.group }}" hint-placeholder-val="{{ false }}">
+                    <div style="display:flex;justify-content:space-between;align-items:baseline;gap:8px;padding:11px 14px 5px;border-top:1px solid rgba(255,255,255,0.06)"><span style="font-family:'Rajdhani',sans-serif;font-weight:600;font-size:11px;letter-spacing:0.14em;text-transform:uppercase;color:rgba(242,239,232,0.6)">{{ p.name }}</span><span style="font-size:10px;color:oklch(0.8 0.14 290 / 0.85);white-space:nowrap">{{ p.from }}</span></div>
+                  </sc-if>
+                  <sc-if value="{{ p.item }}" hint-placeholder-val="{{ true }}">
+                    <div style="display:flex;align-items:center;gap:9px;padding:7px 14px;background:{{ p.bg }};font-size:13px;color:{{ p.fg }};opacity:{{ p.op }}">
+                      <span style="width:7px;height:7px;flex:none;background:{{ p.dot }};transform:rotate(45deg)"></span>
+                      <span style="flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ p.name }}</span>
+                      <span style="font-family:'JetBrains Mono',monospace;font-size:10px;color:rgba(242,239,232,0.4)">{{ p.plugin }}</span>
+                    </div>
+                  </sc-if>
+                </div>
+              </sc-for>
+            </div>
+            <div style="border-top:1px solid rgba(255,255,255,0.1);padding:10px 14px;font-size:11px;color:rgba(242,239,232,0.55);line-height:1.45">Drag onto the canvas.</div>
+          </div>
+
+          <div style="flex:1;position:relative;min-width:0;overflow:hidden;background:#0e1014">
+            <div style="position:absolute;inset:0;background:repeating-linear-gradient(0deg,rgba(255,255,255,0.045) 0 1px,transparent 1px 40px),repeating-linear-gradient(90deg,rgba(255,255,255,0.045) 0 1px,transparent 1px 40px)"></div>
+            <svg style="position:absolute;inset:0;width:100%;height:100%;fill:none;stroke:oklch(0.8 0.14 290);stroke-width:2">
+              <path d="M240 184C280 184 280 192 320 192"></path>
+              <path d="M510 236C555 236 555 326 600 326"></path>
+              <path d="M240 364C280 364 280 372 320 372" stroke="rgba(242,239,232,0.45)"></path>
+              <path d="M510 394C560 394 550 282 600 282" stroke="rgba(242,239,232,0.45)"></path>
+            </svg>
+            <sc-for list="{{ nodes }}" as="n" hint-placeholder-count="5">
+              <div style="position:absolute;left:{{ n.left }};top:{{ n.top }};width:{{ n.w }};background:rgba(18,21,26,0.97);border:1px solid {{ n.border }};box-shadow:{{ n.glow }}">
+                <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;height:26px;padding:0 8px;background:{{ n.head }};border-bottom:1px solid {{ n.border }}">
+                  <span style="font-family:'Rajdhani',sans-serif;font-weight:700;font-size:12px;letter-spacing:0.08em;text-transform:uppercase;line-height:1;color:{{ n.fg }}">{{ n.title }}</span>
+                  <span style="font-family:'JetBrains Mono',monospace;font-size:9px;color:rgba(242,239,232,0.45)">{{ n.plugin }}</span>
+                </div>
+                <div style="display:flex;flex-direction:column;padding:5px 0">
+                  <sc-for list="{{ n.rows }}" as="r" hint-placeholder-count="2">
+                    <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;height:22px;padding:0 7px;font-size:11px">
+                      <span style="display:flex;align-items:center;gap:6px;color:rgba(242,239,232,0.8)"><span style="width:7px;height:7px;flex:none;background:{{ r.inDot }};transform:rotate(45deg)"></span>{{ r.in }}</span>
+                      <span style="display:flex;align-items:center;gap:6px;font-family:'JetBrains Mono',monospace;font-size:10px;color:{{ r.valColor }}">{{ r.val }}<span style="width:7px;height:7px;flex:none;background:{{ r.outDot }};transform:rotate(45deg)"></span></span>
+                    </div>
+                  </sc-for>
+                </div>
+              </div>
+            </sc-for>
+            <div style="position:absolute;left:600px;top:560px;width:220px;background:repeating-linear-gradient(135deg,rgba(242,239,232,0.07) 0 6px,transparent 6px 12px),rgba(18,21,26,0.95);border:1px dashed rgba(242,239,232,0.35);padding:8px 9px;display:flex;flex-direction:column;gap:4px">
+              <span style="font-family:'Rajdhani',sans-serif;font-weight:700;font-size:12px;letter-spacing:0.08em;text-transform:uppercase;color:rgba(242,239,232,0.85)">alpha has no opencv</span>
+              <span style="font-family:'JetBrains Mono',monospace;font-size:10px;color:rgba(242,239,232,0.6)">opencv/threshold</span>
+            </div>
+            <div style="position:absolute;right:18px;top:14px;display:flex;gap:6px">
+              <span style="height:28px;padding:0 10px;background:rgba(14,16,20,0.9);border:1px solid rgba(255,255,255,0.18);font-family:'Rajdhani',sans-serif;font-weight:700;font-size:11px;letter-spacing:0.08em;text-transform:uppercase;display:inline-flex;align-items:center;gap:7px;color:oklch(0.8 0.14 290)">Nets<span style="font-family:'JetBrains Mono',monospace;font-size:9px;color:rgba(242,239,232,0.45);letter-spacing:0">N</span></span>
+              <span style="height:28px;padding:0 10px;background:rgba(14,16,20,0.9);border:1px solid rgba(255,255,255,0.18);font-family:'JetBrains Mono',monospace;font-size:11px;display:inline-flex;align-items:center">100%</span>
+            </div>
+            <div style="position:absolute;left:18px;bottom:14px;display:flex;align-items:center;gap:14px;height:30px;padding:0 12px;background:rgba(14,16,20,0.9);border:1px solid rgba(255,255,255,0.14);font-size:11px;color:rgba(242,239,232,0.65)">
+              <span><b style="color:#f2efe8;font-weight:600">6</b> blocks</span>
+              <span><b style="color:#f2efe8;font-weight:600">4</b> wires</span>
+              <span>1 block alpha does not know</span>
+            </div>
+          </div>
+
+          <div style="width:320px;flex:none;display:flex;flex-direction:column;border-left:1px solid rgba(255,255,255,0.12);background:rgba(14,16,20,0.7)">
+            <div style="padding:14px 16px 12px;border-bottom:1px solid rgba(255,255,255,0.1);display:flex;flex-direction:column;gap:10px">
+              <div style="display:flex;justify-content:space-between;align-items:baseline"><span style="font-family:'Rajdhani',sans-serif;font-weight:700;font-size:18px;text-transform:uppercase;letter-spacing:0.08em;line-height:1">Inspector</span><span style="font-family:'JetBrains Mono',monospace;font-size:10px;color:rgba(242,239,232,0.45)">strings/contains</span></div>
+              <div style="display:flex;flex-direction:column;gap:6px">
+                <span style="font-family:'Rajdhani',sans-serif;font-weight:600;font-size:11px;letter-spacing:0.14em;text-transform:uppercase;color:rgba(242,239,232,0.55)">Name</span>
+                <div style="height:34px;border:1px solid rgba(255,255,255,0.18);background:rgba(0,0,0,0.3);display:flex;align-items:center;padding:0 10px;font-size:13px">is it dusk</div>
+              </div>
+            </div>
+            <div style="flex:1;overflow:hidden;display:flex;flex-direction:column;gap:16px;padding:14px 16px">
+              <div style="display:flex;flex-direction:column;gap:8px">
+                <span style="font-family:'Rajdhani',sans-serif;font-weight:600;font-size:11px;letter-spacing:0.14em;text-transform:uppercase;color:rgba(242,239,232,0.55)">Parameters</span>
+                <div style="display:flex;align-items:center;justify-content:space-between;font-size:13px"><span>Case sensitive</span><span style="width:38px;height:20px;background:rgba(255,255,255,0.12);border:1px solid rgba(255,255,255,0.2);position:relative"><span style="position:absolute;left:2px;top:2px;width:14px;height:14px;background:rgba(242,239,232,0.7)"></span></span></div>
+                <div style="display:flex;align-items:center;justify-content:space-between;font-size:13px"><span>Max matches</span><div style="width:110px;height:30px;border:1px solid rgba(255,255,255,0.18);background:rgba(255,255,255,0.04);display:flex;align-items:center;justify-content:space-between;padding:0 8px;font-family:'JetBrains Mono',monospace;font-size:12px"><span style="color:rgba(242,239,232,0.5)">−</span>1<span style="color:rgba(242,239,232,0.5)">+</span></div></div>
+              </div>
+              <div style="display:flex;flex-direction:column;gap:6px">
+                <span style="font-family:'Rajdhani',sans-serif;font-weight:600;font-size:11px;letter-spacing:0.14em;text-transform:uppercase;color:rgba(242,239,232,0.55)">Constants</span>
+                <div style="display:flex;align-items:center;gap:8px;font-size:13px"><span style="width:66px;flex:none;color:rgba(242,239,232,0.65)">pattern</span><div style="flex:1;height:30px;border:1px solid rgba(255,255,255,0.18);background:rgba(255,255,255,0.04);display:flex;align-items:center;padding:0 8px;font-family:'JetBrains Mono',monospace;font-size:12px">"dusk"</div></div>
+                <div style="display:flex;align-items:center;gap:8px;font-size:13px"><span style="width:66px;flex:none;color:rgba(242,239,232,0.65)">input</span><div style="flex:1;height:30px;border:1px dashed rgba(255,255,255,0.22);display:flex;align-items:center;padding:0 8px;font-size:12px;color:rgba(242,239,232,0.5)">wired · from World clock</div></div>
+              </div>
+            </div>
+            <div style="margin-top:auto;border-top:1px solid rgba(255,255,255,0.1);padding:12px 16px;display:flex;flex-direction:column;gap:8px">
+              <div style="display:flex;justify-content:space-between;align-items:center"><span style="font-family:'Rajdhani',sans-serif;font-weight:600;font-size:11px;letter-spacing:0.14em;text-transform:uppercase;color:rgba(242,239,232,0.55)">Flow inputs and outputs</span><span style="font-family:'Rajdhani',sans-serif;font-weight:700;font-size:11px;letter-spacing:0.1em;text-transform:uppercase;color:oklch(0.8 0.14 290)">Add</span></div>
+              <sc-for list="{{ flowIO }}" as="io" hint-placeholder-count="4">
+                <div style="display:flex;align-items:center;justify-content:space-between;padding:6px 0;border-top:1px solid rgba(255,255,255,0.06);font-size:12px">
+                  <span style="display:flex;align-items:center;gap:8px"><span style="font-family:'Rajdhani',sans-serif;font-weight:700;font-size:10px;letter-spacing:0.1em;text-transform:uppercase;color:{{ io.color }}">{{ io.dir }}</span>{{ io.name }}</span>
+                  <span style="font-family:'JetBrains Mono',monospace;font-size:10px;color:rgba(242,239,232,0.5)">{{ io.type }}</span>
+                </div>
+              </sc-for>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 10b -->
+  <div id="10b" style="display:flex;flex-direction:column;gap:12px">
+    <div style="display:flex;gap:12px;align-items:baseline;font-size:15px"><a href="#10b" style="font-family:'JetBrains Mono',monospace;font-size:12px;padding:3px 8px;background:oklch(0.8 0.14 290);color:#0b0d10;text-decoration:none">10b</a><span style="font-family:'Rajdhani',sans-serif;font-weight:700;font-size:20px;text-transform:uppercase;letter-spacing:0.08em">Flows · On alpha</span><span style="color:rgba(242,239,232,0.6)">FL.3–FL.5 · a process opened read-only · Run now on a job · the run in the bottom panel</span></div>
+    <div style="position:relative;width:1920px;height:1080px;overflow:hidden;background:#0b0d10;font-size:14px">
+      <img src="assets/world.webp" alt="" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover">
+      <div style="position:absolute;inset:0;background:rgba(6,8,10,0.72)"></div>
+      <dc-import name="Chrome8" app="Flows" toast="" toast-action="" toast-age="" toast-progress="0%" hint-size="100%,100%" style="position:absolute;inset:0"></dc-import>
+
+      <div style="position:absolute;left:0;right:0;top:44px;bottom:0;display:flex;flex-direction:column;background:rgba(10,12,15,0.95);border-top:1px solid rgba(255,255,255,0.1)">
+        <div style="height:52px;flex:none;display:flex;align-items:center;gap:12px;padding:0 16px;border-bottom:1px solid rgba(255,255,255,0.12);background:linear-gradient(180deg,rgba(24,27,33,0.95),rgba(14,16,20,0.95))">
+          <span style="font-family:'Rajdhani',sans-serif;font-weight:700;font-size:12px;letter-spacing:0.14em;text-transform:uppercase;color:oklch(0.8 0.14 290)">Flows</span>
+          <span style="font-family:'Rajdhani',sans-serif;font-weight:700;font-size:20px;text-transform:uppercase;letter-spacing:0.08em;line-height:1">snow report</span>
+          <span style="font-size:13px;color:rgba(242,239,232,0.7)">· on alpha</span>
+          <span style="padding:3px 8px;border:1px solid rgba(255,255,255,0.25);font-family:'Rajdhani',sans-serif;font-weight:700;font-size:11px;letter-spacing:0.12em;text-transform:uppercase;color:rgba(242,239,232,0.7)">read-only</span>
+          <span style="width:1px;height:26px;background:rgba(255,255,255,0.15)"></span>
+          <div style="display:flex;gap:4px;color:rgba(242,239,232,0.4)">
+            <span style="height:30px;padding:0 10px;border:1px solid rgba(255,255,255,0.1);font-family:'Rajdhani',sans-serif;font-weight:700;font-size:12px;letter-spacing:0.08em;text-transform:uppercase;display:inline-flex;align-items:center">Undo</span>
+            <span style="height:30px;padding:0 10px;border:1px solid rgba(255,255,255,0.1);font-family:'Rajdhani',sans-serif;font-weight:700;font-size:12px;letter-spacing:0.08em;text-transform:uppercase;display:inline-flex;align-items:center">Redo</span>
+            <span style="height:30px;padding:0 10px;border:1px solid rgba(255,255,255,0.1);font-family:'Rajdhani',sans-serif;font-weight:700;font-size:12px;letter-spacing:0.08em;text-transform:uppercase;display:inline-flex;align-items:center">Auto-layout</span>
+          </div>
+          <span style="width:1px;height:26px;background:rgba(255,255,255,0.15)"></span>
+          <div style="height:34px;display:inline-flex;align-items:center;gap:9px;padding:0 10px;border:1px solid rgba(255,255,255,0.25);background:rgba(0,0,0,0.3)">
+            <span style="font-family:'Rajdhani',sans-serif;font-weight:600;font-size:10px;letter-spacing:0.14em;text-transform:uppercase;color:rgba(242,239,232,0.55)">Server</span>
+            <span style="width:8px;height:8px;border-radius:50%;background:{{ dot }};box-shadow:0 0 8px {{ dot }}"></span>
+            <span style="font-size:13px">alpha</span>
+            <span style="font-family:'JetBrains Mono',monospace;font-size:10px;color:rgba(242,239,232,0.5)">1.4</span>
+            <span style="color:rgba(242,239,232,0.5);font-size:11px">▾</span>
+          </div>
+          <span style="margin-left:auto;font-size:12px;color:rgba(242,239,232,0.6)">alpha said: job started · 18:00</span>
+          <div style="display:flex;gap:6px;align-items:center">
+            <span style="height:34px;padding:0 14px;background:oklch(0.8 0.14 290);color:#0b0d10;font-family:'Rajdhani',sans-serif;font-weight:700;font-size:13px;letter-spacing:0.08em;text-transform:uppercase;display:inline-flex;align-items:center;clip-path:polygon(6px 0,100% 0,100% calc(100% - 6px),calc(100% - 6px) 100%,0 100%,0 6px)">Save into my land…</span>
+            <span style="height:34px;padding:0 12px;border:1px solid rgba(255,255,255,0.25);font-family:'Rajdhani',sans-serif;font-weight:700;font-size:13px;letter-spacing:0.08em;text-transform:uppercase;display:inline-flex;align-items:center">Validate</span>
+            <span style="height:34px;padding:0 12px;border:1px solid rgba(255,255,255,0.25);font-family:'Rajdhani',sans-serif;font-weight:700;font-size:13px;letter-spacing:0.08em;text-transform:uppercase;display:inline-flex;align-items:center">Export</span>
+            <span style="width:1px;height:26px;background:rgba(255,255,255,0.15)"></span>
+            <span style="height:34px;padding:0 12px;border:1px solid rgba(255,255,255,0.25);font-family:'Rajdhani',sans-serif;font-weight:700;font-size:13px;letter-spacing:0.08em;text-transform:uppercase;display:inline-flex;align-items:center;color:rgba(242,239,232,0.75)">Close · Esc</span>
+          </div>
+        </div>
+
+        <div style="flex:1;display:flex;min-height:0">
+          <div style="width:340px;flex:none;display:flex;flex-direction:column;border-right:1px solid rgba(255,255,255,0.12);background:rgba(14,16,20,0.7)">
+            <div style="display:flex;border-bottom:1px solid rgba(255,255,255,0.1)">
+              <span style="flex:1;height:42px;display:inline-flex;align-items:center;justify-content:center;border-bottom:2px solid transparent;color:rgba(242,239,232,0.65);font-family:'Rajdhani',sans-serif;font-weight:700;font-size:14px;letter-spacing:0.1em;text-transform:uppercase">My flows</span>
+              <span style="flex:1;height:42px;display:inline-flex;align-items:center;justify-content:center;gap:7px;border-bottom:2px solid oklch(0.8 0.14 290);color:oklch(0.8 0.14 290);font-family:'Rajdhani',sans-serif;font-weight:700;font-size:14px;letter-spacing:0.1em;text-transform:uppercase">On alpha<span style="width:6px;height:6px;border-radius:50%;background:{{ dot }}"></span></span>
+            </div>
+            <div style="flex:1;overflow:hidden;display:flex;flex-direction:column">
+              <div style="display:flex;align-items:center;gap:8px;padding:10px 16px;background:rgba(255,255,255,0.03)"><span style="font-family:'JetBrains Mono',monospace;font-size:10px;color:rgba(242,239,232,0.45)">▾</span><span style="font-family:'Rajdhani',sans-serif;font-weight:700;font-size:13px;letter-spacing:0.12em;text-transform:uppercase">Processes</span><span style="font-family:'JetBrains Mono',monospace;font-size:10px;color:rgba(242,239,232,0.45)">4</span><span style="margin-left:auto;font-family:'Rajdhani',sans-serif;font-weight:700;font-size:11px;letter-spacing:0.1em;text-transform:uppercase;color:rgba(242,239,232,0.6)">Refresh</span></div>
+              <sc-for list="{{ procs }}" as="pr" hint-placeholder-count="4">
+                <div style="display:flex;flex-direction:column;gap:6px;padding:8px 16px;border-top:1px solid rgba(255,255,255,0.05);background:{{ pr.bg }};border-left:2px solid {{ pr.mark }}">
+                  <div style="display:flex;align-items:baseline;gap:8px;font-size:13px"><span>{{ pr.name }}</span><span style="font-size:11px;color:rgba(242,239,232,0.5)">{{ pr.group }}</span><span style="margin-left:auto;font-family:'Rajdhani',sans-serif;font-weight:700;font-size:11px;letter-spacing:0.1em;text-transform:uppercase;color:{{ pr.openC }}">{{ pr.openLabel }}</span></div>
+                  <sc-if value="{{ pr.open }}" hint-placeholder-val="{{ false }}">
+                    <div style="display:flex;gap:12px;font-family:'Rajdhani',sans-serif;font-weight:700;font-size:11px;letter-spacing:0.1em;text-transform:uppercase;color:rgba(242,239,232,0.7)"><span style="color:oklch(0.8 0.14 290)">Save into my land…</span><span>Dup</span><span>Ren</span><span style="color:oklch(0.8 0.18 25)">Del</span></div>
+                  </sc-if>
+                </div>
+              </sc-for>
+              <div style="display:flex;justify-content:flex-end;gap:10px;padding:6px 16px;font-family:'JetBrains Mono',monospace;font-size:10px;color:rgba(242,239,232,0.45);border-top:1px solid rgba(255,255,255,0.05)"><span>‹</span><span>1–4 of 4</span><span>›</span></div>
+
+              <div style="display:flex;align-items:center;gap:8px;padding:10px 16px;background:rgba(255,255,255,0.03);border-top:1px solid rgba(255,255,255,0.08)"><span style="font-family:'JetBrains Mono',monospace;font-size:10px;color:rgba(242,239,232,0.45)">▾</span><span style="font-family:'Rajdhani',sans-serif;font-weight:700;font-size:13px;letter-spacing:0.12em;text-transform:uppercase">Services</span><span style="font-family:'JetBrains Mono',monospace;font-size:10px;color:rgba(242,239,232,0.45)">2</span><span style="margin-left:auto;font-family:'Rajdhani',sans-serif;font-weight:700;font-size:11px;letter-spacing:0.1em;text-transform:uppercase;color:oklch(0.8 0.14 290)">New service</span><span style="font-family:'Rajdhani',sans-serif;font-weight:700;font-size:11px;letter-spacing:0.1em;text-transform:uppercase;color:rgba(242,239,232,0.6)">Refresh</span></div>
+              <sc-for list="{{ services }}" as="s" hint-placeholder-count="2">
+                <div style="display:flex;align-items:baseline;gap:8px;padding:8px 16px;border-top:1px solid rgba(255,255,255,0.05);font-size:13px"><span>{{ s.name }}</span><span style="font-family:'JetBrains Mono',monospace;font-size:10px;color:rgba(242,239,232,0.5)">{{ s.type }}</span><span style="margin-left:auto;display:flex;gap:10px;font-family:'Rajdhani',sans-serif;font-weight:700;font-size:11px;letter-spacing:0.1em;text-transform:uppercase;color:rgba(242,239,232,0.7)"><span>Edit</span><span style="color:oklch(0.8 0.18 25)">Del</span></span></div>
+              </sc-for>
+
+              <div style="display:flex;align-items:center;gap:8px;padding:10px 16px;background:rgba(255,255,255,0.03);border-top:1px solid rgba(255,255,255,0.08)"><span style="font-family:'JetBrains Mono',monospace;font-size:10px;color:rgba(242,239,232,0.45)">▾</span><span style="font-family:'Rajdhani',sans-serif;font-weight:700;font-size:13px;letter-spacing:0.12em;text-transform:uppercase">Jobs</span><span style="font-family:'JetBrains Mono',monospace;font-size:10px;color:rgba(242,239,232,0.45)">4</span><span style="margin-left:auto;font-family:'Rajdhani',sans-serif;font-weight:700;font-size:11px;letter-spacing:0.1em;text-transform:uppercase;color:oklch(0.8 0.14 290)">New job</span><span style="font-family:'Rajdhani',sans-serif;font-weight:700;font-size:11px;letter-spacing:0.1em;text-transform:uppercase;color:rgba(242,239,232,0.6)">Refresh</span></div>
+              <sc-for list="{{ jobs }}" as="j" hint-placeholder-count="4">
+                <div style="display:flex;flex-direction:column;gap:4px;padding:8px 16px;border-top:1px solid rgba(255,255,255,0.05);background:{{ j.bg }}">
+                  <div style="display:flex;align-items:center;gap:8px;font-size:13px"><span style="flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ j.name }}</span><span style="height:24px;padding:0 9px;border:1px solid {{ j.runLine }};color:{{ j.runC }};font-family:'Rajdhani',sans-serif;font-weight:700;font-size:11px;letter-spacing:0.08em;text-transform:uppercase;display:inline-flex;align-items:center">{{ j.runLabel }}</span></div>
+                  <div style="display:flex;align-items:baseline;gap:8px;font-size:11px;color:rgba(242,239,232,0.55)"><span>{{ j.proc }}</span><span style="font-family:'JetBrains Mono',monospace;font-size:10px">{{ j.trig }}</span><span style="margin-left:auto;display:flex;gap:10px;font-family:'Rajdhani',sans-serif;font-weight:700;font-size:11px;letter-spacing:0.1em;text-transform:uppercase;color:rgba(242,239,232,0.7)"><span>Edit</span><span style="color:oklch(0.8 0.18 25)">Del</span></span></div>
+                </div>
+              </sc-for>
+
+              <div style="display:flex;align-items:center;gap:8px;padding:10px 16px;background:rgba(255,255,255,0.03);border-top:1px solid rgba(255,255,255,0.08)"><span style="font-family:'JetBrains Mono',monospace;font-size:10px;color:rgba(242,239,232,0.45)">▸</span><span style="font-family:'Rajdhani',sans-serif;font-weight:700;font-size:13px;letter-spacing:0.12em;text-transform:uppercase">Reports</span><span style="font-family:'JetBrains Mono',monospace;font-size:10px;color:rgba(242,239,232,0.45)">38</span></div>
+            </div>
+          </div>
+
+          <div style="flex:1;position:relative;min-width:0;overflow:hidden;background:#0e1014">
+            <div style="position:absolute;inset:0;background:repeating-linear-gradient(0deg,rgba(255,255,255,0.035) 0 1px,transparent 1px 40px),repeating-linear-gradient(90deg,rgba(255,255,255,0.035) 0 1px,transparent 1px 40px)"></div>
+            <svg style="position:absolute;inset:0;width:100%;height:100%;fill:none;stroke:oklch(0.8 0.14 290);stroke-width:2">
+              <path d="M220 184L270 184"></path>
+              <path d="M480 206C500 206 500 162 520 162"></path>
+              <path d="M700 206C730 206 730 192 760 192"></path>
+              <path d="M950 214C965 214 965 206 980 206" stroke-dasharray="5 4"></path>
+            </svg>
+            <sc-for list="{{ nodes2 }}" as="n" hint-placeholder-count="5">
+              <div style="position:absolute;left:{{ n.left }};top:{{ n.top }};width:{{ n.w }};background:rgba(18,21,26,0.97);border:1px solid {{ n.border }};box-shadow:{{ n.glow }}">
+                <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;height:26px;padding:0 8px;background:{{ n.head }};border-bottom:1px solid {{ n.border }}">
+                  <span style="font-family:'Rajdhani',sans-serif;font-weight:700;font-size:12px;letter-spacing:0.08em;text-transform:uppercase;line-height:1;color:{{ n.fg }}">{{ n.title }}</span>
+                  <span style="font-family:'JetBrains Mono',monospace;font-size:9px;color:rgba(242,239,232,0.45)">{{ n.plugin }}</span>
+                </div>
+                <div style="display:flex;flex-direction:column;padding:5px 0">
+                  <sc-for list="{{ n.rows }}" as="r" hint-placeholder-count="2">
+                    <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;height:22px;padding:0 7px;font-size:11px">
+                      <span style="display:flex;align-items:center;gap:6px;color:rgba(242,239,232,0.8)"><span style="width:7px;height:7px;flex:none;background:{{ r.inDot }};transform:rotate(45deg)"></span>{{ r.in }}</span>
+                      <span style="display:flex;align-items:center;gap:6px;font-family:'JetBrains Mono',monospace;font-size:10px;color:{{ r.valColor }}">{{ r.val }}<span style="width:7px;height:7px;flex:none;background:{{ r.outDot }};transform:rotate(45deg)"></span></span>
+                    </div>
+                  </sc-for>
+                </div>
+                <span style="position:absolute;right:-9px;top:-9px;height:18px;min-width:18px;padding:0 5px;display:inline-flex;align-items:center;justify-content:center;background:{{ n.badgeBg }};color:#0b0d10;font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:500;opacity:{{ n.badgeOp }}">{{ n.badge }}</span>
+              </div>
+            </sc-for>
+            <div style="position:absolute;left:18px;top:14px;display:flex;align-items:center;gap:8px;padding:5px 10px;background:rgba(14,16,20,0.9);border:1px solid rgba(255,255,255,0.14);font-size:12px;color:rgba(242,239,232,0.7)"><svg viewBox="0 0 24 24" style="width:13px;height:13px;fill:none;stroke:currentColor;stroke-width:2"><rect x="5" y="11" width="14" height="10"></rect><path d="M8 11V7a4 4 0 0 1 8 0v4"></path></svg>Read-only · the bytes as alpha has them</div>
+          </div>
+
+          <div style="width:320px;flex:none;display:flex;flex-direction:column;border-left:1px solid rgba(255,255,255,0.12);background:rgba(14,16,20,0.7)">
+            <div style="padding:14px 16px 12px;border-bottom:1px solid rgba(255,255,255,0.1);display:flex;flex-direction:column;gap:10px">
+              <div style="display:flex;justify-content:space-between;align-items:baseline"><span style="font-family:'Rajdhani',sans-serif;font-weight:700;font-size:18px;text-transform:uppercase;letter-spacing:0.08em;line-height:1">Inspector</span><span style="font-family:'JetBrains Mono',monospace;font-size:10px;color:rgba(242,239,232,0.45)">json/get</span></div>
+              <div style="display:flex;flex-direction:column;gap:3px;padding:9px 11px;border:1px solid oklch(0.8 0.14 290 / 0.45);background:oklch(0.8 0.14 290 / 0.08);font-size:12px;line-height:1.4"><span style="font-family:'Rajdhani',sans-serif;font-weight:700;font-size:11px;letter-spacing:0.12em;text-transform:uppercase;color:oklch(0.8 0.14 290)">On alpha</span><span>Read-only here. Save into my land… to change a copy.</span></div>
+            </div>
+            <div style="flex:1;overflow:hidden;display:flex;flex-direction:column;gap:14px;padding:14px 16px;color:rgba(242,239,232,0.75)">
+              <div style="display:flex;flex-direction:column;gap:6px"><span style="font-family:'Rajdhani',sans-serif;font-weight:600;font-size:11px;letter-spacing:0.14em;text-transform:uppercase;color:rgba(242,239,232,0.55)">Name</span><div style="height:32px;border:1px dashed rgba(255,255,255,0.2);display:flex;align-items:center;padding:0 10px;font-size:13px">snow depth</div></div>
+              <div style="display:flex;flex-direction:column;gap:6px"><span style="font-family:'Rajdhani',sans-serif;font-weight:600;font-size:11px;letter-spacing:0.14em;text-transform:uppercase;color:rgba(242,239,232,0.55)">Constants</span>
+                <div style="display:flex;align-items:center;gap:8px;font-size:13px"><span style="width:56px;flex:none">path</span><div style="flex:1;height:30px;border:1px dashed rgba(255,255,255,0.2);display:flex;align-items:center;padding:0 8px;font-family:'JetBrains Mono',monospace;font-size:12px">"snow.depth_cm"</div></div>
+              </div>
+              <div style="display:flex;flex-direction:column;gap:6px"><span style="font-family:'Rajdhani',sans-serif;font-weight:600;font-size:11px;letter-spacing:0.14em;text-transform:uppercase;color:rgba(242,239,232,0.55)">This run</span>
+                <div style="display:flex;justify-content:space-between;font-size:12px"><span>value</span><span style="font-family:'JetBrains Mono',monospace">14</span></div>
+                <div style="display:flex;justify-content:space-between;font-size:12px"><span>took</span><span style="font-family:'JetBrains Mono',monospace">3 ms</span></div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div style="height:280px;flex:none;display:flex;flex-direction:column;border-top:1px solid oklch(0.8 0.14 290 / 0.5);background:rgba(12,14,18,0.98)">
+          <div style="height:44px;flex:none;display:flex;align-items:center;gap:14px;padding:0 16px;border-bottom:1px solid rgba(255,255,255,0.1)">
+            <span style="font-family:'Rajdhani',sans-serif;font-weight:600;font-size:11px;letter-spacing:0.14em;text-transform:uppercase;color:rgba(242,239,232,0.55)">Run</span>
+            <span style="font-family:'Rajdhani',sans-serif;font-weight:700;font-size:17px;letter-spacing:0.06em;text-transform:uppercase">snow report 18:00</span>
+            <span style="display:inline-flex;align-items:center;gap:6px;padding:3px 9px;border:1px solid {{ runLine }};color:{{ runC }};font-family:'Rajdhani',sans-serif;font-weight:700;font-size:11px;letter-spacing:0.12em;text-transform:uppercase"><span style="width:6px;height:6px;border-radius:50%;background:{{ runC }}"></span>{{ runLabel }}</span>
+            <div style="margin-left:24px;display:flex;border:1px solid rgba(255,255,255,0.18)">
+              <sc-for list="{{ levels }}" as="l" hint-placeholder-count="4">
+                <span style="height:28px;padding:0 12px;display:inline-flex;align-items:center;background:{{ l.bg }};color:{{ l.fg }};font-family:'Rajdhani',sans-serif;font-weight:700;font-size:11px;letter-spacing:0.1em;text-transform:uppercase">{{ l.name }}</span>
+              </sc-for>
+            </div>
+            <span style="margin-left:auto;height:28px;padding:0 12px;border:1px solid rgba(255,255,255,0.22);font-family:'Rajdhani',sans-serif;font-weight:700;font-size:12px;letter-spacing:0.08em;text-transform:uppercase;display:inline-flex;align-items:center">Close</span>
+          </div>
+          <sc-if value="{{ stream }}" hint-placeholder-val="{{ true }}">
+            <div style="flex:1;display:flex;flex-direction:column;justify-content:flex-end;padding:8px 0;font-family:'JetBrains Mono',monospace;font-size:12px">
+              <sc-for list="{{ logRows }}" as="lg" hint-placeholder-count="6">
+                <div style="display:grid;grid-template-columns:110px 70px 220px minmax(0,1fr);gap:12px;padding:4px 16px;background:{{ lg.bg }}"><span style="color:rgba(242,239,232,0.5)">{{ lg.t }}</span><span style="color:{{ lg.lc }}">{{ lg.lv }}</span><span style="color:rgba(242,239,232,0.8)">{{ lg.block }}</span><span style="color:{{ lg.mc }}">{{ lg.msg }}</span></div>
+              </sc-for>
+            </div>
+          </sc-if>
+          <sc-if value="{{ noStream }}" hint-placeholder-val="{{ false }}">
+            <div style="flex:1;display:flex;flex-direction:column;gap:6px;padding:12px 16px;overflow:hidden">
+              <span style="font-size:13px;color:rgba(242,239,232,0.75)">alpha does not stream runs — its report is below.</span>
+              <div style="display:flex;flex-direction:column">
+                <sc-for list="{{ tree2 }}" as="t" hint-placeholder-count="7">
+                  <div style="display:flex;gap:6px;padding:2px 0 2px {{ t.pad }};font-family:'JetBrains Mono',monospace;font-size:12px"><span style="width:10px;color:rgba(242,239,232,0.45)">{{ t.caret }}</span><span style="color:oklch(0.8 0.14 290)">{{ t.tag }}</span><span style="color:rgba(242,239,232,0.55)">{{ t.attrs }}</span><span style="color:{{ t.vc }}">{{ t.val }}</span></div>
+                </sc-for>
+              </div>
+            </div>
+          </sc-if>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 10c -->
+  <div id="10c" style="display:flex;flex-direction:column;gap:12px">
+    <div style="display:flex;gap:12px;align-items:baseline;font-size:15px"><a href="#10c" style="font-family:'JetBrains Mono',monospace;font-size:12px;padding:3px 8px;background:oklch(0.78 0.14 200);color:#0b0d10;text-decoration:none">10c</a><span style="font-family:'Rajdhani',sans-serif;font-weight:700;font-size:20px;text-transform:uppercase;letter-spacing:0.08em">Build · Place · a lamp’s flows</span><span style="color:rgba(242,239,232,0.6)">FL.6 Flows under Ports · FL.7 Run on… opened from the second flow, which changed since it was sent</span></div>
+    <div style="position:relative;width:1920px;height:1080px;overflow:hidden;background:#0b0d10;font-size:14px">
+      <img src="assets/world.webp" alt="" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover">
+      <dc-import name="Chrome8" app="Build" active="Place" toast="" land="Bergli" owner="Tobias" right="You own this land" hint-size="100%,100%" style="position:absolute;inset:0"></dc-import>
+
+      <div style="position:absolute;left:1180px;top:96px;width:400px;display:flex;flex-direction:column;background:rgba(14,16,20,0.94);backdrop-filter:blur(14px);border:1px solid oklch(0.78 0.14 200 / 0.5);clip-path:polygon(10px 0,100% 0,100% 100%,0 100%,0 10px)">
+        <div style="padding:10px 14px;display:flex;flex-direction:column;gap:3px;border-bottom:1px solid rgba(255,255,255,0.1)"><span style="font-family:'Rajdhani',sans-serif;font-weight:600;font-size:10px;letter-spacing:0.14em;text-transform:uppercase;color:rgba(242,239,232,0.55)">Selected · 1</span><span style="font-family:'Rajdhani',sans-serif;font-weight:700;font-size:18px;letter-spacing:0.04em;line-height:1">Street lamp 2</span><span style="font-size:11px;color:rgba(242,239,232,0.55)">Strassenlampe 4 m · Bergli</span></div>
+        <div style="display:grid;grid-template-columns:repeat(6,1fr);gap:5px;padding:10px 14px;border-bottom:1px solid rgba(255,255,255,0.08)">
+          <sc-for list="{{ xforms }}" as="x" hint-placeholder-count="6">
+            <div style="display:flex;flex-direction:column;gap:3px"><span style="font-family:'Rajdhani',sans-serif;font-weight:700;font-size:10px;letter-spacing:0.1em;color:{{ x.c }}">{{ x.k }}</span><span style="height:24px;border:1px solid rgba(255,255,255,0.16);display:flex;align-items:center;padding:0 5px;font-family:'JetBrains Mono',monospace;font-size:10px">{{ x.v }}</span></div>
+          </sc-for>
+        </div>
+        <div style="padding:9px 14px 10px;display:flex;flex-direction:column;gap:6px;border-bottom:1px solid rgba(255,255,255,0.08)">
+          <span style="font-family:'Rajdhani',sans-serif;font-weight:600;font-size:10px;letter-spacing:0.14em;text-transform:uppercase;color:rgba(242,239,232,0.55)">Ports · what it can be told</span>
+          <sc-for list="{{ selPorts }}" as="s" hint-placeholder-count="3">
+            <div style="display:flex;align-items:center;justify-content:space-between;font-size:12px"><span>{{ s.name }}</span><span style="display:flex;gap:8px;align-items:baseline"><span style="font-family:'JetBrains Mono',monospace;font-size:10px;color:rgba(242,239,232,0.45)">{{ s.type }}</span><span style="font-family:'JetBrains Mono',monospace;font-size:11px">{{ s.value }}</span></span></div>
+          </sc-for>
+        </div>
+        <div style="padding:10px 14px 4px;display:flex;justify-content:space-between;align-items:baseline"><span style="font-family:'Rajdhani',sans-serif;font-weight:700;font-size:14px;letter-spacing:0.12em;text-transform:uppercase;color:oklch(0.8 0.14 290)">Flows</span><span style="font-family:'JetBrains Mono',monospace;font-size:11px;color:rgba(242,239,232,0.55)">3</span></div>
+        <sc-for list="{{ cardFlows }}" as="f" hint-placeholder-count="3">
+          <div style="display:flex;flex-direction:column;gap:5px;padding:9px 14px;border-top:1px solid rgba(255,255,255,0.06);background:{{ f.bg }};border-left:2px solid {{ f.mark }}">
+            <div style="display:flex;align-items:center;gap:8px;font-size:13px"><span style="flex:1;min-width:0">{{ f.name }}</span><sc-if value="{{ f.hasChip }}" hint-placeholder-val="{{ false }}"><span style="display:inline-flex;align-items:center;gap:5px;padding:1px 6px;border:1px solid {{ f.chipLine }};font-family:'JetBrains Mono',monospace;font-size:10px;white-space:nowrap;color:{{ f.chipC }}"><span style="width:6px;height:6px;border-radius:50%;background:{{ f.chipC }}"></span>{{ f.chip }}</span></sc-if></div>
+            <div style="display:flex;align-items:center;gap:10px"><span style="font-family:'JetBrains Mono',monospace;font-size:10px;color:{{ f.lastC }}">{{ f.last }}</span>
+              <span style="margin-left:auto;display:flex;gap:10px;font-family:'Rajdhani',sans-serif;font-weight:700;font-size:11px;letter-spacing:0.1em;text-transform:uppercase;color:rgba(242,239,232,0.75)"><span>Open</span><span style="color:oklch(0.8 0.14 290)">Run on…</span><sc-if value="{{ f.running }}" hint-placeholder-val="{{ false }}"><span style="color:oklch(0.8 0.18 25)">Stop</span></sc-if><span>Detach</span></span>
+            </div>
+          </div>
+        </sc-for>
+        <div style="display:flex;gap:8px;padding:10px 14px 12px;border-top:1px solid rgba(255,255,255,0.08)">
+          <span style="height:30px;padding:0 12px;background:oklch(0.8 0.14 290);color:#0b0d10;font-family:'Rajdhani',sans-serif;font-weight:700;font-size:12px;letter-spacing:0.08em;text-transform:uppercase;display:inline-flex;align-items:center;clip-path:polygon(5px 0,100% 0,100% calc(100% - 5px),calc(100% - 5px) 100%,0 100%,0 5px)">Add flow</span>
+          <span style="height:30px;padding:0 11px;border:1px solid rgba(255,255,255,0.22);font-family:'Rajdhani',sans-serif;font-weight:700;font-size:12px;letter-spacing:0.08em;text-transform:uppercase;display:inline-flex;align-items:center">Attach existing…</span>
+        </div>
+      </div>
+
+      <div style="position:absolute;left:640px;top:200px;width:500px;background:rgba(14,16,20,0.98);border:1px solid rgba(255,255,255,0.14);clip-path:polygon(12px 0,100% 0,100% calc(100% - 12px),calc(100% - 12px) 100%,0 100%,0 12px);display:flex;flex-direction:column;box-shadow:0 20px 60px rgba(0,0,0,0.5)">
+        <div style="padding:16px 18px 12px;border-bottom:1px solid rgba(255,255,255,0.1);display:flex;justify-content:space-between;align-items:flex-start"><div style="display:flex;flex-direction:column;gap:4px"><span style="font-family:'Rajdhani',sans-serif;font-weight:700;font-size:22px;text-transform:uppercase;letter-spacing:0.08em;line-height:1">Run on…</span><span style="font-size:12px;color:rgba(242,239,232,0.6)">lamp fade · Street lamp 2</span></div><span style="font-size:16px;color:rgba(242,239,232,0.5)">✕</span></div>
+        <div style="padding:14px 18px;display:flex;flex-direction:column;gap:14px">
+          <div style="display:flex;flex-direction:column;gap:6px"><span style="font-family:'Rajdhani',sans-serif;font-weight:600;font-size:11px;letter-spacing:0.14em;text-transform:uppercase;color:rgba(242,239,232,0.55)">Server</span><div style="height:34px;border:1px solid rgba(255,255,255,0.18);background:rgba(0,0,0,0.3);display:flex;align-items:center;gap:8px;padding:0 10px;font-size:13px"><span style="width:8px;height:8px;border-radius:50%;background:oklch(0.8 0.15 145)"></span>alpha<span style="font-family:'JetBrains Mono',monospace;font-size:10px;color:rgba(242,239,232,0.5)">1.4</span><span style="margin-left:auto;color:rgba(242,239,232,0.5)">▾</span></div></div>
+          <div style="display:flex;flex-direction:column;gap:6px"><span style="font-family:'Rajdhani',sans-serif;font-weight:600;font-size:11px;letter-spacing:0.14em;text-transform:uppercase;color:rgba(242,239,232,0.55)">Start</span>
+            <sc-for list="{{ starts }}" as="s" hint-placeholder-count="3">
+              <div style="display:flex;flex-direction:column;gap:8px;padding:9px 11px;border:1px solid {{ s.line }};background:{{ s.bg }}">
+                <div style="display:flex;align-items:center;gap:10px;font-size:13px"><span style="width:12px;height:12px;flex:none;border:1px solid {{ s.line }};background:{{ s.fill }}"></span><span>{{ s.name }}</span><span style="font-size:11px;color:rgba(242,239,232,0.5)">{{ s.sub }}</span></div>
+                <sc-if value="{{ s.sel }}" hint-placeholder-val="{{ false }}">
+                  <div style="display:flex;gap:12px;padding-left:22px">
+                    <div style="width:150px;height:30px;border:1px solid rgba(255,255,255,0.2);background:rgba(0,0,0,0.3);display:flex;align-items:center;padding:0 8px;font-family:'JetBrains Mono',monospace;font-size:12px">*/5 * * * *</div>
+                    <div style="display:flex;flex-direction:column;gap:2px;font-family:'JetBrains Mono',monospace;font-size:10px;color:rgba(242,239,232,0.6)"><span style="font-family:'Rajdhani',sans-serif;font-weight:600;font-size:10px;letter-spacing:0.12em;text-transform:uppercase;color:rgba(242,239,232,0.5)">Next 5</span><span>18:05 · 18:10 · 18:15 · 18:20 · 18:25</span></div>
+                  </div>
+                </sc-if>
+              </div>
+            </sc-for>
+          </div>
+          <div style="padding:10px 12px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.1);font-size:12.5px;line-height:1.5">Sends lamp fade to alpha, makes job lamp fade there, and gives it a key that can change things on Bergli only, for 30 days.</div>
+        </div>
+        <div style="display:flex;justify-content:flex-end;gap:8px;padding:12px 18px;border-top:1px solid rgba(255,255,255,0.1)">
+          <span style="height:34px;padding:0 13px;border:1px solid rgba(255,255,255,0.25);font-family:'Rajdhani',sans-serif;font-weight:700;font-size:13px;letter-spacing:0.08em;text-transform:uppercase;display:inline-flex;align-items:center">Cancel</span>
+          <span style="height:34px;padding:0 15px;background:oklch(0.8 0.14 290);color:#0b0d10;font-family:'Rajdhani',sans-serif;font-weight:700;font-size:13px;letter-spacing:0.08em;text-transform:uppercase;display:inline-flex;align-items:center;clip-path:polygon(6px 0,100% 0,100% calc(100% - 6px),calc(100% - 6px) 100%,0 100%,0 6px)">Update on alpha</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 10d -->
+  <div id="10d" style="display:flex;flex-direction:column;gap:12px">
+    <div style="display:flex;gap:12px;align-items:baseline;font-size:15px"><a href="#10d" style="font-family:'JetBrains Mono',monospace;font-size:12px;padding:3px 8px;background:oklch(0.8 0.14 290);color:#0b0d10;text-decoration:none">10d</a><span style="font-family:'Rajdhani',sans-serif;font-weight:700;font-size:20px;text-transform:uppercase;letter-spacing:0.08em">Server picker · open</span><span style="color:rgba(242,239,232,0.6)">FL.1 · green, red, grey</span></div>
+    <div style="padding:40px;background:#0e1014;border:1px solid rgba(255,255,255,0.08);display:flex;flex-direction:column;gap:6px;width:640px;height:520px">
+      <div style="height:34px;display:inline-flex;align-self:flex-start;align-items:center;gap:9px;padding:0 10px;border:1px solid oklch(0.8 0.14 290);background:rgba(0,0,0,0.3)">
+        <span style="font-family:'Rajdhani',sans-serif;font-weight:600;font-size:10px;letter-spacing:0.14em;text-transform:uppercase;color:rgba(242,239,232,0.55)">Server</span><span style="width:8px;height:8px;border-radius:50%;background:oklch(0.8 0.15 145)"></span><span style="font-size:13px">alpha</span><span style="font-family:'JetBrains Mono',monospace;font-size:10px;color:rgba(242,239,232,0.5)">1.4</span><span style="color:rgba(242,239,232,0.5);font-size:11px">▴</span>
+      </div>
+      <div style="width:340px;display:flex;flex-direction:column;background:#15181d;border:1px solid rgba(255,255,255,0.16);box-shadow:0 16px 40px rgba(0,0,0,0.5)">
+        <sc-for list="{{ servers }}" as="s" hint-placeholder-count="4">
+          <div style="position:relative;display:flex;align-items:center;gap:10px;padding:10px 12px;background:{{ s.bg }};border-left:2px solid {{ s.mark }}">
+            <span style="width:8px;height:8px;flex:none;border-radius:50%;background:{{ s.dot }}"></span>
+            <div style="flex:1;display:flex;flex-direction:column;gap:2px"><span style="font-size:13px">{{ s.name }}</span><span style="font-family:'JetBrains Mono',monospace;font-size:10px;color:rgba(242,239,232,0.5)">{{ s.url }}</span></div>
+            <span style="font-family:'JetBrains Mono',monospace;font-size:10px;color:rgba(242,239,232,0.55)">{{ s.note }}</span>
+            <sc-if value="{{ s.tip }}" hint-placeholder-val="{{ false }}"><span style="position:absolute;left:100%;top:8px;margin-left:10px;padding:6px 9px;background:#181b21;border:1px solid oklch(0.8 0.18 25 / 0.6);font-size:12px;white-space:nowrap;color:oklch(0.8 0.18 25)">That address did not answer.</span></sc-if>
+          </div>
+        </sc-for>
+        <div style="height:1px;background:rgba(255,255,255,0.12)"></div>
+        <div style="padding:10px 12px;font-size:13px;color:oklch(0.8 0.14 290)">Add a server…</div>
+        <div style="padding:10px 12px;font-size:13px;border-top:1px solid rgba(255,255,255,0.05)">Manage servers…</div>
+      </div>
+      <span style="margin-top:10px;font-size:12px;color:rgba(242,239,232,0.55);line-height:1.5">Choosing a row switches every server panel at once, without a reload, and is remembered for this browser.</span>
+    </div>
+  </div>
+
+  <!-- 10e -->
+  <div id="10e" style="display:flex;flex-direction:column;gap:12px">
+    <div style="display:flex;gap:12px;align-items:baseline;font-size:15px"><a href="#10e" style="font-family:'JetBrains Mono',monospace;font-size:12px;padding:3px 8px;background:oklch(0.8 0.14 290);color:#0b0d10;text-decoration:none">10e</a><span style="font-family:'Rajdhani',sans-serif;font-weight:700;font-size:20px;text-transform:uppercase;letter-spacing:0.08em">Add a server</span><span style="color:rgba(242,239,232,0.6)">FL.1a · after Test · a refusal under the field</span></div>
+    <div style="padding:40px;background:#0e1014;border:1px solid rgba(255,255,255,0.08);display:flex;gap:28px;align-items:flex-start">
+      <div style="width:480px;background:rgba(14,16,20,0.98);border:1px solid rgba(255,255,255,0.14);clip-path:polygon(12px 0,100% 0,100% calc(100% - 12px),calc(100% - 12px) 100%,0 100%,0 12px);display:flex;flex-direction:column">
+        <div style="padding:16px 18px 12px;border-bottom:1px solid rgba(255,255,255,0.1)"><span style="font-family:'Rajdhani',sans-serif;font-weight:700;font-size:22px;text-transform:uppercase;letter-spacing:0.08em;line-height:1">Add a server</span></div>
+        <div style="padding:14px 18px;display:flex;flex-direction:column;gap:14px">
+          <div style="display:flex;flex-direction:column;gap:6px"><span style="font-family:'Rajdhani',sans-serif;font-weight:600;font-size:11px;letter-spacing:0.14em;text-transform:uppercase;color:rgba(242,239,232,0.55)">Name</span><div style="height:34px;border:1px solid oklch(0.8 0.18 25);background:oklch(0.8 0.18 25 / 0.08);display:flex;align-items:center;padding:0 10px;font-size:13px">alpha</div><span style="font-size:12px;color:oklch(0.8 0.18 25)">You already have a server called alpha.</span></div>
+          <div style="display:flex;flex-direction:column;gap:6px"><span style="font-family:'Rajdhani',sans-serif;font-weight:600;font-size:11px;letter-spacing:0.14em;text-transform:uppercase;color:rgba(242,239,232,0.55)">Address</span>
+            <div style="display:flex;gap:8px"><div style="flex:1;height:34px;border:1px solid rgba(255,255,255,0.18);background:rgba(0,0,0,0.3);display:flex;align-items:center;padding:0 10px;font-family:'JetBrains Mono',monospace;font-size:12px">http://192.168.1.40:8080</div><span style="height:34px;padding:0 13px;border:1px solid rgba(255,255,255,0.25);font-family:'Rajdhani',sans-serif;font-weight:700;font-size:13px;letter-spacing:0.08em;text-transform:uppercase;display:inline-flex;align-items:center">Test</span></div>
+            <div style="display:flex;gap:8px;align-items:flex-start;font-size:12px;line-height:1.45;color:oklch(0.82 0.16 80)"><span style="width:8px;height:8px;flex:none;margin-top:4px;border-radius:50%;background:oklch(0.82 0.16 80)"></span>It answered, but this page is not allowed to read it (CORS) — the server has to allow https://splatworld.ch.</div>
+          </div>
+        </div>
+        <div style="display:flex;justify-content:flex-end;gap:8px;padding:12px 18px;border-top:1px solid rgba(255,255,255,0.1)">
+          <span style="height:34px;padding:0 13px;border:1px solid rgba(255,255,255,0.25);font-family:'Rajdhani',sans-serif;font-weight:700;font-size:13px;letter-spacing:0.08em;text-transform:uppercase;display:inline-flex;align-items:center">Cancel</span>
+          <span style="height:34px;padding:0 15px;background:oklch(0.8 0.14 290);color:#0b0d10;font-family:'Rajdhani',sans-serif;font-weight:700;font-size:13px;letter-spacing:0.08em;text-transform:uppercase;display:inline-flex;align-items:center;clip-path:polygon(6px 0,100% 0,100% calc(100% - 6px),calc(100% - 6px) 100%,0 100%,0 6px)">Save</span>
+        </div>
+      </div>
+      <div style="width:320px;display:flex;flex-direction:column;gap:8px">
+        <span style="font-family:'Rajdhani',sans-serif;font-weight:600;font-size:11px;letter-spacing:0.14em;text-transform:uppercase;color:rgba(242,239,232,0.55)">The other Test lines</span>
+        <div style="display:flex;gap:8px;align-items:flex-start;font-size:12px;color:oklch(0.8 0.15 145)"><span style="width:8px;height:8px;flex:none;margin-top:4px;border-radius:50%;background:oklch(0.8 0.15 145)"></span>Answered — elx 1.4.</div>
+        <div style="display:flex;gap:8px;align-items:flex-start;font-size:12px;color:oklch(0.8 0.18 25)"><span style="width:8px;height:8px;flex:none;margin-top:4px;border-radius:50%;background:oklch(0.8 0.18 25)"></span>That address did not answer.</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 10f -->
+  <div id="10f" style="display:flex;flex-direction:column;gap:12px">
+    <div style="display:flex;gap:12px;align-items:baseline;font-size:15px"><a href="#10f" style="font-family:'JetBrains Mono',monospace;font-size:12px;padding:3px 8px;background:oklch(0.8 0.14 290);color:#0b0d10;text-decoration:none">10f</a><span style="font-family:'Rajdhani',sans-serif;font-weight:700;font-size:20px;text-transform:uppercase;letter-spacing:0.08em">Manage servers</span><span style="color:rgba(242,239,232,0.6)">FL.1b · Remove refused while flows run there · Remove asked otherwise</span></div>
+    <div style="padding:40px;background:#0e1014;border:1px solid rgba(255,255,255,0.08)">
+      <div style="width:640px;background:rgba(14,16,20,0.98);border:1px solid rgba(255,255,255,0.14);clip-path:polygon(12px 0,100% 0,100% calc(100% - 12px),calc(100% - 12px) 100%,0 100%,0 12px);display:flex;flex-direction:column">
+        <div style="padding:16px 18px 12px;border-bottom:1px solid rgba(255,255,255,0.1)"><span style="font-family:'Rajdhani',sans-serif;font-weight:700;font-size:22px;text-transform:uppercase;letter-spacing:0.08em;line-height:1">Manage servers</span></div>
+        <sc-for list="{{ manage }}" as="m" hint-placeholder-count="3">
+          <div style="display:flex;flex-direction:column;gap:8px;padding:12px 18px;border-top:1px solid rgba(255,255,255,0.06)">
+            <div style="display:flex;align-items:center;gap:10px"><span style="width:8px;height:8px;border-radius:50%;background:{{ m.dot }}"></span><span style="width:90px;font-size:13px">{{ m.name }}</span><span style="flex:1;font-family:'JetBrains Mono',monospace;font-size:11px;color:rgba(242,239,232,0.6)">{{ m.url }}</span><span style="display:flex;gap:12px;font-family:'Rajdhani',sans-serif;font-weight:700;font-size:11px;letter-spacing:0.1em;text-transform:uppercase;color:rgba(242,239,232,0.75)"><span>Edit</span><span style="color:oklch(0.8 0.18 25)">Remove</span></span></div>
+            <sc-if value="{{ m.hasMsg }}" hint-placeholder-val="{{ false }}">
+              <div style="display:flex;align-items:center;gap:12px;padding:9px 11px;margin-left:18px;border:1px solid {{ m.msgLine }};background:{{ m.msgBg }};font-size:12px;line-height:1.45"><span style="flex:1">{{ m.msg }}</span><sc-if value="{{ m.confirm }}" hint-placeholder-val="{{ false }}"><span style="display:flex;gap:6px"><span style="height:26px;padding:0 10px;border:1px solid rgba(255,255,255,0.22);font-family:'Rajdhani',sans-serif;font-weight:700;font-size:11px;letter-spacing:0.08em;text-transform:uppercase;display:inline-flex;align-items:center">Keep</span><span style="height:26px;padding:0 10px;background:oklch(0.8 0.18 25);color:#0b0d10;font-family:'Rajdhani',sans-serif;font-weight:700;font-size:11px;letter-spacing:0.08em;text-transform:uppercase;display:inline-flex;align-items:center">Remove</span></span></sc-if></div>
+            </sc-if>
+          </div>
+        </sc-for>
+        <div style="display:flex;justify-content:space-between;gap:8px;padding:12px 18px;border-top:1px solid rgba(255,255,255,0.1)">
+          <span style="height:34px;padding:0 13px;border:1px solid oklch(0.8 0.14 290 / 0.6);color:oklch(0.8 0.14 290);font-family:'Rajdhani',sans-serif;font-weight:700;font-size:13px;letter-spacing:0.08em;text-transform:uppercase;display:inline-flex;align-items:center">Add a server…</span>
+          <span style="height:34px;padding:0 13px;border:1px solid rgba(255,255,255,0.25);font-family:'Rajdhani',sans-serif;font-weight:700;font-size:13px;letter-spacing:0.08em;text-transform:uppercase;display:inline-flex;align-items:center">Close</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 10g -->
+  <div id="10g" style="display:flex;flex-direction:column;gap:12px">
+    <div style="display:flex;gap:12px;align-items:baseline;font-size:15px"><a href="#10g" style="font-family:'JetBrains Mono',monospace;font-size:12px;padding:3px 8px;background:oklch(0.8 0.14 290);color:#0b0d10;text-decoration:none">10g</a><span style="font-family:'Rajdhani',sans-serif;font-weight:700;font-size:20px;text-transform:uppercase;letter-spacing:0.08em">New service · both steps</span><span style="color:rgba(242,239,232,0.6)">FL.4 · 1 type · 2 parameters, one field per parameter kind</span></div>
+    <div style="padding:40px;background:#0e1014;border:1px solid rgba(255,255,255,0.08);display:flex;gap:28px;align-items:flex-start">
+      <div style="width:460px;background:rgba(14,16,20,0.98);border:1px solid rgba(255,255,255,0.14);clip-path:polygon(12px 0,100% 0,100% calc(100% - 12px),calc(100% - 12px) 100%,0 100%,0 12px);display:flex;flex-direction:column">
+        <div style="padding:16px 18px 12px;border-bottom:1px solid rgba(255,255,255,0.1);display:flex;justify-content:space-between;align-items:baseline"><span style="font-family:'Rajdhani',sans-serif;font-weight:700;font-size:22px;text-transform:uppercase;letter-spacing:0.08em;line-height:1">New service</span><span style="font-family:'Rajdhani',sans-serif;font-weight:700;font-size:11px;letter-spacing:0.12em;text-transform:uppercase;color:oklch(0.8 0.14 290)">1 Type · <span style="color:rgba(242,239,232,0.45)">2 Parameters</span></span></div>
+        <div style="padding:12px 18px"><div style="height:32px;border:1px solid rgba(255,255,255,0.18);background:rgba(0,0,0,0.3);display:flex;align-items:center;padding:0 10px;font-size:13px;color:rgba(242,239,232,0.45)">search alpha’s types</div></div>
+        <sc-for list="{{ svcTypes }}" as="t" hint-placeholder-count="4">
+          <div style="display:flex;flex-direction:column;gap:3px;padding:10px 18px;border-top:1px solid rgba(255,255,255,0.06);background:{{ t.bg }};border-left:2px solid {{ t.mark }}"><span style="font-family:'JetBrains Mono',monospace;font-size:12px;color:{{ t.fg }}">{{ t.id }}</span><span style="font-size:12px;color:rgba(242,239,232,0.6);line-height:1.4">{{ t.desc }}</span></div>
+        </sc-for>
+        <div style="display:flex;justify-content:flex-end;gap:8px;padding:12px 18px;border-top:1px solid rgba(255,255,255,0.1)">
+          <span style="height:34px;padding:0 13px;border:1px solid rgba(255,255,255,0.25);font-family:'Rajdhani',sans-serif;font-weight:700;font-size:13px;letter-spacing:0.08em;text-transform:uppercase;display:inline-flex;align-items:center">Cancel</span>
+          <span style="height:34px;padding:0 15px;background:oklch(0.8 0.14 290);color:#0b0d10;font-family:'Rajdhani',sans-serif;font-weight:700;font-size:13px;letter-spacing:0.08em;text-transform:uppercase;display:inline-flex;align-items:center;clip-path:polygon(6px 0,100% 0,100% calc(100% - 6px),calc(100% - 6px) 100%,0 100%,0 6px)">Next</span>
+        </div>
+      </div>
+      <div style="width:520px;background:rgba(14,16,20,0.98);border:1px solid rgba(255,255,255,0.14);clip-path:polygon(12px 0,100% 0,100% calc(100% - 12px),calc(100% - 12px) 100%,0 100%,0 12px);display:flex;flex-direction:column">
+        <div style="padding:16px 18px 12px;border-bottom:1px solid rgba(255,255,255,0.1);display:flex;justify-content:space-between;align-items:baseline"><div style="display:flex;flex-direction:column;gap:4px"><span style="font-family:'Rajdhani',sans-serif;font-weight:700;font-size:22px;text-transform:uppercase;letter-spacing:0.08em;line-height:1">New service</span><span style="font-family:'JetBrains Mono',monospace;font-size:11px;color:rgba(242,239,232,0.6)">mqtt::client</span></div><span style="font-family:'Rajdhani',sans-serif;font-weight:700;font-size:11px;letter-spacing:0.12em;text-transform:uppercase;color:rgba(242,239,232,0.45)">1 Type · <span style="color:oklch(0.8 0.14 290)">2 Parameters</span></span></div>
+        <div style="padding:14px 18px;display:flex;flex-direction:column;gap:12px">
+          <div style="display:flex;flex-direction:column;gap:6px"><span style="font-family:'Rajdhani',sans-serif;font-weight:600;font-size:11px;letter-spacing:0.14em;text-transform:uppercase;color:rgba(242,239,232,0.55)">Name</span><div style="height:34px;border:1px solid oklch(0.8 0.18 25);background:oklch(0.8 0.18 25 / 0.08);display:flex;align-items:center;padding:0 10px;font-size:13px">broker</div><span style="font-size:12px;color:oklch(0.8 0.18 25)">alpha already has a service called broker.</span></div>
+          <sc-for list="{{ svcParams }}" as="q" hint-placeholder-count="6">
+            <div style="display:grid;grid-template-columns:120px minmax(0,1fr);gap:4px 12px;align-items:center">
+              <span style="font-size:13px">{{ q.name }}</span>
+              <div style="display:flex;align-items:center;gap:8px">
+                <sc-if value="{{ q.isSwitch }}" hint-placeholder-val="{{ false }}"><span style="width:38px;height:20px;background:rgba(255,255,255,0.12);border:1px solid rgba(255,255,255,0.2);position:relative"><span style="position:absolute;left:2px;top:2px;width:14px;height:14px;background:rgba(242,239,232,0.7)"></span></span></sc-if>
+                <sc-if value="{{ q.isField }}" hint-placeholder-val="{{ true }}"><div style="flex:1;height:30px;border:1px solid rgba(255,255,255,0.18);background:rgba(0,0,0,0.3);display:flex;align-items:center;justify-content:space-between;padding:0 8px;font-family:'JetBrains Mono',monospace;font-size:12px">{{ q.val }}<span style="font-family:'Rajdhani',sans-serif;font-weight:700;font-size:10px;letter-spacing:0.1em;text-transform:uppercase;color:rgba(242,239,232,0.5)">{{ q.suffix }}</span></div></sc-if>
+                <span style="font-family:'JetBrains Mono',monospace;font-size:10px;color:rgba(242,239,232,0.4);white-space:nowrap">{{ q.kind }}</span>
+              </div>
+              <span></span><span style="font-size:11px;color:rgba(242,239,232,0.55)">{{ q.desc }}</span>
+            </div>
+          </sc-for>
+        </div>
+        <div style="display:flex;gap:8px;padding:12px 18px;border-top:1px solid rgba(255,255,255,0.1)">
+          <span style="height:34px;padding:0 13px;border:1px solid rgba(255,255,255,0.25);font-family:'Rajdhani',sans-serif;font-weight:700;font-size:13px;letter-spacing:0.08em;text-transform:uppercase;display:inline-flex;align-items:center">Back</span>
+          <span style="margin-left:auto;height:34px;padding:0 13px;border:1px solid rgba(255,255,255,0.25);font-family:'Rajdhani',sans-serif;font-weight:700;font-size:13px;letter-spacing:0.08em;text-transform:uppercase;display:inline-flex;align-items:center">Cancel</span>
+          <span style="height:34px;padding:0 15px;background:oklch(0.8 0.14 290);color:#0b0d10;font-family:'Rajdhani',sans-serif;font-weight:700;font-size:13px;letter-spacing:0.08em;text-transform:uppercase;display:inline-flex;align-items:center;clip-path:polygon(6px 0,100% 0,100% calc(100% - 6px),calc(100% - 6px) 100%,0 100%,0 6px)">Save</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 10h -->
+  <div id="10h" style="display:flex;flex-direction:column;gap:12px">
+    <div style="display:flex;gap:12px;align-items:baseline;font-size:15px"><a href="#10h" style="font-family:'JetBrains Mono',monospace;font-size:12px;padding:3px 8px;background:oklch(0.8 0.14 290);color:#0b0d10;text-decoration:none">10h</a><span style="font-family:'Rajdhani',sans-serif;font-weight:700;font-size:20px;text-transform:uppercase;letter-spacing:0.08em">Edit job</span><span style="color:rgba(242,239,232,0.6)">FL.5 · stacked Job, Inputs, Triggers · this job was made by Run on…, so world and world_key are locked</span></div>
+    <div style="padding:40px;background:#0e1014;border:1px solid rgba(255,255,255,0.08)">
+      <div style="width:720px;background:rgba(14,16,20,0.98);border:1px solid rgba(255,255,255,0.14);clip-path:polygon(12px 0,100% 0,100% calc(100% - 12px),calc(100% - 12px) 100%,0 100%,0 12px);display:flex;flex-direction:column">
+        <div style="padding:16px 18px 12px;border-bottom:1px solid rgba(255,255,255,0.1);display:flex;flex-direction:column;gap:4px"><span style="font-family:'Rajdhani',sans-serif;font-weight:700;font-size:22px;text-transform:uppercase;letter-spacing:0.08em;line-height:1">Edit job</span><span style="font-size:12px;color:rgba(242,239,232,0.6)">lamp fade · on alpha</span></div>
+        <div style="padding:14px 18px;display:flex;flex-direction:column;gap:12px;border-bottom:1px solid rgba(255,255,255,0.08)">
+          <span style="font-family:'Rajdhani',sans-serif;font-weight:700;font-size:14px;letter-spacing:0.12em;text-transform:uppercase;color:oklch(0.8 0.14 290)">Job</span>
+          <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px">
+            <div style="display:flex;flex-direction:column;gap:6px"><span style="font-family:'Rajdhani',sans-serif;font-weight:600;font-size:11px;letter-spacing:0.14em;text-transform:uppercase;color:rgba(242,239,232,0.55)">Name</span><div style="height:34px;border:1px solid rgba(255,255,255,0.18);background:rgba(0,0,0,0.3);display:flex;align-items:center;padding:0 10px;font-size:13px">lamp fade</div></div>
+            <div style="display:flex;flex-direction:column;gap:6px"><span style="font-family:'Rajdhani',sans-serif;font-weight:600;font-size:11px;letter-spacing:0.14em;text-transform:uppercase;color:rgba(242,239,232,0.55)">Group</span><div style="height:34px;border:1px solid rgba(255,255,255,0.18);background:rgba(0,0,0,0.3);display:flex;align-items:center;padding:0 10px;font-size:13px">Bergli</div></div>
+            <div style="display:flex;flex-direction:column;gap:6px"><span style="font-family:'Rajdhani',sans-serif;font-weight:600;font-size:11px;letter-spacing:0.14em;text-transform:uppercase;color:rgba(242,239,232,0.55)">Process</span><div style="height:34px;border:1px solid rgba(255,255,255,0.18);background:rgba(0,0,0,0.3);display:flex;align-items:center;justify-content:space-between;padding:0 10px;font-size:13px">lamp fade<span style="color:rgba(242,239,232,0.5)">▾</span></div></div>
+          </div>
+          <div style="display:flex;gap:28px">
+            <div style="display:flex;flex-direction:column;gap:6px"><span style="font-family:'Rajdhani',sans-serif;font-weight:600;font-size:11px;letter-spacing:0.14em;text-transform:uppercase;color:rgba(242,239,232,0.55)">Log level</span><div style="display:flex;border:1px solid rgba(255,255,255,0.18)"><sc-for list="{{ logLevel }}" as="l" hint-placeholder-count="4"><span style="height:30px;padding:0 12px;display:inline-flex;align-items:center;background:{{ l.bg }};color:{{ l.fg }};font-family:'Rajdhani',sans-serif;font-weight:700;font-size:11px;letter-spacing:0.1em;text-transform:uppercase">{{ l.name }}</span></sc-for></div></div>
+            <div style="display:flex;flex-direction:column;gap:6px"><span style="font-family:'Rajdhani',sans-serif;font-weight:600;font-size:11px;letter-spacing:0.14em;text-transform:uppercase;color:rgba(242,239,232,0.55)">Store report</span><div style="display:flex;border:1px solid rgba(255,255,255,0.18)"><sc-for list="{{ storeReport }}" as="l" hint-placeholder-count="3"><span style="height:30px;padding:0 12px;display:inline-flex;align-items:center;background:{{ l.bg }};color:{{ l.fg }};font-family:'Rajdhani',sans-serif;font-weight:700;font-size:11px;letter-spacing:0.1em;text-transform:uppercase">{{ l.name }}</span></sc-for></div></div>
+          </div>
+        </div>
+        <div style="padding:14px 18px;display:flex;flex-direction:column;gap:8px;border-bottom:1px solid rgba(255,255,255,0.08)">
+          <span style="font-family:'Rajdhani',sans-serif;font-weight:700;font-size:14px;letter-spacing:0.12em;text-transform:uppercase;color:oklch(0.8 0.14 290)">Inputs</span>
+          <sc-for list="{{ jobInputs }}" as="i" hint-placeholder-count="3">
+            <div style="display:grid;grid-template-columns:120px 90px minmax(0,1fr);gap:12px;align-items:center;font-size:13px"><span>{{ i.name }}</span><span style="font-family:'JetBrains Mono',monospace;font-size:10px;color:rgba(242,239,232,0.5)">{{ i.type }}</span><div style="height:30px;border:1px {{ i.lineStyle }} rgba(255,255,255,0.2);background:{{ i.bg }};display:flex;align-items:center;padding:0 8px;font-family:{{ i.font }};font-size:12px;color:{{ i.fg }}">{{ i.val }}</div></div>
+          </sc-for>
+        </div>
+        <div style="padding:14px 18px;display:flex;flex-direction:column;gap:10px">
+          <div style="display:flex;align-items:center;justify-content:space-between"><span style="font-family:'Rajdhani',sans-serif;font-weight:700;font-size:14px;letter-spacing:0.12em;text-transform:uppercase;color:oklch(0.8 0.14 290)">Triggers</span><div style="display:flex;align-items:center;gap:6px"><span style="font-family:'Rajdhani',sans-serif;font-weight:700;font-size:11px;letter-spacing:0.1em;text-transform:uppercase;color:rgba(242,239,232,0.6)">Add trigger</span><sc-for list="{{ trigKinds }}" as="k" hint-placeholder-count="4"><span style="height:24px;padding:0 9px;border:1px solid rgba(255,255,255,0.22);font-family:'JetBrains Mono',monospace;font-size:11px;display:inline-flex;align-items:center">{{ k }}</span></sc-for></div></div>
+          <div style="display:flex;flex-direction:column;gap:10px;padding:12px;border:1px solid oklch(0.8 0.14 290 / 0.45);background:oklch(0.8 0.14 290 / 0.05)">
+            <div style="display:flex;align-items:center;gap:10px"><span style="font-family:'JetBrains Mono',monospace;font-size:11px;color:oklch(0.8 0.14 290)">cron</span><span style="margin-left:auto;font-family:'Rajdhani',sans-serif;font-weight:700;font-size:11px;letter-spacing:0.1em;text-transform:uppercase;color:oklch(0.8 0.18 25)">Remove</span></div>
+            <div style="display:flex;gap:18px;align-items:flex-start">
+              <div style="width:240px;display:flex;flex-direction:column;gap:6px"><span style="font-family:'Rajdhani',sans-serif;font-weight:600;font-size:11px;letter-spacing:0.14em;text-transform:uppercase;color:rgba(242,239,232,0.55)">Expression</span><div style="height:34px;border:1px solid rgba(255,255,255,0.18);background:rgba(0,0,0,0.3);display:flex;align-items:center;padding:0 10px;font-family:'JetBrains Mono',monospace;font-size:13px">*/5 17-22 * * *</div><span style="font-size:11px;color:rgba(242,239,232,0.55);line-height:1.4">A cron trigger checks at most once a minute.</span></div>
+              <div style="flex:1;display:flex;flex-direction:column;gap:4px"><span style="font-family:'Rajdhani',sans-serif;font-weight:600;font-size:11px;letter-spacing:0.14em;text-transform:uppercase;color:rgba(242,239,232,0.55)">Next 5 firings</span><sc-for list="{{ cronNext }}" as="c" hint-placeholder-count="5"><span style="font-family:'JetBrains Mono',monospace;font-size:12px;color:rgba(242,239,232,0.8)">{{ c }}</span></sc-for></div>
+            </div>
+          </div>
+          <div style="display:flex;align-items:center;gap:10px;padding:10px 12px;border:1px solid rgba(255,255,255,0.12);font-size:12px"><span style="font-family:'JetBrains Mono',monospace;font-size:11px;color:oklch(0.8 0.14 290)">http</span><span style="font-family:'JetBrains Mono',monospace;font-size:12px">GET /lamp/fade</span><span style="color:rgba(242,239,232,0.55)">town-http · request → trigger · response ← done</span><span style="margin-left:auto;font-family:'Rajdhani',sans-serif;font-weight:700;font-size:11px;letter-spacing:0.1em;text-transform:uppercase;color:rgba(242,239,232,0.6)">Edit</span></div>
+        </div>
+        <div style="display:flex;justify-content:flex-end;gap:8px;padding:12px 18px;border-top:1px solid rgba(255,255,255,0.1)">
+          <span style="height:34px;padding:0 13px;border:1px solid rgba(255,255,255,0.25);font-family:'Rajdhani',sans-serif;font-weight:700;font-size:13px;letter-spacing:0.08em;text-transform:uppercase;display:inline-flex;align-items:center">Cancel</span>
+          <span style="height:34px;padding:0 15px;background:oklch(0.8 0.14 290);color:#0b0d10;font-family:'Rajdhani',sans-serif;font-weight:700;font-size:13px;letter-spacing:0.08em;text-transform:uppercase;display:inline-flex;align-items:center;clip-path:polygon(6px 0,100% 0,100% calc(100% - 6px),calc(100% - 6px) 100%,0 100%,0 6px)">Save</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 10i -->
+  <div id="10i" style="display:flex;flex-direction:column;gap:12px">
+    <div style="display:flex;gap:12px;align-items:baseline;font-size:15px"><a href="#10i" style="font-family:'JetBrains Mono',monospace;font-size:12px;padding:3px 8px;background:oklch(0.8 0.14 290);color:#0b0d10;text-decoration:none">10i</a><span style="font-family:'Rajdhani',sans-serif;font-weight:700;font-size:20px;text-transform:uppercase;letter-spacing:0.08em">Reports · and one opened</span><span style="color:rgba(242,239,232,0.6)">FL.5 · the Reports section expanded · the report viewer</span></div>
+    <div style="padding:40px;background:#0e1014;border:1px solid rgba(255,255,255,0.08);display:flex;gap:28px;align-items:flex-start">
+      <div style="width:340px;display:flex;flex-direction:column;background:rgba(14,16,20,0.9);border:1px solid rgba(255,255,255,0.12)">
+        <div style="display:flex;align-items:center;gap:8px;padding:10px 16px;background:rgba(255,255,255,0.03)"><span style="font-family:'JetBrains Mono',monospace;font-size:10px;color:rgba(242,239,232,0.45)">▾</span><span style="font-family:'Rajdhani',sans-serif;font-weight:700;font-size:13px;letter-spacing:0.12em;text-transform:uppercase">Reports</span><span style="font-family:'JetBrains Mono',monospace;font-size:10px;color:rgba(242,239,232,0.45)">38</span><span style="margin-left:auto;font-family:'Rajdhani',sans-serif;font-weight:700;font-size:11px;letter-spacing:0.1em;text-transform:uppercase;color:rgba(242,239,232,0.6)">Refresh</span></div>
+        <div style="padding:8px 16px"><div style="height:30px;border:1px solid rgba(255,255,255,0.18);background:rgba(0,0,0,0.3);display:flex;align-items:center;justify-content:space-between;padding:0 10px;font-size:12px">all jobs<span style="color:rgba(242,239,232,0.5)">▾</span></div></div>
+        <sc-for list="{{ reports }}" as="r" hint-placeholder-count="5">
+          <div style="display:flex;align-items:center;gap:10px;padding:8px 16px;border-top:1px solid rgba(255,255,255,0.05);background:{{ r.bg }};border-left:2px solid {{ r.mark }};font-size:12px"><span style="font-family:'JetBrains Mono',monospace;font-size:11px;color:rgba(242,239,232,0.55)">{{ r.time }}</span><span style="flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ r.job }}</span><span style="font-family:'JetBrains Mono',monospace;font-size:11px;color:{{ r.rc }}">{{ r.res }}</span><span style="display:flex;gap:8px;font-family:'Rajdhani',sans-serif;font-weight:700;font-size:11px;letter-spacing:0.1em;text-transform:uppercase;color:rgba(242,239,232,0.7)"><span>Open</span><span style="color:oklch(0.8 0.18 25)">Del</span></span></div>
+        </sc-for>
+        <div style="display:flex;justify-content:flex-end;gap:10px;padding:6px 16px;font-family:'JetBrains Mono',monospace;font-size:10px;color:rgba(242,239,232,0.45);border-top:1px solid rgba(255,255,255,0.05)"><span>‹</span><span>1–25 of 38</span><span>›</span></div>
+      </div>
+      <div style="width:620px;background:rgba(14,16,20,0.98);border:1px solid rgba(255,255,255,0.14);clip-path:polygon(12px 0,100% 0,100% calc(100% - 12px),calc(100% - 12px) 100%,0 100%,0 12px);display:flex;flex-direction:column">
+        <div style="padding:16px 18px 12px;border-bottom:1px solid rgba(255,255,255,0.1);display:flex;align-items:flex-start;gap:14px"><div style="display:flex;flex-direction:column;gap:4px;flex:1"><span style="font-family:'Rajdhani',sans-serif;font-weight:700;font-size:22px;text-transform:uppercase;letter-spacing:0.08em;line-height:1">lamp at dusk</span><span style="font-family:'JetBrains Mono',monospace;font-size:11px;color:rgba(242,239,232,0.6)">24 Sep 2026 · 17:50:00 · on alpha</span></div><span style="padding:3px 9px;border:1px solid oklch(0.8 0.18 25 / 0.6);color:oklch(0.8 0.18 25);font-family:'JetBrains Mono',monospace;font-size:12px">✕ 3</span><span style="font-size:16px;color:rgba(242,239,232,0.5)">✕</span></div>
+        <div style="padding:10px 6px 14px;display:flex;flex-direction:column">
+          <sc-for list="{{ tree3 }}" as="t" hint-placeholder-count="10">
+            <div style="display:flex;gap:6px;padding:3px 12px 3px {{ t.pad }};font-family:'JetBrains Mono',monospace;font-size:12px;background:{{ t.bg }}"><span style="width:10px;color:rgba(242,239,232,0.45)">{{ t.caret }}</span><span style="color:oklch(0.8 0.14 290)">{{ t.tag }}</span><span style="color:rgba(242,239,232,0.55)">{{ t.attrs }}</span><span style="color:{{ t.vc }}">{{ t.val }}</span></div>
+          </sc-for>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 10j -->
+  <div id="10j" style="display:flex;flex-direction:column;gap:12px">
+    <div style="display:flex;gap:12px;align-items:baseline;font-size:15px"><a href="#10j" style="font-family:'JetBrains Mono',monospace;font-size:12px;padding:3px 8px;background:oklch(0.8 0.14 290);color:#0b0d10;text-decoration:none">10j</a><span style="font-family:'Rajdhani',sans-serif;font-weight:700;font-size:20px;text-transform:uppercase;letter-spacing:0.08em">Process and flow dialogs</span><span style="color:rgba(242,239,232,0.6)">FL.3 Save into my land… · FL.3 Delete, typed · FL.6 New flow with Object</span></div>
+    <div style="padding:40px;background:#0e1014;border:1px solid rgba(255,255,255,0.08);display:flex;gap:28px;align-items:flex-start">
+      <div style="width:420px;background:rgba(14,16,20,0.98);border:1px solid rgba(255,255,255,0.14);clip-path:polygon(12px 0,100% 0,100% calc(100% - 12px),calc(100% - 12px) 100%,0 100%,0 12px);display:flex;flex-direction:column">
+        <div style="padding:16px 18px 12px;border-bottom:1px solid rgba(255,255,255,0.1);display:flex;flex-direction:column;gap:4px"><span style="font-family:'Rajdhani',sans-serif;font-weight:700;font-size:22px;text-transform:uppercase;letter-spacing:0.08em;line-height:1">Save into my land</span><span style="font-size:12px;color:rgba(242,239,232,0.6)">snow report · from alpha</span></div>
+        <div style="padding:14px 18px;display:flex;flex-direction:column;gap:12px">
+          <div style="display:flex;flex-direction:column;gap:6px"><span style="font-family:'Rajdhani',sans-serif;font-weight:600;font-size:11px;letter-spacing:0.14em;text-transform:uppercase;color:rgba(242,239,232,0.55)">Land</span><div style="height:34px;border:1px solid rgba(255,255,255,0.18);background:rgba(0,0,0,0.3);display:flex;align-items:center;justify-content:space-between;padding:0 10px;font-size:13px">Bergli<span style="color:rgba(242,239,232,0.5)">▾</span></div></div>
+          <div style="display:flex;flex-direction:column;gap:6px"><span style="font-family:'Rajdhani',sans-serif;font-weight:600;font-size:11px;letter-spacing:0.14em;text-transform:uppercase;color:rgba(242,239,232,0.55)">Name</span><div style="height:34px;border:1px solid rgba(255,255,255,0.18);background:rgba(0,0,0,0.3);display:flex;align-items:center;padding:0 10px;font-size:13px">snow report</div></div>
+          <span style="font-size:12px;color:rgba(242,239,232,0.6);line-height:1.45">It becomes a normal flow on Bergli. The bytes stay as alpha has them.</span>
+        </div>
+        <div style="display:flex;justify-content:flex-end;gap:8px;padding:12px 18px;border-top:1px solid rgba(255,255,255,0.1)">
+          <span style="height:34px;padding:0 13px;border:1px solid rgba(255,255,255,0.25);font-family:'Rajdhani',sans-serif;font-weight:700;font-size:13px;letter-spacing:0.08em;text-transform:uppercase;display:inline-flex;align-items:center">Cancel</span>
+          <span style="height:34px;padding:0 15px;background:oklch(0.8 0.14 290);color:#0b0d10;font-family:'Rajdhani',sans-serif;font-weight:700;font-size:13px;letter-spacing:0.08em;text-transform:uppercase;display:inline-flex;align-items:center;clip-path:polygon(6px 0,100% 0,100% calc(100% - 6px),calc(100% - 6px) 100%,0 100%,0 6px)">Save</span>
+        </div>
+      </div>
+      <div style="width:420px;background:rgba(14,16,20,0.98);border:1px solid oklch(0.8 0.18 25 / 0.5);clip-path:polygon(12px 0,100% 0,100% calc(100% - 12px),calc(100% - 12px) 100%,0 100%,0 12px);display:flex;flex-direction:column">
+        <div style="padding:16px 18px 12px;border-bottom:1px solid rgba(255,255,255,0.1)"><span style="font-family:'Rajdhani',sans-serif;font-weight:700;font-size:22px;text-transform:uppercase;letter-spacing:0.08em;line-height:1">Delete process</span></div>
+        <div style="padding:14px 18px;display:flex;flex-direction:column;gap:12px">
+          <span style="font-size:13px;line-height:1.5">Delete process nightly backup on alpha? Jobs that run it stop working.</span>
+          <div style="display:flex;flex-direction:column;gap:6px"><span style="font-family:'Rajdhani',sans-serif;font-weight:600;font-size:11px;letter-spacing:0.14em;text-transform:uppercase;color:rgba(242,239,232,0.55)">Type its name</span><div style="height:34px;border:1px solid rgba(255,255,255,0.18);background:rgba(0,0,0,0.3);display:flex;align-items:center;padding:0 10px;font-size:13px">nightly back<span style="width:1px;height:16px;background:#f2efe8;margin-left:1px"></span></div></div>
+        </div>
+        <div style="display:flex;justify-content:flex-end;gap:8px;padding:12px 18px;border-top:1px solid rgba(255,255,255,0.1)">
+          <span style="height:34px;padding:0 13px;border:1px solid rgba(255,255,255,0.25);font-family:'Rajdhani',sans-serif;font-weight:700;font-size:13px;letter-spacing:0.08em;text-transform:uppercase;display:inline-flex;align-items:center">Cancel</span>
+          <span style="height:34px;padding:0 15px;background:oklch(0.8 0.18 25 / 0.3);color:rgba(242,239,232,0.5);font-family:'Rajdhani',sans-serif;font-weight:700;font-size:13px;letter-spacing:0.08em;text-transform:uppercase;display:inline-flex;align-items:center">Delete</span>
+        </div>
+      </div>
+      <div style="width:420px;background:rgba(14,16,20,0.98);border:1px solid rgba(255,255,255,0.14);clip-path:polygon(12px 0,100% 0,100% calc(100% - 12px),calc(100% - 12px) 100%,0 100%,0 12px);display:flex;flex-direction:column">
+        <div style="padding:16px 18px 12px;border-bottom:1px solid rgba(255,255,255,0.1)"><span style="font-family:'Rajdhani',sans-serif;font-weight:700;font-size:22px;text-transform:uppercase;letter-spacing:0.08em;line-height:1">New flow</span></div>
+        <div style="padding:14px 18px;display:flex;flex-direction:column;gap:12px">
+          <div style="display:flex;flex-direction:column;gap:6px"><span style="font-family:'Rajdhani',sans-serif;font-weight:600;font-size:11px;letter-spacing:0.14em;text-transform:uppercase;color:rgba(242,239,232,0.55)">Name</span><div style="height:34px;border:1px solid rgba(255,255,255,0.18);background:rgba(0,0,0,0.3);display:flex;align-items:center;padding:0 10px;font-size:13px">gate at night</div></div>
+          <div style="display:flex;flex-direction:column;gap:6px"><span style="font-family:'Rajdhani',sans-serif;font-weight:600;font-size:11px;letter-spacing:0.14em;text-transform:uppercase;color:rgba(242,239,232,0.55)">Land</span><div style="height:34px;border:1px solid rgba(255,255,255,0.18);background:rgba(0,0,0,0.3);display:flex;align-items:center;justify-content:space-between;padding:0 10px;font-size:13px">Bergli<span style="color:rgba(242,239,232,0.5)">▾</span></div></div>
+          <div style="display:flex;flex-direction:column;gap:6px"><span style="font-family:'Rajdhani',sans-serif;font-weight:600;font-size:11px;letter-spacing:0.14em;text-transform:uppercase;color:rgba(242,239,232,0.55)">Object · optional</span>
+            <div style="display:flex;flex-direction:column;border:1px solid oklch(0.8 0.14 290);background:#15181d">
+              <sc-for list="{{ objOpts }}" as="o" hint-placeholder-count="5">
+                <div style="display:flex;align-items:center;gap:8px;padding:7px 10px;font-size:13px;background:{{ o.bg }};color:{{ o.fg }}"><span style="width:7px;height:7px;background:{{ o.dot }};transform:rotate(45deg)"></span>{{ o.name }}</div>
+              </sc-for>
+            </div>
+          </div>
+        </div>
+        <div style="display:flex;justify-content:flex-end;gap:8px;padding:12px 18px;border-top:1px solid rgba(255,255,255,0.1)">
+          <span style="height:34px;padding:0 13px;border:1px solid rgba(255,255,255,0.25);font-family:'Rajdhani',sans-serif;font-weight:700;font-size:13px;letter-spacing:0.08em;text-transform:uppercase;display:inline-flex;align-items:center">Cancel</span>
+          <span style="height:34px;padding:0 15px;background:oklch(0.8 0.14 290);color:#0b0d10;font-family:'Rajdhani',sans-serif;font-weight:700;font-size:13px;letter-spacing:0.08em;text-transform:uppercase;display:inline-flex;align-items:center;clip-path:polygon(6px 0,100% 0,100% calc(100% - 6px),calc(100% - 6px) 100%,0 100%,0 6px)">Create</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 10k -->
+  <div id="10k" style="display:flex;flex-direction:column;gap:12px">
+    <div style="display:flex;gap:12px;align-items:baseline;font-size:15px"><a href="#10k" style="font-family:'JetBrains Mono',monospace;font-size:12px;padding:3px 8px;background:oklch(0.78 0.14 200);color:#0b0d10;text-decoration:none">10k</a><span style="font-family:'Rajdhani',sans-serif;font-weight:700;font-size:20px;text-transform:uppercase;letter-spacing:0.08em">Object card · Flows, other states</span><span style="color:rgba(242,239,232,0.6)">FL.6/FL.7 · someone who does not build here · a builder, nothing yet · Run on… while it runs</span></div>
+    <div style="padding:40px;background:#0e1014;border:1px solid rgba(255,255,255,0.08);display:flex;gap:28px;align-items:flex-start">
+      <div style="width:380px;display:flex;flex-direction:column;background:rgba(14,16,20,0.94);border:1px solid oklch(0.78 0.14 200 / 0.5);clip-path:polygon(10px 0,100% 0,100% 100%,0 100%,0 10px)">
+        <div style="padding:10px 14px 4px;display:flex;justify-content:space-between;align-items:baseline"><span style="font-family:'Rajdhani',sans-serif;font-weight:700;font-size:14px;letter-spacing:0.12em;text-transform:uppercase;color:oklch(0.8 0.14 290)">Flows</span><span style="font-family:'JetBrains Mono',monospace;font-size:11px;color:rgba(242,239,232,0.55)">2</span></div>
+        <sc-for list="{{ roFlows }}" as="f" hint-placeholder-count="2">
+          <div style="display:flex;align-items:center;gap:8px;padding:9px 14px;border-top:1px solid rgba(255,255,255,0.06);font-size:13px"><span style="flex:1">{{ f.name }}</span><span style="display:inline-flex;align-items:center;gap:5px;padding:1px 6px;border:1px solid {{ f.chipLine }};font-family:'JetBrains Mono',monospace;font-size:10px;color:{{ f.chipC }}"><span style="width:6px;height:6px;border-radius:50%;background:{{ f.chipC }}"></span>{{ f.chip }}</span><span style="font-family:'JetBrains Mono',monospace;font-size:10px;color:rgba(242,239,232,0.55)">{{ f.last }}</span></div>
+        </sc-for>
+        <div style="padding:10px 14px 12px;border-top:1px solid rgba(255,255,255,0.08);font-size:12px;color:rgba(242,239,232,0.65);line-height:1.45">Only people who build on Bergli change its flows.</div>
+      </div>
+      <div style="width:380px;display:flex;flex-direction:column;background:rgba(14,16,20,0.94);border:1px solid oklch(0.78 0.14 200 / 0.5);clip-path:polygon(10px 0,100% 0,100% 100%,0 100%,0 10px)">
+        <div style="padding:10px 14px 4px;display:flex;justify-content:space-between;align-items:baseline"><span style="font-family:'Rajdhani',sans-serif;font-weight:700;font-size:14px;letter-spacing:0.12em;text-transform:uppercase;color:oklch(0.8 0.14 290)">Flows</span><span style="font-family:'JetBrains Mono',monospace;font-size:11px;color:rgba(242,239,232,0.55)">0</span></div>
+        <div style="padding:14px;font-size:13px;color:rgba(242,239,232,0.7)">No flows on this Barn door 1 yet.</div>
+        <div style="display:flex;gap:8px;padding:10px 14px 12px;border-top:1px solid rgba(255,255,255,0.08)">
+          <span style="height:30px;padding:0 12px;background:oklch(0.8 0.14 290);color:#0b0d10;font-family:'Rajdhani',sans-serif;font-weight:700;font-size:12px;letter-spacing:0.08em;text-transform:uppercase;display:inline-flex;align-items:center;clip-path:polygon(5px 0,100% 0,100% calc(100% - 5px),calc(100% - 5px) 100%,0 100%,0 5px)">Add flow</span>
+          <span style="height:30px;padding:0 11px;border:1px solid rgba(255,255,255,0.22);font-family:'Rajdhani',sans-serif;font-weight:700;font-size:12px;letter-spacing:0.08em;text-transform:uppercase;display:inline-flex;align-items:center">Attach existing…</span>
+        </div>
+      </div>
+      <div style="width:460px;background:rgba(14,16,20,0.98);border:1px solid rgba(255,255,255,0.14);clip-path:polygon(12px 0,100% 0,100% calc(100% - 12px),calc(100% - 12px) 100%,0 100%,0 12px);display:flex;flex-direction:column">
+        <div style="padding:16px 18px 12px;border-bottom:1px solid rgba(255,255,255,0.1);display:flex;flex-direction:column;gap:4px"><span style="font-family:'Rajdhani',sans-serif;font-weight:700;font-size:22px;text-transform:uppercase;letter-spacing:0.08em;line-height:1">Run on…</span><span style="font-size:12px;color:rgba(242,239,232,0.6)">lamp fade · to alpha</span></div>
+        <div style="padding:14px 18px;display:flex;flex-direction:column;gap:9px">
+          <sc-for list="{{ progress }}" as="g" hint-placeholder-count="4">
+            <div style="display:flex;align-items:center;gap:10px;font-size:13px;color:{{ g.fg }}"><span style="width:16px;font-family:'JetBrains Mono',monospace;font-size:12px;color:{{ g.mc }}">{{ g.mark }}</span>{{ g.t }}</div>
+          </sc-for>
+        </div>
+        <div style="display:flex;justify-content:flex-end;gap:8px;padding:12px 18px;border-top:1px solid rgba(255,255,255,0.1)">
+          <span style="height:34px;padding:0 13px;border:1px solid rgba(255,255,255,0.25);font-family:'Rajdhani',sans-serif;font-weight:700;font-size:13px;letter-spacing:0.08em;text-transform:uppercase;display:inline-flex;align-items:center">Cancel</span>
+          <span style="height:34px;padding:0 15px;background:oklch(0.8 0.14 290 / 0.35);color:rgba(242,239,232,0.6);font-family:'Rajdhani',sans-serif;font-weight:700;font-size:13px;letter-spacing:0.08em;text-transform:uppercase;display:inline-flex;align-items:center">Update on alpha</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 10l -->
+  <div id="10l" style="display:flex;flex-direction:column;gap:12px">
+    <div style="display:flex;gap:12px;align-items:baseline;font-size:15px"><a href="#10l" style="font-family:'JetBrains Mono',monospace;font-size:12px;padding:3px 8px;background:oklch(0.8 0.14 290);color:#0b0d10;text-decoration:none">10l</a><span style="font-family:'Rajdhani',sans-serif;font-weight:700;font-size:20px;text-transform:uppercase;letter-spacing:0.08em">Every sentence</span><span style="color:rgba(242,239,232,0.6)">as the player reads them, with the colour each one takes</span></div>
+    <div style="width:1400px;padding:40px;background:#0e1014;border:1px solid rgba(255,255,255,0.08);display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:28px 36px">
+      <sc-for list="{{ sentences }}" as="s" hint-placeholder-count="9">
+        <div style="display:flex;flex-direction:column;gap:8px">
+          <span style="font-family:'Rajdhani',sans-serif;font-weight:700;font-size:12px;letter-spacing:0.14em;text-transform:uppercase;color:rgba(242,239,232,0.55);padding-bottom:6px;border-bottom:1px solid rgba(255,255,255,0.1)">{{ s.group }}</span>
+          <sc-for list="{{ s.lines }}" as="l" hint-placeholder-count="3">
+            <div style="display:flex;gap:9px;align-items:flex-start;font-size:13px;line-height:1.45;color:{{ l.c }}"><span style="width:7px;height:7px;flex:none;margin-top:6px;border-radius:50%;background:{{ l.c }}"></span><span style="text-wrap:pretty">{{ l.t }}</span></div>
+          </sc-for>
+        </div>
+      </sc-for>
+    </div>
+  </div>
+
+</section>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;serverStatus&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;default&quot;:&quot;answering&quot;,&quot;options&quot;:[&quot;answering&quot;,&quot;not answering&quot;,&quot;checking&quot;],&quot;tsType&quot;:&quot;string&quot;,&quot;section&quot;:&quot;Server&quot;},&quot;paletteState&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;default&quot;:&quot;loaded&quot;,&quot;options&quot;:[&quot;loaded&quot;,&quot;loading&quot;,&quot;failed&quot;],&quot;tsType&quot;:&quot;string&quot;,&quot;section&quot;:&quot;Server&quot;},&quot;runState&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;default&quot;:&quot;running&quot;,&quot;options&quot;:[&quot;running&quot;,&quot;done&quot;,&quot;failed&quot;,&quot;no live stream&quot;],&quot;tsType&quot;:&quot;string&quot;,&quot;section&quot;:&quot;Run&quot;}}">
+class Component extends DCLogic {
+  renderVals() {
+    const p = this.props;
+    const C = 'oklch(0.78 0.14 200)', A = 'oklch(0.82 0.16 80)', G = 'oklch(0.8 0.15 145)', R = 'oklch(0.8 0.18 25)', P = 'oklch(0.8 0.14 290)';
+    const M = 'rgba(242,239,232,0.6)', GREY = 'rgba(242,239,232,0.4)', INK = '#f2efe8';
+    const a = (c, x) => c.replace(')', ' / ' + x + ')');
+    const seg = (names, on) => names.map(n => ({ name: n, bg: n === on ? a(P, 0.2) : 'transparent', fg: n === on ? P : 'rgba(242,239,232,0.7)' }));
+
+    const status = p.serverStatus ?? 'answering';
+    const dot = status === 'answering' ? G : status === 'checking' ? GREY : R;
+    const showTip = status === 'not answering';
+    const said = status === 'answering' ? 'alpha said: valid · 18:02' : status === 'checking' ? 'checking alpha…' : 'alpha did not answer';
+
+    const blank = { isLand: false, isObj: false, isLoose: false, isFlow: false };
+    const land = (name, right, rc, caret) => ({ ...blank, isLand: true, name, right, rc, caret: caret || '▾' });
+    const obj = name => ({ ...blank, isObj: true, name });
+    const loose = () => ({ ...blank, isLoose: true });
+    const flow = (name, o = {}) => {
+      const chipC = o.changed ? A : (o.server === 'home-pi' ? R : G);
+      return { ...blank, isFlow: true, name, indent: o.loose ? '36px' : '50px', bg: o.sel ? a(P, 0.16) : 'transparent', mark: o.sel ? P : 'transparent', fg: o.sel ? INK : 'rgba(242,239,232,0.82)',
+        hasChip: !!o.server, chip: o.server ? (o.changed ? o.server + ' · changed since sent' : o.server) : '', chipC, chipLine: a(chipC, 0.5), hasWas: !!o.was, was: o.was || '', sel: !!o.sel };
+    };
+    const tree = [
+      land('Bergli', 'owner', C),
+      obj('Street lamp 2'),
+      flow('lamp at dusk', { server: 'alpha', sel: true }),
+      flow('lamp fade', { server: 'alpha', changed: true }),
+      obj('Barn door 1'),
+      flow('barn door at 22:00'),
+      loose(),
+      flow('morning report', { loose: true }),
+      flow('old sign', { loose: true, was: 'was on Sign 1' }),
+      land('Maloja Nord', 'build grant', A),
+      obj('Bus stop 1'),
+      flow('gate when a bus comes', { server: 'home-pi' }),
+      obj('Snow lamp 1'),
+      flow('snow lamps'),
+      land('Piz Lunghin', 'approver', M, '▸'),
+    ];
+
+    const pal = p.paletteState ?? 'loaded';
+    const grp = (name, from) => ({ group: true, item: false, name, from: from || '' });
+    const it = (name, plugin, on) => ({ group: false, item: true, name, plugin, bg: on ? a(P, 0.14) : 'transparent', fg: on ? P : 'rgba(242,239,232,0.85)', dot: plugin === 'world' ? P : 'rgba(242,239,232,0.35)', op: pal === 'loading' ? 0.45 : 1 });
+    const serverPal = [
+      grp('Strings', 'from alpha'), it('from string', 'strings'), it('contains', 'strings', true), it('join', 'strings'),
+      grp('Json'), it('get', 'json'), it('make object', 'json'),
+      grp('Http', 'from alpha'), it('make-request-simple', 'http'),
+      grp('World — alpha knows these blocks'), it('World clock', 'world'), it('World events', 'world'), it('Read port', 'world'), it('Write port', 'world'),
+    ];
+    const bundledPal = [
+      grp('Strings'), it('from string', 'strings'), it('contains', 'strings', true), it('join', 'strings'),
+      grp('Json'), it('get', 'json'), it('make object', 'json'),
+      grp('World'), it('World clock', 'world'), it('Read port', 'world'), it('Write port', 'world'),
+    ];
+    const palette = pal === 'loaded' ? serverPal : bundledPal;
+    const palNote = pal !== 'loaded';
+    const palNoteText = pal === 'loading' ? 'asking alpha for its blocks…' : 'That address did not answer. The bundled blocks are below.';
+    const palNoteC = pal === 'loading' ? M : R;
+
+    const node = (o) => {
+      const on = !!o.on, col = o.world ? P : 'rgba(255,255,255,0.16)';
+      return {
+        left: o.left + 'px', top: o.top + 'px', w: o.w + 'px', title: o.title, plugin: o.plugin,
+        border: on ? P : col, glow: on ? 'inset 0 0 0 1px ' + P + ', 0 0 26px ' + a(P, 0.45) : '0 8px 24px rgba(0,0,0,0.45)',
+        head: o.world ? a(P, 0.22) : 'rgba(255,255,255,0.06)', fg: o.world ? P : INK,
+        badge: o.badge || '', badgeBg: o.badgeC || 'transparent', badgeOp: o.badge ? 1 : 0,
+        rows: (o.rows || []).map(r => ({ in: r[0], val: r[1] ?? '', inDot: r[2] === 0 ? 'rgba(242,239,232,0.3)' : (o.world ? P : 'rgba(242,239,232,0.7)'), outDot: r[3] ? (o.world ? P : 'rgba(242,239,232,0.7)') : 'transparent', valColor: r[1] ? 'rgba(242,239,232,0.6)' : 'transparent' })),
+      };
+    };
+    const nodes = [
+      node({ left: 60, top: 120, w: 180, title: 'World clock', plugin: 'world/clock.now', world: true, rows: [['world', '', 0], ['now', 's', 1, 1]] }),
+      node({ left: 320, top: 150, w: 190, title: 'is it dusk', plugin: 'strings', on: true, rows: [['input', '', 1], ['pattern', '"dusk"', 0], ['found', 'bool', 0, 1]] }),
+      node({ left: 60, top: 300, w: 180, title: 'Read port · on', plugin: 'world/port.read', world: true, rows: [['object', 'lamp-2', 0], ['value', '', 0, 1]] }),
+      node({ left: 320, top: 330, w: 190, title: 'If', plugin: 'flow', rows: [['condition', '', 1], ['then', '', 0, 1], ['else', '', 0, 1]] }),
+      node({ left: 600, top: 240, w: 200, title: 'Write port', plugin: 'world/port.write', world: true, rows: [['object', 'lamp-2', 0], ['port', '"on"', 0], ['value', 'true', 1], ['ok', 'bool', 0, 1]] }),
+    ];
+
+    const runState = p.runState ?? 'running';
+    const done = runState === 'done', failed = runState === 'failed';
+    const nb = (ok) => ok;
+    const nodes2 = [
+      node({ left: 40, top: 120, w: 180, title: 'World clock', plugin: 'world/clock.now', world: true, badge: '✓', badgeC: G, rows: [['world', '', 0], ['now', 's', 1, 1]] }),
+      node({ left: 270, top: 120, w: 210, title: 'meteo', plugin: 'http', badge: '✓', badgeC: G, rows: [['url', '"meteo/bergli"', 0], ['trigger', '', 1], ['response', '', 0, 1]] }),
+      node({ left: 520, top: 120, w: 180, title: 'snow depth', plugin: 'json', on: true, badge: '✓', badgeC: G, rows: [['object', '', 1], ['path', '"snow.depth_cm"', 0], ['value', 'int', 0, 1]] }),
+      node({ left: 760, top: 150, w: 190, title: 'If', plugin: 'flow', badge: '✓', badgeC: G, rows: [['condition', '> 10', 1], ['then', '', 0, 1], ['else', '', 0, 1]] }),
+      node({ left: 980, top: 120, w: 200, title: 'Write port', plugin: 'world/port.write', world: true, badge: done ? '✓' : failed ? '✕' : '…', badgeC: done ? G : failed ? R : P, rows: [['object', 'snow-lamp-1', 0], ['port', '"on"', 0], ['value', '', 1], ['ok', 'bool', 0, 1]] }),
+    ];
+
+    const flowIO = [
+      { dir: 'in', name: 'world', type: 'url · bound by the job', color: P },
+      { dir: 'in', name: 'world_key', type: 'string · per run', color: P },
+      { dir: 'in', name: 'Target', type: 'string', color: C },
+      { dir: 'out', name: 'Found', type: 'boolean', color: A },
+    ];
+
+    const procs = [
+      { name: 'snow report', group: 'winter', open: true },
+      { name: 'lamp at dusk', group: 'Bergli' },
+      { name: 'gate when a bus comes', group: 'Maloja' },
+      { name: 'nightly backup', group: 'ops' },
+    ].map(o => ({ ...o, bg: o.open ? a(P, 0.14) : 'transparent', mark: o.open ? P : 'transparent', openLabel: o.open ? 'open' : 'Open', openC: o.open ? P : 'rgba(242,239,232,0.7)' }));
+    const services = [{ name: 'town-http', type: 'http::server' }, { name: 'broker', type: 'mqtt::client' }];
+    const jobs = [
+      { name: 'snow report 18:00', proc: 'snow report', trig: 'cron 0 18 * * *', active: true },
+      { name: 'lamp at dusk', proc: 'lamp at dusk', trig: 'cron */5 17-22 * * *' },
+      { name: 'bus gate', proc: 'gate when a bus comes', trig: 'http GET /bus' },
+      { name: 'backup now', proc: 'nightly backup', trig: 'manual' },
+    ].map(j => {
+      const live = j.active && runState === 'running';
+      return { ...j, bg: j.active ? a(P, 0.1) : 'transparent', runLabel: live ? 'running' : 'Run now', runC: live ? INK : P, runLine: live ? 'rgba(255,255,255,0.2)' : a(P, 0.6) };
+    });
+
+    const runMap = { running: ['running', P], done: ['done · 0', G], failed: ['failed · 3', R], 'no live stream': ['done · 0', G] };
+    const [runLabel, runC] = runMap[runState] || runMap.running;
+    const lvC = { info: 'rgba(242,239,232,0.6)', warn: A, error: R, debug: GREY };
+    const lr = (t, lv, block, msg) => ({ t, lv, block, msg, lc: lvC[lv], mc: lv === 'error' ? R : lv === 'warn' ? A : 'rgba(242,239,232,0.85)', bg: lv === 'error' ? a(R, 0.08) : 'transparent' });
+    let logRows = [
+      lr('18:00:00.412', 'info', 'job', 'started · trigger cron'),
+      lr('18:00:00.420', 'info', 'World clock', 'now = 18:00:00'),
+      lr('18:00:01.093', 'info', 'meteo', 'GET meteo/bergli · 200 · 671 ms'),
+      lr('18:00:01.097', 'info', 'snow depth', 'value = 14'),
+      lr('18:00:01.098', 'warn', 'If', 'condition took the default for an empty else'),
+    ];
+    if (runState === 'running') logRows.push(lr('18:00:01.102', 'info', 'Write port', 'writing snow-lamp-1 · on = true …'));
+    if (done) logRows.push(lr('18:00:01.188', 'info', 'Write port', 'snow-lamp-1 · on = true'), lr('18:00:01.190', 'info', 'job', 'done · result 0'));
+    if (failed) logRows.push(lr('18:00:01.188', 'error', 'Write port', 'World said: the key for this job has been withdrawn'), lr('18:00:01.190', 'error', 'job', 'failed · result 3'));
+    logRows = logRows.slice(-8);
+    const stream = runState !== 'no live stream';
+
+    const tr = (depth, caret, tag, attrs, val, vc, bg) => ({ pad: (depth * 18 + 12) + 'px', caret, tag, attrs: attrs || '', val: val || '', vc: vc || 'rgba(242,239,232,0.85)', bg: bg || 'transparent' });
+    const tree2 = [
+      tr(0, '▾', '<report', 'job="snow report 18:00" result="0">'),
+      tr(1, '▾', '<run', 'started="18:00:00" took="778 ms">'),
+      tr(2, '▸', '<block', 'name="World clock" status="ok"/>'),
+      tr(2, '▸', '<block', 'name="meteo" status="ok"/>'),
+      tr(2, '▸', '<block', 'name="snow depth" status="ok"/>', '14'),
+      tr(2, '▸', '<block', 'name="If" status="ok"/>'),
+      tr(2, '▸', '<block', 'name="Write port" status="ok"/>'),
+    ];
+    const tree3 = [
+      tr(0, '▾', '<report', 'job="lamp at dusk" result="3">'),
+      tr(1, '▾', '<run', 'started="17:50:00" took="212 ms">'),
+      tr(2, '▸', '<block', 'name="World clock" status="ok"/>'),
+      tr(2, '▸', '<block', 'name="is it dusk" status="ok"/>'),
+      tr(2, '▸', '<block', 'name="If" status="ok"/>'),
+      tr(2, '▾', '<block', 'name="Write port" status="error">', '', '', a(R, 0.08)),
+      tr(3, '', '<message>', '', 'World said: 403 · key withdrawn', R, a(R, 0.08)),
+      tr(3, '', '<input', 'name="object"/>', 'lamp-2'),
+      tr(3, '', '<input', 'name="value"/>', 'true'),
+      tr(1, '', '</run>'),
+      tr(0, '', '</report>'),
+    ];
+
+    const xforms = [['X', '12.25', R], ['UP', '0.00', G], ['Z', '−4.50', 'oklch(0.72 0.12 250)'], ['TURN', '90°', A], ['SIZE', '1.00', M], ['GROUND', 'follow', M]].map(([k, v, c]) => ({ k, v, c }));
+    const selPorts = [
+      { name: 'on', type: 'switch', value: 'on' },
+      { name: 'colour', type: 'colour', value: '#ffd9a0' },
+      { name: 'brightness', type: '0–1', value: '0.80' },
+    ];
+    const cf = (name, o) => {
+      const chipC = o.changed ? A : G;
+      return { name, hasChip: !!o.server, chip: o.server ? (o.changed ? o.server + ' · changed since sent' : o.server) : '', chipC, chipLine: a(chipC, 0.5), last: o.last, lastC: o.lastC || M, running: !!o.server, bg: o.sel ? a(P, 0.12) : 'transparent', mark: o.sel ? P : 'transparent' };
+    };
+    const cardFlows = [
+      cf('lamp at dusk', { server: 'alpha', last: 'last run 18:00 ✓' }),
+      cf('lamp fade', { server: 'alpha', changed: true, last: 'last run 17:55 ✓', sel: true }),
+      cf('dimmer test', { last: 'never run', lastC: GREY }),
+    ];
+    const roFlows = [
+      { name: 'lamp at dusk', chip: 'alpha', chipC: G, chipLine: a(G, 0.5), last: 'last run 18:00 ✓' },
+      { name: 'lamp fade', chip: 'alpha', chipC: G, chipLine: a(G, 0.5), last: 'last run 17:55 ✓' },
+    ];
+    const starts = [
+      { name: 'Manual', sub: '' },
+      { name: 'Every …', sub: 'cron', sel: true },
+      { name: 'When something happens here', sub: 'polls World events every minute' },
+    ].map(s => ({ ...s, sel: !!s.sel, line: s.sel ? P : 'rgba(255,255,255,0.14)', bg: s.sel ? a(P, 0.07) : 'transparent', fill: s.sel ? P : 'transparent' }));
+    const progress = [
+      { t: 'sending the flow…', s: 'done' }, { t: 'making the job…', s: 'done' }, { t: 'issuing the key…', s: 'now' }, { t: 'running on alpha.', s: 'wait' },
+    ].map(g => ({ ...g, mark: g.s === 'done' ? '✓' : g.s === 'now' ? '›' : '·', mc: g.s === 'done' ? G : g.s === 'now' ? P : GREY, fg: g.s === 'wait' ? GREY : INK }));
+
+    const servers = [
+      { name: "World's server", url: 'elx.splatworld.ch', note: 'read-only', dot: G },
+      { name: 'alpha', url: 'http://alpha.local:8080', note: '1.4', dot: G, sel: true },
+      { name: 'home-pi', url: 'http://192.168.1.40:8080', note: '', dot: R, tip: true },
+      { name: 'lab', url: 'https://lab.example.net', note: '', dot: GREY },
+    ].map(s => ({ ...s, tip: !!s.tip, bg: s.sel ? a(P, 0.14) : 'transparent', mark: s.sel ? P : 'transparent' }));
+    const manage = [
+      { name: 'alpha', url: 'http://alpha.local:8080', dot: G, msg: 'alpha runs 2 of your flows — stop them first.', kind: 'refuse' },
+      { name: 'home-pi', url: 'http://192.168.1.40:8080', dot: R, msg: 'Remove home-pi? Flows sent there keep running there; this page just stops showing them.', kind: 'confirm' },
+      { name: 'lab', url: 'https://lab.example.net', dot: GREY },
+    ].map(m => ({ ...m, msg: m.msg || '', hasMsg: !!m.msg, confirm: m.kind === 'confirm', msgLine: m.kind === 'refuse' ? a(A, 0.5) : a(R, 0.5), msgBg: m.kind === 'refuse' ? a(A, 0.08) : a(R, 0.08) }));
+
+    const svcTypes = [
+      { id: 'http::server', desc: 'Listens for HTTP requests and hands them to http triggers.' },
+      { id: 'mqtt::client', desc: 'A connection to an MQTT broker, for mqtt triggers and publish blocks.', sel: true },
+      { id: 'smtp::client', desc: 'Sends mail through one server.' },
+      { id: 'postgres::pool', desc: 'A pool of connections to one database.' },
+    ].map(t => ({ ...t, bg: t.sel ? a(P, 0.14) : 'transparent', mark: t.sel ? P : 'transparent', fg: t.sel ? P : INK }));
+    const svcParams = [
+      { name: 'host', kind: 'text', val: 'mqtt.bergli.local', desc: 'The broker’s host name.' },
+      { name: 'port', kind: 'number', val: '1883', desc: 'Default 1883; 8883 with TLS.' },
+      { name: 'tls', kind: 'switch', desc: 'Connect with TLS.', isSwitch: true },
+      { name: 'qos', kind: 'choice', val: '1 · at least once', suffix: '▾', desc: 'Delivery guarantee for publish.' },
+      { name: 'ca_file', kind: 'file path', val: '/etc/elx/ca.pem', suffix: 'browse', desc: 'Only with TLS.' },
+      { name: 'password', kind: 'secret', val: '••••••••', suffix: 'show', desc: 'Stored on alpha, never shown here again.' },
+    ].map(q => ({ ...q, val: q.val || '', suffix: q.suffix || '', isSwitch: !!q.isSwitch, isField: !q.isSwitch }));
+
+    const jobInputs = [
+      { name: 'world', type: 'url', val: 'set by Run on…', ro: true },
+      { name: 'world_key', type: 'string', val: 'set by Run on…', ro: true },
+      { name: 'fade_seconds', type: 'int', val: '40' },
+    ].map(i => ({ ...i, lineStyle: i.ro ? 'dashed' : 'solid', bg: i.ro ? 'transparent' : 'rgba(0,0,0,0.3)', fg: i.ro ? 'rgba(242,239,232,0.55)' : INK, font: i.ro ? "'Sora',sans-serif" : "'JetBrains Mono',monospace" }));
+    const cronNext = ['Thu 24 Sep · 18:05', 'Thu 24 Sep · 18:10', 'Thu 24 Sep · 18:15', 'Thu 24 Sep · 18:20', 'Thu 24 Sep · 18:25'];
+
+    const reports = [
+      { time: '18:00', job: 'snow report 18:00', res: '✓ 0', ok: true },
+      { time: '17:55', job: 'lamp at dusk', res: '✓ 0', ok: true },
+      { time: '17:50', job: 'lamp at dusk', res: '✕ 3', sel: true },
+      { time: '12:14', job: 'bus gate', res: '✓ 0', ok: true },
+      { time: '03:00', job: 'backup now', res: '✓ 0', ok: true },
+    ].map(r => ({ ...r, rc: r.ok ? G : R, bg: r.sel ? a(P, 0.14) : 'transparent', mark: r.sel ? P : 'transparent' }));
+
+    const objOpts = [
+      { name: 'none · a flow without a thing' },
+      { name: 'Street lamp 2' },
+      { name: 'Barn door 1' },
+      { name: 'Gate 1', sel: true },
+      { name: 'Sign 2' },
+    ].map((o, i) => ({ ...o, bg: o.sel ? a(P, 0.16) : 'transparent', fg: i === 0 ? M : INK, dot: i === 0 ? 'transparent' : C }));
+
+    const L = (t, c) => ({ t, c: c || 'rgba(242,239,232,0.85)' });
+    const sentences = [
+      { group: 'Add a server · Test', lines: [L('Answered — elx 1.4.', G), L('That address did not answer.', R), L('It answered, but this page is not allowed to read it (CORS) — the server has to allow https://splatworld.ch.', A)] },
+      { group: 'Add a server · Save', lines: [L('You already have a server called alpha.', R), L('A server address starts with http:// or https://.', R), L('A server needs a name.', R)] },
+      { group: 'Manage servers · Remove', lines: [L('Remove home-pi? Flows sent there keep running there; this page just stops showing them.'), L('alpha runs 2 of your flows — stop them first.', A)] },
+      { group: 'Blocks', lines: [L('Ask alpha for its blocks again'), L('asking alpha for its blocks…', M), L('World — alpha knows these blocks'), L('alpha has no opencv')] },
+      { group: 'On alpha · lists', lines: [L('Choose a server first', M), L('alpha has no processes yet.', M), L('alpha said: <message>', R)] },
+      { group: 'Processes', lines: [L('snow report · on alpha'), L('Delete process nightly backup on alpha? Jobs that run it stop working.', R)] },
+      { group: 'Services', lines: [L('alpha already has a service called broker.', R), L('alpha does not let this page change a service yet — its address for one service is missing.', A), L('Delete service broker on alpha? Jobs and triggers that use it stop working.', R)] },
+      { group: 'Jobs · Run output', lines: [L('A cron trigger checks at most once a minute.', M), L('That is not a cron expression — five fields, minute first.', R), L('alpha does not stream runs — its report is below.', M)] },
+      { group: 'Object card', lines: [L('No flows on this Barn door 1 yet.', M), L('Only people who build on Bergli change its flows.', M), L('Stop lamp at dusk on alpha? The process stays there; its key is withdrawn.', R)] },
+      { group: 'Run on… · summary and progress', lines: [L('Sends lamp fade to alpha, makes job lamp fade there, and gives it a key that can change things on Bergli only, for 30 days.'), L('sending the flow…', M), L('making the job…', M), L('issuing the key…', M), L('running on alpha.', G)] },
+      { group: 'Run on… · refusals', lines: [L('alpha did not answer.', R), L('alpha said: <message>', R), L('You may not run flows on Maloja Nord.', R), L('lamp at dusk is already running on alpha — Stop it first or Update.', A)] },
+      { group: 'Where it runs', lines: [L('alpha', G), L('alpha · changed since sent', A), L('was on Sign 1', M)] },
+    ];
+
+    return {
+      dot, showTip, said, tree, palette, palNote, palNoteText, palNoteC, nodes, nodes2, flowIO,
+      procs, services, jobs, runLabel, runC, runLine: a(runC, 0.6), levels: seg(['all', 'info', 'warn', 'error'], 'all'), logRows, stream, noStream: !stream, tree2, tree3,
+      xforms, selPorts, cardFlows, roFlows, starts, progress, servers, manage, svcTypes, svcParams,
+      logLevel: seg(['info', 'debug', 'warn', 'error'], 'info'), storeReport: seg(['never', 'on error', 'always'], 'on error'), jobInputs, trigKinds: ['cron', 'http', 'filesystem', 'mqtt'], cronNext,
+      reports, objOpts, sentences,
+    };
+  }
+}
+</script>
+</body>
+</html>
