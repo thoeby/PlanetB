@@ -210,3 +210,8 @@ is four numbered steps: add a source (behind its own button, because it is done
 once), read what is in it, say what each class is, keep it. The class table has
 headings and shows how much of the ground each class is, which was counted and
 never drawn.
+
+**F10 (process servers, flows on objects) has no artboard yet.** `flows-servers.md`
+lists every screen, control, state and sentence `TASKS-flows.md` needs, for
+the designer to draw from; the build uses the existing Automate styles until
+then.
