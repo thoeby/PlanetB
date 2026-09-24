@@ -19,12 +19,13 @@
 // and the frames drawn with a grain on the ground (client/lib/raster.js). v5
 // is assemble-v14 (the ground from z16 for a z14 tile, over a mesh of 2049)
 // and 1280 px frames (db/0188). v6 is assemble-v15: the ground runs three
-// metres past the tile's edge (client/lib/skirt.js, db/0192).
+// metres past the tile's edge (client/lib/skirt.js, db/0192). v7 is
+// assemble-v16: a skirt that builds no walls (db/0194).
 import { run as assemble } from './assemble.js';
 import { renderFrames } from './frame.js';
 import { readTar, writeTar } from '../lib/tar.js';
 
-export const ALGO = 'dataset-v6';
+export const ALGO = 'dataset-v7';
 
 export async function run(ctx) {
     const { atom, canvas, log } = ctx;
