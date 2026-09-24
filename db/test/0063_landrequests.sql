@@ -8,7 +8,7 @@ INSERT INTO auth.user (id, email, pw_hash, role, name) VALUES
 ('00000000-0000-0000-0000-00000000f403', 'cara@example.com', 'x', 'player', 'Cara');
 DELETE FROM ground;
 INSERT INTO ground (geoserver_url, coverage, extent, set_by)
-VALUES ('http://localhost:8081/geoserver', 'splatworld:visp',
+VALUES ('http://localhost:8082/geoserver', 'splatworld:visp',
         st_makeenvelope(7.8545, 46.2759, 7.9085, 46.3119, world_srid()),
         '00000000-0000-0000-0000-00000000f401');
 

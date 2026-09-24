@@ -24,7 +24,7 @@ import { geometricErrorM, makeColliders, makeHeight, makeSplats, writePly }
     from './testterrain.mjs';
 
 const API_URL = process.env.API_URL ?? 'http://localhost:3000';
-const FILES_URL = process.env.FILES_URL ?? 'http://localhost:8080';
+const FILES_URL = process.env.FILES_URL ?? 'http://localhost:8081';
 const EMAIL = 'test-tiles@splatworld.local';
 const PW = 'test-tiles-pw';
 

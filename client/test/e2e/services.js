@@ -18,7 +18,7 @@ import { join, extname } from 'node:path';
 import { CLIENT, REPO, FILES_ROOT } from './serve.js';
 
 const API_PORT = 3000;
-const FILES_PORT = 8080;
+const FILES_PORT = 8081;
 const TYPES = {
     '.html': 'text/html', '.js': 'text/javascript', '.json': 'application/json',
     // A browser refuses a stylesheet served as anything else, and then the

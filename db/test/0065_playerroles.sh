@@ -27,7 +27,7 @@ INSERT INTO auth.user (id, email, pw_hash, role, name) VALUES
 ON CONFLICT (id) DO NOTHING;
 DELETE FROM ground;
 INSERT INTO ground (geoserver_url, coverage, extent, set_by)
-VALUES ('http://127.0.0.1:8081/geoserver', 'test:visp',
+VALUES ('http://127.0.0.1:8082/geoserver', 'test:visp',
         st_makeenvelope(7.8, 46.2, 7.95, 46.35, world_srid()), '$BEN');
 DELETE FROM feature WHERE area_id IN
     (SELECT id FROM area WHERE owner_id IN ('$BEN', '$CARA'));

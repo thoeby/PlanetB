@@ -51,7 +51,7 @@ async function where(page) {
 async function chooseTheGround(a, geoserverUrl) {
     const { page } = a;
     await test.step('A points the world at their GeoServer', async () => {
-        await page.getByPlaceholder('localhost:8080/geoserver').fill(geoserverUrl);
+        await page.getByPlaceholder('localhost:8082/geoserver').fill(geoserverUrl);
         await page.getByRole('button', { name: 'Connect' }).click();
         // The sentence in the panel, not the label beside the dropdown: a
         // status line that has not changed yet is the state that hid this.

@@ -101,12 +101,12 @@ class WfsUrlTest(unittest.TestCase):
     def test_every_shape_of_address_reaches_wfs(self):
         from splatworld.importer import wfs_url
 
-        for typed in ("localhost:8081/geoserver",
-                      "http://localhost:8081/geoserver/",
-                      "http://localhost:8081/geoserver/wfs",
-                      "http://localhost:8081/geoserver/wfs?service=WFS&request=GetCapabilities"):
+        for typed in ("localhost:8082/geoserver",
+                      "http://localhost:8082/geoserver/",
+                      "http://localhost:8082/geoserver/wfs",
+                      "http://localhost:8082/geoserver/wfs?service=WFS&request=GetCapabilities"):
             got = wfs_url(typed, "splatworld:feature_footprint", None)
-            self.assertTrue(got.startswith("http://localhost:8081/geoserver/wfs?"), got)
+            self.assertTrue(got.startswith("http://localhost:8082/geoserver/wfs?"), got)
             self.assertIn("request=GetFeature", got)
 
     def test_a_workspace_address_keeps_its_workspace(self):

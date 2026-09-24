@@ -11,7 +11,7 @@ path in this world and not two.
 splatworld run
 ```
 
-then open **<http://localhost:8080/app/import.html>** (the setup page links to
+then open **<http://localhost:8081/app/import.html>** (the setup page links to
 it). Choose where your layers are — a GeoServer, or this world's own database —
 press Connect, and it lists what is there: pick which
 layer is which from the dropdowns, press Import.

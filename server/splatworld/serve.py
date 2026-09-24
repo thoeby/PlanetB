@@ -106,8 +106,8 @@ def point_at_this_server(html: bytes, cfg: Config) -> bytes:
     """Rewrites the client's endpoint tags to wherever this server actually is.
 
     client/*.html carry `<meta name="splatworld:api|files">` pointing at
-    localhost:3000 and :8080. Those are only right when nothing forced a
-    different port — and Windows does force one: 8080 often falls inside a
+    localhost:3000 and :8081. Those are only right when nothing forced a
+    different port — and Windows does force one: 8081 often falls inside a
     reserved range and cannot be bound at all. The page is served by the very
     server it has to talk to, so it is told the truth on the way out rather
     than being edited by hand.
@@ -810,7 +810,7 @@ class Server(ThreadingHTTPServer):
 
 
 # Windows reserves blocks of ports for Hyper-V and WSL and refuses to bind them
-# (WinError 10013), and 8080 is very often inside one. Rather than fail, move up
+# (WinError 10013), and 8081 is very often inside one. Rather than fail, move up
 # until something is free: the pages are told which port they landed on, so a
 # different number costs the reader nothing.
 PORT_ATTEMPTS = 20

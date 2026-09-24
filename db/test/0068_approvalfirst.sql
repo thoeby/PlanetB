@@ -16,7 +16,7 @@ SELECT register('first68@example.com', 'password12') AS admin_id,
 
 DELETE FROM ground;
 INSERT INTO ground (geoserver_url, coverage, extent, set_by)
-SELECT 'http://localhost:8081/geoserver', 'test:ground',
+SELECT 'http://localhost:8082/geoserver', 'test:ground',
        st_makeenvelope(8.3, 47.3, 8.7, 47.7, world_srid()), ids.admin_id FROM ids;
 
 INSERT INTO area (id, geom, owner_id, detail)

@@ -79,7 +79,7 @@ def absolute_url(url: str) -> str:
     """Whatever someone typed, made into something urllib will open.
 
     "gis.example.com/geoserver" has no scheme and urllib refuses it outright;
-    worse, "localhost:8080/geoserver" parses with scheme "localhost", so the
+    worse, "localhost:8082/geoserver" parses with scheme "localhost", so the
     port becomes part of a URL type that does not exist. Both are what a person
     types, so both mean http.
     """

@@ -14,7 +14,7 @@ make gate
 ```
 
 `api-test` and `files-test` talk to `$API_URL` (default `http://localhost:3000`)
-and `$FILES_URL` (default `http://localhost:8080`).
+and `$FILES_URL` (default `http://localhost:8081`).
 
 ## Without Docker
 

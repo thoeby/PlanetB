@@ -8,7 +8,7 @@
 // settled by row-level security in the database (Invariant 6); a 401 or 403
 // from PostgREST is that decision arriving.
 
-const DEFAULTS = { api: 'http://localhost:3000', files: 'http://localhost:8080' };
+const DEFAULTS = { api: 'http://localhost:3000', files: 'http://localhost:8081' };
 
 // Refresh this many seconds before `exp`, so a request never leaves with a
 // token the server will have expired by the time it lands.

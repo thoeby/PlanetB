@@ -24,7 +24,7 @@
 // it says whether a hole is the training's or what came after.
 //
 // SPLATWORLD_API and SPLATWORLD_FILES name the world (default: the dev
-// server, http://localhost:8080/api and http://localhost:8080).
+// server, http://localhost:8081/api and http://localhost:8081).
 import { mkdirSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { configFor } from '../client/lib/brush.js';
@@ -34,8 +34,8 @@ import { shuffled } from '../client/lib/preview.js';
 import { rngOf, seedOf as placeSeed } from '../client/lib/sampling.js';
 import { readTar } from '../client/lib/tar.js';
 
-const API = process.env.SPLATWORLD_API ?? 'http://localhost:8080/api';
-const FILES = process.env.SPLATWORLD_FILES ?? 'http://localhost:8080';
+const API = process.env.SPLATWORLD_API ?? 'http://localhost:8081/api';
+const FILES = process.env.SPLATWORLD_FILES ?? 'http://localhost:8081';
 
 async function rows(table, query) {
     const res = await fetch(`${API}/${table}?${query}`);

@@ -158,7 +158,7 @@ export async function install(page, rows) {
             body: JSON.stringify(tiles()),
         });
     });
-    await page.route('http://localhost:8080/**', (route) => {
+    await page.route('http://localhost:8081/**', (route) => {
         const p = join(FILES_ROOT, new URL(route.request().url()).pathname);
         if (!existsSync(p)) return route.fulfill({ status: 404, body: '' });
         return route.fulfill({ contentType: mime(p), body: readFileSync(p) });

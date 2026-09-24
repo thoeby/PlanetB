@@ -50,7 +50,7 @@ BEGIN
     -- (db/0058_drawnbyoperator.sql), so it goes in before the land does.
     DELETE FROM ground;
     INSERT INTO ground (geoserver_url, coverage, extent, set_by)
-    VALUES ('http://localhost:8080/geoserver', 'splatworld:demo_dem',
+    VALUES ('http://localhost:8082/geoserver', 'splatworld:demo_dem',
             st_makeenvelope($GW, $GS, $GE, $GN, world_srid()), uid);
 
     SELECT id INTO aid FROM area

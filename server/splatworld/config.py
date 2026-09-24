@@ -2,7 +2,7 @@
 
 Values come from the environment, from a .env file beside the repo, or from the
 command line — in that order of increasing precedence. The defaults are the
-ones the rest of the repo already assumes (localhost:5432, files on 8080, API on
+ones the rest of the repo already assumes (localhost:5432, files on 8081, API on
 3000), so a checkout that worked with the Makefile works here unchanged.
 """
 from __future__ import annotations
@@ -51,7 +51,7 @@ def _libpq(value: str) -> str:
 class Config:
     repo: Path = field(default_factory=_repo_root)
     host: str = "127.0.0.1"
-    port: int = 8080
+    port: int = 8081
 
     pg_host: str = "localhost"
     pg_port: int = 5432

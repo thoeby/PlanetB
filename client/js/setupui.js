@@ -37,7 +37,7 @@ const HTML = `
     <span class="head">GeoServer</span>
     <div class="note">The GeoServer that publishes your elevation. Nothing
       else is asked of it.</div>
-    <input class="gs-url" type="text" placeholder="localhost:8080/geoserver"
+    <input class="gs-url" type="text" placeholder="localhost:8082/geoserver"
       autocomplete="off">
     <div class="row">
       <input class="gs-user" type="text" placeholder="admin" autocomplete="off">

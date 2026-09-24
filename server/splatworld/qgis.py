@@ -307,7 +307,7 @@ def build(cfg: Config, conn: dict, app_url: str | None = None) -> bytes:
         areas = [(str(r[0]), r[1]) for r in db.execute(
             "SELECT id, coalesce(nullif(rules ->> 'name', ''), 'unnamed land')"
             " FROM area ORDER BY created_at").fetchall()]
-    base = (row[0] if row else cfg.geoserver_url) or "http://localhost:8080/geoserver"
+    base = (row[0] if row else cfg.geoserver_url) or "http://localhost:8082/geoserver"
     base = base.rstrip("/")
     if not base.startswith("http"):
         base = f"http://{base}"
