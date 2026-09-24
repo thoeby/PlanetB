@@ -138,6 +138,10 @@ export const DOING = {
 // (db/0083_thetrainerasksforwhatitcanbeasked.sql).
 export const needs = (e, caps) => {
     if (!e.needs_webgpu) return 'no GPU needed';
+    if (caps?.webgpu_missing) {
+        const lacks = caps.webgpu_missing.join(' and ');
+        return `needs WebGPU with ${lacks} \u2014 this browser's has not`;
+    }
     if (!caps?.webgpu) return 'needs WebGPU \u2014 this tab has none';
     const mb = Number(e.needs_mb) || 0;
     const has = Number(caps.max_buffer_mb) || 0;
