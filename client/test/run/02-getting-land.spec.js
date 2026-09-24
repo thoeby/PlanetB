@@ -73,9 +73,11 @@ async function goesThere(b, drawn) {
         // (area_progress.to_submit) and B can send it whenever they like. What
         // is in the pool over this ground is not B's doing and not this
         // story's business: the operator's own first compile (story 1) reaches
-        // across it.
+        // across it. How many z14 tiles that is depends on whether the
+        // boundary A drew crosses a tile edge, which is the map's scale and not
+        // the story's: one or more, never none.
         await expect(b.page.locator('.tile', { hasText: 'Unsubmitted' }))
-            .toContainText('1', { timeout: UI });
+            .toContainText(/^[1-9]/, { timeout: UI });
         const at = readCoords(await b.page.locator('#standing .coords').textContent());
         const lons = pairs(drawn).map((p) => p[0]);
         const lats = pairs(drawn).map((p) => p[1]);
