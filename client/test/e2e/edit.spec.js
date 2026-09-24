@@ -14,7 +14,7 @@ import { join } from 'node:path';
 
 import { CLIENT, groundReaches } from './serve.js';
 import { startServices } from './services.js';
-import { psql } from './worker.js';
+import { psql, verified } from './worker.js';
 
 const OWNER = 'edit-owner@splatworld.local';
 const PROPOSER = 'edit-proposer@splatworld.local';
@@ -51,6 +51,8 @@ test.beforeAll(async () => {
               BEGIN
                   SELECT id INTO u FROM auth.user WHERE email = '${email}';
                   IF u IS NULL THEN u := register('${email}', '${PW}'); END IF;
+                  INSERT INTO player_verification (player_id, state, method, how)
+                  VALUES (u, 'verified', 'manual', 'fixture') ON CONFLICT DO NOTHING;
               END $$`);
     }
     // One area, rebuilt every run, so the counts below start at zero.
@@ -97,8 +99,9 @@ async function open(page, email) {
     await page.evaluate(async ([e, p]) => {
         const { api } = window.splatworld;
         await api.register(e, p).catch(() => {});
-        await api.login(e, p);
     }, [email, PW]);
+    verified(email);
+    await page.evaluate(async ([e, p]) => window.splatworld.api.login(e, p), [email, PW]);
     // The panel follows the login form; a test that signs in through api.js
     // has to say so itself (catalog.spec.js does the same).
     await page.evaluate(() => window.splatworld.edit.refresh());

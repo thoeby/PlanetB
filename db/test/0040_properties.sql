@@ -9,6 +9,9 @@ SET client_min_messages = warning;
 INSERT INTO auth.user (id, email, pw_hash, role) VALUES
 ('00000000-0000-0000-0000-0000000b0001', 'vocab-admin@example.com', 'x', 'admin'),
 ('00000000-0000-0000-0000-0000000b0002', 'vocab-player@example.com', 'x', 'player');
+-- PLAN-identity.md: these players are verified people (db/0195).
+INSERT INTO player_verification (player_id, state, method, how)
+SELECT id, 'verified', 'manual', 'fixture' FROM auth.user ON CONFLICT DO NOTHING;
 INSERT INTO account (owner_id) VALUES
 ('00000000-0000-0000-0000-0000000b0001'), ('00000000-0000-0000-0000-0000000b0002');
 INSERT INTO area (id, geom, owner_id, detail) VALUES

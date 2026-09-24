@@ -7,6 +7,9 @@ CREATE TEMP TABLE who AS
 SELECT register('ann133@example.com', 'password12') AS ann,
        register('bo133@example.com', 'password12') AS bo,
        register('cy133@example.com', 'password12') AS cy;
+-- PLAN-identity.md: these players are verified people (db/0195).
+INSERT INTO player_verification (player_id, state, method, how)
+SELECT id, 'verified', 'manual', 'fixture' FROM auth.user ON CONFLICT DO NOTHING;
 GRANT SELECT ON who TO player;
 
 SELECT set_config('request.jwt.claims',

@@ -82,6 +82,8 @@ test.beforeAll(async () => {
               BEGIN
                   SELECT id INTO uid FROM auth.user WHERE email = '${email}';
                   IF uid IS NULL THEN uid := register('${email}', '${PW}'); END IF;
+                  INSERT INTO player_verification (player_id, state, method, how)
+                  VALUES (uid, 'verified', 'manual', 'fixture') ON CONFLICT DO NOTHING;
               END $$`);
     }
     // The area the test builds in: exactly the tile, at detail 14, so a

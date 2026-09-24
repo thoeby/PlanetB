@@ -17,6 +17,9 @@ SELECT
     register('prop-editor@example.com', 'password12') AS editor_id,
     register('prop-approver@example.com', 'password12') AS approver_id,
     register('prop-stranger@example.com', 'password12') AS stranger_id;
+-- PLAN-identity.md: these players are verified people (db/0195).
+INSERT INTO player_verification (player_id, state, method, how)
+SELECT id, 'verified', 'manual', 'fixture' FROM auth.user ON CONFLICT DO NOTHING;
 GRANT SELECT ON ids TO player;
 
 -- a1 takes one approval (the schema default), a2 asks its rules for two

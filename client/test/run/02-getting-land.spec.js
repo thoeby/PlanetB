@@ -1,13 +1,15 @@
 // Story 2 — getting land (docs/SPEC.md §3.2).
 //
-// B has an account and no ground of their own. They ask for some; A, who is
+// B has an account and no ground of their own, and is not yet a verified
+// person (PLAN-identity.md): Your land says to verify first, B asks an admin
+// to, and A checks it. Then they ask for ground; A, who is
 // the admin because they were first, draws it on the map in the page and hands
 // it over; B is told, goes there, and stands on land with their name on it.
 //
 // And land in the wrong place cannot be made: A turns the boundary's
 // coordinates the wrong way round and reads what the world says about it.
 
-import { test, expect, open, shows, panel, signIn, signUp, UI }
+import { test, expect, open, shows, panel, signIn, signUp, verifies, UI }
     from './players.js';
 
 const swap = (text) => text.trim().split('\n')
@@ -96,6 +98,14 @@ test('story 2 — land is asked for, drawn, and handed over', async ({ browser, 
         () => signIn(a, 'anna@visp.example', 'Anna'));
     await test.step('B makes an account',
         () => signUp(b, 'ben@visp.example', 'Ben'));
+    // PLAN-identity.md ID.1 and ID.4: land wants a verified person.
+    await test.step('B is not verified, and Your land says so first', async () => {
+        await panel(b, 'Your land');
+        await shows(b, 'Verify first');
+    });
+    await test.step('B verifies without e-ID, and A checks it in person',
+        () => verifies(b, a, { given: 'Ben', family: 'Imboden', born: '1991-03-14',
+            how: 'in person, at the Visp office' }));
     await asksForLand(b);
 
     await test.step('A sees the request, with what B wrote', async () => {

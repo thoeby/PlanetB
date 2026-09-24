@@ -104,6 +104,8 @@ test.beforeAll(async () => {
               BEGIN
                   SELECT id INTO uid FROM auth.user WHERE email = '${email(who)}';
                   IF uid IS NULL THEN uid := register('${email(who)}', '${PW}'); END IF;
+                  INSERT INTO player_verification (player_id, state, method, how)
+                  VALUES (uid, 'verified', 'manual', 'fixture') ON CONFLICT DO NOTHING;
                   IF NOT EXISTS (SELECT 1 FROM worker WHERE user_id = uid) THEN
                       INSERT INTO worker (user_id, caps, trust) VALUES (uid, '{}', 0.8);
                   END IF;
@@ -114,6 +116,8 @@ test.beforeAll(async () => {
           BEGIN
               SELECT id INTO uid FROM auth.user WHERE email = '${APPROVER}';
               IF uid IS NULL THEN uid := register('${APPROVER}', '${PW}'); END IF;
+                  INSERT INTO player_verification (player_id, state, method, how)
+                  VALUES (uid, 'verified', 'manual', 'fixture') ON CONFLICT DO NOTHING;
               UPDATE auth.user SET role = 'admin' WHERE id = uid;
           END $$`);
     svc = await startServices();

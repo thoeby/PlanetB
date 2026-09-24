@@ -1,6 +1,7 @@
 // Story 4 — registering a product (docs/SPEC.md §3.9).
 //
-// C drops a GLB into the catalog, is told how big it is, names it and
+// C, verified by A first (PLAN-identity.md), drops a GLB into the catalog, is
+// told how big it is, names it and
 // registers it. B, who has land and will build on it, finds it in the picker
 // by that name.
 //
@@ -9,7 +10,7 @@
 
 import { join } from 'node:path';
 
-import { test, expect, open, panel, signIn, signUp, UI } from './players.js';
+import { test, expect, open, panel, signIn, signUp, verifies, UI } from './players.js';
 import { REPO } from './world.js';
 
 const GLB = join(REPO, 'client/test/fixtures/assets/blender.glb');
@@ -22,6 +23,13 @@ test('story 4 — C registers a product and B can pick it by name',
         const c = await open(browser, world, 'C', testInfo);
         await test.step('C makes an account',
             () => signUp(c, 'cara@visp.example', 'Cara'));
+        // PLAN-identity.md V5: registering a product wants a verified person.
+        const a = await open(browser, world, 'A', testInfo);
+        await test.step('A signs in', () => signIn(a, 'anna@visp.example', 'Anna'));
+        await test.step('C verifies without e-ID, and A checks it on a call',
+            () => verifies(c, a, { given: 'Cara', family: 'Zurbriggen', born: '1988-11-02',
+                how: 'a video call' }));
+        await a.close();
 
         await test.step('C drops a GLB in and is told what it is', async () => {
             await panel(c, 'Catalog');

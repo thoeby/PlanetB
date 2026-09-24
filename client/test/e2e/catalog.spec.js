@@ -11,7 +11,7 @@
 import { test, expect } from '@playwright/test';
 
 import { startServices } from './services.js';
-import { psql, revealPanels } from './worker.js';
+import { psql, revealPanels, verified } from './worker.js';
 import { encodePng } from '../../lib/png.js';
 import { FIXTURES } from '../../../tools/make-asset-fixtures.mjs';
 
@@ -57,8 +57,9 @@ async function open(page) {
     await page.evaluate(async ([e, p]) => {
         const { api } = window.splatworld;
         await api.register(e, p).catch(() => {});
-        await api.login(e, p);
     }, [EMAIL, PW]);
+    verified(EMAIL);
+    await page.evaluate(async ([e, p]) => window.splatworld.api.login(e, p), [EMAIL, PW]);
     await page.evaluate(() => window.splatworld.catalog.refresh());
 }
 

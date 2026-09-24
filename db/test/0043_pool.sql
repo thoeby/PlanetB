@@ -11,6 +11,9 @@ SET client_min_messages = warning;
 INSERT INTO auth.user (id, email, pw_hash, role) VALUES
 ('00000000-0000-0000-0000-0000000c0001', 'pool-a@example.com', 'x', 'player'),
 ('00000000-0000-0000-0000-0000000c0002', 'pool-b@example.com', 'x', 'player');
+-- PLAN-identity.md: these players are verified people (db/0195).
+INSERT INTO player_verification (player_id, state, method, how)
+SELECT id, 'verified', 'manual', 'fixture' FROM auth.user ON CONFLICT DO NOTHING;
 INSERT INTO account (owner_id) VALUES
 ('00000000-0000-0000-0000-0000000c0001'), ('00000000-0000-0000-0000-0000000c0002');
 -- A has a thousand coins to spend: a submit pays for every tile it opens.

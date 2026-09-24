@@ -68,6 +68,8 @@ DECLARE
     a2   bigint;
 BEGIN
     uid := register('ops@splatworld.local', 'ops-pw-not-a-login');
+    INSERT INTO player_verification (player_id, state, method, how)
+    VALUES (uid, 'verified', 'manual', 'fixture') ON CONFLICT DO NOTHING;
     PERFORM set_config('request.jwt.claims',
         json_build_object('sub', uid, 'role', 'admin')::text, true);
     INSERT INTO artifact (sha256, kind, bytes, algo_version, created_by) VALUES

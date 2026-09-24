@@ -95,6 +95,12 @@ GEOM=$($PSQL -c "SELECT encode(st_asewkb(st_force3d(st_buffer(
     st_setsrid(st_makepoint($LON, $LAT), world_srid()), 0.004))), 'hex')")
 FEATURE="{\"area_id\":\"$AREA\",\"kind\":\"landuse\",\"props\":{\"landuse\":\"forest\"},\"geom\":\"$GEOM\"}"
 is "anon cannot write a feature" 401 "$(code POST /feature "$FEATURE")"
+# PLAN-identity.md V5: building wants a verified person (db/0195).
+is "an owner who is not verified cannot write in their area" 403 "$(code POST /feature "$FEATURE" "$OWNER_JWT")"
+grep -q 'Verify first' "$body" && ok "and is told to verify first" || no "and is told to verify first ($(cat "$body"))"
+$PSQL -c "INSERT INTO player_verification (player_id, state, method, how)
+    VALUES ('$OWNER_ID', 'verified', 'manual', 'api-test'),
+           ('$OTHER_ID', 'verified', 'manual', 'api-test')" > /dev/null
 is "a stranger cannot write in my area" 403 "$(code POST /feature "$FEATURE" "$OTHER_JWT")"
 is "the owner can write in their area" 201 "$(code POST /feature "$FEATURE" "$OWNER_JWT")"
 

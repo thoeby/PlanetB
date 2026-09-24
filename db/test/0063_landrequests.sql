@@ -6,6 +6,9 @@ INSERT INTO auth.user (id, email, pw_hash, role, name) VALUES
 ('00000000-0000-0000-0000-00000000f401', 'anna@example.com', 'x', 'admin', 'Anna'),
 ('00000000-0000-0000-0000-00000000f402', 'ben@example.com', 'x', 'player', 'Ben'),
 ('00000000-0000-0000-0000-00000000f403', 'cara@example.com', 'x', 'player', 'Cara');
+-- PLAN-identity.md: these players are verified people (db/0195).
+INSERT INTO player_verification (player_id, state, method, how)
+SELECT id, 'verified', 'manual', 'fixture' FROM auth.user ON CONFLICT DO NOTHING;
 DELETE FROM ground;
 INSERT INTO ground (geoserver_url, coverage, extent, set_by)
 VALUES ('http://localhost:8081/geoserver', 'splatworld:visp',

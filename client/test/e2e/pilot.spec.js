@@ -49,6 +49,8 @@ test.beforeAll(async () => {
           BEGIN
               SELECT id INTO uid FROM auth.user WHERE email = '${EMAIL}';
               IF uid IS NULL THEN uid := register('${EMAIL}', '${PW}'); END IF;
+                  INSERT INTO player_verification (player_id, state, method, how)
+                  VALUES (uid, 'verified', 'manual', 'fixture') ON CONFLICT DO NOTHING;
               UPDATE auth.user SET role = 'admin' WHERE id = uid;
           END $$`);
     svc = await startServices();

@@ -45,6 +45,8 @@ test.beforeAll(async () => {
               BEGIN
                   SELECT id INTO u FROM auth.user WHERE email = '${email}';
                   IF u IS NULL THEN u := register('${email}', '${PW}'); END IF;
+                  INSERT INTO player_verification (player_id, state, method, how)
+                  VALUES (u, 'verified', 'manual', 'fixture') ON CONFLICT DO NOTHING;
               END $$`);
     }
     // One area, owned by OWNER, rebuilt every run so the grants start empty.

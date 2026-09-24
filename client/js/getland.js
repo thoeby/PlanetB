@@ -6,6 +6,7 @@
 // come by and left a new player with nowhere to start.
 
 import * as api from './api.js';
+import { errorText, needsVerifying, verifyFirst } from './verify.js';
 
 const el = (tag, props = {}, ...kids) => {
     const node = Object.assign(document.createElement(tag), props);
@@ -17,7 +18,7 @@ const names = (who) => (who.length > 1
     ? `${who.slice(0, -1).join(', ')} and ${who[who.length - 1]}`
     : who[0] ?? 'nobody yet');
 
-export function mountGetLand(host) {
+export function mountGetLand(host, { open = () => {} } = {}) {
     const who = el('p', { className: 'muted' });
     const note = el('input', { type: 'text', id: 'land-want',
         placeholder: 'near Visp, ~2 ha' });
@@ -44,7 +45,8 @@ export function mountGetLand(host) {
             say('Sent. Your request is with the admin.');
         } catch (err) {
             // Invariant 6: the database decided, and it said why.
-            say(String(err.body?.message ?? err.message ?? err), true);
+            if (needsVerifying(err)) verifyFirst(status, open, errorText(err));
+            else say(errorText(err), true);
         }
     };
 
@@ -56,12 +58,16 @@ export function mountGetLand(host) {
         who.textContent = `Ask ${names(await api.rpc('admins').catch(() => []))}.`;
         const mine = (await api.rpc('land_requests', { which: 'all' })
             .catch(() => []));
-        const open = (Array.isArray(mine) ? mine : [])
+        const waiting = (Array.isArray(mine) ? mine : [])
             .find((r) => r.state === 'open');
-        if (open) {
-            note.value = open.note;
+        if (waiting) {
+            note.value = waiting.note;
             say('Your request is with the admin.');
         }
+        // PLAN-identity.md V5: land wants a verified player, and says so
+        // before it is asked rather than after.
+        const v = await api.rpc('my_verification').catch(() => null);
+        if (v && v.state !== 'verified') verifyFirst(status, open);
     }
 
     return { refresh, node: block };

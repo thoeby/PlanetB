@@ -134,13 +134,20 @@ export async function revealPanels(page) {
     }).catch(() => {});
 }
 
+// PLAN-identity.md: a player who builds or registers is a verified person.
+// These specs test other things, so the fixture says they were verified.
+export const verified = (email) => psql(`INSERT INTO player_verification
+    (player_id, state, method, how) SELECT id, 'verified', 'manual', 'fixture'
+    FROM auth.user WHERE email = lower('${email}') ON CONFLICT DO NOTHING`);
+
 export async function signIn(page, email, pw) {
     await page.waitForFunction(() => window.splatworld?.api, null, { timeout: 60000 });
     await page.evaluate(async ([e, p]) => {
         const { api } = window.splatworld;
         await api.register(e, p).catch(() => {});
-        await api.login(e, p);
     }, [email, pw]);
+    verified(email);
+    await page.evaluate(async ([e, p]) => window.splatworld.api.login(e, p), [email, pw]);
 }
 
 // Chromium with WebGPU: a real Dawn device over SwiftShader, on a secure

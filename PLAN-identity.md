@@ -115,4 +115,4 @@ and offers the manual path; restarted → the e-ID path works again.
 
 (Agent writes here, one sentence per item, and stops.)
 
-- ID.0 is not run: the swiyu beta registries (`*.trust-infra.swiyu-int.admin.ch`) and the verifier image's layers on ghcr.io are refused by this container's egress proxy, so neither the verifier nor a test credential can be exercised here.
+- ID.0 is not run, so ID.2, ID.3 and ID.6 are not built (ID.1, ID.4 and ID.5 are, on the manual path — stories 32 and 40): the swiyu beta registries (`*.trust-infra.swiyu-int.admin.ch`) and the verifier image's layers on ghcr.io are refused by this container's egress proxy, so neither the verifier nor a test credential can be exercised here.

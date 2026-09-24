@@ -13,6 +13,9 @@ SELECT register('first68@example.com', 'password12') AS admin_id,
        register('owner68@example.com', 'password12') AS owner_id,
        register('ben68@example.com', 'password12') AS ben_id,
        register('passer68@example.com', 'password12') AS stranger_id;
+-- PLAN-identity.md: these players are verified people (db/0195).
+INSERT INTO player_verification (player_id, state, method, how)
+SELECT id, 'verified', 'manual', 'fixture' FROM auth.user ON CONFLICT DO NOTHING;
 
 DELETE FROM ground;
 INSERT INTO ground (geoserver_url, coverage, extent, set_by)

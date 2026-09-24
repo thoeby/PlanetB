@@ -82,6 +82,7 @@ export const TABS = [
     // it belongs to you rather than to a button of its own (v6).
     { name: 'Profile', group: 'top', key: 'p', width: 470,
         parts: [{ name: 'Profile', label: 'You' },
+            { name: 'Verify', label: 'Verify' },
             { name: 'Share', label: 'Share', key: '9' }] },
     { name: 'Wallet', group: 'top', key: '6', width: 500,
         lede: 'What you have, and what moved.' },
@@ -94,7 +95,8 @@ export const TABS = [
         parts: [{ name: 'Setup', label: 'Setup' },
             { name: 'Vocabulary', label: 'Vocabulary', wide: true },
             { name: 'Symbols', label: 'Symbols', wide: true },
-            { name: 'Ground cover', label: 'Ground cover', wide: true }] },
+            { name: 'Ground cover', label: 'Ground cover', wide: true },
+            { name: 'Players', label: 'Players' }] },
     // Survey is top-down: who is waiting for land, and the map it is drawn on
     // (SPEC §2.1). It is the F6 view and nothing else — it has no button on
     // either bar, because a map of the whole world is a workspace rather than
@@ -118,6 +120,8 @@ export const barOf = (view) =>
 export const PART_LEDE = {
     Profile: 'Who you are in the world, and what you hold.',
     Share: 'A link that puts somebody else where you are standing.',
+    Verify: 'A player is a verified person. The world keeps that you are, not who.',
+    Players: 'Who is waiting to be verified, and every player there is.',
     Setup: 'Your account, your GeoServer, and the ground the world sits on.',
     Submit: 'Send what you placed to be rendered.',
     Permission: 'What somebody built, waiting for a person to say yes.',

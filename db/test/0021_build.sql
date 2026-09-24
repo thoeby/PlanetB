@@ -10,6 +10,9 @@ INSERT INTO auth.user (id, email, pw_hash, role) VALUES
 ('00000000-0000-0000-0000-0000000d1001', 'build-owner@example.com', 'x', 'player'),
 ('00000000-0000-0000-0000-0000000d1002', 'build-grantee@example.com', 'x', 'player'),
 ('00000000-0000-0000-0000-0000000d1003', 'build-stranger@example.com', 'x', 'player');
+-- PLAN-identity.md: these players are verified people (db/0195).
+INSERT INTO player_verification (player_id, state, method, how)
+SELECT id, 'verified', 'manual', 'fixture' FROM auth.user ON CONFLICT DO NOTHING;
 INSERT INTO account (owner_id) VALUES
 ('00000000-0000-0000-0000-0000000d1001'), ('00000000-0000-0000-0000-0000000d1002'),
 ('00000000-0000-0000-0000-0000000d1003');

@@ -178,3 +178,29 @@ export async function panelApp(where, name) {
     await expect(page.locator('#top .app-tab[aria-selected="true"] .name'))
         .toHaveText(name, { timeout: UI });
 }
+
+// PLAN-identity.md ID.4: a player verified without e-ID. They type who they
+// are on Profile → Verify; the admin reads it on Settings → Players, checks it
+// the way the player said, and confirms. Every player who gets land, builds
+// or registers a product in these stories has been through this first.
+export async function verifies(player, admin, { given, family, born, how }) {
+    await panel(player, 'Verify');
+    await shows(player, 'Not verified');
+    const { page } = player;
+    await page.getByLabel('given names').fill(given);
+    await page.getByLabel('family name').fill(family);
+    await page.getByLabel('birth date').fill(born);
+    await page.getByLabel('how the admin can check it').fill(how);
+    await page.getByRole('button', { name: 'Ask an admin' }).click();
+    await shows(player, 'Waiting for an admin');
+
+    await panel(admin, 'Players');
+    const card = admin.page.locator('.players-request', { hasText: `${given} ${family}` });
+    await expect(card).toContainText(`born ${born}`, { timeout: UI });
+    await card.getByLabel('note').fill('checked in person');
+    await card.getByRole('button', { name: 'Confirm' }).click();
+    await shows(admin, 'is verified');
+
+    await panel(player, 'Verify');
+    await expect(page.locator('.verify-state')).toHaveText(/^Verified by /, { timeout: UI });
+}

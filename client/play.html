@@ -80,6 +80,8 @@
   import { mountAreas } from './js/areasui.js';
   import { mountWallet } from './js/walletui.js';
   import { mountProfile } from './js/profileui.js';
+  import { mountVerify } from './js/verify.js';
+  import { mountPlayers } from './js/playersui.js';
   import { nearbyInstances } from './js/build.js';
   import { InstancePreview } from './js/preview.js';
   import { LiveWorld, EVERY_MS, NEAR_M } from './js/live.js';
@@ -441,7 +443,7 @@
   // SPEC §2.4 "Get land": somebody with none is told who hands it out, and
   // given the one thing they can do about it. Mounted before the list, so the
   // list's first refresh has something to hand its areas to.
-  const getland = mountGetLand(hud.panel('Your land'));
+  const getland = mountGetLand(hud.panel('Your land'), { open: (name) => hud.show(name) });
 
   // T5: the land you own, outlined in the world and listed in the panel, with
   // what stands on it. Going to something puts you in front of it.
@@ -549,6 +551,13 @@
       open: (name) => hud.show(name),
   });
   hud.whenShown('Profile', () => profile.refresh());
+  // PLAN-identity.md: Profile → Verify, and the admin's side of it.
+  const verify = mountVerify(hud.panel('Verify'), {
+      onChange: () => { getland.refresh(land.areas()); },
+  });
+  hud.whenShown('Verify', () => verify.refresh());
+  const players = mountPlayers(hud.panel('Players'));
+  hud.whenShown('Players', () => players.refresh());
   // Survey is the F6 view now, not a tab of Settings: opening it is somebody
   // asking who is waiting for land and where it is, and both go stale while
   // the view is closed.
@@ -729,6 +738,7 @@
         catalog.refresh(); admin.refresh(); symbols.list(); setup.refresh();
         cover.refresh();
         land.refresh(); assignLand.refresh(); attention.refresh();
+        verify.refresh(); players.refresh();
         submit.refresh(); pool.refresh(); permission.refresh(); sculpt.refresh();
         showWho();
     },

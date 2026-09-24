@@ -129,6 +129,8 @@ test.beforeAll(async () => {
               BEGIN
                   SELECT id INTO uid FROM auth.user WHERE email = '${who}';
                   IF uid IS NULL THEN uid := register('${who}', '${PW}'); END IF;
+                  INSERT INTO player_verification (player_id, state, method, how)
+                  VALUES (uid, 'verified', 'manual', 'fixture') ON CONFLICT DO NOTHING;
               END $$`);
     }
     // The ground the owner polices: an area over the tile, theirs.

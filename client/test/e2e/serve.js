@@ -107,6 +107,8 @@ export function seedWorld(z, x, y) {
         BEGIN
             SELECT id INTO uid FROM auth.user WHERE email = 'world@test.local';
             IF uid IS NULL THEN uid := register('world@test.local', 'seedseed'); END IF;
+                  INSERT INTO player_verification (player_id, state, method, how)
+                  VALUES (uid, 'verified', 'manual', 'fixture') ON CONFLICT DO NOTHING;
             SELECT id INTO aid FROM area WHERE rules ->> 'seed' = '${z}/${x}/${y}';
             IF aid IS NULL THEN
                 INSERT INTO area (geom, owner_id, detail, rules) VALUES (

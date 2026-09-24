@@ -38,12 +38,16 @@ BEGIN
     SELECT id INTO uid FROM auth.user WHERE email = '$EMAIL';
     IF uid IS NULL THEN
         uid := register('$EMAIL', '$PW');
+        INSERT INTO player_verification (player_id, state, method, how)
+        VALUES (uid, 'verified', 'manual', 'fixture') ON CONFLICT DO NOTHING;
     END IF;
     UPDATE auth.user SET role = 'admin' WHERE id = uid;
 
     SELECT id INTO mate FROM auth.user WHERE email = '$MATE';
     IF mate IS NULL THEN
         mate := register('$MATE', '$PW');
+        INSERT INTO player_verification (player_id, state, method, how)
+        VALUES (mate, 'verified', 'manual', 'fixture') ON CONFLICT DO NOTHING;
     END IF;
 
     -- The ground is what makes this operator the owner of what is drawn
