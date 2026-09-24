@@ -248,7 +248,7 @@ other people's servers (D12: leases, restarts, price per hour) is FL.8.
 key; A, standing by the lamp, sees it go on within 10 s (story 30's check); B
 stops it (asked first, design 10l); a run the fixture makes anyway with the
 old key is refused and the lamp stays as B left it. That a flow key cannot
-write a port on another land is db/test/0197's.
+write a port on another land is db/test/0198's.
 
 ## FL.8 — The Planner
 

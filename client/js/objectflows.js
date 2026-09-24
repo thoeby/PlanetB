@@ -1,7 +1,7 @@
 // objectflows.js — the Flows section of the Place panel (TASKS-flows.md FL.6,
 // docs/design/flows-servers.md §5).
 //
-// A selected thing lists the flows that belong to it (db/0196). Whoever may
+// A selected thing lists the flows that belong to it (db/0197). Whoever may
 // build on its land can open one in Automate, add a new one made for it,
 // attach one already on the land, or detach one; anybody else is shown what
 // they may read and told why there is nothing to press. What may be read and

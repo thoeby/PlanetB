@@ -78,7 +78,7 @@ export const storeElx = (text) => storeFile(text, 'flow', 'elx-v1');
 // loaded; the database refuses a stale one rather than letting the later tab
 // win silently.
 //
-// `instance` (FL.6, db/0196) says which thing the flow belongs to: a thing's
+// `instance` (FL.6, db/0197) says which thing the flow belongs to: a thing's
 // id, or null for none. Left out, the thing it belongs to is left as it is.
 export async function saveFlow({ id = null, areaId, name, elx = null, sha = null,
     layout = {}, rev = 0, instance }) {
