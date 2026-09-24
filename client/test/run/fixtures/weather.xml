@@ -1,0 +1,24 @@
+<plugin format="1" id="weather">
+    <name>Weather</name>
+    <icon type="simicons">file::http</icon>
+
+    <group id="forecast">
+        <name>Forecast</name>
+
+        <node id="tomorrow">
+            <name>Forecast Tomorrow</name>
+            <description type="short">What the weather will be tomorrow</description>
+            <description type="long">A block only the alpha process server of the
+                player-run offers (TASKS-flows.md FL.2): the palette has to learn it
+                from that server, because the bundle does not have it.</description>
+            <input name="Place">
+                <structure id="droplet"/>
+                <value id="string"/>
+            </input>
+            <output name="Sky">
+                <structure id="droplet"/>
+                <value id="string"/>
+            </output>
+        </node>
+    </group>
+</plugin>

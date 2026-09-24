@@ -19,6 +19,15 @@ import { mountFlowList, ask } from './flowlist.js';
 import { mountInspector } from './flowinspector.js';
 import { parseElx } from '../flow/elx/parse.js';
 import { topBar } from './flowsbar.js';
+import { mountServerPicker } from './serverpicker.js';
+import { flowBlocks } from './flowblocks.js';
+import { isWorldBlock, setConstant } from './flowworld.js';
+import { leftTabs } from './servertab.js';
+import { mountProcesses } from './serverprocs.js';
+import { mountServices } from './serverservices.js';
+import { mountJobs } from './serverjobs.js';
+import { mountReports, mountRunPanel } from './serverreports.js';
+import { openRemote, intoLand, sendFlow } from './serverdo.js';
 import { bindKeys, refresh, create, openFlow, save, importFiles, exportFlow, validate }
     from './flowsdo.js';
 
@@ -49,9 +58,25 @@ function boot(ctx) {
 }
 
 async function building(ctx) {
-    const lg = await bootFlow(flows.bundledPlugins());
+    const bundled = await flows.bundledPlugins();
+    const lg = await bootFlow(bundled);
+    ctx.blocks = flowBlocks({ LiteGraph: lg.LiteGraph, bundled, say: ctx.say });
     ctx.canvas = mountCanvas(ctx.mid, lg, {
-        changed: () => { ctx.mark(true); ctx.inspector?.show(ctx.canvas.selected()); },
+        changed: () => {
+            ctx.mark(true);
+            ctx.blocks.mark(ctx.canvas?.graph);
+            ctx.inspector?.show(ctx.canvas.selected());
+        },
+        refreshBlocks: () => ctx.blocks.again().then(() => repaint(ctx)),
+        // FL.6: a World block dropped into a flow that belongs to a thing
+        // starts out pointed at that thing; the World section still changes it.
+        placed: (node) => {
+            const thing = ctx.state.open?.instance_id;
+            const aims = (node.inputs ?? []).some((i) => i.name === 'Object');
+            if (thing && isWorldBlock(node) && aims) {
+                setConstant(node, 'Object', thing);
+            }
+        },
         selected: (node) => ctx.inspector?.show(node),
         scope: () => ctx.inspector?.show(null),
         trouble: (text) => ctx.say(text),
@@ -61,7 +86,26 @@ async function building(ctx) {
         { changed: () => ctx.mark(true), world: ctx.world });
     ctx.bar.wire(ctx.canvas, ctx.acts);
     bindKeys(ctx.root, ctx.canvas, ctx.acts.save);
+    ctx.server.onChange((server) => ctx.blocks.use(server).then(() => repaint(ctx)));
     return ctx.canvas;
+}
+
+// FL.2: the palette and the hatching follow the chosen server's blocks.
+function repaint(ctx) {
+    ctx.canvas.palette.refresh({ visible: ctx.blocks.visible, from: ctx.blocks.from });
+    ctx.blocks.mark(ctx.canvas.graph);
+    ctx.inspector?.show(ctx.canvas.selected());
+}
+
+// The server picker is started once the canvas is there, so the first server
+// it settles on reaches the palette.
+async function serverFirst(ctx) {
+    await ctx.server.start();
+    const now = ctx.server.current();
+    if (ctx.blocks.server()?.id !== now?.id || ctx.blocks.server()?.url !== now?.url) {
+        await ctx.blocks.use(now);
+        repaint(ctx);
+    }
 }
 
 // Closing with something unsaved asks the three-way question the story asks
@@ -121,6 +165,31 @@ function worldBag(ctx, pickObject) {
     };
 }
 
+// FL.3–FL.5: what is on the chosen server, in the left column's second tab.
+// Every list is asked for again when the server changes.
+function remoteLists(ctx, tabs) {
+    const bag = {
+        server: () => ctx.server.current(),
+        say: ctx.say,
+        dialogs: () => ctx.root,
+        open: (server, row) => openRemote(ctx, server, row),
+        intoLand: (server, row) => intoLand(ctx, server, row),
+        visible: (plugin) => ctx.blocks?.served(plugin) ?? true,
+        runPanel: mountRunPanel(ctx.mid),
+        reload: () => run(),
+    };
+    const parts = [mountProcesses, mountServices, mountJobs, mountReports]
+        .map((mount) => mount(tabs.remotePane, bag));
+    const run = () => (bag.server() ? Promise.all(parts.map((p) => p.run())) : null);
+    ctx.server.onChange((s) => {
+        tabs.server(s);
+        ctx.bar.send.textContent = s ? `Send to ${s.name}` : 'Send';
+        ctx.bar.send.disabled = !s;
+        run();
+    });
+    return { run, parts, bag, tabs };
+}
+
 // Everything the view holds, in one bag the actions in flowsdo.js are handed.
 function context(parts, { onClose, onStay, lands, pickObject }) {
     const { root, mid, right, bar } = parts;
@@ -143,12 +212,13 @@ function context(parts, { onClose, onStay, lands, pickObject }) {
             bar.redo.disabled = !ctx.canvas?.canRedo();
         },
         boot: () => boot(ctx),
-        hide: () => { root.hidden = true; onClose?.(); },
+        hide: () => { root.hidden = true; ctx.server.stop(); onClose?.(); },
         // Answering "Stay" to the closing question puts the view back: the
         // chrome may already have been dressed for another one.
         stay: () => { root.hidden = false; onStay?.(); },
     };
     ctx.world = worldBag(ctx, pickObject);
+    ctx.server = mountServerPicker(bar.server, () => root);
     return ctx;
 }
 
@@ -163,9 +233,13 @@ export function mountFlows(doc, opts) {
         validate: () => validate(ctx),
         exportElx: () => exportFlow(ctx),
         importElx: () => picker.click(),
+        send: () => sendFlow(ctx),
     };
-    ctx.list = mountFlowList(left, {
-        create: (areaId, name) => create(ctx, areaId, name),
+    const tabs = leftTabs(left);
+    ctx.remoteLists = remoteLists(ctx, tabs);
+    ctx.list = mountFlowList(tabs.minePane, {
+        create: (areaId, name, instance) => create(ctx, areaId, name, instance),
+        objectsOn: (areaId) => flows.objectsOn(areaId),
         open: (row) => openFlow(ctx, row),
         rename: (row, name) => flows.renameFlow(row, name).then(() => refresh(ctx)),
         duplicate: (row, name) => flows.duplicateFlow(row, name).then(() => refresh(ctx)),
@@ -182,6 +256,7 @@ export function mountFlows(doc, opts) {
             opts.onOpen?.();
             try {
                 await boot(ctx);
+                serverFirst(ctx).catch((err) => ctx.say(String(err?.message ?? err)));
                 ctx.canvas.fit();
                 await refresh(ctx);
                 ctx.mark(ctx.state.dirty);
@@ -195,6 +270,8 @@ export function mountFlows(doc, opts) {
         said: () => ctx.state.said,
         dirty: () => ctx.state.dirty,
         openFlow: (row) => openFlow(ctx, row),
+        // FL.6: a new flow for a thing, made from the thing's own panel.
+        createFor: (areaId, name, instance) => create(ctx, areaId, name, instance),
         save: () => save(ctx),
         validate: () => validate(ctx),
         exportFlow: () => exportFlow(ctx),

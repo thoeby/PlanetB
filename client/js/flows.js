@@ -15,12 +15,12 @@ const PALETTE = '../flow/palette';
 // Every flow on lands I build on or approve for, newest change first. The read
 // is the policy's: somebody with nothing on a land gets nothing back.
 export const listFlows = () => api.select('flow', {
-    select: 'id,area_id,name,elx_sha256,layout,rev,updated_at',
+    select: 'id,area_id,name,elx_sha256,layout,rev,updated_at,instance_id',
     deleted_at: 'is.null', order: 'updated_at.desc',
 });
 
 export const flowsOn = (areaId) => api.select('flow', {
-    select: 'id,area_id,name,elx_sha256,layout,rev,updated_at',
+    select: 'id,area_id,name,elx_sha256,layout,rev,updated_at,instance_id',
     area_id: `eq.${areaId}`, deleted_at: 'is.null', order: 'name.asc',
 });
 
@@ -77,12 +77,16 @@ export const storeElx = (text) => storeFile(text, 'flow', 'elx-v1');
 // (`sha`, which is what renaming and duplicating do). `rev` is what this tab
 // loaded; the database refuses a stale one rather than letting the later tab
 // win silently.
+//
+// `instance` (FL.6, db/0194) says which thing the flow belongs to: a thing's
+// id, or null for none. Left out, the thing it belongs to is left as it is.
 export async function saveFlow({ id = null, areaId, name, elx = null, sha = null,
-    layout = {}, rev = 0 }) {
+    layout = {}, rev = 0, instance }) {
     const at = elx === null ? sha : await storeElx(elx);
     if (!at) throw new Error('a flow is saved with its ELX or with its sha');
+    const args = { id, area: areaId, name, elx_sha256: at, layout, rev };
     const done = await api.rpc('save_flow',
-        { id, area: areaId, name, elx_sha256: at, layout, rev });
+        instance === undefined ? args : { ...args, instance });
     // The sha comes back with the id and the rev, because the caller's next
     // move — exporting exactly what was saved — is about the file, not the row.
     return { ...done, elx_sha256: at };
@@ -100,7 +104,34 @@ export const renameFlow = (flow, name) => saveFlow({
 
 export const duplicateFlow = (flow, name) => saveFlow({
     areaId: flow.area_id, name, sha: flow.elx_sha256, layout: flow.layout, rev: 0,
+    instance: flow.instance_id ?? null,
 });
+
+// FL.6: the flow on this thing, or on none (null), with nothing else changed.
+export const attachFlow = (flow, instance) => saveFlow({
+    id: flow.id, areaId: flow.area_id, name: flow.name, sha: flow.elx_sha256,
+    layout: flow.layout, rev: flow.rev, instance,
+});
+
+// The flows that belong to one thing, as far as this player may read them.
+export const flowsOf = (instanceId) => api.select('flow', {
+    select: 'id,area_id,name,elx_sha256,layout,rev,updated_at,instance_id',
+    instance_id: `eq.${instanceId}`, deleted_at: 'is.null', order: 'name.asc',
+});
+
+// What things flows point at are called, gone ones included: a flow whose
+// thing was taken away says what it was on (FL.6).
+export async function thingNames(ids) {
+    if (!ids.length) return new Map();
+    const rows = await api.select('instance', { select: 'id,san,deleted_at',
+        id: `in.(${ids.join(',')})` }).catch(() => []);
+    const sans = [...new Set(rows.map((r) => r.san))];
+    const assets = sans.length ? await api.select('asset',
+        { select: 'san,name', san: `in.(${sans.join(',')})` }).catch(() => []) : [];
+    const by = new Map(assets.map((a) => [a.san, a.name]));
+    return new Map(rows.map((r) => [r.id,
+        { name: by.get(r.san) ?? r.san, gone: Boolean(r.deleted_at) }]));
+}
 
 // ------------------------------------------------------------- what is there
 

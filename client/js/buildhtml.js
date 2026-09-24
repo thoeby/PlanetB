@@ -55,6 +55,15 @@ export const HTML = `
   <p class="build-ports-said status"></p>
 </div>
 
+<div class="section build-flows-section" hidden>
+  <span class="label">Flows</span>
+  <div class="note">The logic that belongs to this thing: what a process
+    server runs for it (TASKS-flows.md FL.6).</div>
+  <ul class="build-flows rows"></ul>
+  <div class="build-flows-acts row"></div>
+  <p class="build-flows-said status"></p>
+</div>
+
 <div class="section build-movers-section">
   <span class="label">Movers</span>
   <div class="note">A bus is not on the land, it moves over it: nothing here is

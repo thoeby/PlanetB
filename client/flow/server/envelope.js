@@ -1,9 +1,8 @@
 // @ts-check
 // Copied from wireon-process-editor src/api/rest.js at ab525305d8ddd7dba7a5592e5cb79d3dbb159e8b; changes:
-// only ApiError and parseEnvelope are here — this repository asks a process
-// server exactly one question ("would you run this flow?") and needs nothing
-// else of that file — together with the two DOM helpers parseEnvelope calls,
-// copied from src/api/xml.js at the same commit.
+// ApiError and parseEnvelope, with the DOM helpers the readers need, copied
+// from src/api/xml.js at the same commit (children, attr, extractDocumentText
+// added for TASKS-flows.md FL.1–FL.5; was client/flow/validate.js until FL.1).
 /**
  * The `<elx_api_msg>` envelope every process server answers in.
  *
@@ -92,4 +91,48 @@ export function parseEnvelope(text) {
   const dataEl = childEl(root, "data");
   if (!dataEl || dataEl.children.length === 0) return null;
   return dataEl;
+}
+
+/**
+ * Every direct child element of `el` whose tag is `name`.
+ *
+ * @param {Element | null | undefined} el
+ * @param {string} name
+ * @returns {Element[]}
+ */
+export function children(el, name) {
+  if (!el) return [];
+  return [...el.children].filter((c) => c.localName === name);
+}
+
+/**
+ * The first non-empty attribute of `el` among `names`, or `""`.
+ *
+ * @param {Element | null | undefined} el
+ * @param {...string} names
+ * @returns {string}
+ */
+export function attr(el, ...names) {
+  if (!el) return "";
+  for (const n of names) {
+    const v = el.getAttribute(n);
+    if (v != null && v !== "") return v;
+  }
+  return "";
+}
+
+/**
+ * The document a read carries: `<document><content>` holds it entity-encoded
+ * (textContent decodes it); a payload sitting directly under `<data>` is
+ * serialized back as it is.
+ *
+ * @param {Element | null} dataEl
+ * @returns {string}
+ */
+export function extractDocumentText(dataEl) {
+  if (!dataEl) return "";
+  const content = childEl(childEl(dataEl, "document"), "content");
+  if (content) return content.textContent || "";
+  const first = dataEl.firstElementChild;
+  return first ? new XMLSerializer().serializeToString(first) : "";
 }

@@ -15,7 +15,7 @@ const copyName = (taken, name) => {
 
 // One small question, answered in the middle of the view. A prompt() would do
 // the same job and cannot be styled or tested through the page.
-export function ask(host, { title, value = '', ok = 'OK', onOk, onCancel }) {
+export function ask(host, { title, value = '', ok = 'OK', onOk, onCancel, cancelWord }) {
     const input = el('input', { type: 'text', value, className: 'fl-ask-name' });
     const err = el('p', { className: 'fl-err', hidden: true });
     const wrap = el('div', { className: 'fl-ask' });
@@ -33,7 +33,7 @@ export function ask(host, { title, value = '', ok = 'OK', onOk, onCancel }) {
     okBtn.onclick = accept;
     const stay = () => { close(); onCancel?.(); };
     const cancel = el('button', { type: 'button', className: 'fl-stay',
-        textContent: onCancel ? 'Stay' : 'Cancel' });
+        textContent: cancelWord ?? (onCancel ? 'Stay' : 'Cancel') });
     cancel.onclick = stay;
     input.onkeydown = (e) => { if (e.key === 'Enter') accept(); if (e.key === 'Escape') stay(); };
     wrap.append(el('div', {},
@@ -46,11 +46,25 @@ export function ask(host, { title, value = '', ok = 'OK', onOk, onCancel }) {
 }
 
 // Which land a new flow goes on: the ones you may build on, by name.
-function landPicker(lands) {
+export function landPicker(lands) {
     const sel = el('select', { className: 'fl-land' });
     for (const a of lands) {
         sel.append(el('option', { value: a.id, textContent: a.name || 'unnamed land' }));
     }
+    return sel;
+}
+
+// FL.6: which thing on that land the new flow belongs to, if any.
+function thingPicker(landSel, objectsOn) {
+    const sel = el('select', { className: 'fl-thing' });
+    sel.setAttribute('aria-label', 'Belongs to');
+    const fill = async () => {
+        const things = objectsOn ? await objectsOn(landSel.value).catch(() => []) : [];
+        sel.replaceChildren(el('option', { value: '', textContent: 'no thing' }),
+            ...things.map((t) => el('option', { value: t.id, textContent: t.name })));
+    };
+    landSel.addEventListener('change', fill);
+    fill();
     return sel;
 }
 
@@ -86,6 +100,41 @@ function line(row, state, on) {
     return li;
 }
 
+// A land, then each thing on it that has flows, then the flows that belong
+// to no thing — among them any whose thing was taken away (FL.6).
+function drawLand(list, state, on, a, mine) {
+    list.append(el('li', { className: 'muted land',
+        textContent: a.name || 'unnamed land' }));
+    const byThing = new Map();
+    const loose = [];
+    for (const r of mine) {
+        const t = r.instance_id && state.things.get(r.instance_id);
+        if (t && !t.gone) {
+            if (!byThing.has(r.instance_id)) byThing.set(r.instance_id, []);
+            byThing.get(r.instance_id).push(r);
+        } else loose.push(r);
+    }
+    for (const [id, rs] of byThing) {
+        const head = el('li', { className: 'muted thing',
+            textContent: state.things.get(id).name });
+        head.dataset.thing = id;
+        list.append(head);
+        for (const r of rs) list.append(line(r, state, on));
+    }
+    if (loose.length && byThing.size) {
+        list.append(el('li', { className: 'muted thing',
+            textContent: 'Flows without a thing' }));
+    }
+    for (const r of loose) {
+        const li = line(r, state, on);
+        const was = r.instance_id && state.things.get(r.instance_id);
+        if (was) {
+            li.append(el('span', { className: 'muted', textContent: `was on ${was.name}` }));
+        }
+        list.append(li);
+    }
+}
+
 export function mountFlowList(host, on) {
     const list = el('ul', { className: 'fl-list' });
     const empty = el('p', { className: 'muted fl-empty' });
@@ -94,19 +143,21 @@ export function mountFlowList(host, on) {
     host.append(el('h3', { textContent: 'Flows' }),
         el('div', { className: 'fl-acts' }, newBtn), empty, list);
 
-    const state = { rows: [], lands: [], openId: null,
+    const state = { rows: [], lands: [], openId: null, things: new Map(),
         where: () => host.closest('#flows') ?? host };
 
     newBtn.onclick = () => {
         const picker = landPicker(state.lands);
+        const thing = thingPicker(picker, on.objectsOn);
         const box = ask(state.where(), {
             title: 'A new flow', value: '', ok: 'Create',
             onOk: (name) => {
                 if (!name) throw new Error('A flow needs a name.');
-                return on.create(picker.value, name);
+                return on.create(picker.value, name, thing.value || null);
             },
         });
         box.node.querySelector('div').insertBefore(picker, box.input);
+        box.node.querySelector('div').insertBefore(thing, box.input);
     };
 
     function draw() {
@@ -117,12 +168,7 @@ export function mountFlowList(host, on) {
             if (!byLand.has(r.area_id)) byLand.set(r.area_id, []);
             byLand.get(r.area_id).push(r);
         }
-        for (const a of lands) {
-            const mine = byLand.get(a.id) ?? [];
-            list.append(el('li', { className: 'muted land',
-                textContent: a.name || 'unnamed land' }));
-            for (const r of mine) list.append(line(r, state, on));
-        }
+        for (const a of lands) drawLand(list, state, on, a, byLand.get(a.id) ?? []);
         newBtn.disabled = lands.length === 0;
         empty.textContent = lands.length === 0
             ? 'You build on no land yet, so there is nowhere to put a flow.'
@@ -132,10 +178,11 @@ export function mountFlowList(host, on) {
 
     return {
         node: host,
-        set(nextRows, nextLands, nextOpen) {
+        set(nextRows, nextLands, nextOpen, things = new Map()) {
             state.rows = nextRows ?? [];
             state.lands = nextLands ?? [];
             state.openId = nextOpen ?? null;
+            state.things = things;
             draw();
         },
         rows: () => state.rows,

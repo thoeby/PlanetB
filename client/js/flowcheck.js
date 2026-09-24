@@ -8,7 +8,7 @@
 // scope. Both results are shown, and neither hides the other.
 
 import * as api from './api.js';
-import { parseEnvelope, ApiError } from '../flow/validate.js';
+import { parseEnvelope, ApiError } from '../flow/server/envelope.js';
 import { classifyNets, buildScopeIndex, basePortName } from '../flow/elx/nets.js';
 import { getBlock } from '../flow/plugins/registry.js';
 import { isValidConnection } from '../flow/graph/register.js';

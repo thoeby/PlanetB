@@ -1,7 +1,9 @@
 // @ts-check
 // Copied from wireon-process-editor src/graph/theme.js at ab525305d8ddd7dba7a5592e5cb79d3dbb159e8b; changes:
 // the drawing half of that file, split out for the 400-line rule; the colours
-// come from themetokens.js rather than from black-and-white literals.
+// come from themetokens.js rather than from black-and-white literals; a node
+// the chosen process server lacks (_irMissingOn, TASKS-flows.md FL.2) is
+// hatched like a placeholder.
 /**
  * How a themed litegraph draws a node, its ports and its wires. Each of these
  * replaces one of LGraphCanvas's own methods; theme.js installs them.
@@ -36,7 +38,8 @@ export function wireonDrawNodeShape(node, ctx, size, _fgcolor, _bgcolor, selecte
   // Optional hatch pattern for placeholder nodes (design rule
   // "Unknown-block render"). Drawn behind the white fill so the
   // border still wins.
-  if (node._irPlaceholder) {
+  // FL.2: a block the chosen process server does not have is hatched too.
+  if (node._irPlaceholder || node._irMissingOn) {
     drawHatchedRect(ctx, 0, -titleH, w, h + titleH);
   } else {
     ctx.fillStyle = BG;

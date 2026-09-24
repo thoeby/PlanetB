@@ -20,7 +20,7 @@ test.beforeAll(() => {
     if (!URL_) test.skip(true, 'flow-test: ELX_URL not set, server validation skipped');
 });
 
-// The envelope, read the way client/flow/validate.js reads it — by hand here,
+// The envelope, read the way client/flow/server/envelope.js reads it — by hand here,
 // because this runs in node and that file is the browser's.
 function codeOf(xml) {
     const m = /<code>\s*(-?\d+)\s*<\/code>/.exec(xml);

@@ -432,6 +432,15 @@
   const build = mountBuild(panelFor('Place', 'build'), {
     app, pc, api, camera, origin, terrain, streamer, player, work, preview,
     canvas: view, nearby, wallet, movers,
+    // FL.6: a thing's Flows section opens Automate on one of them, or on a new
+    // one made for it. `flows` is mounted further down; these run on a press.
+    automate: {
+      open: async (row) => { hud.app('Automate'); await flows.openFlow(row); },
+      create: async (area, name, instance) => {
+        hud.app('Automate');
+        await flows.createFor(area, name, instance);
+      },
+    },
     live: { wrote: (id, port, done) => {
       liveWorld.wrote(id, port, done.value, done.rev);
       liveDraw.apply(liveWorld);

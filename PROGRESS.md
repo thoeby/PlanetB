@@ -36,6 +36,20 @@ after standing in the world, proven the same way.
 | 14 | ground already rendered can be asked for again: 'Compile it all again' marks the land changed, and it goes through Submit and an approval like anything else, and the tile is back in the pool | green |
 | 15 | walking and flying: the corner says which one you are in and what the keys do about it, Space climbs, Shift goes down in the air and runs on the ground | green |
 
+The F10 stories (`TASKS-flows.md`) — process servers, and flows on things.
+Proven against `tools/elx-fixture.py`, on a world saved after stories 0, 1, 2,
+4, 5, 10, 20, 21 and 30 (see Blocked in `TASKS-flows.md`):
+
+| what | what it proves | state |
+|---|---|---|
+| 32 | B keeps two process servers, sees both answer, one stops and the bar says so in words, the choice outlives a reload, C sees none of them | green (fixture) |
+| 33 | the palette has alpha's own block and says so; on beta that block is hatched with "beta has no weather" | green (fixture) |
+| 34 | a flow sent to alpha, opened there read-only, duplicated and deleted, sent again only after asking; alpha's sample saved into a land exports byte for byte | green (fixture) |
+| 35 | a service made on alpha from its own plugin's kinds, changed, still changed after a reload, deleted | green (fixture) |
+| 36 | a job with a cron trigger and its next five firings, run now, its report read and found again | green (fixture) |
+| 37 | a flow added to the lamp from its own panel, already pointed at it; opened by C from the lamp; D told why there is nothing to press; detached and attached again | green |
+| 38 | the lamp's flow run on alpha under a key of its own switches the lamp on for A; Stop withdraws the key and a late run is refused | green (fixture) |
+
 What each story forced is in its commit message. Nothing is "done" here
 because a function exists: if the script cannot find the button, the button is
 missing.

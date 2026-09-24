@@ -12,10 +12,15 @@ const path = (b) => [b.plugin, ...b.groupPath].join('/');
 
 // The whole set, once: a block's line is matched on its name, its id and the
 // group path, so "from string" and "strings/from" both find the same thing.
-function lines() {
-    return allBlocks().map((b) => ({
+// `source` (FL.2, flowblocks.js) says which plugins are offered here and which
+// came from the chosen process server rather than the bundle.
+const ALL = { visible: () => true, from: () => '' };
+
+function lines(source = ALL) {
+    return allBlocks().filter((b) => source.visible(b.plugin)).map((b) => ({
         block: b,
-        group: path(b),
+        group: source.from(b.plugin) ? `${path(b)} \u00b7 from ${source.from(b.plugin)}`
+            : path(b),
         label: b.name || b.id,
         hay: `${b.name} ${b.id} ${path(b)}`.toLowerCase().replaceAll(/[-_.]/g, ' '),
     })).sort((a, b) => a.label.localeCompare(b.label));
@@ -55,14 +60,20 @@ function carry(li, block, host, onDrop) {
 }
 
 // The list, and the drag.
-export function mountPalette(host, { onDrop }) {
+export function mountPalette(host, { onDrop, onRefresh }) {
     const search = el('input', { type: 'search', placeholder: 'Search blocks…',
         className: 'fl-search' });
+    const again = el('button', { type: 'button', className: 'fl-blocks-again',
+        textContent: 'Refresh blocks', title: 'Ask the process server for its blocks again' });
+    again.onclick = () => onRefresh?.();
+    again.hidden = !onRefresh;
     const list = el('ul');
-    const node = el('div', { className: 'fl-palette' }, search, list);
+    const node = el('div', { className: 'fl-palette' },
+        el('div', { className: 'fl-palette-head' }, search, again), list);
     host.append(node);
 
     let all = [];
+    let source = ALL;
     const draw = () => {
         list.replaceChildren();
         const found = matching(all, search.value);
@@ -91,7 +102,7 @@ export function mountPalette(host, { onDrop }) {
     return {
         node,
         // Called once the plugins are registered, and again if they change.
-        refresh() { all = lines(); draw(); },
+        refresh(next = source) { source = next; all = lines(source); draw(); },
         blockOf(key) { return all.find((l) => `${l.block.plugin}.${l.block.id}` === key)?.block; },
         focus() { search.focus(); },
         search,

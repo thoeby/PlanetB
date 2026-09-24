@@ -8,7 +8,7 @@
 import * as flows from './flows.js';
 import { importElx, download } from './flowfiles.js';
 import { localProblems, askServer, checkingServer } from './flowcheck.js';
-import { addWorldInputs } from './flowworld.js';
+import { addWorldInputs, setConstant } from './flowworld.js';
 
 // Keys belong to the view while it is open: Ctrl-Z and Ctrl-Shift-Z are undo
 // and redo, Delete takes the selection away, and nothing fires while somebody
@@ -35,21 +35,49 @@ export function bindKeys(root, canvas, save) {
 
 export async function refresh(ctx) {
     const rows = await flows.listFlows();
-    ctx.list.set(rows, await ctx.lands(), ctx.state.open?.id ?? null);
+    const things = await flows.thingNames(
+        [...new Set(rows.map((r) => r.instance_id).filter(Boolean))]);
+    ctx.list.set(rows, await ctx.lands(), ctx.state.open?.id ?? null, things);
     return rows;
+}
+
+// FL.6: a flow made for a thing starts with what reaches it — World Clock, and
+// Write Port pointed at the thing and at its first switch — both wired to the
+// flow's `world` and `world_key`.
+async function seedForThing(canvas, areaId, instance) {
+    const thing = (await flows.objectsOn(areaId)).find((o) => o.id === instance);
+    const clock = canvas.add('world', 'clock.now', [300, 40]);
+    const write = canvas.add('world', 'port.write', [300, 200]);
+    for (const node of [clock, write]) {
+        canvas.wireInput('world', node, 'World');
+        canvas.wireInput('world_key', node, 'World Key');
+    }
+    setConstant(write, 'Object', instance);
+    const port = thing?.ports.find((p) => p.type === 'boolean') ?? thing?.ports[0];
+    if (port) setConstant(write, 'Port', port.name);
 }
 
 // A new flow is an empty one, saved at once: the ELX of an empty flow is still
 // an ELX, and a flow that exists nowhere until it is drawn cannot be listed.
-export async function create(ctx, areaId, name) {
+// A world flow is the player's to change; a process looked at on a server
+// (serverdo.js openRemote, FL.3) was not.
+function writable(ctx, canvas) {
+    canvas.view.read_only = false;
+    ctx.state.remote = null;
+}
+
+export async function create(ctx, areaId, name, instance = null) {
     const canvas = await ctx.boot();
+    writable(ctx, canvas);
     canvas.open(ctx.empty(), {});
     // FND.14: `world` and `world_key` come with every flow, because a World
     // block put in later has nothing to reach the world with otherwise.
     addWorldInputs(canvas);
-    const res = await flows.saveFlow({ areaId, name, elx: canvas.elx(), layout: {} });
+    if (instance) await seedForThing(canvas, areaId, instance);
+    const res = await flows.saveFlow({ areaId, name, elx: canvas.elx(),
+        layout: instance ? canvas.layout() : {}, instance });
     ctx.state.open = { id: res.id, area_id: areaId, name, rev: res.rev,
-        elx_sha256: res.elx_sha256 };
+        elx_sha256: res.elx_sha256, instance_id: instance };
     ctx.bar.name.textContent = name;
     ctx.mark(false);
     ctx.say('saved');
@@ -59,6 +87,7 @@ export async function create(ctx, areaId, name) {
 export async function openFlow(ctx, row) {
     const canvas = await ctx.boot();
     const elx = await flows.elxOf(row.elx_sha256);
+    writable(ctx, canvas);
     canvas.open(ctx.parse(elx), row.layout ?? {});
     ctx.state.open = { ...row };
     ctx.bar.name.textContent = row.name;
@@ -164,7 +193,8 @@ export async function validate(ctx) {
     const flow = ctx.state.dirty ? ctx.canvas.flow() : ctx.parse(text);
     const local = localProblems(flow);
     ctx.problems(local);
-    const url = await checkingServer();
+    // FL.3: the chosen process server is asked; with none chosen, the world's.
+    const url = ctx.server?.current()?.url ?? await checkingServer();
     const answer = await askServer(url, text, location.origin);
     const mine = local.length
         ? `${local.length} problem(s) here`

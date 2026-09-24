@@ -10,6 +10,7 @@ import { spawn, spawnSync } from 'node:child_process';
 import { chmodSync, existsSync, mkdirSync, openSync, readFileSync, rmSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { startProcessServers } from './elx.js';
 
 export const REPO = join(dirname(fileURLToPath(import.meta.url)), '../../..');
 export const SEED_DEM = join(REPO, 'infra/seed/dem-visp.tif');
@@ -278,6 +279,8 @@ export async function startWorld() {
     const stops = [runSize()];
     const geoserver = switchable(await startGeoServer());
     stops.push(() => geoserver.stop());
+    const elx = await startProcessServers();
+    stops.push(() => elx.stop());
     stops.push(startServer());
     const apiUrl = `http://localhost:${API_PORT}`;
     try {
@@ -302,6 +305,7 @@ export async function startWorld() {
         geoserverUrl: geoserver.url,
         geoserverKind: geoserver.kind,
         geoserver,
+        elx,
         forgetGround,
         stop: () => stops.forEach((s) => s()),
     };

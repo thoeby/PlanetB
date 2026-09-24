@@ -251,6 +251,10 @@ export function mountInspector(host, canvas, on) {
                 ? el('p', { className: 'fl-unknown',
                     textContent: `unknown block ${what} \u2014 kept exactly as it came` })
                 : null,
+            // FL.2 (flowblocks.js): known here, but not to the chosen server.
+            node._irMissingOn
+                ? el('p', { className: 'fl-unknown fl-missing', textContent: node._irMissingOn })
+                : null,
             ...parameters(node, on.changed),
             ...(isWorldBlock(node) ? worldFields(node, on.world, on.changed) : []),
             ...constants(node, on.changed, isWorldBlock(node) ? WORLD_PORTS : new Set()),

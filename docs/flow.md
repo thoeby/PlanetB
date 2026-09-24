@@ -147,3 +147,34 @@ same second, and it has answered since FND.14.
 
 `world_events` is still the one that refuses everybody. Nothing reads the
 events yet — flows do, from F10 — but they are written now.
+
+## Process servers (F10)
+
+`TASKS-flows.md` FL.1–FL.7. A player keeps process servers of their own
+(`process_server`, db/0193) and Automate talks to the chosen one directly from
+the tab: its blocks join the palette, and its processes, services, jobs and
+reports are listed and edited under **On <server>**. A flow may belong to a
+placed thing (`flow.instance_id`, db/0194), and **Run on…** in that thing's
+panel sends the flow, makes a job on the server and gives it a key of its own
+(`deploy_flow`, db/0195) that can set ports on that land only. The client for
+all of it is `client/flow/server/`; the stand-in server the stories use is
+`tools/elx-fixture.py`.
+
+**Every story is proven against the fixture only.** What a real server has
+to confirm, each one a working assumption the code states where it makes it:
+
+| what | assumed | where |
+|---|---|---|
+| a new or renamed process's name | `PUT /process?name=` / `PATCH /process/<id>?name=` | `client/flow/server/process.js` |
+| service, job, duplicate write bodies | JSON, as the reference sends them | `client/flow/server/records.js` |
+| `PATCH` / `DELETE /service/<id>` | exist; if not, the sentence of design 10l | `client/js/serverservices.js` |
+| triggers | inside the job body, as a `triggers` array | `records.js jobPayload` |
+| the report list | `GET /report?job_id&limit&offset` | `records.js reports` |
+| live run output | not read; the report is shown instead | `client/js/serverjobs.js` |
+| an XML-only plugin (`world`) | loads (FND.14 branch A) | `client/flow/world/` |
+
+Record the first real run here:
+
+| date | server version | FL stories | what differed |
+|---|---|---|---|
+| — | — | fixture only | — |

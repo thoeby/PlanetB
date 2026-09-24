@@ -17,6 +17,7 @@ import { getAsset, searchAssets } from './catalog.js';
 import { assetRow } from './buildrows.js';
 import { describe, looker, saveAndSay, showChosen } from './buildsay.js';
 import { mountPorts } from './portsui.js';
+import { mountObjectFlows } from './objectflows.js';
 import { mountMovers } from './moversui.js';
 
 const AXES = ['x', 'y', 'z'];
@@ -75,6 +76,8 @@ class Session {
         const areas = await areasAt(g.lon, g.lat).catch(() => []);
         this.state.area = areas.find((a) => a.may_write)
             ?? areas.find((a) => a.may_propose) ?? null;
+        // Whose land this is, for somebody who may do nothing on it (FL.6).
+        this.state.landHere = areas[0] ?? null;
         const tiles = await tilesAt(g.lon, g.lat, this.state.area?.detail ?? 14).catch(() => []);
         return { areas, tiles };
     }
@@ -259,7 +262,7 @@ function wire(host, state, { toggle, catalog, acts, say }) {
 
 // The buttons say what is chosen, so nothing on this panel is only in
 // somebody's head (T5).
-function followSelection(state, ports) {
+function followSelection(state, ports, flowsOf) {
     let showing = null;
     return async () => {
         const row = Edits.isPlacing(state.selected) ? null : state.selected;
@@ -268,6 +271,11 @@ function followSelection(state, ports) {
         const asset = row ? await getAsset(row.san).catch(() => null) : null;
         await ports.show(row && { id: row.id, san: row.san,
             mine: Boolean(state.area?.may_write) }, asset);
+        // FL.6: the flows that belong to it.
+        await flowsOf.show(row && { id: row.id, area_id: row.area_id ?? state.area?.id,
+            name: asset?.name ?? row.san,
+            land: state.area?.name ?? state.landHere?.name ?? 'this land',
+            mine: Boolean(state.area?.may_write) });
     };
 }
 
@@ -278,7 +286,8 @@ export function mountBuild(host, ctx) {
     const { state } = session;
 
     const ports = mountPorts(host, { wrote: ctx.live?.wrote });
-    const showPorts = followSelection(state, ports);
+    const objectFlows = mountObjectFlows(host, ctx.automate ?? {});
+    const showPorts = followSelection(state, ports, objectFlows);
     // FND.16: the buses on this land, and the route being drawn for a new one.
     const movers = mountMovers(host, { clock: () => ctx.movers?.clock() ?? Date.now() / 1000 });
 

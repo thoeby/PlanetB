@@ -125,7 +125,7 @@ chosen. C does not see B's servers.
   this is FND.14's branch A answered, written into `docs/flow.md`.
 
 **Story 33**: `alpha` offers a plugin the bundle lacks; B finds its block by
-search, wires it, saves; switches to `beta` (which lacks it) and sees it
+search, puts it into a flow, saves; switches to `beta` (which lacks it) and sees it
 hatched with the sentence.
 
 ## FL.3 — Processes on a server
@@ -142,10 +142,12 @@ Automate's left column gets a second tab, **On <server>**, beside *My flows*.
   "<server> already has a process called <name>" offers Replace / Rename.
 - Validate (FND.2) asks the **chosen** server, not only `elx_url`.
 
-**Story 34**: B sends flow *Lamp at dusk* to `alpha`; sees it listed there;
-opens it read-only; duplicates it as *Lamp copy*; deletes the copy; saves
-`alpha`'s *file-response* sample into land B as a flow; exports it —
-byte-identical to what `alpha` returned.
+**Story 34**: B sends story 33's flow *Weather check* to `alpha`; sees it
+listed there; opens it read-only; duplicates it and deletes the copy; sends
+it again and is asked before anything is sent over; saves `alpha`'s
+*file-response* sample into land B as a flow; exports it — byte-identical to
+what `alpha` returned. A new process's name travels as `?name=` (the reference
+has nowhere to put one; recorded in `docs/flow.md`).
 
 ## FL.4 — Services on a server
 
@@ -178,7 +180,7 @@ Copied from the reference `joblist.js` / `jobeditor.js` / `jobs/cron.js` /
 - **Reports**: list per job, viewer as a collapsible tree, delete.
 - The world stores none of this.
 
-**Story 36**: B makes job *Dusk* on `alpha` for *Lamp at dusk* with a cron
+**Story 36**: B makes job *Dusk* on `alpha` for *Weather check* with a cron
 trigger, sees the next five firings, runs it now, reads its report.
 
 ## FL.6 — A flow belongs to an object
@@ -204,10 +206,11 @@ land; the thing's panel lists its flows.
   their World section (FND.14's picker still overrides).
 
 **Story 37**: B selects the lamp from story 30, **Add flow**, names it *Lamp
-at dusk*, finds *Write port* already on the lamp's `on`, saves; back in the
-world the lamp's panel lists it; C (build grant) sees and opens it; a player
-without a grant sees the list and no buttons; B detaches it and it shows
-under the land.
+at dusk*, finds *Write port* already on the lamp's `on`, ticks the value,
+saves; back in the world the lamp's panel lists it; C (build grant) opens it
+from the lamp; D, who does not build there, is told why there is nothing to
+press (the flow itself is not readable to D — db/0155's rule); B detaches it
+and attaches it again with **Attach existing…**.
 
 ## FL.7 — Running an object's flow on a server
 
@@ -219,13 +222,18 @@ other people's servers (D12: leases, restarts, price per hour) is FL.8.
   `remote_job_id`, `key_jti`, `created_by`, `created_at`, `revoked_at`.
   RLS as `flow`. One live row per (flow, server).
 - A flow login: role `flow`, a JWT signed by `auth.sign` with `flow_id`,
-  `area_id`, `jti`, `exp` (30 days), issued by `deploy_flow(flow, server)`
-  to whoever may build on the land, returned **once**, never stored (only
+  `area_id`, `jti`, `exp` (30 days), issued by
+  `deploy_flow(flow, server, elx_sha256, process, job)` to whoever may build
+  on the land — the page makes the process and the job on the server first,
+  then writes the key into the job's `world_key` — returned **once**, never stored (only
   its `jti`). `revoke_flow_key(deployment)`.
-- `port_write`, `mover_set`, `world_events` accept role `flow` **for things
-  on that flow's land only**, and only while its `jti` is not revoked. This
-  lifts FND.14's "flows do not run yet" for them; `world_clock` is
-  unchanged. Every write records `written_by` = the flow.
+- `port_write` and `world_clock` accept role `flow` — `port_write` **for
+  things on that flow's land only**, only while its `jti` is not revoked and
+  whoever issued it still builds there. A World block writes its value as the
+  ELX carries it, in words (`"true"`), so `port_write` reads a word as the
+  port's own kind (`port_value_of`). A write is recorded as written by the
+  player who issued the key (`live_state.written_by` is a user; not changed).
+  `mover_set` and `world_events` for a flow: see Blocked.
 - **Run on <server>** (object panel and Automate top bar): sends the ELX
   (FL.3), creates or updates a job with `world` = this world's public URL
   and `world_key` = the new key, trigger chosen in the dialog (manual / cron
@@ -235,11 +243,12 @@ other people's servers (D12: leases, restarts, price per hour) is FL.8.
   has changed since" when `elx_sha256` differs, and the last report's
   result when the server answers.
 
-**Story 38**: B runs *Lamp at dusk* on `alpha` from the lamp's panel; the
-fixture runs the job; a second player sees the lamp switch within 5 s
-(story 30's check); B stops it; the fixture's next run is refused ("this
-flow's key was withdrawn") and the lamp stays as it is. A flow key cannot
-write a port on land C.
+**Story 38**: B switches the lamp off by hand, then runs *Lamp at dusk* on
+`alpha` from the lamp's panel, "Now, once"; the fixture runs the job with the
+key; A, standing by the lamp, sees it go on within 10 s (story 30's check); B
+stops it (asked first, design 10l); a run the fixture makes anyway with the
+old key is refused and the lamp stays as B left it. That a flow key cannot
+write a port on another land is db/test/0195's.
 
 ## FL.8 — The pool (D12)
 
@@ -253,6 +262,28 @@ through the ledger (Invariant 5), Work → Flow runs. Not started here.
 
 ## Blocked
 
+- **Stories 32–38 are green on a world built from stories 0, 1, 2, 4, 5, 10,
+  20, 21 and 30** (saved and replayed with `tools/replay.sh`), the way
+  FND.14–16 were proven, not through a whole run from an empty database:
+  story 8 renders for most of an hour here, and two stories before these
+  fail on the branch as it was found — the next two items.
+- **Story 29 then story 30 in one run fails at 30** (found before any F10
+  change): 29 leaves a lamp where 30 clicks to place one, so the click picks
+  29's lamp up and 30's Save has nothing to save. FND.14–16 were each run
+  from the same saved world, never in sequence.
+- **Story 2 asserted exactly one unsubmitted tile.** In this container the
+  boundary A draws crosses a z14 edge and the land has two. The assertion now
+  reads "one or more"; the count is the map's scale, not the story's.
+- **db/test/0179 and db/test/0186 fail without any F10 migration** (checked
+  on a database migrated to db/0192 only): they assert the pool and the seed
+  grid as they stood before the last commits on the branch (`5f5e272` and
+  before). Not touched here.
+- **`mover_set` and `world_events` do not accept a flow key yet.** `mover_set`
+  asks `is_area_writer(area)` of the caller, and with a flow key the caller
+  is the player who issued it, on every land they write — granting it to
+  `flow` would let the key move buses on the issuer's other lands. It needs
+  the land check `may_write_port` got, inside `mover_set`; `world_events`
+  still refuses everybody (F10's runner). Both are for the task after this.
 - **No real process server has been reached from this container**, so every
   story above is proven against `tools/elx-fixture.py` only. The open wire
   questions (write bodies, service per-record route, trigger path, report

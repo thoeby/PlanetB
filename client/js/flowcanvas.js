@@ -111,6 +111,23 @@ function graphPoint(view, canvasEl, point) {
     return [point.clientX - r.left, point.clientY - r.top];
 }
 
+// FL.6: a block by its plugin and ELX id, where a flow made for a thing starts
+// with it, and a wire from a flow input to one of its inputs.
+function seeding({ graph, LiteGraph }) {
+    return {
+        add(plugin, elxId, at) {
+            const node = newNode(graph, getBlock(plugin, elxId), LiteGraph, at);
+            markGraphDirty(graph);
+            return node;
+        },
+        wireInput(from, node, port) {
+            const src = (graph._nodes ?? []).find((n) => n._irName === from);
+            const slot = (node.inputs ?? []).findIndex((i) => i.name === port);
+            if (src && slot >= 0) src.connect(0, node, slot);
+        },
+    };
+}
+
 // What the workspace holds on to: the graph, and everything it asks of it.
 function handle(parts, on) {
     const { graph, view, palette, history, load, select, fit } = parts;
@@ -150,6 +167,7 @@ function handle(parts, on) {
             on.selected?.(null);
             return sel.length;
         },
+        ...seeding(parts),
         // The same placement importFlow uses when a flow has no layout at all.
         relayout() {
             const pos = autoLayout(exportFlow(graph), getBlock);
@@ -230,7 +248,7 @@ export function mountCanvas(host, { LiteGraph, LGraph, LGraphCanvas }, on = {}) 
         // rather than leave the player pressing a line that does nothing.
         try {
             const node = newNode(graph, block, LiteGraph, graphPoint(view, canvasEl, point));
-            markGraphDirty(graph);
+            on.placed?.(node); markGraphDirty(graph);
             select(node);
             return node;
         } catch (err) {
@@ -238,7 +256,7 @@ export function mountCanvas(host, { LiteGraph, LGraph, LGraphCanvas }, on = {}) 
             return null;
         }
     };
-    const palette = mountPalette(bench, { onDrop: put });
+    const palette = mountPalette(bench, { onDrop: put, onRefresh: on.refreshBlocks });
     wireDrop(wrap, palette, put, on.files);
 
     let hash = '';
@@ -267,6 +285,6 @@ export function mountCanvas(host, { LiteGraph, LGraph, LGraphCanvas }, on = {}) 
 
     // The breadcrumb into a subflow is attachSubgraphChrome's own element,
     // appended to the wrapper it was given (`.subgraph-breadcrumb`).
-    return handle({ node: host, graph, view, palette, history, load, select,
+    return handle({ node: host, graph, view, palette, history, load, select, LiteGraph,
         fit, addPseudo, crumb: () => wrap.querySelector('.subgraph-breadcrumb') }, on);
 }
