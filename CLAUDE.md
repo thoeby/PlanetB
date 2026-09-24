@@ -2,7 +2,8 @@
 
 Read `ARCHITECTURE.md` first, then work through **`PLAYER-RUN.md`** in order,
 and when its fifteen stories are green, **`TASKS-foundation.md`** (the
-decisions it implements are in `PLAN-foundation.md`): the stories of
+decisions it implements are in `PLAN-foundation.md`), then
+**`TASKS-flows.md`** (F10: process servers, flows on objects): the stories of
 `docs/SPEC.md` §3, each proven by a script that behaves like a player. One
 story = one commit. Do not start a story whose predecessor is not green on the
 same run. `TASKS.md` and `TASKS-usable.md` are history.
