@@ -15,8 +15,8 @@ full Switzerland raster seed, and WP0.11's QGIS round trip (`HANDOFF.md` §6).
 |---|---|---|
 | PostgreSQL 16 + PostGIS | the world, jobs, atoms, ledger, auth | 5432 (loopback) |
 | PostgREST 12 | the only API (`http://host:3000`) | 3000 (loopback) |
-| nginx | immutable file store `/assets /tiles /jobs /geo`, static client under `/app/` | 8080 |
-| GeoServer 2.26 | publishes the operator's elevation over WCS, nothing else | 8081 (loopback) |
+| nginx | immutable file store `/assets /tiles /jobs /geo`, static client under `/app/` | 8081 |
+| GeoServer 2.26 | publishes the operator's elevation over WCS, nothing else | 8083 (loopback) |
 
 The server executes no compute. Every atom (assemble, sample, merge, sog,
 train, verify) runs in a player's browser tab (Invariant 9). There is no cron
@@ -37,7 +37,7 @@ make db-reset                # creates the database and applies db/*.sql
 are `localhost:5432`, user `postgres`. It drops and recreates the database, so
 run it once at install and never on a live world.
 
-Then open `http://localhost:8080/app/play.html`.
+Then open `http://localhost:8081/app/play.html`.
 
 `infra/compose.yml` passes `docker compose config` but has not been started on
 a box with a Docker daemon; every gate so far ran against the four processes
@@ -91,10 +91,10 @@ on `localhost`. nginx answers CORS for the store, so the client may be served
 from another origin.
 
 Compose binds Postgres, PostgREST and GeoServer to `127.0.0.1`; only the file
-store (8080, which also serves the client) listens on all interfaces. For a
-public deployment put a TLS proxy in front of 8080 and 3000, and edit the
+store (8081, which also serves the client) listens on all interfaces. For a
+public deployment put a TLS proxy in front of 8081 and 3000, and edit the
 `<meta>` endpoints accordingly. The `geoserver` database role has `BYPASSRLS`.
-It is the operator's door; never expose port 8081 or that role to the internet.
+It is the operator's door; never expose port 8083 or that role to the internet.
 
 The user `seed@splatworld.local` that the seed tools create is an `admin`
 whose password hash is locked; it cannot log in. Create your own admin with

@@ -61,7 +61,7 @@ It creates the database, applies the schema, starts PostgREST, serves the
 client, and opens the browser at the setup page. Leave it running; `Ctrl-C`
 stops it. Later `git pull`s apply their own migrations on the next `run`.
 
-It prints the address it is serving on — usually `http://127.0.0.1:8080`, but
+It prints the address it is serving on — usually `http://127.0.0.1:8081`, but
 if something else holds that port (GeoServer often does) it moves up and says
 so. The pages are told which port they landed on, so nothing needs editing.
 
@@ -72,7 +72,7 @@ Stuck? `splatworld doctor` prints everything it resolved and what is missing.
 | | |
 |---|---|
 | **1 · Your account** | an email and a password (8+ characters). You sign in with it, and QGIS draws as it. |
-| **2 · Your GeoServer** | the address that opens its pages, e.g. `localhost:8081/geoserver`, and a login that may read your elevation. **Connect** asks its WCS what it publishes. Nothing is created on it: it serves the elevation and nothing else. |
+| **2 · Your GeoServer** | the address that opens its pages, e.g. `localhost:8082/geoserver`, and a login that may read your elevation. **Connect** asks its WCS what it publishes. Nothing is created on it: it serves the elevation and nothing else. |
 | **3 · Elevation** | after you have drawn an area, this works out the region from what you drew and fetches free Copernicus elevation for exactly that. Nothing to type. |
 
 You need a GeoServer for step 2 — [it's a zip and a script](https://geoserver.org/download/),

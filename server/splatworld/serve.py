@@ -106,7 +106,7 @@ def point_at_this_server(html: bytes, cfg: Config) -> bytes:
     """Rewrites the client's endpoint tags to wherever this server actually is.
 
     client/*.html carry `<meta name="splatworld:api|files">` pointing at
-    localhost:3000 and :8080. Those are only right when nothing forced a
+    localhost:3000 and :8081. Those are only right when nothing forced a
     different port — and Windows does force one: 8080 often falls inside a
     reserved range and cannot be bound at all. The page is served by the very
     server it has to talk to, so it is told the truth on the way out rather

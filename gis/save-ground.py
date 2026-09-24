@@ -10,7 +10,7 @@ It is a plain script rather than a Processing algorithm because headless QGIS
 runs a plain script and nothing else is needed: see docs/manual.md.
 
     from save_ground import save
-    save(layer, area_id, world="http://localhost:8080",
+    save(layer, area_id, world="http://localhost:8081",
          email="ben@example.com", password="…")
 
 `layer` is the "Ground shaping (m)" raster as QGIS holds it, after whatever

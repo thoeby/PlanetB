@@ -4,7 +4,7 @@
 # Runs against $FILES_URL (the compose stack) or starts a local nginx+postgrest.
 set -euo pipefail
 
-FILES_URL=${FILES_URL:-http://localhost:8080}
+FILES_URL=${FILES_URL:-http://localhost:8081}
 API_URL=${API_URL:-http://localhost:3000}
 PSQL="psql -v ON_ERROR_STOP=1 --no-psqlrc -q -t -A"
 PASS=0

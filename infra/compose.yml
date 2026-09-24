@@ -14,7 +14,7 @@ services:
       - app.jwt_secret=${JWT_SECRET:?set JWT_SECRET in .env}
     # Loopback only: the defaults in .env.example are not secrets, and players
     # connect to this database with logins of their own (db/0065_playerroles).
-    # Only the file store (8080) faces the world; put a TLS proxy in front of
+    # Only the file store (8081) faces the world; put a TLS proxy in front of
     # it and of PostgREST for anything public.
     ports:
       - "127.0.0.1:5432:5432"
@@ -51,7 +51,7 @@ services:
       - ${FILES_ROOT:-./infra/files}:/srv/files
       - ./client:/srv/client:ro
     ports:
-      - "8080:80"
+      - "8081:80"
 
   # The operator's elevation, over WCS, and nothing else (Invariant 9): QGIS
   # connects to the database as the player (SPEC §2.11), so this no longer
@@ -63,7 +63,7 @@ services:
       GEOSERVER_ADMIN_PASSWORD: ${GEOSERVER_ADMIN_PASSWORD:?set GEOSERVER_ADMIN_PASSWORD in .env}
       SKIP_DEMO_DATA: "true"
     ports:
-      - "127.0.0.1:8081:8080"
+      - "127.0.0.1:8083:8080"
     volumes:
       - geoserver-data:/opt/geoserver_data
 

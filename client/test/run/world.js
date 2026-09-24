@@ -15,9 +15,9 @@ export const REPO = join(dirname(fileURLToPath(import.meta.url)), '../../..');
 export const SEED_DEM = join(REPO, 'infra/seed/dem-visp.tif');
 export const FILES_ROOT = join(REPO, 'infra/files');
 
-const PORT = Number(process.env.RUN_PORT ?? 8080);
+const PORT = Number(process.env.RUN_PORT ?? 8081);
 const API_PORT = Number(process.env.RUN_API_PORT ?? 3000);
-const GS_PORT = Number(process.env.RUN_GEOSERVER_PORT ?? 8081);
+const GS_PORT = Number(process.env.RUN_GEOSERVER_PORT ?? 8083);
 
 const sh = (cmd, args, opts = {}) => spawnSync(cmd, args, {
     cwd: REPO, encoding: 'utf8', ...opts,
@@ -184,7 +184,7 @@ async function startGeoServer() {
             'pull', '-q', 'geoserver']).status === 0) {
         sh('docker', ['compose', '-f', 'infra/compose.yml', '--project-directory', '.',
             'up', '-d', 'geoserver']);
-        const url = 'http://127.0.0.1:8081/geoserver';
+        const url = 'http://127.0.0.1:8083/geoserver';
         await waitFor(`${url}/wcs?service=WCS&version=1.0.0&request=GetCapabilities`,
             300, 'the GeoServer container');
         return {

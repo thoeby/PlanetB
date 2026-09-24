@@ -6,7 +6,7 @@
 set -euo pipefail
 
 API_URL=${API_URL:-http://localhost:3000}
-FILES_URL=${FILES_URL:-http://localhost:8080}
+FILES_URL=${FILES_URL:-http://localhost:8081}
 FILES_ROOT=${FILES_ROOT:-./infra/files}
 export API_URL FILES_URL
 
