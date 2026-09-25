@@ -37,9 +37,11 @@ SELECT columns_are('public', 'approval', ARRAY['proposal_id', 'reviewer_id', 'at
 SELECT columns_are('public', 'asset', ARRAY[
     'san', 'sha256', 'canon_version', 'name', 'category', 'bbox', 'tris',
     'tex_bytes', 'license', 'price', 'editions', 'issued', 'creator_id',
-    'created_at', 'thumb_sha256', 'type', 'parts']);
+    'created_at', 'thumb_sha256', 'type', 'parts',
+    'pointer', 'policy', 'term']);
 SELECT columns_are('public', 'asset_right', ARRAY[
-    'san', 'holder_id', 'acquired_at', 'ref']);
+    'san', 'holder_id', 'acquired_at', 'ref',
+    'follow', 'sha256', 'until']);
 -- `suspect` is WP3.3's (db/0018_spot.sql): a failed spot check flags the tile
 -- rather than unpublishing it.
 -- The candidate columns are db/0044_permission.sql's: what a renderer produced

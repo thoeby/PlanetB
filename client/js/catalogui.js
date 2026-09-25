@@ -6,7 +6,7 @@
 
 import * as api from './api.js';
 import { myRights, offerOf, orderAsset } from './wallet.js';
-import { CATEGORIES, LICENSES, TYPES, getAsset, glbUrl,
+import { CATEGORIES, LICENSES, TYPES, getAsset, glbUrl, policyWords,
     searchAssets, thumbUrl, typeWords } from './catalog.js';
 import { mountMarksForm } from './catalogmarks.js';
 import { Upload, fmtBytes } from './catalogupload.js';
@@ -90,6 +90,7 @@ function detailOf(asset) {
         ['licence', asset.license === 'limited'
             ? `limited, ${asset.issued}/${asset.editions} issued` : asset.license],
         ['price', String(asset.price)],
+        ['if you buy it', policyWords(asset)],
         ['triangles', String(asset.tris)],
         ['textures', fmtBytes(asset.tex_bytes)],
         ['size', asset.bbox?.min ? asset.bbox.max.map((v, i) =>

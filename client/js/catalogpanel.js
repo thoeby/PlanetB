@@ -88,6 +88,12 @@ const HTML = `
       </div>
       <div class="note">0 is free to place. A number of editions makes it
         limited: that many placements exist, ever.</div>
+      <label for="upload-policy">Sold as</label>
+      <select id="upload-policy">
+        <option value="once">bought once — keeps its version, receives fixes</option>
+        <option value="subscription">a subscription — updates while paid, 30 days</option>
+        <option value="pinned">this exact version, for good</option>
+      </select>
       <button id="publish" type="button" class="primary" disabled>Register</button>
       <p id="upload-status" class="status"></p>
     </div>
