@@ -23,6 +23,8 @@ export function mountBlueprintMode(ctx) {
     const { bp, app, pc } = ctx;
     const host = ctx.host ?? document.getElementById('hud') ?? document.body;
     const cam = new BlueprintCamera(bp, ctx);
+    // A right click on the clay is the surface's to answer.
+    ctx.onContext = (e) => st.surface?.context?.(pick(e), e);
     const words = mountGroundTag(host);
     const strip = mountProfileStrip(host);
     const side = mountBlueprintSide(host, { bp, cam });

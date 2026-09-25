@@ -18,3 +18,15 @@
 .kp-swatch { width: 12px; height: 12px; display: block; }
 .kp-says { font-size: 11px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .kp-kind kbd { justify-self: end; }
+
+/* A right click on a node: its four deeds (EDT.15). */
+#ln-menu {
+  position: absolute; z-index: 40; display: flex; flex-direction: column; min-width: 220px;
+  padding: 4px; --cut: 6px;
+}
+#ln-menu[hidden] { display: none; }
+#ln-menu button {
+  text-align: left; background: none; border: 0; padding: 6px 10px; color: var(--ink);
+  cursor: pointer; font-size: 12px;
+}
+#ln-menu button:hover { background: rgba(255, 255, 255, 0.07); }

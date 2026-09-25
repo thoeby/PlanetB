@@ -14,16 +14,19 @@ export function colourOf(pc, hex, k = 1) {
         (n & 255) / 255 * k);
 }
 
-// The centre and both edges of a line's band, in degrees.
-export function bandOf(line, width) {
+// The centre and both edges of a line's band, in degrees. `width` is the
+// line's, or `widths` one per node (a handle was moved, EDT.15): each point
+// of the curve takes the width of the node segment it is on, blended.
+export function bandOf(line, width, widths = null) {
     const centre = curveOf(line);
     if (centre.length < 2) return { centre, left: [], right: [] };
     const f = frameAt(centre[0].lon, centre[0].lat);
     const xz = centre.map((p) => f.toXZ(p.lon, p.lat));
-    const half = Math.max(0.1, width / 2);
+    const at = widths ? widthAlong(line, xz, f, widths) : null;
     const left = [];
     const right = [];
     for (let i = 0; i < xz.length; i++) {
+        const half = Math.max(0.1, (at ? at[i] : width) / 2);
         const a = xz[Math.max(0, i - 1)];
         const b = xz[Math.min(xz.length - 1, i + 1)];
         const d = Math.hypot(b[0] - a[0], b[1] - a[1]) || 1;
@@ -35,9 +38,29 @@ export function bandOf(line, width) {
     return { centre, left, right };
 }
 
+// Each curve point's width, blended between the nodes either side of it.
+function widthAlong(line, xz, f, widths) {
+    const nodes = line.nodes.map((n) => f.toXZ(n.lon, n.lat));
+    return xz.map((p) => {
+        let best = { d: Infinity, i: 0, t: 0 };
+        for (let i = 0; i + 1 < nodes.length; i++) {
+            const [a, b] = [nodes[i], nodes[i + 1]];
+            const d2 = (b[0] - a[0]) ** 2 + (b[1] - a[1]) ** 2 || 1;
+            const t = Math.max(0, Math.min(1, ((p[0] - a[0]) * (b[0] - a[0])
+                + (p[1] - a[1]) * (b[1] - a[1])) / d2));
+            const d = Math.hypot(p[0] - a[0] - t * (b[0] - a[0]), p[1] - a[1] - t * (b[1] - a[1]));
+            if (d < best.d) best = { d, i, t };
+        }
+        const next = widths[Math.min(widths.length - 1, best.i + 1)];
+        return widths[best.i] * (1 - best.t) + next * best.t;
+    });
+}
+
 function drawOne(bp, app, pc, line, { swatch, width, lit = false }) {
     if (line.nodes.length < 2) return;
-    line.cache = line.cache ?? bandOf(line, Number(line.props?.width) || width || 2);
+    const own = line.props?.widths?.length === line.nodes.length ? line.props.widths.map(Number)
+        : null;
+    line.cache = line.cache ?? bandOf(line, Number(line.props?.width) || width || 2, own);
     const c = line.cache;
     const edge = colourOf(pc, swatch, lit ? 1 : 0.75);
     drawPath(bp, app, pc, c.left, edge, { step: 6 });

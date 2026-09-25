@@ -14,6 +14,9 @@ import { aroundLand, snapNode } from './linesnap.js';
 import { Shaping } from './sculpt.js';
 import { drawTool, dropLast } from './linetool.js';
 import { drawLines } from './linedraw.js';
+import { deleteNode, handlesOf, hitAt, selectTool } from './lineedit.js';
+import { mountNodeMenu } from './linesmenu.js';
+import { drawMark } from './bpdraw.js';
 import { mountKindPicker } from './kindpicker.js';
 import { mountLeave } from './shapesave.js';
 import { el, icon } from './tabbar.js';
@@ -71,7 +74,7 @@ export function mountLines(host, ctx, { lands = () => [] } = {}) {
     host.append(node);
     const q = (sel) => node.querySelector(sel);
     const state = { on: false, tool: 'draw', lines: null, drawing: null, at: null,
-        selected: null, entries: [], areas: [] };
+        selected: null, node: null, entries: [], areas: [] };
     const say = (msg, bad = false) => {
         q('.ln-status').textContent = msg;
         q('.ln-status').dataset.bad = bad ? '1' : '';
@@ -81,7 +84,9 @@ export function mountLines(host, ctx, { lands = () => [] } = {}) {
     const acts = actsOf(ctx, state, say, picker);
     const rail = railOf((id) => pickTool(q, state, id, say), acts);
     q('.ln-bar').append(rail.tools, rail.deeds);
+    acts.pickTool = (id) => pickTool(q, state, id, say);
     const surface = linesSurface(ctx, state, acts, say);
+    acts.deleteNode = surface.deleteNode;
     q('.ln-land').addEventListener('change', (e) => chooseLand(ctx, state, e.target.value,
         surface, say));
     bindKeys(state, acts, picker, (id) => pickTool(q, state, id, say));
@@ -170,8 +175,12 @@ function actsOf(ctx, state, say, picker) {
         undo() {
             if (state.drawing && dropLast(state, say)) return;
             say(state.lines?.undo() ? 'undone' : 'nothing to undo');
+            reselect(state);
         },
-        redo() { say(state.lines?.redo() ? 'redone' : 'nothing to redo'); },
+        redo() {
+            say(state.lines?.redo() ? 'redone' : 'nothing to redo');
+            reselect(state);
+        },
         async save() {
             if (!state.lines?.dirty) { say('nothing drawn yet'); return null; }
             try {
@@ -200,12 +209,21 @@ function pickTool(q, state, id, say) {
 
 function linesSurface(ctx, state, acts, say) {
     const draw = drawTool(state, { ...acts, say });
+    const tol = () => 12 * metresPerPx(ctx);
+    const said = (words) => say(words ?? describeSelected(state));
+    const select = selectTool(state, { ...acts, tol, said });
+    const menu = mountNodeMenu(document.getElementById('hud') ?? document.body, { state,
+        done: (id, words) => {
+            if (id === 'extend' && words) acts.pickTool('draw');
+            say(words ?? 'that does not apply here', !words);
+        } });
     const look = (line) => entryOf(state.entries, line.kind, line.props) ?? {};
+    const tool = () => (state.tool === 'draw' ? draw : state.tool === 'select' ? select : null);
     return {
         tool: () => (state.tool === 'draw' || state.tool === 'select' ? 'tool' : state.tool),
-        down: (g, e) => { if (state.tool === 'draw') draw.down(g, e); },
-        move: (g, e) => { if (g) state.at = g; if (state.tool === 'draw') draw.move(g, e); },
-        up: (g, e) => { if (state.tool === 'draw') draw.up(g, e); },
+        down: (g, e) => tool()?.down(g, e),
+        move: (g, e) => { if (g) state.at = g; tool()?.move(g, e); },
+        up: (g, e) => tool()?.up(g, e),
         // Where a node would land, said at the pointer before it is dropped.
         hover: (g, e) => {
             if (g) state.at = g;
@@ -213,10 +231,39 @@ function linesSurface(ctx, state, acts, say) {
         },
         describe: (g, base) => (state.snap ? { ...base, snapped: state.snap.hit,
             inside: !state.snap.refused } : base),
-        draw: () => drawLines(ctx.bp, ctx.app, ctx.pc, { lines: state.lines?.live ?? [],
-            drawing: state.drawing, look, selected: state.selected,
-            at: state.tool === 'draw' ? state.at : null }),
+        // A right click on a node of the selected line: its menu.
+        context: (g, e) => {
+            const hit = g && hitAt(state.lines?.live ?? [], state.selected, g, tol());
+            if (hit?.kind === 'node') menu.open(hit.line, hit.i, e.clientX, e.clientY);
+        },
+        draw: () => {
+            drawLines(ctx.bp, ctx.app, ctx.pc, { lines: state.lines?.live ?? [],
+                drawing: state.drawing, look, selected: state.selected,
+                at: state.tool === 'draw' ? state.at : null, ghosts: state.ghosts });
+            if (state.selected) {
+                for (const h of handlesOf(state.selected)) {
+                    drawMark(ctx.bp, ctx.app, ctx.pc, h, new ctx.pc.Color(0.3, 0.85, 1), 0.8);
+                }
+            }
+        },
+        deleteNode: () => deleteNode(state, { said }),
     };
+}
+
+// Undo puts back copies of the lines, so the selection follows its key.
+function reselect(state) {
+    const key = state.selected?.key;
+    state.selected = key ? state.lines?.live.find((l) => l.key === key) ?? null : null;
+    if (!state.selected) state.node = null;
+}
+
+// What the selected line is, in a line.
+function describeSelected(state) {
+    const l = state.selected;
+    if (!l) return 'nothing selected — click a line';
+    const n = state.node;
+    return `${l.kind}${l.props?.[l.kind] ? ` \u00b7 ${l.props[l.kind]}` : ''}, ${l.nodes.length}`
+        + ` nodes${Number.isInteger(n) ? ` \u00b7 node ${n + 1} in hand` : ''}`;
 }
 
 // The rail's keys, the kinds on 1–9, Enter and Esc while a line is being
@@ -236,6 +283,10 @@ function bindKeys(state, acts, picker, pick) {
             e.preventDefault();
             e.stopImmediatePropagation();
             dropLast(state, acts.say);
+            return;
+        }
+        if ((e.key === 'Delete' || e.key === 'Backspace') && acts.deleteNode?.()) {
+            e.preventDefault();
             return;
         }
         const tool = LINE_TOOLS.find((t) => t.key === e.key.toLowerCase());

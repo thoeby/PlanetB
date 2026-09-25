@@ -166,16 +166,25 @@ export class BlueprintCamera {
             ['pointerdown', (e) => {
                 if (e.button !== 1 && e.button !== 2) return;
                 e.preventDefault();
-                orbiting = { x: e.clientX, y: e.clientY };
+                orbiting = { x: e.clientX, y: e.clientY, from: [e.clientX, e.clientY] };
             }],
             ['pointermove', (e) => {
                 if (!orbiting) return;
                 this.state = { ...this.state, ...orbitBy(this.state, e.clientX - orbiting.x,
                     e.clientY - orbiting.y) };
-                orbiting = { x: e.clientX, y: e.clientY };
+                orbiting = { ...orbiting, x: e.clientX, y: e.clientY };
                 this.update();
             }],
-            ['pointerup', () => { orbiting = null; }],
+            // A right press that did not move is a click: the surface's
+            // context menu (client/js/lineedit.js), not an orbit.
+            ['pointerup', (e) => {
+                const was = orbiting;
+                orbiting = null;
+                if (was && e.button === 2
+                    && Math.hypot(e.clientX - was.from[0], e.clientY - was.from[1]) < 4) {
+                    this.ctx.onContext?.(e);
+                }
+            }],
             ['contextmenu', (e) => e.preventDefault()],
             ['keydown', (e) => {
                 if (e.target?.closest?.('input, select, textarea, [contenteditable]')) return;
