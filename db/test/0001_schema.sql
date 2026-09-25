@@ -26,7 +26,8 @@ SELECT columns_are('public', 'feature', ARRAY[
     'id', 'area_id', 'kind', 'geom', 'props', 'rev', 'deleted_at']);
 SELECT columns_are('public', 'instance', ARRAY[
     'id', 'area_id', 'san', 'lon', 'lat', 'h', 'yaw', 'pitch', 'roll', 'scale',
-    'props', 'rev', 'deleted_at', 'geom']);
+    'props', 'rev', 'deleted_at', 'geom',
+    'holder_player', 'holder_instance', 'carry']);
 SELECT columns_are('public', 'proposal', ARRAY[
     'id', 'area_id', 'author_id', 'state', 'diff', 'created_at']);
 SELECT columns_are('public', 'approval', ARRAY['proposal_id', 'reviewer_id', 'at']);

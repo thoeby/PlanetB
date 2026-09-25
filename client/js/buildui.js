@@ -16,6 +16,7 @@ import { Edits, SNAP, areasAt, raycastGround, snapTo, tilesAt }
 import { getAsset, searchAssets } from './catalog.js';
 import { assetRow } from './buildrows.js';
 import { describe, looker, saveAndSay, showChosen } from './buildsay.js';
+import { mountHolding } from './holding.js';
 import { mountPorts } from './portsui.js';
 import { mountObjectFlows } from './objectflows.js';
 import { mountMovers } from './moversui.js';
@@ -262,13 +263,15 @@ function wire(host, state, { toggle, catalog, acts, say }) {
 
 // The buttons say what is chosen, so nothing on this panel is only in
 // somebody's head (T5).
-function followSelection(state, ports, flowsOf) {
+function followSelection(state, ports, flowsOf, holding) {
     let showing = null;
     return async () => {
         const row = Edits.isPlacing(state.selected) ? null : state.selected;
         if ((row?.id ?? null) === showing) return;
         showing = row?.id ?? null;
         const asset = row ? await getAsset(row.san).catch(() => null) : null;
+        // LV.4: a thing that may be carried may be picked up by anybody.
+        holding.show(row, asset);
         await ports.show(row && { id: row.id, san: row.san,
             mine: Boolean(state.area?.may_write) }, asset);
         // FL.6: the flows that belong to it.
@@ -287,7 +290,10 @@ export function mountBuild(host, ctx) {
 
     const ports = mountPorts(host, { wrote: ctx.live?.wrote });
     const objectFlows = mountObjectFlows(host, ctx.automate ?? {});
-    const showPorts = followSelection(state, ports, objectFlows);
+    const holding = mountHolding(host, { camera: ctx.camera, origin: ctx.origin,
+        terrain: ctx.terrain,
+        changed: async () => { state.selected = null; await acts.sync(); } });
+    const showPorts = followSelection(state, ports, objectFlows, holding);
     // FND.16: the buses on this land, and the route being drawn for a new one.
     const movers = mountMovers(host, { clock: () => ctx.movers?.clock() ?? Date.now() / 1000 });
 
@@ -327,7 +333,8 @@ export function mountBuild(host, ctx) {
     wire(host, state, { toggle, catalog, acts, say });
     say();
 
-    return { state, toggle, refresh, catalog, ports, movers, ...acts,
+    holding.refresh();
+    return { state, toggle, refresh, catalog, ports, movers, holding, ...acts,
         pick: (s) => session.pick(s),
         drawGizmo: () => drawGizmo(ctx, state), edits: session.edits,
         setBrush: (a) => { state.brush = a; say(); } };

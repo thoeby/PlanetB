@@ -14,6 +14,7 @@ import { el } from './poolui.js';
 import { PORTS, ROLES, canonMarks, portWords, roleWords, triggerWords }
     from '../lib/marks.js';
 import { triggerForm } from './catalogtriggers.js';
+import { carryForm } from './catalogcarry.js';
 
 const NONE = 'part of the model';
 
@@ -155,7 +156,7 @@ export function mountMarksForm(host, { onChange } = {}) {
             paint();
         }), ...(state.at ? [roleForm(state, changed), portForm(state, changed)] : [])
             .filter(Boolean), ...[liveForm(state, changed)].filter(Boolean),
-        triggerForm(state, changed));
+        triggerForm(state, changed), carryForm(state, changed));
         onChange?.(value(), state.at);
     };
     const changed = (apply) => { apply(); paint(); };
