@@ -37,7 +37,7 @@ test('story 54 — open Shape, see white land, get his eyes back on close',
 
         await test.step('the plinth is six surfaces, Shape on 4 and Lines on 5', async () => {
             await expect(page.locator('#tabs .tab .label'))
-                .toHaveText(['Place', 'Catalog', 'Land', 'Shape', 'Lines', 'Publish']);
+                .toHaveText(['Place', 'Inventory', 'Land', 'Shape', 'Lines', 'Publish']);
             await expect(page.locator('#tabs .tab .key'))
                 .toHaveText(['1', '2', '3', '4', '5', '6']);
         });

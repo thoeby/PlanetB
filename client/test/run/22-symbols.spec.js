@@ -11,21 +11,11 @@
 
 import { test, expect, open, panel, signIn, UI } from './players.js';
 import { differs } from './pixels.js';
+import { sanOf } from './selling.js';
 
 const said = (a) => a.page.locator('.sy-status');
 const preview = (a) => a.page.locator('.sy-preview');
 
-// The catalogue number of a product, found by its name the way a person
-// finds it: in the catalog.
-async function sanOf(a, name) {
-    await panel(a, 'Catalog');
-    await a.page.locator('#type').selectOption('');
-    await a.page.locator('#q').fill(name);
-    await a.page.getByRole('button', { name: 'Find' }).click();
-    const card = a.page.locator('#results li', { hasText: name }).first();
-    await expect(card).toBeVisible({ timeout: UI });
-    return (await card.locator('.san').textContent()).trim();
-}
 
 // 1 — the rules of every world before this one are symbols, and they are here,
 // under the kind of thing each is about, with what it lays down counted.

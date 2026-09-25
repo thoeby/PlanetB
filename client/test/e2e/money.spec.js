@@ -192,10 +192,11 @@ test('I buy their asset, and the edition count says so', async ({ page }) => {
         await api.login(e, p);
     }, [WORKER, PW]);
     await page.evaluate(() => window.splatworld.catalog.refresh());
+    await page.evaluate(() => window.splatworld.hud.show('Shop'));
     await page.evaluate((san) => window.splatworld.catalog.open(san), asset.san);
 
     const buy = page.locator('button.buy');
-    await expect(buy).toHaveText('buy for 7');
+    await expect(buy).toHaveText('Buy new · 7.00');
     await buy.click();
     await expect(page.locator('button.buy')).toHaveText('you hold this');
 

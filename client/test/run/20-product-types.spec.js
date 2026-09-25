@@ -10,6 +10,7 @@ import { join } from 'node:path';
 
 import { test, expect, open, panel, signIn, UI } from './players.js';
 import { REPO } from './world.js';
+import { onSale, register, sanOf, step } from './selling.js';
 
 const fixture = (name) => join(REPO, 'client/test/fixtures/assets', name);
 
@@ -22,11 +23,13 @@ const HUGE = fixture('too-big.png');
 const said = (c) => c.page.locator('#upload-status');
 
 async function registers(c, type, name, fill) {
-    await panel(c, 'Catalog');
+    await onSale(c);
     await c.page.locator('#upload-type').selectOption(type);
+    await step(c, 'price');
     await c.page.locator('#name').fill(name);
+    await step(c, 'model');
     await fill();
-    await c.page.locator('#publish').click();
+    await register(c);
 }
 
 // 1 — a repeating piece says how long its repeat is.
@@ -54,15 +57,6 @@ async function theMaterials(c) {
     return { asphalt: await sanOf(c, 'Asphalt'), kerb: await sanOf(c, 'Kerb stone') };
 }
 
-// The catalogue number of a product, found by its name.
-async function sanOf(c, name) {
-    await c.page.locator('#type').selectOption('');
-    await c.page.locator('#q').fill(name);
-    await c.page.getByRole('button', { name: 'Find' }).click();
-    const card = c.page.locator('#results li', { hasText: name }).first();
-    await expect(card).toBeVisible({ timeout: UI });
-    return (await card.locator('.san').textContent()).trim();
-}
 
 // 3 — a road's cross-section: asphalt across the middle, a kerb either side.
 async function theProfile(c, mats) {
@@ -119,7 +113,7 @@ async function theCollection(c) {
 
 // 5 — none of them is placed, and the catalog finds them by what they are.
 async function whereTheyAreNot(c) {
-    await panel(c, 'Catalog');
+    await panel(c, 'Shop');
     await c.page.locator('#type').selectOption('collection');
     await c.page.locator('#q').fill('');
     await c.page.getByRole('button', { name: 'Find' }).click();

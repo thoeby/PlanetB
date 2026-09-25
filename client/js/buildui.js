@@ -21,6 +21,7 @@ import { mountUpdates } from './updatesui.js';
 import { mountPorts } from './portsui.js';
 import { mountObjectFlows } from './objectflows.js';
 import { mountMovers } from './moversui.js';
+import { frameFor } from './buildframe.js';
 
 const AXES = ['x', 'y', 'z'];
 const MODES = { move: 'move', turn: 'turn', size: 'size' };
@@ -230,17 +231,31 @@ function toggler(host, ctx, state, { acts, onKey, onClick, say }) {
     };
 }
 
-async function fillCatalog(host, state, say, search) {
+// UI.3: the panel says how to put a picked product down; picked from the
+// Inventory (`frame`), the camera also steps back and up to fit its size. A
+// pick from the list here leaves the view where the player put it.
+function choose(host, ctx, state, say) {
+    return (asset, { frame = false } = {}) => {
+        state.brush = asset;
+        state.selected = null;
+        if (frame && state.on && asset) frameFor(ctx, asset);
+        const hint = host.querySelector('.build-hint');
+        if (hint) {
+            const name = asset?.name ?? asset?.san;
+            hint.textContent = asset
+                ? `Click the ground to put ${name} down \u00b7 Esc leaves build mode` : '';
+        }
+        say();
+    };
+}
+
+async function fillCatalog(host, state, pick, search) {
     // Models only (FND.5): the other four types are used by symbols — a
     // repeating piece runs along a wall, a cross-section is a road's profile, a
     // collection is what a forest is scattered from, a material covers ground.
     // None of them is a thing anybody puts down one of.
     const rows = await searchAssets({ search, type: 'model', limit: 12 }).catch(() => []);
-    host.querySelector('.build-assets').replaceChildren(...rows.map((a) => assetRow(a, (asset) => {
-        state.brush = asset;
-        state.selected = null;
-        say();
-    })));
+    host.querySelector('.build-assets').replaceChildren(...rows.map((a) => assetRow(a, pick)));
     return rows;
 }
 
@@ -333,7 +348,8 @@ export function mountBuild(host, ctx) {
     };
 
     const toggle = toggler(host, ctx, state, { acts, onKey, onClick, say });
-    const catalog = (search = '') => fillCatalog(host, state, say, search);
+    const pick = choose(host, ctx, state, say);
+    const catalog = (search = '') => fillCatalog(host, state, pick, search);
     wire(host, state, { toggle, catalog, acts, say });
     say();
 
@@ -341,5 +357,5 @@ export function mountBuild(host, ctx) {
     return { state, toggle, refresh, catalog, ports, movers, holding, ...acts,
         pick: (s) => session.pick(s),
         drawGizmo: () => drawGizmo(ctx, state), edits: session.edits,
-        setBrush: (a) => { state.brush = a; say(); } };
+        setBrush: pick };
 }

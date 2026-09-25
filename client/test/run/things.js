@@ -6,6 +6,7 @@ import { join } from 'node:path';
 
 import { expect, looking, panel, UI } from './players.js';
 import { REPO } from './world.js';
+import { onSale, register, step } from './selling.js';
 
 export const fixture = (name) => join(REPO, 'client/test/fixtures/assets', name);
 
@@ -19,11 +20,13 @@ export const readCoords = (text) => {
 // C picks a model, names it, and marks each node with a role and its ports.
 // `marks` is [{node, role, ports: [...]}]; `extra` runs before Register.
 export async function registers(c, file, name, marks, extra = null) {
-    await panel(c, 'Catalog');
+    await onSale(c);
     await c.page.locator('#upload-type').selectOption('model');
     await c.page.locator('#file').setInputFiles(fixture(file));
     await expect(c.page.locator('#canon')).toContainText('tris', { timeout: UI });
+    await step(c, 'price');
     await c.page.locator('#name').fill(name);
+    await step(c, 'parts');
     await expect(c.page.locator('#form-parts')).toBeVisible({ timeout: UI });
     for (const m of marks) {
         await c.page.locator(`#form-parts .mk-node:has-text("${m.node}")`).first().click();
@@ -36,7 +39,7 @@ export async function registers(c, file, name, marks, extra = null) {
         }
     }
     if (extra) await extra(c);
-    await c.page.locator('#publish').click();
+    await register(c);
     const said = c.page.locator('#upload-status');
     await expect(said).toContainText('published S', { timeout: UI });
     return (await said.textContent()).match(/S[A-Z2-7]{12}/)[0];

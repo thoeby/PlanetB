@@ -14,6 +14,7 @@ import { join } from 'node:path';
 
 import { test, expect, looking, open, panel, signIn, UI } from './players.js';
 import { REPO } from './world.js';
+import { onSale, register, step } from './selling.js';
 
 const BUS = join(REPO, 'client/test/fixtures/assets/bus.glb');
 
@@ -29,12 +30,13 @@ const readCoords = (text) => {
 
 // A bus is a product like any other, and C is who makes them (story 4).
 async function cRegistersABus(c) {
-    await panel(c, 'Catalog');
+    await onSale(c);
     await c.page.locator('#upload-type').selectOption('model');
     await c.page.locator('#file').setInputFiles(BUS);
     await expect(c.page.locator('#canon')).toContainText('tris', { timeout: UI });
+    await step(c, 'price');
     await c.page.locator('#name').fill('Postauto');
-    await c.page.locator('#publish').click();
+    await register(c);
     await expect(c.page.locator('#upload-status'))
         .toContainText('published S', { timeout: UI });
 }

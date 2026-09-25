@@ -60,18 +60,18 @@ test('every surface is in one of the two groups, and has a key of its own', () =
 test('the groups hold what the design puts in them', () => {
     const of = (g) => TABS.filter((t) => t.group === g).map((t) => t.name);
     assert.deepEqual(of('bar'),
-        ['Place', 'Catalog', 'Your land', 'Shape', 'Lines', 'Publish']);
+        ['Place', 'Inventory', 'Your land', 'Shape', 'Lines', 'Publish']);
     assert.deepEqual(of('top'), ['Profile', 'Wallet', 'Settings']);
 });
 
 // The plinth is the view's own, and every surface on it belongs to a view.
 test('the six surfaces Build is played through are its plinth, on keys 1 to 6', () => {
     assert.deepEqual(barOf('Build').map((t) => t.name),
-        ['Place', 'Catalog', 'Your land', 'Shape', 'Lines', 'Publish']);
+        ['Place', 'Inventory', 'Your land', 'Shape', 'Lines', 'Publish']);
     assert.deepEqual(barOf('Build').map((t) => t.key).sort(),
         ['1', '2', '3', '4', '5', '6']);
     // And a workspace has none: Work was the fifth button on Build's.
-    for (const view of ['Work', 'Survey', 'Automate', 'Trade & Sell']) {
+    for (const view of ['Work', 'Survey', 'Automate', 'Marketplace']) {
         assert.deepEqual(barOf(view), [], `${view} has a plinth of its own`);
     }
     assert.deepEqual(TABS.filter((t) => t.group === 'bar' && !t.view), [],
@@ -80,14 +80,14 @@ test('the six surfaces Build is played through are its plinth, on keys 1 to 6', 
 
 test('a view that takes the window says so, and Build and Play do not', () => {
     assert.deepEqual(APPS.filter((a) => appIsFull(a.name)).map((a) => a.name),
-        ['Automate', 'Work', 'Trade & Sell', 'Survey']);
+        ['Automate', 'Work', 'Marketplace', 'Survey']);
     assert.equal(appIsFull('Build'), false);
     assert.equal(appIsFull('Play'), false);
     // And the three that take it name the surface that is the window: that is
     // what tells the page there is nothing behind it left to draw
     // (client/js/hud.js showPanel, `data-window`). Automate is the fourth and
     // names none — it is its own window and puts the world away itself.
-    for (const view of ['Work', 'Trade & Sell', 'Survey']) {
+    for (const view of ['Work', 'Marketplace', 'Survey']) {
         assert.ok(appSurface(view), `${view} names the surface it is`);
     }
     assert.equal(appSurface('Automate'), null);
@@ -121,7 +121,7 @@ test('a part says whether it takes the window, where its surface cannot', () => 
 test('a view opens the surface it names, and Build opens the world', () => {
     assert.equal(appSurface('Work'), 'Work');
     assert.equal(appSurface('Survey'), 'Survey');
-    assert.equal(appSurface('Trade & Sell'), 'Catalog');
+    assert.equal(appSurface('Marketplace'), 'Marketplace');
     assert.equal(appSurface('Build'), null);
     assert.equal(appSurface('Play'), null);
     assert.deepEqual(surfaceOf('Land'), { tab: 'Survey', part: 'Land' });
@@ -131,7 +131,7 @@ test('a view opens the surface it names, and Build opens the world', () => {
 
 test('a view that opens nothing says so on its own card', () => {
     const live = APPS.filter((a) => a.live).map((a) => a.name);
-    assert.deepEqual(live, ['Build', 'Automate', 'Work', 'Trade & Sell', 'Survey']);
+    assert.deepEqual(live, ['Build', 'Automate', 'Work', 'Marketplace', 'Survey']);
     for (const a of APPS) {
         assert.equal(Boolean(a.live), Boolean(appSurface(a.name)) || a.name === 'Build'
             || a.name === 'Automate', `${a.name} says one thing and opens another`);

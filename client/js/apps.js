@@ -18,7 +18,7 @@
 // Taken from docs/design/chrome6.dc.html, whose six apps the operator has
 // since named for what they are played for (SPEC §2.1 Views): Drive, Photo
 // and Tour are one view, Play; Render is Work, because what the pool pays is
-// the point of it; the catalog and one's own prices are Trade & Sell; and
+// the point of it; buying and selling are the Marketplace (UI.4); and
 // Automate is the flow editor of SPEC §2.16. Survey stays as it was.
 
 import { el, icon } from './tabbar.js';
@@ -46,9 +46,10 @@ export const APPS = [
             + '|M2 9h4M2 15h4M18 9h4M18 15h4',
     },
     {
-        name: 'Trade & Sell', key: 'F4', hue: 'oklch(0.78 0.13 320)', live: true,
-        surface: 'Catalog', full: true,
-        desc: 'The catalog both ways: what to buy, what you sell, and for how much.',
+        name: 'Marketplace', key: 'F4', hue: 'oklch(0.78 0.13 320)', live: true,
+        surface: 'Marketplace', full: true,
+        desc: 'Buy, sell and earn: the shop, what you sell, your licences and what'
+            + ' they brought in.',
         icon: 'M3 7h11l6 6-7 7-6-6z|M7.5 10.5h.01|M14 14l2 2|M16 5h5v5',
     },
     {

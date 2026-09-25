@@ -40,7 +40,7 @@ function cRegisters(world) {
 const version = (b) => b.page.locator('.build-update');
 
 async function buysIt(b) {
-    await panel(b, 'Catalog');
+    await panel(b, 'Shop');
     await b.page.locator('#type').selectOption('');
     await b.page.locator('#q').fill('Barrier');
     await b.page.getByRole('button', { name: 'Find' }).click();
