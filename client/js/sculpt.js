@@ -17,9 +17,10 @@ import { sha256 } from '../lib/hash.js';
 import { contains } from '../lib/poly.js';
 import { tileBbox, tileX, tileY } from '../lib/tilemath.js';
 
+// One brush pulls the ground up and, with Shift held, pushes it down
+// (PLAN-editors.md D6): Lower was a second tool for the same stroke.
 export const BRUSHES = [
     { id: 'raise', words: 'Raise', key: 'r' },
-    { id: 'lower', words: 'Lower', key: 'f' },
     { id: 'smooth', words: 'Smooth', key: 's' },
     { id: 'flatten', words: 'Flatten', key: 'g' },
     { id: 'level', words: 'Level', key: 'l' },
@@ -197,7 +198,7 @@ export class Shaping {
     // The box everything shaped since the last save falls in, so the save only
     // dirties the tiles that actually moved.
     mark(cells) {
-        for (const k of cells.keys()) {
+        for (const k of (cells.keys ? cells.keys() : cells)) {
             const i = k % this.grid.width;
             const j = (k - i) / this.grid.width;
             const lon = this.lonOf(i);

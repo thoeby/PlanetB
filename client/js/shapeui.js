@@ -15,6 +15,7 @@ import { Shaping, brushWords } from './sculpt.js';
 import { alongLine } from './sculptbrush.js';
 import { el } from './poolui.js';
 import { brushLine, brushUses, keyHandler, shapedLine } from './sculptmode.js';
+import { wireBox } from './shapebox.js';
 import { toolRail } from './sculptrail.js';
 import { shapeSurface } from './shapetool.js';
 
@@ -48,7 +49,8 @@ export function mountShape(host, ctx, { lands = () => [] } = {}) {
     const box = el('div');
     box.innerHTML = HTML;
     host.append(box);
-    const state = { on: false, brush: 'raise', size: 12, strength: 0.5, shaping: null,
+    const state = { on: false, brush: 'raise', size: 12, strength: 1, soft: 0.6,
+        curve: 'smooth', shape: 'circle', blend: true, shaping: null,
         areas: [], roads: [], painting: false, at: null, inside: null, line: [] };
     const rail = toolRail((id) => pick(id), box.querySelector('.sh-rail-host'));
     const q = (sel) => box.querySelector(sel);
@@ -61,14 +63,11 @@ export function mountShape(host, ctx, { lands = () => [] } = {}) {
         q('.sc-shaped').textContent = shapedLine(state.shaping);
         hover();
     };
-    const hover = () => {
-        const n = (state.line ?? []).length;
-        q('.sc-corners').textContent = n
-            ? `${n} corner${n === 1 ? '' : 's'} clicked` : 'no corners yet';
-        ctx.bpmode.say?.();
-    };
+    const hover = () => corners(q, state, ctx);
     const ground = (lon, lat) => ctx.bp.demAt(lon, lat) ?? 0;
-    const shaped = (rect) => ctx.bp.rebuild(rect);
+    // While a stroke is on, the clay is rebuilt without its contours, which
+    // are drawn again once it is let go of (client/js/blueprint.js quick).
+    const shaped = (rect) => ctx.bp.rebuild(rect, { quick: state.painting });
     const surface = shapeSurface(ctx.bp, ctx.app, ctx.pc, state, { say, hover, shaped, ground,
         levelTo: () => Number(q('.sc-target').value) });
     const pick = (id) => pickBrush(rail, q, state, id, say);
@@ -91,6 +90,9 @@ export function mountShape(host, ctx, { lands = () => [] } = {}) {
         // The surface was opened: the land's grid, then the clay over it.
         async enter() {
             state.on = true;
+            // The operator's switch, not the player's (PLAN-editors idea 13).
+            const set = await api.rpc('app_settings').catch(() => ({}));
+            state.blend = set?.edge_blend !== 'off';
             if (!state.shaping) await listLands(q, state, say, lands, load);
             if (state.shaping && state.on) await open();
             return state.shaping;
@@ -102,6 +104,14 @@ export function mountShape(host, ctx, { lands = () => [] } = {}) {
             ctx.bpmode.close();
         },
     };
+}
+
+// How much of a line has been clicked out, and the words at the pointer.
+function corners(q, state, ctx) {
+    const n = (state.line ?? []).length;
+    q('.sc-corners').textContent = n
+        ? `${n} corner${n === 1 ? '' : 's'} clicked` : 'no corners yet';
+    ctx.bpmode.say?.();
 }
 
 async function openOver(ctx, state, surface, say) {
@@ -193,8 +203,8 @@ function layBed(q, state, say, ctx, ground) {
 function pickBrush(rail, q, state, id, say) {
     state.brush = id;
     rail.pick(id);
-    for (const label of rail.all('.sc-fields label')) {
-        label.hidden = !brushUses(id, label.dataset.uses);
+    for (const field of rail.all('.sc-fields [data-uses]')) {
+        field.hidden = !brushUses(id, field.dataset.uses);
     }
     q('.sc-brush-says').textContent = brushLine(state);
     q('.sc-line-box').hidden = id !== 'line';
@@ -203,17 +213,7 @@ function pickBrush(rail, q, state, id, say) {
 
 function wire(rail, q, state, acts) {
     q('.sc-land').addEventListener('change', (e) => acts.choose(e.target.value));
-    const resize = (metres) => {
-        state.size = Math.min(200, Math.max(1, Math.round(metres) || 12));
-        q('.sc-size').value = String(state.size);
-        q('.sc-brush-says').textContent = brushLine(state);
-        acts.say('');
-    };
-    q('.sc-size').addEventListener('change', (e) => resize(Number(e.target.value)));
-    q('.sc-strength').addEventListener('change', (e) => {
-        state.strength = Number(e.target.value) || 0.5;
-        q('.sc-brush-says').textContent = brushLine(state);
-    });
+    const { resize } = wireBox(q, (sel) => rail.all(sel), state, () => acts.say(''));
     const redraw = () => acts.ctx.bp.rebuild(null);
     const undo = () => {
         acts.say(state.shaping?.undo() ? 'undone' : 'nothing to undo');

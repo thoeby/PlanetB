@@ -14,19 +14,21 @@ test('every brush says what it does, and which numbers it reads', () => {
         assert.ok(Array.isArray(BRUSH_SAYS[b.id].uses), `${b.id} names no fields`);
     }
     assert.equal(brushUses('raise', 'strength'), true);
-    // Strength does nothing to a brush that pulls towards a mean or a height.
-    assert.equal(brushUses('smooth', 'strength'), false);
+    // Strength is metres a second for every brush that moves ground (EDT.7);
+    // the shape is Raise's alone, and the hand reads nothing.
+    assert.equal(brushUses('smooth', 'strength'), true);
+    assert.equal(brushUses('smooth', 'shape'), false);
+    assert.equal(brushUses('pan', 'size'), false);
     assert.equal(brushUses('level', 'target'), true);
     assert.equal(brushUses('raise', 'target'), false);
 });
 
 test('the line under the brushes says what a drag will do', () => {
     assert.equal(brushLine({ brush: 'raise', size: 12, strength: 0.5 }),
-        'Pulls the ground up under the brush, softer towards its edge.'
-        + ' 12 m across · 0.5 m a dab');
-    // And says nothing about a number the brush does not read.
-    assert.match(brushLine({ brush: 'smooth', size: 20, strength: 9 }), /20 m across$/);
-    assert.doesNotMatch(brushLine({ brush: 'smooth', size: 20, strength: 9 }), /a dab/);
+        'Pulls the ground up under the brush. Hold longer to go higher; Shift lowers'
+        + ' instead. 12 m across · 0.5 m/s');
+    // And says nothing about a number the tool does not read.
+    assert.doesNotMatch(brushLine({ brush: 'line', size: 20, strength: 9 }), /m\/s|across/);
 });
 
 // A tiny stand-in for a keyboard event.

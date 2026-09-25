@@ -38,15 +38,14 @@ export const TOOL_ICON = {
 export const BRUSH_SAYS = {
     pan: { does: 'Drag to move over the land, the wheel to go in and out.'
         + ' Nothing is shaped while this is in hand.', uses: [] },
-    raise: { does: 'Pulls the ground up under the brush, softer towards its edge.',
-        uses: ['size', 'strength'] },
-    lower: { does: 'Pushes it down the same way.', uses: ['size', 'strength'] },
+    raise: { does: 'Pulls the ground up under the brush. Hold longer to go higher;'
+        + ' Shift lowers instead.', uses: ['size', 'strength', 'falloff', 'shape'] },
     smooth: { does: 'Pulls every cell towards the mean of the eight around it.',
-        uses: ['size'] },
+        uses: ['size', 'strength', 'falloff'] },
     flatten: { does: 'Levels the ground to whatever height the brush landed on.',
-        uses: ['size'] },
+        uses: ['size', 'strength', 'falloff'] },
     level: { does: 'Levels it to a height you name, wherever the brush goes.',
-        uses: ['size', 'target'] },
+        uses: ['size', 'strength', 'falloff', 'target'] },
     line: { does: 'Lays a road bed along a line: a flat width, a shoulder either'
         + ' side, and never steeper than the gradient you allow.',
     uses: [] },
@@ -63,7 +62,7 @@ export function brushLine(state) {
     const says = BRUSH_SAYS[state.brush];
     const bits = [];
     if (brushUses(state.brush, 'size')) bits.push(`${state.size} m across`);
-    if (brushUses(state.brush, 'strength')) bits.push(`${state.strength} m a dab`);
+    if (brushUses(state.brush, 'strength')) bits.push(`${state.strength} m/s`);
     return [says?.does, bits.join(' · ')].filter(Boolean).join(' ');
 }
 

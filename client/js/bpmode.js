@@ -73,14 +73,15 @@ export function mountBlueprintMode(ctx) {
             st.surface = null;
         },
         // Every frame, from the page's update.
-        frame: () => drawFrame(bp, app, pc, cam, st),
+        frame: (dt = 1 / 60) => drawFrame(bp, app, pc, cam, st, dt),
         say,
     };
 }
 
-function drawFrame(bp, app, pc, cam, st) {
+function drawFrame(bp, app, pc, cam, st, dt) {
     if (!bp.active) return;
     cam.update();
+    st.surface?.tick?.(dt);
     if (st.section?.b) {
         drawPath(bp, app, pc, [st.section.a, st.section.b], new pc.Color(1, 0.8, 0.3));
     }

@@ -1022,7 +1022,7 @@
     }
     build.drawGizmo();
     // EDT.1: the clay's camera, and whatever the surface draws on it.
-    bpmode.frame();
+    bpmode.frame(dt);
     drawAreas({ pc, app, origin, terrain }, land.areas());
     const labels = document.getElementById('world-labels');
     labelAreas({ pc, app, origin, terrain }, land.areas(), labels);

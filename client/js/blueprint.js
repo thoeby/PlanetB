@@ -156,8 +156,11 @@ export class Blueprint {
 
     // The land changed under [w, s, e, n] (or all of it, for null): only the
     // chunks that rectangle touches are built again.
-    rebuild(rect = null) {
+    // `quick`: a stroke is on, and the contours of what it touched are drawn
+    // once it is let go of (settle), not sixty times a second while it moves.
+    rebuild(rect = null, { quick = false } = {}) {
         if (!this.active) return 0;
+        this.quick = quick;
         const started = performance.now();
         const L = this.L;
         let [i0, j0, i1, j1] = [0, 0, L.cols - 1, L.rows - 1];
@@ -198,8 +201,19 @@ export class Blueprint {
         const one = had ?? { chunk: c, mesh,
             entity: this.meshEntity(`blueprint ${c.key}`, mesh) };
         this.chunks.set(c.key, one);
-        drawChunkLines(this, one);
+        if (this.quick) one.stale = true;
+        else drawChunkLines(this, one);
         return one;
+    }
+
+    // The stroke was let go of: the contours of every chunk it touched.
+    settle() {
+        this.quick = false;
+        for (const one of this.chunks.values()) {
+            if (!one.stale) continue;
+            one.stale = false;
+            drawChunkLines(this, one);
+        }
     }
 
     // The contours or the grid were switched: every chunk's lines again.

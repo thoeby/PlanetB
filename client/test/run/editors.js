@@ -104,3 +104,58 @@ export const screenAt = (b, where) => b.page.evaluate((w) => {
     }
     return null;
 }, where);
+
+// The screen point of a vertex of his land that is next to one that is not:
+// the band just inside his boundary, the nearest such to the land's middle.
+export const edgeOfHisLand = (b) => b.page.evaluate(() => {
+    const sw = window.splatworld;
+    const bp = sw.blueprint;
+    const L = bp.L;
+    let best = null;
+    for (let j = 1; j < L.rows - 1; j++) {
+        for (let i = 1; i < L.cols - 1; i++) {
+            const k = j * L.cols + i;
+            if (!bp.inside[k] || (bp.inside[k - 1] && bp.inside[k + 1])) continue;
+            const d = Math.hypot(i - L.cols / 2, j - L.rows / 2);
+            if (!best || d < best.d) best = { d, i, j };
+        }
+    }
+    const lon = L.bbox[0] + best.i * L.dLon;
+    const lat = L.bbox[3] - best.j * L.dLat;
+    const s = sw.camera.camera.worldToScreen(bp.toScene(lon, lat, bp.heightAt(lon, lat)));
+    return { x: s.x, y: s.y, lon, lat };
+});
+
+// How high the clay is under a screen point, and the grid there.
+export const heightUnder = (b, at) => b.page.evaluate((p) => {
+    const sw = window.splatworld;
+    const s = sw.sculpt.shaping();
+    return { clay: sw.blueprint.heightAt(p.lon, p.lat), grid: s.at(p.lon, p.lat) };
+}, at);
+
+// A point of his land as the clay has it, on the screen and on the ground.
+export const pointOfHisLand = (b) => b.page.evaluate(() => {
+    const sw = window.splatworld;
+    const bp = sw.blueprint;
+    const L = bp.L;
+    let best = null;
+    for (let k = 0; k < bp.inside.length; k++) {
+        if (!bp.inside[k]) continue;
+        const i = k % L.cols;
+        const j = Math.floor(k / L.cols);
+        const d = Math.hypot(i - L.cols * 0.55, j - L.rows / 2);
+        if (!best || d < best.d) best = { d, i, j };
+    }
+    const lon = L.bbox[0] + best.i * L.dLon;
+    const lat = L.bbox[3] - best.j * L.dLat;
+    const s = sw.camera.camera.worldToScreen(bp.toScene(lon, lat, bp.heightAt(lon, lat)));
+    return { x: s.x, y: s.y, lon, lat };
+});
+
+// Shape open on his field, the clay drawn.
+export async function shapeHisLand(b) {
+    await b.page.mouse.move(900, 400);
+    await b.page.keyboard.press('4');
+    await expect(b.page.locator('.sc-land option')).not.toHaveCount(0, { timeout: UI });
+    await b.page.waitForFunction(() => window.splatworld.blueprint.active, null, { timeout: UI });
+}

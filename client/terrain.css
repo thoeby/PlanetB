@@ -114,3 +114,17 @@
 #sculpt-tools .sc-fields label[hidden], #sculpt-tools .sc-line-box[hidden] {
   display: none;
 }
+#sculpt-tools .sc-fields [hidden] { display: none; }
+#sculpt-tools .sc-curve {
+  width: 100%; height: 44px; background: rgba(0, 0, 0, 0.25); display: block;
+}
+#sculpt-tools .sc-curve path {
+  fill: none; stroke: var(--accent); stroke-width: 1.5; vector-effect: non-scaling-stroke;
+}
+#sculpt-tools .sc-seg { display: flex; gap: 4px; margin-top: 6px; }
+#sculpt-tools .sc-seg button {
+  flex: 1; padding: 4px 0; font-size: 10px; letter-spacing: 0.08em; text-transform: uppercase;
+}
+#sculpt-tools .sc-seg button[aria-pressed="true"] {
+  color: var(--accent); border-color: var(--accent);
+}

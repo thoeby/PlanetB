@@ -28,10 +28,25 @@ const OPTIONS = `
 </div>
 <p class="note sc-brush-says"></p>
 <div class="sc-fields">
-  <label data-uses="size">Size (m)<input class="sc-size" type="number" min="1"
-    max="200" value="12"></label>
-  <label data-uses="strength">Strength (m)<input class="sc-strength" type="number"
-    min="0.05" step="0.05" value="0.5"></label>
+  <label data-uses="size">Size (m) <span class="mono muted">[ ]</span><input class="sc-size"
+    type="number" min="1" max="200" value="12"></label>
+  <label data-uses="strength">Strength (m/s)<input class="sc-strength" type="number"
+    min="0.05" max="20" step="0.05" value="1"></label>
+  <label data-uses="falloff">Falloff<input class="sc-soft" type="number" min="0" max="1"
+    step="0.05" value="0.6"></label>
+  <div data-uses="falloff" class="sc-curve-box">
+    <svg class="sc-curve" viewBox="0 0 100 30" preserveAspectRatio="none"><path/></svg>
+    <div class="sc-seg sc-curves">
+      <button type="button" data-curve="smooth">Smooth</button>
+      <button type="button" data-curve="linear">Linear</button>
+      <button type="button" data-curve="sharp">Sharp</button>
+      <button type="button" data-curve="plateau">Plateau</button>
+    </div>
+  </div>
+  <div data-uses="shape" class="sc-seg sc-shapes">
+    <button type="button" data-shape="circle">Circle</button>
+    <button type="button" data-shape="square">Square</button>
+  </div>
   <label data-uses="target">Level to (m)<input class="sc-target" type="number"
     step="0.5"><button type="button" class="sc-take">Take it from here</button></label>
 </div>
