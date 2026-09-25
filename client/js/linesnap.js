@@ -64,3 +64,32 @@ export function snapNode(state, g, e, { grid = 0, metresPerPx = 0.5 } = {}) {
     const at = f.toLonLat(got.p);
     return { lon: at.lon, lat: at.lat, hit: got.hit };
 }
+
+/**
+ * Follow contour (EDT.17, PLAN-editors idea 22): the point near `g` where the
+ * ground is at height `h0`, walked down or up the slope from `g`. A path
+ * across a hillside, a channel, a terrace edge — without touching the ground.
+ * Null where the ground there is flat or there is none.
+ */
+export function onContour(g, h0, heightAt, { most = 40 } = {}) {
+    const f = frameAt(g.lon, g.lat);
+    const h = (p) => {
+        const q = f.toLonLat(p);
+        return heightAt(q.lon, q.lat);
+    };
+    let p = [0, 0];
+    for (let k = 0; k < 12; k++) {
+        const here = h(p);
+        if (here === null) return null;
+        const gx = (h([p[0] + 0.5, p[1]]) - h([p[0] - 0.5, p[1]]));
+        const gz = (h([p[0], p[1] + 0.5]) - h([p[0], p[1] - 0.5]));
+        const g2 = gx * gx + gz * gz;
+        if (!(g2 > 1e-8)) return null;
+        const step = (here - h0) / g2;
+        p = [p[0] - gx * step, p[1] - gz * step];
+        if (Math.hypot(p[0], p[1]) > most) return null;
+        if (Math.abs(here - h0) < 0.01) break;
+    }
+    const at = f.toLonLat(p);
+    return { lon: at.lon, lat: at.lat };
+}

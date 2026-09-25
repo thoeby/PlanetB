@@ -92,13 +92,25 @@ export function mountShape(host, ctx, { lands = () => [] } = {}) {
         clear: () => history.confirm(() => putBack(state, say, ctx)),
         take: () => levelHere(state, say, fields) };
     const fields = wire(rail, q, state, acts);
+    const life = comings(ctx, state, () => listLands(q, state, say, lands, load), open,
+        { leave: mountLeave(document.getElementById('hud') ?? document.body),
+            save: acts.save, surface });
     return {
         state, say, surface, ...acts,
         shaping: () => state.shaping,
         refresh: () => listLands(q, state, say, lands, load),
-        ...comings(ctx, state, () => listLands(q, state, say, lands, load), open,
-            { leave: mountLeave(document.getElementById('hud') ?? document.body),
-                save: acts.save, surface }),
+        ...life,
+        // From Lines' Lay bed: Along line in hand with that line's bed.
+        async bed({ points, width, gradient, name }) {
+            await life.enter();
+            pick('line');
+            state.line = points.map((p) => ({ lon: p.lon, lat: p.lat }));
+            q('.sc-road').value = '';
+            q('.sc-width').value = String(width ?? 5);
+            q('.sc-shoulder').value = '1';
+            q('.sc-gradient').value = String(gradient ?? 8);
+            say(`the bed of ${name} is loaded \u2014 Lay the bed lays it once`);
+        },
     };
 }
 
@@ -110,18 +122,25 @@ const fresh = () => ({ on: false, brush: 'raise', size: 12, strength: 1, soft: 0
 // The surface opened (the land's grid, then the clay over it) and left —
 // asking first when there are strokes nobody has saved.
 function comings(ctx, state, list, open, { leave, save, surface }) {
+    let entering = null;
+    const enter = async () => {
+        state.on = true;
+        // The operator's switches, not the player's (PLAN-editors ideas
+        // 13 and 16): the edge blend, and how far the ground may move.
+        const set = await api.rpc('app_settings').catch(() => ({}));
+        state.blend = set?.edge_blend !== 'off';
+        state.limit = { up: Number(set?.shape_max_up) || 8,
+            down: Number(set?.shape_max_down) || 8 };
+        if (!state.shaping) await list();
+        if (state.shaping && state.on) await open();
+        return state.shaping;
+    };
     return {
-        async enter() {
-            state.on = true;
-            // The operator's switches, not the player's (PLAN-editors ideas
-            // 13 and 16): the edge blend, and how far the ground may move.
-            const set = await api.rpc('app_settings').catch(() => ({}));
-            state.blend = set?.edge_blend !== 'off';
-            state.limit = { up: Number(set?.shape_max_up) || 8,
-                down: Number(set?.shape_max_down) || 8 };
-            if (!state.shaping) await list();
-            if (state.shaping && state.on) await open();
-            return state.shaping;
+        // Opened from the plinth and from Lines' Lay bed at once is one
+        // opening, not two racing each other.
+        enter() {
+            entering = entering ?? enter().finally(() => { entering = null; });
+            return entering;
         },
         async leave() {
             if (!state.on || state.asking) return;

@@ -10,12 +10,13 @@
 import * as api from './api.js';
 import { entriesFor, entryOf } from '../lib/kinds.js';
 import { Lines } from './lines.js';
-import { aroundLand, snapNode } from './linesnap.js';
+import { aroundLand, onContour, snapNode } from './linesnap.js';
 import { Shaping } from './sculpt.js';
 import { drawTool, dropLast } from './linetool.js';
 import { drawLines } from './linedraw.js';
 import { deleteNode, handlesOf, hitAt, selectTool } from './lineedit.js';
 import { mountNodeMenu } from './linesmenu.js';
+import { mountSelected } from './linespanel.js';
 import { drawMark } from './bpdraw.js';
 import { LINE_TOOLS } from './linetools.js';
 import { bindKeys, describeSelected, reselect, showProfile } from './linesdo.js';
@@ -32,6 +33,7 @@ const HTML = `
 <div class="ln-bar sc-bar"></div>
 <p class="ln-status status"></p>
 <div class="section"><div class="label">Kind</div><div class="ln-kinds"></div></div>
+<div class="ln-selected-host"></div>
 <div class="ln-list-host"></div>
 <p class="note">A line never moves the ground. Select one and Lay bed to shape
   the ground under it in Shape. Nothing reaches the world until Save.</p>`;
@@ -56,7 +58,7 @@ function railOf(pick, acts) {
             acts.undo),
         deed('ln-redo', 'Redo · Ctrl-Shift-Z',
             'M21 10H10a5 5 0 0 0 0 10h4|m21 10-5-5|m21 10-5 5', acts.redo),
-        deed('ln-save sc-save', 'Save the lines', 'M5 4h11l3 3v13H5z|M8 4v6h7V4|M8 20v-6h8v6',
+        deed('ln-save', 'Save the lines', 'M5 4h11l3 3v13H5z|M8 4v6h7V4|M8 20v-6h8v6',
             acts.save));
     return { tools, deeds };
 }
@@ -74,8 +76,10 @@ export function mountLines(host, ctx, { lands = () => [] } = {}) {
     const say = (msg, bad = false) => {
         q('.ln-status').textContent = msg;
         q('.ln-status').dataset.bad = bad ? '1' : '';
+        selected?.draw();
         ctx.onChange?.(state);
     };
+    let selected = null;
     const picker = mountKindPicker(q('.ln-kinds'), { store: 'splatworld.lines.recent' });
     const acts = actsOf(ctx, state, say, picker);
     const rail = railOf((id) => pickTool(q, state, id, say), acts);
@@ -83,6 +87,7 @@ export function mountLines(host, ctx, { lands = () => [] } = {}) {
     acts.pickTool = (id) => pickTool(q, state, id, say);
     const surface = linesSurface(ctx, state, acts, say);
     acts.deleteNode = surface.deleteNode;
+    selected = mountSelected(q('.ln-selected-host'), ctx, state, say);
     q('.ln-land').addEventListener('change', (e) => chooseLand(ctx, state, e.target.value,
         surface, say));
     bindKeys(ctx, state, acts, picker, (id) => pickTool(q, state, id, say));
@@ -158,8 +163,18 @@ function actsOf(ctx, state, say, picker) {
     const heightAt = (lon, lat) => ctx.bp.heightAt(lon, lat);
     return {
         entry: () => picker.picked,
-        snap: (g, e) => snapNode(state, g, e, { metresPerPx: metresPerPx(ctx),
-            grid: ctx.bp.overlays.grid ? 1 : 0 }),
+        snap: (g, e) => {
+            // Alt held: the node goes to the first node's height along the
+            // slope, and nothing else snaps (PLAN-editors idea 22).
+            const first = state.drawing?.nodes[0];
+            if (e?.altKey && first && g) {
+                const on = onContour(g, ctx.bp.heightAt(first.lon, first.lat),
+                    (lon, lat) => ctx.bp.heightAt(lon, lat));
+                if (on) return { ...on, hit: null, follow: true };
+            }
+            return snapNode(state, g, e, { metresPerPx: metresPerPx(ctx),
+                grid: ctx.bp.overlays.grid ? 1 : 0 });
+        },
         finish() {
             const d = state.drawing;
             if (!d || d.nodes.length < 2) { say('a line needs two nodes', true); return null; }
@@ -230,7 +245,7 @@ function linesSurface(ctx, state, acts, say) {
             state.snap = g && state.tool === 'draw' ? acts.snap(g, e) : null;
         },
         describe: (g, base) => (state.snap ? { ...base, snapped: state.snap.hit,
-            inside: !state.snap.refused } : base),
+            follow: state.snap.follow, inside: !state.snap.refused } : base),
         // A right click on a node of the selected line: its menu.
         context: (g, e) => {
             const hit = g && hitAt(state.lines?.live ?? [], state.selected, g, tol());

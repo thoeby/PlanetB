@@ -30,3 +30,7 @@
   cursor: pointer; font-size: 12px;
 }
 #ln-menu button:hover { background: rgba(255, 255, 255, 0.07); }
+.sc-deeds .ln-save { color: var(--accent); }
+.sc-deeds .ln-save:hover { background: var(--accent-dim); }
+.ln-selected .ln-deeds { flex-wrap: wrap; }
+.ln-selected[hidden] { display: none; }

@@ -500,6 +500,8 @@
       bpmode, bp: blueprint, app, pc,
       reopen: () => hud.show('Lines'),
       onSaved: () => { build.refresh(); submit.refresh(); },
+      // EDT.17: the one place a line and the ground meet (PLAN-editors D3).
+      layBed: async (bed) => { hud.show('Shape'); await sculpt.bed(bed); },
   }, { lands: () => api.rpc('my_areas').catch(() => []) });
   hud.whenShown('Lines', () => lines.enter());
   hud.whenOpened((name) => { if (name !== 'Lines') lines.leave(); });
