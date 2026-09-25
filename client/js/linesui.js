@@ -16,7 +16,7 @@ import { drawTool, dropLast } from './linetool.js';
 import { drawLines } from './linedraw.js';
 import { deleteNode, handlesOf, hitAt, selectTool } from './lineedit.js';
 import { mountNodeMenu } from './linesmenu.js';
-import { mountSelected } from './linespanel.js';
+import { mountFields, mountList, mountSelected } from './linespanel.js';
 import { drawMark } from './bpdraw.js';
 import { LINE_TOOLS } from './linetools.js';
 import { bindKeys, describeSelected, reselect, showProfile } from './linesdo.js';
@@ -76,10 +76,10 @@ export function mountLines(host, ctx, { lands = () => [] } = {}) {
     const say = (msg, bad = false) => {
         q('.ln-status').textContent = msg;
         q('.ln-status').dataset.bad = bad ? '1' : '';
-        selected?.draw();
+        for (const part of parts) part.draw();
         ctx.onChange?.(state);
     };
-    let selected = null;
+    const parts = [];
     const picker = mountKindPicker(q('.ln-kinds'), { store: 'splatworld.lines.recent' });
     const acts = actsOf(ctx, state, say, picker);
     const rail = railOf((id) => pickTool(q, state, id, say), acts);
@@ -87,7 +87,15 @@ export function mountLines(host, ctx, { lands = () => [] } = {}) {
     acts.pickTool = (id) => pickTool(q, state, id, say);
     const surface = linesSurface(ctx, state, acts, say);
     acts.deleteNode = surface.deleteNode;
-    selected = mountSelected(q('.ln-selected-host'), ctx, state, say);
+    parts.push(mountSelected(q('.ln-selected-host'), ctx, state, say),
+        mountFields(q('.ln-selected-host'), state, say),
+        mountList(q('.ln-list-host'), ctx, state, (line) => {
+            state.selected = line;
+            state.node = null;
+            pickTool(q, state, 'select', say);
+            say(describeSelected(state));
+            showProfile(ctx, state);
+        }));
     q('.ln-land').addEventListener('change', (e) => chooseLand(ctx, state, e.target.value,
         surface, say));
     bindKeys(ctx, state, acts, picker, (id) => pickTool(q, state, id, say));
@@ -129,6 +137,7 @@ async function loadKinds(state, picker) {
     const [kinds, props] = await Promise.all([
         api.select('kind', { order: 'ordering' }).catch(() => []),
         api.select('property', { order: 'kind,ordering' }).catch(() => [])]);
+    state.properties = props;
     state.entries = entriesFor('line', kinds, props, state.defaults ?? {});
     picker.set(state.entries);
 }
@@ -254,7 +263,11 @@ function linesSurface(ctx, state, acts, say) {
         draw: () => {
             drawLines(ctx.bp, ctx.app, ctx.pc, { lines: state.lines?.live ?? [],
                 drawing: state.drawing, look, selected: state.selected,
-                at: state.tool === 'draw' ? state.at : null, ghosts: state.ghosts });
+                at: state.tool === 'draw' ? state.at : null,
+                // Neighbours' lines and every area's edge, faint and not
+                // selectable, while the switch says so (PLAN-editors idea 27).
+                ghosts: ctx.bp.overlays.neighbours ? state.ghosts : [],
+                edges: ctx.bp.overlays.neighbours ? state.edges : [] });
             if (state.selected) {
                 for (const h of handlesOf(state.selected)) {
                     drawMark(ctx.bp, ctx.app, ctx.pc, h, new ctx.pc.Color(0.3, 0.85, 1), 0.8);

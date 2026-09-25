@@ -34,3 +34,19 @@
 .sc-deeds .ln-save:hover { background: var(--accent-dim); }
 .ln-selected .ln-deeds { flex-wrap: wrap; }
 .ln-selected[hidden] { display: none; }
+
+/* The land's lines, and the selected one's fields (EDT.18). */
+.ln-list { list-style: none; margin: 4px 0 0; padding: 0; font-size: 12px; }
+.ln-row {
+  display: grid; grid-template-columns: 1fr auto auto; gap: 8px; padding: 5px 4px;
+  border-bottom: 1px solid var(--edge-2); cursor: pointer;
+}
+.ln-row:hover { background: rgba(255, 255, 255, 0.05); }
+.ln-row[aria-selected="true"] { box-shadow: inset 2px 0 0 var(--accent); }
+.ln-row.over .mono { color: var(--bad); }
+.ln-fields { display: flex; flex-direction: column; gap: 4px; margin-top: 6px; }
+#panel .ln-fields label {
+  display: flex; align-items: center; justify-content: space-between; gap: 8px; margin: 0;
+  text-transform: none; letter-spacing: 0;
+}
+.ln-fields input:not([type="checkbox"]), .ln-fields select { width: 180px; }

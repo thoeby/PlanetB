@@ -49,9 +49,10 @@
 .bp-row input[type="checkbox"]:checked::after { left: 16px; background: var(--accent); }
 
 /* The strip: a drawer along the bottom, over the plinth's head room. */
+/* Between the panel down the left (24 + 440) and the corner card (24 + 240),
+   so it covers neither. */
 #profile-strip {
-  position: absolute; left: 50%; bottom: 96px; transform: translateX(-50%);
-  width: min(1140px, calc(100vw - 760px)); min-width: 520px; padding: 10px 14px 8px;
+  position: absolute; left: 484px; right: 284px; bottom: 96px; padding: 10px 14px 8px;
   z-index: 12; display: flex; flex-direction: column; gap: 4px;
 }
 #profile-strip[hidden] { display: none; }

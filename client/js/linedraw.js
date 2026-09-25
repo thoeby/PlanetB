@@ -72,7 +72,13 @@ function drawOne(bp, app, pc, line, { swatch, width, lit = false }) {
  * Everything Lines draws. `look(line)` answers the entry (swatch, width) a
  * line is drawn as; `selected` is lit; `ghosts` are neighbours', faint.
  */
-export function drawLines(bp, app, pc, { lines, drawing, look, selected, at, ghosts = [] }) {
+export function drawLines(bp, app, pc, { lines, drawing, look, selected, at, ghosts = [],
+    edges = [] }) {
+    const faint = new pc.Color(0.42, 0.47, 0.5);
+    for (const [a, b] of edges) {
+        drawPath(bp, app, pc, [{ lon: a[0], lat: a[1] }, { lon: b[0], lat: b[1] }], faint,
+            { step: 8 });
+    }
     for (const g of ghosts) {
         drawOne(bp, app, pc, g, { swatch: '#6d7780', width: Number(g.props?.width) || 2 });
     }
