@@ -208,27 +208,26 @@ const shape = (art) => ({
 
 // A tile with nothing under it is built rather than merged
 // (db/0045_coarseleaf.sql, db/0128), which is what the test region's area at
-// detail 10 gets, and building means assemble, frames, train, sog. Every one
-// of those but the frames produces a ply; this tool makes the same one for all
-// of them, because what it is testing is the ladder and the viewer, not the
-// geometry. The version registered is the atom's own, so a DAG that moves on
-// needs nothing here.
-const PLY_KIND = { merge: 'ply', assemble: 'init_ply', sample: 'ply', train: 'ply' };
+// detail 10 gets: dataset, train, sog (db/0195 build_dag). train and merge
+// produce a ply; this tool makes the same one for both, because what it is
+// testing is the ladder and the viewer, not the geometry. The version
+// registered is the atom's own, so a DAG that moves on needs nothing here.
+const PLY_KIND = { merge: 'ply', train: 'ply' };
 
-// Frames are not splats: a frame atom hands back the pictures it drew, and the
-// only thing submit_atom asks of them is that there are as many as it was told
-// to draw (db/0015_structural.sql).
-const FRAMES = new TextEncoder().encode('splatworld test frames\n');
-const FRAMES_SHA = sha256(FRAMES);
+// The dataset is the assembled scene and every frame in one tar
+// (client/atoms/dataset.js); submit_atom holds it to the frame count and the
+// splat rules at once (db/0015_structural.sql).
+const DATASET = new TextEncoder().encode('splatworld test dataset\n');
+const DATASET_SHA = sha256(DATASET);
 
 async function runAtom(atom, t, art) {
-    if (atom.op === 'frame') {
-        await upload(`/jobs/${atom.id}/frames.tar`, FRAMES, FRAMES_SHA,
-            'frames', atom.algo_version);
+    if (atom.op === 'dataset') {
+        await upload(`/jobs/${atom.id}/dataset.tar`, DATASET, DATASET_SHA,
+            'dataset', atom.algo_version);
         return api.rpc('submit_atom', {
-            atom_id: atom.id, output_sha256: FRAMES_SHA,
-            result: { finite: true, gpu_seconds: 0.5, bytes: FRAMES.length,
-                frames: Number(atom.params.to) - Number(atom.params.from) },
+            atom_id: atom.id, output_sha256: DATASET_SHA,
+            result: { ...shape(art), bytes: DATASET.length,
+                frames: Number(atom.params.views) },
         });
     }
     if (PLY_KIND[atom.op]) {
