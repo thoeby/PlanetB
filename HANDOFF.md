@@ -27,8 +27,9 @@ make player-run
 `apt-get install gdal-bin` pulls `python3-numpy` built for another python, and
 it shadows the wheel rasterio needs: every `import rasterio` then dies in
 `numpy.core._multiarray_umath`. `pip3 install --ignore-installed numpy` puts a
-working one in front of it. `make api-test` also needs `pytest`, which two
-server tests import.
+working one in front of it. `make api-test` runs `server/test_*.py` under
+`pytest` (`pip install -e "server[test]"`); `unittest discover` would collect
+nothing from the pytest-style ones, which is how five of them went red unseen.
 
 **QGIS is an apt package here, and PyQGIS wants the system python.**
 `apt-get install -y qgis python3-qgis qgis-providers` gives QGIS 3.34 from

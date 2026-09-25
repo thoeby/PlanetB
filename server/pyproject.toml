@@ -10,6 +10,11 @@ dependencies = [
     "rasterio>=1.3",
 ]
 
+[project.optional-dependencies]
+# `make api-test` runs server/test_*.py under pytest; half of them are
+# pytest-style and unittest would collect nothing from those.
+test = ["pytest>=7"]
+
 [project.scripts]
 splatworld = "splatworld.__main__:main"
 

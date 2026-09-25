@@ -274,7 +274,8 @@ def test_the_version_that_answers_is_the_one_used():
     # The axes the coverage named, and its own CRS: asked for X/Y in Mercator,
     # GeoServer answers ScaleAxisUndefined. Subsetting names the envelope's
     # axes and scaling names the grid's, which are not the same two names.
-    assert "scalesize=i%28256%29%2Cj%28256%29" in url
+    n = ground.DEM_SIZE * ground.OVERSAMPLE
+    assert f"scalesize=i%28{n}%29%2Cj%28{n}%29" in url
     assert "subset=E(26" in url
 
 
@@ -282,7 +283,7 @@ def test_when_none_of_them_answers_every_refusal_is_reported():
     srv, world = _wcs("nothing")
     try:
         with pytest.raises(ground.CutFailed) as caught:
-            ground._ask(world, (1, 2, 3, 4), {}, "14/1/1")
+            ground._ask(world, (878108.0, 5823890.0, 880554.0, 5826336.0), {}, "14/1/1")
     finally:
         srv.shutdown()
     said = str(caught.value)
@@ -459,7 +460,8 @@ def test_scalesize_names_the_grids_axes_not_the_crss():
         srv.shutdown()
     assert raw[:4] == b"II*\x00"
     # The subset is still the envelope's axes; only the scaling changed.
-    assert "scalesize=i%28256%29%2Cj%28256%29" in url
+    n = ground.DEM_SIZE * ground.OVERSAMPLE
+    assert f"scalesize=i%28{n}%29%2Cj%28{n}%29" in url
     assert "subset=E(26" in url
 
 
@@ -525,7 +527,7 @@ def test_nothing_is_remembered_until_something_answers():
     srv, world = _wcs("nothing")
     try:
         with pytest.raises(ground.CutFailed):
-            ground._ask(world, (1, 2, 3, 4), {}, "14/1/1")
+            ground._ask(world, (878108.0, 5823890.0, 880554.0, 5826336.0), {}, "14/1/1")
     finally:
         srv.shutdown()
     assert ground._worked == {}

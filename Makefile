@@ -67,7 +67,7 @@ api-test:
 	@bash tools/api-test.sh
 	@bash tools/files-test.sh
 	@bash tools/ops-test.sh
-	@python3 -m unittest discover -q -s server -p 'test_*.py'
+	@python3 -m pytest -q server
 
 # FND.2: the flow editor's own two specs, by name — the copied modules' suite
 # (which round-trips every file in client/flow/samples/) and the validation

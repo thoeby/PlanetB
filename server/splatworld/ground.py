@@ -342,9 +342,10 @@ def _ask(world: dict, bounds: tuple, auth: dict, at: str) -> tuple[bytes, str]:
             # comes back as a 500 with an exception report in it rather than as
             # an empty raster. There is no ground there; that is not a failure,
             # it is the edge of the world (SPEC §3.8), and `cut` answers 404.
-            if about.get("envelope") and not crs.clip(box, about["envelope"]):
-                return b"", "outside the coverage"
-            box = crs.clip(box, about["envelope"]) or box
+            if about.get("envelope"):
+                if not crs.clip(box, about["envelope"]):
+                    return b"", "outside the coverage"
+                box = crs.clip(box, about["envelope"])
             world.setdefault("native", {})[version] = box
             scalings = _remembered_scalings(world, about.get("grid_axes"))
         for scale_axes in scalings:

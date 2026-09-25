@@ -269,7 +269,7 @@ Commands (`splatworld <cmd>`; each also takes `--host`, `--port`, `--api-port`, 
 | `qgis` | rewrite `gis/splatworld.qgs` |
 | `ground z/x/y` | ask the GeoServer for one tile's elevation and report |
 
-Tests (`server/test_*.py`, `unittest`, run by `make api-test`): `test_crs`,
+Tests (`server/test_*.py`, pytest, run by `make api-test`; `pip install -e "server[test]"`): `test_crs`,
 `test_crs_agree` (EPSG spelled once; SQL/JS/Python grids agree), `test_migrate`,
 `test_dsn`, `test_libpq`, `test_projenv`, `test_stale` (running code older than
 checkout), `test_serve_put`, `test_geoserver`, `test_ground`,

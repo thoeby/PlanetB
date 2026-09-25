@@ -36,7 +36,7 @@ def project(conn=None):
 
 def test_every_kind_that_is_drawn_is_a_layer():
     names = [n.text for n in project().findall(".//maplayer/layername")]
-    assert "Wood" in names and "Road" in names
+    assert "Land use" in names and "Road" in names
     # And the three every world has, whatever its vocabulary.
     assert {"Your land", "Placed", "Tiles"} <= set(names)
 
@@ -93,7 +93,7 @@ def test_land_and_tiles_are_there_to_look_at_not_to_edit():
                for m in project().findall(".//maplayer")}
     assert by_name["Your land"].get("readOnly") == "1"
     assert by_name["Tiles"].get("readOnly") == "1"
-    assert by_name["Wood"].get("readOnly") == "0"
+    assert by_name["Land use"].get("readOnly") == "0"
 
 
 def test_a_property_with_values_becomes_a_dropdown():
