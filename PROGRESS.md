@@ -3090,3 +3090,30 @@ brought up to date.
 - **play.html** is a two-line boot; its inline module is `client/js/play.js`
   and nine `play*.js` modules sharing one `ctx`, each under the 400-line and
   60-line rules.
+
+## The pool says why it refuses, and a tile asked for starts over
+
+No story; the operator's "14/8548/5800: 1 piece(s) left — press Render
+again", said again after every press.
+
+The tab counted the pieces it could see and told the player to press again,
+for every reason claim_for hands out nothing: the land moved past the job's
+version; a merge with no published child; a piece that needs WebGPU, or a
+bigger buffer, than the tab has; a piece at an op version this page does not
+build (a cached workcaps.js after db/0195 moved train to v22); a claim that
+failed outright, which `WorkLoop.claim` swallows into "nothing to claim"; and
+the commonest, a job replaced under the tab — a finer tile published, so
+ensure_job cancelled the merge in hand and opened the next job, and the tab
+went on asking claim_for for the old job by name.
+
+- **db/0201 `job_refusal(job, caps)`** is claim_for's filter as a sentence,
+  null when a claim would hand something out. `client/js/poolrun.js` (the
+  Render press, split out of `renderpool.js`) asks it only when the count and
+  the claim disagree, and shows the claim's own error when the claim failed.
+- **The press follows the tile.** A job replaced while the tab was on it is
+  gone on with, once per job, instead of reported as pieces left.
+- **`ensure_job` revives a job that gave up** (a piece failed three times and
+  nothing else can move) when the tile is asked for again: approving a
+  resubmission, a child landing, Compile it all again. Before, the approval
+  returned the same job and the failure stayed, so resubmitting a tile whose
+  training had crashed did nothing visible.

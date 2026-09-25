@@ -9,10 +9,11 @@
 // one request, and four tabs of the same cards would be four.
 
 import * as api from './api.js';
-import { DOING, beyond, drawnWhen, el, what } from './poolui.js';
+import { DOING, el } from './poolui.js';
 import { pager, poolCard, showChips, sortChips } from './poolcard.js';
 import { jobDetail } from './jobdetail.js';
 import { empty } from './empty.js';
+import { runJob } from './poolrun.js';
 
 const said = (err) => String(err?.body?.message ?? err?.message ?? err);
 
@@ -270,113 +271,6 @@ export function mountPool(hosts, { loop, where = () => ({}), onGo, count = () =>
     const note = () => tick(state, ui, draw);
     return { refresh, draw, say, look, note,
         render: acts.render, retry: acts.retry, drop: acts.drop, redo: acts.redo };
-}
-
-// One job, taken out of the pool by the player who pressed Render: claim, run,
-// upload, submit, until this tab has nothing left it can do on it.
-async function runJob(entry, button, { state, loop, say, refresh, draw }) {
-    // A tab does one job at a time (WorkLoop.focus), so taking a second while
-    // the first is running would only have it claim nothing and say so.
-    if (state.running) {
-        say('this tab is already on a job — wait for it, or open another tab', true);
-        return;
-    }
-    const work = await loop();
-    if (!work) { say('nothing here can render', true); return; }
-    if (!api.token()) { say('sign in first — the work is paid for', true); return; }
-    state.running = entry.job;
-    button.disabled = true;
-    draw();
-    const tile = `${entry.z}/${entry.x}/${entry.y}`;
-    say(`rendering ${tile}… ${what(entry)}`);
-    work.focus(entry.job);
-    let refreshed = false;
-    // SPEC §3.7: assembling… framing… training… published. The atom the loop
-    // is on is what this tab is doing, and a compile is minutes long: a panel
-    // that says nothing until the end says nothing at all.
-    const watch = setInterval(() => {
-        const op = work.atom?.op;
-        if (op) say(`${tile} · ${DOING[op] ?? op}…`);
-    }, 500);
-    try {
-        await drive(work);
-        const rows = await refresh();
-        say(await landed(tile, entry, rows, work.caps));
-        refreshed = true;
-    } catch (err) {
-        say(String(err.message ?? err), true);
-    } finally {
-        clearInterval(watch);
-        work.focus(null);
-        state.running = null;
-        button.disabled = false;
-        if (!refreshed) await refresh();
-        else draw();
-    }
-}
-
-// How long a lane that has nothing to claim waits before asking again, while
-// another lane is still working. A piece that unblocks the next one does so
-// when it is submitted, and nothing tells the other lanes.
-const LANE_WAIT_MS = 400;
-
-// The job, to the end, in as many lanes as the tab runs (client/js/work.js
-// LANES). A tile's frames are three atoms with no order between them, so a
-// press of Render that did them one after another left the network idle while
-// the GPU worked and the GPU idle while it uploaded.
-//
-// A lane with nothing to claim does not go home while another lane is still
-// holding a piece: what that piece unblocks is this job's next atom, and the
-// lane that gave up is the one that would have taken it.
-async function drive(work) {
-    const lane = async () => {
-        for (;;) {
-            if (await work.step()) continue;
-            if (!work.working?.size) return;
-            await new Promise((r) => setTimeout(r, LANE_WAIT_MS));
-        }
-    };
-    const lanes = await Promise.allSettled(
-        Array.from({ length: Math.max(1, work.lanes ?? 1) }, lane));
-    // One lane's failure is the job's: the others are told nothing by it, and
-    // the message belongs on the panel whichever lane hit it.
-    const bad = lanes.find((l) => l.status === 'rejected');
-    if (bad) throw bad.reason;
-}
-
-// What the world says about the tile afterwards, not what this tab hoped:
-// publish_tile is a compare-and-swap, and losing it is a thing to be told.
-//
-// And when it did not publish, why — "done as far as this tab can take it" is
-// true of every one of these and tells nobody which one it is, so the same
-// tile sat in the queue saying the same unhelpful sentence.
-async function landed(tile, entry, rows, caps) {
-    const [row] = await api.select('tile',
-        { z: `eq.${entry.z}`, x: `eq.${entry.x}`, y: `eq.${entry.y}`,
-            select: 'published_version' }).catch(() => []);
-    if (Number(row?.published_version ?? 0) >= Number(entry.version)) {
-        const more = drawnWhen(entry);
-        return `${tile} is published${more ? ` \u2014 ${more}` : ''}`;
-    }
-    // By tile, not by job: a job the world no longer builds is reopened as
-    // another job at the same version while this tab is on it (db/0179).
-    const now = (rows ?? []).find((r) => r.z === entry.z && r.x === entry.x && r.y === entry.y);
-    if (!now) {
-        return `${tile}: every piece is done and the publish did not land —`
-            + ' the world moved on while this tab was working. Submit it again.';
-    }
-    if (Number(now.claimed) > 0 && !Number(now.ready)) {
-        return `${tile}: ${now.claimed} piece(s) are in somebody else's hands.`;
-    }
-    if (!Number(now.ready)) {
-        return `${tile}: nothing left that anybody can take — ${now.failed || 0}`
-            + ' gave up, and the rest are waiting on it. Try again puts it back.';
-    }
-    if (beyond(now, caps)) {
-        return `${tile}: ${now.ready} piece(s) left, and they want more of a GPU`
-            + ' than this tab has. Another machine can take them.';
-    }
-    return `${tile}: ${now.ready} piece(s) left — press Render again.`;
 }
 
 // An empty pool with jobs behind it is the thing that reads as "my approval

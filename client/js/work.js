@@ -91,6 +91,9 @@ export class WorkLoop {
         this.running = false;
         this.generation = 0;
         this.claimFailures = 0;
+        // What the last claim that failed said, for the panel: a claim that
+        // fails reads as "nothing to claim" to the lanes (db/0201).
+        this.lastClaimError = null;
         // Every atom in hand, by id, and one of them — whichever was claimed
         // last — as `atom`, which is what the panels and the strip read.
         this.working = new Map();
@@ -243,11 +246,13 @@ export class WorkLoop {
                 ? await this.api.rpc('claim_for', { job_id: this.job, caps })
                 : await this.api.rpc('claim_atom', { caps });
             this.claimFailures = 0;
+            this.lastClaimError = null;
             if (atom?.id) this.working.set(atom.id, atom);
             return atom?.id ? atom : null;
         } catch (err) {
+            this.lastClaimError = String(err?.body?.message ?? err?.message ?? err);
             if (this.claimFailures++ === 0) {
-                this.log({ event: 'claim-failed', err: String(err?.message ?? err) });
+                this.log({ event: 'claim-failed', err: this.lastClaimError });
             }
             return null;
         } finally { done(); }

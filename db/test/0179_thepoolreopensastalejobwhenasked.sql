@@ -32,7 +32,8 @@ SELECT ok(stale_work_waiting(), 'the pool knows there is stale work in it');
 
 -- Asking for that job by name reopens it and hands out the new piece.
 CREATE TEMP TABLE got AS
-SELECT * FROM claim_for((SELECT jid FROM j), '{"algo": {"dataset": "dataset-v4"}}');
+SELECT * FROM claim_for((SELECT jid FROM j),
+    jsonb_build_object('algo', jsonb_build_object('dataset', algo_current('dataset'))));
 SELECT is((SELECT algo_version FROM got), 'dataset-v8',
     'claim_for hands out the piece the world builds now');
 SELECT isnt((SELECT job_id FROM got), (SELECT jid FROM j), 'out of the job that replaced it');

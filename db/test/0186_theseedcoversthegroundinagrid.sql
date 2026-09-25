@@ -30,8 +30,8 @@ SELECT is((SELECT params ->> 'seed_share' FROM t), '0.3',
     'three tenths of the budget is seeded (db/0184)');
 SELECT is((SELECT params ->> 'seed_grid' FROM t), '0.1',
     'and a tenth of the budget, a third of the seed, is the lattice');
-SELECT is((SELECT params -> 'refine_every' FROM t), NULL,
-    'the refine interval is brush''s own (db/0184)');
+SELECT is((SELECT params ->> 'refine_every' FROM t), '100',
+    'the refine interval is every hundred steps (db/0188)');
 SELECT is((SELECT min(algo_version) FROM atom
            WHERE job_id = (SELECT jid FROM j) AND op = 'dataset'), 'dataset-v8',
     'the dataset writes the same seed, over mottled ground');

@@ -106,9 +106,9 @@ BEGIN
                     'splat_count', 1000, 'finite', true, 'gpu_seconds', 1,
                     -- db/0015_structural.sql: a splat-producing op says where
                     -- its splats are, and a metre from the middle is inside
-                    -- every tile there is. A frame atom says how many frames
-                    -- it drew, and it drew the chunk it was given.
-                    'frames', (a.params ->> 'to')::int - (a.params ->> 'from')::int,
+                    -- every tile there is. A dataset says how many frames it
+                    -- drew, and it drew the camera set it was given (db/0183).
+                    'frames', (a.params ->> 'views')::int,
                     'bbox', jsonb_build_array(-1, -1, -1, 1, 1, 1)));
                 IF a.op = 'sog' AND st = 'verified' THEN
                     SELECT * INTO j FROM job WHERE id = a.job_id;
