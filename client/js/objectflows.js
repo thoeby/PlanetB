@@ -10,6 +10,7 @@
 import { el } from './poolui.js';
 import * as flows from './flows.js';
 import { runControls } from './rundialog.js';
+import { offerFlow } from './duties.js';
 
 const button = (text, cls, onclick) => {
     const b = el('button', { type: 'button', className: cls, textContent: text });
@@ -60,6 +61,16 @@ async function attachExisting(state, { acts, said }, attach) {
     askHere(acts, 'which flow', sel, 'Attach', (id) => attach(id, state.thing.id));
 }
 
+// LV.10: somebody else's process server may run it, for a term.
+function delegate(r, acts, said) {
+    const input = el('input', { type: 'number', min: '1', value: '60' });
+    askHere(acts, 'for how many minutes', input, 'Offer', async (minutes) => {
+        await offerFlow(r.id, minutes, 0);
+        said.textContent = `${r.name} is offered to run for ${minutes} min.`;
+        said.dataset.tone = 'good';
+    });
+}
+
 // One flow's line: Open for whoever may read it; for a builder also where it
 // runs, Run on… and Stop (FL.7, rundialog.js), and Detach.
 // Design 10c: the name and where it runs on top, the actions under them.
@@ -71,7 +82,8 @@ function flowLine(r, thing, { on, acts, said, reload, attach }) {
         const [chip, run, stop] = runControls(r, thing, { host: acts, reload,
             say: (t) => { said.textContent = t; said.dataset.tone = ''; } });
         top.append(chip);
-        row.append(run, stop, button('Detach', 'detach', () => attach(r.id, null)));
+        row.append(run, stop, button('Delegate…', 'delegate', () => delegate(r, acts, said)),
+            button('Detach', 'detach', () => attach(r.id, null)));
     }
     const li = el('li', { className: 'bf-flow' }, top, row);
     li.dataset.flow = r.name;

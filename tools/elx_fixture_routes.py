@@ -132,8 +132,8 @@ def run_job(job):
     (tools/elx_fixture_world.py)."""
     values = input_values(job.get('inputs', ''))
     world, key = values.get('world', ''), values.get('world_key', '')
-    proc = STATE['process'].get(str(job.get('process_id', '')))
-    lines, code = [], 0
+    proc = STATE['process'].get(str(job.get('process_id', ''))) \
+        or ({'elx': job['_elx']} if job.get('_elx') else None)
     if not proc:
         return 1, ['no such process']
     ran = run_flow(proc['elx'], lambda rpc, args: call_world(world, key, rpc, args))
@@ -175,8 +175,25 @@ def named(query, fields):
     return (query.get('name', [''])[0] or fields.get('name') or '').strip()
 
 
+def expire_jobs():
+    """LV.10: a job given an `until` runs somebody else's flow for a term; when
+    the term is over the server takes the job and its process off itself. The
+    job is kept aside, as a deleted one is, so the run can ask for it again."""
+    now = time.time()
+    for jid, j in list(STATE['job'].items()):
+        try:
+            until = float(j.get('until') or 0)
+        except (TypeError, ValueError):
+            until = 0
+        if until and until <= now:
+            proc = STATE['process'].pop(str(j.get('process_id', '')), None)
+            STATE.setdefault('gone', {})[j['name']] = {**j, '_elx': (proc or {}).get('elx')}
+            del STATE['job'][jid]
+
+
 def routes(method, parts, query, fields, raw):
     """(status, data) for one request. parts are the path after /api/v1."""
+    expire_jobs()
     head = parts[0] if parts else ''
     one = parts[1] if len(parts) > 1 else None
     if head == 'system':

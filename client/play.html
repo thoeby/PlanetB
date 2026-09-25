@@ -84,6 +84,7 @@
   import { nearbyInstances } from './js/build.js';
   import { InstancePreview } from './js/preview.js';
   import { mountTriggers } from './js/triggerwire.js';
+  import { mountDuties } from './js/dutiesui.js';
   import { LiveWorld, EVERY_MS, NEAR_M } from './js/live.js';
   import { LiveDraw } from './js/livedraw.js';
   import { Movers, EVERY_MS as MOVERS_MS, REACH_M } from './js/movers.js';
@@ -661,6 +662,9 @@
       hud.whenShown(queue, () => pool.look(queue));
   }
   hud.whenShown('Machine', () => work.progress());
+  // LV.10: flows offered to the pool, run on a server of yours.
+  const duties = mountDuties(hud.panel('Flows to run'));
+  hud.whenShown('Flows to run', () => duties.refresh());
   // FND.16: opening Place is looking at where you are — what you may do here,
   // what is waiting to be submitted, and what runs over this ground. A panel
   // that shows what was true when the tab loaded is a panel nobody can read.

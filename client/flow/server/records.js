@@ -113,6 +113,9 @@ const jobPayload = (job) => ({
   process_id: /^\d+$/.test(job.processId) ? Number(job.processId) : job.processId,
   inputs: job.inputs, cfg_log_level: job.logLevel, cfg_store_report: job.storeReport,
   triggers: (job.triggers ?? []).map(triggerPayload),
+  // LV.10: a job that runs somebody else's flow for a term ends with it —
+  // the server takes the process off itself then. Absent, it runs until asked.
+  ...(job.until ? { until: job.until } : {}),
 });
 
 /** @param {any} svc */
