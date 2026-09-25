@@ -202,3 +202,18 @@ export const onTheMap = (b, lon, lat) => b.page.evaluate(({ x, y }) => {
     const r = m.map.getTargetElement().getBoundingClientRect();
     return { x: r.left + px[0], y: r.top + px[1] };
 }, { x: lon, y: lat });
+
+// His land's areas as the world holds them.
+export const areasInTheWorld = (b) => b.page.evaluate(async () => {
+    const sw = window.splatworld;
+    const land = sw.surveyAreas.state.land;
+    const rows = await sw.api.select('feature', { area_id: `eq.${land.id}`,
+        deleted_at: 'is.null', select: 'id,kind,props' });
+    const polys = rows.filter((r) => ['landuse', 'natural'].includes(r.kind));
+    const { readFeatures } = await import('./js/edit.js');
+    const b = land.bbox;
+    const got = await readFeatures({ west: b.west - 0.002, south: b.south - 0.002,
+        east: b.east + 0.002, north: b.north + 0.002 });
+    const geoms = new Map(got.features.map((f) => [f.id, f.geom]));
+    return { land: land.bbox, rows: polys.map((r) => ({ ...r, geom: geoms.get(r.id) })) };
+});

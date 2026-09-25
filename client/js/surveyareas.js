@@ -12,6 +12,11 @@ import { readFeatures } from './edit.js';
 import { buildAreasMap, fill, frame } from './areasmap.js';
 import { loadOl } from './olboot.js';
 import { el } from './tabbar.js';
+import { Areas, areaOf } from './areasmodel.js';
+import { drawInteraction, paintHandlers, toolsFor } from './areastools.js';
+import { areaKeys, mountColumns } from './areaspanel.js';
+import { saveAreas } from './areasave.js';
+import { entriesFor, entryOf } from '../lib/kinds.js';
 
 const HTML = `
 <div class="ar-top">
@@ -30,22 +35,22 @@ export function mountSurveyAreas(host) {
     node.innerHTML = HTML;
     host.append(node);
     const q = (sel) => node.querySelector(sel);
-    const state = { m: null, lands: [], land: null, lines: [], areas: [], opened: false };
+    const state = { m: null, lands: [], land: null, lines: [], areas: null, opened: false,
+        tool: 'pan', brush: 20, selected: null, entries: [],
+        shown: () => host.closest('#panel')?.dataset.part === 'Areas' && !host.hidden };
     const say = (msg, bad = false) => {
         q('.ar-status').textContent = msg;
         q('.ar-status').dataset.bad = bad ? '1' : '';
     };
+    const acts = actsOf(state, q, say);
+    const cols = mountColumns(q, state, acts);
+    state.cols = cols;
+    areaKeys(state, acts);
     q('.ar-land').addEventListener('change', (e) => choose(state, q, say, e.target.value));
     return {
-        state, q, say,
+        state, q, say, ...acts,
         async open() {
-            if (!state.m) {
-                const ol = await loadOl().catch((err) => { say(String(err.message), true); });
-                if (!ol) return null;
-                const ground = await api.rpc('ground').catch(() => null);
-                state.m = buildAreasMap(ol, q('.ar-map'), ground);
-                clicks(state, q);
-            }
+            if (!state.m && !(await start(state, q, say, acts))) return null;
             await lands(state, q);
             if (state.lands.length) await choose(state, q, say, q('.ar-land').value);
             else say('No land of yours to draw areas on.');
@@ -54,6 +59,76 @@ export function mountSurveyAreas(host) {
             return state.m;
         },
     };
+}
+
+// The first opening: OpenLayers, the map, the kinds and the tools.
+async function start(state, q, say, acts) {
+    const ol = await loadOl().catch((err) => { say(String(err.message), true); });
+    if (!ol) return false;
+    const ground = await api.rpc('ground').catch(() => null);
+    state.m = buildAreasMap(ol, q('.ar-map'), ground);
+    clicks(state, q);
+    const [kinds, props] = await Promise.all([
+        api.select('kind', { order: 'ordering' }).catch(() => []),
+        api.select('property', { order: 'kind,ordering' }).catch(() => [])]);
+    state.properties = props;
+    state.entries = entriesFor('polygon', kinds, props,
+        { building: { hidden: true }, terrainmod: { hidden: true } });
+    state.cols.picker.set(state.entries);
+    state.own = { draw: drawInteraction(state.m, state, acts.made) };
+    state.m.map.addInteraction(state.own.draw);
+    paintHandlers(state.m, state, acts.made);
+    acts.tool('pan');
+    return true;
+}
+
+function actsOf(state, q, say) {
+    const redraw = () => drawAreas(state);
+    const made = {
+        say,
+        made(polys, clipped) {
+            const e = state.cols.picker.picked;
+            if (!e) { say('pick a kind first', true); return null; }
+            const a = state.areas.add(areaOf({ kind: e.kind, props: { ...e.props }, polys }));
+            state.selected = a;
+            redraw();
+            say(`${e.words} drawn${clipped ? ' \u00b7 clipped to your land' : ''}`
+                + ' \u2014 Save to keep it');
+            return a;
+        },
+    };
+    return {
+        made,
+        tool(id) {
+            state.tool = id;
+            state.cols.pressed(id);
+            if (state.m && state.own) toolsFor(state.m, state, state.own);
+        },
+        async save() {
+            if (!state.areas?.dirty) {
+                state.cols.said.textContent = 'nothing to save';
+                return null;
+            }
+            try {
+                const words = await saveAreas(state.areas);
+                state.cols.said.textContent = words;
+                redraw();
+                return words;
+            } catch (err) {
+                state.cols.said.textContent = String(err.body?.message ?? err.message ?? err);
+                return null;
+            }
+        },
+        redraw,
+    };
+}
+
+// The model's areas onto the map, the selected one lit.
+function drawAreas(state) {
+    if (!state.areas) return;
+    fill(state.m, 'areas', state.areas.live.map((a) => ({ ...state.areas.featureOf(a),
+        id: a.key, key: a.key, selected: a === state.selected,
+        swatch: entryOf(state.entries, a.kind, a.props)?.swatch })));
 }
 
 // Every land there is: the player's own to pick from, the rest to be dimmed.
@@ -84,13 +159,14 @@ async function choose(state, q, say, id) {
         east: b.east + pad, north: b.north + pad }).catch(() => ({ features: [] }));
     const type = (f) => f.geom?.type ?? '';
     state.lines = got.features.filter((f) => type(f).includes('LineString'));
-    state.areas = got.features.filter((f) => type(f).includes('Polygon')
-        && f.area_id === land.id && !['building', 'terrainmod'].includes(f.kind));
+    state.areas = new Areas(land, got.features.filter((f) => type(f).includes('Polygon')
+        && f.area_id === land.id && !['building', 'terrainmod'].includes(f.kind)));
+    state.selected = null;
     fill(state.m, 'lines', state.lines);
-    fill(state.m, 'areas', state.areas);
+    drawAreas(state);
     frame(state.m, b);
-    say(`${land.rules?.name ?? 'your land'} · ${state.areas.length} area`
-        + `${state.areas.length === 1 ? '' : 's'}`);
+    const n = state.areas.items.length;
+    say(`${land.rules?.name ?? 'your land'} \u00b7 ${n} area${n === 1 ? '' : 's'}`);
 }
 
 // A click on a line says where lines are edited; it is not this map's to change.
