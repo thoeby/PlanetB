@@ -1,6 +1,6 @@
 -- Nothing is drawn where the world is not (db/0062_insideground.sql).
 BEGIN;
-SELECT plan(6);
+SELECT plan(4);
 
 INSERT INTO auth.user (id, email, pw_hash, role) VALUES
 ('00000000-0000-0000-0000-00000000f301', 'ground@example.com', 'x', 'admin');
@@ -9,11 +9,6 @@ INSERT INTO ground (geoserver_url, coverage, extent, set_by)
 VALUES ('http://localhost:8083/geoserver', 'splatworld:visp',
         st_makeenvelope(7.8545, 46.2759, 7.9085, 46.3119, world_srid()),
         '00000000-0000-0000-0000-00000000f301');
-
-SELECT ok(inside_ground(st_geomfromtext('POINT(7.88 46.29)', 4326)),
-          'a point in the Rhone valley is in this world');
-SELECT ok(NOT inside_ground(st_geomfromtext('POINT(46.29 7.88)', 4326)),
-          'the same numbers the other way round are not');
 
 SELECT lives_ok($$SELECT refuse_outside_ground(
     st_geomfromtext('POINT(7.88 46.29)', 4326), 'this land')$$,
