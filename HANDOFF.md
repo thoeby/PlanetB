@@ -492,8 +492,7 @@ ops. All five are in.
 - **The Switzerland seed tools are gone** (`tools/seed-*.sh`,
   `tools/geo-common.sh`): the world's ground is the operator's coverage,
   cut per tile on request (`server/splatworld/ground.py`), and what stands on
-  it is drawn in QGIS or imported (`docs/import.md`). `infra/seed/ch.geojson`
-  remains as a region outline.
+  it is drawn in QGIS or imported (`docs/import.md`).
 - **"Help render the world"** is two more entries in `caps` — `ops` and
   `near {lon, lat}` — which `claim_atom` already carried and already filtered
   on. `GET /api/progress` says how far the world has got, publicly.

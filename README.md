@@ -75,13 +75,13 @@ On an empty world the page opens on **Settings → Setup**.
 | | |
 |---|---|
 | **1 · Account** | an email and a password. You sign in with it, and QGIS draws as it. The first account is the admin. |
-| **2 · GeoServer** | the address that opens its pages, e.g. `localhost:8083/geoserver`, and a login that may read your elevation. **Connect** asks its WCS what it publishes. Nothing is created on it: it serves the elevation and nothing else. |
+| **2 · GeoServer** | the address that opens its pages, e.g. `localhost:8083/geoserver`, and a login that may read your elevation. **Connect** asks its WCS what it publishes. Nothing is created on it: it serves the ground layers and nothing else. |
 | **3 · Ground** | pick the coverage the world stands on and press **Use this ground**. Every z14 tile of it goes into the render pool, and until one is rendered the elevation is drawn as plain terrain you can already walk on. |
 
 You need a GeoServer for step 2 — [it's a zip and a script](https://geoserver.org/download/),
 no installer — with your elevation published as a coverage store
-([`docs/geoserver.md`](docs/geoserver.md)). It is the elevation source and
-nothing else.
+([`docs/geoserver.md`](docs/geoserver.md)). It is the source of the ground —
+elevation, and optionally albedo, shade and ground cover — and nothing else.
 
 ### 6. Draw something in QGIS
 
@@ -155,6 +155,7 @@ QGIS  ───SQL, as you──────────────────
 Four processes, and none of them computes anything about the world:
 PostgreSQL, PostgREST (the only API — row-level security authorises every
 write), the `splatworld` server (files and static pages), and GeoServer
-(the operator's elevation, over WCS, and nothing else). Every atom — assemble, frame, train, merge,
-sog, verify — runs in a browser tab. Publishing a tile is a compare-and-swap
+(the operator's ground layers: elevation over WCS, albedo, shade and ground
+cover over WMS). Every atom — dataset, train, merge, sog, verify — runs in a
+browser tab. Publishing a tile is a compare-and-swap
 in Postgres.

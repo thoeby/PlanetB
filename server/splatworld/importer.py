@@ -38,13 +38,10 @@ KINDS = ("highway", "railway", "aerialway", "barrier", "waterway",
 AREA_ZOOM = 12
 MIN_ZOOM = 6
 
-# dem-v1: uint16, 256x256, row-major, north-west first, in the tile projection,
-# elevation_m = value * 0.2 - 500 (gdal_translate -scale -500 12607 0 65535),
-# the one client/lib/geo.js reads back (DEM_SCALE, DEM_OFFSET).
-DEM_ALGO = "dem-v1"
+# dem-v2 (server/splatworld/dem.py): DEM_SIZE x DEM_SIZE float32 metres,
+# row-major, north-west first, in the tile projection, clipped to what a
+# planet has; client/lib/geo.js reads it back.
 DEM_SIZE = 512
-DEM_SCALE = 0.2
-DEM_OFFSET = -500.0
 DEM_MIN, DEM_MAX = -500.0, 12607.0
 
 class ImportError_(SystemExit):

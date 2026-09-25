@@ -53,7 +53,8 @@ services:
     ports:
       - "8081:80"
 
-  # The operator's elevation, over WCS, and nothing else (Invariant 9): QGIS
+  # The operator's ground layers — elevation over WCS; albedo, shade and cover
+  # over WMS — and nothing else (Invariant 9): QGIS
   # connects to the database as the player (SPEC §2.11), so this no longer
   # needs to reach Postgres at all.
   geoserver:

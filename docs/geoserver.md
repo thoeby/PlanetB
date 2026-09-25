@@ -1,15 +1,16 @@
-# GeoServer: the elevation, and nothing else
+# GeoServer: the ground, and nothing else
 
-The world needs one thing from GeoServer: the operator's elevation, published
-as a **coverage**, so the server can cut `/geo/dem/{z}/{x}/{y}.r16` out of it
-one tile at a time and the viewer has ground to stand on. That is the whole
-relationship.
+The world needs one thing from GeoServer: the operator's ground. The elevation,
+published as a **coverage**, is required: the server cuts
+`/geo/dem/{z}/{x}/{y}.r16` out of it one tile at a time and the viewer has
+ground to stand on. Albedo, shade and ground-cover layers over WMS are optional
+(below). That is the whole relationship.
 
 It used to be two things. GeoServer also sat in front of PostgreSQL so QGIS
 could draw over WFS-T, which meant a workspace, a PostGIS store, a feature type
 per view, a primary-key table, styles, and one database login with `BYPASSRLS`
 that every drawn row was attributed to. All of that is gone
-(`REFACTOR-direct-pg.md`): QGIS connects to the database as the player.
+(`docs/history/REFACTOR-direct-pg.md`): QGIS connects to the database as the player.
 
 ## What to publish
 

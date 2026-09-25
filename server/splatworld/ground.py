@@ -2,7 +2,8 @@
 
 TASKS-usable T1: `/geo/dem/{z}/{x}/{y}.r16` is served on demand. On a miss the
 server asks the operator's GeoServer for exactly that tile's bounds, encodes it
-as dem-v2 (server/splatworld/dem.py: float32 metres, DEM_SIZE across), stores it, registers the artifact and records which tile it is,
+as dem-v2 (server/splatworld/dem.py: float32 metres, DEM_SIZE across), stores
+it, registers the artifact and records which tile it is,
 so `geo_inputs()` can pin the elevation a compile actually read (Invariant 2).
 
 Nothing is fetched ahead of time and nothing is fetched twice: a tile is cut
@@ -182,7 +183,7 @@ def not_a_raster(raw: bytes) -> str | None:
 
 
 def encode_geotiff(raw: bytes, bounds: tuple | None = None) -> bytes:
-    """A GeoTIFF to dem-v1 samples of one tile's box, north-west first.
+    """A GeoTIFF to dem-v2 samples of one tile's box, north-west first.
 
     `bounds` is the tile in the tile projection. The coverage is asked for in its own CRS
     — a Swiss DEM is LV95, and asking GeoServer to reproject as well is one more
@@ -558,7 +559,7 @@ def remember(conn, z: int, x: int, y: int, sha: str, size: int) -> None:
     """
     conn.execute(
         "INSERT INTO artifact (sha256, kind, bytes, algo_version)"
-        " VALUES (%s, 'dem', %s, 'dem-v1') ON CONFLICT (sha256) DO NOTHING",
+        " VALUES (%s, 'dem', %s, 'dem-v2') ON CONFLICT (sha256) DO NOTHING",
         (sha, size))
     conn.execute(
         "INSERT INTO geo_tile (z, x, y, sha256) VALUES (%s, %s, %s, %s)"

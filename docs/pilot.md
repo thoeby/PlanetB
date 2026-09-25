@@ -9,7 +9,7 @@ none of it (Invariant 9).
 
 **The picture is historical.** It was drawn by a pipeline that is gone: the
 ground came from a Copernicus DEM and Sentinel-2 imagery pre-cut into the store
-by seeding tools that no longer exist (`docs/seed-ch.md`), the buildings, pond,
+by seeding tools that no longer exist, the buildings, pond,
 forest and road from an OSM fixture, and the z14 gaussians were sampled from
 those surfaces by `sample-v1`, which was removed — every tile is trained now
 (`ARCHITECTURE.md` §5). The same spec today compiles something different, and

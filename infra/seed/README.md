@@ -52,12 +52,6 @@ against the stand-in only** — the same rule HANDOFF.md states for the
 GeoServer fixture. On a machine that can reach Overpass and swisstopo, the
 same scripts write the real thing and nothing else changes.
 
-## Also here
-
-`ch.geojson` — the Swiss border as one polygon, from Natural Earth 1:50m
-(public domain). It was the outline of a country-wide seed whose tools are
-gone (`docs/seed-ch.md`); nothing reads it now.
-
 ## Formats the world stores
 
 **`dem-v2`** — what the server cuts into `/geo/dem/{z}/{x}/{y}.r16`: 512 × 512

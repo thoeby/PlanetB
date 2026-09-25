@@ -7,9 +7,9 @@ the browser decides it here too (Invariant 6): your land is yours, somebody
 else's is theirs, and what you draw is yours because you drew it.
 
 It went through GeoServer over WFS-T until then, as one database login with
-`BYPASSRLS`. That login is gone (`REFACTOR-direct-pg.md`). GeoServer still
-publishes the operator's elevation, which is the hillshade under your drawing,
-and is asked for nothing else.
+`BYPASSRLS`. That login is gone (`docs/history/REFACTOR-direct-pg.md`). GeoServer still
+publishes the operator's ground layers (the elevation is the hillshade under
+your drawing), and is asked for nothing else.
 
 ## The project
 
@@ -17,8 +17,9 @@ and is asked for nothing else.
 `.qgs` with your own database login already in it. Open it; everything is
 there. Save in QGIS and the page has it within half a minute.
 
-**From this folder**: `splatworld.qgs` is committed, without anybody's
-credentials. It names a PostgreSQL *service* called `splatworld`, so QGIS looks
+**From the command line**: `splatworld qgis` writes `gis/splatworld.qgs` from
+the running world's vocabulary (not committed; gitignored). It carries nobody's
+credentials: it names a PostgreSQL *service* called `splatworld`, so QGIS looks
 the connection up in your `~/.pg_service.conf`:
 
 ```ini
@@ -35,9 +36,6 @@ The login is minted by the database (`qgis_credentials()`,
 The project the page hands you always carries one: where the password has
 already been shown, the server mints a new one for it
 (`/qgis/project.qgs`, `server/splatworld/serve.py`).
-
-The committed copy is not rewritten by anything but `splatworld qgis`, and is
-older than the OSM vocabulary (db/0157): regenerate it before using it.
 
 ## It is generated, not hand-kept
 

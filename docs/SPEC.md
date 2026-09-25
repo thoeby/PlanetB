@@ -318,7 +318,7 @@ rendered.
 ### 2.11 QGIS project (download from Land)
 The download is a `.qgs` generated for this world and this player:
 - A PostgreSQL connection to the world's database with a login of this
-  player's own embedded in it (REFACTOR-direct-pg.md S2/S3: it was WFS-T
+  player's own embedded in it (docs/history/REFACTOR-direct-pg.md S2/S3: it was WFS-T
   through GeoServer, as one operator, until then).
 - Layers: land (yours editable, others read-only by RLS), and one per key of
   the vocabulary — Highway, Railway, Aerialway, Barrier, Waterway (lines),
@@ -383,7 +383,7 @@ returns to the admin).
 ### 2.14 Setup (admins, first run)
 Account (first player is admin) → display name → GeoServer address + admin
 login → "Connect" (asks its WCS what it publishes; nothing is created on it,
-REFACTOR-direct-pg.md S4) → list of coverages
+docs/history/REFACTOR-direct-pg.md S4) → list of coverages
 → pick → "This is the ground". Then the page reloads into the world at the
 coverage centre. Setup is available from any browser to an admin, not only
 the server's own machine. The QGIS admin project (all land editable) is

@@ -18,7 +18,7 @@ What is written but unrun is in §8.
 | PostgreSQL 16 + PostGIS | the world, jobs, atoms, ledger, auth; QGIS connects to it as the player | 5432 (loopback in compose) |
 | PostgREST 12 | the only API | 3000 (loopback in compose) |
 | nginx, or the `splatworld` server | immutable file store `/assets /tiles /jobs /geo`, static client under `/app/` | 8081 |
-| GeoServer 2.26 | publishes the operator's elevation over WCS, nothing else | 8083 (loopback in compose) |
+| GeoServer 2.26 | publishes the operator's ground layers (elevation over WCS; albedo, shade, cover over WMS), nothing else | 8083 (loopback in compose) |
 
 The `splatworld` server (`server/`, `docs/server.md`) replaces nginx on a
 machine that has none built with the DAV module, and supervises PostgREST

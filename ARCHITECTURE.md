@@ -4,7 +4,7 @@
   QGIS (a player) ─ SQL/login ─▶ PostgreSQL + PostGIS   (row-level security)
   browser ───────── REST/JWT ──▶ PostgREST ────▶ the same database
   browser ───────── GET / PUT ─▶ splatworld/nginx ▶ /assets /tiles /jobs /geo /app
-  the server ────── WCS ───────▶ GeoServer             (the operator's elevation)
+  the server ─── WCS / WMS ────▶ GeoServer             (the operator's ground layers)
 ```
 
 Four processes (the file server is nginx or `server/`'s `splatworld`, Invariant 10). All logic = SQL + client JS.
@@ -12,7 +12,9 @@ Four processes (the file server is nginx or `server/`'s `splatworld`, Invariant 
 QGIS connects to the database as the player, with a login of their own
 (`db/0065_playerroles.sql`), so what a person may draw is decided by exactly
 the policies that decide it in the browser. GeoServer publishes the operator's
-elevation over WCS and is asked for nothing else.
+ground layers — elevation over WCS; albedo, shade and ground cover over WMS —
+and is asked for nothing else. The server cuts each into `/geo/{kind}/{z}/{x}/{y}`
+the first time a tile is asked for (`server/splatworld/ground.py`).
 
 Invariant 9, in full: outside participants — QGIS, process servers — act as
 players with logins of their own, under RLS. The server decides and computes

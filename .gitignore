@@ -34,3 +34,7 @@ infra/seed/worldcover-visp.tif
 
 # Scratch harnesses a session leaves in the working directory.
 *.tmp.mjs
+
+# `splatworld qgis` writes it from a running world; the page hands each player
+# their own (/qgis/project.qgs), so a committed copy only goes stale.
+gis/splatworld.qgs
