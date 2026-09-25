@@ -1,11 +1,11 @@
 // Story 41 — B reads his field off the clay (EDT.2, PLAN-editors.md ideas 1–2).
 //
 // Three views on the card in the corner, as a modelling tool has them (the
-// operator's note): Solid, the lit clay alone; Contours, flat clay with lines
-// every two metres, bold every ten; Grid, a 5 m grid, bold every 25. Z steps
-// through them. What he changed is colour in any of them, blue above the
-// elevation and red below, the part not saved yet hatched — a switch of its
-// own. The card remembers his view the next time he opens it.
+// operator's notes): Solid, the clay in hard light alone; Contours, flat clay
+// with lines every two metres, bold every ten, and what he changed as colour,
+// blue above the elevation and red below, the part not saved yet hatched;
+// Grid, a metric grid. Z steps through them. The card remembers his view the
+// next time he opens it.
 
 import { test, expect, UI } from './players.js';
 import { ben, blueprintOverHisLand, shot } from './editors.js';
@@ -36,9 +36,9 @@ const undoMound = (b) => b.page.evaluate(() => {
     sw.blueprint.rebuild(null);
 });
 
-// Blue where he raised it, and only while the switch is on.
+// Blue where he raised it, in Contours; in Solid the change is shape alone.
 async function changedIsBlue(b, card, testInfo) {
-    await card.locator('.bp-sw-changed').check();
+    await card.locator('.bp-shade-contours').click();
     const clip = await b.page.evaluate(() => {
         const sw = window.splatworld;
         const L = sw.blueprint.L;
@@ -57,10 +57,10 @@ async function changedIsBlue(b, card, testInfo) {
     await shot(b, testInfo, 'story-41-changed');
     expect(after[2] - after[0], 'raised ground reads blue')
         .toBeGreaterThan(before[2] - before[0] + 8);
-    await card.locator('.bp-sw-changed').uncheck();
+    await card.locator('.bp-shade-solid').click();
     await b.page.waitForTimeout(500);
     const off = meanColour(await b.page.screenshot({ clip }));
-    expect(off[2] - off[0], 'and the switch takes the colour off')
+    expect(off[2] - off[0], 'and Solid takes the colour off')
         .toBeLessThan(after[2] - after[0] - 8);
     await undoMound(b);
 }
@@ -101,7 +101,6 @@ test('story 41 — contours, what he changed, and switches that stay switched',
             await expect(card.locator('.bp-shade-contours')).toHaveAttribute('aria-pressed',
                 'true', { timeout: UI });
             await card.locator('.bp-shade-solid').click();
-            await card.locator('.bp-sw-changed').check();
         });
         await b.close();
     });

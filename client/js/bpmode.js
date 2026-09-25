@@ -13,6 +13,7 @@ import { drawMark, drawPath } from './bpdraw.js';
 import { bindPeek, mountGroundTag, numbersRows, tagFor } from './groundtag.js';
 import { mountProfileStrip } from './profilestrip.js';
 import { mountBlueprintSide } from './bpside.js';
+import { mountLoading } from './bploading.js';
 import { indexOf, slopeAt } from '../lib/bpgrid.js';
 import { nearestSample, sampleAlong } from '../lib/profile.js';
 
@@ -25,9 +26,9 @@ export function mountBlueprintMode(ctx) {
     const cam = new BlueprintCamera(bp, ctx);
     // A right click on the clay is the surface's to answer.
     ctx.onContext = (e) => st.surface?.context?.(pick(e), e);
-    const words = mountGroundTag(host);
-    const strip = mountProfileStrip(host);
+    const [words, strip] = [mountGroundTag(host), mountProfileStrip(host)];
     const side = mountBlueprintSide(host, { bp, cam });
+    const loading = mountLoading(host, bp);
     const st = stirring(bp, { surface: null, at: null, lost: false, down: null,
         section: null, marked: null, unpeek: null, screen: null });
     strip.onHover((s) => { st.marked = s; });
@@ -51,7 +52,7 @@ export function mountBlueprintMode(ctx) {
     }
 
     return {
-        cam, strip, words, side,
+        cam, strip, words, side, loading,
         get active() { return bp.active; },
         get surface() { return st.surface; },
         state: st,

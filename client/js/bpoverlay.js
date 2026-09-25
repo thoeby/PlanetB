@@ -3,10 +3,11 @@
 // is near or far, bold every fifth line), and the card
 // that picks how the clay is seen (PLAN-editors.md §2.1; EDT.2).
 //
-// Three views, as a modelling tool has (the operator's note): Solid, the lit
-// clay and nothing on it; Contours, flat clay with its height lines; Grid, the
-// lit clay with a metric grid. Z steps through them. Two switches stay beside
-// them: what you changed as colour, and the neighbours' lines.
+// Three views, as a modelling tool has (the operator's notes): Solid, the clay
+// in strong light and nothing on it, so a change is read as shape; Contours,
+// flat clay with its height lines and what was changed as colour, blue up and
+// red down; Grid, the lit clay under a metric grid. Z steps through them. One
+// switch stays beside them: the neighbours' lines.
 //
 // The lines are built per chunk with the chunk (client/js/blueprint.js
 // buildChunk), so a stroke redraws the contours it moved and no others. The
@@ -35,13 +36,15 @@ export const gridStep = (distance) => (distance < 300 ? GRID_M : distance < 1500
 const KEY = 'splatworld.blueprint.overlays';
 
 export const VIEWS = [
-    { id: 'solid', words: 'Solid', sets: { contours: false, grid: false, flat: false } },
-    { id: 'contours', words: 'Contours', sets: { contours: true, grid: false, flat: true } },
-    { id: 'grid', words: 'Grid', sets: { contours: false, grid: true, flat: false } },
+    { id: 'solid', words: 'Solid',
+        sets: { contours: false, grid: false, flat: false, relief: true, changed: false } },
+    { id: 'contours', words: 'Contours',
+        sets: { contours: true, grid: false, flat: true, relief: false, changed: true } },
+    { id: 'grid', words: 'Grid',
+        sets: { contours: false, grid: true, flat: false, relief: false, changed: false } },
 ];
 
 export const SWITCHES = [
-    { key: 'changed', words: 'What you changed, as colour' },
     { key: 'neighbours', words: "Neighbours' lines and areas" },
 ];
 

@@ -11,6 +11,25 @@ import { meanColour } from './pixels.js';
 
 test.setTimeout(600_000);
 
+// Every word the loading screen says while it is up.
+const watchLoading = (page) => page.evaluate(() => {
+    const seen = [];
+    window.loadingSaid = seen;
+    const node = document.getElementById('bp-loading');
+    new window.MutationObserver(() => {
+        if (!node.hidden) seen.push(node.textContent);
+    }).observe(node, { attributes: true, childList: true, subtree: true, characterData: true });
+});
+
+// A loading screen while the land, its elevation and the clay come, and gone
+// once they have (the operator's note).
+async function loadingWasShown(page) {
+    await expect(page.locator('#bp-loading')).toBeHidden({ timeout: UI });
+    const said = await page.evaluate(() => window.loadingSaid.join(' | '));
+    expect(said).toContain('Opening your land as clay');
+    expect(said).toContain('Building the clay');
+}
+
 test('story 45 — open Shape, see white land, get his eyes back on close',
     async ({ browser, world }, testInfo) => {
         const b = await ben(browser, world, testInfo);
@@ -26,11 +45,13 @@ test('story 45 — open Shape, see white land, get his eyes back on close',
         const eyes = await page.evaluate(() => ({ ...window.splatworld.player.position }));
         await test.step('4 opens Shape onto his field as clay', async () => {
             await page.mouse.move(900, 400);
+            await watchLoading(page);
             await page.keyboard.press('4');
             await expect(page.locator('#panel header .title')).toHaveText('Shape');
             await expect(page.locator('.sc-land option')).not.toHaveCount(0, { timeout: UI });
             await page.waitForFunction(() => window.splatworld.blueprint.active, null,
                 { timeout: UI });
+            await loadingWasShown(page);
             await expect(page.locator('#sculpt-tools .sc-rail')).toBeVisible();
             await expect(page.locator('.sc-status')).toContainText('drag on the ground');
             await expect(page.locator('#bp-side .bp-land')).toHaveText('Ben’s field');

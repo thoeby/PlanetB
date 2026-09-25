@@ -21,6 +21,7 @@ import { mountLeave, saveGround } from './shapesave.js';
 import { restore } from './shapekeep.js';
 import { toolRail } from './sculptrail.js';
 import { shapeSurface } from './shapetool.js';
+import { whileLoading } from './bploading.js';
 
 // The panel itself is not on screen while Shape is (client/terrain.css): the
 // toolbar and its cards are over the world (client/js/sculptrail.js). What it
@@ -82,10 +83,11 @@ export function mountShape(host, ctx, { lands = () => [] } = {}) {
     const pick = (id, how) => pickBrush(rail, q, state, id, say, how);
     const open = () => openOver(ctx, state, surface, say);
     const load = (id) => chooseLand(q, state, say, id);
-    const choose = async (id) => {
-        await load(id);
-        if (state.on) await open();
-    };
+    const choose = (id) => whileLoading(ctx.bpmode.loading, 'Opening the land as clay…',
+        async () => {
+            await load(id);
+            if (state.on) await open();
+        });
     const acts = { choose, say, pick, ctx,
         save: () => saveGround(state, say, ctx, q('.sc-retry')),
         apply: () => layBed(q, state, say, ctx, ground),
@@ -132,15 +134,17 @@ function comings(ctx, state, list, open, { leave, save, surface, rail }) {
         state.on = true;
         rail.node.hidden = false;
         ctx.bpmode.hold(surface);
-        // The operator's switches, not the player's (PLAN-editors ideas
-        // 13 and 16): the edge blend, and how far the ground may move.
-        const set = await api.rpc('app_settings').catch(() => ({}));
-        state.blend = set?.edge_blend !== 'off';
-        state.limit = { up: Number(set?.shape_max_up) || 8,
-            down: Number(set?.shape_max_down) || 8 };
-        if (!state.shaping) await list();
-        if (state.shaping && state.on) await open();
-        return state.shaping;
+        return whileLoading(ctx.bpmode.loading, 'Opening your land as clay…', async () => {
+            // The operator's switches, not the player's (PLAN-editors ideas
+            // 13 and 16): the edge blend, and how far the ground may move.
+            const set = await api.rpc('app_settings').catch(() => ({}));
+            state.blend = set?.edge_blend !== 'off';
+            state.limit = { up: Number(set?.shape_max_up) || 8,
+                down: Number(set?.shape_max_down) || 8 };
+            if (!state.shaping) await list();
+            if (state.shaping && state.on) await open();
+            return state.shaping;
+        });
     };
     return {
         // Opened from the plinth and from Lines' Lay bed at once is one

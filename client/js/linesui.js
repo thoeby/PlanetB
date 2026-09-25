@@ -23,6 +23,7 @@ import { bindKeys, describeSelected, reselect, showProfile } from './linesdo.js'
 import { mountKindPicker } from './kindpicker.js';
 import { mountLeave } from './shapesave.js';
 import { linesBar } from './linesbar.js';
+import { whileLoading } from './bploading.js';
 import { el } from './tabbar.js';
 
 
@@ -70,8 +71,8 @@ export function mountLines(host, ctx, { lands = () => [] } = {}) {
             say(describeSelected(state));
             showProfile(ctx, state);
         }));
-    q('.ln-land').addEventListener('change', (e) => chooseLand(ctx, state, e.target.value,
-        surface, say));
+    q('.ln-land').addEventListener('change', (e) => whileLoading(ctx.bpmode.loading,
+        'Opening the land as clay…', () => chooseLand(ctx, state, e.target.value, surface, say)));
     bindKeys(ctx, state, acts, picker, (id) => pickTool(bar, state, id, say));
     pickTool(bar, state, 'draw', say);
     const leave = mountLeave(document.getElementById('hud') ?? document.body);
@@ -81,12 +82,14 @@ export function mountLines(host, ctx, { lands = () => [] } = {}) {
             state.on = true;
             bar.node.hidden = false;
             ctx.bpmode.hold(surface);
-            if (!state.entries.length) await loadKinds(state, picker);
-            if (!state.lines) await listLands(q, state, lands);
-            if (state.areas.length) {
-                await chooseLand(ctx, state, q('.ln-land').value, surface, say);
-            }
-            else say('No land of yours to draw on — Land · 3.');
+            await whileLoading(ctx.bpmode.loading, 'Opening your land as clay…', async () => {
+                if (!state.entries.length) await loadKinds(state, picker);
+                if (!state.lines) await listLands(q, state, lands);
+                if (state.areas.length) {
+                    await chooseLand(ctx, state, q('.ln-land').value, surface, say);
+                }
+                else say('No land of yours to draw on — Land · 3.');
+            });
         },
         async leave() { await leaving(ctx, state, acts, leave, { surface, bar }); },
     };

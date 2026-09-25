@@ -14,7 +14,7 @@
 
 import { CHUNK, chunkGeometry, chunksIn, chunksOf, geodetic, heightIn, indexOf, latAt,
     layout, local, lonAt } from '../lib/bpgrid.js';
-import { linear, vertexColour } from '../lib/clay.js';
+import { linear, litBy, vertexColour } from '../lib/clay.js';
 import { drawChunkLines, remembered } from './bpoverlay.js';
 import { buildRing, grow, z14Keys } from './bpring.js';
 import * as tm from '../lib/tilemath.js';
@@ -25,12 +25,18 @@ export const MARGIN_M = 1000;
 // ring's edge that starts, so the slope down is under the ring too.
 const SINK_M = 400;
 const SINK_INSET_M = 200;
+// Solid's light: level ground a light grey, and every few degrees of slope a
+// clear step lighter towards the sun or darker away from it — the plain clay's
+// light is nearly overhead, and an eight-metre pit in it was hard to see.
+const FLAT_LIT = litBy(0, 1, 0);
+const hard = (lit) => Math.min(1, Math.max(0.12, 0.8 + 3.2 * (lit - FLAT_LIT)));
+
 // How long the page waits for the elevation under the region to arrive.
 const DEM_WAIT_MS = 20000;
 
 // The overlays the box switches (client/js/bpoverlay.js); colour needs two.
-export const OVERLAYS = { view: 'solid', contours: false, changed: true, grid: false,
-    flat: false, steep: false, neighbours: true, steepAt: 35 };
+export const OVERLAYS = { view: 'solid', contours: false, changed: false, grid: false,
+    flat: false, relief: true, steep: false, neighbours: true, steepAt: 35 };
 
 export class Blueprint {
     constructor(app, pc, { origin, floor, streamer, groundMesh = null, preview = null }) {
@@ -70,7 +76,11 @@ export class Blueprint {
         const b = area.bbox;
         const box = [b.west, b.south, b.east, b.north];
         const outer = grow(box, MARGIN_M);
+        this.onStep?.('Fetching the elevation…');
         await this.demReady(outer);
+        // Said, and drawn, before the clay is built: building it holds the tab.
+        this.onStep?.('Building the clay…');
+        if (this.onStep) await new Promise((done) => requestAnimationFrame(() => done()));
         this.L = layout(box, shaping?.grid?.cell ?? 1);
         this.h0 = this.demAt(this.L.lon0, this.L.lat0) ?? 0;
         this.frame = { lon: this.L.lon0, lat: this.L.lat0, h: this.h0 };
@@ -187,9 +197,11 @@ export class Blueprint {
 
     colourOf() {
         const o = this.overlays;
-        // Contours view: flat clay, so the lines are what is read.
-        return (k, i, j, slope, lit) => linear(vertexColour({ slope, lit: o.flat ? 0.92 : lit,
-            i, j,
+        // Contours view: flat clay, so the lines are what is read. Solid: a
+        // harder light than the plain half-lit clay, so a raised bank or a dug
+        // pit reads as shape without any colour.
+        const shade = (lit) => (o.flat ? 0.92 : o.relief ? hard(lit) : lit);
+        return (k, i, j, slope, lit) => linear(vertexColour({ slope, lit: shade(lit), i, j,
             inside: this.inside[k] === 1, delta: this.delta[k], unsaved: this.unsaved[k] === 1,
             changed: o.changed, steep: o.steep ? o.steepAt : 0 }));
     }
