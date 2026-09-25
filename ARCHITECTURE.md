@@ -17,8 +17,9 @@ and is asked for nothing else. The server cuts each into `/geo/{kind}/{z}/{x}/{y
 the first time a tile is asked for (`server/splatworld/ground.py`).
 
 Invariant 9, in full: outside participants — QGIS, process servers — act as
-players with logins of their own, under RLS. The server decides and computes
-nothing, and sends nothing out. A process server that runs a flow pulls what it
+players with logins of their own, under RLS. The server runs no atom and never
+calls a process server; it prepares and serves data (ground tiles, the QGIS
+project) and nothing more. A process server that runs a flow pulls what it
 needs over REST and writes back through the same RPCs a player's tab uses.
 
 ## 1. Concepts

@@ -3,13 +3,12 @@
 FND.10. The world stores what somebody shaped as an `.r32`
 (docs/rendering.md §6): a small JSON header and one float32 per cell. QGIS
 opens rasters, not that. This turns one immutable file into another shape of
-the same numbers — a format conversion and nothing else. It decides nothing
-about the world and computes nothing about it (Invariant 9): the same bytes
-in, the same bytes out, every time.
+the same numbers — a format conversion and nothing else: the same bytes in,
+the same bytes out, every time.
 
 A plain single-strip GeoTIFF: little-endian, one float32 band, uncompressed,
-with the three tags that say where on the earth it is. No GDAL, no numpy —
-the server has the standard library and that is all it may have (Invariant 10).
+with the three tags that say where on the earth it is. No GDAL, no numpy:
+the standard library is enough for this, so it asks for nothing more.
 """
 
 from __future__ import annotations

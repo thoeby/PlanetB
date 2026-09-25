@@ -334,14 +334,10 @@ least one request, because a test that sends nothing passes whatever the limit.
 0  4 * * *  cd /srv/splatworld && set -a && . ./.env && set +a && bash tools/restore.sh --check
 ```
 
-**Whether these run on the server is the owner's call, not this document's.**
-CLAUDE.md's layout annotates `tools/` as "runs on the dev box, not the server",
-and Invariant 9 forbids a cron that computes. The reading that lets these three
-through is that none of them computes anything about the world — a backup copies
-bytes, the GC deletes bytes, the drift check reads — and that a world with no
-backup is worse. It is still a reading. Run them from wherever `psql` and the
-store are both reachable; a dev box with a mount is as good as the server, and
-does not need the argument at all.
+Invariant 9 forbids a cron that compiles, and none of these does: a backup
+copies bytes, the GC deletes bytes, the drift check reads. Run them from
+wherever `psql` and the store are both reachable; a dev box with a mount is as
+good as the server.
 
 ## 8. Dependencies
 

@@ -2,8 +2,7 @@
 
 The same code serves a laptop and a real server: `splatworld run` starts the
 file store and the static client, applies the schema, and supervises PostgREST.
-It computes nothing about the world — every atom still runs in a browser tab
-(Invariant 9).
+It runs no atom — every atom runs in a browser tab (Invariant 9).
 """
 # Kept equal to client/version.txt (server/test_stale.py holds the two equal).
 # No page compares them any more; `serve.already_running()` fetches that file

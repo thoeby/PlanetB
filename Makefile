@@ -1,4 +1,4 @@
-# splatworld — see CLAUDE.md "Gates". Four processes, no server-side compute.
+# splatworld — see CLAUDE.md "Gates". Four processes; no atom runs on the server.
 SHELL := /bin/bash
 .SHELLFLAGS := -eu -o pipefail -c
 .DEFAULT_GOAL := help

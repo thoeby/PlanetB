@@ -152,7 +152,7 @@ QGIS  ───SQL, as you──────────────────
                                     play.html streams it
 ```
 
-Four processes, and none of them computes anything about the world:
+Four processes, and none of them renders or compiles anything:
 PostgreSQL, PostgREST (the only API — row-level security authorises every
 write), the `splatworld` server (files and static pages), and GeoServer
 (the operator's ground layers: elevation over WCS, albedo, shade and ground

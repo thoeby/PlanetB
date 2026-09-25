@@ -25,7 +25,7 @@ machine that has none built with the DAV module, and supervises PostgREST
 itself. It also cuts a `/geo` ground tile from the GeoServer the first time a
 browser asks for it.
 
-The server executes no compute about the world. Every atom (dataset, train,
+The server runs no atom and renders nothing. Every atom (dataset, train,
 merge, sog) runs in a player's browser tab (Invariant 9). There is no cron and
 no worker process; `tools/` are run by a person on a dev or ops box.
 
