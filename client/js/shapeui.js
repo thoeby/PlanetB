@@ -16,6 +16,7 @@ import { alongLine } from './sculptbrush.js';
 import { el } from './poolui.js';
 import { brushLine, brushUses, keyHandler, shapedLine } from './sculptmode.js';
 import { floors, wireBox } from './shapebox.js';
+import { mountHistory } from './shapehistory.js';
 import { toolRail } from './sculptrail.js';
 import { shapeSurface } from './shapetool.js';
 
@@ -26,6 +27,7 @@ const HTML = `
 </div>
 <div class="sh-rail-host"></div>
 <p class="sc-status status"></p>
+<div class="sh-history-host"></div>
 <div class="section">
   <p class="muted sc-said"></p>
   <p class="note mono sc-shaped"></p>
@@ -49,10 +51,7 @@ export function mountShape(host, ctx, { lands = () => [] } = {}) {
     const node = el('div');
     node.innerHTML = HTML;
     host.append(node);
-    const state = { on: false, brush: 'raise', size: 12, strength: 1, soft: 0.6,
-        curve: 'smooth', shape: 'circle', blend: true, fall: 0, dir: 180, target: NaN,
-        shaping: null,
-        areas: [], roads: [], painting: false, at: null, inside: null, line: [] };
+    const state = fresh();
     const rail = toolRail((id) => pick(id), node.querySelector('.sh-rail-host'));
     const q = (sel) => node.querySelector(sel);
     const say = (msg, bad = false) => {
@@ -62,14 +61,17 @@ export function mountShape(host, ctx, { lands = () => [] } = {}) {
         }
         q('.sc-said').textContent = sentence(state);
         q('.sc-shaped').textContent = shapedLine(state.shaping);
+        history.draw();
         hover();
     };
+    const history = mountHistory(q('.sh-history-host'), { shaping: () => state.shaping,
+        changed: (words) => { ctx.bp.rebuild(null); say(words); } });
     const hover = () => corners(q, state, ctx);
     const ground = (lon, lat) => ctx.bp.demAt(lon, lat) ?? 0;
     // While a stroke is on, the clay is rebuilt without its contours, which
     // are drawn again once it is let go of (client/js/blueprint.js quick).
-    const shaped = (rect) => ctx.bp.rebuild(rect, { quick: state.painting });
-    const surface = shapeSurface(ctx.bp, ctx.app, ctx.pc, state, { say, hover, shaped, ground,
+    const surface = shapeSurface(ctx.bp, ctx.app, ctx.pc, state, { say, hover, ground,
+        shaped: (rect) => ctx.bp.rebuild(rect, { quick: state.painting }),
         levelTo: () => state.target, turn: (deg) => fields.turn(deg),
         take: (g) => levelHere(state, say, fields, g) });
     const pick = (id) => pickBrush(rail, q, state, id, say);
@@ -82,20 +84,31 @@ export function mountShape(host, ctx, { lands = () => [] } = {}) {
     const acts = { choose, say, pick, ctx,
         save: () => saveGround(state, say, ctx),
         apply: () => layBed(q, state, say, ctx, ground),
-        clear: () => putBack(state, say, ctx),
+        clear: () => history.confirm(() => putBack(state, say, ctx)),
         take: () => levelHere(state, say, fields) };
     const fields = wire(rail, q, state, acts);
     return {
         state, say, surface, ...acts,
         shaping: () => state.shaping,
         refresh: () => listLands(q, state, say, lands, load),
-        // The surface was opened: the land's grid, then the clay over it.
+        ...comings(ctx, state, () => listLands(q, state, say, lands, load), open),
+    };
+}
+
+// What the panel starts out holding.
+const fresh = () => ({ on: false, brush: 'raise', size: 12, strength: 1, soft: 0.6,
+    curve: 'smooth', shape: 'circle', blend: true, fall: 0, dir: 180, target: NaN,
+    shaping: null, areas: [], roads: [], painting: false, at: null, inside: null, line: [] });
+
+// The surface opened (the land's grid, then the clay over it) and left.
+function comings(ctx, state, list, open) {
+    return {
         async enter() {
             state.on = true;
             // The operator's switch, not the player's (PLAN-editors idea 13).
             const set = await api.rpc('app_settings').catch(() => ({}));
             state.blend = set?.edge_blend !== 'off';
-            if (!state.shaping) await listLands(q, state, say, lands, load);
+            if (!state.shaping) await list();
             if (state.shaping && state.on) await open();
             return state.shaping;
         },

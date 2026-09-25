@@ -39,7 +39,9 @@ export function shapeSurface(bp, app, pc, state, acts) {
             state.plane = state.brush === 'flatten'
                 ? fallPlane({ ...g, h: bp.heightAt(g.lon, g.lat) }, state.fall, state.dir)
                 : null;
-            state.shaping?.begin();
+            state.strokeAt = g;
+            state.shaping?.begin({ brush: state.brush, size: state.size,
+                strength: state.strength, invert: state.invert });
             paintAt(g, FIRST_DAB_S);
         },
         move(g, e) {
@@ -55,6 +57,12 @@ export function shapeSurface(bp, app, pc, state, acts) {
         },
         up() {
             state.turning = null;
+            if (state.painting && state.shaping?.stroke && state.strokeAt) {
+                // How far the stroke moved the ground where it began, for
+                // the history (EDT.9).
+                state.shaping.stroke.note.delta = state.shaping.at(state.strokeAt.lon,
+                    state.strokeAt.lat) - (state.strokeFrom ?? 0);
+            }
             state.painting = false;
             state.shaping?.end();
             bp.settle();

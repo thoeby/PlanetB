@@ -168,7 +168,7 @@ export function alongLine(shaping, points, how) {
     const path = walk(points, Math.max(0.5, shaping.grid.cell));
     if (path.length < 2) return { moved: 0, steepest: 0, metres: 0 };
     const levels = held(path, ground, gradient / 100);
-    shaping.begin();
+    shaping.begin({ brush: 'line', words: 'Road bed', size: width });
     let moved = 0;
     for (let i = 0; i < path.length; i++) {
         // A bed is laid, not painted: all the way to its height at once.

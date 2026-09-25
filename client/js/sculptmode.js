@@ -51,6 +51,8 @@ export const BRUSH_SAYS = {
     line: { does: 'Lays a road bed along a line: a flat width, a shoulder either'
         + ' side, and never steeper than the gradient you allow.',
     uses: [] },
+    putback: { does: 'Rubs out your shaping under the brush, back to the ground the'
+        + ' elevation gives.', uses: ['size', 'strength', 'falloff'] },
     section: { does: 'Drag a line on the ground: its height and slope open in a strip'
         + ' along the bottom.', uses: [] },
 };

@@ -63,3 +63,31 @@ test('putting back ground that was never moved moves nothing', () => {
     assert.equal(it.clear(), 0);
     assert.equal(it.summary().cells, 0);
 });
+
+// EDT.9 — the stroke stack: undo back to a stroke, redo forward to one, and
+// the history's order and marks.
+test('undo back to a stroke restores its cells exactly, and redo walks forward', async () => {
+    const { dab } = await import('../js/sculptbrush.js');
+    const s = made();
+    const mid = { lon: 7.885, lat: 46.295 };
+    const stroke = (brush) => {
+        s.begin({ brush, size: 40 });
+        dab(s, mid.lon, mid.lat, { brush, size: 40, strength: 1, dt: 1 });
+        s.end();
+    };
+    stroke('raise');
+    const afterFirst = s.grid.data.slice();
+    stroke('raise');
+    stroke('smooth');
+    assert.equal(s.history().length, 3);
+    assert.deepEqual(s.history().map((h) => h.n), [3, 2, 1]);
+    assert.equal(s.undoTo(1), 2);
+    assert.deepEqual([...s.grid.data], [...afterFirst], 'every cell as it was');
+    assert.deepEqual(s.history().map((h) => [h.n, h.done]), [[3, false], [2, false], [1, true]]);
+    assert.equal(s.history()[0].brush, 'smooth', 'the undone keep what they were');
+    assert.equal(s.redoTo(2), 1);
+    assert.deepEqual(s.history().map((h) => [h.n, h.done]), [[3, false], [2, true], [1, true]]);
+    stroke('raise');
+    assert.deepEqual(s.history().map((h) => [h.n, h.done]), [[3, true], [2, true], [1, true]],
+        'a new stroke replaces the undone');
+});

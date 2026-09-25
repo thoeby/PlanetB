@@ -25,6 +25,8 @@ export const BRUSHES = [
     { id: 'flatten', words: 'Flatten', key: 'g' },
     { id: 'level', words: 'Level', key: 'l' },
     { id: 'line', words: 'Along line', key: 'b' },
+    // Your shaping rubbed out under the brush, back to the elevation.
+    { id: 'putback', words: 'Put back', key: 'x' },
 ];
 
 export const brushWords = (id) => BRUSHES.find((b) => b.id === id)?.words ?? id;
@@ -101,7 +103,7 @@ export class Shaping {
     // possible only by raising and lowering every cell by hand.
     clear() {
         const { data } = this.grid;
-        this.begin();
+        this.begin({ brush: 'putback', words: 'Put back the land' });
         let moved = 0;
         for (let k = 0; k < data.length; k++) {
             if (!data[k]) continue;
@@ -159,7 +161,12 @@ export class Shaping {
 
     // ------------------------------------------------------------- strokes
 
-    begin() { this.stroke = new Map(); }
+    // `note` is what the history says about the stroke (EDT.9): which brush,
+    // how big, and — once it ends — how far it moved the ground.
+    begin(note = {}) {
+        this.stroke = new Map();
+        this.stroke.note = { at: Date.now(), ...note };
+    }
 
     // Undo is per stroke, so every cell a stroke is about to change keeps what
     // it was before the stroke started, once.
@@ -178,21 +185,47 @@ export class Shaping {
     undo() {
         const s = this.strokes.pop();
         if (!s) return false;
-        const back = new Map();
-        for (const [k, was] of s) { back.set(k, this.grid.data[k]); this.grid.data[k] = was; }
-        this.undone.push(back);
-        this.mark(s);
+        this.undone.push(this.swap(s));
         return true;
     }
 
     redo() {
         const s = this.undone.pop();
         if (!s) return false;
-        const back = new Map();
-        for (const [k, was] of s) { back.set(k, this.grid.data[k]); this.grid.data[k] = was; }
-        this.strokes.push(back);
-        this.mark(s);
+        this.strokes.push(this.swap(s));
         return true;
+    }
+
+    // A stroke's cells put back to what it remembered, and what they were
+    // kept in its place, so the same stroke can go the other way.
+    swap(s) {
+        const back = new Map();
+        back.note = s.note;
+        for (const [k, was] of s) { back.set(k, this.grid.data[k]); this.grid.data[k] = was; }
+        this.mark(s);
+        return back;
+    }
+
+    // Undo back to the `n`th stroke (it stays), or redo forward to it.
+    undoTo(n) {
+        let moved = 0;
+        while (this.strokes.length > n && this.undo()) moved += 1;
+        return moved;
+    }
+
+    redoTo(n) {
+        let moved = 0;
+        while (this.strokes.length < n && this.redo()) moved += 1;
+        return moved;
+    }
+
+    // Every stroke since the last save, newest first: the ones done, then the
+    // ones undone (struck through until a new stroke replaces them).
+    history() {
+        const done = this.strokes.map((s, i) => ({ ...s.note, done: true, n: i + 1 }));
+        const undone = this.undone.map((s, i) => ({ ...s.note, done: false,
+            n: this.strokes.length + this.undone.length - i }));
+        return [...undone.reverse(), ...done].sort((a, b) => b.n - a.n);
     }
 
     // The box everything shaped since the last save falls in, so the save only
