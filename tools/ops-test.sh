@@ -27,8 +27,8 @@ export BACKUP_ROOT; BACKUP_ROOT=$(mktemp -d)
 cleanup () {
     PGDATABASE=postgres $PSQL_Q -c "DROP DATABASE IF EXISTS $SCRATCH_DB WITH (FORCE)" \
         > /dev/null 2>&1
-    # db/0007_api.sql's ALTER ROLE is cluster-wide (tools/seed-ch-test.sh says
-    # why): put the password back the way the developer's PostgREST expects it.
+    # db/0007_api.sql's ALTER ROLE is cluster-wide, so a scratch database
+    # changes it for every database on the cluster: put the password back the way the developer's PostgREST expects it.
     PGDATABASE=postgres $PSQL_Q -c "ALTER ROLE authenticator PASSWORD\
  '${AUTHENTICATOR_PASSWORD:-authenticator}'" > /dev/null 2>&1 || true
     rm -rf "$FILES_ROOT" "$BACKUP_ROOT"

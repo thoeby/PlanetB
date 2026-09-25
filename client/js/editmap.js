@@ -30,7 +30,7 @@ export function orthoLayer(ol, filesUrl) {
     const grid = new ol.tilegrid.TileGrid({
         extent: ol.proj.get(TILE).getExtent(),
         resolutions: ORTHO_ZOOMS.map((z) => R0 / 2 ** z),
-        // CSS pixels; the files are 512 (tools/seed-ortho.sh), which is what
+        // CSS pixels; the files are 512, which is what
         // tilePixelRatio below says. Without it they are drawn at half their
         // resolution.
         tileSize: 256,

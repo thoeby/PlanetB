@@ -1,6 +1,9 @@
-# PLAYER-RUN.md — the only task until it is green
+# PLAYER-RUN.md — the stories, proven by a player
 
-This replaces TASKS.md, TASKS-usable.md and the WP lists as the thing an agent
+All fifteen are green (`PROGRESS.md`); `make player-run` stays the gate every
+later story is held to. What follows is the task as it was set.
+
+This replaced TASKS.md, TASKS-usable.md (`docs/history/`) and the WP lists as the thing an agent
 works on. Read `docs/SPEC.md` §3 for the stories; this file says how they are
 proven and in what order they are built.
 
@@ -125,10 +128,10 @@ Each is done inside its story, and the story is the proof.
 | story | known work | how |
 |---|---|---|
 | 1 | Choosing the ground renders every z14 tile of it (`db/0104_thewholeground.sql compile_ground`), owned or not; the viewer draws and walks on what is published. Where nothing is published yet, the elevation is drawn as plain terrain in the ground colour (SPEC §0.1, §0.2 state `ground`) and walked on, and a published tile replaces it (`client/js/ground.js`, `client/js/floor.js`). | `compile_ground()` from `set_ground` and from Setup; `Terrain.heightAt` reads the published `height.r16` first, the elevation where there is none. |
-| 2 | Land or features outside the ground are refused with a sentence; a polygon whose axes are swapped gets the sentence that says so. Today a polygon off Ethiopia is stored happily and fails hours later as "outside the world's coverage". | `REFACTOR-direct-pg.md` S1. |
-| 3 | QGIS edits the database directly as the player, under RLS. GeoServer serves rasters only. Removes `gsprovision.py`, the `geoserver` DB role, WFS-T, `gt_pk_metadata`, and the whole class of axis-order and read-only-layer failures. The project is downloaded from the Land panel with the player's own credentials. | `REFACTOR-direct-pg.md` S2–S5, in that order, each its own commit, smoke after each. Story 3 is green only on the direct connection; a WFS pass does not count. |
-| 3 | `splatworld import` no longer fetches elevation (`importer.py:310`); ground comes from story 1's path. | `REFACTOR-direct-pg.md` S6. |
-| 8 | A merge job is neither listed nor claimable before its children are published; failed jobs go back to the pool by themselves; the pool labels a z14 tile "assembled", not "merged from its children". Today `submit_area` opens the whole ladder at once and three guards (0035, 0044, 0050) still let a merge through. | `REFACTOR-direct-pg.md` S7; `poolui.js` label. |
+| 2 | Land or features outside the ground are refused with a sentence; a polygon whose axes are swapped gets the sentence that says so. Today a polygon off Ethiopia is stored happily and fails hours later as "outside the world's coverage". | `docs/history/REFACTOR-direct-pg.md` S1. |
+| 3 | QGIS edits the database directly as the player, under RLS. GeoServer serves rasters only. Removes `gsprovision.py`, the `geoserver` DB role, WFS-T, `gt_pk_metadata`, and the whole class of axis-order and read-only-layer failures. The project is downloaded from the Land panel with the player's own credentials. | `docs/history/REFACTOR-direct-pg.md` S2–S5, in that order, each its own commit, smoke after each. Story 3 is green only on the direct connection; a WFS pass does not count. |
+| 3 | `splatworld import` no longer fetches elevation (`importer.py:310`); ground comes from story 1's path. | `docs/history/REFACTOR-direct-pg.md` S6. |
+| 8 | A merge job is neither listed nor claimable before its children are published; failed jobs go back to the pool by themselves; the pool labels a z14 tile "assembled", not "merged from its children". Today `submit_area` opens the whole ladder at once and three guards (0035, 0044, 0050) still let a merge through. | `docs/history/REFACTOR-direct-pg.md` S7; `poolui.js` label. |
 | 8 | A tab without a hardware GPU says so next to the job instead of failing on it (commit c2c92c2 detects it; the pool doesn't show it). | `poolui.js`: "what this needs / what this tab has". |
 | 11 | ~~Delete land from the page.~~ Done: `delete_area` refused while anything stood on the land and nothing ever called it; `db/0077_givingitback.sql` replaces it with `land_removal` (what goes) and `remove_area` (the deed). | Land panel: Give it back, with the sentence the database counted. |
 | all | Every atom or API error reaches the screen as a sentence on the thing that failed. No state is only in the console or a log. | `hud.say` / tile label / land card. |

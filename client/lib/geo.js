@@ -181,7 +181,7 @@ function bilinear(raster, u, v, stride, read) {
 }
 
 // dem-v2: float32 metres. dem-v1, which the store may still hold from an
-// earlier cut or tools/seed-dem.sh: uint16 counts, metres = value * 0.2 - 500,
+// earlier cut: uint16 counts, metres = value * 0.2 - 500,
 // told apart by the file's length. Either way `data` is metres.
 export const decodeDem = async (buf) => {
     const n = Math.round(Math.sqrt(buf.byteLength / 4));

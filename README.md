@@ -123,8 +123,12 @@ compile what you drew, tile by tile, and the viewer streams it.
 | [`docs/import.md`](docs/import.md) | importing elevation and layers you already have |
 | [`docs/manual.md`](docs/manual.md) | everything: deployment, operations, the whole feature set |
 | [`docs/runbook.md`](docs/runbook.md) | operating a live world |
+| [`docs/flow.md`](docs/flow.md) | Automate: flows, process servers |
+| [`docs/SPEC.md`](docs/SPEC.md) | what the player meets, screen by screen |
+| [`docs/code-map.md`](docs/code-map.md) | what each directory and file is |
 | [`ARCHITECTURE.md`](ARCHITECTURE.md) | how it works and why |
 | [`CLAUDE.md`](CLAUDE.md) | the invariants — read before changing anything |
+| [`HANDOFF.md`](HANDOFF.md) · [`PROGRESS.md`](PROGRESS.md) | for developers: environment, traps, what is done |
 
 ## How it fits together
 
@@ -145,6 +149,6 @@ QGIS  ───SQL, as you──────────────────
 Four processes, and none of them computes anything about the world:
 PostgreSQL, PostgREST (the only API — row-level security authorises every
 write), the `splatworld` server (files and static pages), and GeoServer
-(admin and visualisation only). Every atom — assemble, frame, train, merge,
+(the operator's elevation, over WCS, and nothing else). Every atom — assemble, frame, train, merge,
 sog, verify — runs in a browser tab. Publishing a tile is a compare-and-swap
 in Postgres.

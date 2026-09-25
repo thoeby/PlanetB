@@ -40,9 +40,8 @@ AREA_ZOOM = 12
 MIN_ZOOM = 6
 
 # dem-v1: uint16, 256x256, row-major, north-west first, in the tile projection,
-# elevation_m = value * 0.2 - 500. The same encoding tools/seed-dem.sh writes
-# with gdal_translate -scale -500 12607 0 65535, and the one client/lib/geo.js
-# reads back (DEM_SCALE, DEM_OFFSET).
+# elevation_m = value * 0.2 - 500 (gdal_translate -scale -500 12607 0 65535),
+# the one client/lib/geo.js reads back (DEM_SCALE, DEM_OFFSET).
 DEM_ALGO = "dem-v1"
 DEM_SIZE = 512
 DEM_SCALE = 0.2
@@ -303,7 +302,7 @@ def insert_features(conn, uid, rows: list[dict]) -> int:
     """Flat, valid, and inside an area you own.
 
     Z = 0: the world keeps plan geometry and takes ground height from the DEM at
-    compile time, exactly as tools/seed-osm.sh does. props.src makes a second
+    compile time. props.src makes a second
     import of the same layer a no-op.
     """
     if not rows:

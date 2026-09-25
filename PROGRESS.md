@@ -1,9 +1,13 @@
 # PROGRESS.md — where splatworld stands
 
-Task list: **`PLAYER-RUN.md`** — the stories of `docs/SPEC.md` §3, each proven
-by a script that behaves like a player, in one run from an empty database.
-`TASKS.md` and `TASKS-usable.md` are history. Rules: `CLAUDE.md`. Design:
-`ARCHITECTURE.md`. Picking up the work: `HANDOFF.md`.
+A log, newest at the bottom. The task files, in order: `PLAYER-RUN.md` (the
+stories of `docs/SPEC.md` §3, all green), `TASKS-foundation.md` (FND.0–16,
+done), `TASKS-flows.md` (FL.1–FL.8 done). Finished ones are in
+`docs/history/`. Rules: `CLAUDE.md`. Design: `ARCHITECTURE.md`. Picking up the
+work: `HANDOFF.md`. What each file is: `docs/code-map.md`.
+
+Entries below describe the code as it was when they were written; files they
+name may have been removed or renamed since.
 
 ## The player-run
 

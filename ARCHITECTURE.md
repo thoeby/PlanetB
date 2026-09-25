@@ -3,11 +3,11 @@
 ```
   QGIS (a player) ─ SQL/login ─▶ PostgreSQL + PostGIS   (row-level security)
   browser ───────── REST/JWT ──▶ PostgREST ────▶ the same database
-  browser ───────── GET / PUT ─▶ nginx ────────▶ /assets /tiles /jobs /geo
+  browser ───────── GET / PUT ─▶ splatworld/nginx ▶ /assets /tiles /jobs /geo /app
   the server ────── WCS ───────▶ GeoServer             (the operator's elevation)
 ```
 
-Four processes. All logic = SQL + client JS.
+Four processes (the file server is nginx or `server/`'s `splatworld`, Invariant 10). All logic = SQL + client JS.
 
 QGIS connects to the database as the player, with a login of their own
 (`db/0065_playerroles.sql`), so what a person may draw is decided by exactly
@@ -23,7 +23,7 @@ needs over REST and writes back through the same RPCs a player's tab uses.
 
 | concept | definition |
 |---|---|
-| **artifact** | immutable file, addressed by `sha256`; kind ∈ glb, thumb, dem, ortho, frames, init_ply, ply, sog, height, colliders, height_edit, cover, flow, material (`db/0127`) |
+| **artifact** | immutable file, addressed by `sha256`; kind ∈ glb, thumb, dem, ortho, frames, init_ply, dataset, ply, sog, height, colliders, height_edit, cover, flow, material, plugin, profile, collection, lod (`db/0183`) |
 | **tile** | `(z,x,y)`, z ∈ {6,8,10,12,14,16,18}; has `expected_version` (world-input snapshot counter) and a pointer to its current published `sog` artifact |
 | **world revision** | `feature.rev` / `instance.rev` monotonically increasing per row; a tile's `expected_version` bumps on any intersecting write |
 | **job** | "compile tile (z,x,y) at expected_version V"; unique per (tile, V) |
@@ -47,7 +47,7 @@ Local frame per tile: origin = tile centre at DEM height, X east, Y up, Z south,
 
 `area.detail` (10…18) = deepest zoom compiled inside that area. Default 14 (baseline). Raising it just dirties deeper tiles.
 
-## 3. Schema (authoritative in `db/0001_schema.sql`)
+## 3. Schema (begun in `db/0001_schema.sql`; later migrations add to it — the core tables below, not every column)
 
 ```sql
 artifact(sha256 text PK, kind text, bytes bigint, algo_version text, created_by uuid, created_at)
@@ -92,7 +92,8 @@ Balance = `SUM(credit)-SUM(debit)` view. No mutable balances.
 | `claim_atom(caps) → atom` | `FOR UPDATE SKIP LOCKED` over `state='ready'` and caps satisfied; sets `claimed`, records worker; also reserves the upload path `/jobs/{atom_id}/`. Refuses an op the worker is not trusted enough for (`train` ≥ 0.3, `verify` ≥ 0.6) and a `verify` of a tile this worker trained, encoded or has already judged |
 | `heartbeat(atom_id)` | 5 min timeout → back to `ready`, `attempts++`; 3 → `failed` |
 | `submit_atom(atom_id, output_sha256, result)` | runs **structural checks** (bytes > 0, counts within budget, bbox inside tile+margin, finite flags in result); for `merge` compares to any existing atom with same `atom_hash` (hash verification); state → `submitted` or `verified` |
-| `submit_verification(atom_id, passed, metrics, spot)` | perceptual, about a `sog` atom; as many distinct workers as the job has `verify` atoms must pass → `verified`, and the tile publishes itself there and then (the encoder is long gone). Any fail → the trainer's stats and trust suffer and the training is done again, or, if the tile is already published, it is marked `suspect` |
+| `submit_verification(atom_id, passed, metrics, spot)` | perceptual, about a published `sog` (spot checks since `build_dag` stopped making `verify` atoms, §8); a fail marks the tile `suspect` and costs the trainer trust |
+| `submit_area(area, note) / approve_submission(id, price) / refuse_submission(id, note)` | a land's changed tiles, asked for as one submission; approval opens the jobs (`db/0068`–`0070`, `0109`) |
 | `spot_due(z,x,y,days) → (kind, atom_id, inputs, params)` | what checking this tile again would consist of, for a tab that did not publish it, may write an area it touches, and has not checked it lately; nothing otherwise |
 | `recheck_atom(atom_id)` | puts a settled deterministic atom back in the pool with its answer still on it, so the next claimant's answer is compared to it |
 | `publish_tile(z,x,y, target_version, sog_sha256, manifest)` | **CAS**: `WHERE expected_version = target_version AND published_version < target_version`; releases escrow to workers pro rata by `result.gpu_seconds`; marks parent `dirty`, bumps parent `expected_version` |
@@ -110,32 +111,26 @@ Triggers: `feature`/`instance` insert/update → for every materialised tile int
 
 ## 5. Atom DAG
 
-Trained tile (z14–z20), since FND.5 "one tile, one folder":
+`build_dag` (latest in `db/0195_eachplacehasonetile.sql`) makes one of two
+shapes. A leaf tile (`is_leaf_tile`: the deepest zoom compiled there, z14 at
+the least) is trained; every coarser tile is merged from its sixteen children:
 ```
-dataset ─▶ train ─▶ sog ─▶ publish_tile
+leaf:    dataset ─▶ train ─▶ sog ─▶ publish
+coarser: merge   ─▶ sog ─▶ publish        (merge and sog hash-checked, Invariant 7)
 ```
-`dataset` is what used to be `assemble` and `frame[0..N)`: one atom assembles
-the tile, draws every view of its camera set and writes one tar — scene,
-meshes, seed, height, colliders, frames, `transforms.json`. One job is three
-pieces of work and one folder holds everything the trainer learned from
-(`tools/dataset.mjs` unpacks it for brush's own app). The old shape, for
-history:
-```
-assemble ─▶ frame[0..N) ─▶ train ─▶ sog ─▶ verify×3 ─▶ (published by the third verification)
-```
-Baseline tile (z14) — the floor every compiled area reaches, and trained like
-the finer ones since the sampler was removed ("the whole ground renders at z14
-through the one renderer"). A tile with nothing under it is built the same way
-whatever its zoom, which is what `db/0128` puts back for land drawn coarser
-than z14:
-```
-assemble ─▶ frame[0..3) ─▶ train ─▶ sog ─▶ publish_tile
-```
-Merged tile (z ≤ 12):
-```
-merge ─▶ sog ─▶ (hash-verified in submit) ─▶ publish_tile
-```
-Atoms become `ready` when all `deps` are `verified`. Inputs to each atom are artifact hashes reserved at `ensure_job` time (children's current `sog_sha256`, DEM/ortho tile hashes, GLB hashes, features/instances snapshot hash) so the whole job is reproducible from its `target_version`.
+`dataset` assembles the tile, draws every view of its camera set and writes one
+tar — scene, meshes, seed, height, colliders, frames, `transforms.json`. One
+folder holds everything the trainer learned from (`tools/dataset.mjs` unpacks
+it for brush's own app). Before FND.5 it was `assemble ─▶ frame[0..N)`; both
+modules remain, called by `dataset`.
+
+Atoms become `ready` when all `deps` are `verified`. Inputs to each atom are artifact hashes reserved at `ensure_job` time (children's current `sog_sha256`, DEM/ortho tile hashes, GLB hashes, features/instances snapshot hash) so the whole job is reproducible from its `target_version`. `algo_current(op)` names the version every open job is rebuilt at; a migration that bumps one rebuilds every open job.
+
+Nothing is rendered that a person has not approved: a land's changes are
+submitted (`submit_area`) and approved or refused (`db/0068`, `db/0069`) before
+any job opens, and the `sog` a tab uploads publishes as it lands
+(`publish_sog`, the compare-and-swap of Invariant 3). A published tile makes
+its parent stale and opens the parent's rebuild (`db/0070`).
 
 Invariant 2, refined: a tile's snapshot pins the **symbol version** and the
 **cover-mapping version** it was built with, instead of one digest over the
@@ -144,23 +139,23 @@ published tile; "apply to world" is what moves the pin.
 
 ## 6. Client atoms (`client/atoms/*.js`, run in a Worker + OffscreenCanvas)
 
-| op | inputs | output | algo |
+The version each file writes is its `ALGO` export; the one a job asks for is
+`algo_current()` in the database. Each file's header says what every version
+changed.
+
+| op | inputs | output | now |
 |---|---|---|---|
-| `dataset` | what `assemble` took, plus the camera set id and size | one tar: everything below that `assemble` and `frame` made, together | `dataset-v1`: `assemble.run` then `frame.renderFrames` over the whole set (client/atoms/dataset.js) |
-| `assemble` (retired, used by `dataset`) | features+instances snapshot (GeoJSON), DEM/ortho tiles, GLBs | `init.ply`, `height.r16`, `colliders.json` (one tar artifact) | `assemble-v1`: terrain grid, terrainmods, road cuts, extruded footprints, seeded scatter, GLB placement |
-| `frame` (retired, used by `dataset`) | assemble artifact, camera set id, index range | WebP frames + `transforms.json` | `frame-v10`: rasterised, or path traced where the operator asks for it (`splatworld.renderer`, db/0119), under the one sky of `lib/light.js`; the void is transparent so the trainer learns no blue wall; placed GLBs with their textures |
-| `train` | the dataset tar, budget, iters | `.ply` + the tile's height and colliders, in one tar | `train-v1`: Adam over a differentiable gaussian rasteriser (WebGPU, `client/lib/gsgpu.js`), poses injected from `transforms.json`, MCMC relocation and growth capped by the budget |
-| `merge` | 16 child `.ply`/`.sog`, voxel, budget, seed | `.ply` | `merge-v1`, bit-exact deterministic (integer voxel keys, fixed iteration order, no atomics) |
-| `sog` | `.ply` | `.sog` | `sog-v1` = splat-transform core |
-| `verify` | `.sog`, the frame tars, 2 of the four held-out poses | `{psnr, passed}`, no artifact | `verify-v1` |
+| `dataset` | features+instances snapshot, the ground cut one zoom deeper, GLBs, camera set, frame size | one tar: assembled scene and meshes, seed `init.ply`, `height.r16`, `colliders.json`, WebP frames, `transforms.json` | `dataset-v8` over `assemble-v17` and `frame-v11`: terrain grid and skirt, terrainmods, road cuts, extruded footprints, seeded scatter, GLB placement; frames rasterised, or path traced where the operator asks (`splatworld.renderer`, db/0119), under the one sky of `lib/light.js` |
+| `train` | the dataset tar, budget, iters, brush's settings | `.ply` + the tile's height and colliders, one tar | `train-v22`: brush (vendored wasm, `client/lib/brush.js`, built by `tools/build-brush.sh`) on WebGPU, given the dataset as a nerfstudio folder in the tab's own storage |
+| `merge` | 16 child `.sog`s, voxel, budget | `.ply` | `merge-v1`, bit-exact deterministic (integer voxel keys, fixed iteration order, no atomics) |
+| `sog` | `.ply` | one `.sog` per level + `lod` json (+ `cover` png) | `sog-v3`: levels ordered and written one file each for PlayCanvas's octree LOD (`client/lib/lodorder.js`) |
+| `verify` | `.sog`, frames, held-out poses | `{psnr, passed}`, no artifact | `verify-v1`; only a spot check asks for it now (§8) |
 
-There is no `sample` op any more: the atom that made a z14 tile's splats
-without training them was removed with the DEM mesh, and every leaf tile is
-trained.
+There is no `sample` op any more: every leaf tile is trained.
 
-Capability filter at claim: `train` needs `webgpu` and a `maxBufferSize` at least as big as its widest per-splat array — 24 f32 a splat, so 183 MB at z18's budget and 55 MB at z16's (`min_buffer_mb`, db/0083). It used to ask for `vram ≥ 4 GB`; WebGPU reports no VRAM, so that was a number no tab could answer and no tab could pass. Everything else runs on WebGL2.
+Capability filter at claim: `train` needs `webgpu` and a `maxBufferSize` at least as big as its widest per-splat array (`min_buffer_mb` = 96 bytes a splat of the budget, db/0195). Everything else runs on WebGL2.
 
-## 7. Files (nginx)
+## 7. Files (nginx, or the `splatworld` server)
 
 ```
 /assets/{sha}.glb   /assets/{sha}.webp
@@ -173,9 +168,10 @@ Capability filter at claim: `train` needs `webgpu` and a `maxBufferSize` at leas
 ## 8. Verification model (explicit)
 
 - structural: server-side in `submit_atom` — cheap, rejects garbage.
-- deterministic: `merge`/`sog` — output hash must equal any prior result for the same `atom_hash`; first result is accepted provisionally and re-computed by the next claimant of a `verify` atom if trust < 0.9.
-- perceptual: `train` — 3 independent workers render 2 poses the trainer never fitted and report PSNR ≥ 22. This is probabilistic QA, not proof. Owner's own tab re-verifies its tiles on next visit (free spot check, `spot_due`); a failed spot check marks the tile `suspect`.
-- trust: scalar per worker in v1, stats per op recorded for later. A perceptual pass is +0.05 to the trainer, a rejection −0.2, a deterministic disagreement −0.2 to both sides, and an accepted atom +0.01 — the last only so a new worker can reach the 0.6 a `verify` needs. A trainer at ≥ 0.95 is checked once instead of three times (`app.verify_min`).
+- deterministic: `merge`/`sog` — output hash must equal any prior result for the same `atom_hash`; `recheck_atom` puts a settled one back in the pool so the next claimant's answer is compared to it (Invariant 7).
+- a person: nothing is rendered before the land's owner, or somebody they granted `approve`, approves the submission (`db/0044`, `db/0068`). This replaced the three trust-gated `verify` atoms as the publish gate; `build_dag` has made none since.
+- perceptual, after the fact: a tab standing on a published tile it did not make is offered a spot check (`spot_due`, `client/js/spot.js`) — render poses the trainer never fitted, report PSNR. A failed spot check marks the tile `suspect`. This is probabilistic QA, not proof (Invariant 8).
+- trust: scalar per worker, stats per op recorded. `claim_atom` refuses `train` below 0.3; a deterministic disagreement costs both sides.
 
 ## 9. Not in v1
 

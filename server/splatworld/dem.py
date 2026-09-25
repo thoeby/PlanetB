@@ -100,7 +100,7 @@ def place(path: Path, payload: bytes) -> None:
 
     A re-cut may land only when it reproduces the bytes already there; different
     bytes are an error rather than an overwrite, because /geo is served
-    immutable. Same rule as geo_place() in tools/geo-common.sh.
+    immutable.
     """
     if path.exists() and path.stat().st_size:
         if path.read_bytes() != payload:

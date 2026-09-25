@@ -1,20 +1,25 @@
 # CLAUDE.md — splatworld
 
-Read `ARCHITECTURE.md` first, then work through **`PLAYER-RUN.md`** in order,
-and when its fifteen stories are green, **`TASKS-foundation.md`** (the
-decisions it implements are in `PLAN-foundation.md`), then
-**`TASKS-flows.md`** (F10: process servers, flows on objects): the stories of
-`docs/SPEC.md` §3, each proven by a script that behaves like a player. One
-story = one commit. Do not start a story whose predecessor is not green on the
-same run. `TASKS.md` and `TASKS-usable.md` are history.
+Read `ARCHITECTURE.md` first. The task files are worked in order, one story =
+one commit, and no story is started whose predecessor is not green on the same
+run:
+
+1. **`PLAYER-RUN.md`** — the stories of `docs/SPEC.md` §3, each proven by a
+   script that behaves like a player. All fifteen green.
+2. **`TASKS-foundation.md`** (decisions in `PLAN-foundation.md`) — FND.0–16, done.
+3. **`TASKS-flows.md`** (F10: process servers, flows on objects) — FL.1–FL.8
+   done; FL.9 (the pool) gets a task file of its own. What is blocked is at the
+   end of that file.
+
+Finished task files are in `docs/history/`.
 
 State of the work so far: `PROGRESS.md`. Environment setup and the traps already paid for: `HANDOFF.md`.
 
-What the player meets, and what it looks like: `docs/SPEC.md` (the product specification) and `docs/design/` (eleven artboards, with `docs/design/README.md` mapping each part of the design to the file that holds it). Read them before changing anything anyone sees.
+What the player meets, and what it looks like: `docs/SPEC.md` (the product specification) and `docs/design/` (the designer's turns v3–v10, with `docs/design/README.md` mapping each part of the design to the file that holds it). Read them before changing anything anyone sees.
 
 ## What this is
 
-A persistent digital world on real geography, compiled into Gaussian-splat LOD tiles (z6…z18). Server = Postgres/PostGIS + PostgREST + GeoServer + nginx. **Server executes no compute.** Every atom (assemble, frame, train, merge, sog, verify) runs in a player's browser tab. Publishing is a conditional pointer update in Postgres.
+A persistent digital world on real geography, compiled into Gaussian-splat LOD tiles (z6…z18). Server = Postgres/PostGIS + PostgREST + GeoServer + nginx (or, in its place, the `splatworld` server in `server/`). **Server executes no compute.** Every atom (dataset, train, merge, sog, verify) runs in a player's browser tab. Publishing is a conditional pointer update in Postgres.
 
 ## Invariants (never violate; if a task seems to require it, stop and ask)
 
@@ -31,7 +36,7 @@ A persistent digital world on real geography, compiled into Gaussian-splat LOD t
 
 ## Stack rules
 
-- SQL: PostgreSQL 16, PostGIS 3.4. Schema in `db/` as numbered migrations (`db/0001_*.sql`). Every function has a pgTAP test in `db/test/`.
+- SQL: PostgreSQL 16, PostGIS 3.4. Schema in `db/` as numbered migrations (`db/0001_*.sql`). Every function has a pgTAP test in `db/test/` (`.sql`, or `.sh` where a test needs more than one session).
 - API: PostgREST 12, config in `infra/postgrest.conf`. JWT HS256. Roles: `anon`, `player`, `admin`.
 - Files: nginx with `ngx_http_dav_module`, `auth_request` to PostgREST `rpc/can_write`. Config in `infra/nginx.conf`. `server/` is the same contract in Python, for machines without such an nginx; the two are kept interchangeable by `tools/files-test.sh`.
 - Client: plain ES modules, no bundler, no framework. PlayCanvas engine 2.x pinned from CDN. Splat.js vendored under `client/vendor/` (MIT). Everything under `client/` must be servable as static files.
@@ -40,7 +45,7 @@ A persistent digital world on real geography, compiled into Gaussian-splat LOD t
 
 ## Working rules
 
-- Read the task, restate the acceptance criteria in one line, implement, run the gate, commit with message `WPx.y: <task title>`.
+- Read the task, restate the acceptance criteria in one line, implement, run the gate, commit with message `<story>: <title>` (`FL.8: …`; `WPx.y: …` in the history).
 - If a gate fails, fix within the same task; do not move on.
 - Do not add features not in the task. Do not "improve" adjacent code.
 - Ask before: changing a table that already has a migration, changing an RPC signature, adding a dependency.
@@ -64,14 +69,17 @@ green through it and `make gate` is green under it.
 ## Layout
 
 ```
-splatworld/
-  CLAUDE.md  ARCHITECTURE.md  TASKS-foundation.md  PLAN-foundation.md  TASKS.md  Makefile
-  db/            0001_schema.sql 0002_rls.sql 0003_functions.sql … test/*.sql
-  infra/         compose.yml postgrest.conf nginx.conf geoserver/  seed/
-  client/        play.html edit.html catalog.html
-                 js/{api,auth,tiles,origin,player,build,work,catalog}.js
-                 atoms/{assemble,frame,train,merge,sog,verify}.js
-                 lib/{tilemath,canon,hash,ply,sogenc}.js   lib/gen/   vendor/
-                 flow/{elx,plugins,graph,palette,samples}/ boot.js   test/
-  tools/         seed-dem.sh seed-ortho.sh seed-osm.sh (developer tooling, runs on the dev box, not the server)
+PlanetB/
+  CLAUDE.md  ARCHITECTURE.md  PLAYER-RUN.md  TASKS-foundation.md  PLAN-foundation.md
+  TASKS-flows.md  PROGRESS.md  HANDOFF.md  README.md  Makefile
+  db/            0001_schema.sql 0002_auth.sql 0003_rls.sql … (numbered, never edited once merged)  test/
+  infra/         compose.yml postgrest.conf nginx.conf geoserver/ seed/
+  server/        splatworld/ — the Python server and CLI (`splatworld run|doctor|…`)  test_*.py
+  client/        play.html edit.html catalog.html setup.html rules.html import.html view.html
+                 js/ (page modules)  atoms/{dataset,assemble,frame,train,merge,sog,verify}.js
+                 lib/{tilemath,canon,hash,ply,sogenc,…}.js  lib/gen/  vendor/
+                 flow/{elx,graph,palette,plugins,samples,server,world}/ boot.js   test/
+  gis/           the QGIS project template and its helper
+  tools/         gates, fixtures and developer tooling (runs on the dev box, not the server)
+  docs/          SPEC.md, design/, manuals; docs/code-map.md says what each file is
 ```

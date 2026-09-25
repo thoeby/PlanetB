@@ -7,7 +7,7 @@
 #
 # The order is load-bearing. Every writer here puts the bytes down before the
 # row that names them: client/js/work.js PUTs and then calls register_artifact,
-# tools/seed-dem.sh cuts a tile and then calls geo_register. So a dump taken
+# server/splatworld/ground.py cuts a tile and then registers it. So a dump taken
 # *before* the file copy can only name artifacts whose bytes were already on
 # disk when the copy started, and the worst drift a backup can contain is bytes
 # nothing names yet — litter. Copy the files first and the dump names artifacts
@@ -15,9 +15,8 @@
 # because can_write refuses a second PUT of a registered sha256
 # (db/0008_files.sql) and nothing can ever supply those bytes again.
 #
-# /geo and /jobs are deliberately not copied. /geo is re-cuttable by
-# tools/seed-dem.sh and tools/seed-ortho.sh, which re-register what is already
-# on disk and are idempotent either way; /jobs is intermediate and is what
+# /geo and /jobs are deliberately not copied. /geo is cut again from the
+# operator's coverage on the next request for it (server/splatworld/ground.py); /jobs is intermediate and is what
 # tools/gc-jobs.sh deletes. docs/runbook.md says what that costs you.
 set -euo pipefail
 

@@ -40,15 +40,16 @@ test.beforeAll(async () => {
     }
     seedGround(BUILT.z, BUILT.x, BUILT.y);
     seedWorld(BUILT.z, BUILT.x, BUILT.y);
-    // The wood is the pilot region's own, from OSM (tools/seed-osm.sh), not
-    // the fixture's: this test is about what a tab makes of real data. A
-    // checkout that has not been seeded has nothing to assemble there, and
-    // saying so is worth more than an assertion about zero trees.
+    // The wood is the pilot region's own, from OSM, not the fixture's: this
+    // test is about what a tab makes of real data. The tool that seeded it is
+    // gone; a world with OSM imported there (docs/import.md) runs it, any
+    // other has nothing to assemble, and saying so is worth more than an
+    // assertion about zero trees.
     seedGround(WOOD.z, WOOD.x, WOOD.y);
     if (Number(psql(`SELECT count(*) FROM feature f
                      WHERE st_intersects(f.geom, tile_bbox(${WOOD.z}, ${WOOD.x}, ${WOOD.y}))`))
         === 0) {
-        test.skip(true, 'no OSM features in the pilot region — run tools/seed-osm.sh');
+        test.skip(true, 'no OSM features in the pilot region — import some (docs/import.md)');
     }
     svc = await startServices();
     if (!svc.ok) {

@@ -4,7 +4,7 @@ Read `CLAUDE.md`, then `PLAYER-RUN.md`, then `ARCHITECTURE.md` and
 `PROGRESS.md`. One story, one commit, `make player-run` green — and `make
 gate` under it — before you commit.
 
-**`TASKS.md` is history.** Every task in it is done, and finishing them did not
+**`TASKS.md` is history** (`docs/history/`). Every task in it is done, and finishing them did not
 make the thing usable: `PLAYER-RUN.md` is the task list now, and a story counts
 only when a script that behaves like a player completes it through the page.
 What is still unrun for want of hardware or data this container has not got is
@@ -75,31 +75,16 @@ cp .env.example .env
 npm install            # eslint and @playwright/test, dev tooling only
 make vendor            # the PlayCanvas build the browser tests route to
 set -a; . ./.env; set +a
-bash tools/seed-dem.sh && bash tools/seed-ortho.sh    # about four minutes
 make gate
 ```
 
-**Seed the pilot before the first `make gate`.** Half the browser tests compile
-a real z16 tile of it, and `tools/seed-test.sh` — which `make api-test` runs —
-cuts exactly one z14 tile, enough to prove the path and not enough to build
-anything. The specs skip when the tile they need is not covered
-(`demSeeded()` in `client/test/e2e/serve.js`) and say which script to run.
+**Nothing needs seeding before `make gate`.** The browser specs write the
+ground they need themselves (`seedGround` and `seedWorld` in
+`client/test/e2e/serve.js`: a dem-v1 ramp at the address the server's cut would
+have written, and a land with a wood and a house on it). The player-run's
+ground is `tools/make-seed-dem.sh` (§0). `gdal-bin` is what that script and
+`tools/make-seed-osm.sh` / `tools/make-seed-cover.sh` shell out to.
 
-`gdal-bin` and `osm2pgsql` are what `tools/seed-*.sh` shell out to; without them
-the seeds cannot cut a tile and `tools/seed-test.sh` says so rather than failing.
-
-**Seed the pilot region before the first `make gate` on a fresh box**, or three
-browser tests fail rather than skip:
-
-```sh
-bash tools/seed-dem.sh && bash tools/seed-ortho.sh    # ~580 tiles off AWS open data
-```
-
-`make api-test` only cuts the single z14 tile its own assertions need;
-`client/test/e2e/{assemble,frame,pilot}.spec.js` compile real z16 and z14 tiles
-of the pilot and need the whole subtree. `docs/pilot.md` says the same. The
-seeds are idempotent and re-register what is already on disk, so running them
-again after an interrupted run is the fix, not `FORCE=1`.
 `webp` gives you `cwebp`/`dwebp`. `tools/sogwrite.mjs` shells out to them
 because node has no WebP codec, and without them WP1.2's test tiles cannot be
 built. **Export `.env` into your shell** (`set -a; . ./.env; set +a`) before
@@ -129,10 +114,9 @@ playwright would download. WebGL2 works there over ANGLE + SwiftShader.
 unless chromium is launched with `--enable-unsafe-webgpu` *and* the page is on a
 secure origin — `about:blank` and `http://splatworld.test/` are not, `localhost`
 is. With both, Dawn gives a real device over SwiftShader: the trainer's shaders
-compile and run and are checked against the JS reference
-(`client/test/e2e/gsgpu.spec.js`), at perhaps a hundredth of the speed of a
-GPU. `client/test/e2e/train.spec.js` and `gsgpu.spec.js` set the flag
-themselves with `test.use({ launchOptions })`; the default config does not, so
+compile and run, at perhaps a hundredth of the speed of a
+GPU. `client/test/e2e/train.spec.js` sets the flag
+itself with `test.use({ launchOptions })`; the default config does not, so
 every other test still sees the WebGL2-only machine it was written for.
 
 If Docker *is* available, `make up` + `make gate` should work — but nobody has
@@ -218,7 +202,8 @@ Things that cost time once. Do not rediscover them.
   report, not with nodata, so `ground.cut` clips the request to the coverage and
   warps what comes back onto the whole tile. Nodata is sea level
   (`server/splatworld/dem.py`), so the viewer draws no ground past the edge of
-  the coverage at all (`within` in `client/lib/groundtile.js`).
+  the coverage at all (`NODATA_ELEVATION_M` in `client/lib/geo.js`, read by
+  `client/js/floor.js`).
 - The extent recorded in `ground` when the coverage was chosen can be wider than
   where the data actually is — a declared bounding box often is — so clipping to
   it is not enough. `describe_coverage` now returns the coverage's own
@@ -365,23 +350,12 @@ Things that cost time once. Do not rediscover them.
   and `client/test/e2e/train.spec.js` both create their verifiers with trust
   0.8 and say why.
 
-**A broken WGSL shader is silent**
-- An invalid pipeline drops its dispatches, and the buffer it should have
-  written reads back as zeros. Nothing throws, nothing logs, and the trainer
-  will happily optimise against a black image. Build the backend through
-  `gpuBackend()` (`client/lib/gsgpu.js`), which asks every module for its
-  compilation messages and throws; and re-run
-  `npx playwright test client/test/e2e/gsgpu.spec.js` after touching a shader,
-  because that is the test that would have caught it.
-- A `workgroupBarrier` may not sit in control flow that depends on a value read
-  from a storage buffer. `workgroupUniformLoad` is how such a value is made
-  uniform (`client/lib/gswgsl.js`'s sort).
-
-**A bitonic sort must be sized to what is in the tile**
-- The trainer sorts each 16x16 tile's splat list in workgroup memory. Running
-  the whole 1024-entry network for a tile holding four splats cost twenty-five
-  times what the rest of the iteration did. `client/lib/gswgsl.js` rounds up to
-  the next power of two at or above the tile's count.
+**The trainer is brush, and brush's wasm is ours to build**
+- `train` hands the dataset to brush (`client/lib/brush.js`), vendored as
+  wasm under `client/vendor/brush/` and built by `tools/build-brush.sh`, which
+  applies `tools/brush-*.patch` at one pinned brush revision. A change to a
+  patch means a rebuild and the rebuilt wasm checked in. The hand-written
+  WGSL trainer this replaced (`gsgpu.js`, `gswgsl.js`) is gone.
 
 **Pin the linters.** `sqlfluff` and `eslint` both moved rules under us:
 sqlfluff 4.x turns on `AM05` and widens `CP04`, and eslint past 9.15 counts
@@ -515,11 +489,11 @@ afternoon on style.
 WP5 is the Switzerland seed, background rendering, the web GIS editor, XR and
 ops. All five are in.
 
-- **A region is a polygon** (`REGION_GEOJSON`, `tools/geo-common.sh`). Every
-  seeding tool reads `geo_tiles()`, so pointing it at `infra/seed/ch.geojson`
-  seeds a country and pointing it at anything else seeds that instead.
-  `tools/seed-ch.sh` drives the three seeds a z10 root at a time and is resumed
-  by re-running it.
+- **The Switzerland seed tools are gone** (`tools/seed-*.sh`,
+  `tools/geo-common.sh`): the world's ground is the operator's coverage,
+  cut per tile on request (`server/splatworld/ground.py`), and what stands on
+  it is drawn in QGIS or imported (`docs/import.md`). `infra/seed/ch.geojson`
+  remains as a region outline.
 - **"Help render the world"** is two more entries in `caps` — `ops` and
   `near {lon, lat}` — which `claim_atom` already carried and already filtered
   on. `GET /api/progress` says how far the world has got, publicly.
@@ -574,10 +548,11 @@ What WP4 left behind, still true:
 ```
 make gate        # the concurrency test, the 30 s hot-swap poll, the pilot
                  # compile and WP3's trained tile are most of it. `make vendor`
-                 # and the pilot seed once first, or the browser tests skip.
+                 # once first, or the browser tests skip.
 ```
 
-Commit message `WPx.y: <task title>`. If you deviate from `TASKS.md`, say so in
+Commit message `<story>: <title>` (`FL.8: the Planner — …`, `FND.5: …`). If you
+deviate from the task file, say so in
 the commit body and add a row to `PROGRESS.md` — every deviation so far is
 recorded there, and that record is the reason this handoff is short.
 
@@ -602,7 +577,7 @@ still the whole run from empty. A story is green when that is green.
 
 ### What is left, and what it needs
 
-Nothing in `TASKS.md` is unticked. Four things are unrun rather than undone, and
+Nothing in `docs/history/TASKS.md` is unticked. Four things are unrun rather than undone, and
 each is a numbered deviation in `PROGRESS.md`:
 
 1. **WP3.1's acceptance, on a GPU** (deviation 57). `train.spec.js` trains a
@@ -619,17 +594,15 @@ each is a numbered deviation in `PROGRESS.md`:
    That leaves a real question for whoever has the hardware: either the
    optimiser needs a GPU to make progress at all, or it is not learning and
    SwiftShader is only where it shows. The machinery around it is proven —
-   the tar, the sog, the candidate, the publish, the stream. Put the budgets
-   back up, assert the number TASKS.md asks for, and if the improvement is
-   still absent, the trainer is the thing to look at, not the test.
+   the tar, the sog, the candidate, the publish, the stream. (The trainer
+   this was measured on has since been replaced by brush, see §2.)
 2. **WP5.4's acceptance, on a headset** (deviation 102). `docs/xr.md` is the
    list.
-3. **The whole of Switzerland, seeded** (deviation 91). Geofabrik and Overpass
-   are outside this container's egress policy, and the rasters are 2.4 GB over
-   about 35 hours of streaming. `tools/seed-ch.sh` is written for it and
-   `tools/seed-ch-test.sh` gates the orchestration over a region.
-4. **WP0.11's QGIS round trip** and `gis/splatworld.qgz`, which need a running
-   GeoServer and a QGIS.
+3. **The whole of Switzerland, seeded** (deviation 91). Superseded: the seed
+   tools are gone and the ground is the operator's own coverage (§4).
+4. **WP0.11's QGIS round trip.** Done since by story 3 of the player-run: a
+   headless QGIS draws over a direct connection as the player
+   (`client/test/run/qgis.js`).
 
 One thing WP3 could not finish is still open: an atom belongs to exactly one
 job, so a `suspect` tile cannot be recompiled (deviation 55). Including the
