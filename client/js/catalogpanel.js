@@ -1,7 +1,7 @@
 // catalogpanel.js — the Marketplace (TASKS-ui.md UI.4–6): Shop, Market,
-// Selling, Licences and Earnings, each a part of one surface that takes the
-// window, its tabs up in the top bar. Registering a product is Selling's
-// "Put a model on sale" (registerhtml.js, catalogui.js).
+// Selling, Register, Licences and Earnings, each a part of one surface that
+// takes the window, its tabs up in the top bar. Registering a product is the
+// whole of Register (registerhtml.js, catalogui.js), and nowhere else.
 //
 // The categories and licences it offers are the `product` kind's properties
 // (db/0040_properties.sql), so an admin decides them rather than a constant.
@@ -10,7 +10,7 @@ import * as api from './api.js';
 import { mountRegister } from './catalogui.js';
 import { SHOP_HTML, mountShop } from './shop.js';
 import { SELLING_HTML, mountSelling } from './selling.js';
-import { mountSteps } from './registerhtml.js';
+import { REGISTER_HTML, mountSteps } from './registerhtml.js';
 import { mountEarnings, mountLicences } from './licences.js';
 import { empty } from './empty.js';
 
@@ -39,9 +39,11 @@ const into = (host, html) => {
 
 // `panel(name)` is the chrome's body for a part (hud.panel). What a signed-in
 // player sees follows the session: `refresh` is called again when it changes.
-export async function mountMarketplace(panel, { onPublished } = {}) {
+export async function mountMarketplace(panel, { onPublished, show } = {}) {
     into(panel('Shop'), SHOP_HTML);
     into(panel('Selling'), SELLING_HTML);
+    into(panel('Register'), `<div class="mk-reg">${REGISTER_HTML}
+      <p class="mk-reg-out note" hidden>Sign in to register a model.</p></div>`);
     panel('Market').append(empty('The Market comes with the new payment system',
         'Used licences, bids and the last trade are traded here once payments move to'
         + ' GNU Taler. Until then new copies are bought in the Shop.'));
@@ -49,7 +51,7 @@ export async function mountMarketplace(panel, { onPublished } = {}) {
     const shop = mountShop(document, { choices });
     const steps = mountSteps(document);
     const selling = mountSelling(document, {
-        onRegisterOpen: () => { steps.go('model'); document.getElementById('file')?.focus(); },
+        onRegisterOpen: () => { steps.go('model'); show?.('Register'); },
     });
     const register = mountRegister(document, { choices, onPublished: async (san) => {
         await Promise.all([shop.refresh(), selling.refresh()]);
@@ -61,6 +63,7 @@ export async function mountMarketplace(panel, { onPublished } = {}) {
     const earnings = mountEarnings(panel('Earnings'));
     const refresh = async () => {
         document.getElementById('upload').hidden = !api.claims();
+        document.querySelector('.mk-reg-out').hidden = Boolean(api.claims());
         await Promise.all([shop.refresh(), selling.refresh(), licences.refresh(),
             earnings.refresh()]);
     };

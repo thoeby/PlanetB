@@ -1,33 +1,26 @@
 // selling.js — Marketplace › Selling (TASKS-ui.md UI.5).
 //
-// Your products down the left; the one you picked in the middle — what it
+// Your products down the left; the one you picked beside them — what it
 // sold, what it earned, how often it stands in the world, its price and the
-// orders for it; and on the right, putting another one on sale in four steps
-// (registerhtml.js). Changing a price and taking a product off sale are money
-// code, which the payment system that replaces this one brings: both are
-// drawn and greyed, and say so.
+// orders for it. Putting another one on sale is Marketplace › Register
+// (registerhtml.js), which the button under the list opens. Changing a price
+// and taking a product off sale are money code, which the payment system that
+// replaces this one brings: both are drawn and greyed, and say so.
 
 import { el } from './poolui.js';
 import { thumbUrl, typeWords } from './catalog.js';
 import { byDay, earnings, money, myProducts, placedCounts, salesOf } from './market.js';
 import { empty } from './empty.js';
 import { barChart } from './marketchart.js';
-import { REGISTER_HTML } from './registerhtml.js';
 
 export const SELLING_HTML = `
 <div class="mk-selling">
   <aside class="mk-mine">
     <div class="mk-head"><span class="label">Your products</span><b class="mk-n"></b></div>
     <ul class="mk-list mk-products"></ul>
-    <button type="button" class="mk-new">+ Put a model on sale</button>
+    <button type="button" class="mk-new">+ Register a model</button>
   </aside>
   <main class="mk-one"></main>
-  <aside class="mk-register">
-    <div class="mk-head"><span class="label">Put a model on sale</span></div>
-    <p class="note">From your machine: the model stays yours; buyers get licences to place
-      copies.</p>
-    ${REGISTER_HTML}
-  </aside>
 </div>`;
 
 const WORDS = { paid: 'placed · paid', pending: 'asked · waiting for payment',
@@ -125,8 +118,9 @@ export function mountSelling(doc, { onRegisterOpen } = {}) {
         state.open = san;
         const a = state.products.find((x) => x.san === san);
         if (!a) {
-            one.replaceChildren(empty('Nothing on sale yet', 'Put a model on sale on the right:'
-                + ' bring the .glb, say what it does, name and price it.'));
+            one.replaceChildren(empty('Nothing on sale yet', 'Register a model: bring the'
+                + ' .glb, say what it does, name and price it.',
+            { act: 'Register a model', onAct: () => onRegisterOpen?.() }));
         } else {
             drawOne(one, a, { sales: state.sales.filter((s) => s.san === san),
                 placed: state.placed.get(san) ?? 0,

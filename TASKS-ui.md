@@ -49,7 +49,7 @@ green (their helpers change with it).
   `button.buy`, `#upload-type`, `#file`, `#name`, `#publish`, `#form-parts`,
   `#upload-status`, `#flows`, `.fl-*`). What moves is where they are.
 * **Surface and part names**: the Marketplace surface holds the parts
-  `Shop`, `Market`, `Selling`, `Licences`, `Earnings`; Build's `Catalog` leaf
+  `Shop`, `Market`, `Selling`, `Register`, `Licences`, `Earnings`; Build's `Catalog` leaf
   is now `Inventory`; Automate's parts are `Flows`, `Editor`, `Schedule`,
   `Paths`. `panel()` in the stories reaches all of them by name, as before.
 * **The bar decides "room" by measuring**, not by a breakpoint: the views'
@@ -98,9 +98,11 @@ green (their helpers change with it).
   greyed), its price (greyed editing: changing a price comes with the new
   payment system), 14 days of sales, and the orders (who, how many, state,
   amount).
-* **Put a model on sale** is the register flow as four steps — the model (a
-  live preview and its size), its parts and what sets it off, name and price,
-  register — replacing the catalog's one long form.
+* **Register** is a Marketplace tab of its own (the owner's follow-up: the
+  whole of registering is in the Marketplace, nothing of it in Build): the
+  model large on the left, four steps on the right — the model and its size,
+  its parts and what sets it off, name and price, register — replacing the
+  catalog's one long form. Selling's "Register a model" opens it.
 
 ### UI.6 Marketplace: Licences and Earnings — story 51
 * Licences: what you hold, since when, which version it follows, how many

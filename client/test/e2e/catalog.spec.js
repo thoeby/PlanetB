@@ -62,9 +62,9 @@ async function open(page) {
     await page.evaluate(() => window.splatworld.catalog.refresh());
 }
 
-// Registering is Marketplace › Selling's four steps now (TASKS-ui.md UI.5).
+// Registering is Marketplace › Register's four steps now (TASKS-ui.md UI.5).
 async function upload(page, which, label) {
-    await page.evaluate(() => window.splatworld.hud.show('Selling'));
+    await page.evaluate(() => window.splatworld.hud.show('Register'));
     await page.click('#upload .rg-step[data-step="model"]');
     await page.setInputFiles('#file', { name: `${which}.glb`,
         mimeType: 'model/gltf-binary', buffer: Buffer.from(bench[which]) });

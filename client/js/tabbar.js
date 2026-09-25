@@ -46,7 +46,8 @@ export const GROUPS = ['bar', 'top'];
 export const TABS = [
     { name: 'World', group: null, lede: '' },
     { name: 'Place', group: 'bar', key: '1', width: 470, view: 'Build',
-        lede: 'Put a product from the catalog on your own land.' },
+        lede: 'Put a product on your own land: pick it here, or press Place in your'
+            + ' Inventory.' },
     // UI.3: Build's shelf — what you can place, and nothing else. Products
     // are bought, sold and registered in the Marketplace.
     { name: 'Inventory', group: 'bar', key: '2', width: 666, view: 'Build',
@@ -91,6 +92,7 @@ export const TABS = [
         parts: [{ name: 'Shop', label: 'Shop' },
             { name: 'Market', label: 'Market', off: 'Comes with the new payment system' },
             { name: 'Selling', label: 'Selling' },
+            { name: 'Register', label: 'Register' },
             { name: 'Licences', label: 'Licences' },
             { name: 'Earnings', label: 'Earnings' }] },
     // A link that puts somebody where you stand is something you hand out, so
@@ -160,6 +162,7 @@ export const PART_LEDE = {
     Shop: '',
     Market: '',
     Selling: '',
+    Register: '',
     Licences: '',
     Earnings: '',
 };

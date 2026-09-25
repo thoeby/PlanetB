@@ -54,7 +54,8 @@ export async function mountSetupSide(ctx) {
     if (!ctx.ground?.coverage) hud.show('Setup');
 }
 
-// UI.4–6: the Marketplace — Shop, Selling, Licences and Earnings. What you
+// UI.4–6: the Marketplace — Shop, Selling, Register (where you put your own
+// on sale), Licences and Earnings. What you
 // registered or got is in Build's Inventory (UI.3), where Place walks into
 // build mode with the product picked and the camera frames it
 // (client/js/buildframe.js).
@@ -62,8 +63,9 @@ async function mountShelves(ctx) {
     const { hud } = ctx;
     ctx.catalog = await mountMarketplace((name) => hud.panel(name), {
         onPublished: () => ctx.inventory.refresh(),
+        show: (name) => hud.show(name),
     });
-    for (const part of ['Shop', 'Selling', 'Licences', 'Earnings']) {
+    for (const part of ['Shop', 'Selling', 'Register', 'Licences', 'Earnings']) {
         hud.whenShown(part, () => ctx.catalog.refresh());
     }
     ctx.inventory = mountInventory(hud.panel('Inventory'), {

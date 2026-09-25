@@ -28,7 +28,8 @@ async function putsItOnSale(c) {
     await register(c);
     const said = c.page.locator('#upload-status');
     await expect(said).toContainText('published S', { timeout: UI });
-    // Registered, it is the product in the middle of Selling.
+    // Registered, it is the product Selling shows.
+    await panel(c, 'Selling');
     await expect(c.page.locator('.mk-one h2')).toHaveText('Findling', { timeout: UI });
     return (await said.textContent()).match(/S[A-Z2-7]{12}/)[0];
 }

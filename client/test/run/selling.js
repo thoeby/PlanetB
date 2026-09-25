@@ -1,5 +1,5 @@
 // Putting a product on sale the way a maker does it now (TASKS-ui.md UI.5):
-// Marketplace › Selling, in four steps — the model, its parts, its name and
+// Marketplace › Register, in four steps — the model, its parts, its name and
 // price, and Register — and finding one again in the Shop.
 
 import { expect, panel, UI } from './players.js';
@@ -7,9 +7,9 @@ import { expect, panel, UI } from './players.js';
 // One of the four steps, by the stepper at the top of the form.
 export const step = (c, id) => c.page.locator(`#upload .rg-step[data-step="${id}"]`).click();
 
-// Selling, at the first step.
+// Register, at the first step.
 export async function onSale(c) {
-    await panel(c, 'Selling');
+    await panel(c, 'Register');
     await expect(c.page.locator('#upload')).toBeVisible({ timeout: UI });
     await step(c, 'model');
 }

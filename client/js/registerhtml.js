@@ -1,4 +1,5 @@
-// registerhtml.js — "Put a model on sale" as four steps (TASKS-ui.md UI.5).
+// registerhtml.js — Marketplace › Register: putting a model on sale in four
+// steps (TASKS-ui.md UI.5).
 //
 // The same forms the catalog's one long page had, ids and all (catalogui.js,
 // catalogupload.js and catalogtypes.js fill them), split into the four things a
@@ -20,7 +21,7 @@ export const REGISTER_HTML = `
       <span class="n">${i + 1}</span>${s.words}</button>`).join('')}
   </nav>
   <div class="rg-look">
-    <canvas class="preview" id="preview" width="256" height="256"></canvas>
+    <canvas class="preview" id="preview" width="512" height="512"></canvas>
     <div id="already" class="muted"></div>
   </div>
   <div class="rg-page" data-page="model">
@@ -118,10 +119,9 @@ export function mountSteps(doc) {
             b.dataset.done = n < at ? '1' : '';
         });
         const marked = !doc.getElementById('form-parts').hidden;
-        // The model is in view while it is brought and while its parts are
-        // marked: marking is done by looking at it.
-        root.querySelector('.rg-look').hidden = doc.getElementById('form-model').hidden
-            || !['model', 'parts'].includes(STEPS[at].id);
+        // The model stays in view beside every step: its parts are marked by
+        // looking at it, and it is what the name and the price are for.
+        root.querySelector('.rg-look').hidden = doc.getElementById('form-model').hidden;
         root.querySelector('.rg-none').hidden = marked;
         root.querySelector('.rg-back').disabled = at === 0;
         root.querySelector('.rg-next').hidden = at === STEPS.length - 1;
