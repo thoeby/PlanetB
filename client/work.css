@@ -356,3 +356,28 @@
   font-family: var(--head); font-size: 10px; letter-spacing: 0.1em;
   text-transform: uppercase; color: var(--ink-2);
 }
+
+/* Work › Hosting (UI.7): what hosting is, in three steps, then your land on the
+   left and the lands on offer as cards on the right. */
+#panel .hs-intro { margin-bottom: 16px; }
+#panel .hs-lede { max-width: 80ch; color: var(--ink-2); margin: 0 0 12px; }
+#panel .hs-steps { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin: 0; }
+#panel .hs-steps li { display: flex; flex-direction: column; gap: 4px; padding: 12px 14px;
+  border: 1px solid var(--edge); }
+#panel .hs-steps .n { font-family: var(--mono); color: var(--accent); }
+#panel .hs-steps span:last-child { font-size: 12px; color: var(--ink-2); }
+#panel .hs-cols { display: grid; grid-template-columns: 360px 1fr; gap: 16px; }
+#panel .hs-box { padding: 12px 14px; border: 1px solid var(--edge); margin-bottom: 12px; }
+#panel .hs-box .label, #panel .hs-right > .label { display: block; margin: 0 0 8px;
+  font-family: var(--head); font-weight: 700; font-size: 11px; letter-spacing: 0.14em;
+  text-transform: uppercase; color: var(--ink-3); }
+#panel .hs-box .host-offer { width: 100%; margin-top: 10px; }
+#panel .hs-cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 10px; margin: 0; }
+#panel .hs-card { display: flex; flex-direction: column; gap: 6px; padding: 12px 14px;
+  border: 1px solid var(--edge); }
+#panel .hs-card-head { display: flex; justify-content: space-between; align-items: baseline; }
+#panel .hs-card-head b { font-size: 16px; }
+#panel .hs-card button { align-self: flex-start; }
+#panel .hs-meter { height: 4px; background: var(--edge-2); }
+#panel .hs-meter i { display: block; height: 100%; background: var(--accent); }
