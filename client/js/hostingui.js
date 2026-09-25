@@ -9,7 +9,7 @@
 import { el } from './poolui.js';
 import * as api from './api.js';
 import { hostDuty, hostingHere, hostsOpen, offerHost } from './hosting.js';
-import { settleDuty, termWords } from './duties.js';
+import { onTermEnd, settleDuty, termWords } from './duties.js';
 import { empty } from './empty.js';
 
 const words = (err) => String(err?.body?.message ?? err?.message ?? err);
@@ -143,6 +143,7 @@ export function mountHosting(host, { peers }) {
         el('div', { className: 'hs-right' },
             el('span', { className: 'label', textContent: 'Lands to host' }), list, said)));
 
+    let wake = null;
     async function refresh() {
         await offer.lands();
         here.draw();
@@ -150,6 +151,7 @@ export function mountHosting(host, { peers }) {
         list.replaceChildren(...(rows.length ? rows.map((d) => hostRow(d, peers, say, refresh))
             : [empty('Nobody has a land to host', 'When an owner offers one, it is here'
                 + ' to take.', { as: 'li' })]));
+        wake = onTermEnd(rows, refresh, wake);
         return rows;
     }
     return { refresh, say };

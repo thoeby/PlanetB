@@ -5,7 +5,7 @@
 
 import { el } from './poolui.js';
 import { servers } from './processservers.js';
-import { dutiesOpen, runDuty, runningHere, sendReceipts, settleDuty, termWords }
+import { dutiesOpen, onTermEnd, runDuty, runningHere, sendReceipts, settleDuty, termWords }
     from './duties.js';
 
 const words = (err) => String(err?.body?.message ?? err?.message ?? err);
@@ -67,6 +67,7 @@ export function mountDuties(host) {
         'A flow somebody offered, run on a process server of yours for its term,'
         + ' under a key that reaches only its own land.' }), list, said);
 
+    let wake = null;
     async function refresh() {
         const [offers, mine] = await Promise.all([dutiesOpen().catch(() => []),
             servers().catch(() => [])]);
@@ -76,6 +77,7 @@ export function mountDuties(host) {
         }
         list.replaceChildren(...(offers.length ? offers.map((d) => offerRow(d, own, say, refresh))
             : [el('li', { className: 'muted', textContent: 'Nobody has offered a flow.' })]));
+        wake = onTermEnd(offers, refresh, wake);
         return offers;
     }
     return { refresh, say };

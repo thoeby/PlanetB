@@ -9,6 +9,7 @@ import { framing, sizeOf } from '../js/buildframe.js';
 import { byDay } from '../js/market.js';
 import { editSlot } from '../js/hudbar.js';
 import { frameOf } from '../js/flowpaths.js';
+import { onTermEnd } from '../js/duties.js';
 
 test('a product is framed from a distance that fits its size, within reason', () => {
     assert.equal(sizeOf({ min: [0, 0, 0], max: [0.5, 0.4, 0.3] }), 0.5);
@@ -65,4 +66,20 @@ test('the bar’s undo belongs to the first editor on screen, and to nobody othe
     assert.deepEqual([ground, flow], [1, 1]);
     slot.use('automate', null);
     assert.equal(edit.node.hidden, true);
+});
+
+test('a list is read again a second after the next term on it ends, and only then', () => {
+    const now = Date.now();
+    const rows = [{ ends_at: new Date(now - 5000).toISOString() }, { ends_at: null },
+        { ends_at: new Date(now + 60_000).toISOString() },
+        { ends_at: new Date(now + 20_000).toISOString() }];
+    const set = [];
+    const real = globalThis.setTimeout;
+    globalThis.setTimeout = (fn, ms) => { set.push(ms); return 7; };
+    try {
+        assert.equal(onTermEnd(rows, () => {}), 7);
+        assert.equal(onTermEnd([{ ends_at: null }], () => {}), null, 'nothing ends: no timer');
+    } finally { globalThis.setTimeout = real; }
+    assert.equal(set.length, 1);
+    assert.ok(set[0] > 20_000 && set[0] <= 21_000, `waits for the nearest end (${set[0]} ms)`);
 });
