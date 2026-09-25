@@ -131,8 +131,7 @@ export function reachWords(r, origin) {
   if (r.state === "up") return `Answered${r.version ? ` — elx ${r.version}` : ""}.`;
   if (r.state === "cors") {
     return "It answered, but this page is not allowed to read it (CORS) — "
-      + `the server has to allow ${origin}. Run tools/elx-relay.py beside it and add`
-      + " the relay's address instead.";
+      + `the server has to allow ${origin}.`;
   }
   return "That address did not answer.";
 }
@@ -146,8 +145,8 @@ export function reachWords(r, origin) {
  */
 export function failWords(err, name) {
   if (/** @type {any} */ (err)?.cors) {
-    return `${name} answered, but this page is not allowed to read it (CORS) — run`
-      + " tools/elx-relay.py beside it and use the relay's address.";
+    return `${name} answered, but this page is not allowed to read it (CORS) — `
+      + "the server has to allow this page's address.";
   }
   if (err instanceof ApiError && err.errorCode != null) {
     return `${name} said: ${err.body || err.message}`;

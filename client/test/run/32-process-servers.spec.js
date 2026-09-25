@@ -59,10 +59,9 @@ async function sameNameRefused(b) {
     });
 }
 
-// A server like the real elx server sends no CORS headers: the page is told so
-// in words, and the same server through tools/elx-relay.py answers.
-async function throughTheRelay(b, world) {
-    await test.step('a server that sends no CORS headers is named, and the relay mends it',
+// A server that sends no CORS headers: the page is told so in words.
+async function withoutCors(b, world) {
+    await test.step('a server that sends no CORS headers is named as such',
         async () => {
             await serverSelect(b).selectOption({ label: 'Add a server…' });
             const dialog = b.page.locator('#flows .fl-srv-dialog');
@@ -71,10 +70,6 @@ async function throughTheRelay(b, world) {
             await dialog.getByRole('button', { name: 'Test' }).click();
             await expect(dialog.locator('.fl-srv-answer')).toContainText(
                 'It answered, but this page is not allowed to read it (CORS)', { timeout: UI });
-            await dialog.getByLabel('Server address').fill(world.elx.relay.url);
-            await dialog.getByRole('button', { name: 'Test' }).click();
-            await expect(dialog.locator('.fl-srv-answer')).toContainText('Answered — elx fixture-1',
-                { timeout: UI });
             await dialog.getByRole('button', { name: 'Cancel' }).click();
         });
 }
@@ -90,7 +85,7 @@ test('story 32 — a player keeps process servers and switches between them',
 
         await bothAnswer(b, world);
         await sameNameRefused(b);
-        await throughTheRelay(b, world);
+        await withoutCors(b, world);
 
         await test.step('beta stops, and the bar says so', async () => {
             world.elx.beta.stop();

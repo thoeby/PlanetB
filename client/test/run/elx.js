@@ -14,10 +14,8 @@ const REPO = join(dirname(fileURLToPath(import.meta.url)), '../../..');
 
 const PORTS = { alpha: Number(process.env.RUN_ALPHA_PORT ?? 8091),
     beta: Number(process.env.RUN_BETA_PORT ?? 8092),
-    // gamma is like the real elx server: no CORS headers (docs/flow.md), and
-    // the relay a player runs beside it (tools/elx-relay.py).
+    // gamma is like a server that sends no CORS headers (docs/flow.md).
     gamma: Number(process.env.RUN_GAMMA_PORT ?? 8093) };
-const RELAY_PORT = Number(process.env.RUN_RELAY_PORT ?? 8094);
 // alpha also has the world's own plugin, as a server that runs World blocks
 // does (design 10a: "World — alpha knows these blocks"); beta does not.
 const EXTRA = { alpha: [join(REPO, 'client/test/run/fixtures/weather.xml'),
@@ -66,24 +64,10 @@ async function switchable(name) {
     };
 }
 
-// The relay a player runs beside a server that sends no CORS headers.
-async function relayTo(url) {
-    const p = spawn('python3', [join(REPO, 'tools/elx-relay.py'), '--to', url,
-        '--port', String(RELAY_PORT)], { cwd: REPO, stdio: 'ignore', detached: true });
-    const at = `http://127.0.0.1:${RELAY_PORT}`;
-    const until = Date.now() + 15_000;
-    while (!(await answers(at))) {
-        if (Date.now() > until) throw new Error('the relay did not come up');
-        await new Promise((r) => setTimeout(r, 100));
-    }
-    return { url: at, stop: () => { try { process.kill(-p.pid); } catch { p.kill(); } } };
-}
-
 export async function startProcessServers() {
     const alpha = await switchable('alpha');
     const beta = await switchable('beta');
     const gamma = await up('gamma');
-    const relay = await relayTo(gamma.url);
-    return { alpha, beta, gamma, relay,
-        stop: () => { alpha.stop(); beta.stop(); gamma.stop(); relay.stop(); } };
+    return { alpha, beta, gamma,
+        stop: () => { alpha.stop(); beta.stop(); gamma.stop(); } };
 }
