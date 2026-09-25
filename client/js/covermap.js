@@ -17,7 +17,7 @@ const M_PER_DEG = 111320;
 // How many pictures are kept, and how many are asked for at once. The map is
 // a hundred and eighty pixels across; a screenful is a handful of tiles.
 const KEEP = 64;
-const ZOOMS = [14, 12, 10, 8, 6];
+const ZOOMS = [6, 8, 10, 12, 14];
 
 const held = new Map();
 const asking = new Set();
@@ -29,7 +29,14 @@ const asking = new Set();
 function picture(z, x, y, filesUrl) {
     if (typeof globalThis.Image !== 'function') return null;
     const k = `${z}/${x}/${y}`;
-    if (held.has(k)) return held.get(k);
+    if (held.has(k)) {
+        // Seen again, so the last to be forgotten: a screenful is never
+        // evicted by itself and asked for again on the next frame.
+        const img = held.get(k);
+        held.delete(k);
+        held.set(k, img);
+        return img;
+    }
     if (asking.has(k)) return null;
     asking.add(k);
     const img = new globalThis.Image();
@@ -50,7 +57,9 @@ function picture(z, x, y, filesUrl) {
 
 // Which zoom covers a window this wide in a few tiles: the coarsest whose
 // tiles are smaller than the window, so one screenful is never a hundred
-// requests.
+// requests. Searched from coarse to fine — searched the other way it found
+// z14 for every window wider than a z14 tile, and a 20 km map was 150 tiles,
+// more than KEEP, asked for again on every frame.
 function zoomFor(span, lat) {
     for (const z of ZOOMS) {
         const b = tileBbox(z, tileX(0, z), tileY(lat, z));
