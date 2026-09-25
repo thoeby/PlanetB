@@ -125,3 +125,24 @@ def test_a_file_that_is_not_ground_is_served_as_it_is(store):
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_bytes(b"hello")
     assert get(port, "/assets/a.txt") == (200, b"hello")
+
+
+def post(port: int, path: str, origin: str | None) -> int:
+    conn = http.client.HTTPConnection("127.0.0.1", port, timeout=10)
+    headers = {"Content-Type": "application/json", "Content-Length": "2"}
+    if origin is not None:
+        headers["Origin"] = origin
+    try:
+        conn.request("POST", path, body=b"{}", headers=headers)
+        return conn.getresponse().status
+    finally:
+        conn.close()
+
+
+def test_setup_is_refused_to_a_page_this_server_did_not_serve(store):
+    """Any page in the operator's browser posts from 127.0.0.1 as well."""
+    _, port = store
+    assert post(port, "/setup/state", "https://evil.example") == 403
+    assert post(port, "/setup/geoserver", "null") == 403
+    assert post(port, "/setup/state", f"http://127.0.0.1:{port}") == 200
+    assert post(port, "/setup/state", None) == 200

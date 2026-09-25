@@ -20,6 +20,7 @@ import time
 import urllib.error
 import urllib.parse
 import urllib.request
+import uuid
 
 import psycopg
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
@@ -359,11 +360,16 @@ class Handler(BaseHTTPRequestHandler):
         if not m:
             return False
         z, x, y = (int(v) for v in m.groups())
-        with psycopg.connect(self.cfg.dsn(), autocommit=True) as conn:
-            row = conn.execute(
-                "SELECT manifest -> 'cover' ->> 'sha256' FROM tile"
-                " WHERE z = %s AND x = %s AND y = %s AND published_version > 0",
-                (z, x, y)).fetchone()
+        try:
+            with psycopg.connect(self.cfg.dsn(), autocommit=True,
+                                 connect_timeout=5) as conn:
+                row = conn.execute(
+                    "SELECT manifest -> 'cover' ->> 'sha256' FROM tile"
+                    " WHERE z = %s AND x = %s AND y = %s AND published_version > 0",
+                    (z, x, y)).fetchone()
+        except psycopg.Error as err:
+            self._text(503, f"the database did not answer: {err}")
+            return True
         sha = row[0] if row else None
         target = safe_join(self.cfg.files, f"/tiles/{z}/{x}/{y}/{sha}.png") if sha else None
         if not target or not target.is_file():
@@ -425,8 +431,33 @@ class Handler(BaseHTTPRequestHandler):
         """
         return self.client_address[0] in ("127.0.0.1", "::1", "::ffff:127.0.0.1")
 
+    def _from_this_page(self) -> bool:
+        """Whether a browser sent this from a page this server served.
+
+        The address check is not enough on its own: any web page open in the
+        operator's browser posts from 127.0.0.1 too, and would be answered —
+        /setup/geoserver with the stored GeoServer password sent to whatever
+        address that page names. A browser names the page's origin on every
+        cross-origin POST; a request with none comes from a script, not a page.
+        """
+        origin = self.headers.get("Origin")
+        if origin is None:
+            return True
+        parsed = urllib.parse.urlsplit(origin)
+        return bool(parsed.netloc) and parsed.netloc == self.headers.get("Host")
+
+    def _content_length(self) -> int:
+        """The declared body length; -1 when it is not a number at all."""
+        try:
+            return int(self.headers.get("Content-Length") or 0)
+        except ValueError:
+            # Nothing can be drained without a length: this request is the
+            # last one on the connection.
+            self.close_connection = True
+            return -1
+
     def _read_json(self) -> dict:
-        length = int(self.headers.get("Content-Length") or 0)
+        length = self._content_length()
         if length <= 0 or length > (8 << 20):
             return {}
         try:
@@ -449,10 +480,10 @@ class Handler(BaseHTTPRequestHandler):
         # gets back, so even the refusals are JSON. A plain-text 404 here
         # surfaces in the browser as "unexpected keyword at line 1 column 1",
         # which tells nobody anything.
-        if not path.startswith(("/import/", "/setup/")):
+        if not path.startswith("/setup/"):
             self._json(404, {"ok": False, "error": f"no such thing as {path}"})
             return
-        if not self._from_this_machine():
+        if not self._from_this_machine() or not self._from_this_page():
             self._json(403, {"ok": False,
                              "error": "this page only works on this machine"})
             return
@@ -604,7 +635,10 @@ class Handler(BaseHTTPRequestHandler):
         self._text(status, message)
 
     def do_PUT(self) -> None:  # noqa: N802
-        length = int(self.headers.get("Content-Length") or 0)
+        length = self._content_length()
+        if length < 0:
+            self._text(400, "Content-Length is not a number")
+            return
         path, first = self._route()
         if first not in STORE_PREFIXES:
             self._refuse(405, "nothing is writable here", length)
@@ -636,7 +670,9 @@ class Handler(BaseHTTPRequestHandler):
             return
 
         target.parent.mkdir(parents=True, exist_ok=True)
-        partial = target.with_suffix(target.suffix + ".part")
+        # One partial file per upload: two tabs sending the same new path at
+        # once must not write into the same file.
+        partial = target.with_name(f"{target.name}.{uuid.uuid4().hex}.part")
         try:
             with partial.open("wb") as fh:
                 remaining = length

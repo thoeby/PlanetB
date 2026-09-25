@@ -93,7 +93,8 @@ splatworld doctor          what is ready, and what is not
 splatworld run --host 0.0.0.0
 ```
 
-Then, before anyone else can reach it: a real `JWT_SECRET`, a real database
+It refuses to start on any address but loopback while `JWT_SECRET` is still
+the development one. Then, before anyone else can reach it: a real database
 password, and TLS in front — the file store is public to read, and sign-in
 tokens go over the same connection. `splatworld` itself listens on 127.0.0.1
 unless you say otherwise, which is deliberate.

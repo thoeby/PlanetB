@@ -97,6 +97,12 @@ def _preflight(cfg: config.Config) -> list[str]:
         problems.append(services.missing_message(cfg))
     if not cfg.client_dir.is_dir():
         problems.append(f"no client/ at {cfg.client_dir} — set SPLATWORLD_REPO")
+    # The default secret is in this repository: served beyond this machine,
+    # anyone could sign themselves an admin token with it (Invariant 6).
+    if (cfg.host not in ("127.0.0.1", "localhost", "::1")
+            and cfg.jwt_secret == config.Config.jwt_secret):
+        problems.append(f"--host {cfg.host} with the development JWT_SECRET — put a "
+                        "secret of your own (32+ characters) in .env first")
     return problems
 
 
