@@ -125,7 +125,8 @@ dirty. That is the work queue.
 - **Sign in / create account** in the top-left panel. Reading the world needs
   no account; working, building and editing do.
 - **Move**: WASD, Space up, Shift down, mouse look after clicking the canvas
-  (pointer lock), `F` toggles walk/fly. The ground comes from the finest
+  (pointer lock), `F` toggles walk/fly. (Shape and Lines use the clay's own
+  camera instead: see Blueprint below.) The ground comes from the finest
   loaded tile's heightmap; colliders block you.
 - **Status line**: published tiles, loaded/loading, origin rebases, hot swaps.
   The viewer polls the loaded tiles every 30 s and swaps in new versions.
@@ -217,6 +218,91 @@ train (WebGPU, minutes), sog, then waits for three other tabs to verify it.
 - **wallet**: balance, ledger, and `set bounty` on the job of the tile you are
   looking at. Escrow is released pro rata by GPU seconds when the tile
   publishes; a cancelled job refunds it.
+
+### Blueprint: the ground as white clay (Build · Shape and Lines)
+
+Shape and Lines open your land as a clay model: white ground, contour lines,
+what you changed tinted, a thin ring round the land, and the rest of the world
+greyed out. The camera is the clay's own and never locks the pointer:
+
+- `W A S D` fly over the land, `Q`/`E` (or `Space`) go down and up.
+- The middle (or right) button drags an orbit; pitch stays between 30° and
+  straight down. The wheel zooms to the pointer. `O` swaps to orthographic,
+  **Zoom to land** frames the land again.
+- `H` is the hand (drag the land), `C` a section: drag a line across the land
+  and its profile opens along the bottom.
+- Hold `Tab` to peek at the splats through the clay.
+- At the pointer: the ground height, how far it is off the operator's
+  elevation, the slope and the shaping limit, and a word when something
+  matters — `not your land`, `edge blend`, `over limit`, `snapped: …`.
+- The corner card holds the overlays: contours (and their interval), what you
+  changed, a grid, slopes above a set angle, and your neighbours' lines and
+  areas.
+
+### Shape (Build · 4)
+
+A toolbar over the land, top left: the land, the tools, undo and redo, how
+many strokes are unsaved, **Save**, **Put back** and the strokes list. Picking
+a tool flaps out its card (size, strength, falloff and its curve, circle or
+square, and whatever else that tool reads); picking it again folds it. The
+brush on the clay is a disc at its true size, shaded by its falloff.
+
+| Key | Tool | What it does |
+|-----|------|--------------|
+| `R` | Raise | up while held; `Shift` lowers |
+| `M` | Smooth | evens the ground under the brush |
+| `G` | Flatten | to the height where the stroke began; a fall (%) and its direction make a terrace drain, `Ctrl`-drag turns the arrow |
+| `L` | Level | to a set height; `Alt`-click takes it from the ground, or pick a house floor |
+| `B` | Along line | a road bed: click its path or pick one of the land's lines, width, shoulder and gradient; written as one stroke |
+| `X` | Put back | rubs shaping out, back to the elevation |
+| `H` / `C` | Hand / Section | |
+| `[` `]` | | brush smaller / bigger |
+
+The operator's limit (Admin → Shape: how far up and down, default 8 m) holds
+per cell and the brush says so; the brush fades within 4 m of your boundary
+unless the operator turned the edge blend off. Strokes are listed newest
+first: click one to undo back to it. **Put back** asks first, then puts the
+whole land back as one undoable stroke. Leaving Shape with unsaved strokes asks
+Save, Discard or Stay. A save that does not go through is kept on this machine
+and offered again when you come back.
+
+### Lines (Build · 5)
+
+Roads, paths, streams, walls and hedges, drawn on the clay; they never move
+the ground (use **Lay bed** for that). Pick a kind in the palette — one entry
+per kind and class, recent ones first, type to filter, `1`–`9` to pick.
+
+- `L` draws: click nodes, hold-drag to sketch (simplified on release), `Enter`
+  or a second click on the last node ends it, `Esc` drops the last node.
+  Nodes snap to line ends, your boundary, contour and grid; deep in somebody
+  else's land a node is refused. Hold `Alt` to keep each node at the first
+  one's height, walked along the slope.
+- `V` selects and edits: drag nodes and handles, click a curve to insert a
+  node, right-click for corner/smooth, split and delete; the handle at the
+  side sets the width at that node.
+- The selected line's panel: its profile (click to go there), **Walk it**,
+  **Reverse**, **Delete**, **Lay bed** (opens Shape with Along line in hand),
+  and its fields. Ctrl-Z undoes; Save writes.
+
+### Areas (Survey · Areas)
+
+Woods, meadows and water, drawn on a map of your land over the operator's
+hillshade. Pick a kind on the left. `D` draws (click corners, close on the
+first; Shift-drag sketches), `B` paints with a round brush whose strokes become
+one area, `V` edits (click an area, drag its corners; they snap to the other
+areas and the land's edge; `Delete` erases it), `E` erases with a click.
+Anything past your land is clipped off. On **Save**, two areas of the same
+kind and class that overlap become one, and a newer area of another kind cuts
+a hole in what it lies over: the save says so, "forest saved · merged with 1".
+The right column is the selected area's fields. Ctrl-Z / Ctrl-Shift-Z and the
+buttons under Save undo and redo.
+
+### Kind defaults (Admin → Vocabulary)
+
+Per kind: its width, whether it runs straight between nodes, the steepest it
+should climb, and whether the pickers in Lines and Areas offer it at all
+(db/0199). A blank field keeps the editors' own guess, shown as its
+placeholder — so a blank width leaves each class its own.
 
 ### Catalog (`/app/catalog.html`)
 

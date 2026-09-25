@@ -6,6 +6,13 @@ view (11a–11c), Areas in Survey (11d), and every tag and sentence they say
 (11e). Blueprint's corner card, the tag and numbers at the pointer and the
 profile strip are `client/blueprint.css`; the clay is `client/js/blueprint.js`.
 
+Where the build departs from 11a, on the operator's note: Shape has no
+column down the left. Its tools are a toolbar over the land, top left, at one
+fixed size, and the tool in hand's settings are a card that flaps out under
+it (`client/js/sculptrail.js`, `client/terrain.css`); the falloff curve in
+that card is a small picture, and the brush on the clay is a disc shaded by
+the falloff (`client/js/brushdisc.js`).
+
 `splatworld-v8.dc.html` is the design of record for the Work window — five
 tabs, a card for every job, and a card opened — on the `chrome7.dc.html`
 chrome; `splatworld-v7.dc.html` is the turn before it, which adds a seventh
