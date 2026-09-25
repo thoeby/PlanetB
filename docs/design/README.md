@@ -235,4 +235,11 @@ card.
 **The Planner** (`TASKS-flows.md` FL.8) is drawn from the operator's sketch,
 `assets/planner-sketch.png`: lanes a job over a day, the runs on them, next
 runs on the right, one job's run times underneath. Built in
-`client/js/planner*.js` and `client/planner.css`.
+`client/js/planner*.js` and `client/planner.css`. Its **Edit job** sketch
+draws a cron trigger as a schedule — Every … minutes between two times on
+chosen days, Every hour, Every day at, Weekdays at, or Custom — with the
+sentence it means, the expression beside Edit as text, runs a day and the next
+run, and the next seven days as ticks with Open in planner. Built in
+`client/js/scheduleui.js` over `client/flow/server/schedule.js` (the presets
+read into and out of the five fields); the four Add trigger buttons are the
+sketch's tabs, on a schedule · on a request · on a file · on a message.

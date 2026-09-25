@@ -3045,6 +3045,20 @@ artboards 10a–10k:
   World blocks does.
 - Auto-layout spaces layers 300 apart, because blocks are wider.
 
+## A cron trigger edited as a schedule
+
+The job dialog's cron trigger was a text field and five firings. It is now the
+operator's Edit job sketch: presets (Every … minutes from/to on days, Every
+hour, Every day at, Weekdays at, Custom), the sentence, the expression with
+Edit as text, "N runs a day · next at · A cron trigger checks at most once a
+minute", the next seven days as ticks and Open in planner
+(`client/js/scheduleui.js`, `client/flow/server/schedule.js`, unit-tested in
+`client/test/schedule.test.js`). Typing an expression that reads as a preset
+fills that preset's fields; any other stays Custom. Story 36 drives the
+editor through a preset. Not run here: the player-run and the browser suite
+(no Postgres, no Playwright binary); the editor was exercised in headless
+Chromium by hand, the node suite and eslint are green.
+
 ## Cleanup: docs, dead code, grants, and play.html in modules
 
 No story; the operator asked for the codebase to be tidied and the docs

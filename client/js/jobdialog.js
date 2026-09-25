@@ -3,19 +3,23 @@
 //
 // A job is a process with its inputs bound, a log level, a report policy and
 // the triggers that start it. The fields are the reference editor's
-// (wireon-process-editor src/ui/jobeditor.js); the "next 5 firings" under a
-// cron expression is its evaluator (flow/server/cron.js). The world keeps none
+// (wireon-process-editor src/ui/jobeditor.js); a cron trigger is edited as a
+// schedule (scheduleui.js, over its evaluator in flow/server/cron.js). The world keeps none
 // of this — it is the server's.
 
 import { el } from './poolui.js';
 import { act } from './servertab.js';
-import { cronNextFirings } from '../flow/server/cron.js';
+import { scheduleEditor } from './scheduleui.js';
+import { CRON_NOTE } from '../flow/server/schedule.js';
 import { buildInputsXml, readInputsXml } from '../flow/server/inputs.js';
 import { processApi } from '../flow/server/process.js';
 import { parseElx } from '../flow/elx/parse.js';
 
+// A trigger's kind, in the player's words (the artboard's tabs), and its fields.
+const KIND_WORDS = { cron: 'on a schedule', http: 'on a request', filesystem: 'on a file',
+    mqtt: 'on a message' };
 const TRIGGERS = {
-    cron: [['expression', 'Expression']],
+    cron: [],
     http: [['method', 'Method'], ['target', 'Target path'], ['inputNameRequest', 'Request input'],
         ['inputNameCaptures', 'Captures input'], ['outputNameResponse', 'Response output'],
         ['serviceId', 'Service']],
@@ -23,8 +27,7 @@ const TRIGGERS = {
     mqtt: [['serviceId', 'Service'], ['topic', 'Topic'], ['inputNameTopic', 'Topic input'],
         ['inputNamePayload', 'Payload input']],
 };
-export const CRON_NOTE = 'A cron trigger checks at most once a minute.';
-const BAD_CRON = 'That is not a cron expression — five fields, minute first.';
+export { CRON_NOTE };
 
 const labelled = (label, input) => {
     input.setAttribute('aria-label', label);
@@ -55,34 +58,18 @@ function segmented(label, select) {
         el('div', { className: 'fl-seg' }, select, ...buttons));
 }
 
-// "Thu 24 Sep · 18:05", in the world's time, as the design writes a firing.
-const firing = (d) => `${d.toUTCString().slice(0, 11).replace(',', '')} \u00b7 `
-    + d.toISOString().slice(11, 16);
-
-// The five times a cron expression next fires, or the sentence that says it
-// is not one.
-function cronPreview(input) {
-    const out = el('ul', { className: 'muted mono fl-cron-next' });
-    const draw = () => {
-        try {
-            out.replaceChildren(...cronNextFirings(input.value.trim()).map((d) =>
-                el('li', { textContent: firing(d) })));
-        } catch {
-            out.replaceChildren(el('li', { className: 'fl-err', textContent: BAD_CRON }));
-        }
-    };
-    input.addEventListener('input', draw);
-    draw();
-    return el('div', { className: 'fl-cron' }, el('h4', { textContent: 'Next 5 firings' }), out,
-        el('p', { className: 'muted', textContent: CRON_NOTE }));
-}
-
 // One trigger's fields. Services are offered by name, from the server's list.
-function triggerRow(t, services, remove) {
+function triggerRow(t, services, remove, openPlanner) {
     const read = [];
     const box = el('div', { className: 'fl-trigger' });
     box.dataset.type = t.type;
-    box.append(el('h3', { textContent: `${t.type} trigger` }));
+    box.append(el('h3', { textContent: KIND_WORDS[t.type] },
+        el('span', { className: 'mono', textContent: t.type })));
+    if (t.type === 'cron') {
+        const sched = scheduleEditor(t.expression ?? '', { openPlanner });
+        box.append(sched.node);
+        read.push(['expression', sched.read]);
+    }
     for (const [key, label] of TRIGGERS[t.type]) {
         let input;
         if (key === 'serviceId') {
@@ -96,10 +83,9 @@ function triggerRow(t, services, remove) {
             input = el('input', { type: 'text', value: t[key] ?? (key === 'method' ? 'GET' : '') });
         }
         box.append(labelled(label, input));
-        if (key === 'expression') box.append(cronPreview(input));
         read.push([key, () => (input.type === 'checkbox' ? input.checked : input.value.trim())]);
     }
-    box.append(act('Remove trigger', 'fl-trigger-del', () => { box.remove(); remove(); }));
+    box.append(act('Remove', 'fl-trigger-del', () => { box.remove(); remove(); }));
     const values = () => Object.fromEntries(read.map(([k, f]) => [k, f()]));
     return { box, read: () => ({ type: t.type, ...values() }) };
 }
@@ -136,20 +122,31 @@ export function jobParts(job, processes) {
     return { name, group, process, level, store };
 }
 
+// One button a kind (the artboard's "Add trigger · on a schedule · …"); the
+// select and its Add stay, out of sight, as what a keyboard reaches.
+function addTrigger(add) {
+    const kind = choice(Object.keys(TRIGGERS), 'cron');
+    kind.setAttribute('aria-label', 'Trigger type');
+    kind.classList.add('fl-sr');
+    return [el('span', { className: 'muted fl-add-word', textContent: 'Add trigger' }), kind,
+        act('Add trigger', 'fl-trigger-add fl-sr', () => add({ type: kind.value })),
+        ...Object.entries(KIND_WORDS).map(([k, w]) =>
+            act(w, 'fl-trigger-kind', () => add({ type: k })))];
+}
+
 export function jobDialog(bag, { job, processes, services, locked = new Set() }, done) {
     const s = bag.server();
     const f = jobParts(job, processes);
     const inputs = el('div', { className: 'fl-job-inputs' });
     const triggers = el('div', { className: 'fl-job-triggers' });
     const rows = [];
+    const openPlanner = bag.planner ? () => bag.planner.open() : null;
     const add = (t) => {
-        const r = triggerRow(t, services, () => rows.splice(rows.indexOf(r), 1));
+        const r = triggerRow(t, services, () => rows.splice(rows.indexOf(r), 1), openPlanner);
         rows.push(r);
         triggers.append(r.box);
     };
     (job?.triggers ?? []).forEach(add);
-    const kind = choice(Object.keys(TRIGGERS), 'cron');
-    kind.setAttribute('aria-label', 'Trigger type');
     let readInputs = () => ({ inputs: [], values: {} });
     const bound = readInputsXml(job?.inputs ?? '');
     const load = async () => {
@@ -181,8 +178,7 @@ export function jobDialog(bag, { job, processes, services, locked = new Set() },
                 segmented('Store report', f.store))),
         el('section', { className: 'fl-dsec' }, el('h4', { textContent: 'Inputs' }), inputs),
         el('section', { className: 'fl-dsec' }, el('div', { className: 'fl-dsec-head' },
-            el('h4', { textContent: 'Triggers' }), kind, act('Add trigger', 'fl-trigger-add',
-                () => add({ type: kind.value }))), triggers),
+            el('h4', { textContent: 'Triggers' }), ...addTrigger(add)), triggers),
         err, el('div', { className: 'fl-acts' }, save, act('Cancel', '', () => wrap.remove()))));
     bag.dialogs().append(wrap);
     load().catch((e) => {

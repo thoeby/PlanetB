@@ -1,7 +1,7 @@
 // Story 36 — jobs and reports on a server (TASKS-flows.md FL.5).
 //
 // B makes a job on alpha that runs the process sent in story 34 every evening,
-// sees when it will next run and that a cron trigger checks at most once a
+// sees it as a schedule, when it will next run, and that a cron trigger checks at most once a
 // minute, runs it now, reads what alpha said about the run, and finds that
 // report again under Reports.
 
@@ -24,12 +24,15 @@ test('story 36 — jobs and reports on a server', async ({ browser, world }, tes
         await b.page.getByRole('button', { name: 'New job' }).click();
         await dialog(b).getByLabel('Job name').fill('Dusk');
         await dialog(b).getByLabel('Process').selectOption({ label: 'Weather check' });
-        await dialog(b).getByLabel('Trigger type').selectOption('cron');
-        await dialog(b).getByRole('button', { name: 'Add trigger' }).click();
-        await dialog(b).getByLabel('Expression').fill('0 18 * * *');
-        await expect(dialog(b).locator('.fl-cron-next li')).toHaveCount(5);
-        await expect(dialog(b).locator('.fl-cron-next li').first()).toContainText('18:00');
+        await dialog(b).getByRole('button', { name: 'on a schedule' }).click();
+        await dialog(b).getByRole('button', { name: 'Every day at' }).click();
+        await dialog(b).getByLabel('At').fill('18:00');
+        await expect(dialog(b).locator('.fl-cron-says')).toHaveText('Every day at 18:00.');
+        await expect(dialog(b).locator('.fl-cron-expr')).toHaveText('0 18 * * *');
+        await expect(dialog(b).locator('.fl-cron-line')).toContainText('1 run a day');
+        await expect(dialog(b).locator('.fl-cron-line')).toContainText('next at');
         await expect(dialog(b)).toContainText('A cron trigger checks at most once a minute.');
+        await expect(dialog(b).locator('.fl-week-lane')).toHaveCount(7);
         await dialog(b).getByRole('button', { name: 'Save' }).click();
         await expect(job(b, 'Dusk')).toContainText('cron 0 18 * * *', { timeout: UI });
         await expect(job(b, 'Dusk')).toContainText('Weather check');
@@ -37,8 +40,9 @@ test('story 36 — jobs and reports on a server', async ({ browser, world }, tes
 
     await test.step('a cron expression that is not one says so', async () => {
         await job(b, 'Dusk').getByRole('button', { name: 'Edit' }).click();
+        await dialog(b).getByRole('button', { name: 'Edit as text' }).click();
         await dialog(b).getByLabel('Expression').fill('every evening');
-        await expect(dialog(b).locator('.fl-cron-next'))
+        await expect(dialog(b).locator('.fl-cron-line'))
             .toContainText('That is not a cron expression');
         await dialog(b).getByRole('button', { name: 'Cancel' }).click();
     });

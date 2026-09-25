@@ -170,10 +170,48 @@
   font-weight: 400; font-size: 11px; letter-spacing: 0; text-transform: none; color: var(--p); }
 #flows .fl-trigger > button { grid-column: 2; grid-row: 1; justify-self: end; height: auto; padding: 0;
   border: 0; font-size: 11px; color: var(--r); }
-#flows .fl-cron { grid-column: 2; grid-row: 2 / span 3; }
-#flows .fl-cron h4 { font-family: var(--head); font-size: 11px; letter-spacing: 0.14em;
-  color: rgba(242, 239, 232, 0.55); }
-#flows .fl-cron-next { margin: 6px 0; padding: 0; list-style: none; font-family: var(--mono);
-  font-size: 12px; color: var(--ink); line-height: 1.5; }
-#flows .fl-cron .muted { font-size: 11px; }
+#flows .fl-trigger[data-type="cron"] { display: flex; flex-direction: column; gap: 12px; }
+#flows .fl-trigger[data-type="cron"] > h3 { display: flex; gap: 10px; align-items: baseline; }
+#flows .fl-trigger[data-type="cron"] > h3 { font-family: var(--head); font-weight: 700;
+  font-size: 12px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--ink); }
+#flows .fl-trigger > h3 > span { font-family: var(--mono); font-size: 11px; letter-spacing: 0;
+  text-transform: none; color: var(--p); }
+#flows .fl-trigger[data-type="cron"] > button { position: absolute; right: 14px; top: 12px; }
+#flows .fl-trigger { position: relative; }
+#flows .fl-add-word { font-family: var(--head); font-size: 11px; letter-spacing: 0.14em;
+  text-transform: uppercase; }
+#flows .fl-trigger-kind { height: 26px; font-size: 11px; }
+/* The schedule editor (scheduleui.js): presets, the fields, the sentence, a week. */
+#flows .fl-sched { display: flex; flex-direction: column; gap: 12px; }
+#flows .fl-presets button { text-transform: uppercase; letter-spacing: 0.1em; font-family: var(--head);
+  font-weight: 600; }
+#flows .fl-sched-fields { display: flex; flex-wrap: wrap; align-items: center; gap: 10px;
+  font-size: 13px; }
+#flows .fl-sched-fields input { height: 32px; font-family: var(--mono); }
+#flows .fl-sched-fields input[type="number"] { width: 64px; }
+#flows .fl-days { display: inline-flex; gap: 4px; }
+#flows .fl-day { height: 30px; width: 34px; padding: 0; font-size: 11px; font-family: var(--mono);
+  border: 1px solid rgba(255, 255, 255, 0.18); background: none; color: var(--m); }
+#flows .fl-day[aria-pressed="true"] { background: var(--p-dim); color: var(--p); border-color: var(--p); }
+#flows .fl-cron-summary { display: flex; gap: 16px; align-items: flex-start; padding: 10px 12px;
+  border: 1px solid rgba(255, 255, 255, 0.1); background: rgba(0, 0, 0, 0.25); }
+#flows .fl-cron-summary > div:first-child { flex: 1; }
+#flows .fl-cron-summary > div:last-child { display: flex; gap: 12px; align-items: center; }
+#flows .fl-cron-summary p { margin: 0; }
+#flows .fl-cron-says { font-size: 14px; }
+#flows .fl-cron-line { font-size: 11px; margin-top: 4px; }
+#flows .fl-cron-line[data-tone="bad"] { color: var(--r); }
+#flows .fl-cron-expr { font-size: 12px; }
+#flows .fl-cron-astext, #flows .fl-cron-planner { height: auto; padding: 0; border: 0;
+  font-size: 11px; color: var(--p); }
+#flows .fl-cron-text input { width: 100%; height: 34px; font-family: var(--mono); }
+#flows .fl-week-head { display: flex; justify-content: space-between; align-items: center; }
+#flows .fl-week-head .muted { font-family: var(--head); font-size: 11px; letter-spacing: 0.14em;
+  text-transform: uppercase; }
+#flows .fl-week { display: grid; grid-template-columns: 56px 1fr; gap: 4px 10px; align-items: center;
+  font-size: 12px; }
+#flows .fl-week-lane { position: relative; height: 14px; border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(255, 255, 255, 0.02); }
+#flows .fl-week-lane i { position: absolute; top: 2px; bottom: 2px; width: 1px;
+  background: rgba(242, 239, 232, 0.6); }
 #flows .fl-trigger input:not([type="checkbox"]) { font-family: var(--mono); }

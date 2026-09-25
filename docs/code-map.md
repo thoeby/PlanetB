@@ -155,7 +155,7 @@ CSS: `hud.css` `top.css` `bar.css` `frame.css` `panel.css` `panels.css` `work.cs
 | `flows.js` · `flowfiles.js` · `flowcheck.js` | save/load a land's flows (db/0155), bundled palette; import/export .elx; validate |
 | `flowblocks.js` · `flowworld.js` · `pickworld.js` | blocks of the chosen server (FL.2); World block inspector (FND.14); pick-in-world |
 | `processservers.js` · `serverpicker.js` · `servertab.js` | a player's process servers (FL.1, db/0196); picker; "On ‹server›" tab |
-| `serverdo.js` · `serverprocs.js` · `serverservices.js` · `serverjobs.js` · `serverreports.js` · `jobdialog.js` | processes, services, jobs, reports on a server (FL.3–5) |
+| `serverdo.js` · `serverprocs.js` · `serverservices.js` · `serverjobs.js` · `serverreports.js` · `jobdialog.js` · `scheduleui.js` | processes, services, jobs, reports on a server (FL.3–5); a cron trigger edited as a schedule |
 | `flowrun.js` · `runlog.js` | run a world flow on a server (FL.7, db/0198); run log table |
 | `planner.js` · `plannerui.js` · `plannerchart.js` · `plannerpop.js` | the Planner: server jobs on a timeline (FL.8) |
 
@@ -217,7 +217,7 @@ against the copies.
 | `palette/` | the bundled block set: `plugins/<id>/plugin.xml` (+ composite `assets/`), `manifest.json` written by `tools/palette.sh` (also lists `../world/plugin.xml`) |
 | `world/` | the `world` plugin: `plugin.xml` + `assets/nodes/` (port read/write, mover set, clock now, events since), FND.14 |
 | `samples/` | two exported `.elx` files for the round-trip test; nothing in the world uses them |
-| `server/` | talking to a process server (F10): `client.js` (requests, CORS diagnosis), `envelope.js`, `process.js`, `records.js` (services/jobs/reports), `params.js`, `inputs.js`, `cron.js` |
+| `server/` | talking to a process server (F10): `client.js` (requests, CORS diagnosis), `envelope.js`, `process.js`, `records.js` (services/jobs/reports), `params.js`, `inputs.js`, `cron.js`, `schedule.js` (presets and their sentence) |
 
 How it fits: a flow is an ELX file stored as an artifact plus a `flow` row
 (`save_flow`, CAS on `rev`). The page draws it with litegraph over the bundled
