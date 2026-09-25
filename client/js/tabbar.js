@@ -79,6 +79,8 @@ export const TABS = [
             { name: 'Publishing', label: 'Publish' },
             // LV.10: somebody's flow, run on a process server of yours.
             { name: 'Flows to run', label: 'Flows' },
+            // LV.13: a land's files, kept by this tab for a term.
+            { name: 'Hosting', label: 'Hosting' },
             { name: 'Machine', label: 'Settings' }] },
     // A link that puts somebody where you stand is something you hand out, so
     // it belongs to you rather than to a button of its own (v6).
@@ -128,6 +130,7 @@ export const PART_LEDE = {
     Training: 'Fit the splats for a tile. Long jobs; one preview each.',
     Publishing: 'The cheap end: pack a trained tile, or merge the one above it.',
     'Flows to run': 'Somebody’s flow, run on a process server of yours for a term.',
+    Hosting: 'A land’s files, kept by this tab for a term and handed to whoever asks.',
     Machine: 'What this machine gives the world, and how much of it.',
     Land: 'Who is waiting for land, the ground it would be drawn on, and every'
         + ' piece of it there is.',
