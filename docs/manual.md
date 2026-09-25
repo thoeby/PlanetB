@@ -1,30 +1,48 @@
 # splatworld — install, deploy and use
 
-What exists: every task in `TASKS.md`, WP0 through WP5 (`PROGRESS.md`). A world
-of real terrain, imagery and OpenStreetMap features is compiled into
-Gaussian-splat tiles by browser tabs and streamed back into a first-person
-viewer; z16/z18 tiles are trained on WebGPU and verified by three other tabs;
-players place catalog models, own areas, grant rights, propose and approve
-edits, and pay bounties. Four things are written but unrun for lack of hardware
-or data: WP3.1's training acceptance on a real GPU, WP5.4 on a headset, the
-full Switzerland raster seed, and WP0.11's QGIS round trip (`HANDOFF.md` §6).
+What exists: the stories of `docs/SPEC.md` §3, each proven through the page by
+`make player-run` (`PLAYER-RUN.md`, `TASKS-foundation.md`, `TASKS-flows.md`,
+state in `PROGRESS.md`). A world on the operator's own elevation is compiled
+into Gaussian-splat tiles by browser tabs and streamed back into a
+first-person viewer: every tile with nothing finer under it is trained on
+WebGPU (brush, `client/vendor/brush`), every coarser one merged from its
+children. Players own land, shape its ground, draw on it in the page or in
+QGIS, place catalog products, grant rights, submit and approve what they
+built, pay bounties, and wire flows that process servers of their own run.
+What is written but unrun is in §8.
 
 ## 1. What runs where
 
-| process | role | port (compose) |
+| process | role | port |
 |---|---|---|
-| PostgreSQL 16 + PostGIS | the world, jobs, atoms, ledger, auth | 5432 (loopback) |
-| PostgREST 12 | the only API (`http://host:3000`) | 3000 (loopback) |
-| nginx | immutable file store `/assets /tiles /jobs /geo`, static client under `/app/` | 8081 |
-| GeoServer 2.26 | publishes the operator's elevation over WCS, nothing else | 8083 (loopback) |
+| PostgreSQL 16 + PostGIS | the world, jobs, atoms, ledger, auth; QGIS connects to it as the player | 5432 (loopback in compose) |
+| PostgREST 12 | the only API | 3000 (loopback in compose) |
+| nginx, or the `splatworld` server | immutable file store `/assets /tiles /jobs /geo`, static client under `/app/` | 8081 |
+| GeoServer 2.26 | publishes the operator's elevation over WCS, nothing else | 8083 (loopback in compose) |
 
-The server executes no compute. Every atom (assemble, sample, merge, sog,
-train, verify) runs in a player's browser tab (Invariant 9). There is no cron
-and no worker process; `tools/` are run by a person on a dev or ops box.
+The `splatworld` server (`server/`, `docs/server.md`) replaces nginx on a
+machine that has none built with the DAV module, and supervises PostgREST
+itself. It also cuts a `/geo` ground tile from the GeoServer the first time a
+browser asks for it.
+
+The server executes no compute about the world. Every atom (dataset, train,
+merge, sog) runs in a player's browser tab (Invariant 9). There is no cron and
+no worker process; `tools/` are run by a person on a dev or ops box.
 
 ## 2. Install
 
-### 2a. With Docker (normal deployment)
+### 2a. One machine, no Docker
+
+PostgreSQL with PostGIS and a PostgREST binary, then:
+
+```sh
+python -m pip install -e ./server
+splatworld run               # creates the database on first run, opens the browser
+```
+
+`docs/server.md` has the details for Windows, Debian/Ubuntu and macOS.
+
+### 2b. With Docker
 
 ```sh
 git clone <repo> splatworld && cd splatworld
@@ -39,18 +57,14 @@ run it once at install and never on a live world.
 
 Then open `http://localhost:8081/app/play.html`.
 
-`infra/compose.yml` passes `docker compose config` but has not been started on
-a box with a Docker daemon; every gate so far ran against the four processes
-installed directly (2b). If `make up` needs a fix, commit it.
-
-### 2b. Without Docker (dev box, CI)
+### 2c. Dev box, CI
 
 Ubuntu 24.04:
 
 ```sh
 apt-get install -y --no-install-recommends \
     postgresql-16-postgis-3 postgresql-16-pgtap \
-    libtap-parser-sourcehandler-pgtap-perl nginx-extras webp gdal-bin osm2pgsql rsync
+    libtap-parser-sourcehandler-pgtap-perl nginx-extras webp gdal-bin rsync
 pg_ctlcluster 16 main start
 su postgres -c "psql -c \"ALTER USER postgres PASSWORD 'postgres'\""
 curl -sSL https://github.com/PostgREST/postgrest/releases/download/v12.2.3/postgrest-v12.2.3-linux-static-x64.tar.xz \
@@ -58,7 +72,7 @@ curl -sSL https://github.com/PostgREST/postgrest/releases/download/v12.2.3/postg
 pip3 install 'sqlfluff==3.4.2'
 cp .env.example .env
 npm install                  # eslint + playwright, tooling only
-make vendor                  # PlayCanvas, Draco and OpenLayers copies for the browser tests
+make vendor                  # PlayCanvas, Draco, OpenLayers, fonts for the browser tests
 set -a; . ./.env; set +a     # tools/ read PG*, JWT_SECRET, FILES_ROOT from the env
 make db-reset
 ```
@@ -66,13 +80,7 @@ make db-reset
 `nginx-extras` is the build with the DAV module; `nginx-light` cannot PUT.
 `tools/api-test.sh`, `tools/files-test.sh` and `tools/test-tiles.sh` start
 their own PostgREST and nginx on `$API_URL` / `$FILES_URL` when nothing is
-listening. To run the app itself without compose, start them by hand:
-
-```sh
-postgrest infra/postgrest.conf                        # needs PGRST_DB_URI, JWT_SECRET in env
-nginx -c "$PWD/infra/nginx.conf"                      # after editing root/upstream/listen
-python3 -m http.server 8000 --directory client        # or any static server
-```
+listening. To run the app itself, `splatworld run` (2a) is the short way.
 
 ## 3. Configure
 
@@ -81,58 +89,59 @@ All configuration is `.env` (see `.env.example`):
 | variable | meaning |
 |---|---|
 | `JWT_SECRET` | HS256 secret shared by `login()` in the database and PostgREST. Change it. |
-| `POSTGRES_PASSWORD`, `AUTHENTICATOR_PASSWORD`, `GEOSERVER_DB_PASSWORD`, `GEOSERVER_ADMIN_PASSWORD` | passwords; change all four |
+| `POSTGRES_PASSWORD`, `AUTHENTICATOR_PASSWORD`, `GEOSERVER_ADMIN_PASSWORD` | passwords; change all three |
 | `FILES_ROOT` | directory of the immutable file store (default `./infra/files`) |
-| `PG*` | where `make` and `tools/` find the database |
+| `PG*` | where `make`, `splatworld` and `tools/` find the database |
+| `GEOSERVER_URL`, `GEOSERVER_ADMIN_USER` | the operator's GeoServer; Settings → Setup writes them |
+| `ELX_URL` | the process server `make flow-test` validates against; empty skips |
 
 The client finds its endpoints in two `<meta>` tags at the top of each page
-(`splatworld:api`, `splatworld:files`). Edit them for a deployment that is not
-on `localhost`. nginx answers CORS for the store, so the client may be served
-from another origin.
+(`splatworld:api`, `splatworld:files`). The `splatworld` server rewrites them
+to where it is actually listening; behind nginx, edit them for a deployment
+that is not on `localhost`. The file store answers CORS, so the client may be
+served from another origin.
 
 Compose binds Postgres, PostgREST and GeoServer to `127.0.0.1`; only the file
 store (8081, which also serves the client) listens on all interfaces. For a
 public deployment put a TLS proxy in front of 8081 and 3000, and edit the
-`<meta>` endpoints accordingly. The `geoserver` database role has `BYPASSRLS`.
-It is the operator's door; never expose port 8083 or that role to the internet.
+`<meta>` endpoints accordingly. QGIS connects to Postgres directly, as the
+player, with a login the database mints (`db/0065_playerroles.sql`): players
+on other machines need 5432 reachable, behind TLS. Never expose 8083.
 
-The user `seed@splatworld.local` that the seed tools create is an `admin`
-whose password hash is locked; it cannot log in. Create your own admin with
-`register()` and `UPDATE auth.user SET role = 'admin'` over psql.
+The first account registered is an `admin`; every later one a `player`.
 
-## 4. Seed a region
+## 4. The ground and the map
 
-Dev-box tooling, run once per region. Details and knobs: `infra/seed/README.md`
-(the pilot, one z10 tile around Aarau) and `docs/seed-ch.md` (Switzerland).
+Nothing is seeded. In the page, **Settings → Setup**: create the account,
+connect the operator's GeoServer, and pick the coverage the world stands on
+(`docs/geoserver.md`). The ground is then cut one tile at a time as browsers
+walk onto it. Land is assigned by an admin (Survey, F6) or asked for; what is
+on it is drawn in the page, in QGIS (`gis/README.md`), or imported by the
+operator with `splatworld import` (`docs/import.md`). Every write marks the
+covering tiles dirty; that is the work queue.
 
-```sh
-set -a; . ./.env; set +a
-bash tools/seed-dem.sh                                   # /geo/dem  (Copernicus GLO-30 or swissALTI3D)
-bash tools/seed-ortho.sh                                 # /geo/ortho (Sentinel-2 or swissimage)
-OSM_FILE=switzerland-latest.osm.pbf bash tools/seed-osm.sh   # features + one area per z12, detail 14
-```
-
-For the whole country, `tools/seed-ch.sh` drives the three over
-`infra/seed/ch.geojson` a z10 root at a time (`DRY_RUN=1` first; `SEED_GEO=1`
-for the rasters, about 2.4 GB). Seeding creates the seed user, the system
-areas and the `feature` rows; the trigger marks every covering tile z6…z14
-dirty. That is the work queue.
+The player-run's test data around Visp: `infra/seed/README.md`.
 
 ## 5. Use
 
-### Play (`/app/play.html`)
+Everything is one page, `/app/play.html`. `/app/setup.html`, `import.html`,
+`catalog.html` and `rules.html` redirect to it. **Tab** opens the views —
+Build (F1), Automate (F2), Work (F3), Trade & Sell (F4), Play (F5), Survey
+(F6) — and the surfaces are on the bar along the bottom (Place, Catalog,
+Land, Publish, Terrain on keys 1–5) and the strip along the top (Profile,
+Wallet, Settings) (`client/js/apps.js`, `client/js/tabbar.js`).
 
-- **Sign in / create account** in the top-left panel. Reading the world needs
-  no account; working, building and editing do.
+### Moving
+
 - **Move**: WASD, Space up, Shift down, mouse look after clicking the canvas
   (pointer lock), `F` toggles walk/fly. The ground comes from the finest
   loaded tile's heightmap; colliders block you.
-- **Status line**: published tiles, loaded/loading, origin rebases, hot swaps.
-  The viewer polls the loaded tiles every 30 s and swaps in new versions.
-- The streamer only refines into a tile whose children are all published.
+- The viewer polls the loaded tiles every 30 s and swaps in new versions. A
+  tile refines into whichever of its children are published
+  (`client/js/traverse.js`).
 - **Spot check**: when your tab loads a tile someone else published inside an
-  area you may write, and you have not checked it for a week, it renders two
-  poses and reports the result. A failure marks the tile `suspect`.
+  area you may write, and you have not checked it for a week, it checks it
+  again (`spot_due`, `client/js/spot.js`). A failure marks the tile `suspect`.
 
 ### The vocabulary
 
@@ -141,7 +150,7 @@ feature is an OSM key — `highway`, `railway`, `aerialway`, `barrier`,
 `waterway`, `building`, `landuse`, `natural`, `natural_point` — and which one it
 is is a property of the same name: a road is `highway=secondary`, a wood is
 `landuse=forest` or `natural=wood`, a pond is `natural=water`, a tree is
-`natural_point=tree`. QGIS has one layer per key, and Admin → Vocabulary adds
+`natural_point=tree`. QGIS has one layer per key, and Settings → Vocabulary adds
 values and properties to them without a migration.
 
 Nothing that was drawn before changed: db/0157 renamed the kinds (the rows
@@ -180,64 +189,78 @@ the new shape and draws the same geometry, to the byte
   per net, every wired pair allowed, names unique. Each problem is a line under
   the inspector, and pressing it goes to the block. `docs/flow.md` has the
   detail, including what is still unproven.
-- **Setup → step 4** registers the bundled block set with the world. Run it once
-  per install, and again after `bash tools/palette.sh` has changed the set. The
-  same step holds the address of the process server flows are checked against;
-  leaving it empty is a choice, and the page still checks what it can.
+- **Settings → Setup, step 4** registers the bundled block set with the
+  world. Run it once per install, and again after `bash tools/palette.sh` has
+  changed the set. The same step holds the address of the process server flows
+  are checked against; leaving it empty is a choice, and the page still checks
+  what it can.
+- A player keeps **process servers** of their own (Server → Add a server…);
+  **On <server>** lists its processes, services, jobs and reports, and **Run
+  on…** sends a flow and gives the job a key that may set ports on that land
+  only (`docs/flow.md`).
 
-### Work panel (same page)
+### Work (F3)
 
-- Shows the GPU this tab has (WebGPU or WebGL2). Training needs WebGPU.
-- **My dirty tiles**: tiles you own an area in that need compiling; `render`
-  calls `ensure_job` and starts the loop.
-- **work in the background**: claim any ready atom, run it in a Web Worker,
-  upload to the store, submit, publish. Leave the tab open; it heartbeats
-  every 60 s and a claim expires after 5 minutes of silence.
-- **help render the world**: restricts claims to the cheap baseline ops
-  (`sample`, `merge`, `sog`) nearest to where you stand, paced to keep the
-  frame rate. `GET /progress` (public) is the dashboard; the panel shows it.
+- The pool, by the kind of work: **All**, **Render jobs**, **Training**,
+  **Publish**. A card takes that piece into this tab; a job's detail holds its
+  bounty (`set_bounty`). Training needs WebGPU.
+- **Settings** shows what this machine renders with, and two switches:
+  **Work in the background** — claim, run in a Web Worker, upload, submit,
+  publish; the tab heartbeats every 30 s and a claim expires after 5 minutes
+  of silence (30 for training, `claim_patience`, db/0173); and **Help render
+  the world** — only the deterministic pieces nobody pays for (`dataset`,
+  `merge`, `sog`), nearest first, paced to keep the frame rate. `GET
+  /progress` (public) is the dashboard.
 
-To compile a region: sign in as the owner of its areas (the seed user cannot
-log in; use your own account after inserting an `area`, or an admin), press
-`render` on a z14 tile, then on the ancestors once their children are
-published. Ancestors are marked dirty automatically when a child publishes.
-Each z14 tile is ~20 s of work in a tab. A z16/z18 tile runs assemble, frame,
-train (WebGPU, minutes), sog, then waits for three other tabs to verify it.
+Ancestors are marked dirty automatically when a child publishes, and a tile
+with finer children is merged from them.
 
-### Build mode, areas, wallet (same page)
+### Build (Place, Land, Publish, Terrain), and the wallet
 
-- **build mode** detaches the player; click the ground to place the selected
-  catalog asset. Keys: `G`/`R`/`T` move/turn/size, `X`/`Y`/`Z` axis, `]`/`[`
-  or arrows step (snapped by default), `Delete` removes, `Ctrl+Z` undoes. A
-  placement is an `instance` row; an `edit` grantee's placement becomes a
-  proposal instead.
-- **areas**: your areas, their grants (`direct_edit`, `edit`, `approve`, by
-  email), `approvals needed`, and pending proposals with a diff preview and
-  approve/merge.
-- **wallet**: balance, ledger, and `set bounty` on the job of the tile you are
-  looking at. Escrow is released pro rata by GPU seconds when the tile
-  publishes; a cancelled job refunds it.
+- **Place** detaches the player; click the ground to place the selected
+  catalog product. Keys: `G`/`R`/`T` move/turn/size, `X`/`Y`/`Z` axis,
+  `]`/`[` or arrows step, `Delete` removes, `Ctrl+Z` undoes — every one of
+  them a button as well. A placement is an `instance` row; an `edit`
+  grantee's placement becomes a proposal instead.
+- **Land**: your land, who may build on it (`direct_edit`, `edit`, `approve`,
+  by email), how many approvals publishing needs, **Ask to build here** on
+  somebody else's, and **Shape this land in QGIS**.
+- **Publish**: **Submit** sends what you built to be rendered; **Approve** is
+  what somebody built on your land, waiting for you.
+- **Terrain → Shape**: pull the ground up, push it down, lay a road bed
+  (`.r32`, `docs/rendering.md` §6).
+- **Wallet**: balance and ledger. Escrow is released pro rata by GPU seconds
+  when the tile publishes; a cancelled job refunds it.
 
-### Catalog (`/app/catalog.html`)
+### Catalog
 
 Search, inspect and upload GLB models. An upload is canonicalised
 (`canon-v1`: extensions stripped, Draco decoded, textures capped at 2048 px,
 re-centred, deterministic bytes) and gets a SAN, the same one however it was
-exported. Near-duplicates are flagged before upload. Licences: `cc0`, `free`,
-`paid`, `limited` (editions); `buy_asset` is one transaction with the edition
-count as its lock.
+exported. Near-duplicates are flagged before upload (`similar_assets`).
+Licences: `cc0`, `free`, `paid`, `limited` (editions); `buy_asset` is one
+transaction with the edition count as its lock.
+
+### Settings (admin)
+
+**Setup** (account, GeoServer, ground, the bundled blocks and the checking
+process server), **Vocabulary** (kinds and their properties), **Symbols**
+(what a drawn thing becomes; **Apply to world** is what moves the world,
+`docs/import.md`), **Ground cover** (class rasters mapped onto the
+vocabulary).
 
 ### Editor (`/app/edit.html`)
 
 The web GIS editor: OpenLayers over the world's features, drawing and editing
-roads, forests, water, footprints and terrain modifiers with property forms.
+highways, land use, nature, buildings and terrain edits with property forms.
 Writes go through PostgREST and row-level security; a writer's drawing is an
 insert, an `edit` grantee's is a proposal. Drawing dirties the covering tiles.
 
 ### XR (`/app/play.html?xr=1`)
 
-Lower budgets (8 M splats, 24 tiles), an **enter VR** button, teleport
-locomotion by trigger. Not yet run on a headset; `docs/xr.md` is the checklist.
+Lower budgets (8 M splats, 24 tiles), an **enter VR** button in Settings →
+Setup, teleport locomotion by trigger. Not yet run on a headset; `docs/xr.md`
+is the checklist.
 
 ### API (PostgREST)
 
@@ -259,12 +282,14 @@ RPCs: `register login ensure_job claim_atom heartbeat submit_atom
 submit_verification publish_tile set_bounty pay register_artifact
 register_asset similar_assets buy_asset transfer_asset_right propose approve
 merge_proposal set_grant revoke_grant set_required_approvals area_grants
-my_proposals my_dirty_tiles recheck_atom spot_due can_write`. Row-level
-security decides every write; the client has no authority of its own.
+my_proposals my_dirty_tiles recheck_atom spot_due can_write save_flow
+delete_flow save_height_edit qgis_credentials deploy_flow`, among others.
+Row-level security decides every write; the client has no authority of its
+own.
 
 ### Drawing (QGIS)
 
-Your land → **Shape this land in QGIS** hands you a project with your own
+Land → **Shape this land in QGIS** hands you a project with your own
 database login in it; QGIS edits `gis.f_*` and `gis.instance` directly, under
 the same row-level security as the browser. `gis/README.md` has the details and
 the committed project's pg_service entry. The `Tiles` layer shows compile state.
@@ -272,13 +297,12 @@ the committed project's pg_service entry. The `Tiles` layer shows compile state.
 ## 6. Verify an installation
 
 ```sh
-make gate         # db-test, api-test, client-test, lint — about 20 minutes
+make player-run   # the stories, through the page, from an empty database
+make gate         # db-test, api-test, client-test, lint
 ```
 
-`docs/gates.md` lists what each gate covers and when browser tests skip. The
-browser tests that compile or train real tiles need the pilot seeded (section
-4) and skip otherwise. `make db-test` resets the database: do not run it
-against a live world.
+`docs/gates.md` lists what each gate covers and when browser tests skip.
+`make db-test` resets the database: do not run it against a live world.
 
 ## 7. Operations
 
@@ -286,31 +310,28 @@ against a live world.
 
 - **Backup**: `bash tools/backup.sh /srv/backups` — `pg_dump` first, then
   rsync of `/assets` and `/tiles` hard-linked against the previous run. `/geo`
-  is re-cut by the seeds and `/jobs` is scratch; neither is backed up.
+  is cut again on demand and `/jobs` is scratch; neither is backed up.
 - **Restore**: `bash tools/restore.sh <backup-dir>` — files first, database
   second, so the database never names bytes the store lacks. `--check` reports
   drift without restoring. The restore drill runs on every `make api-test`.
 - **Garbage collection**: `bash tools/gc-jobs.sh` (dry run) / `--apply` deletes
   `/jobs` output of jobs done for more than 7 days.
-- **Rate limits**: nginx limits PUT to 20/s per address (burst 100, 429 over).
-- The file store is write-once; nginx returns 409 on a second PUT. `make
+- **Rate limits**: nginx limits PUT to 20/s per address (burst 100, 429 over);
+  the `splatworld` server does not.
+- The file store is write-once; a second PUT to a path is 409. `make
   db-reset` empties the tables but not the store — the tools tolerate the 409s.
 - Progress: `curl localhost:3000/progress`, or in SQL
   `SELECT state, count(*) FROM atom GROUP BY 1`.
 
 ## 8. Not done, or unrun
 
-- WP3.1's acceptance (a pilot z16 tile trained in < 8 min, PSNR ≥ 24) needs a
-  real GPU; the gate trains a small tile over SwiftShader and asserts only that
-  training helped.
+- Training at the operator's own sizes needs a real GPU; the gate's training
+  specs skip on a software adapter (`client/test/e2e/worker.js` `NO_GPU`).
 - WP5.4 needs a headset (`docs/xr.md`).
-- Switzerland's rasters and OSM extract need a networked box and ~35 h
-  (`docs/seed-ch.md`); the areas and tile rows are seeded by `tools/seed-ch.sh`.
-- WP0.11's QGIS round trip and `gis/splatworld.qgz` need GeoServer and QGIS.
-- A `suspect` tile cannot be recompiled at the same version: an atom belongs
-  to one job (`PROGRESS.md` deviation 55).
-- `assemble` fetches `/geo` tiles by path, not by hash (Invariant 2 is not
-  pinned for terrain and imagery); a `/geo` path is therefore write-once.
+- No real process server has been reached from here; every flow story passed
+  against `tools/elx-fixture.py` only (`docs/flow.md`).
+- The player-run's OSM and swissTLM3D data are stand-ins where Overpass and
+  swisstopo are unreachable (`infra/seed/README.md`).
 
 ## Shaping the ground in QGIS
 
@@ -323,8 +344,8 @@ other — open it, edit it with whatever raster-editing plugin you use.
 Saving the project does not save a raster, so the shaping is sent back by a
 script instead:
 
-1. Download it from the world at `/qgis/save-ground.py` (the Land panel says
-   where).
+1. Download it from the world at `/qgis/save-ground.py` (served by the
+   `splatworld` server).
 2. In the QGIS Python console:
 
    ```python

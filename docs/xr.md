@@ -1,18 +1,19 @@
 # The world in a headset
 
-`play.html?xr=1` lowers the streaming budget and offers an **enter VR** button.
-Everything else about the page is the same page.
+`play.html?xr=1` lowers the streaming budget and offers an **enter VR** button
+in Settings → Setup. Everything else about the page is the same page.
 
 ## What the flag changes
 
-| | desktop | `?xr=1` |
-|---|---|---|
-| splats held | 25 M | 8 M |
-| tiles held | 40 | 24 |
-| tiles in flight | 4 | 2 |
+| | desktop, WebGPU | desktop, WebGL2 | `?xr=1` |
+|---|---|---|---|
+| splat budget | 12 M | 4 M | 8 M |
+| tiles held | 64 | 48 | 24 |
+| tiles in flight | 4 | 2 | 2 |
 
-`client/js/xr.js` owns those numbers and `client/js/tiles.js` enforces them: the
-streamer already drops the tiles that do not fit, so nothing else had to know.
+`client/js/xr.js` owns the XR numbers, `client/js/traverse.js` the desktop
+ones, and the streamer enforces them: a tile that does not fit the budget is
+drawn at a coarser level, so nothing else had to know.
 The budget is lowered by the flag rather than by the session, because the tiles
 have to be loaded before there is anything to enter.
 
@@ -53,9 +54,9 @@ The manual check, on a device:
      why);
    - both eyes draw the same tiles — a splat sorted per eye is the first thing
      that goes wrong;
-   - the frame rate with `.work-world` on and off. Background rendering paces
-     itself off the frame time, and a headset's frame time is the one that
-     matters;
+   - the frame rate with Work → Settings → **Help render the world** on and
+     off. Background rendering paces itself off the frame time, and a
+     headset's frame time is the one that matters;
    - a teleport lands where the ray pointed, and a teleport at the sky does
      nothing;
    - leaving the session gives the camera back to the player without a jump.

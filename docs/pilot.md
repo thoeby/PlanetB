@@ -7,41 +7,37 @@ east of Aarau — seen from 900 m up in `play.html`. Everything in the picture w
 produced by one browser tab and published through PostgREST; the server computed
 none of it (Invariant 9).
 
-What is on screen, and where it came from:
-
-- the **ground**, from the seeded Copernicus GLO-30 DEM, with the seeded
-  Sentinel-2 imagery draped over it and blended by slope (`assemble-v1`);
-- the **two buildings** — brown roofs, one gabled and one flat — extruded from
-  the OSM footprints in `feature`, with their heights from `props`;
-- the **pond**, laid flat at the lowest ground under its ring;
-- the **forest**, scattered with seeded Poisson-disk trees, and the **road**,
-  cut into the terrain and surfaced;
-- 800 000 gaussians per tile, sampled from those surfaces at the tile's whole
-  budget by `sample-v1`, encoded by `sog-v1` and streamed back by the viewer.
+**The picture is historical.** It was drawn by a pipeline that is gone: the
+ground came from a Copernicus DEM and Sentinel-2 imagery pre-cut into the store
+by seeding tools that no longer exist (`docs/seed-ch.md`), the buildings, pond,
+forest and road from an OSM fixture, and the z14 gaussians were sampled from
+those surfaces by `sample-v1`, which was removed — every tile is trained now
+(`ARCHITECTURE.md` §5). The same spec today compiles something different, and
+redraws the picture when it is run.
 
 ## Reproducing it
 
 ```sh
 set -a; . ./.env; set +a
-bash tools/seed-dem.sh && bash tools/seed-ortho.sh
-OSM_FILE=infra/seed/pilot-fixture.osm bash tools/seed-osm.sh
-make client-test                       # publishes the WP1 test tiles too
 PILOT_BLOCK=1 npx playwright test client/test/e2e/pilot-block.spec.js
 ```
 
-The spec opens `play.html`, turns the work panel on, calls `ensure_job` for
-every z14 tile the world has inside one z12 block and then for the four rungs
-above it, waits for each to be published, and finally flies the viewer over the
-result and writes this picture. Each z14 tile is about twenty seconds of work:
-assemble, sample, encode, upload, publish.
+The spec writes its own world first: `seedGround()` puts a synthetic
+`/geo/dem` tile under the block and `seedWorld()` draws an area with a forest
+and a gabled house in it (`client/test/e2e/serve.js`). Then it opens
+`play.html`, turns the work panel on, calls `ensure_job` for every z14 tile the
+world has inside one z12 block and then for the four rungs above it, waits for
+each to be published, and finally flies the viewer over the result and writes
+`docs/pilot.png`.
 
 `client/test/e2e/pilot.spec.js` is the same thing in the gate, cut down to one
-z14 tile and its ancestors so `make gate` stays a few minutes long.
+z14 tile and its ancestors. It trains, so it skips on a software adapter.
 
 ## What the viewer will and will not refine into
 
-The streamer stops at the coarsest tile whose children are not all published: a
-child with no `tile` row is ground nobody has drawn on and is not a hole, but a
-row that exists and is unpublished is one, and refining into it would tear the
-ground open. Compiling a whole z12 block is therefore what unlocks z14 in the
-viewer — which is what the picture above shows.
+A tile refines into whichever of its children are published, and is not drawn
+under them: a tile with children is only ever merged from them, so it holds
+nothing they do not hold better (`client/js/traverse.js`). It stays under them
+only for a published child whose load failed, until the retry. A dirty parent
+is older than the children it was merged from, so its children are drawn
+instead at any distance until the merge is redone.

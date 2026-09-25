@@ -1,107 +1,37 @@
-# Seeding the pilot region
+# The player-run's seed data
 
-Dev-box tooling. These scripts pre-cut real terrain, imagery and map data into
-the immutable file store and the world tables. The server still executes no
-compute (Invariant 9) — nothing here runs on it.
+Dev-box tooling. These scripts fetch the files a player or an operator is
+*given* in the player-run (`PLAYER-RUN.md`, TASKS-foundation.md FND.0): one
+4 × 4 km cutout around Visp, in Valais — 7.8545–7.9085 °E,
+46.2759–46.3119 °N, 2 km each way from the church tower. Nothing here writes
+to the database or the file store, and the server still executes no compute
+(Invariant 9).
 
-The pilot is one z10 tile, **10/534/358**: 7.734–8.086 °E, 47.279–47.517 °N,
-about 27 × 18 km of the Swiss plateau and the Jura foothills around Aarau.
-DEM and ortho are cut for it at z10, z12 and z14; the z16 tile at its centre,
-**16/34208/22944**, is cut deeper so WP3 has a z16/z18 pocket without seeding
-4096 tiles for one. Every knob is an environment variable — `PILOT_X`,
-`PILOT_MAX_Z`, `DETAIL_Z`, … — and they live in `tools/geo-common.sh`.
-
-```sh
-set -a; . ./.env; set +a
-bash tools/seed-dem.sh                                  # /geo/dem/{z}/{x}/{y}.r16
-bash tools/seed-ortho.sh                                # /geo/ortho/{z}/{x}/{y}.webp
-OSM_FILE=switzerland-latest.osm.pbf bash tools/seed-osm.sh   # area + feature rows
-```
-
-Downloads land in `infra/seed/cache/` (gitignored) and are reused. `FORCE=1`
-re-cuts tiles that are already in the store and fails if the bytes differ;
-without it an existing tile is left alone. Either way an artifact is written
-once and never replaced (Invariant 1). The seed user cannot log in: its
-password hash is locked after it is created.
-
-## What a seed produces
-
-| | tiles | bytes | source |
-|---|---|---|---|
-| `dem` | 290 | 37 MB | Copernicus GLO-30, AWS open data |
-| `ortho` | 290 | 7.4 MB | Sentinel-2 L2A true colour, 10 m, AWS open data |
-
-290 = 1 z10 + 16 z12 + 256 z14 over the pilot, then the detail z16 tile and its
-16 z18 children. Cutting them takes about 30 s for the DEM and 80 s for the
-ortho once the sources are cached (85 MB of Copernicus, 330 MB of
-Sentinel-2). Each tile is registered as an `artifact` (kind `dem` / `ortho`) under the
-seed user `seed@splatworld.local`. `assemble` still fetches them by path
-(`/geo/{kind}/{z}/{x}/{y}`), not by hash: pinning terrain and imagery into the
-atom's inputs (Invariant 2) is open work. Until then a `/geo` path is written
-once and a re-cut must reproduce its bytes exactly, which `FORCE=1` checks.
-
-`seed-osm.sh` adds **16 areas** — one per z12 child of the pilot, `detail = 14`,
-owned by the seed user — and one `feature` row per road, forest, water body and
-building footprint inside them. Inserting those features is what fills `tile`
-with dirty rows at z6, z8, z10, z12 and z14: the world the rest of WP2 compiles.
-
-## Formats
-
-**`dem-v1`** — 256 × 256 uint16, row-major, north-west first, EPSG:3857, little
-endian. `elevation_m = value * 0.2 - 500`: two decimetres of resolution over
-−500…12607 m, finer than GLO-30's own accuracy and enough for any land on Earth.
-The file has no header; that line is the format.
-
-**`ortho-v1`** — 512 × 512 lossy WebP, EPSG:3857, north-west first. Over a z14
-tile that is 3.3 m/px.
-
-**Features** carry plan geometry at Z = 0; the ground comes from the DEM when
-`assemble` runs. `props` keeps what the world needs and drops the rest: a
-footprint's `height`, `levels`, `roof` and `use`; a road's `class`, `width`,
-`lanes`, `bridge`, `tunnel`; a forest's `leaf_type`; a water body's `water`. Every
-row keeps its `osm` id, which is what makes re-seeding idempotent.
-
-## Sources, and which ones this box could reach
-
-`tools/seed-dem.sh` and `tools/seed-ortho.sh` prefer a local high-resolution
-source and fall back to global open data:
-
-| | preferred | fallback used here |
-|---|---|---|
-| DEM | swissALTI3D 2 m (`SWISSALTI_VRT`, or any GDAL dataset in `DEM_SRC`) | Copernicus GLO-30 |
-| ortho | swissimage 2 m (`ORTHO_SRC`) | Sentinel-2 L2A, least cloudy scene of `$S2_YEAR/$S2_MONTH` |
-| OSM | a Geofabrik extract (`OSM_URL`, `OSM_FILE`) | — |
-
-**`data.geo.admin.ch` and `download.geofabrik.de` are not reachable from the
-sandbox this was written in; `*.amazonaws.com` is.** So the DEM and the imagery
-in the store are real data for the real pilot region, at 30 m and 10 m rather
-than 2 m, and the OSM path has only ever been run against
-`infra/seed/pilot-fixture.osm` — a hand-made extract, not a download, holding one
-of everything the style maps. Point `OSM_FILE` at a real extract on a networked
-box and the same script fills the same tables; `tools/seed-test.sh` is what
-proves the mapping.
-
-`DEM_STREAM=1` and `ORTHO_STREAM=1` read the remote sources over HTTP range
-requests instead of caching them whole — a few seconds for one tile, which is how
-the gate cuts one without downloading 90 MB.
-
-## Gate
-
-`make api-test` runs `tools/seed-test.sh`: it seeds the fixture, asserts the
-features, areas and dirty tiles it produces, seeds one z14 DEM and one z14 ortho
-tile straight off AWS, and checks both are registered and served with
-`Cache-Control: immutable`. The geo half skips rather than fails where the
-sources cannot be reached.
-
-## The player-run's fixtures (TASKS-foundation.md FND.0)
-
-Three files a player is *given*, cached once and gitignored like the DEM:
+The files are cached here once and gitignored; `client/test/run/world.js` runs
+the scripts itself when a file is missing, so `make player-run` needs no step
+of its own.
 
 | file | what | tool | source here |
 |---|---|---|---|
-| `osm-visp.gpkg` | OSM shapes of the DEM's 4 x 4 km, layers `lines`, `areas`, `points` | `tools/make-seed-osm.sh` | **stand-in** — Overpass is denied at this egress |
+| `dem-visp.tif` | Copernicus GLO-30 elevation of the cutout, about 1 MB | `tools/make-seed-dem.sh` | real, a range read of the one COG off AWS |
+| `osm-visp.gpkg` | OSM shapes of the cutout, layers `lines`, `areas`, `points` | `tools/make-seed-osm.sh` | **stand-in** — Overpass is denied at this egress |
 | `tlm-visp.gpkg` | swissTLM3D Bodenbedeckung, one polygon layer, class in `OBJEKTART` | `tools/make-seed-cover.sh` | **stand-in** — `data.geo.admin.ch` is denied |
 | `worldcover-visp.tif` | ESA WorldCover 10 m class raster | `tools/make-seed-cover.sh` | real, off AWS |
+
+```sh
+bash tools/make-seed-dem.sh      # infra/seed/dem-visp.tif
+bash tools/make-seed-osm.sh      # infra/seed/osm-visp.gpkg
+bash tools/make-seed-cover.sh    # infra/seed/tlm-visp.gpkg, worldcover-visp.tif
+```
+
+`FORCE=1` fetches a file again. All three need `gdalwarp`/`ogr2ogr`
+(Debian/Ubuntu `gdal-bin`).
+
+The DEM is the operator's elevation: the player-run publishes it through a
+GeoServer — the one at `RUN_GEOSERVER_URL`, the `infra/compose.yml` container,
+or, where no registry is reachable, `tools/geoserver-fixture.py` over the same
+file, which also publishes the two cover files. The world then cuts its
+`/geo/dem` tiles from that on demand (`docs/geoserver.md`).
 
 **Have real OSM of that ground already?** Point the script at it and it takes
 it as it is — no download, no stand-in:
@@ -121,3 +51,20 @@ the two it produced. **A story that passed against a stand-in has passed
 against the stand-in only** — the same rule HANDOFF.md states for the
 GeoServer fixture. On a machine that can reach Overpass and swisstopo, the
 same scripts write the real thing and nothing else changes.
+
+## Also here
+
+`ch.geojson` — the Swiss border as one polygon, from Natural Earth 1:50m
+(public domain). It was the outline of a country-wide seed whose tools are
+gone (`docs/seed-ch.md`); nothing reads it now.
+
+## Formats the world stores
+
+**`dem-v2`** — what the server cuts into `/geo/dem/{z}/{x}/{y}.r16`: 512 × 512
+float32 metres, little endian, row-major, north-west first, in the tile
+projection over exactly the tile's bounds (`server/splatworld/dem.py`).
+`dem-v1`, 256 × 256 uint16 with `elevation_m = value * 0.2 - 500`, still
+decodes (`client/lib/geo.js` tells them apart by length).
+
+**Features** carry plan geometry at Z = 0; the ground comes from the DEM when
+a tile is assembled.

@@ -31,7 +31,8 @@ only the layout: an imported flow exports byte for byte
 - **The process server**, when the operator has set one (Settings → Setup,
   `elx_url` in `app_setting`, db/0156). The page POSTs the ELX to
   `<elx_url>/api/v1/process/validate` and reads the `<elx_api_msg>` envelope
-  (`client/flow/validate.js`, copied from the reference editor's `rest.js`).
+  (`client/flow/server/process.js` and `envelope.js`, copied from the
+  reference editor, wireon-process-editor).
   It is the authority: it is what will run the flow. No server configured, or
   one that does not answer, is a sentence and nothing more.
 - **This page**, always: one source per net, every wired pair allowed by the
@@ -101,13 +102,13 @@ they are. If it does not, branch B's expansion is what to build, and the
 naming it needs is written down here first so that both halves agree:
 `World <Block> <n> · <inner name>`, with the group in `flow.layout`.
 
-The four addresses the blocks call exist in the database now
+The four addresses the blocks call exist in the database
 (`db/0168_theworldanswersflows.sql`) with the shape they will keep.
-`world_clock` answers; `port_write`, `mover_set` and `world_events` refuse
-every caller with **"flows do not run yet"** until F10 gives them a
-runner. That is deliberate: a block wired to an address that 404s is a
-block nobody can validate, and a block wired to one that says no is a
-block that is right and early.
+`world_clock` answers everybody; `port_write` answers a player (db/0169) and a
+flow's own key (db/0198); `mover_set` answers a player (db/0172) and not a
+flow; `world_events` still refuses every caller with **"flows do not run
+yet"**. A block wired to an address that says no is a block that is right and
+early; one wired to an address that 404s could not be validated at all.
 
 ### What the editor does with them
 
@@ -135,8 +136,8 @@ both of them by hand first.
 
 **Ports.** `port_write(p_instance, p_port, p_value)` is implemented for a
 player (db/0169): whoever may build on the land a thing stands on may set any
-port its product declares, and the value is held to that port's kind. It still
-refuses a flow, which has no login of its own until F10. `live_near` is how a
+port its product declares, and the value is held to that port's kind. A flow
+reaches it with the key `deploy_flow` issues (db/0198, below). `live_near` is how a
 page asks what has changed since the number it last saw; `live_of` is what one
 thing is set to.
 
@@ -146,7 +147,7 @@ timetable; `world_clock()` is what makes two players see the same bus at the
 same second, and it has answered since FND.14.
 
 `world_events` is still the one that refuses everybody. Nothing reads the
-events yet — flows do, from F10 — but they are written now.
+events yet, but they are written now.
 
 ## Process servers (F10)
 
@@ -156,7 +157,8 @@ the tab: its blocks join the palette, and its processes, services, jobs and
 reports are listed and edited under **On <server>**. A flow may belong to a
 placed thing (`flow.instance_id`, db/0197), and **Run on…** in that thing's
 panel sends the flow, makes a job on the server and gives it a key of its own
-(`deploy_flow`, db/0198) that can set ports on that land only. The client for
+(`deploy_flow`, db/0198) that can set ports on that land only, and read the
+clock; `revoke_flow_key` withdraws it. The client for
 all of it is `client/flow/server/`; the stand-in server the stories use is
 `tools/elx-fixture.py`.
 
@@ -186,9 +188,9 @@ Record the first real run here:
 not say which pages may read its answers, so the browser shows a splatworld
 page nothing: the server dot goes red and every list says the server "did not
 answer", or, where the page can tell, "It answered, but this page is not
-allowed to read it (CORS)". The reference editor has the same gap
-(wireon-process-editor `TASKS-V1.md` 14.3) and asks the server author for the
-headers. Until the server sends them, run the relay beside it:
+allowed to read it (CORS)". The reference editor, wireon-process-editor, has
+the same gap and asks the server author for the headers. Until the server
+sends them, run the relay beside it:
 
 ```
 python3 tools/elx-relay.py --to http://127.0.0.1:8080 --port 8090

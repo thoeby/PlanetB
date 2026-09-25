@@ -54,7 +54,10 @@ same file the Makefile reads), or from flags — later wins.
 | `PGHOST` `PGPORT` `PGUSER` `PGPASSWORD` `PGDATABASE` | the database. Set `PGPASSWORD` to what you chose during install |
 | `JWT_SECRET` | signs sign-ins. Anything ≥ 32 characters. **Change it** before anyone else can reach the machine |
 | `SPLATWORLD_PORT` | where the client and files are served, default 8081 (8080 is left to the GeoServer or dev server usually already there). If that port is taken — or reserved, which Windows does to whole ranges for Hyper-V and WSL — it moves up until one is free and says so. The pages are told which port they landed on, so nothing needs editing. |
+| `SPLATWORLD_HOST` | address to listen on, default 127.0.0.1 |
 | `SPLATWORLD_API_PORT` | PostgREST, default 3000 |
+| `GEOSERVER_URL` `GEOSERVER_ADMIN_USER` `GEOSERVER_ADMIN_PASSWORD` | the operator's GeoServer, which elevation is cut from. The setup tab writes these into `.env` |
+| `AUTHENTICATOR_PASSWORD` | the password of the role PostgREST connects as, default `authenticator` |
 | `FILES_ROOT` | where tiles are written, default `infra/files/` |
 | `POSTGREST` | path to the binary, if it is not on PATH |
 | `SPLATWORLD_REPO` | the checkout, if the package was installed from elsewhere |
@@ -67,17 +70,20 @@ same file the Makefile reads), or from flags — later wins.
 | `/app/edit.html` | the map editor |
 | `/app/view.html` | the read-only viewer |
 | `/app/setup.html` `/app/import.html` `/app/catalog.html` `/app/rules.html` | redirects to the world: each of these is a tab of it now |
-| `/assets /tiles /jobs /geo` | the file store: public to read, authorised to write |
+| `/assets /tiles /jobs /geo` | the file store: public to read, authorised to write. A ground tile under `/geo` that is not there yet is cut from the operator's GeoServer on the first request |
+| `/qgis/project.qgs` `/qgis/credentials` `/qgis/save-ground.py` | the QGIS project with the player's own login in it, that login, and the script that saves shaped ground back (`gis/README.md`) |
 
 ## Commands
 
 ```
-splatworld import <file>   import a region from the command line
+splatworld import <file>   import a region from the command line (docs/import.md)
 splatworld init            create the database, apply db/*.sql
 splatworld init --reset    drop it first — this deletes the whole world
-splatworld run             start everything
+splatworld run             start everything; applies new migrations first
 splatworld run --verbose   show request and PostgREST logs
 splatworld run --no-browser
+splatworld qgis            rewrite gis/splatworld.qgs from the world's vocabulary
+splatworld ground z/x/y    ask the GeoServer for one tile's elevation, say what came back
 splatworld doctor          what is ready, and what is not
 ```
 
@@ -101,5 +107,5 @@ files, asks `rpc/can_write` about every upload, and refuses to overwrite a path
 that already exists.
 
 It is held to that claim by `tools/files-test.sh` — the gate written for nginx
-— which it passes unmodified, 15 assertions, alongside `tools/api-test.sh`'s
-17. `infra/nginx.conf` remains the deployment other people use.
+— which it passes unmodified, alongside `tools/api-test.sh`. `infra/nginx.conf`
+remains the alternative for a machine that has such an nginx.

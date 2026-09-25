@@ -1,7 +1,8 @@
 # Runbook
 
-For the person on call. Four processes (postgres, postgrest, geoserver, nginx)
-and two halves of state: the **database**, which names things, and the
+For the person on call. Four processes (postgres, postgrest, geoserver, and
+nginx or the `splatworld` server in its place — `docs/server.md`) and two
+halves of state: the **database**, which names things, and the
 **file store**, which holds the bytes. Everything below is about keeping those
 two halves level.
 
@@ -15,14 +16,14 @@ set -a; . ./.env; set +a
 ## 0. Why the two halves are the whole story
 
 Every writer puts the bytes down **before** the row that names them:
-`client/js/work.js` PUTs and then calls `register_artifact`; `tools/seed-dem.sh`
-cuts a tile and then calls `geo_register`. Two kinds of drift follow, and they
-are not equally bad.
+`client/js/work.js` PUTs and then calls `register_artifact`; the server cuts a
+`/geo` tile to disk and then records it (`server/splatworld/ground.py`
+`remember`). Two kinds of drift follow, and they are not equally bad.
 
 | drift | how bad |
 |---|---|
 | bytes in the store, no `artifact` row | litter. Costs disk. A worker that computes the same bytes gets a 409 from nginx and carries on. |
-| an `artifact` row with no bytes | **unrecoverable.** `can_write` refuses a PUT of a sha256 that is already registered (`db/0008_files.sql`), so nobody can ever supply those bytes again. Whatever named them is dead. |
+| an `artifact` row with no bytes | **bad.** `can_write` refuses a PUT of a sha256 that is already registered (`db/0008_files.sql`), so the bytes cannot simply be uploaded again. An intermediate artifact recovers: a tab that holds a claim on an atom making or reading it calls `artifact_missing` (`db/0180`), which forgets the row and sends its producer back to be recomputed. One a published tile, a ground layer or a product thumbnail points at cannot be forgotten that way. |
 
 That asymmetry decides every order in this document:
 
@@ -72,15 +73,15 @@ anything that follows hard links.
 
 * `/jobs` — intermediate output of atoms, deleted by `tools/gc-jobs.sh` a week
   after a job finishes. Backing it up would be backing up scratch.
-* `/geo` — the pre-cut DEM and ortho tiles. They are addressed by tile
-  coordinates rather than by hash and are re-cut idempotently by
-  `tools/seed-dem.sh` and `tools/seed-ortho.sh`, which re-register what is
-  already on disk (PROGRESS deviation 71). Restoring them means re-running the
-  seeds, which takes minutes and network, not a restore.
+* `/geo` — the ground tiles the server cut from the operator's GeoServer. They
+  are addressed by tile coordinates rather than by hash, and a missing one is
+  cut again the first time a browser asks for it (`server/splatworld/ground.py`);
+  the same tile from the same coverage is the same bytes. Restoring them means
+  the GeoServer being up, not a restore.
 * roles and per-database settings — see §3.
 
 Both are opinions, not laws: `BACKUP_DIRS='assets tiles geo jobs'` backs up
-everything if you would rather buy the disk than run a seed at 3 am.
+everything if you would rather buy the disk than re-cut the ground at 3 am.
 
 ## 2. Restore
 
@@ -132,7 +133,8 @@ Then restart PostgREST — it caches the schema at connect time — and re-run
   any edit inside the area raises `expected_version`, which makes `ensure_job`
   build a *new* job with new atom hashes, and the tile compiles from scratch.
   Published tiles are unaffected; their bytes live under `/tiles`.
-* `/geo`. Re-run `bash tools/seed-dem.sh && bash tools/seed-ortho.sh`.
+* `/geo`. Nothing to run: the server cuts each tile again when it is next
+  asked for, as long as the operator's GeoServer answers.
 
 ## 3. Two things `pg_dump` does not carry
 
@@ -157,14 +159,16 @@ SQL
 
 (`psql` interpolates `:'…'` in a script but not in `-c`.)
 
-**Roles are cluster objects.** `anon`, `player`, `admin`, `authenticator` and
-`geoserver` live in the cluster, not in the database, so a restore onto a fresh
-cluster fails on the first `GRANT`. Create them by applying `db/0001_schema.sql`,
-`db/0007_api.sql` and `db/0008_admin.sql` to a throwaway database with the right
-`-v authpw=` / `-v geopw=`, or keep a `pg_dumpall --globals-only` beside the
-dumps. Note that those two migrations end in `ALTER ROLE … PASSWORD`: running
-them with the wrong password locks the running PostgREST out of the *live*
-database, because there is only one `authenticator` per cluster.
+**Roles are cluster objects.** `anon`, `player`, `admin` (`db/0001_schema.sql`),
+`authenticator` (`db/0007_api.sql`), `flow` (`db/0198`) and every player's own
+QGIS login `p_…` (`db/0065_playerroles.sql`) live in the cluster, not in the
+database, so a restore onto a fresh cluster fails on the first `GRANT`. Keep a
+`pg_dumpall --globals-only` beside the dumps, or create the shared ones by
+applying the migrations to a throwaway database with the right `-v authpw=`.
+Note that `db/0007_api.sql` ends in `ALTER ROLE … PASSWORD`: running it with the
+wrong password locks the running PostgREST out of the *live* database, because
+there is only one `authenticator` per cluster. A player whose `p_…` login is
+missing gets a new one the next time they download the QGIS project.
 
 ## 4. When the halves have drifted
 
@@ -201,10 +205,8 @@ recompile it. For a catalog asset: the uploader has to upload it again, and
 because the sha is registered they cannot — delete the `asset` row and let them
 publish it as a new one.
 
-**Files nothing knows about.** Harmless. Usually an interrupted seed or an
-upload whose `register_artifact` never landed. `tools/seed-dem.sh` and
-`tools/seed-ortho.sh` re-register what they find on disk, so re-running the
-seeds is the fix for `/geo`; elsewhere leave it, or delete it once you have
+**Files nothing knows about.** Harmless. Usually an upload whose
+`register_artifact` never landed. Leave it, or delete it once you have
 convinced yourself no `atom.result` names it.
 
 **On a development box, expect it to be red.** `db/test/0006_concurrency.sh`
@@ -223,7 +225,9 @@ player and the count should be zero.
 **The one that looks like a permissions bug.** A PUT returning 403 with
 `artifact already registered` means the row is there and the bytes are not, or
 the bytes are somewhere else in the store. That is the second row of the table
-in §0. Check with `--check` before believing it is a token problem.
+in §0. A worker tab looks for the bytes elsewhere and, if they are nowhere,
+reports them missing once (`client/js/workstore.js`); anything else, check with
+`--check` before believing it is a token problem.
 
 ## 5. Garbage collection
 
@@ -255,7 +259,7 @@ not one a job is about to read this second. `--days N` widens it.
 * Any path an atom of a live job names — `result.path` or any entry of
   `result.files`. This is the case that makes the whole thing delicate: an
   artifact is written once, so an atom that computes bytes another atom already
-  uploaded records *that* atom's path (`client/js/work.js` `elsewhere()`), and a
+  uploaded records *that* atom's path (`client/js/workstore.js` `elsewhere()`), and a
   live job's input therefore sits inside a dead job's directory perfectly
   normally.
 * Anything an unfinished atom is going to **read** — everything its `deps` and
@@ -276,7 +280,7 @@ Green is the byte count going down and the store still passing `--check`.
 
 ## 6. PUT rate limits
 
-`infra/nginx.conf`:
+`infra/nginx.conf` (the `splatworld` server has no rate limit):
 
 ```
 limit_req_zone $binary_remote_addr zone=put:10m rate=20r/s;
@@ -306,8 +310,8 @@ over the limit for one second spends four of the hundred the burst allows. Over
 452 logged PUTs — 74 of them after the limit went in — the error log contains no
 `limiting requests` line at all.
 
-**A 429 is not graceful.** `client/js/work.js` treats any PUT status other than
-201/204/409/403 as a failure and loses the atom, which then expires and is
+**A 429 is not graceful.** `client/js/workstore.js` treats any PUT status other
+than 201/204/409/403 as a failure and loses the atom, which then expires and is
 re-claimed by someone else. That is the reason for the wide burst: the limit
 exists to stop a runaway loop, not to shape normal traffic. If you see 429s in
 `error.log` from a real address, raise `burst` rather than `rate` — bursts are

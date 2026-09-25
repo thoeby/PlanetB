@@ -1,35 +1,45 @@
 # Rendering: quality, time, and where ray tracing goes
 
-**Status (0103).** `assemble-v3` bakes the one sky and the ground's own
-shadow into every vertex and reads the elevation whole (257 across a tile);
-`frame-v5` draws those colours unlit; `sample-v4` keeps them; the ground mesh
-computes the same. One look, no seams. Iterations 2 000 / 2 500. Earlier: `train-v2` does T1–T5 (full-budget
-seed, no growth, frozen positions, maintenance every 500, 2 000/1 500
-iterations, z18 at 1024 px, overflow reported as `dropped`); `frame-v2`
-path-traces with three.js + three-gpu-pathtracer (Q1, Q2 and the top-down
-camera bug); the viewer cap is 12 M. Open: D-SSIM in the loss (Q4), band-1
-colour (Q6), a lit `sample-v4` (Q7), and measuring any of it on a GPU.
-
-What limits the picture and the compile time as the code stands on this
-branch, and the plan to get (a) a better tile and (b) a compiled z18 tile in
-about a minute on a decent GPU. Numbers are read off the code
-(`client/lib/*`, `db/0017_verifydag.sql`); training speeds are estimates, since
-no box that has run this had a hardware GPU (PROGRESS.md deviation 57).
+**Status (0195).** Every tile with nothing finer under it is trained, whatever
+its zoom; every tile with finer children is merged from them
+(`is_leaf_tile`, db/0135). The trainer is **brush** (Apache-2.0), built to
+WebAssembly on WebGPU (`client/vendor/brush`, `tools/build-brush.sh`,
+`client/lib/brush.js`), since db/0095; the in-house trainer (`gsgpu.js`,
+train-v1/v2) and the z14 sampler (`sample-v*`) are gone. Current versions are
+`algo_current()` in the latest migration that redefines it: `dataset-v8`,
+`train-v22`, `merge-v1`, `sog-v3`.
 
 ## 1. The pipeline as built
 
-| z | edge | splats | path | frames | iters |
-|---|---|---|---|---|---|
-| 18 | 110 m | 2 M | assemble → frame → train → sog → verify×3 | 120 @ 1024², trained @ 512² | 7 000 |
-| 16 | 440 m | 600 k | same | 56 @ 1024², trained @ 512² | 5 000 |
-| 14 | 1.7 km | 800 k | assemble → sample → sog | – | – |
-| ≤12 | | 0.9–1.5 M | merge → sog | – | – |
+`build_dag` (db/0195):
+
+| tile | path | frames | budget | iters |
+|---|---|---|---|---|
+| leaf, any zoom but z18 | dataset → train → sog → publish | 81 (`z16-v3`) at 1280² | 600 k | 2 400 |
+| leaf, z18 | same | 120 (`z18-v1`) at 1280² | 600 k | 2 400 |
+| with children | merge → sog → publish (hash-verified) | – | 600 k | – |
+
+`dataset` assembles the tile and draws every frame of its camera set into one
+tar (`client/atoms/dataset.js`, `client/atoms/frame.js`, rasterised with
+three.js by default, path-traced with `splatworld.renderer = 'trace'`,
+db/0119). The budget is `tile_budget()` (600 000 at every zoom since db/0136)
+times `splatworld.budget_scale`; iterations, frame size and leases are
+`world_default()` (db/0190) unless the `splatworld.*` settings say otherwise
+(db/0173, `world_size()` reads them out).
 
 The look is authored, not photographed (SPEC §7 removed ortho draping):
 terrain is a height-band palette with slope rock and a DEM-only openness term
 (`terrain.js`), objects are canonical GLBs, everything is lit by the one fixed
 sky in `light.js`. So **quality is lighting × geometry × what the trainer
 recovers**, and there is no imagery to hide behind.
+
+## History: the in-house trainer (§2–§5)
+
+Sections 2–5 are the analysis written against the trainer this repository
+wrote itself (train-v2, `gsgpu.js`, 2 M splats at z18, 800 k sampled at z14),
+before brush replaced it. `gsgpu.js`, `gswgslgrad.js` and the sampler no
+longer exist; the numbers and file names below are that code's. Kept for the
+reasoning, not as a description of what runs.
 
 ## 2. What limits quality
 

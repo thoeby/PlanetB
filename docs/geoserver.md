@@ -42,9 +42,21 @@ is changed, no admin rights are needed.
 | *connected, but there is no coverage to stand on* | it publishes no raster with an extent — publish your DEM as a coverage store |
 | *… did not answer with XML* | that address is not an OGC service (a proxy, a login page) |
 
+## More of the ground, if you want it
+
+Optional. In **Setup → Ground**, **Add layer** takes another elevation over or
+under the first (read over WCS like it, by priority, db/0106), an `albedo` (an
+orthophoto for the ground's colour) or a `shade`; **Settings → Ground cover**
+takes class rasters whose colours an admin maps onto the world's vocabulary
+(db/0166). Albedo, shade and cover are asked for over **WMS** and cut into
+`/geo/{albedo,shade,cover}/{z}/{x}/{y}.png`, one tile when first asked for
+(`server/splatworld/ground.py`). A world with none of them stands on the
+elevation alone.
+
 ## Without a GeoServer at all
 
 `tools/geoserver-fixture.py` serves one GeoTIFF as a WCS coverage and a WMS
-hillshade — the two conversations above and nothing else. It exists so the
+hillshade, plus any `--cover` class rasters over WMS — the conversations above
+and nothing else. It exists so the
 player-run can run on a box that cannot pull the container
 (`client/test/run/world.js`), and it is a test fixture, not a deployment.

@@ -5,118 +5,84 @@ coverage the operator picked in Setup, cut one tile at a time when somebody
 first walks onto it (`server/splatworld/ground.py`), so there is one elevation
 path in this world and not two.
 
-## The page
-
-```
-splatworld run
-```
-
-then open **<http://localhost:8081/app/import.html>** (the setup page links to
-it). Choose where your layers are — a GeoServer, or this world's own database —
-press Connect, and it lists what is there: pick which
-layer is which from the dropdowns, press Import.
-The region is filled in from the layers you chose. No config file.
-
-The page only answers a browser on the same machine, even when the server is
-bound to `0.0.0.0` for other people to look at the world: importing writes to
-the world with the owner's authority.
-
-The rest of this page is the same thing from the command line, which takes a
-config file and is what the page builds for you (press *Show me the config* to
-see it).
+## From the command line
 
 ```
 splatworld import my-region.json
 ```
 
-Nothing needs GDAL, Node or a shapefile reader. Elevation is read with
-rasterio, whose wheels carry their own GDAL.
+There is no import page any more: `/app/import.html` redirects to the world,
+and the server's `/import/*` endpoints are gone with it. A player who has an OSM extract of
+their own land copies it into the layers of their QGIS project instead
+(`gis/README.md`; story 19, `client/test/run/19-osm-into-land.spec.js`).
+
+Nothing needs GDAL, Node or a shapefile reader: layers arrive as GeoJSON, from
+WFS, a file or a table.
 
 ## What the world wants from your data
 
-Five kinds, and two properties between them. Anything else you have drawn is
-carried along or ignored; it does no harm.
+A layer is imported as one kind, and the kinds are OSM's keys (db/0157):
+`highway`, `railway`, `aerialway`, `barrier`, `waterway` (lines), `building`,
+`landuse`, `natural` (polygons), `natural_point` (points), and `terrainmod`.
+Which one a feature is, is a property of the same name: a row says
+`landuse=forest`. What a kind may say is the vocabulary (Settings →
+Vocabulary).
 
-| kind | geometry | property it reads |
-|---|---|---|
-| `footprint` | polygon | `height`, metres |
-| `road` | line | `width`, metres |
-| `forest` | polygon | — |
-| `water` | polygon | — |
-| `terrainmod` | polygon | — |
+Two ways a column reaches a feature. `props` maps the world's name to your
+column and is read as a **number** — except `species`, `leaf_type`, `roof`,
+`name` and `model`, which are kept as words (`TEXT_PROPS` in
+`server/splatworld/importer.py`). `keep` copies columns as they are, under
+their own names. So the key's own value (`landuse`, `highway`, …) arrives only
+through `keep`, from a column already called that; mapped through `props` it
+is not a number and is dropped. Anything else is ignored; it does no harm.
 
 Geometry goes in flat. The world keeps plan geometry at Z = 0 and takes ground
 height from your elevation when a tile is compiled, so you never draw in 3D.
 
 ## Layers already in a database
 
-The import page has two sources. **A GeoServer** lists what it publishes over
-WFS (and rasters over WCS). **This world's own database** lists every spatial
-table Postgres can see — everything except the world's own `area`, `feature`,
-`instance` and `tile`. Load your shapefiles or GeoPackages into it once (QGIS:
-*Database → DB Manager → Import layer*) and they appear in the list.
-
-A table layer knows its own columns, so the property mapping is a list to pick
-from rather than a name to type, and the geometry is reprojected to WGS84 on
-the way in whatever it is stored as.
-
-In a config file that is a layer with `table` instead of `typeName`:
+A layer can come from a spatial table in this world's own database instead of
+a GeoServer. Load your shapefiles or GeoPackages into it once (QGIS:
+*Database → DB Manager → Import layer*) and name the table; the geometry is
+reprojected on the way in whatever it is stored as. That is a layer with
+`table` instead of `typeName`:
 
 ```json
-{ "name": "forest", "kind": "forest", "table": "public.wald",
-  "props": { "species": "baumart", "age": "alter_j" } }
+{ "name": "forest", "kind": "landuse", "table": "public.wald",
+  "props": { "species": "baumart", "age": "alter_j" }, "keep": ["landuse"] }
 ```
+
+A layer with `file` reads a `.geojson` beside the config instead.
 
 ## What the compiler reads off a feature
 
-Nothing is fixed here. A **build rule** decides what a feature becomes, and the
-rules are rows in `build_rule` you edit in the **Admin tab of the world**
-— the same idea as QGIS's rule-based symbology, and the same order: the first
-rule whose conditions all match wins, a rule with no conditions is the
-else-rule, keep it last.
+Nothing is fixed here. A **symbol** decides what a feature becomes, and the
+symbols are rows an admin edits in **Settings → Symbols** (db/0161, which
+turned the old build rules into them). The first enabled symbol of the
+feature's kind (or of `*`) whose conditions all match wins; one with no conditions is the
+else-symbol, keep it last.
 
-A rule is two things:
+A symbol is two things:
 
 - **When** — conditions over the feature's own properties:
   `species in ["picea", "fichte"]`, `alter lt 20`, `height exists`. Operators:
-  `eq ne in has lt lte gt gte exists missing`. Words compare case-blind, and a
-  number sent as text still compares as a number.
-- **Build** — what it produces. A value is a constant (`0.24`, `"gable"`,
-  `[18, 30]`) or a number read off the feature:
+  `eq ne in has lt lte gt gte exists missing` (`client/lib/rules.js`). Words
+  compare case-blind, and a number sent as text still compares as a number.
+- **Layers** — what it lays down: `surface`, `repeat`, `scatter`, `extrude`,
+  `place`, `paint`, `check` (`client/lib/symbols.js`). A layer's number is a
+  constant or read off the feature:
 
   ```json
   {"prop": "hoehe", "times": 1, "plus": 0, "min": 2, "max": 80, "else": 6}
   ```
 
   `else` may be another such object — that is how "the height column, or
-  storeys × 3, or 6 m" is said. `{"prop": "dachform", "text": true}` reads a
-  word rather than a number.
+  storeys × 3, or 6 m" is said.
 
-What each produced property does:
-
-| kind | property | effect |
-|---|---|---|
-| `forest` | `height` `[low, high]`, or `height_min`/`height_max` | the range a tree is drawn from |
-| | `sides`, `taper`, `color` | the canopy's shape and colour |
-| | `mature` | age in years at full height |
-| | `age_prop` | which column holds the age (`"alter"`, `"age_years"`, anything) |
-| `footprint` | `height` | eaves height in metres |
-| | `roof` | `flat`, `gable` or `hip` — which of *your* words means which is the rule's job |
-| | `roof_color` | `[r, g, b]` |
-| `road` | `width` | carriageway width in metres |
-| `terrainmod` | `amount`, `op` | metres, and `flatten`/`raise`/`lower`/`smooth` |
-
-The import page offers exactly the properties your rules mention as things to
-map a column to, and anything else can still be carried in by typing its name.
-Add a rule that reads `bhd` and `bhd` is mappable, with no code change.
-
-Editing a rule marks **every** tile dirty: a rule is global, and the rule set's
-hash is part of every tile's snapshot, so an atom already running knows the
-world moved under it.
-
-`db/0037_ruleseed.sql` seeds one set of rules — ten species by latin, german,
-french and english name, roofs, and the height fallbacks — so a fresh world
-builds something. Every row is yours to change or delete.
+Saving a symbol changes nothing anybody sees. **Apply to world** pins every
+enabled symbol's version in a `style_version`, marks the tiles it touches
+dirty and opens their jobs (db/0162); a tile's snapshot pins the style it was
+built with (Invariant 2).
 
 ## The config file
 
@@ -133,20 +99,20 @@ builds something. Every row is yours to change or delete.
   },
 
   "layers": [
-    { "name": "buildings", "kind": "footprint", "typeName": "myworkspace:buildings",
+    { "name": "buildings", "kind": "building", "typeName": "myworkspace:buildings",
       "props": { "height": "bldg_hoehe" }, "keep": ["name"] },
-    { "name": "roads", "kind": "road", "typeName": "myworkspace:roads",
-      "props": { "width": "breite" } }
+    { "name": "roads", "kind": "highway", "typeName": "myworkspace:roads",
+      "props": { "width": "breite" }, "keep": ["highway"] }
   ]
 }
 ```
 
 - **`bbox`** — `[west, south, east, north]` in degrees. Leave it out and the
   region is the extent of the layers you imported.
-- **`detail`** — the finest zoom compiled here. 14 is the baseline; 16 and 18
-  are trained tiles and want a real GPU.
-- **`owner`** — the account that ends up owning the region. Sign in as this to
-  compile it. Created on first import.
+- **`detail`** — the finest zoom compiled here, default 14. Every tile is
+  trained, and training wants WebGPU.
+- **`owner`** — the account that ends up owning the region, and an admin. Sign
+  in as this to compile it. Created on first import.
 
 ## Connecting your GeoServer
 
@@ -166,12 +132,14 @@ WFS endpoint is your GeoServer URL plus `/myworkspace/wfs`.
    ownership, and nothing finer than `detail` is compiled inside it.
 3. Inserts your features, flattened, made valid, tagged `props.src`
    (`layername:featureid`) so importing the same layer twice changes nothing.
-4. Marks every covering tile z6…z14 as needing a rebuild. That is the work
-   queue; the import compiles nothing itself.
+4. Marks every covering tile z6…`detail` as needing a rebuild. That is the
+   work queue; the import compiles nothing itself.
 
 Ground the coverage does not reach is the edge of the world, not a hole: the
-viewer says "off the edge of the world" there and the database refuses to store
-anything outside it (db/0062_insideground.sql).
+database refuses to store anything outside it (db/0062_insideground.sql,
+db/0140). One imported feature outside it stops the whole import with that
+sentence; clip the layer to the ground first. A feature whose interior point
+falls in none of the region's areas is skipped.
 
 Re-running after editing a layer in QGIS adds what is new. It does not yet
 notice deletions or moved geometry on a feature it has already seen; delete
@@ -200,8 +168,9 @@ was built against.
 
 ## Then
 
-Start the server, sign in as the owner, tick **work in the background**, and
-click **render** on the tiles it lists. Your browser compiles them.
+Start the server, sign in as the owner, and in **Work** take the render jobs
+the pool lists, or turn on **Work in the background** (Work → Settings). Your
+browser compiles them.
 
 ```
 splatworld run
