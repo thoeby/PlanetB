@@ -28,8 +28,8 @@ export function mountBlueprintMode(ctx) {
     const words = mountGroundTag(host);
     const strip = mountProfileStrip(host);
     const side = mountBlueprintSide(host, { bp, cam });
-    const st = { surface: null, at: null, lost: false, down: null, section: null,
-        marked: null, unpeek: null, screen: null };
+    const st = stirring(bp, { surface: null, at: null, lost: false, down: null,
+        section: null, marked: null, unpeek: null, screen: null });
     strip.onHover((s) => { st.marked = s; });
 
     const pick = (e) => {
@@ -77,6 +77,7 @@ export function mountBlueprintMode(ctx) {
             strip.hide();
             words.hide();
             Object.assign(st, { section: null, surface: null, wanting: null });
+            app.autoRender = true;
         },
         // Every frame, from the page's update.
         frame: (dt = 1 / 60) => drawFrame(bp, app, pc, cam, st, dt),
@@ -101,8 +102,36 @@ const holding = (st, cam, bp) => ({
     },
 });
 
+// While nothing moves, the clay is drawn a few times a second rather than
+// every frame: a still model does not need sixty pictures of itself (the
+// operator's note on speed). Any input, a held key or a rebuilt chunk is
+// movement for a little while after.
+const STILL_AFTER_MS = 700;
+const STILL_EVERY_MS = 250;
+
+function paced(app, cam, st) {
+    const now = performance.now();
+    if (cam.keys?.size) st.stirred = now;
+    app.autoRender = false;
+    if (now - (st.stirred ?? 0) < STILL_AFTER_MS || now - (st.drawnAt ?? 0) > STILL_EVERY_MS) {
+        app.renderNextFrame = true;
+        st.drawnAt = now;
+    }
+}
+
+// What counts as movement, from the window and the clay.
+export function stirring(bp, st) {
+    const stir = () => { st.stirred = performance.now(); };
+    for (const name of ['pointermove', 'pointerdown', 'pointerup', 'wheel', 'keydown', 'keyup']) {
+        window.addEventListener(name, stir, { passive: true });
+    }
+    bp.onChange(stir);
+    return st;
+}
+
 function drawFrame(bp, app, pc, cam, st, dt) {
     if (!bp.active) return;
+    paced(app, cam, st);
     cam.update(dt);
     st.surface?.tick?.(dt);
     if (st.section?.b) {

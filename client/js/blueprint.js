@@ -21,12 +21,16 @@ import * as tm from '../lib/tilemath.js';
 
 // How far past the land the dimmed ring reaches.
 export const MARGIN_M = 1000;
+// How far the world's ground under the ring is sunk, and how far inside the
+// ring's edge that starts, so the slope down is under the ring too.
+const SINK_M = 400;
+const SINK_INSET_M = 200;
 // How long the page waits for the elevation under the region to arrive.
 const DEM_WAIT_MS = 20000;
 
 // The overlays the box switches (client/js/bpoverlay.js); colour needs two.
-export const OVERLAYS = { contours: true, changed: true, grid: false, steep: false,
-    neighbours: true, steepAt: 35 };
+export const OVERLAYS = { view: 'solid', contours: false, changed: true, grid: false,
+    flat: false, steep: false, neighbours: true, steepAt: 35 };
 
 export class Blueprint {
     constructor(app, pc, { origin, floor, streamer, groundMesh = null, preview = null }) {
@@ -183,7 +187,9 @@ export class Blueprint {
 
     colourOf() {
         const o = this.overlays;
-        return (k, i, j, slope, lit) => linear(vertexColour({ slope, lit, i, j,
+        // Contours view: flat clay, so the lines are what is read.
+        return (k, i, j, slope, lit) => linear(vertexColour({ slope, lit: o.flat ? 0.92 : lit,
+            i, j,
             inside: this.inside[k] === 1, delta: this.delta[k], unsaved: this.unsaved[k] === 1,
             changed: o.changed, steep: o.steep ? o.steepAt : 0 }));
     }
@@ -255,7 +261,13 @@ export class Blueprint {
         this.streamer?.hideUnder(keys.map((k) => `14/${k}`));
         this.streamer?.hideEverything?.(true);
         this.preview?.setVisible(false);
-        this.groundMesh?.reshape(null, keys, { clay: true });
+        // Under the clay and its ring the world's own ground goes well down:
+        // three metres under was shallower than a player may dig, and it came
+        // up through the hole as dark blobs (the operator's note).
+        const under = grow(box, -SINK_INSET_M);
+        const sink = (lon, lat) => (lon > under[0] && lon < under[2] && lat > under[1]
+            && lat < under[3] ? -SINK_M : 0);
+        this.groundMesh?.reshape(sink, keys, { clay: true });
     }
 
     // Hold Tab: the splats and the models come back over the clay for as long

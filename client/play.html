@@ -1041,6 +1041,15 @@
       blueprint.rebased();
     }
     groundMesh?.update(camera.getPosition());
+    // EDT.1: the clay's camera, and whatever the surface draws on it. While
+    // the clay is up, the world under it is hidden: nothing is streamed,
+    // nobody's position is written into the chrome or the address bar, and
+    // no mover is placed — that was most of a frame spent on what nobody
+    // could see (the operator's note on the editors' speed).
+    if (blueprint.active) {
+      bpmode.frame(dt);
+      return;
+    }
     // FND.16: every mover put where this second says it is. Nothing is stored
     // per frame — the clock and the route say where it is, for everybody.
     if (!placing) {
@@ -1048,8 +1057,6 @@
         .finally(() => { placing = null; });
     }
     build.drawGizmo();
-    // EDT.1: the clay's camera, and whatever the surface draws on it.
-    bpmode.frame(dt);
     drawAreas({ pc, app, origin, terrain }, land.areas());
     const labels = document.getElementById('world-labels');
     labelAreas({ pc, app, origin, terrain }, land.areas(), labels);

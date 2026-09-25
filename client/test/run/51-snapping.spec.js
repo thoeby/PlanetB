@@ -68,10 +68,10 @@ async function angleAndGrid(b) {
     await b.page.mouse.move(p.x + 4, p.y + 3, { steps: 2 });
     await expect(tag(b)).toHaveText('snapped: 15°', { timeout: UI });
     await b.page.keyboard.up('Control');
-    await b.page.locator('#bp-side .bp-sw-grid').check();
+    await b.page.locator('#bp-side .bp-shade-grid').click();
     await b.page.mouse.move(p.x + 1, p.y, { steps: 2 });
     await expect(tag(b)).toHaveText('snapped: grid', { timeout: UI });
-    await b.page.locator('#bp-side .bp-sw-grid').uncheck();
+    await b.page.locator('#bp-side .bp-shade-solid').click();
 }
 
 test('story 51 — a road end, the boundary, not his land, 15° and the grid',

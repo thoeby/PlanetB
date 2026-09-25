@@ -15,6 +15,7 @@ const KEYS = [
     ['H', 'Hand: drag the land'],
     ['C', 'Section: drag a line'],
     ['O', 'Ortho / perspective'],
+    ['Z', 'Solid / Contours / Grid'],
     ['Tab', 'Hold to peek at the splats'],
 ];
 

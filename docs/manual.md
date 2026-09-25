@@ -235,9 +235,13 @@ greyed out. The camera is the clay's own and never locks the pointer:
 - At the pointer: the ground height, how far it is off the operator's
   elevation, the slope and the shaping limit, and a word when something
   matters — `not your land`, `edge blend`, `over limit`, `snapped: …`.
-- The corner card holds the overlays: contours (and their interval), what you
-  changed, a grid, slopes above a set angle, and your neighbours' lines and
-  areas.
+- Three views, on the corner card or `Z` to step through them: **Solid** (the
+  lit clay alone), **Contours** (flat clay with height lines every 2 m, bold
+  every 10) and **Grid** (a metric grid, 5, 25 or 100 m as you are near or
+  far). What you changed shows as colour in all three (blue raised, red
+  lowered), and your neighbours' lines and areas can be switched off.
+- While the clay is up the rest of the world stops streaming, and a still
+  view is redrawn only a few times a second.
 
 ### Shape (Build · 4)
 

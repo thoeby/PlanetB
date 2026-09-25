@@ -1,9 +1,11 @@
 // Story 41 — B reads his field off the clay (EDT.2, PLAN-editors.md ideas 1–2).
 //
-// Contour lines every two metres, bold every ten, drawn on the mesh; what he
-// changed as colour, blue above the elevation and red below, and the part not
-// saved yet hatched; a switch for each on the card in the corner, and the card
-// remembers them the next time he opens it.
+// Three views on the card in the corner, as a modelling tool has them (the
+// operator's note): Solid, the lit clay alone; Contours, flat clay with lines
+// every two metres, bold every ten; Grid, a 5 m grid, bold every 25. Z steps
+// through them. What he changed is colour in any of them, blue above the
+// elevation and red below, the part not saved yet hatched — a switch of its
+// own. The card remembers his view the next time he opens it.
 
 import { test, expect, UI } from './players.js';
 import { ben, blueprintOverHisLand, shot } from './editors.js';
@@ -69,40 +71,36 @@ test('story 41 — contours, what he changed, and switches that stay switched',
         await blueprintOverHisLand(b);
         const card = b.page.locator('#bp-side');
 
-        await test.step('contour lines are on the mesh, and the switch takes them off',
+        await test.step('Solid is the clay alone; Contours and Grid are lines on it',
             async () => {
-                await expect(card.locator('.bp-sw-contours')).toBeChecked();
+                await expect(card.locator('.bp-shade-solid')).toHaveAttribute('aria-pressed',
+                    'true');
+                expect(await lines(b), 'Solid draws no lines').toBe(0);
+                await card.locator('.bp-shade-contours').click();
                 expect(await lines(b), 'contours are drawn per chunk').toBeGreaterThan(0);
-                await card.locator('.bp-sw-contours').uncheck();
-                expect(await lines(b)).toBe(0);
-                await card.locator('.bp-sw-grid').check();
+                const flat = await b.page.evaluate(() => window.splatworld.blueprint.overlays.flat);
+                expect(flat, 'on flat clay').toBe(true);
+                await card.locator('.bp-shade-grid').click();
                 expect(await lines(b), 'the 5 m grid is lines too').toBeGreaterThan(0);
-                await card.locator('.bp-sw-grid').uncheck();
-                await card.locator('.bp-sw-contours').check();
+                await b.page.mouse.move(640, 420);
+                await b.page.keyboard.press('z');
+                await expect(card.locator('.bp-shade-solid')).toHaveAttribute('aria-pressed',
+                    'true');
+                expect(await lines(b), 'Z went round to Solid').toBe(0);
             });
 
         await test.step('what he changed is blue, and unsaved is marked',
             () => changedIsBlue(b, card, testInfo));
 
-        await test.step('slopes over a limit are marked when asked', async () => {
-            await card.locator('.bp-num-steepAt').fill('10');
-            await card.locator('.bp-num-steepAt').dispatchEvent('change');
-            await card.locator('.bp-sw-steep').check();
-            const on = await b.page.evaluate(() => window.splatworld.blueprint.overlays);
-            expect(on.steep).toBe(true);
-            expect(on.steepAt).toBe(10);
-        });
-
-        await test.step('the switches are his, and stay as he left them', async () => {
-            await card.locator('.bp-sw-contours').uncheck();
+        await test.step('his view stays as he left it', async () => {
+            await card.locator('.bp-shade-contours').click();
             await b.page.reload();
             await b.page.waitForFunction(() => Boolean(window.splatworld?.bpmode), null,
                 { timeout: 120000 });
             await blueprintOverHisLand(b);
-            await expect(card.locator('.bp-sw-contours')).not.toBeChecked({ timeout: UI });
-            await expect(card.locator('.bp-sw-steep')).toBeChecked();
-            await card.locator('.bp-sw-contours').check();
-            await card.locator('.bp-sw-steep').uncheck();
+            await expect(card.locator('.bp-shade-contours')).toHaveAttribute('aria-pressed',
+                'true', { timeout: UI });
+            await card.locator('.bp-shade-solid').click();
             await card.locator('.bp-sw-changed').check();
         });
         await b.close();

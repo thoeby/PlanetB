@@ -12,6 +12,7 @@
 import { clampDistance, orbitBy, orthoHeight, pose, zoomToward } from '../lib/orbit.js';
 import { pickGround } from './blueprint.js';
 import { WalkAlong } from './bpwalk.js';
+import { gridStep } from './bpoverlay.js';
 
 const FOV = 45;
 // WASD, as a share of the distance to the ground per second; Q/E, how fast
@@ -165,9 +166,13 @@ export class BlueprintCamera {
         if (this.state.ortho) cam.camera.orthoHeight = orthoHeight(this.state.distance, FOV);
         // From far off, two-metre contours are a moiré, not a map: only the
         // bold ones are drawn until the camera comes closer.
+        // And the grid a cell of which stays some pixels wide: 5 m close in,
+        // 25 m and then 100 m further out.
         const far = this.state.distance > FAR_CONTOURS_M;
-        if (far !== this.bp.far) {
+        const grid = gridStep(this.state.distance);
+        if (far !== this.bp.far || grid !== this.bp.gridM) {
             this.bp.far = far;
+            this.bp.gridM = grid;
             this.bp.relines();
         }
     }

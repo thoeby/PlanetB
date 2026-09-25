@@ -93,3 +93,17 @@
    player, and Shape's toolbar is under those words. */
 #hud[data-blueprint="1"] #compass, #hud[data-blueprint="1"] #land,
 #hud[data-blueprint="1"] #standing { display: none; }
+/* The world's labels stop being placed while the clay is up (play.html). */
+#hud[data-blueprint="1"] #world-labels { display: none; }
+
+/* The three views, one row: how the clay is seen (client/js/bpoverlay.js). */
+.bp-shades { display: flex; gap: 0; margin-bottom: 4px; }
+.bp-shades .bp-shade {
+  flex: 1; padding: 5px 0; font-size: 11px; background: rgba(255, 255, 255, 0.04);
+  border: 1px solid var(--edge); color: var(--ink-2); cursor: pointer;
+}
+.bp-shades .bp-shade + .bp-shade { border-left: 0; }
+.bp-shades .bp-shade:hover { color: var(--ink); }
+.bp-shades .bp-shade[aria-pressed="true"] {
+  color: var(--accent); border-color: var(--accent); background: var(--accent-dim);
+}

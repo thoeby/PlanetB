@@ -1,6 +1,12 @@
 // bpoverlay.js — what Blueprint draws on the clay besides the clay: contour
-// lines every 2 m (bold every 10), the 5 m grid, and the card of switches
-// that turn those and the colours on and off (PLAN-editors.md §2.1; EDT.2).
+// lines every 2 m (bold every 10), a metric grid (5, 25 or 100 m as the camera
+// is near or far, bold every fifth line), and the card
+// that picks how the clay is seen (PLAN-editors.md §2.1; EDT.2).
+//
+// Three views, as a modelling tool has (the operator's note): Solid, the lit
+// clay and nothing on it; Contours, flat clay with its height lines; Grid, the
+// lit clay with a metric grid. Z steps through them. Two switches stay beside
+// them: what you changed as colour, and the neighbours' lines.
 //
 // The lines are built per chunk with the chunk (client/js/blueprint.js
 // buildChunk), so a stroke redraws the contours it moved and no others. The
@@ -19,17 +25,32 @@ const LIFT_M = 0.12;
 
 const FINE = linear([0.5, 0.5, 0.48]);
 const BOLD = linear([0.2, 0.2, 0.19]);
-const GRID = linear([0.3, 0.52, 0.72]);
+const GRID = linear([0.62, 0.62, 0.6]);
+const GRID_BOLD = linear([0.36, 0.36, 0.35]);
+
+// The grid's cell for a camera this far off: a cell stays a handful of
+// pixels wide, never a grey wash.
+export const gridStep = (distance) => (distance < 300 ? GRID_M : distance < 1500 ? 25 : 100);
 
 const KEY = 'splatworld.blueprint.overlays';
 
+export const VIEWS = [
+    { id: 'solid', words: 'Solid', sets: { contours: false, grid: false, flat: false } },
+    { id: 'contours', words: 'Contours', sets: { contours: true, grid: false, flat: true } },
+    { id: 'grid', words: 'Grid', sets: { contours: false, grid: true, flat: false } },
+];
+
 export const SWITCHES = [
-    { key: 'contours', words: 'Contour lines · 2 m' },
     { key: 'changed', words: 'What you changed, as colour' },
-    { key: 'grid', words: 'Grid · 5 m' },
-    { key: 'steep', words: 'Slopes above', number: 'steepAt' },
     { key: 'neighbours', words: "Neighbours' lines and areas" },
 ];
+
+// The overlays as the view in them says: a view decides the lines and the
+// shading, whatever was stored before views existed.
+export function viewed(o) {
+    const v = VIEWS.find((x) => x.id === o.view) ?? VIEWS[0];
+    return { ...o, view: v.id, ...v.sets, steep: false };
+}
 
 // Which switches repaint the clay and which redraw the lines.
 const PAINTS = new Set(['changed', 'steep', 'steepAt']);
@@ -49,8 +70,12 @@ export function chunkLines(bp, c) {
     if (o.grid) {
         const east = (i) => (lonAt(L, i) - L.lon0) * L.mLon;
         const south = (_i, j) => (L.lat0 - latAt(L, j)) * L.mLat;
+        // As fine as the camera's distance allows (gridStep), bold every five.
+        const every = bp.gridM ?? GRID_M;
         for (const f of [east, south]) {
-            for (const s of isolines(f, c.i0, c.j0, c.i1, c.j1, GRID_M)) segs.push([s, GRID]);
+            for (const s of isolines(f, c.i0, c.j0, c.i1, c.j1, every)) {
+                segs.push([s, boldAt(s[4], every * 5) ? GRID_BOLD : GRID]);
+            }
         }
     }
     if (!segs.length) return null;
@@ -145,9 +170,10 @@ function lineMaterial(bp) {
 // (a private window) is the defaults, not an error.
 export function remembered(defaults) {
     try {
-        return { ...defaults, ...JSON.parse(globalThis.localStorage?.getItem(KEY) ?? '{}') };
+        return viewed({ ...defaults,
+            ...JSON.parse(globalThis.localStorage?.getItem(KEY) ?? '{}') });
     } catch {
-        return { ...defaults };
+        return viewed({ ...defaults });
     }
 }
 
@@ -168,22 +194,48 @@ export function setOverlay(bp, key, value) {
     else bp.tell(null);
 }
 
-// The card: one switch a row, the number beside the slope one.
+// A view picked: the lines and the shading both change, so every chunk.
+export function setView(bp, id) {
+    Object.assign(bp.overlays, viewed({ ...bp.overlays, view: id }));
+    remember(bp.overlays);
+    bp.repaint();
+    bp.tell?.(null);
+}
+
+const cycle = (bp) => {
+    const at = VIEWS.findIndex((v) => v.id === bp.overlays.view);
+    setView(bp, VIEWS[(at + 1) % VIEWS.length].id);
+};
+
+// The card: the three views as one row, and a switch a row under them.
 export function overlayCard(bp) {
+    const views = VIEWS.map((v) => {
+        const b = el('button', { type: 'button', className: `bp-shade bp-shade-${v.id}`,
+            textContent: v.words });
+        b.onclick = () => { setView(bp, v.id); mark(); };
+        return b;
+    });
+    const mark = () => {
+        for (const [n, b] of views.entries()) {
+            b.setAttribute('aria-pressed', String(VIEWS[n].id === bp.overlays.view));
+        }
+    };
+    mark();
+    // Z steps through them while the clay is up; Ctrl-Z is undo, not this.
+    window.addEventListener('keydown', (e) => {
+        if (!bp.active || e.ctrlKey || e.metaKey || e.altKey || e.code !== 'KeyZ') return;
+        if (e.target?.closest?.('input, select, textarea, [contenteditable]')) return;
+        cycle(bp);
+        mark();
+    });
     const rows = SWITCHES.map((s) => {
         const box = el('input', { type: 'checkbox', className: `bp-sw bp-sw-${s.key}` });
         box.checked = Boolean(bp.overlays[s.key]);
         box.onchange = () => setOverlay(bp, s.key, box.checked);
-        const bits = [el('span', { textContent: s.words })];
-        if (s.number) {
-            const n = el('input', { type: 'number', className: `bp-num bp-num-${s.number}`,
-                min: '5', max: '80', step: '1', value: String(bp.overlays[s.number]) });
-            n.onchange = () => setOverlay(bp, s.number, Math.max(5, Number(n.value) || 35));
-            bits.push(n, el('span', { textContent: '°' }));
-        }
         return el('label', { className: 'bp-row' }, el('span', { className: 'bp-words' },
-            ...bits), box);
+            el('span', { textContent: s.words })), box);
     });
     return el('div', { className: 'bp-card' },
-        el('div', { className: 'label caps', textContent: 'On the ground' }), ...rows);
+        el('div', { className: 'label caps', textContent: 'View · Z' }),
+        el('div', { className: 'bp-shades' }, ...views), ...rows);
 }
