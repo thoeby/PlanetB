@@ -16,7 +16,7 @@ import webbrowser
 
 import psycopg
 
-from . import IGNORED_PROJ_DATA, __version__, config, migrate, serve, services
+from . import IGNORED_PROJ_DATA, __version__, config, ipfsnode, migrate, serve, services
 
 
 def _common(parser: argparse.ArgumentParser) -> None:
@@ -108,6 +108,10 @@ def cmd_doctor(args: argparse.Namespace) -> int:
     print(f"client        {cfg.client_dir}")
     print(f"listen        http://{cfg.host}:{cfg.port}")
     print(f"api           {cfg.api_url}")
+    # LV.11: the file store's other half, and whether it can run here.
+    print(f"ipfs node     {ipfsnode.url(cfg)} — "
+          + ("answering" if ipfsnode.alive(cfg)
+             else ipfsnode.missing(cfg) or "not running; `splatworld run` starts it"))
     for var, value in IGNORED_PROJ_DATA.items():
         print(f"  note: ignoring {var}={value} — it is another PROJ "
               "installation's data; elevation uses the one in rasterio")
@@ -183,7 +187,7 @@ def cmd_run(args: argparse.Namespace) -> int:
 
     cfg.files.mkdir(parents=True, exist_ok=True)
     _warn_if_a_copy(cfg)
-    with services.PostgREST(cfg, verbose=args.verbose):
+    with services.PostgREST(cfg, verbose=args.verbose), ipfsnode.Node(cfg, verbose=args.verbose):
         server = serve.listen(cfg, verbose=args.verbose)
         url = f"http://{'127.0.0.1' if cfg.host in ('0.0.0.0', '::') else cfg.host}:{cfg.port}"
         print(f"  files and client on {url}")

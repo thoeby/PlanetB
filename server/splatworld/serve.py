@@ -27,6 +27,7 @@ from pathlib import Path
 
 from . import __version__
 from . import ground
+from . import ipfsnode
 from . import qgis
 from .config import Config
 
@@ -243,8 +244,35 @@ class Handler(BaseHTTPRequestHandler):
             self._shaped_ground(path)
         elif first in STORE_PREFIXES:
             self._serve_store(path)
+        elif first == "ipfs":
+            self._ipfs(path)
+        elif path == "/node/peer":
+            self._node_peer()
         else:
             self._text(404, "not found")
+
+    # LV.12: the node's id and addresses, for a tab to dial and be relayed by.
+    def _node_peer(self) -> None:
+        status, body = ipfsnode.ask(self.cfg, "/peer")
+        if status != 200:
+            self._text(status, body.decode(errors="replace")[:200])
+            return
+        self._send(200, body, "application/json", {"Cache-Control": "no-store", **CORS})
+
+    # LV.11: a file by its CID, from the operator's node — the last place a tab
+    # asks, after its peers (client/js/peers.js).
+    def _ipfs(self, path: str) -> None:
+        m = re.fullmatch(r"/ipfs/(b[a-z2-7]{20,})", path)
+        if not m:
+            self._text(400, "that is not a CID")
+            return
+        name = urllib.parse.parse_qs(urllib.parse.urlparse(self.path).query).get("filename", [""])[0]
+        status, body = ipfsnode.fetch(self.cfg, m.group(1), name)
+        if status != 200:
+            self._text(status, body.decode(errors="replace")[:200])
+            return
+        self._send(200, body, content_type(Path(name or "x.bin")),
+                   {"Cache-Control": "public, max-age=31536000, immutable", **CORS})
 
     # SPEC §2.11: the Land panel hands you a QGIS project already connected to
     # this world — as you. The credentials are the database's to mint
@@ -780,6 +808,9 @@ class Handler(BaseHTTPRequestHandler):
             partial.unlink(missing_ok=True)
             self._text(500, f"could not store it: {err}")
             return
+        # LV.11: the node gets what the store just accepted, and records its
+        # CID. A node that is not running costs the file its CID, not its place.
+        ipfsnode.add(self.cfg, target.read_bytes(), self.headers.get("X-Sha256", ""))
         self._text(201, "created")
 
 

@@ -8,7 +8,26 @@
     "lint": "eslint ."
   },
   "devDependencies": {
+    "@chainsafe/libp2p-noise": "^17.0.0",
+    "@chainsafe/libp2p-yamux": "^8.0.1",
+    "@helia/unixfs": "^8.0.7",
+    "@libp2p/circuit-relay-v2": "^4.2.13",
+    "@libp2p/crypto": "^5.1.23",
+    "@libp2p/identify": "^4.1.14",
+    "@libp2p/webrtc": "^6.0.33",
+    "@libp2p/websockets": "^10.1.21",
+    "@multiformats/multiaddr": "^13.0.3",
     "@playwright/test": "^1.63.0",
-    "eslint": "^9.15.0"
+    "blockstore-core": "^7.0.1",
+    "blockstore-fs": "^4.0.1",
+    "blockstore-idb": "^4.0.1",
+    "datastore-fs": "^12.0.1",
+    "esbuild": "^0.28.2",
+    "eslint": "^9.15.0",
+    "helia": "^7.1.15",
+    "ipfs-unixfs-exporter": "^16.2.3",
+    "ipfs-unixfs-importer": "^17.1.1",
+    "libp2p": "^3.3.11",
+    "multiformats": "^14.0.5"
   }
 }

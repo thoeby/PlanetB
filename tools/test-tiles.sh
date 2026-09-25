@@ -46,6 +46,7 @@ if ! curl -sf -o /dev/null "$FILES_URL/healthz"; then
     find "$ROOT" -type d -exec chmod 1777 {} + 2> /dev/null || true
     NGINX_CONF=$(mktemp --suffix=.conf)
     sed -e "s|server postgrest:3000;|server 127.0.0.1:${API_URL##*:};|" \
+        -e "s|server node:8095;|server 127.0.0.1:8095;|" \
         -e "s|listen 80;|listen ${FILES_URL##*:};|" \
         -e "s|root /srv/files;|root $ROOT;|" \
         -e "1i pid /tmp/splatworld-nginx.pid;\nerror_log /tmp/splatworld-nginx-error.log;" \

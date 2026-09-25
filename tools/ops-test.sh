@@ -252,6 +252,7 @@ else
     WORK=$(mktemp -d); chmod 1777 "$WORK"
     CONF=$WORK/nginx.conf
     sed -e "s|server postgrest:3000;|server 127.0.0.1:3999;|" \
+        -e "s|server node:8095;|server 127.0.0.1:8095;|" \
         -e "s|listen 80;|listen $PORT;|" -e "s|root /srv/files;|root $WORK;|" \
         -e "1i pid $WORK/nginx.pid;\nerror_log $WORK/error.log;" \
         -e "s|^http {|http {\n    access_log $WORK/access.log;\n    client_body_temp_path $WORK/body;\n    proxy_temp_path $WORK/proxy;\n    fastcgi_temp_path $WORK/fcgi;\n    uwsgi_temp_path $WORK/uwsgi;\n    scgi_temp_path $WORK/scgi;|" \

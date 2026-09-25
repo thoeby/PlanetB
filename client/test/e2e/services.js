@@ -85,6 +85,8 @@ function startFiles(work) {
     const conf = join(work, 'nginx.conf');
     const body = readFileSync(join(REPO, 'infra/nginx.conf'), 'utf8')
         .replace('server postgrest:3000;', `server 127.0.0.1:${API_PORT};`)
+        // LV.11: the node is not started here; files are served without CIDs.
+        .replace('server node:8095;', 'server 127.0.0.1:8095;')
         .replace('listen 80;', `listen ${FILES_PORT};`)
         .replace('root /srv/files;', `root ${FILES_ROOT};`)
         .replace('http {', `http {\n    access_log ${join(work, 'access.log')};\n`
