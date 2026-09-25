@@ -54,6 +54,8 @@ export function mountBlueprintMode(ctx) {
         get surface() { return st.surface; },
         state: st,
         async open(area, shaping, surface) {
+            // Another surface had the clay (Shape, then Lines): it goes first.
+            if (bp.active) this.close();
             st.surface = surface;
             const ms = await bp.open(area, shaping);
             cam.enter();

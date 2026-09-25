@@ -16,6 +16,7 @@
 <link rel="stylesheet" href="./symbols.css">
 <link rel="stylesheet" href="./terrain.css">
 <link rel="stylesheet" href="./blueprint.css">
+<link rel="stylesheet" href="./lines.css">
 <style>
   /* Only what a module's own markup needs and hud.css cannot know about. */
   .work-progress { white-space: pre-line; font-size: 12px; margin: 4px 0; }
@@ -100,6 +101,7 @@
   import { drawAreas, labelAreas, labelObjects, mountLand, ringsOf } from './js/land.js';
   import { mountGetLand } from './js/getland.js';
   import { mountShape } from './js/shapeui.js';
+  import { mountLines } from './js/linesui.js';
   import { mountShapeSettings } from './js/shapesettings.js';
   import { Blueprint } from './js/blueprint.js';
   import { mountBlueprintMode } from './js/bpmode.js';
@@ -493,8 +495,14 @@
       reopen: () => hud.show('Shape'),
   }, { lands: () => api.rpc('my_areas').catch(() => []) });
   hud.whenShown('Shape', () => sculpt.enter());
-  hud.panel('Lines').append(Object.assign(document.createElement('p'), {
-      className: 'note', textContent: 'Lines open onto the same clay as Shape.' }));
+  // EDT.13: the lines on a land, drawn on the same clay (client/js/linesui.js).
+  const lines = mountLines(hud.panel('Lines'), {
+      bpmode, bp: blueprint, app, pc,
+      reopen: () => hud.show('Lines'),
+      onSaved: () => { build.refresh(); submit.refresh(); },
+  }, { lands: () => api.rpc('my_areas').catch(() => []) });
+  hud.whenShown('Lines', () => lines.enter());
+  hud.whenOpened((name) => { if (name !== 'Lines') lines.leave(); });
   hud.whenOpened((name) => { if (name !== 'Shape') sculpt.leave(); });
   // The operator's say over shaping: how far the ground may move, and the
   // fade at a land's edge (Settings · Setup, admins).
@@ -1078,6 +1086,6 @@
     app, pc, api, origin, streamer, camera, rows, terrain, player, setDriving, work, groundMesh,
     hud, setup, admin, symbols, catalog, land, submit, pool, permission, ground,
     share, goTo,
-    spot, build, preview, blueprint, bpmode, nearby, areas, wallet, flows, sculpt, live: liveWorld, liveDraw, movers, moverDraw, xr: { wants: wantsXr, rig: () => rig },
+    spot, build, preview, blueprint, bpmode, lines, nearby, areas, wallet, flows, sculpt, live: liveWorld, liveDraw, movers, moverDraw, xr: { wants: wantsXr, rig: () => rig },
   };
 </script>

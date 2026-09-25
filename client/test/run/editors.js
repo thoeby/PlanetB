@@ -159,3 +159,30 @@ export async function shapeHisLand(b) {
     await expect(b.page.locator('.sc-land option')).not.toHaveCount(0, { timeout: UI });
     await b.page.waitForFunction(() => window.splatworld.blueprint.active, null, { timeout: UI });
 }
+
+// A point `east` and `north` metres from a ground point, on the screen too.
+export const offsetOnScreen = (b, g, east, north) => b.page.evaluate(({ p, e, n }) => {
+    const sw = window.splatworld;
+    const bp = sw.blueprint;
+    const lon = p.lon + e / (111320 * Math.cos(p.lat * Math.PI / 180));
+    const lat = p.lat + n / 110540;
+    const s = sw.camera.camera.worldToScreen(bp.toScene(lon, lat, bp.heightAt(lon, lat)));
+    return { x: s.x, y: s.y, lon, lat };
+}, { p: g, e: east, n: north });
+
+// Lines open on his field, the clay drawn.
+export async function linesOnHisLand(b) {
+    await b.page.mouse.move(900, 400);
+    await b.page.keyboard.press('5');
+    await expect(b.page.locator('#panel header .title')).toHaveText('Lines');
+    await b.page.waitForFunction(() => window.splatworld.blueprint.active
+        && window.splatworld.lines.lines(), null, { timeout: UI });
+    await expect(b.page.locator('.kp-kind').first()).toBeVisible({ timeout: UI });
+}
+
+// What the world holds for his land's lines.
+export const linesInTheWorld = (b) => b.page.evaluate(async () => {
+    const sw = window.splatworld;
+    const area = sw.lines.lines().area;
+    return sw.api.rpc('area_lines', { area: area.id });
+});

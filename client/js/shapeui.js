@@ -98,7 +98,7 @@ export function mountShape(host, ctx, { lands = () => [] } = {}) {
         refresh: () => listLands(q, state, say, lands, load),
         ...comings(ctx, state, () => listLands(q, state, say, lands, load), open,
             { leave: mountLeave(document.getElementById('hud') ?? document.body),
-                save: acts.save }),
+                save: acts.save, surface }),
     };
 }
 
@@ -109,7 +109,7 @@ const fresh = () => ({ on: false, brush: 'raise', size: 12, strength: 1, soft: 0
 
 // The surface opened (the land's grid, then the clay over it) and left —
 // asking first when there are strokes nobody has saved.
-function comings(ctx, state, list, open, { leave, save }) {
+function comings(ctx, state, list, open, { leave, save, surface }) {
     return {
         async enter() {
             state.on = true;
@@ -137,7 +137,8 @@ function comings(ctx, state, list, open, { leave, save }) {
                 else state.shaping.undoTo(0);
             }
             state.on = false;
-            ctx.bpmode.close();
+            // Only the clay Shape opened: Lines may have it by now.
+            if (ctx.bpmode.surface === surface) ctx.bpmode.close();
         },
     };
 }

@@ -1,0 +1,235 @@
+// linesui.js — Build → Lines: roads, streams, walls and hedges drawn on the
+// Blueprint clay (PLAN-editors.md §2.3; EDT.13).
+//
+// Opening the surface opens the clay over the chosen land, as Shape does. A
+// line never moves the ground by itself (D3): laying a bed is Shape's Along
+// line, reached from a selected line. What is drawn is a `feature` row of a
+// line kind the operator defined (client/lib/kinds.js), saved through the
+// same row-level security everything else is (Invariant 6).
+
+import * as api from './api.js';
+import { entriesFor, entryOf } from '../lib/kinds.js';
+import { Lines } from './lines.js';
+import { Shaping } from './sculpt.js';
+import { drawTool, dropLast } from './linetool.js';
+import { drawLines } from './linedraw.js';
+import { mountKindPicker } from './kindpicker.js';
+import { mountLeave } from './shapesave.js';
+import { el, icon } from './tabbar.js';
+
+export const LINE_TOOLS = [
+    { id: 'pan', words: 'Hand', key: 'h', icon: 'M12 3v18|M3 12h18|m9 6 3-3 3 3|m9 18 3 3 3-3' },
+    { id: 'draw', words: 'Draw a line', key: 'd', icon: 'M4 20c4-1 5-6 8-8s7-3 8-8|M4 20h.01' },
+    { id: 'select', words: 'Select and edit', key: 'v', icon: 'm4 3 7 17 2-7 7-2z' },
+    { id: 'section', words: 'Section', key: 'c', icon: 'M3 20 9 9l4 6 3-4 5 9|M3 4h18' },
+];
+
+const HTML = `
+<div class="section">
+  <label class="sh-land-row"><span class="label">Land</span>
+    <select class="ln-land"></select></label>
+</div>
+<div class="ln-bar sc-bar"></div>
+<p class="ln-status status"></p>
+<div class="section"><div class="label">Kind</div><div class="ln-kinds"></div></div>
+<div class="ln-list-host"></div>
+<p class="note">A line never moves the ground. Select one and Lay bed to shape
+  the ground under it in Shape. Nothing reaches the world until Save.</p>`;
+
+function railOf(pick, acts) {
+    const tools = el('div', { className: 'sc-rail ln-rail glass' }, ...LINE_TOOLS.map((t) => {
+        const b = el('button', { type: 'button', className: `sc-brush ln-tool-${t.id}`,
+            title: `${t.words} · ${t.key.toUpperCase()}` }, icon(t.icon),
+        el('i', { className: 'sc-key', textContent: t.key.toUpperCase() }));
+        b.dataset.tool = t.id;
+        b.onclick = () => pick(t.id);
+        return b;
+    }));
+    const deed = (cls, words, path, fn) => {
+        const b = el('button', { type: 'button', className: `sc-deed ${cls}`, title: words },
+            icon(path));
+        b.onclick = fn;
+        return b;
+    };
+    const deeds = el('div', { className: 'sc-deeds glass' },
+        deed('ln-undo', 'Undo · Ctrl-Z', 'M3 10h11a5 5 0 0 1 0 10h-4|m3 10 5-5|m3 10 5 5',
+            acts.undo),
+        deed('ln-redo', 'Redo · Ctrl-Shift-Z',
+            'M21 10H10a5 5 0 0 0 0 10h4|m21 10-5-5|m21 10-5 5', acts.redo),
+        deed('ln-save sc-save', 'Save the lines', 'M5 4h11l3 3v13H5z|M8 4v6h7V4|M8 20v-6h8v6',
+            acts.save));
+    return { tools, deeds };
+}
+
+/**
+ * ctx: {bpmode, bp, app, pc, reopen, onSaved}; `lands()` the player's areas.
+ */
+export function mountLines(host, ctx, { lands = () => [] } = {}) {
+    const node = el('div');
+    node.innerHTML = HTML;
+    host.append(node);
+    const q = (sel) => node.querySelector(sel);
+    const state = { on: false, tool: 'draw', lines: null, drawing: null, at: null,
+        selected: null, entries: [], areas: [] };
+    const say = (msg, bad = false) => {
+        q('.ln-status').textContent = msg;
+        q('.ln-status').dataset.bad = bad ? '1' : '';
+        ctx.onChange?.(state);
+    };
+    const picker = mountKindPicker(q('.ln-kinds'), { store: 'splatworld.lines.recent' });
+    const acts = actsOf(ctx, state, say, picker);
+    const rail = railOf((id) => pickTool(q, state, id, say), acts);
+    q('.ln-bar').append(rail.tools, rail.deeds);
+    const surface = linesSurface(ctx, state, acts, say);
+    q('.ln-land').addEventListener('change', (e) => chooseLand(ctx, state, e.target.value,
+        surface, say));
+    bindKeys(state, acts, picker, (id) => pickTool(q, state, id, say));
+    pickTool(q, state, 'draw', say);
+    const leave = mountLeave(document.getElementById('hud') ?? document.body);
+    return { state, surface, picker, say, ...acts, q,
+        lines: () => state.lines,
+        async enter() {
+            state.on = true;
+            if (!state.entries.length) await loadKinds(state, picker);
+            if (!state.lines) await listLands(q, state, lands);
+            if (state.areas.length) {
+                await chooseLand(ctx, state, q('.ln-land').value, surface, say);
+            }
+            else say('No land of yours to draw on — Land · 3.');
+        },
+        async leave() { await leaving(ctx, state, acts, leave, surface); },
+    };
+}
+
+async function leaving(ctx, state, acts, leave, surface) {
+    if (!state.on || state.asking) return;
+    const n = state.lines?.items.filter((l) => l.state !== 'saved').length ?? 0;
+    if (n) {
+        state.asking = true;
+        const answer = await leave.ask(`${n} line${n === 1 ? '' : 's'} on`
+            + ` ${state.lines.area.rules?.name ?? 'this land'} not saved.`);
+        state.asking = false;
+        if (answer === 'stay') { ctx.reopen?.(); return; }
+        if (answer === 'save') await acts.save();
+        else state.lines = null;
+    }
+    state.on = false;
+    state.drawing = null;
+    if (ctx.bpmode.surface === surface) ctx.bpmode.close();
+}
+
+async function loadKinds(state, picker) {
+    const [kinds, props] = await Promise.all([
+        api.select('kind', { order: 'ordering' }).catch(() => []),
+        api.select('property', { order: 'kind,ordering' }).catch(() => [])]);
+    state.entries = entriesFor('line', kinds, props, state.defaults ?? {});
+    picker.set(state.entries);
+}
+
+async function listLands(q, state, lands) {
+    state.areas = (await lands()).filter((a) => a.may_write || a.may_propose);
+    q('.ln-land').replaceChildren(...state.areas.map(
+        (a) => new Option(a.rules?.name || 'unnamed land', a.id)));
+}
+
+async function chooseLand(ctx, state, id, surface, say) {
+    const area = state.areas.find((a) => a.id === id) ?? state.areas[0];
+    if (!area) return;
+    if (state.lines?.area.id !== area.id) state.lines = await Lines.load(area, state.entries);
+    state.drawing = null;
+    state.selected = null;
+    if (!(ctx.bp.active && ctx.bpmode.surface === surface && ctx.bp.area?.id === area.id)) {
+        // The clay is the land as it is shaped, so the grid comes too.
+        await ctx.bpmode.open(area, await Shaping.load(area), surface);
+    }
+    say(`drawing on ${area.rules?.name ?? 'your land'} — click the ground`);
+}
+
+function actsOf(ctx, state, say, picker) {
+    const heightAt = (lon, lat) => ctx.bp.heightAt(lon, lat);
+    return {
+        entry: () => picker.picked,
+        finish() {
+            const d = state.drawing;
+            if (!d || d.nodes.length < 2) { say('a line needs two nodes', true); return null; }
+            state.lines.add(d);
+            state.drawing = null;
+            say(`${d.kind} drawn — Save to keep it`);
+            return d;
+        },
+        undo() {
+            if (state.drawing && dropLast(state, say)) return;
+            say(state.lines?.undo() ? 'undone' : 'nothing to undo');
+        },
+        redo() { say(state.lines?.redo() ? 'redone' : 'nothing to redo'); },
+        async save() {
+            if (!state.lines?.dirty) { say('nothing drawn yet'); return null; }
+            try {
+                const got = await state.lines.save(heightAt);
+                const n = got.saved + got.dropped;
+                say(`${n} line${n === 1 ? '' : 's'} saved`);
+                ctx.onSaved?.();
+                return got;
+            } catch (err) {
+                say(String(err.body?.message ?? err.message ?? err), true);
+                return null;
+            }
+        },
+        say,
+    };
+}
+
+function pickTool(q, state, id, say) {
+    state.tool = id;
+    for (const b of q('.ln-rail').children) {
+        b.classList.toggle('picked', b.dataset.tool === id);
+        b.setAttribute('aria-selected', String(b.dataset.tool === id));
+    }
+    say(LINE_TOOLS.find((t) => t.id === id)?.words ?? id);
+}
+
+function linesSurface(ctx, state, acts, say) {
+    const draw = drawTool(state, { ...acts, say });
+    const look = (line) => entryOf(state.entries, line.kind, line.props) ?? {};
+    return {
+        tool: () => (state.tool === 'draw' || state.tool === 'select' ? 'tool' : state.tool),
+        down: (g, e) => { if (state.tool === 'draw') draw.down(g, e); },
+        move: (g, e) => { if (g) state.at = g; if (state.tool === 'draw') draw.move(g, e); },
+        up: (g, e) => { if (state.tool === 'draw') draw.up(g, e); },
+        hover: (g) => { if (g) state.at = g; },
+        describe: (g, base) => base,
+        draw: () => drawLines(ctx.bp, ctx.app, ctx.pc, { lines: state.lines?.live ?? [],
+            drawing: state.drawing, look, selected: state.selected,
+            at: state.tool === 'draw' ? state.at : null }),
+    };
+}
+
+// The rail's keys, the kinds on 1–9, Enter and Esc while a line is being
+// drawn. Esc is taken before the chrome hears it, which would close the panel.
+function bindKeys(state, acts, picker, pick) {
+    window.addEventListener('keydown', (e) => {
+        if (!state.on) return;
+        if (e.target?.closest?.('input, select, textarea, [contenteditable]')) return;
+        if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'z') {
+            e.preventDefault();
+            (e.shiftKey ? acts.redo : acts.undo)();
+            return;
+        }
+        if (e.ctrlKey || e.metaKey || e.altKey) return;
+        if (e.key === 'Enter' && state.drawing) { e.preventDefault(); acts.finish(); return; }
+        if (e.key === 'Escape' && state.drawing) {
+            e.preventDefault();
+            e.stopImmediatePropagation();
+            dropLast(state, acts.say);
+            return;
+        }
+        const tool = LINE_TOOLS.find((t) => t.key === e.key.toLowerCase());
+        if (tool) { e.preventDefault(); pick(tool.id); return; }
+        // 1–9 are the kinds while Lines is open, not the plinth's surfaces.
+        if (/^[1-9]$/.test(e.key)) {
+            e.preventDefault();
+            e.stopImmediatePropagation();
+            picker.key(Number(e.key));
+        }
+    }, true);
+}

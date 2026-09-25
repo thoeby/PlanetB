@@ -1,0 +1,70 @@
+// linedraw.js — the land's lines on the Blueprint clay, every frame: each as
+// a band of its kind's width lying flat on the ground in its swatch, with its
+// centre line; the one being drawn with its nodes and a rubber band to the
+// pointer (PLAN-editors.md ideas 17 and 20). What is drawn is worked out once
+// per change and kept on the line (`cache`).
+
+import { drawMark, drawPath } from './bpdraw.js';
+import { frameAt } from '../lib/spline.js';
+import { curveOf } from './lines.js';
+
+export function colourOf(pc, hex, k = 1) {
+    const n = parseInt(String(hex ?? '#9aa4ad').slice(1), 16);
+    return new pc.Color(((n >> 16) & 255) / 255 * k, ((n >> 8) & 255) / 255 * k,
+        (n & 255) / 255 * k);
+}
+
+// The centre and both edges of a line's band, in degrees.
+export function bandOf(line, width) {
+    const centre = curveOf(line);
+    if (centre.length < 2) return { centre, left: [], right: [] };
+    const f = frameAt(centre[0].lon, centre[0].lat);
+    const xz = centre.map((p) => f.toXZ(p.lon, p.lat));
+    const half = Math.max(0.1, width / 2);
+    const left = [];
+    const right = [];
+    for (let i = 0; i < xz.length; i++) {
+        const a = xz[Math.max(0, i - 1)];
+        const b = xz[Math.min(xz.length - 1, i + 1)];
+        const d = Math.hypot(b[0] - a[0], b[1] - a[1]) || 1;
+        const nx = -(b[1] - a[1]) / d;
+        const nz = (b[0] - a[0]) / d;
+        left.push(f.toLonLat([xz[i][0] + nx * half, xz[i][1] + nz * half]));
+        right.push(f.toLonLat([xz[i][0] - nx * half, xz[i][1] - nz * half]));
+    }
+    return { centre, left, right };
+}
+
+function drawOne(bp, app, pc, line, { swatch, width, lit = false }) {
+    if (line.nodes.length < 2) return;
+    line.cache = line.cache ?? bandOf(line, Number(line.props?.width) || width || 2);
+    const c = line.cache;
+    const edge = colourOf(pc, swatch, lit ? 1 : 0.75);
+    drawPath(bp, app, pc, c.left, edge, { step: 6 });
+    drawPath(bp, app, pc, c.right, edge, { step: 6 });
+    drawPath(bp, app, pc, c.centre, colourOf(pc, swatch, lit ? 1.2 : 1), { step: 6 });
+}
+
+/**
+ * Everything Lines draws. `look(line)` answers the entry (swatch, width) a
+ * line is drawn as; `selected` is lit; `ghosts` are neighbours', faint.
+ */
+export function drawLines(bp, app, pc, { lines, drawing, look, selected, at, ghosts = [] }) {
+    for (const g of ghosts) {
+        drawOne(bp, app, pc, g, { swatch: '#6d7780', width: Number(g.props?.width) || 2 });
+    }
+    for (const line of lines) {
+        drawOne(bp, app, pc, line, { ...look(line), lit: line === selected });
+    }
+    if (selected) {
+        for (const [i, n] of selected.nodes.entries()) {
+            drawMark(bp, app, pc, n, selected.corner[i] ? new pc.Color(1, 0.6, 0.3)
+                : new pc.Color(1, 1, 1), 1.2);
+        }
+    }
+    if (!drawing) return;
+    drawOne(bp, app, pc, drawing, { ...look(drawing), lit: true });
+    for (const n of drawing.nodes) drawMark(bp, app, pc, n, new pc.Color(1, 1, 1), 1.2);
+    const tail = drawing.nodes.at(-1);
+    if (tail && at) drawPath(bp, app, pc, [tail, at], new pc.Color(0.8, 0.85, 0.9));
+}

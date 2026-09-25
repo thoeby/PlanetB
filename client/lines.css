@@ -1,0 +1,20 @@
+/* lines.css — the Lines panel (EDT.13-18, docs/design/splatworld-v11.dc.html
+ * 11c): the kind picker, the list of the land's lines, and the selected
+ * line's fields. The rail borrows Shape's look (client/terrain.css). */
+
+.ln-bar { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 8px; }
+
+/* The palette: a search over the kinds, each with its swatch, what it
+   becomes, and its key. */
+.kp { display: flex; flex-direction: column; gap: 6px; }
+.kp-search { width: 100%; }
+.kp-list { list-style: none; margin: 0; padding: 0; max-height: 220px; overflow-y: auto; }
+.kp-kind {
+  display: grid; grid-template-columns: 12px 1fr auto 22px; align-items: center; gap: 8px;
+  padding: 5px 6px; border-bottom: 1px solid var(--edge-2); cursor: pointer; font-size: 12px;
+}
+.kp-kind:hover { background: rgba(255, 255, 255, 0.05); }
+.kp-kind[aria-selected="true"] { box-shadow: inset 2px 0 0 var(--accent); color: var(--accent); }
+.kp-swatch { width: 12px; height: 12px; display: block; }
+.kp-says { font-size: 11px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.kp-kind kbd { justify-self: end; }
