@@ -43,9 +43,10 @@ test('story 43 — numbers and words at the pointer, and a peek under the clay',
             await b.page.evaluate(() => {
                 const cam = window.splatworld.bpmode.cam;
                 cam.state.pitch = 30;
+                cam.state.distance = 6000;
                 cam.update();
             });
-            await b.page.mouse.move(800, 200, { steps: 4 });
+            await b.page.mouse.move(1000, 52, { steps: 4 });
             await expect(tag).toHaveText('no ground', { timeout: UI });
         });
 

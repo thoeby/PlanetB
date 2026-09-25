@@ -9,6 +9,7 @@
 
 import { clampDistance, orbitBy, orthoHeight, pose, zoomToward } from '../lib/orbit.js';
 import { pickGround } from './blueprint.js';
+import { WalkAlong } from './bpwalk.js';
 
 const FOV = 45;
 // Past this distance only the ten-metre contours are drawn.
@@ -106,8 +107,26 @@ export class BlueprintCamera {
     }
 
     // Every frame while open: the camera where the state says.
-    update() {
+    // Walk it: along a line at eye height until it ends or Esc (bpwalk.js).
+    walk(points) {
+        if (points.length < 2) return null;
+        this.walking = new WalkAlong(this.bp, points, this.state.target);
+        return this.walking;
+    }
+
+    stopWalking() {
+        const was = Boolean(this.walking);
+        this.walking = null;
+        this.update();
+        return was;
+    }
+
+    update(dt = 0) {
         if (!this.on || !this.state.target || !this.bp.active) return;
+        if (this.walking) {
+            this.walking.step(this.ctx.camera, dt);
+            return;
+        }
         const got = pose(this.state, this.targetScene());
         const cam = this.ctx.camera;
         cam.setPosition(got.pos.x, got.pos.y, got.pos.z);

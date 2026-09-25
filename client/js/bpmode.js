@@ -84,7 +84,7 @@ export function mountBlueprintMode(ctx) {
 
 function drawFrame(bp, app, pc, cam, st, dt) {
     if (!bp.active) return;
-    cam.update();
+    cam.update(dt);
     st.surface?.tick?.(dt);
     if (st.section?.b) {
         drawPath(bp, app, pc, [st.section.a, st.section.b], new pc.Color(1, 0.8, 0.3));
@@ -107,7 +107,7 @@ export function describe(bp, g, lost) {
     };
 }
 
-function pointerHandlers(ctx, { bp, cam, st, strip, pick, tool, say }) {
+function pointerHandlers(ctx, { bp, cam, st, strip, pick, tool, say, words }) {
     const move = (e) => {
         const g = pick(e);
         st.lost = !g;
@@ -151,6 +151,7 @@ function pointerHandlers(ctx, { bp, cam, st, strip, pick, tool, say }) {
         }],
         ['pointermove', move],
         ['pointerup', up],
-        ['pointerleave', (e) => { if (st.down) up(e); st.lost = true; say(e); }],
+        // Off the clay (onto a panel, the strip): the words at the pointer go.
+        ['pointerleave', (e) => { if (st.down) up(e); st.lost = true; words.hide(); }],
     ];
 }

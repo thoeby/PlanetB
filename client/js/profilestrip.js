@@ -22,7 +22,7 @@ export function mountProfileStrip(host) {
     const node = el('div', { id: 'profile-strip', className: 'glass', hidden: true },
         el('div', { className: 'spread ps-head' }, title, el('span', {}, says, shut)), canvas);
     host.append(node);
-    const state = { samples: [], max: null, marked: null, hover: null, go: null };
+    const state = { samples: [], max: null, marked: null, hover: null, go: null, marks: [] };
 
     const x = (at) => PAD + (at / Math.max(1, state.samples.at(-1)?.at ?? 1)) * (W - 2 * PAD);
     const atOf = (px) => (px - PAD) / (W - 2 * PAD) * (state.samples.at(-1)?.at ?? 0);
@@ -49,14 +49,17 @@ export function mountProfileStrip(host) {
         get samples() { return state.samples; },
         get marked() { return state.marked; },
         // `max`: the gradient over which a stretch is red, or null for none.
-        show(samples, { name = 'Section', max = null } = {}) {
+        // `marks`: points along it worth going to ({at}), drawn as ticks.
+        show(samples, { name = 'Section', max = null, marks = [] } = {}) {
             state.samples = samples;
             state.max = max;
+            state.marks = marks;
             state.marked = null;
             const len = samples.at(-1)?.at ?? 0;
             const over = max ? overGradient(samples, max) : [];
             title.textContent = `${name} · ${Math.round(len)} m`;
-            says.textContent = stripWords(samples, max, over);
+            says.textContent = stripWords(samples, max, over)
+            + (marks.length ? ` \u00b7 ${marks.length} too steep across` : '');
             node.hidden = false;
             draw();
             return over;
@@ -107,6 +110,15 @@ function paint(canvas, state, x) {
             }
             g.stroke();
         }
+    }
+    g.fillStyle = 'rgb(222,84,60)';
+    for (const m of state.marks ?? []) {
+        const mx = x(m.at);
+        g.beginPath();
+        g.moveTo(mx - 5, 0);
+        g.lineTo(mx + 5, 0);
+        g.lineTo(mx, 9);
+        g.fill();
     }
     if (state.marked) {
         g.fillStyle = 'rgb(240,190,70)';

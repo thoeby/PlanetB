@@ -17,16 +17,12 @@ import { drawLines } from './linedraw.js';
 import { deleteNode, handlesOf, hitAt, selectTool } from './lineedit.js';
 import { mountNodeMenu } from './linesmenu.js';
 import { drawMark } from './bpdraw.js';
+import { LINE_TOOLS } from './linetools.js';
+import { bindKeys, describeSelected, reselect, showProfile } from './linesdo.js';
 import { mountKindPicker } from './kindpicker.js';
 import { mountLeave } from './shapesave.js';
 import { el, icon } from './tabbar.js';
 
-export const LINE_TOOLS = [
-    { id: 'pan', words: 'Hand', key: 'h', icon: 'M12 3v18|M3 12h18|m9 6 3-3 3 3|m9 18 3 3 3-3' },
-    { id: 'draw', words: 'Draw a line', key: 'd', icon: 'M4 20c4-1 5-6 8-8s7-3 8-8|M4 20h.01' },
-    { id: 'select', words: 'Select and edit', key: 'v', icon: 'm4 3 7 17 2-7 7-2z' },
-    { id: 'section', words: 'Section', key: 'c', icon: 'M3 20 9 9l4 6 3-4 5 9|M3 4h18' },
-];
 
 const HTML = `
 <div class="section">
@@ -89,7 +85,7 @@ export function mountLines(host, ctx, { lands = () => [] } = {}) {
     acts.deleteNode = surface.deleteNode;
     q('.ln-land').addEventListener('change', (e) => chooseLand(ctx, state, e.target.value,
         surface, say));
-    bindKeys(state, acts, picker, (id) => pickTool(q, state, id, say));
+    bindKeys(ctx, state, acts, picker, (id) => pickTool(q, state, id, say));
     pickTool(q, state, 'draw', say);
     const leave = mountLeave(document.getElementById('hud') ?? document.body);
     return { state, surface, picker, say, ...acts, q,
@@ -210,7 +206,11 @@ function pickTool(q, state, id, say) {
 function linesSurface(ctx, state, acts, say) {
     const draw = drawTool(state, { ...acts, say });
     const tol = () => 12 * metresPerPx(ctx);
-    const said = (words) => say(words ?? describeSelected(state));
+    // What is said about the selection, and its profile along the bottom.
+    const said = (words) => {
+        say(words ?? describeSelected(state));
+        showProfile(ctx, state);
+    };
     const select = selectTool(state, { ...acts, tol, said });
     const menu = mountNodeMenu(document.getElementById('hud') ?? document.body, { state,
         done: (id, words) => {
@@ -250,52 +250,3 @@ function linesSurface(ctx, state, acts, say) {
     };
 }
 
-// Undo puts back copies of the lines, so the selection follows its key.
-function reselect(state) {
-    const key = state.selected?.key;
-    state.selected = key ? state.lines?.live.find((l) => l.key === key) ?? null : null;
-    if (!state.selected) state.node = null;
-}
-
-// What the selected line is, in a line.
-function describeSelected(state) {
-    const l = state.selected;
-    if (!l) return 'nothing selected — click a line';
-    const n = state.node;
-    return `${l.kind}${l.props?.[l.kind] ? ` \u00b7 ${l.props[l.kind]}` : ''}, ${l.nodes.length}`
-        + ` nodes${Number.isInteger(n) ? ` \u00b7 node ${n + 1} in hand` : ''}`;
-}
-
-// The rail's keys, the kinds on 1–9, Enter and Esc while a line is being
-// drawn. Esc is taken before the chrome hears it, which would close the panel.
-function bindKeys(state, acts, picker, pick) {
-    window.addEventListener('keydown', (e) => {
-        if (!state.on) return;
-        if (e.target?.closest?.('input, select, textarea, [contenteditable]')) return;
-        if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'z') {
-            e.preventDefault();
-            (e.shiftKey ? acts.redo : acts.undo)();
-            return;
-        }
-        if (e.ctrlKey || e.metaKey || e.altKey) return;
-        if (e.key === 'Enter' && state.drawing) { e.preventDefault(); acts.finish(); return; }
-        if (e.key === 'Escape' && state.drawing) {
-            e.preventDefault();
-            e.stopImmediatePropagation();
-            dropLast(state, acts.say);
-            return;
-        }
-        if ((e.key === 'Delete' || e.key === 'Backspace') && acts.deleteNode?.()) {
-            e.preventDefault();
-            return;
-        }
-        const tool = LINE_TOOLS.find((t) => t.key === e.key.toLowerCase());
-        if (tool) { e.preventDefault(); pick(tool.id); return; }
-        // 1–9 are the kinds while Lines is open, not the plinth's surfaces.
-        if (/^[1-9]$/.test(e.key)) {
-            e.preventDefault();
-            e.stopImmediatePropagation();
-            picker.key(Number(e.key));
-        }
-    }, true);
-}
