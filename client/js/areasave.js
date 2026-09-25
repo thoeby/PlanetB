@@ -10,17 +10,20 @@ import { dropFeature, saveFeature } from './edit.js';
 import { difference, overlaps, union } from '../lib/polyops.js';
 
 /**
- * The areas as they will be written: each unsaved one joined with the saved
- * ones of its kind it overlaps (those go), and cutting the ones of other kinds
- * it lies over. Answers what it did, per area, for the sentence.
+ * The areas as they will be written: each unsaved one joined with the older
+ * ones of its kind it overlaps (those go), and cutting the older ones of other
+ * kinds it lies over — the newest drawn wins. Answers what it did, per area,
+ * for the sentence.
  */
 export function settle(areas) {
     const said = [];
-    for (const a of areas.items.filter((x) => x.state === 'new' || x.state === 'changed')) {
+    const order = [...areas.items];
+    order.forEach((a, i) => {
+        if (a.state !== 'new' && a.state !== 'changed') return;
         let merged = 0;
         let cut = 0;
-        for (const b of areas.items) {
-            if (b === a || b.state === 'deleted' || !overlaps(a.polys, b.polys)) continue;
+        for (const b of order.slice(0, i)) {
+            if (gone(b) || gone(a) || !overlaps(a.polys, b.polys)) continue;
             if (b.kind === a.kind && b.props?.[b.kind] === a.props?.[a.kind]) {
                 a.polys = union(a.polys, b.polys);
                 b.state = b.id ? 'deleted' : 'gone';
@@ -33,10 +36,12 @@ export function settle(areas) {
             }
         }
         said.push({ area: a, merged, cut });
-    }
+    });
     areas.items = areas.items.filter((x) => x.state !== 'gone');
-    return said;
+    return said.filter((x) => !gone(x.area));
 }
+
+const gone = (a) => a.state === 'gone' || a.state === 'deleted';
 
 export const sentence = ({ area, merged, cut }) => {
     const what = area.props?.[area.kind] ?? area.kind;

@@ -11,7 +11,7 @@ import { PROJ } from './areasmap.js';
 export const AREA_TOOLS = [
     { id: 'pan', words: 'Hand', key: 'h' },
     { id: 'draw', words: 'Draw', key: 'd' },
-    { id: 'paint', words: 'Paint', key: 'p' },
+    { id: 'paint', words: 'Paint', key: 'b' },
     { id: 'edit', words: 'Edit', key: 'v' },
     { id: 'erase', words: 'Erase', key: 'e' },
 ];

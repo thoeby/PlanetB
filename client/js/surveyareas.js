@@ -120,11 +120,13 @@ function actsOf(state, q, say) {
             }
         },
         redraw,
+        say,
     };
 }
 
 // The model's areas onto the map, the selected one lit.
 function drawAreas(state) {
+    state.cols.form();
     if (!state.areas) return;
     fill(state.m, 'areas', state.areas.live.map((a) => ({ ...state.areas.featureOf(a),
         id: a.key, key: a.key, selected: a === state.selected,

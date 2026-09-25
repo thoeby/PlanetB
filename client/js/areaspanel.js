@@ -5,6 +5,7 @@
 
 import { AREA_TOOLS } from './areastools.js';
 import { mountKindPicker } from './kindpicker.js';
+import { mountFields } from './linespanel.js';
 import { el } from './tabbar.js';
 
 const ICON = { pan: '✋', draw: '✎', paint: '●', edit: '⌖', erase: '⌫' };
@@ -29,22 +30,38 @@ export function mountColumns(q, state, acts) {
         el('p', { className: 'note ar-rule', textContent: 'Two areas of the same kind that'
             + ' overlap become one on Save; a different kind cuts a hole. Anything past your'
             + ' land is clipped off.' }));
-    const picker = mountKindPicker(kinds, { store: 'splatworld.areas.recent' });
+    let picked = () => {};
+    const picker = mountKindPicker(kinds, { store: 'splatworld.areas.recent',
+        onPick: () => picked() });
     const right = q('.ar-right');
-    const fields = el('div', { className: 'ar-fields' });
     const save = el('button', { type: 'button', className: 'ar-save primary',
         textContent: 'Save' });
     const said = el('p', { className: 'ar-said muted' });
+    const which = el('p', { className: 'note ar-which' });
     save.onclick = () => acts.save();
-    right.append(el('div', { className: 'label', textContent: 'Properties' }), fields, save, said);
+    right.append(el('div', { className: 'label', textContent: 'Properties' }), which);
+    // The selected area's fields, as the vocabulary has them; with none
+    // selected, what a new one will be — the kind picked, its class set.
+    const fields = mountFields(right, state, (words) => { acts.redraw(); acts.say(words); },
+        { model: () => state.areas, prefix: 'ar' });
+    right.append(save, said);
+    picked = () => form(state, which, fields);
     return {
-        picker, fields, said,
+        picker, said,
+        form: () => form(state, which, fields),
         pressed(id) {
             for (const b of tools.children) {
                 b.setAttribute('aria-pressed', String(b.dataset.tool === id));
             }
         },
     };
+}
+
+function form(state, which, fields) {
+    const e = state.cols?.picker.picked;
+    which.textContent = state.selected ? ''
+        : e ? `A new area will be ${e.words}.` : 'Pick a kind.';
+    fields.draw();
 }
 
 // The tools' keys while Areas is open and nobody is typing.

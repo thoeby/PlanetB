@@ -106,8 +106,8 @@ export function mountList(host, ctx, state, pick) {
 
 // The selected line's fields: a name, and its kind's own properties from the
 // vocabulary, each as the form its type says (PLAN-editors idea 31).
-export function mountFields(host, state, say) {
-    const box = el('div', { className: 'ln-fields' });
+export function mountFields(host, state, say, { model = () => state.lines, prefix = 'ln' } = {}) {
+    const box = el('div', { className: `${prefix}-fields` });
     host.append(box);
     let drawn = null;
     const field = (p, line) => {
@@ -118,13 +118,13 @@ export function mountFields(host, state, say) {
                 ? 'checkbox' : 'text' });
         if (p.type === 'boolean') input.checked = Boolean(v);
         else input.value = v ?? '';
-        input.className = `ln-field ln-field-${p.name.replace(/[^a-z0-9]/g, '-')}`;
+        input.className = `${prefix}-field ${prefix}-field-${p.name.replace(/[^a-z0-9]/g, '-')}`;
         input.onchange = () => {
-            state.lines.remember();
+            model().remember();
             const raw = p.type === 'boolean' ? input.checked : input.value;
             const val = p.type === 'number' ? (raw === '' ? undefined : Number(raw)) : raw;
             line.props = { ...line.props, [p.name]: val === '' ? undefined : val };
-            state.lines.changed(line);
+            model().changed(line);
             say(`${p.label || p.name} changed — Save to keep it`);
         };
         return el('label', {}, p.label || p.name, input);

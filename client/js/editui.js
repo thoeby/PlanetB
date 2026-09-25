@@ -11,7 +11,7 @@
 
 import * as api from './api.js';
 import { createArea } from './areas.js';
-import { KIND_NAMES, KINDS, dropFeature, geometryOf, permissionOf, propsFrom,
+import { PICKABLE, KINDS, dropFeature, geometryOf, permissionOf, propsFrom,
     readAreas, readFeatures, saveFeature, valuesOf } from './edit.js';
 import { PROJ, buildMap, geoOf, viewBbox } from './editmap.js';
 
@@ -318,7 +318,7 @@ export function mountEditor(doc, { mountAuth } = {}) {
         fail: (err) => say(String(err.body?.message ?? err.message ?? err), true),
         state: { areas: [], target: null, pending: null, selected: null, draw: null } };
 
-    for (const k of KIND_NAMES) q('.edit-kind').append(new Option(k, k));
+    for (const k of PICKABLE) q('.edit-kind').append(new Option(k, k));
     q('.edit-kind').value = 'landuse';
     renderForm(q('.edit-props'), 'landuse', null);
     interactions(ctx);
