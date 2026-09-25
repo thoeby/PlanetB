@@ -16,6 +16,7 @@ import { Areas, areaOf } from './areasmodel.js';
 import { drawInteraction, paintHandlers, toolsFor } from './areastools.js';
 import { areaKeys, mountColumns } from './areaspanel.js';
 import { saveAreas } from './areasave.js';
+import { areaClick, editInteractions, erase, stepBack } from './areasedit.js';
 import { entriesFor, entryOf } from '../lib/kinds.js';
 
 const HTML = `
@@ -67,7 +68,7 @@ async function start(state, q, say, acts) {
     if (!ol) return false;
     const ground = await api.rpc('ground').catch(() => null);
     state.m = buildAreasMap(ol, q('.ar-map'), ground);
-    clicks(state, q);
+    clicks(state, q, acts);
     const [kinds, props] = await Promise.all([
         api.select('kind', { order: 'ordering' }).catch(() => []),
         api.select('property', { order: 'kind,ordering' }).catch(() => [])]);
@@ -75,8 +76,9 @@ async function start(state, q, say, acts) {
     state.entries = entriesFor('polygon', kinds, props,
         { building: { hidden: true }, terrainmod: { hidden: true } });
     state.cols.picker.set(state.entries);
-    state.own = { draw: drawInteraction(state.m, state, acts.made) };
-    state.m.map.addInteraction(state.own.draw);
+    state.own = { draw: drawInteraction(state.m, state, acts.made),
+        edit: editInteractions(state.m, state, acts) };
+    for (const i of [state.own.draw, ...state.own.edit]) state.m.map.addInteraction(i);
     paintHandlers(state.m, state, acts.made);
     acts.tool('pan');
     return true;
@@ -84,6 +86,7 @@ async function start(state, q, say, acts) {
 
 function actsOf(state, q, say) {
     const redraw = () => drawAreas(state);
+    let acts = null;
     const made = {
         say,
         made(polys, clipped) {
@@ -97,13 +100,17 @@ function actsOf(state, q, say) {
             return a;
         },
     };
-    return {
+    acts = {
         made,
         tool(id) {
             state.tool = id;
             state.cols.pressed(id);
             if (state.m && state.own) toolsFor(state.m, state, state.own);
+            state.hold?.();
         },
+        undo: () => stepBack(state, acts),
+        redo: () => stepBack(state, acts, true),
+        erase: () => state.selected && erase(state, state.selected, acts),
         async save() {
             if (!state.areas?.dirty) {
                 state.cols.said.textContent = 'nothing to save';
@@ -122,6 +129,7 @@ function actsOf(state, q, say) {
         redraw,
         say,
     };
+    return acts;
 }
 
 // The model's areas onto the map, the selected one lit.
@@ -131,6 +139,7 @@ function drawAreas(state) {
     fill(state.m, 'areas', state.areas.live.map((a) => ({ ...state.areas.featureOf(a),
         id: a.key, key: a.key, selected: a === state.selected,
         swatch: entryOf(state.entries, a.kind, a.props)?.swatch })));
+    state.hold?.();
 }
 
 // Every land there is: the player's own to pick from, the rest to be dimmed.
@@ -171,10 +180,12 @@ async function choose(state, q, say, id) {
     say(`${land.rules?.name ?? 'your land'} \u00b7 ${n} area${n === 1 ? '' : 's'}`);
 }
 
-// A click on a line says where lines are edited; it is not this map's to change.
-function clicks(state, q) {
+// A click with Edit or Erase is on an area; otherwise a click on a line says
+// where lines are edited — it is not this map's to change.
+function clicks(state, q, acts) {
     const tag = q('.ar-tag');
     state.m.map.on('singleclick', (e) => {
+        if (areaClick(state, e.pixel, acts)) { tag.hidden = true; return; }
         let line = null;
         state.m.map.forEachFeatureAtPixel(e.pixel, (f, layer) => {
             if (layer?.getSource() === state.m.sources.lines) line = f;

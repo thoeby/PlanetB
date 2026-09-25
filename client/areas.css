@@ -40,3 +40,7 @@
   display: flex; flex-direction: column; gap: 8px;
 }
 #panel[data-part="Areas"] .ar { width: 100%; flex: 1; height: auto; min-height: 0; }
+
+/* Undo and redo under Save (EDT.22): two halves of one row. */
+.ar-steps { display: flex; gap: 6px; }
+.ar-steps button { flex: 1; }

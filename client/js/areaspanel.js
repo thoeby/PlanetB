@@ -39,12 +39,20 @@ export function mountColumns(q, state, acts) {
     const said = el('p', { className: 'ar-said muted' });
     const which = el('p', { className: 'note ar-which' });
     save.onclick = () => acts.save();
-    right.append(el('div', { className: 'label', textContent: 'Properties' }), which);
+    const undo = el('button', { type: 'button', className: 'ar-undo', textContent: 'Undo',
+        title: 'Undo · Ctrl-Z' });
+    const redo = el('button', { type: 'button', className: 'ar-redo', textContent: 'Redo',
+        title: 'Redo · Ctrl-Shift-Z' });
+    undo.onclick = () => acts.undo();
+    redo.onclick = () => acts.redo();
+    // Save at the head of the column, where a long form cannot push it off.
+    right.append(save, el('div', { className: 'ar-steps' }, undo, redo), said,
+        el('div', { className: 'label', textContent: 'Properties' }), which);
     // The selected area's fields, as the vocabulary has them; with none
     // selected, what a new one will be — the kind picked, its class set.
     const fields = mountFields(right, state, (words) => { acts.redraw(); acts.say(words); },
         { model: () => state.areas, prefix: 'ar' });
-    right.append(save, said);
+
     picked = () => form(state, which, fields);
     return {
         picker, said,
@@ -67,8 +75,19 @@ function form(state, which, fields) {
 // The tools' keys while Areas is open and nobody is typing.
 export function areaKeys(state, acts) {
     window.addEventListener('keydown', (e) => {
-        if (!state.shown() || e.ctrlKey || e.metaKey || e.altKey) return;
+        if (!state.shown() || e.altKey) return;
         if (e.target?.closest?.('input, select, textarea, [contenteditable]')) return;
+        if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'z') {
+            e.preventDefault();
+            if (e.shiftKey) acts.redo(); else acts.undo();
+            return;
+        }
+        if (e.ctrlKey || e.metaKey) return;
+        if ((e.key === 'Delete' || e.key === 'Backspace') && state.selected) {
+            e.preventDefault();
+            acts.erase();
+            return;
+        }
         const t = AREA_TOOLS.find((x) => x.key === e.key.toLowerCase());
         if (t) { e.preventDefault(); acts.tool(t.id); }
     });
