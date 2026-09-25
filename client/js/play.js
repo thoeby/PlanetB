@@ -118,6 +118,7 @@ function mountAuthPanel(ctx) {
             ctx.land.refresh(); ctx.assignLand.refresh(); ctx.attention.refresh();
             ctx.submit.refresh(); ctx.pool.refresh(); ctx.permission.refresh();
             ctx.sculpt.refresh();
+            ctx.peers.signedIn();
             ctx.showWho();
         },
     });
