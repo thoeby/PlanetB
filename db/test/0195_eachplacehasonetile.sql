@@ -25,7 +25,7 @@ SELECT is((SELECT algo_version FROM atom
            WHERE job_id = (SELECT jid FROM j) AND op = 'train'), 'train-v22',
     'the tile trains with train-v22');
 SELECT is((SELECT algo_version FROM atom
-           WHERE job_id = (SELECT jid FROM j) AND op = 'dataset'), 'dataset-v8',
+           WHERE job_id = (SELECT jid FROM j) AND op = 'dataset'), 'dataset-v9',
     'and its ground meets the neighbour''s at the edge');
 SELECT is(algo_current('train'), 'train-v22', 'and the pool hands that out');
 

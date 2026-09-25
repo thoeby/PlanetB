@@ -21,12 +21,13 @@
 // and 1280 px frames (db/0188). v6 is assemble-v15: the ground runs three
 // metres past the tile's edge (client/lib/skirt.js, db/0192). v7 is
 // assemble-v16: a skirt that builds no walls (db/0194). v8 is assemble-v17:
-// the edge heights carried out to the edge (db/0195).
+// the edge heights carried out to the edge (db/0195). v9 is assemble-v18:
+// no part with a role is baked (db/0200).
 import { run as assemble } from './assemble.js';
 import { renderFrames } from './frame.js';
 import { readTar, writeTar } from '../lib/tar.js';
 
-export const ALGO = 'dataset-v8';
+export const ALGO = 'dataset-v9';
 
 export async function run(ctx) {
     const { atom, canvas, log } = ctx;

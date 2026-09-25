@@ -26,9 +26,12 @@ export const ROLES = [
     { id: 'screen', words: 'Shows something', ports: ['image'] },
     { id: 'door', words: 'Opens', ports: ['open'] },
     { id: 'rotor', words: 'Turns', ports: ['speed'] },
+    // LV.1: a part that moves as it is told — a crane's arm, a gate's bar.
+    { id: 'joint', words: 'Moves', ports: ['pose', 'path', 'spin'] },
 ];
 
-export const PORT_TYPES = ['boolean', 'number', 'text', 'image', 'colour'];
+export const PORT_TYPES = ['boolean', 'number', 'text', 'image', 'colour',
+    'pose', 'path', 'spin'];
 
 // The ports a role offers, with what each one drives and what it is when
 // nobody has said otherwise.
@@ -39,6 +42,11 @@ export const PORTS = {
     image: { type: 'image', default: '', what: 'texture' },
     open: { type: 'number', default: '0.000', what: 'pose' },
     speed: { type: 'number', default: '0.000', what: 'rate' },
+    // A joint starts where the maker left it, so none of the three has a
+    // value to start from (db/0200 rest_pose).
+    pose: { type: 'pose', default: '', what: 'pose' },
+    path: { type: 'path', default: '', what: 'path' },
+    spin: { type: 'spin', default: '', what: 'spin' },
 };
 
 export const roleWords = (role) => ROLES.find((r) => r.id === role)?.words ?? role;

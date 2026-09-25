@@ -443,7 +443,7 @@
       },
     },
     live: { wrote: (id, port, done) => {
-      liveWorld.wrote(id, port, done.value, done.rev);
+      liveWorld.wrote(id, port, done.value, done.rev, done.clock, done.start);
       liveDraw.apply(liveWorld);
     } },
   });
@@ -1024,6 +1024,8 @@
     groundMesh?.update(camera.getPosition());
     // FND.16: every mover put where this second says it is. Nothing is stored
     // per frame — the clock and the route say where it is, for everybody.
+    // LV.1: and every moving part where the same clock puts it.
+    liveDraw.tick(liveWorld, movers.clock());
     if (!placing) {
       placing = moverDraw.place(movers.where(), groundUnder)
         .finally(() => { placing = null; });

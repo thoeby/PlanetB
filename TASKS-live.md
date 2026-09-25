@@ -59,7 +59,7 @@ everything the tab does here is built-in code.
   WebTransport listener in node; the operator node listens on WebSockets and
   WebRTC-direct and relays. Said in `tools/node.mjs`.
 
-Migrations continue at `db/0199`, player-run stories at 40.
+Migrations continue at `db/0200`, player-run stories at 40.
 
 ---
 
