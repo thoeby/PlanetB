@@ -14,7 +14,8 @@ export default defineConfig({
     testDir: '.',
     // A story is allowed to render a tile, which is minutes on a software
     // adapter. A story that has nothing to render is nowhere near this.
-    timeout: 900_000,
+    // RUN_RENDER_S (client/test/run/players.js) raises this with it.
+    timeout: Math.max(900_000, (Number(process.env.RUN_RENDER_S ?? 600) + 600) * 1000),
     expect: { timeout: 30_000 },
     // Stories run in order and each stands on the last one's world.
     fullyParallel: false,

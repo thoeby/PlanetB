@@ -83,7 +83,20 @@ export class LiveWorld {
         this.since = 0;
         // `${instance}|${port}` -> value
         this.values = new Map();
+        // `${instance}|${port}` -> { value, clock, start, rev } (LV.1: a
+        // motion is evaluated from the clock of its write and where it began)
+        this.rows = new Map();
         this.changed = 0;
+    }
+
+    // Every row of one thing, as client/lib/joint.js wants them.
+    rowsOf(id) {
+        const out = [];
+        for (const [key, row] of this.rows) {
+            const [who, port] = key.split('|');
+            if (who === id) out.push({ ...row, port });
+        }
+        return out;
     }
 
     at(id, port) { return this.values.get(`${id}|${port}`); }
@@ -102,6 +115,8 @@ export class LiveWorld {
         let n = 0;
         for (const row of rows ?? []) {
             this.values.set(`${row.instance}|${row.port}`, row.value);
+            this.rows.set(`${row.instance}|${row.port}`, { value: row.value,
+                clock: row.clock ?? null, start: row.start ?? null, rev: row.rev });
             this.since = Math.max(this.since, Number(row.rev) || 0);
             n += 1;
         }
@@ -118,11 +133,12 @@ export class LiveWorld {
 
     // What this tab wrote itself, shown at once rather than three seconds
     // later: the player pressed the switch and the lamp is theirs.
-    wrote(id, port, value, rev = 0) {
+    wrote(id, port, value, rev = 0, clock = null, start = null) {
         this.values.set(`${id}|${port}`, value);
+        this.rows.set(`${id}|${port}`, { value, clock, start, rev });
         this.since = Math.max(this.since, Number(rev) || 0);
         this.changed += 1;
     }
 
-    forget() { this.values.clear(); this.since = 0; }
+    forget() { this.values.clear(); this.rows.clear(); this.since = 0; }
 }

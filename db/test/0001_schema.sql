@@ -15,7 +15,8 @@ SELECT has_domain('public', 'zoom', 'domain zoom');
 
 -- columns --------------------------------------------------------------
 SELECT columns_are('public', 'artifact', ARRAY[
-    'sha256', 'kind', 'bytes', 'algo_version', 'created_by', 'created_at']);
+    'sha256', 'kind', 'bytes', 'algo_version', 'created_by', 'created_at',
+    'cid']);
 SELECT columns_are('public', 'account', ARRAY['id', 'owner_id']);
 SELECT columns_are('public', 'ledger', ARRAY[
     'id', 'at', 'debit', 'credit', 'amount', 'ref']);
@@ -26,7 +27,9 @@ SELECT columns_are('public', 'feature', ARRAY[
     'id', 'area_id', 'kind', 'geom', 'props', 'rev', 'deleted_at']);
 SELECT columns_are('public', 'instance', ARRAY[
     'id', 'area_id', 'san', 'lon', 'lat', 'h', 'yaw', 'pitch', 'roll', 'scale',
-    'props', 'rev', 'deleted_at', 'geom']);
+    'props', 'rev', 'deleted_at', 'geom',
+    'holder_player', 'holder_instance', 'carry',
+    'consent']);
 SELECT columns_are('public', 'proposal', ARRAY[
     'id', 'area_id', 'author_id', 'state', 'diff', 'created_at']);
 SELECT columns_are('public', 'approval', ARRAY['proposal_id', 'reviewer_id', 'at']);
@@ -36,9 +39,12 @@ SELECT columns_are('public', 'approval', ARRAY['proposal_id', 'reviewer_id', 'at
 SELECT columns_are('public', 'asset', ARRAY[
     'san', 'sha256', 'canon_version', 'name', 'category', 'bbox', 'tris',
     'tex_bytes', 'license', 'price', 'editions', 'issued', 'creator_id',
-    'created_at', 'thumb_sha256', 'type', 'parts']);
+    'created_at', 'thumb_sha256', 'type', 'parts',
+    'pointer', 'policy', 'term']);
 SELECT columns_are('public', 'asset_right', ARRAY[
-    'san', 'holder_id', 'acquired_at', 'ref']);
+    'san', 'holder_id', 'acquired_at', 'ref',
+    'follow', 'sha256', 'until',
+    'version_id']);
 -- `suspect` is WP3.3's (db/0018_spot.sql): a failed spot check flags the tile
 -- rather than unpublishing it.
 -- The candidate columns are db/0044_permission.sql's: what a renderer produced

@@ -62,6 +62,9 @@ export function resetJob(job) {
             AND NOT EXISTS (SELECT 1 FROM tile WHERE candidate_sha256 = a.sha256)
             AND NOT EXISTS (SELECT 1 FROM asset WHERE sha256 = a.sha256)
             AND NOT EXISTS (SELECT 1 FROM asset WHERE thumb_sha256 = a.sha256)
+            AND NOT EXISTS (SELECT 1 FROM asset_version
+                            WHERE a.sha256 IN (sha256, flow_sha256))
+            AND NOT EXISTS (SELECT 1 FROM duty WHERE elx_sha256 = a.sha256)
             AND a.kind NOT IN ('dem', 'ortho')`);
 }
 

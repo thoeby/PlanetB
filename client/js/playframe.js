@@ -66,6 +66,8 @@ function drawOverlays(ctx, f) {
     const { pc, app, origin, terrain, land } = ctx;
     // FND.16: every mover put where this second says it is. Nothing is stored
     // per frame — the clock and the route say where it is, for everybody.
+    // LV.1: and every moving part where the same clock puts it.
+    ctx.liveDraw.tick(ctx.liveWorld, ctx.movers.clock());
     if (!f.placing) {
         const groundUnder = (lon, lat) =>
             terrain.heightAt(origin.localOf({ lon, lat, h: 0 })) ?? 0;
@@ -91,6 +93,7 @@ function stream(ctx, f, p) {
     const pose = `${p.x.toFixed(1)} ${p.y.toFixed(1)} ${p.z.toFixed(1)} `
         + `${r.x.toFixed(3)} ${r.y.toFixed(3)} ${r.z.toFixed(3)} ${r.w.toFixed(3)}`;
     f.tick++;
+    if (f.tick % 6 === 0) ctx.triggers.tick();
     if (pose !== f.lastPose || streamer.pending !== f.lastPending || f.tick % 10 === 0) {
         f.lastPose = pose;
         streamer.update(cameraState(camera, ctx.app.graphicsDevice.height, ctx.pc));

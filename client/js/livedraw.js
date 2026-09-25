@@ -14,6 +14,7 @@
 // or a rotor is the part turned about the axis the maker gave it.
 
 import { lightOf, marksByPart, poseOf, screenOf } from './live.js';
+import { jointAt } from '../lib/joint.js';
 
 // How far past the part's own size the glow reaches, and the least it is: a
 // lamp head is a small thing on a six-metre mast, and a glow the size of the
@@ -82,6 +83,7 @@ export class LiveDraw {
                 if (!part) continue;
                 if (mark.role === 'light') this.light(id, name, part, mark, values);
                 else if (mark.role === 'screen') this.screen(id, name, part, mark, values);
+                else if (mark.role === 'joint') this.kept(id, name).joint = mark;
                 else this.pose(part, mark, values);
             }
         }
@@ -166,6 +168,32 @@ export class LiveDraw {
         const { axis, degrees } = poseOf(mark, values);
         part.setLocalEulerAngles(axis === 'x' ? degrees : 0,
             axis === 'y' ? degrees : 0, axis === 'z' ? degrees : 0);
+    }
+
+    // LV.1: every joint near the player, where the world clock says it is this
+    // frame. Nothing is asked of the network: the rows say where each one
+    // started and when, and client/lib/joint.js says the rest.
+    tick(live, t) {
+        for (const [id, parts] of this.extra) {
+            for (const [name, kept] of parts) {
+                if (!kept.joint) continue;
+                const part = this.preview.partsOf(id).get(name);
+                if (!part) continue;
+                const p = this.jointPose(live, id, kept.joint, t);
+                part.setLocalPosition(p.x, p.y, p.z);
+                part.setLocalEulerAngles(p.pitch, p.yaw, p.roll);
+                part.setLocalScale(p.scale, p.scale, p.scale);
+                kept.at = p;
+            }
+        }
+    }
+
+    // Where one joint is at `t`: the rows of every motion port that drives it.
+    jointPose(live, id, mark, t) {
+        const types = new Map(mark.ports.map((q) => [q.name, q.type]));
+        const rows = live.rowsOf(id).filter((r) => types.has(r.port))
+            .map((r) => ({ ...r, type: types.get(r.port) }));
+        return jointAt(rows, t);
     }
 
     forget(id) { this.extra.delete(id); }

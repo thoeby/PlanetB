@@ -1,4 +1,4 @@
-// assemble.js — `assemble-v17`. The world, as geometry, in one tile's own frame.
+// assemble.js — `assemble-v18`. The world, as geometry, in one tile's own frame.
 //
 // Terrain from the seeded DEM, cut by terrainmods and roads; footprints
 // extruded; forests scattered; water laid flat; the ground coloured by its own
@@ -52,7 +52,7 @@ import { localFromLonLat, lonLatFromLocal } from '../lib/tilemath.js';
 // skirt's slope over eight cells and caps it, and the share from the atom's
 // `skirt` param (db/0194), 0 for none. v17 carries the edge's slope out to
 // the raster's edge rather than holding the last pixel (geo.js sampleHeight).
-export const ALGO = 'assemble-v17';
+export const ALGO = 'assemble-v18';
 
 // How far the ground the frames draw runs past the tile's edge, as a share of
 // the tile's width, so a smaller tile gets a smaller skirt. Trained splats
@@ -113,12 +113,11 @@ function clip(meshes, sw, ne) {
 
 // canon-v1 re-centred every asset on the bottom centre of its bounding box, so
 // an instance's position is where it stands, and its box is that box moved.
-// FND.6: a screen's content is not the compiler's to bake — the frame around it
-// is geometry like any other, the surface it carries is live. Everything else a
-// marked part may do (a light's glow, a door's pose) is either not baked at all
-// or baked where the maker left it.
-const liveSurfaces = (parts) => new Set((parts?.parts ?? [])
-    .filter((p) => p.role === 'screen').map((p) => p.name));
+// Invariant 2, LV.1: a part with a role is drawn over the splats and never
+// baked — a screen's surface, a light's head, a door, and a joint that moves
+// (db/0200). The page draws them where the world last told them to be.
+const liveParts = (parts) => new Set((parts?.parts ?? [])
+    .filter((p) => p.role).map((p) => p.name));
 
 // FND.11: where a placed model takes the ground away — the box its opening's
 // own triangles cover, in the tile's frame.
@@ -150,7 +149,7 @@ function placeInstances(instances, assets, frame) {
         const at = [p.x, p.y, p.z];
         const placed = placeMeshes(glb, { at, yaw: i.yaw ?? 0, pitch: i.pitch ?? 0,
             roll: i.roll ?? 0, scale: i.scale ?? 1, material: 'asset',
-            skip: liveSurfaces(i.parts) });
+            skip: liveParts(i.parts) });
         openings.push(...openingsOf(placed));
         meshes.push(...placed);
         boxes.push(colliderOf(placed, at));

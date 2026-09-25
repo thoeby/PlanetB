@@ -5,10 +5,11 @@
 // (Invariant 6).
 
 import * as api from './api.js';
-import { buyAsset, myRights, offerOf } from './wallet.js';
-import { CATEGORIES, LICENSES, TYPES, getAsset, glbUrl,
+import { myRights, offerOf, orderAsset } from './wallet.js';
+import { CATEGORIES, LICENSES, TYPES, getAsset, glbUrl, policyWords,
     searchAssets, thumbUrl, typeWords } from './catalog.js';
 import { mountMarksForm } from './catalogmarks.js';
+import { installRow, mayInstall, mountFileForm } from './catalogplugin.js';
 import { Upload, fmtBytes } from './catalogupload.js';
 import { canonMarks, isMarked, portWords, roleWords } from '../lib/marks.js';
 import { mountCollectionForm, mountProfileForm, paintMaterial, publishTyped }
@@ -90,6 +91,7 @@ function detailOf(asset) {
         ['licence', asset.license === 'limited'
             ? `limited, ${asset.issued}/${asset.editions} issued` : asset.license],
         ['price', String(asset.price)],
+        ['if you buy it', policyWords(asset)],
         ['triangles', String(asset.tris)],
         ['textures', fmtBytes(asset.tex_bytes)],
         ['size', asset.bbox?.min ? asset.bbox.max.map((v, i) =>
@@ -105,8 +107,8 @@ function detailOf(asset) {
 }
 
 // WP4.4: a licence is bought here. What it costs and whether there is one left
-// is the asset's own business; buy_asset is one transaction and refuses the
-// rest (Invariant 5), so the button only has to show what it said.
+// is the asset's own business; an order is one transaction and refuses the
+// rest (Invariant 5, LV.5), so the button only has to show what it said.
 function buyButton(asset, held, status, reopen) {
     const offer = offerOf(asset, held.has(asset.san));
     const buy = el('button', { type: 'button', className: 'buy',
@@ -114,7 +116,13 @@ function buyButton(asset, held, status, reopen) {
     buy.onclick = async () => {
         buy.disabled = true;
         try {
-            await buyAsset(asset.san);
+            const order = await orderAsset(asset.san);
+            if (order.state !== 'paid') {
+                status.textContent = order.pay_url
+                    ? `ordered ${asset.san}: pay at ${order.pay_url}`
+                    : `ordered ${asset.san}: waiting for ${order.provider}`;
+                return;
+            }
             held.add(asset.san);
             status.textContent = `licensed ${asset.san}`;
             await reopen(asset.san);
@@ -147,6 +155,7 @@ function typeForms(doc, say) {
     const material = { bytes: null, width: 0, height: 0, tiling: 4 };
     const profile = mountProfileForm(at('form-profile'));
     const collection = mountCollectionForm(at('form-collection'));
+    const picked = mountFileForm(doc);
 
     const paint = async () => {
         if (!material.bytes) return;
@@ -169,7 +178,8 @@ function typeForms(doc, say) {
         for (const [id, want] of [['form-model', type === 'model' || type === 'segment'],
             ['form-material', type === 'material'],
             ['form-profile', type === 'profile'],
-            ['form-collection', type === 'collection']]) {
+            ['form-collection', type === 'collection'],
+            ['form-file', type === 'plugin' || type === 'flow']]) {
             at(id).hidden = !want;
         }
         // The GLB form's own Register button is enabled by a file being
@@ -188,7 +198,7 @@ function typeForms(doc, say) {
         collection: () => collection.value(),
         publish: (type, meta) => publishTyped(type,
             { material, profile: () => profile.value(),
-                collection: () => collection.value() }, meta, say),
+                collection: () => collection.value(), picked }, meta, say),
     };
 }
 
@@ -221,7 +231,8 @@ export function mountCatalog(doc, { mountAuth, choices } = {}) {
         detail.innerHTML = '';
         detail.append(el('h2', { textContent: asset.name }), detailOf(asset),
             el('p', {}, buyButton(asset, held, status, open), ' ',
-                el('a', { href: glbUrl(asset), textContent: 'canonical glb' })));
+                el('a', { href: glbUrl(asset), textContent: 'canonical glb' })),
+            ...[installRow(asset, mayInstall(asset, held))].filter(Boolean));
     };
 
     const refresh = async () => {

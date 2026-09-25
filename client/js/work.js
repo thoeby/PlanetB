@@ -92,7 +92,7 @@ export class WorkLoop {
         this.generation = 0;
         this.claimFailures = 0;
         // What the last claim that failed said, for the panel: a claim that
-        // fails reads as "nothing to claim" to the lanes (db/0201).
+        // fails reads as "nothing to claim" to the lanes (db/0218).
         this.lastClaimError = null;
         // Every atom in hand, by id, and one of them — whichever was claimed
         // last — as `atom`, which is what the panels and the strip read.

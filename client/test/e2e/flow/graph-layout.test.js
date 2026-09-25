@@ -2,7 +2,9 @@
 // Copied from wireon-process-editor tests/graph-layout.test.js at ab525305d8ddd7dba7a5592e5cb79d3dbb159e8b; changes:
 // the modules are imported from /flow/ (this repository's copy of them) and
 // the fixtures from /flow/palette and /flow/samples. The assertions are
-// untouched — that is the point of running them here.
+// untouched — that is the point of running them here — except the layer width,
+// which is this copy's 300 (client/flow/graph/layout.js) and not the
+// reference's 220.
 // Phase 6 — layered layout tests.
 
 import { layout } from "/flow/graph/layout.js";
@@ -34,9 +36,9 @@ g.test("layout: pseudo-input at x=LEFT_PAD, pseudo-output rightmost", () => {
   const pos = layout(flow, getBlock);
   // in1 at layer 0, A at 1, B at 2, out1 at layer 3.
   g.assertEq(pos.get("in1")?.x, 40, "in1 x");
-  g.assertEq(pos.get("A")?.x, 40 + 220, "A x");
-  g.assertEq(pos.get("B")?.x, 40 + 440, "B x");
-  g.assertEq(pos.get("out1")?.x, 40 + 660, "out1 x");
+  g.assertEq(pos.get("A")?.x, 40 + 300, "A x");
+  g.assertEq(pos.get("B")?.x, 40 + 600, "B x");
+  g.assertEq(pos.get("out1")?.x, 40 + 900, "out1 x");
 });
 
 g.test("layout: parallel branches stack vertically in their layer", () => {

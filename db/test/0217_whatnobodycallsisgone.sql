@@ -1,4 +1,4 @@
--- Functions nothing calls are gone (db/0200).
+-- Functions nothing calls are gone (db/0217).
 BEGIN;
 SELECT plan(6);
 

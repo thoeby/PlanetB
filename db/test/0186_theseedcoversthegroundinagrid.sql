@@ -33,7 +33,7 @@ SELECT is((SELECT params ->> 'seed_grid' FROM t), '0.1',
 SELECT is((SELECT params ->> 'refine_every' FROM t), '100',
     'the refine interval is every hundred steps (db/0188)');
 SELECT is((SELECT min(algo_version) FROM atom
-           WHERE job_id = (SELECT jid FROM j) AND op = 'dataset'), 'dataset-v8',
+           WHERE job_id = (SELECT jid FROM j) AND op = 'dataset'), 'dataset-v9',
     'the dataset writes the same seed, over mottled ground');
 SELECT is(algo_current('train'), 'train-v22',
     'and the pool hands out the trainer that carries it');

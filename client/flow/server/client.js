@@ -30,7 +30,7 @@ export function qs(params = {}) {
 /**
  * @typedef {Object} RequestOptions
  * @property {Record<string, any>} [query]
- * @property {any} [body]        A string is sent as it is; anything else as JSON.
+ * @property {any} [body]        A string or bytes are sent as they are; anything else as JSON.
  * @property {string} [type]     Content-Type of a string body.
  */
 
@@ -51,7 +51,9 @@ export function serverClient(base) {
     const init = { method, headers: /** @type {Record<string, string>} */ ({
       Accept: "application/xml" }) };
     if (opts.body !== undefined) {
-      const text = typeof opts.body === "string";
+      // A string or bytes go as they are (LV.7: a plugin's tar); anything
+      // else as JSON.
+      const text = typeof opts.body === "string" || opts.body instanceof Uint8Array;
       init.headers["Content-Type"] = text ? opts.type ?? "application/xml"
         : "application/json";
       /** @type {any} */ (init).body = text ? opts.body : JSON.stringify(opts.body);

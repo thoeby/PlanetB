@@ -26,7 +26,11 @@ const VALUE = 'Value';
 // so the generic list keeps them.
 export const WORLD_PORTS = new Set([OBJECT, PORT, VALUE]);
 
-export const isWorldBlock = (node) => node?._irPlugin === WORLD_PLUGIN;
+// LV.3: `motion` and `interact` are built over the World blocks and take the
+// same object, port, address and key, so they are inspected the same way.
+export const WORLD_PLUGINS = new Set([WORLD_PLUGIN, 'motion', 'interact']);
+
+export const isWorldBlock = (node) => WORLD_PLUGINS.has(node?._irPlugin);
 
 export const usesWorld = (graph) => (graph?._nodes ?? []).some(isWorldBlock);
 

@@ -15,6 +15,11 @@ are pinned by that test: do not re-make them unless canon-v1 changes.
 `billboard.glb`, `bus.glb`, `tunnel-portal.glb`, `bridge-deck.glb`,
 `wall-segment-2m.glb`, `kerb-segment-1m.glb`, `pebble-segment-5cm.glb`.
 
+The live-object stories (TASKS-live.md) add three more, the same way and
+under the same terms: `crane.glb` (a `mast` and an `arm` that swings),
+`gate.glb` (a `post` and a `bar` that lifts) and `crate.glb` (a box that may
+be carried).
+
 | source | made here, by `tools/make-fixture-models.mjs` (which builds them out of `tools/glbkit.mjs`) |
 |---|---|
 | licence | **CC0 1.0** — dedicated to the public domain by the splatworld project. No attribution is required, and none of it is anybody else's work. |

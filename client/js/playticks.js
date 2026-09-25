@@ -8,6 +8,7 @@ import { ringsOf } from './land.js';
 import { EVERY_MS, NEAR_M } from './live.js';
 import { EVERY_MS as MOVERS_MS, REACH_M } from './movers.js';
 import { mountNextStep } from './nextstep.js';
+import { mountTriggers } from './triggerwire.js';
 
 const every = (ms, fn) => { setInterval(fn, ms); fn(); };
 
@@ -31,6 +32,12 @@ export function startTicks(ctx) {
     ctx.drawTheMap = () => drawTheMap(ctx);
     every(1000, ctx.drawTheMap);
     every(8000, () => showWhatIsAround(ctx));
+    // LV.2: what sets a placed thing off — walking up to it, clicking it, a
+    // key — noticed here and said to the world once (client/js/triggers.js).
+    ctx.triggers = mountTriggers({ pc: ctx.pc, preview: ctx.preview, camera: ctx.camera,
+        canvas: ctx.canvas, building: () => ctx.build.state.on,
+        clock: () => ctx.movers.clock() });
+    ctx.peerSay = ctx.triggers.say;
     every(EVERY_MS, () => whatIsLive(ctx));
     every(MOVERS_MS, () => whatIsMoving(ctx));
 }
@@ -121,6 +128,7 @@ async function whatIsLive(ctx) {
     if (document.hidden) return;
     const g = whereNow(ctx);
     await ctx.liveWorld.poll(g.lon, g.lat, NEAR_M).catch(() => 0);
+    await ctx.triggers.hear(g.lon, g.lat);
     // Applied either way: a thing that came into view since the last sweep has
     // to be put in the state the world already said it was in.
     ctx.liveDraw.apply(ctx.liveWorld);

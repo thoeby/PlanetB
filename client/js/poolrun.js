@@ -55,7 +55,7 @@ async function drive(work) {
 // publish_tile is a compare-and-swap, and losing it is a thing to be told.
 //
 // And when it did not publish, why. "n piece(s) left — press Render again"
-// was said for every reason the pool refuses a piece (db/0201 job_refusal),
+// was said for every reason the pool refuses a piece (db/0218 job_refusal),
 // and for a claim that failed outright, and pressing Render again said it
 // again. The world is asked which it is.
 export async function landed(tile, entry, rows, work) {

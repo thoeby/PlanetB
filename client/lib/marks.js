@@ -26,9 +26,12 @@ export const ROLES = [
     { id: 'screen', words: 'Shows something', ports: ['image'] },
     { id: 'door', words: 'Opens', ports: ['open'] },
     { id: 'rotor', words: 'Turns', ports: ['speed'] },
+    // LV.1: a part that moves as it is told — a crane's arm, a gate's bar.
+    { id: 'joint', words: 'Moves', ports: ['pose', 'path', 'spin'] },
 ];
 
-export const PORT_TYPES = ['boolean', 'number', 'text', 'image', 'colour'];
+export const PORT_TYPES = ['boolean', 'number', 'text', 'image', 'colour',
+    'pose', 'path', 'spin'];
 
 // The ports a role offers, with what each one drives and what it is when
 // nobody has said otherwise.
@@ -39,6 +42,11 @@ export const PORTS = {
     image: { type: 'image', default: '', what: 'texture' },
     open: { type: 'number', default: '0.000', what: 'pose' },
     speed: { type: 'number', default: '0.000', what: 'rate' },
+    // A joint starts where the maker left it, so none of the three has a
+    // value to start from (db/0200 rest_pose).
+    pose: { type: 'pose', default: '', what: 'pose' },
+    path: { type: 'path', default: '', what: 'path' },
+    spin: { type: 'spin', default: '', what: 'spin' },
 };
 
 export const roleWords = (role) => ROLES.find((r) => r.id === role)?.words ?? role;
@@ -77,11 +85,33 @@ export function canonMarks(from = {}) {
     const openings = (marks.openings ?? []).map((o) => ({
         name: String(o.name ?? ''), node: String(o.node ?? ''),
     })).sort((a, b) => a.name.localeCompare(b.name));
-    return { parts, ports, openings };
+    // LV.2: what sets it off. Shape only; the kinds are client/js/triggers.js's.
+    const triggers = (marks.triggers ?? []).map((t) => ({
+        kind: String(t.kind ?? ''), params: { ...(t.params ?? {}) },
+    })).sort((a, b) => `${a.kind}${JSON.stringify(a.params)}`
+        .localeCompare(`${b.kind}${JSON.stringify(b.params)}`));
+    const rate = Number.isFinite(Number(marks.rate)) && marks.rate !== undefined
+        && marks.rate !== null && marks.rate !== '' ? { rate: Number(marks.rate) } : {};
+    // LV.4: whether it may be carried, and what it holds.
+    const carry = marks.carry?.kind ? { carry: { kind: String(marks.carry.kind) } } : {};
+    const hold = marks.hold ? { hold: { capacity: Number(marks.hold.capacity) || 1,
+        kinds: [...(marks.hold.kinds ?? [])].map(String).sort() } } : {};
+    return { parts, ports, openings, ...(triggers.length ? { triggers } : {}), ...rate,
+        ...carry, ...hold };
 }
 
 export const isMarked = (marks) => Boolean(marks
-    && ((marks.parts?.length ?? 0) || (marks.openings?.length ?? 0)));
+    && ((marks.parts?.length ?? 0) || (marks.openings?.length ?? 0)
+        || (marks.triggers?.length ?? 0) || marks.carry || marks.hold));
+
+// "near 5 m", "key G down" — a trigger in the words the card uses.
+export function triggerWords(t) {
+    const p = t.params ?? {};
+    if (t.kind === 'near' || t.kind === 'far') return `${t.kind} ${p.m ?? 5} m`;
+    if (t.kind === 'key') return `key ${String(p.key ?? '').toUpperCase()} ${p.when ?? 'down'}`;
+    if (t.kind === 'use') return p.part ? `use ${p.part}` : 'use';
+    return t.kind;
+}
 
 // The nodes that are not the model's body any more: node name -> the name the
 // canonical file gives that mesh. A part keeps its own name; an opening is
@@ -122,6 +152,9 @@ export function marksTrouble(marks, nodes = null) {
         if (nodes && !nodes.includes(o.node)) {
             return `this model has no node called ${o.node}`;
         }
+    }
+    for (const t of m.triggers ?? []) {
+        if (!TOKEN.test(t.kind)) return `"${t.kind}" is not a kind of trigger`;
     }
     return portTrouble(m, names);
 }

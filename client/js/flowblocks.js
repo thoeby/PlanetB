@@ -10,6 +10,7 @@
 import { registerPlugins } from '../flow/boot.js';
 import { serverClient, failWords } from '../flow/server/client.js';
 import { children } from '../flow/server/envelope.js';
+import { WORLD_PLUGINS } from './flowworld.js';
 
 const idOf = (xml) => /<plugin\b[^>]*\bid="([^"]+)"/.exec(xml)?.[1] ?? '';
 
@@ -26,6 +27,9 @@ export async function serverPlugins(url) {
 function fromWords(state, plugin) {
     const name = state.server?.name ?? '';
     if (plugin === 'world' && state.has?.has('world')) return `${name} knows these blocks`;
+    // LV.7: the world's own plugins are bundled for drawing but run only where
+    // a server has them installed, so where one has, the palette says so.
+    if (WORLD_PLUGINS.has(plugin) && state.has?.has(plugin)) return `from ${name}`;
     return state.from.has(plugin) ? `from ${name}` : '';
 }
 

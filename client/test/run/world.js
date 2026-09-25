@@ -65,6 +65,10 @@ async function knowsTheSchema(apiUrl) {
 // they always were. RUN_FULL_SIZE=1 renders at the real size.
 const SMALL = ['budget_scale', '0.05'], ITERS = ['iters', '60'],
     PX = ['frame_px', '192'],
+    // The ground from the tile's own cut (db/0199): a z14 tile cut from z16
+    // is a mesh of eight million triangles, past what a tab on a software
+    // adapter holds while it frames it.
+    DEEPER = ['dem_deeper', '0'],
     // How long a claim is left alone after its tab stops beating (db/0132).
     // Story 13 watches a render somebody walked away from come back, and five
     // minutes of watching is not a story. It cannot go below the minute the
@@ -117,11 +121,11 @@ function runSize() {
     if (process.env.RUN_FULL_SIZE === '1') return () => {};
     const db = process.env.PGDATABASE ?? 'splatworld';
     const had = sizeWas(db);
-    for (const [key, value] of [SMALL, ITERS, PX, LEASE]) {
+    for (const [key, value] of [SMALL, ITERS, PX, DEEPER, LEASE]) {
         alter(db, `SET splatworld.${key} = '${value}'`);
     }
     return () => {
-        for (const [key] of [SMALL, ITERS, PX, LEASE]) {
+        for (const [key] of [SMALL, ITERS, PX, DEEPER, LEASE]) {
             alter(db, had.has(key)
                 ? `SET splatworld.${key} = '${had.get(key)}'`
                 : `RESET splatworld.${key}`);

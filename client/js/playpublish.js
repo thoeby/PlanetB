@@ -6,6 +6,9 @@ import { mountPlaces } from './places.js';
 import { mountPool, mountSubmit } from './pool.js';
 import { mountPermission } from './permission.js';
 import { mountShare } from './visit.js';
+import { mountDuties } from './dutiesui.js';
+import { mountHosting } from './hostingui.js';
+import { resumeHosting } from './hosting.js';
 
 // Where the camera stands, on the earth.
 const whereNow = (ctx) => {
@@ -120,6 +123,13 @@ function mountPoolPanels(ctx) {
     // they know to be untrue.
     for (const queue of queues) hud.whenShown(queue, () => ctx.pool.look(queue));
     hud.whenShown('Machine', () => work.progress());
+    // LV.10: flows offered to the pool, run on a server of yours.
+    ctx.duties = mountDuties(hud.panel('Flows to run'));
+    hud.whenShown('Flows to run', () => ctx.duties.refresh());
+    // LV.13: a land's files, kept by this tab for a term; a reload keeps them.
+    ctx.hosting = mountHosting(hud.panel('Hosting'), { peers: ctx.peers });
+    hud.whenShown('Hosting', () => ctx.hosting.refresh());
+    ctx.peers.start().then((ok) => ok && resumeHosting(ctx.peers));
 }
 
 // T7: what has been rendered on your land and is waiting for you to say yes.

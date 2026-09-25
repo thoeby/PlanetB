@@ -13,6 +13,7 @@ import { el } from './poolui.js';
 import { searchAssets, publishCollection, publishMaterial, publishProfile }
     from './catalog.js';
 import { materialTrouble, profileWidth, stripsOf } from '../lib/product.js';
+import { publishFileProduct } from './catalogplugin.js';
 
 // ------------------------------------------------------------------ material
 
@@ -188,6 +189,8 @@ export async function publishTyped(type, form, meta, say) {
             san = await publishProfile(form.profile(), meta);
         } else if (type === 'collection') {
             san = await publishCollection(form.collection(), meta);
+        } else if (type === 'plugin' || type === 'flow') {
+            san = await publishFileProduct(type, form.picked, meta);
         }
         if (san) say(`published ${san}`);
         return san;

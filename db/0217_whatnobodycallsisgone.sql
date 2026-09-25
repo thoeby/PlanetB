@@ -1,4 +1,4 @@
--- 0200_whatnobodycallsisgone.sql — functions no page, tool or other function
+-- 0217_whatnobodycallsisgone.sql — functions no page, tool or other function
 -- calls any more, dropped rather than left granted.
 --
 -- approve_tile, refuse_tile and my_candidates were the candidate step of

@@ -11,6 +11,7 @@ run:
    green; FL.8 (the Planner) committed with story 39 written and not yet run;
    FL.9 (the pool) gets a task file of its own. What is blocked is at the
    end of that file.
+4. **`TASKS-live.md`** (live objects, the store, files anywhere) — LV.1–LV.14.
 
 Finished task files are in `docs/history/`.
 

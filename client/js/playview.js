@@ -9,6 +9,8 @@ import { XR_LIMITS, xrRequested } from './xr.js';
 import { mountSky } from './sky.js';
 import { DemFloor } from './floor.js';
 import { DemGround } from './ground.js';
+import { Peers } from './peers.js';
+import { peerFetch } from './peerfetch.js';
 
 const TILE_COLUMNS = 'z,x,y,dirty,published_version,sog_sha256,manifest,'
     + 'candidate_version,candidate_sha256,candidate_manifest';
@@ -120,9 +122,23 @@ function makeStreamer(ctx) {
     // why the ground at the edge of the view went missing rather than going
     // soft (client/js/traverse.js applyTileCap).
     app.scene.gsplat.splatBudget = limits.splatBudget;
+    // LV.12: this tab is a peer. What it reads from the store it asks the
+    // other open tabs for first, by CID, and keeps and serves while it is
+    // open (client/js/peers.js); a tab that cannot be one reads by HTTP as
+    // before. `peerSay` is the triggers' line once they are mounted.
+    ctx.peerSay = () => {};
+    ctx.peers = new Peers({ filesUrl: api.endpoints().files,
+        say: (text, bad) => ctx.peerSay(text, bad),
+        where: () => {
+            const p = ctx.camera.getPosition();
+            return ctx.origin.geodeticOf({ x: p.x, y: p.y, z: p.z });
+        } });
+    ctx.peers.start();
+    ctx.fromPeers = peerFetch(ctx.peers);
     ctx.streamer = new TileStreamer(app, pc, {
         origin: ctx.origin, filesUrl: api.endpoints().files, fetchRows, limits,
     });
+    ctx.streamer.peerFetch = ctx.fromPeers;
     ctx.streamer.setTiles(ctx.rows);
     ctx.streamer.startPolling();
 }
@@ -139,7 +155,7 @@ function makeGround(ctx) {
     ctx.floor = ground?.coverage
         ? new DemFloor({ filesUrl: api.endpoints().files, version: ground.set_at ?? '' })
         : null;
-    ctx.terrain = new Terrain(ctx.streamer, { ground: ctx.floor });
+    ctx.terrain = new Terrain(ctx.streamer, { ground: ctx.floor, fetchFn: ctx.fromPeers });
     // SPEC §0.1: ground is always drawn. Where no published tile covers it,
     // the same elevation is drawn as plain terrain (client/js/ground.js).
     ctx.groundMesh = ctx.floor

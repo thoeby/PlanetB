@@ -223,3 +223,14 @@ body {
 [data-tone="bad"] { color: oklch(0.8 0.18 25); }
 [data-tone="warn"] { color: var(--warn); }
 [data-tone="quiet"] { color: rgba(242, 239, 232, 0.6); }
+
+/* LV.2: what a thing was set off by, and the key that would set one off. */
+.trigger-line {
+  position: fixed; left: 50%; transform: translateX(-50%); z-index: 30;
+  font-family: var(--body); font-size: 13px; color: var(--ink);
+  pointer-events: none; white-space: nowrap;
+}
+.trigger-line:empty { display: none; }
+.trigger-line.said { bottom: 132px; padding: 4px 12px; border-radius: 4px; background: var(--panel); }
+.trigger-line.said[data-bad="1"] { color: oklch(0.8 0.15 30); }
+.trigger-line.offer { bottom: 104px; color: var(--ink-2); font-family: var(--mono, monospace); }

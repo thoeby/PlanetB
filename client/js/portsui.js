@@ -12,6 +12,7 @@
 import * as api from './api.js';
 import { el } from './poolui.js';
 import { searchAssets } from './catalog.js';
+import { motionField } from './portmotion.js';
 
 const TRUE = new Set(['true', '1', 'yes', true, 1]);
 
@@ -63,6 +64,7 @@ function field(state, port, set) {
         return input;
     }
     if (port.type === 'image') return picture(state, port, set);
+    if (['pose', 'path', 'spin'].includes(port.type)) return motionField(port, set);
     const input = el('input', { type: 'text', className: 'pt-value',
         value: value ?? '' });
     input.onchange = () => set(input.value);

@@ -20,7 +20,8 @@ export function mountBuildSide(ctx) {
     // WP4.2: build mode. The preview draws what has been placed but not yet
     // compiled — a published tile is splats, and a bench put down a second ago
     // is in none of them until some tab renders that tile again.
-    ctx.preview = new InstancePreview(app, pc, { origin, filesUrl: api.endpoints().files });
+    ctx.preview = new InstancePreview(app, pc,
+        { origin, filesUrl: api.endpoints().files, fetchFn: ctx.fromPeers });
     ctx.nearby = (lon, lat) => nearby(ctx, lon, lat);
     // WP4.4: the wallet, and the bounty that puts a tile in front of a
     // stranger. Whatever the wallet learns, the corner of the chrome says — so
@@ -58,11 +59,15 @@ async function nearby(ctx, lon, lat) {
     const sans = [...new Set(rows.map((r) => r.san))];
     // FND.15: and its markings, which say which of its parts are live.
     const assets = await ctx.api.select('asset',
-        { san: `in.(${sans.join(',')})`, select: 'san,sha256,parts' }).catch(() => []);
+        { san: `in.(${sans.join(',')})`, select: 'san,sha256,parts,name' }).catch(() => []);
     const bySan = new Map(assets.map((a) => [a.san, a]));
+    // LV.9: each thing is drawn from the version it runs, which is its
+    // owner's to move on (db/0210) — not always the product's newest file.
+    const files = await ctx.api.rpc('things_files', { p_ids: rows.map((r) => r.id) })
+        .catch(() => ({}));
     return rows.filter((r) => bySan.has(r.san))
-        .map((r) => ({ ...r, sha256: bySan.get(r.san).sha256,
-            parts: bySan.get(r.san).parts ?? {} }));
+        .map((r) => ({ ...r, sha256: files?.[r.id] ?? bySan.get(r.san).sha256,
+            parts: bySan.get(r.san).parts ?? {}, name: bySan.get(r.san).name }));
 }
 
 function mountPlace(ctx) {
@@ -82,7 +87,7 @@ function mountPlace(ctx) {
             },
         },
         live: { wrote: (id, port, done) => {
-            ctx.liveWorld.wrote(id, port, done.value, done.rev);
+            ctx.liveWorld.wrote(id, port, done.value, done.rev, done.clock, done.start);
             ctx.liveDraw.apply(ctx.liveWorld);
         } },
     });

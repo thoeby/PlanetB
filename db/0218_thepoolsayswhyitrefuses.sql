@@ -1,4 +1,4 @@
--- 0201_thepoolsayswhyitrefuses.sql — a job the pool will not hand out says
+-- 0218_thepoolsayswhyitrefuses.sql — a job the pool will not hand out says
 -- why, and a tile asked for again starts over what gave up.
 --
 -- What was seen: "14/8548/5800: 1 piece(s) left — press Render again", and
@@ -118,7 +118,7 @@ CREATE FUNCTION api.job_refusal(job_id bigint, caps jsonb DEFAULT '{}'::jsonb)
 RETURNS text
 LANGUAGE sql STABLE AS $$SELECT public.job_refusal(job_id, caps)$$;
 
--- db/0199: executable by the roles it is granted to, not by everybody.
+-- db/0216: executable by the roles it is granted to, not by everybody.
 REVOKE EXECUTE ON FUNCTION api.job_refusal(bigint, jsonb) FROM PUBLIC;
 GRANT EXECUTE ON FUNCTION api.job_refusal(bigint, jsonb) TO player, admin;
 

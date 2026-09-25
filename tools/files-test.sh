@@ -27,7 +27,8 @@ SHA2=$(head -c 2048 /dev/urandom | sha256sum | cut -d' ' -f1)
 
 # ------------------------------------------------------------------ services
 cleanup () { [ -n "${NGINX_CONF:-}" ] && nginx -c "$NGINX_CONF" -s quit 2>/dev/null || true
-             [ -n "${PGRST_PID:-}" ] && kill "$PGRST_PID" 2>/dev/null || true; }
+             [ -n "${PGRST_PID:-}" ] && kill "$PGRST_PID" 2>/dev/null || true
+             [ -n "${NODE_PID:-}" ] && kill "$NODE_PID" 2>/dev/null || true; }
 trap cleanup EXIT
 
 if ! curl -sf -o /dev/null "$API_URL/"; then
@@ -49,11 +50,29 @@ CONF
     for _ in $(seq 1 40); do curl -sf -o /dev/null "$API_URL/" && break; sleep 0.25; done
 fi
 
+# LV.11: the store's other half. Started here when nothing answers, as
+# PostgREST and nginx are, with its blocks in a directory of its own.
+NODE_URL=${NODE_URL:-http://127.0.0.1:8095}
+if ! curl -sf -o /dev/null "$NODE_URL/healthz"; then
+    # It watches the directory the store writes to (tools/nodewatch.mjs):
+    # the one nginx is rooted at below, made here.
+    ROOT=$(mktemp -d); chmod 1777 "$ROOT"
+    FILES_ROOT=$ROOT API_URL=$API_URL JWT_SECRET=${JWT_SECRET:?} \
+        NODE_HTTP_PORT=${NODE_URL##*:} NODE_WS_PORT=${NODE_WS_PORT:-8196} \
+        NODE_RTC_PORT=${NODE_RTC_PORT:-8197} node tools/node.mjs > /tmp/splatworld-node.log 2>&1 &
+    NODE_PID=$!
+    for _ in $(seq 1 80); do curl -sf -o /dev/null "$NODE_URL/healthz" && break; sleep 0.25; done
+    curl -sf -o /dev/null "$NODE_URL/healthz" || { echo "not ok - the IPFS node did not start"; tail -5 /tmp/splatworld-node.log; exit 1; }
+    echo "# started a local IPFS node on $NODE_URL"
+fi
+
 if ! curl -sf -o /dev/null "$FILES_URL/healthz"; then
     command -v nginx > /dev/null || { echo "not ok - no file store and no nginx binary"; exit 1; }
-    ROOT=$(mktemp -d); chmod 1777 "$ROOT"; NGINX_CONF=$(mktemp --suffix=.conf)
+    [ -n "${ROOT:-}" ] || { ROOT=$(mktemp -d); chmod 1777 "$ROOT"; }
+    NGINX_CONF=$(mktemp --suffix=.conf)
     # Same config as compose, retargeted at this box.
     sed -e "s|server postgrest:3000;|server 127.0.0.1:${API_URL##*:};|" \
+        -e "s|server node:8095;|server 127.0.0.1:${NODE_URL##*:};|" \
         -e "s|listen 80;|listen ${FILES_URL##*:};|" \
         -e "s|root /srv/files;|root $ROOT;|" \
         -e "1i pid /tmp/splatworld-nginx.pid;\nerror_log /tmp/splatworld-nginx-error.log;" \
@@ -125,9 +144,15 @@ is "PUT of a flow's ELX is 201" 201 \
         -H "X-Sha256: $ELX_SHA" -H "Authorization: Bearer $JWT" --data-binary "@$ELX")"
 is "PUT of an asset with an extension nobody allowed is 403" 403 \
     "$(put "/assets/$SHA2.zip" "$SHA2" "$JWT")"
-grep -qi 'content-type: application/xml' \
-    <<< "$(curl -s -D - -o /dev/null "$FILES_URL/assets/$ELX_SHA.elx")" \
-    && ok "an ELX is served as XML" || no "an ELX is served as XML"
+# Followed where it leads: an old path is sent on to its CID (LV.14), which
+# answers once the node has taken the file (tools/nodewatch.mjs).
+xml=no
+for _ in $(seq 1 40); do
+    grep -qi 'content-type: application/xml' \
+        <<< "$(curl -sL -D - -o /dev/null "$FILES_URL/assets/$ELX_SHA.elx")" && { xml=yes; break; }
+    sleep 0.25
+done
+is "an ELX is served as XML" yes "$xml"
 
 HDRS=$(curl -s -D - -o /dev/null "$FILES_URL/jobs/$ATOM/$SHA")
 is "GET returns the bytes" 200 "$(curl -s -o "$body" -w '%{http_code}' "$FILES_URL/jobs/$ATOM/$SHA")"
@@ -184,6 +209,61 @@ is "PUT of a registered sha at its own address is 201" 201 \
     "$(put "/assets/$SHA2.glb" "$SHA2" "$JWT")"
 is "PUT of a registered sha into a job directory is 403" 403 \
     "$(put "/jobs/$ATOM/$SHA2.ply" "$SHA2" "$JWT")"
+
+# ---------------------------------------------------- LV.11: every file a CID
+
+# What the store accepted, the node was handed; it recorded the CID it derived
+# with the world's settings, and anybody derives the same one from the bytes
+# (server/splatworld/cid.py, no IPFS library).
+cid_for () { for _ in $(seq 1 60); do
+        c=$($PSQL -c "SELECT cid FROM file_cid WHERE sha256 = '$1'")
+        [ -n "$c" ] && { echo "$c"; return; }; sleep 0.25; done; }
+recompute () { python3 -c 'import sys; sys.path.insert(0, "server")
+from splatworld.cid import cid_of; print(cid_of(open(sys.argv[1], "rb").read()))' "$1"; }
+CID=$(cid_for "$SHA")
+[ -n "$CID" ] && ok "the node recorded a CID for what the store accepted" \
+    || no "the node recorded a CID for what the store accepted"
+is "a second machine recomputes the same CID" "$CID" "$(recompute "$PAYLOAD")"
+is "one chunk is one raw block: CIDv1, raw leaves" "bafkrei" "${CID:0:7}"
+is "GET /ipfs/{cid} is 200" 200 "$(curl -s -o "$body" -w '%{http_code}' "$FILES_URL/ipfs/$CID")"
+cmp -s "$body" "$PAYLOAD" && ok "and is the file" || no "and is the file"
+
+BIG=$(mktemp); head -c 600000 /dev/urandom > "$BIG"; BIG_SHA=$(sha256sum "$BIG" | cut -d' ' -f1)
+curl -s -o /dev/null -X PUT "$FILES_URL/assets/$BIG_SHA.glb" -H "X-Sha256: $BIG_SHA" \
+    -H "Authorization: Bearer $JWT" --data-binary @"$BIG"
+BIG_CID=$(cid_for "$BIG_SHA")
+is "three 256 KiB chunks are a dag-pb node over them, the same both ways" \
+    "$(recompute "$BIG")" "$BIG_CID"
+curl -s -o "$body" "$FILES_URL/ipfs/$BIG_CID"
+cmp -s "$body" "$BIG" && ok "and comes back whole" || no "and comes back whole"
+curl -s -X POST "$API_URL/rpc/register_artifact" -H 'Content-Type: application/json' \
+    -H "Authorization: Bearer $JWT" -d "{\"sha256\":\"$BIG_SHA\",\"kind\":\"glb\",
+        \"bytes\":600000,\"algo_version\":\"canon-v1\"}" > /dev/null
+is "an artifact registered after its bytes takes their CID" "$BIG_CID" \
+    "$($PSQL -c "SELECT cid FROM artifact WHERE sha256 = '$BIG_SHA'")"
+
+# ------------------------------------------------ LV.14: old paths, read by CID
+
+# A GET of the path a file was PUT at is sent on to its CID; PUT is unchanged
+# (everything above). What the world has no CID for is served as it was.
+cid_for "$ELX_SHA" > /dev/null
+is "GET of an old path is sent on to /ipfs/{cid}" \
+    "$FILES_URL/ipfs/$CID?filename=$SHA.glb" \
+    "$(curl -s -o /dev/null -w '%{redirect_url}' "$FILES_URL/assets/$SHA.glb")"
+is "and following it is the file" 200 \
+    "$(curl -sL -o "$body" -w '%{http_code}' "$FILES_URL/assets/$SHA.glb")"
+cmp -s "$body" "$PAYLOAD" && ok "the same bytes" || no "the same bytes"
+grep -qi 'content-type: application/xml' \
+    <<< "$(curl -sL -D - -o /dev/null "$FILES_URL/assets/$ELX_SHA.elx")" \
+    && ok "an ELX read by its CID is still XML" || no "an ELX read by its CID is still XML"
+if [ -n "${ROOT:-}" ]; then
+    # Bytes under a name that is not their sha256: nobody records a CID for
+    # them, so they are what a file without one looks like.
+    ODD=$(printf 'x%.0s' $(seq 64) | tr x 0 | head -c 63)1
+    cp "$PAYLOAD" "$ROOT/assets/$ODD.glb"; chmod 644 "$ROOT/assets/$ODD.glb"
+    is "a file with no CID yet is served from the store" 200 \
+        "$(curl -s -o /dev/null -w '%{http_code}' "$FILES_URL/assets/$ODD.glb")"
+fi
 
 echo "# $PASS passed, $FAIL failed"
 [ "$FAIL" -eq 0 ]

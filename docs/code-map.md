@@ -132,7 +132,7 @@ CSS: `hud.css` `top.css` `bar.css` `frame.css` `panel.css` `panels.css` `work.cs
 | `workstore.js` · `workshots.js` | PUT/lookup in the file store; pictures of tiles worked on |
 | `workui.js` · `worksettings.js` | what this machine is doing; Work → Settings |
 | `renderpool.js` · `poolcard.js` · `jobdetail.js` | Work queues as cards; one card; a job opened |
-| `poolrun.js` | The press of Render: a job to the end, the job that replaces it, and why the pool refused what is left (db/0201) |
+| `poolrun.js` | The press of Render: a job to the end, the job that replaces it, and why the pool refused what is left (db/0218) |
 | `pool.js` · `poolui.js` | Submit and the render pool; their nodes (also exports `el`, used widely) |
 
 **Settings, admin, wallet**

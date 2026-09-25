@@ -1,5 +1,7 @@
-# Four processes, no more (Invariant 10): postgres, postgrest, nginx, geoserver.
-# None of them computes anything for the world — every atom runs in a browser.
+# Four processes, no more (Invariant 10): postgres, postgrest, nginx, geoserver
+# — and beside nginx the file store's other half, the operator's IPFS node
+# (TASKS-live.md LV.11). None of them computes anything for the world — every
+# atom runs in a browser.
 name: splatworld
 
 services:
@@ -46,12 +48,34 @@ services:
     image: nginx:1.27-alpine
     depends_on:
       - postgrest
+      - node
     volumes:
       - ./infra/nginx.conf:/etc/nginx/nginx.conf:ro
       - ${FILES_ROOT:-./infra/files}:/srv/files
       - ./client:/srv/client:ro
     ports:
       - "8081:80"
+
+  # LV.11: the file store's other half. It takes every file the store writes
+  # (the same volume) and nginx asks it for /ipfs/{cid}; tabs dial it on
+  # WebSockets and WebRTC-direct, and reach each other through its relay.
+  node:
+    image: node:22-alpine
+    depends_on:
+      - postgrest
+    working_dir: /srv/repo
+    command: ["node", "tools/node.mjs"]
+    environment:
+      FILES_ROOT: /srv/files
+      API_URL: http://postgrest:3000
+      JWT_SECRET: ${JWT_SECRET:?set JWT_SECRET in .env}
+      NODE_HOST: 0.0.0.0
+    volumes:
+      - .:/srv/repo:ro
+      - ${FILES_ROOT:-./infra/files}:/srv/files
+    ports:
+      - "8096:8096"
+      - "8097:8097/udp"
 
   # The operator's ground layers — elevation over WCS; albedo, shade and cover
   # over WMS — and nothing else (Invariant 9): QGIS

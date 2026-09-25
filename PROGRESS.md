@@ -3073,10 +3073,10 @@ brought up to date.
   itself), `tilestate.py`, the setup and import routes nothing called,
   `infra/geoserver/`, `ch.geojson`, the committed `gis/splatworld.qgs`
   (`splatworld qgis` writes it), and the dead RPCs approve_tile, refuse_tile,
-  my_candidates, height_edit_rev and inside_ground (db/0200; may_approve_tile
+  my_candidates, height_edit_rev and inside_ground (db/0217; may_approve_tile
   stays ungranted, because db/0060 re-creates my_candidates over it when
   `splatworld run` replays a pre-ledger database).
-- **Grants.** db/0199: no api function is executable by PUBLIC, and
+- **Grants.** db/0216: no api function is executable by PUBLIC, and
   revive_job is no longer granted to player — every QGIS login is one.
 - **The Python server.** A POST to /setup/* from a page it did not serve is
   refused; a non-loopback `--host` with the development JWT_SECRET is
@@ -3106,7 +3106,7 @@ the commonest, a job replaced under the tab — a finer tile published, so
 ensure_job cancelled the merge in hand and opened the next job, and the tab
 went on asking claim_for for the old job by name.
 
-- **db/0201 `job_refusal(job, caps)`** is claim_for's filter as a sentence,
+- **db/0218 `job_refusal(job, caps)`** is claim_for's filter as a sentence,
   null when a claim would hand something out. `client/js/poolrun.js` (the
   Render press, split out of `renderpool.js`) asks it only when the count and
   the claim disagree, and shows the claim's own error when the claim failed.
@@ -3117,3 +3117,30 @@ went on asking claim_for for the old job by name.
   resubmission, a child landing, Compile it all again. Before, the approval
   returned the same job and the failure stayed, so resubmitting a tile whose
   training had crashed did nothing visible.
+
+## TASKS-live.md — live objects, the store, files anywhere (LV.1–LV.14)
+
+Migrations `db/0199`–`db/0215`, stories 40–48. `VISION.md`, named as the
+first thing to read, is in no branch; the decisions are the ones the owner's
+list states, and the ones made while planning are in `TASKS-live.md`.
+
+| story | what it proves | state |
+|---|---|---|
+| 40 | a crane's arm swings; two tabs put it at the same place at the same world second; the tile under it keeps its sog | green (subset) |
+| 41 | a gate declares `near 5`; walking up sets it off once; a flow on alpha reads it with Events Since | green (subset) |
+| 42 | a flow of On Trigger and Turn To only opens the gate for A after A clicks it | green (subset, fixture) |
+| 43 | a crate is carried a hundred metres and put down; A and C reach for it at once, one has it, one is told who | green (subset) |
+| 44 | the motion plugin is registered, bought and installed on beta; the palette says it is from beta | green (subset, fixture) |
+| 45 | the registrar puts a folder in the world; a fix that asks to pay waits for the owner's Allow | green (subset) |
+| 46 | B delegates the gate's flow; C runs it on beta under the duty's key; after the term it is gone and the key refuses | green (subset, fixture) |
+| 47 | C gets the gate from Ben's tab with the store out of reach; a lying tab is dropped and said | green (subset) |
+| 48 | C hosts Ben's field for three minutes; A gets the gate from Cara's tab; C settles for the share of its bytes she served (the bounty is 0: nobody here has earned a credit; the split is pgTAP's) | green (subset) |
+
+"Subset": this container's WebGPU (SwiftShader) has no `shader-f16`, so
+`train` is never claimed and story 8 cannot pass here; nor can any story that
+needs a rendered tile. The live stories need none, and were run from an empty
+database after the stories that set their world up (0–7 and 32), as
+`HANDOFF.md` §9 says. The whole `make player-run` is unrun here.
+
+Two things are the fixture's word and not a real process server's:
+`POST /system/plugins/install` and a job's `until` (`docs/flow.md`).

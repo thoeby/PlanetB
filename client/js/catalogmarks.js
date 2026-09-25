@@ -11,7 +11,10 @@
 // the world accepts is db/0160's (Invariant 6).
 
 import { el } from './poolui.js';
-import { PORTS, ROLES, canonMarks, portWords, roleWords } from '../lib/marks.js';
+import { PORTS, ROLES, canonMarks, portWords, roleWords, triggerWords }
+    from '../lib/marks.js';
+import { triggerForm } from './catalogtriggers.js';
+import { carryForm } from './catalogcarry.js';
 
 const NONE = 'part of the model';
 
@@ -116,11 +119,18 @@ function liveForm(state, changed) {
 
 const sentence = (state) => {
     const marks = canonMarks(state);
-    if (!marks.parts.length && !marks.openings.length) return 'no live parts';
+    const set = (marks.triggers ?? []).map(triggerWords);
+    const held = [marks.carry ? `may be carried (${marks.carry.kind})` : '',
+        marks.hold ? `holds ${marks.hold.capacity}` : ''].filter(Boolean);
+    if (!marks.parts.length && !marks.openings.length && !set.length && !held.length) {
+        return 'no live parts';
+    }
     const parts = marks.parts.map((p) => `${p.name} ${roleWords(p.role).toLowerCase()}`);
     const opens = marks.openings.map((o) => `${o.name} opens the ground`);
     const ports = portWords(marks);
-    return [...parts, ...opens].join(' · ') + (ports ? ` · ports: ${ports}` : '');
+    return [...parts, ...opens].join(' · ') + (ports ? ` · ports: ${ports}` : '')
+        + (set.length ? ` · set off by: ${set.join(', ')}` : '')
+        + (held.length ? ` · ${held.join(' · ')}` : '');
 };
 
 /**
@@ -129,7 +139,8 @@ const sentence = (state) => {
  * preview can be drawn again.
  */
 export function mountMarksForm(host, { onChange } = {}) {
-    const state = { nodes: [], at: null, parts: [], ports: [], openings: [], values: {} };
+    const state = { nodes: [], at: null, parts: [], ports: [], openings: [], values: {},
+        triggers: [], carry: null, hold: null };
     const said = el('div', { className: 'muted mk-said' });
     const body = el('div', { className: 'mk-body' });
     host.replaceChildren(el('span', { className: 'label', textContent: 'Parts' }),
@@ -144,7 +155,8 @@ export function mountMarksForm(host, { onChange } = {}) {
             state.at = node;
             paint();
         }), ...(state.at ? [roleForm(state, changed), portForm(state, changed)] : [])
-            .filter(Boolean), ...[liveForm(state, changed)].filter(Boolean));
+            .filter(Boolean), ...[liveForm(state, changed)].filter(Boolean),
+        triggerForm(state, changed), carryForm(state, changed));
         onChange?.(value(), state.at);
     };
     const changed = (apply) => { apply(); paint(); };
@@ -153,7 +165,7 @@ export function mountMarksForm(host, { onChange } = {}) {
     return {
         show(nodes) {
             Object.assign(state, { nodes: nodes ?? [], at: null, parts: [], ports: [],
-                openings: [], values: {} });
+                openings: [], values: {}, triggers: [], carry: null, hold: null });
             host.hidden = !state.nodes.length;
             paint();
         },

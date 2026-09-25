@@ -16,12 +16,27 @@ import { isMarked, partNodes } from '../lib/marks.js';
 import { sha256 } from '../lib/hash.js';
 import { renderThumb, ALGO as THUMB_ALGO } from '../lib/thumb.js';
 import { canonCollection, canonProfile, describe } from '../lib/product.js';
+import { ALGO as PLUGIN_ALGO } from '../lib/plugintar.js';
 
 const CATEGORIES = ['prop', 'building', 'vegetation', 'vehicle', 'furniture', 'other'];
 const LICENSES = ['cc0', 'free', 'paid', 'limited'];
 
 const FIELDS = 'san,name,category,license,price,editions,issued,tris,tex_bytes,'
-    + 'bbox,sha256,thumb_sha256,canon_version,creator_id,created_at,type,parts';
+    + 'bbox,sha256,thumb_sha256,canon_version,creator_id,created_at,type,parts,'
+    + 'pointer,policy,term';
+
+// LV.6: the model a product is sold under, said before Buy — db/0207
+// policy_words, in the same words.
+export function policyWords(asset) {
+    if (asset?.policy === 'subscription') {
+        return `Subscription: every update for as long as it is paid (${asset.term} at a`
+            + ' time); after that, the last legacy version.';
+    }
+    if (asset?.policy === 'pinned') {
+        return 'This exact version, for good: updates are not passed on.';
+    }
+    return 'Bought once: you keep this version, and receive fixes its maker marks as fixes.';
+}
 
 // What each of the five is, in the words the catalog uses for it (FND.5).
 export const TYPES = [
@@ -30,6 +45,9 @@ export const TYPES = [
     { id: 'profile', words: 'Road cross-section' },
     { id: 'collection', words: 'Collection' },
     { id: 'material', words: 'Surface material' },
+    // LV.7: blocks for flows, and a flow itself.
+    { id: 'plugin', words: 'Plugin' },
+    { id: 'flow', words: 'Flow' },
 ];
 
 export const typeWords = (type) =>
@@ -201,3 +219,14 @@ export const membersOf = (san) => api.select('collection_item', {
 });
 
 export { CATEGORIES, LICENSES };
+
+// LV.7: a plugin folder, as its canonical tar, and a flow, as its ELX.
+export const publishPlugin = (plugin, meta) =>
+    publishFile(plugin.bytes, 'tar', 'plugin', PLUGIN_ALGO,
+        { ...meta, type: 'plugin', parts: { plugin: plugin.id, blocks: plugin.blocks } });
+
+export const publishFlow = (elx, meta) =>
+    publishFile(elx, 'elx', 'flow', 'elx', { ...meta, type: 'flow' });
+
+export const tarUrl = (asset, sha = asset.pointer?.current ?? asset.sha256) =>
+    `${api.endpoints().files}/assets/${sha}.tar`;

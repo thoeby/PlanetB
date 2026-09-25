@@ -16,7 +16,7 @@ import webbrowser
 
 import psycopg
 
-from . import IGNORED_PROJ_DATA, __version__, config, migrate, serve, services
+from . import IGNORED_PROJ_DATA, __version__, config, ipfsnode, migrate, serve, services
 
 
 def _common(parser: argparse.ArgumentParser) -> None:
@@ -54,6 +54,8 @@ def parse(argv: list[str]) -> argparse.Namespace:
     _common(gnd)
 
     _common(sub.add_parser("doctor", help="check what is ready"))
+    _common(sub.add_parser("cids",
+        help="give the IPFS node every stored file it does not have a CID for yet"))
     return parser.parse_args(argv)
 
 
@@ -114,6 +116,10 @@ def cmd_doctor(args: argparse.Namespace) -> int:
     print(f"client        {cfg.client_dir}")
     print(f"listen        http://{cfg.host}:{cfg.port}")
     print(f"api           {cfg.api_url}")
+    # LV.11: the file store's other half, and whether it can run here.
+    print(f"ipfs node     {ipfsnode.url(cfg)} — "
+          + ("answering" if ipfsnode.alive(cfg)
+             else ipfsnode.missing(cfg) or "not running; `splatworld run` starts it"))
     for var, value in IGNORED_PROJ_DATA.items():
         print(f"  note: ignoring {var}={value} — it is another PROJ "
               "installation's data; elevation uses the one in rasterio")
@@ -189,7 +195,7 @@ def cmd_run(args: argparse.Namespace) -> int:
 
     cfg.files.mkdir(parents=True, exist_ok=True)
     _warn_if_a_copy(cfg)
-    with services.PostgREST(cfg, verbose=args.verbose):
+    with services.PostgREST(cfg, verbose=args.verbose), ipfsnode.Node(cfg, verbose=args.verbose):
         server = serve.listen(cfg, verbose=args.verbose)
         url = f"http://{'127.0.0.1' if cfg.host in ('0.0.0.0', '::') else cfg.host}:{cfg.port}"
         print(f"  files and client on {url}")
@@ -254,10 +260,23 @@ def cmd_qgis(args: argparse.Namespace) -> int:
     return 0
 
 
+def cmd_cids(args: argparse.Namespace) -> int:
+    """LV.14: the files stored before the node was, given to it now."""
+    cfg = _cfg(args)
+    with ipfsnode.Node(cfg):
+        if not ipfsnode.alive(cfg):
+            print("splatworld: the IPFS node is not running, so nothing was added",
+                  file=sys.stderr)
+            return 1
+        print(f"  {ipfsnode.backfill(cfg)} file(s) given a CID")
+    return 0
+
+
 def main(argv: list[str] | None = None) -> int:
     args = parse(argv if argv is not None else sys.argv[1:])
     commands = {"init": cmd_init, "run": cmd_run, "doctor": cmd_doctor,
-                "import": cmd_import, "qgis": cmd_qgis, "ground": cmd_ground}
+                "import": cmd_import, "qgis": cmd_qgis, "ground": cmd_ground,
+                "cids": cmd_cids}
     try:
         return commands[args.command](args)
     except psycopg.OperationalError as err:

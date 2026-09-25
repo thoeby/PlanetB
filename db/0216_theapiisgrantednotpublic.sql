@@ -1,4 +1,4 @@
--- 0199_theapiisgrantednotpublic.sql — a function is executed by the roles it
+-- 0216_theapiisgrantednotpublic.sql — a function is executed by the roles it
 -- is granted to, not by everybody.
 --
 -- Postgres grants EXECUTE to PUBLIC on every new function. Each api.* function

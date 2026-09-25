@@ -123,6 +123,9 @@ export class Upload {
             type: value('upload-type') || 'model',
             price: Number(value('price')) || 0,
             editions: license === 'limited' ? Number(value('editions')) || 1 : null,
+            // LV.6: what a right to it follows (db/0207).
+            policy: value('upload-policy') || 'once',
+            term: value('upload-policy') === 'subscription' ? '30 days' : undefined,
         };
     }
 

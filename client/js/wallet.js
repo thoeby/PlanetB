@@ -38,6 +38,10 @@ export const setBounty = (jobId, amount) =>
 
 export const buyAsset = (san) => api.rpc('buy_asset', { san });
 
+// LV.5: a purchase is an order. The world's own money confirms it at once; a
+// provider's leaves it waiting, with where to go and pay.
+export const orderAsset = (san, qty = 1) => api.rpc('order_create', { san, qty });
+
 export const transferRight = (san, toUser, amount = 0) =>
     api.rpc('transfer_asset_right', { san, to_user: toUser, amount });
 

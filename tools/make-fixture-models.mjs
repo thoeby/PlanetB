@@ -127,6 +127,28 @@ const pebble5cm = () => [
     { name: 'pebble', mesh: box([-0.025, 0, -0.04], [0.025, 0.05, 0.04]), material: 0 },
 ];
 
+// TASKS-live.md LV.1: a crane whose `arm` is a node of its own, reaching out
+// along -Z from the top of a mast at the model's origin, so a yaw turns it
+// about the mast.
+const crane = () => [
+    { name: 'mast', mesh: merge(box([-1.2, 0, -1.2], [1.2, 0.6, 1.2]),
+        box([-0.35, 0.6, -0.35], [0.35, 14.0, 0.35])), material: 0 },
+    { name: 'arm', mesh: merge(box([-0.3, 14.0, -12.0], [0.3, 14.8, 3.0]),
+        box([-0.8, 13.2, 1.8], [0.8, 14.0, 3.2])), material: 1 },
+];
+
+// LV.2: a gate whose `bar` swings up about the post it hangs from.
+const gate = () => [
+    { name: 'post', mesh: box([-0.2, 0, -0.2], [0.2, 1.4, 0.2]), material: 0 },
+    { name: 'bar', mesh: box([-0.08, 1.0, -6.0], [0.08, 1.2, 0]), material: 1 },
+];
+
+// LV.4: a crate somebody can pick up and carry.
+const crate = () => [
+    { name: 'crate', mesh: merge(box([-0.45, 0, -0.45], [0.45, 0.9, 0.45]),
+        box([-0.5, 0.85, -0.5], [0.5, 0.95, 0.5])), material: 0 },
+];
+
 const MODELS = [
     ['tree-fir', fir, [BARK, NEEDLE]],
     ['tree-larch', larch, [BARK, LEAF]],
@@ -140,6 +162,9 @@ const MODELS = [
     ['wall-segment-2m', wall2m, [STONE]],
     ['kerb-segment-1m', kerb1m, [CONCRETE]],
     ['pebble-segment-5cm', pebble5cm, [STONE]],
+    ['crane', crane, [STEEL, PAINT]],
+    ['gate', gate, [STEEL, PAINT]],
+    ['crate', crate, [BARK]],
 ];
 
 mkdirSync(OUT, { recursive: true });

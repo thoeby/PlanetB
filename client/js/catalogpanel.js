@@ -59,6 +59,13 @@ const HTML = `
         <canvas class="preview" id="material-preview" width="256" height="256"></canvas>
         <div id="material-said" class="muted mono"></div>
       </div>
+      <div id="form-file" hidden>
+        <input id="product-file" type="file" accept=".tar,.elx,application/x-tar">
+        <div id="product-said" class="muted mono"></div>
+        <div class="note">A plugin is its folder as a .tar — plugin.xml and its
+          assets — and is rewritten here in one canonical order, so the same
+          folder is one product. A flow is its .elx.</div>
+      </div>
       <div id="form-profile" hidden></div>
       <div id="form-collection" hidden></div>
     </div>
@@ -88,6 +95,12 @@ const HTML = `
       </div>
       <div class="note">0 is free to place. A number of editions makes it
         limited: that many placements exist, ever.</div>
+      <label for="upload-policy">Sold as</label>
+      <select id="upload-policy">
+        <option value="once">bought once — keeps its version, receives fixes</option>
+        <option value="subscription">a subscription — updates while paid, 30 days</option>
+        <option value="pinned">this exact version, for good</option>
+      </select>
       <button id="publish" type="button" class="primary" disabled>Register</button>
       <p id="upload-status" class="status"></p>
     </div>

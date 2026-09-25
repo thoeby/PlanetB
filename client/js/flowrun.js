@@ -44,7 +44,10 @@ async function sendProcess(procs, flow, elx, before) {
     return (await procs.create(flow.name, elx)).id;
 }
 
-export async function runOn(flow, server, start, say = () => {}) {
+export async function runOn(listed, server, start, say = () => {}) {
+    // The flow as it is now: it may have been saved in Automate since the
+    // thing's panel listed it.
+    const flow = (await flows.getFlow(listed.id).catch(() => null)) ?? listed;
     const before = (await runsOf(flow.id)).find((d) => d.server_id === server.id);
     const elx = await flows.elxOf(flow.elx_sha256);
     const inputs = parseElx(elx).inputs;

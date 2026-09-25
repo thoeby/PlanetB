@@ -3,14 +3,18 @@
 Split out of it only for size (CLAUDE.md: files < 400 lines). Everything the
 docstring there says holds here.
 """
+import io
 import json
 import re
+import tarfile
 import threading
 import time
 import urllib.error
 import urllib.request
 import xml.etree.ElementTree as ET
 from xml.sax.saxutils import escape
+
+from elx_fixture_world import run_flow
 
 LOCK = threading.Lock()
 STATE = {'process': {}, 'service': {}, 'job': {}, 'report': {}, 'next': 1,
@@ -108,14 +112,6 @@ def input_values(inputs_xml):
     return out
 
 
-def constants(node):
-    out = {}
-    for c in node.findall('constant'):
-        v = c.find('.//value')
-        out[c.get('port', '')] = (v.text or '') if v is not None else ''
-    return out
-
-
 def call_world(world, key, fn, args):
     try:
         req = urllib.request.Request(
@@ -132,22 +128,20 @@ def call_world(world, key, fn, args):
 
 
 def run_job(job):
-    """One run: every World Write Port block, in document order."""
+    """One run: every block the fixture knows, in an order the wires allow
+    (tools/elx_fixture_world.py)."""
     values = input_values(job.get('inputs', ''))
     world, key = values.get('world', ''), values.get('world_key', '')
-    proc = STATE['process'].get(str(job.get('process_id', '')))
-    lines, code = [], 0
+    proc = STATE['process'].get(str(job.get('process_id', ''))) \
+        or ({'elx': job['_elx']} if job.get('_elx') else None)
     if not proc:
         return 1, ['no such process']
-    for node in ET.fromstring(proc['elx']).iter('node'):
-        if node.get('plugin') != 'world' or node.get('id') != 'port.write':
-            continue
-        c = constants(node)
-        status, said = call_world(world, key, 'port_write', {
-            'p_instance': c.get('Object', ''), 'p_port': c.get('Port', ''),
-            'p_value': c.get('Value', '')})
-        STATE['calls'].append({'job': job['name'], 'status': status, 'said': said})
-        lines.append('%s: %s %s' % (node.get('name'), status, said[:200]))
+    ran = run_flow(proc['elx'], lambda rpc, args: call_world(world, key, rpc, args))
+    lines, code = [], 0
+    for name, rpc, status, said in ran:
+        STATE['calls'].append({'job': job['name'], 'rpc': rpc, 'status': status,
+                               'said': said})
+        lines.append('%s: %s %s' % (name, status, said[:200]))
         if status >= 300 or status == 0:
             code = 1
     return code, lines or ['nothing to do']
@@ -181,11 +175,30 @@ def named(query, fields):
     return (query.get('name', [''])[0] or fields.get('name') or '').strip()
 
 
+def expire_jobs():
+    """LV.10: a job given an `until` runs somebody else's flow for a term; when
+    the term is over the server takes the job and its process off itself. The
+    job is kept aside, as a deleted one is, so the run can ask for it again."""
+    now = time.time()
+    for jid, j in list(STATE['job'].items()):
+        try:
+            until = float(j.get('until') or 0)
+        except (TypeError, ValueError):
+            until = 0
+        if until and until <= now:
+            proc = STATE['process'].pop(str(j.get('process_id', '')), None)
+            STATE.setdefault('gone', {})[j['name']] = {**j, '_elx': (proc or {}).get('elx')}
+            del STATE['job'][jid]
+
+
 def routes(method, parts, query, fields, raw):
     """(status, data) for one request. parts are the path after /api/v1."""
+    expire_jobs()
     head = parts[0] if parts else ''
     one = parts[1] if len(parts) > 1 else None
     if head == 'system':
+        if method == 'POST' and parts[1:3] == ['plugins', 'install']:
+            return install_plugin(raw)
         return system(method, one)
     if head == 'process':
         return process(method, one, parts, query, fields, raw)
@@ -196,6 +209,25 @@ def routes(method, parts, query, fields, raw):
     if head == 'report':
         return report(method, one, query)
     return 400, None
+
+
+def install_plugin(raw):
+    """LV.7: a plugin folder, as the tar the catalog sells it as. Its
+    plugin.xml joins (or replaces) what /system/plugins/available lists."""
+    try:
+        with tarfile.open(fileobj=io.BytesIO(raw)) as tar:
+            names = [m for m in tar.getmembers() if m.isfile()
+                     and (m.name == 'plugin.xml' or m.name.endswith('/plugin.xml'))]
+            xml = tar.extractfile(sorted(names, key=lambda m: len(m.name))[0]).read().decode()
+    except (tarfile.TarError, IndexError, UnicodeDecodeError):
+        return 400, None
+    m = re.search(r'<plugin[^>]*\bid="([^"]+)"', xml)
+    if not m:
+        return 400, None
+    STATE['plugins'] = [x for x in STATE['plugins']
+                        if not re.search(r'<plugin[^>]*\bid="%s"' % re.escape(m.group(1)), x)]
+    STATE['plugins'].append(xml)
+    return 200, tag('plugin', m.group(1))
 
 
 def system(method, one):

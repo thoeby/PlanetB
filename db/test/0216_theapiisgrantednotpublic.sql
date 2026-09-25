@@ -1,4 +1,4 @@
--- A function is executed by the roles it is granted to (db/0199).
+-- A function is executed by the roles it is granted to (db/0216).
 BEGIN;
 SELECT plan(5);
 

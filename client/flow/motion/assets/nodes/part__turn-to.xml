@@ -1,0 +1,114 @@
+<elx>
+    <engine type="flow"/>
+    <input name="World"/>
+    <input name="World Key"/>
+    <input name="Object"/>
+    <input name="Port"/>
+    <input name="Yaw"/>
+    <input name="Pitch"/>
+    <input name="Roll"/>
+    <input name="Over"/>
+    <input name="When"/>
+    <output name="OK"/>
+    <output name="Error"/>
+    <net name="N000">
+        <connection node="Empty" port="json"/>
+        <connection node="Set Yaw" port="json"/>
+    </net>
+    <net name="N001">
+        <connection node="Yaw"/>
+        <connection node="Set Yaw" port="value"/>
+    </net>
+    <net name="N002">
+        <connection node="Set Yaw" port="out"/>
+        <connection node="Set Pitch" port="json"/>
+    </net>
+    <net name="N003">
+        <connection node="Pitch"/>
+        <connection node="Set Pitch" port="value"/>
+    </net>
+    <net name="N004">
+        <connection node="Set Pitch" port="out"/>
+        <connection node="Set Roll" port="json"/>
+    </net>
+    <net name="N005">
+        <connection node="Roll"/>
+        <connection node="Set Roll" port="value"/>
+    </net>
+    <net name="N006">
+        <connection node="Outer" port="json"/>
+        <connection node="With To" port="json"/>
+    </net>
+    <net name="N007">
+        <connection node="Set Roll" port="out"/>
+        <connection node="With To" port="value"/>
+    </net>
+    <net name="N008">
+        <connection node="With To" port="out"/>
+        <connection node="With Over" port="json"/>
+    </net>
+    <net name="N009">
+        <connection node="Over"/>
+        <connection node="With Over" port="value"/>
+    </net>
+    <net name="N010">
+        <connection node="With Over" port="out"/>
+        <connection node="Body" port="json"/>
+    </net>
+    <net name="N011">
+        <connection node="Body" port="string"/>
+        <connection node="Gate" port="in"/>
+    </net>
+    <net name="N012">
+        <connection node="When"/>
+        <connection node="Gate" port="condition"/>
+    </net>
+    <net name="N013">
+        <connection node="Gate" port="true"/>
+        <connection node="Write" port="Value"/>
+    </net>
+    <net name="N014">
+        <connection node="World"/>
+        <connection node="Write" port="World"/>
+    </net>
+    <net name="N015">
+        <connection node="World Key"/>
+        <connection node="Write" port="World Key"/>
+    </net>
+    <net name="N016">
+        <connection node="Object"/>
+        <connection node="Write" port="Object"/>
+    </net>
+    <net name="N017">
+        <connection node="Port"/>
+        <connection node="Write" port="Port"/>
+    </net>
+    <net name="N018">
+        <connection node="Write" port="OK"/>
+        <connection node="OK"/>
+    </net>
+    <net name="N019">
+        <connection node="Write" port="Error"/>
+        <connection node="Error"/>
+    </net>
+    <node id="create-empty-object" name="Empty" plugin="json"/>
+    <node id="set" name="Set Yaw" plugin="json">
+        <parameter id="key"><value id="string">yaw</value></parameter>
+    </node>
+    <node id="set" name="Set Pitch" plugin="json">
+        <parameter id="key"><value id="string">pitch</value></parameter>
+    </node>
+    <node id="set" name="Set Roll" plugin="json">
+        <parameter id="key"><value id="string">roll</value></parameter>
+    </node>
+    <node id="create-empty-object" name="Outer" plugin="json"/>
+    <node id="set" name="With To" plugin="json">
+        <parameter id="key"><value id="string">to</value></parameter>
+    </node>
+    <node id="set" name="With Over" plugin="json">
+        <parameter id="key"><value id="string">over_s</value></parameter>
+    </node>
+    <node id="to-string" name="Body" plugin="json"/>
+    <node id="flow-control.if-else" name="Gate" plugin="builtin"/>
+    <node id="port.write" name="Write" plugin="world"/>
+</elx>
