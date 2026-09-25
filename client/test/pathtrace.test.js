@@ -9,8 +9,9 @@ import { cameraSet, cameraToWorld } from '../lib/cameras.js';
 import { basisOf } from '../lib/glbmesh.js';
 import { SKY_COLOUR, SUN } from '../lib/light.js';
 import {
-    cameraOf, meshObject, placeObject, poseOf, skyAndSun, toBytes,
+    meshObject, placeObject, poseOf, skyAndSun, toBytes,
 } from '../lib/pathtrace.js';
+import { cameraOf } from '../lib/raster.js';
 import { tileFrame } from '../lib/tilemath.js';
 import * as THREE from '../vendor/three/three.module.js';
 

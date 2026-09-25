@@ -150,8 +150,9 @@ export function skyTexture() {
     return tex;
 }
 
-// A pose from client/lib/cameras.js as a three.js camera: lookAt builds the
-// basis cameraToWorld() writes into transforms.json.
+// A pose from client/lib/cameras.js as a three.js camera. lookAt builds the
+// same basis cameraToWorld() writes into transforms.json: back = eye - target,
+// right = up × back, up = back × right. The path tracer uses it too.
 export function cameraOf(cam, { near = 0.5, far = 20000 } = {}) {
     const c = new THREE.PerspectiveCamera(cam.fov, 1, near, far);
     c.up.set(...cam.up);

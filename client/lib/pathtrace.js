@@ -15,6 +15,7 @@ import { GLTFLoader } from '../vendor/three/GLTFLoader.js';
 import { GradientEquirectTexture, WebGLPathTracer } from '../vendor/three/three-gpu-pathtracer.js';
 import { BOUNCE_COLOUR, SKY_COLOUR, SUN, SUN_COLOUR, SUN_STRENGTH } from './light.js';
 import { denoise, normalsFrom } from './denoise.js';
+import { cameraOf } from './raster.js';
 import { localFromLonLat } from './tilemath.js';
 
 export const DEFAULTS = { samples: 32, bounces: 3 };
@@ -53,18 +54,6 @@ export function skyAndSun(scene) {
     sun.target.position.set(0, 0, 0);
     scene.add(sun, sun.target);
     return { sky, sun };
-}
-
-// A pose from client/lib/cameras.js as a three.js camera. lookAt builds the
-// same basis cameraToWorld() writes into transforms.json: back = eye - target,
-// right = up × back, up = back × right.
-export function cameraOf(cam, { near = 0.5, far = 20000 } = {}) {
-    const c = new THREE.PerspectiveCamera(cam.fov, 1, near, far);
-    c.up.set(...cam.up);
-    c.position.set(...cam.position);
-    c.lookAt(...cam.target);
-    c.updateMatrixWorld(true);
-    return c;
 }
 
 // Where an instance stands in the tile's own frame, and how it is turned:
