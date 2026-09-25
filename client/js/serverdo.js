@@ -18,6 +18,7 @@ export async function openRemote(ctx, server, row) {
     const elx = await processApi(server.url).elx(row.id);
     canvas.open(ctx.parse(elx), {});
     canvas.view.read_only = true;
+    ctx.pages?.go('Editor');
     ctx.state.open = null;
     ctx.state.remote = { server, row, elx };
     ctx.bar.name.textContent = `${row.name} · on ${server.name}`;

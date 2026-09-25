@@ -1,8 +1,9 @@
 // flowsui.js — the Automate view (SPEC §2.16), whole.
 //
-// Three columns and a bar: the flows on the left, the canvas in the middle, the
-// inspector on the right, and Save / Validate / Export / Import / Close over
-// them. The view takes the window because a flow is not a form beside the
+// Four pages under one bar (TASKS-ui.md UI.8, flowpages.js): Flows, the cards
+// Automate opens on; Editor, the flows or the chosen server's lists on the
+// left, the canvas in the middle, the inspector on the right; Schedule; and
+// Paths. The view takes the window because a flow is not a form beside the
 // world; while it is open the 3D view is paused, and the moment it closes the
 // world is drawn again.
 //
@@ -12,6 +13,7 @@
 // back with is the one shown.
 
 import { el } from './poolui.js';
+import { empty } from './empty.js';
 import * as api from './api.js';
 import * as flows from './flows.js';
 import { bootFlow } from '../flow/boot.js';
@@ -23,7 +25,10 @@ import { topBar } from './flowsbar.js';
 import { mountServerPicker } from './serverpicker.js';
 import { flowBlocks } from './flowblocks.js';
 import { isWorldBlock, setConstant } from './flowworld.js';
-import { leftTabs } from './servertab.js';
+import { leftPanes } from './servertab.js';
+import { mountPages } from './flowpages.js';
+import { mountHome } from './flowhome.js';
+import { mountPaths } from './flowpaths.js';
 import { mountProcesses } from './serverprocs.js';
 import { mountServices } from './serverservices.js';
 import { mountJobs } from './serverjobs.js';
@@ -177,8 +182,8 @@ function worldBag(ctx, pickObject) {
     };
 }
 
-// FL.3–FL.5: what is on the chosen server, in the left column's second tab.
-// Every list is asked for again when the server changes.
+// FL.3–FL.5: what is on the chosen server, in the left column when one is
+// chosen. Every list is asked for again when the server changes.
 function remoteLists(ctx, tabs) {
     const bag = {
         server: () => ctx.server.current(),
@@ -189,10 +194,14 @@ function remoteLists(ctx, tabs) {
         visible: (plugin) => ctx.blocks?.served(plugin) ?? true,
         runPanel: mountRunPanel(ctx.mid),
         reload: () => run(),
+        // Closing the Planner leaves the Schedule page for the Editor.
+        plannerClosed: () => ctx.pages.go('Editor'),
     };
     const parts = [mountProcesses, mountServices, mountJobs, mountReports]
         .map((mount) => mount(tabs.remotePane, bag));
-    bag.planner = mountPlanner(ctx.root, bag);
+    ctx.planner = mountPlanner(ctx.pages.sched, bag);
+    // The Jobs section's Planner is the Schedule page.
+    bag.planner = { node: ctx.planner.node, open: () => ctx.pages.go('Schedule') };
     const run = () => (bag.server() ? Promise.all(parts.map((p) => p.run())) : null);
     ctx.server.onChange((s) => {
         tabs.server(s);
@@ -200,24 +209,45 @@ function remoteLists(ctx, tabs) {
         ctx.bar.send.title = s ? `Send to ${s.name}` : 'Choose a server first';
         ctx.bar.send.disabled = !s;
         run();
-        if (s && bag.planner && !bag.planner.node.hidden) bag.planner.open();
+        if (ctx.pages.at() === 'Schedule') schedule(ctx);
     });
     return { run, parts, bag, tabs };
 }
 
+// The Schedule page is the chosen server's Planner, or the sentence that
+// says a server has to be chosen for there to be one.
+function schedule(ctx) {
+    const s = ctx.server.current();
+    ctx.schedNone.hidden = Boolean(s);
+    if (s) return ctx.planner.open();
+    ctx.planner.close();
+    return null;
+}
+
+// What each page needs when it comes up: undo and redo on the top bar belong
+// to the Editor's canvas, and the other three read afresh.
+function onPage(ctx, name, edits) {
+    const c = ctx.canvas;
+    edits?.use('automate', name === 'Editor' && c ? { undo: () => c.undo(), redo: () => c.redo(),
+        canUndo: () => c.canUndo(), canRedo: () => c.canRedo() } : null);
+    if (name === 'Schedule') schedule(ctx);
+    else ctx.planner?.close();
+    if (name === 'Paths') ctx.paths.refresh().catch((e) => ctx.say(String(e?.message ?? e)));
+    if (name === 'Flows' && ctx.list) refresh(ctx).catch(() => {});
+}
+
 // Run on… for the open flow (design 10a's Run): saved first, because what is
-// sent is what the world keeps.
-async function runOpen(ctx) {
-    const open = ctx.state.open;
-    if (!open) return;
-    if (ctx.state.dirty) { ctx.say('save first'); return; }
-    const land = (await ctx.lands()).find((a) => a.id === open.area_id);
-    await openRunDialog(ctx.root, open, { land: land?.name ?? 'this land' },
+// sent is what the world keeps. A card on the Flows page runs its own.
+async function runOpen(ctx, row = ctx.state.open) {
+    if (!row) return;
+    if (row === ctx.state.open && ctx.state.dirty) { ctx.say('save first'); return; }
+    const land = (await ctx.lands()).find((a) => a.id === row.area_id);
+    await openRunDialog(ctx.root, row, { land: land?.name ?? 'this land' },
         () => refresh(ctx), ctx.say);
 }
 
 // Everything the view holds, in one bag the actions in flowsdo.js are handed.
-function context(parts, { onClose, onStay, lands, pickObject }) {
+function context(parts, { onClose, onStay, lands, pickObject, edits, barTabs }) {
     const { root, mid, right, bar } = parts;
     const ctx = {
         root, mid, right, bar, lands, canvas: null, inspector: null,
@@ -242,11 +272,16 @@ function context(parts, { onClose, onStay, lands, pickObject }) {
             bar.run.hidden = Boolean(remote);
             ctx.status?.readOnly(remote?.server?.name ?? null);
             bar.run.disabled = !ctx.state.open;
-            bar.undo.disabled = !ctx.canvas?.canUndo();
-            bar.redo.disabled = !ctx.canvas?.canRedo();
+            edits?.changed();
         },
         boot: () => boot(ctx),
-        hide: () => { root.hidden = true; ctx.server.stop(); onClose?.(); },
+        hide: () => {
+            root.hidden = true;
+            ctx.server.stop();
+            barTabs?.(null);
+            edits?.use('automate', null);
+            onClose?.();
+        },
         // Answering "Stay" to the closing question puts the view back: the
         // chrome may already have been dressed for another one.
         stay: () => { root.hidden = false; onStay?.(); },
@@ -276,6 +311,20 @@ const actions = (ctx, picker) => ({
         && intoLand(ctx, ctx.state.remote.server, ctx.state.remote.row),
 });
 
+// UI.8: the four pages, and what fills the three that are not the Editor.
+function pages(ctx, edits) {
+    ctx.pages = mountPages(ctx.root, { onPage: (name) => onPage(ctx, name, edits) });
+    ctx.schedNone = el('div', { className: 'fl-sched-none' }, empty('Schedule a job on a'
+        + ' server', 'Jobs run on a process server of yours. Choose one in Server, above on'
+        + ' the right; its jobs are laid out here on a timeline.'));
+    ctx.pages.sched.append(ctx.schedNone);
+    ctx.paths = mountPaths(ctx.pages.paths, { lands: ctx.lands });
+    ctx.home = mountHome(ctx.pages.home, {
+        open: (row) => openFlow(ctx, row), run: (row) => runOpen(ctx, row),
+        create: () => ctx.list.newFlow(),
+    });
+}
+
 export function mountFlows(doc, opts) {
     const parts = frame(doc);
     const { root, left } = parts;
@@ -283,11 +332,8 @@ export function mountFlows(doc, opts) {
     const picker = filePicker(ctx);
     root.append(picker);
     ctx.acts = actions(ctx, picker);
-    const tabs = leftTabs(left);
-    // The tab's dot says what the bar's dot says (design 10a).
-    const barDot = ctx.bar.server.querySelector('.fl-dot');
-    new window.MutationObserver(() => { tabs.dot.dataset.state = barDot.dataset.state; })
-        .observe(barDot, { attributes: true, attributeFilter: ['data-state'] });
+    const tabs = leftPanes(left);
+    pages(ctx, opts.edits);
     ctx.remoteLists = remoteLists(ctx, tabs);
     ctx.list = mountFlowList(tabs.minePane, {
         create: (areaId, name, instance) => create(ctx, areaId, name, instance),
@@ -306,8 +352,11 @@ export function mountFlows(doc, opts) {
         async show() {
             root.hidden = false;
             opts.onOpen?.();
+            opts.barTabs?.(ctx.pages.nav);
             try {
                 await boot(ctx);
+                if (ctx.pages.at()) onPage(ctx, ctx.pages.at(), opts.edits);
+                else ctx.pages.go('Flows');
                 serverFirst(ctx).catch((err) => ctx.say(String(err?.message ?? err)));
                 ctx.canvas.fit();
                 await refresh(ctx);
@@ -331,5 +380,6 @@ export function mountFlows(doc, opts) {
         problems: () => ctx.state.problems,
         refresh: () => refresh(ctx),
         canvas: () => ctx.canvas,
+        page: (name) => (name ? ctx.pages.go(name) : ctx.pages.at()),
     };
 }

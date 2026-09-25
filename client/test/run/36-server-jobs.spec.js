@@ -17,7 +17,6 @@ test('story 36 — jobs and reports on a server', async ({ browser, world }, tes
         await signIn(b, 'ben@visp.example', 'Ben');
         await openAutomate(b);
         await chooseServer(b, 'alpha');
-        await b.page.locator('#flows .fl-tab', { hasText: 'On alpha' }).click();
     });
 
     await test.step('B makes Dusk: Weather check, every evening at six', async () => {

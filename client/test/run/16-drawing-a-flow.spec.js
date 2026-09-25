@@ -14,6 +14,7 @@
 import { test, expect, open, panel, panelApp, shows, signIn, UI }
     from './players.js';
 import { differs, variety } from './pixels.js';
+import { openAutomate } from './automate.js';
 
 const PATCH = [[0.20, 0.22], [0.34, 0.22], [0.34, 0.36], [0.20, 0.36]];
 
@@ -171,23 +172,23 @@ async function renames(a) {
     expect(await names(a)).toContain('Is it dusk');
 }
 
-// 5 — undo twice, redo once, on the buttons that say what the keys are. Each
+// 5 — undo twice, redo once, on the top bar's two glyphs (UI.8). Each
 // step of the history is the flow as it would have been saved, so what it went
 // back to is compared as the ELX itself.
 async function undoRedo(a) {
     const elx = () => a.page.evaluate(() => window.splatworld.flows.canvas().elx());
     const before = await elx();
-    await a.page.locator('#flows .fl-undo').click();
+    await a.page.locator('#bar-undo').click();
     const once = await elx();
-    await a.page.locator('#flows .fl-undo').click();
+    await a.page.locator('#bar-undo').click();
     const twice = await elx();
     expect(once, 'one undo went back a step').not.toBe(before);
     expect(twice, 'and the second went back another').not.toBe(once);
-    await a.page.locator('#flows .fl-redo').click();
+    await a.page.locator('#bar-redo').click();
     expect(await elx(), 'the redo came forward exactly one').toBe(once);
     // And forward again to where the drawing was left, so what is saved next
     // is the whole flow.
-    await a.page.locator('#flows .fl-redo').click();
+    await a.page.locator('#bar-redo').click();
     expect(await elx()).toBe(before);
 }
 
@@ -209,7 +210,7 @@ async function savesAndReloads(a) {
 
     await a.page.reload();
     await a.page.waitForFunction(() => window.splatworld?.flows, null, { timeout: UI });
-    await panelApp(a, 'Automate');
+    await openAutomate(a);
     await a.page.locator('#flows .fl-list li[data-flow] button.pick').click();
     await expect(a.page.locator('#flows .fl-top .name'))
         .toHaveText('lamp at dusk', { timeout: UI });
@@ -231,7 +232,7 @@ async function savesAndReloads(a) {
 async function othersLook(browser, world, testInfo, a, saved) {
     const b = await open(browser, world, 'B', testInfo);
     await signIn(b, 'ben@visp.example', 'Ben');
-    await panelApp(b, 'Automate');
+    await openAutomate(b);
     await expect(b.page.locator('#flows')).toBeVisible({ timeout: UI });
     await expect(b.page.locator('#flows .fl-list li[data-flow]')).toHaveCount(0);
 
@@ -250,7 +251,7 @@ async function othersLook(browser, world, testInfo, a, saved) {
 
     const c = await open(browser, world, 'C', testInfo);
     await signIn(c, 'cara@visp.example', 'Cara');
-    await panelApp(c, 'Automate');
+    await openAutomate(c);
     await c.page.locator('#flows .fl-list li[data-flow] button.pick').click();
     await expect(c.page.locator('#flows .fl-top .name'))
         .toHaveText('lamp at dusk', { timeout: UI });
@@ -262,7 +263,7 @@ async function othersLook(browser, world, testInfo, a, saved) {
 
 // 8 — closing with something unsaved is a question with three answers.
 async function closesDirty(a) {
-    await panelApp(a, 'Automate');
+    await openAutomate(a);
     await a.page.locator('#flows .fl-list li[data-flow] button.pick').click();
     await expect(a.page.locator('#flows .fl-top .name'))
         .toHaveText('lamp at dusk', { timeout: UI });
@@ -288,7 +289,7 @@ test('story 16 — a flow is drawn on a land, saved, and found again',
         await test.step('and takes a piece of land of their own', () => bergli(a));
 
         await test.step('1 — Automate says there is nothing on Bergli yet', async () => {
-            await panelApp(a, 'Automate');
+            await openAutomate(a);
             await expect(a.page.locator('#flows')).toBeVisible({ timeout: UI });
             await expect(a.page.locator('#flows .fl-empty'))
                 .toContainText('No flows on Bergli yet', { timeout: UI });

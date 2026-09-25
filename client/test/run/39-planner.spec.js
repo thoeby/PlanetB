@@ -36,7 +36,6 @@ test('story 39 — the Planner', async ({ browser, world }, testInfo) => {
         await signIn(b, 'ben@visp.example', 'Ben');
         await openAutomate(b);
         await chooseServer(b, 'alpha');
-        await b.page.locator('#flows .fl-tab', { hasText: 'On alpha' }).click();
     });
     await test.step('B makes Broken and runs it, and runs Dusk twice', async () => {
         await makesBroken(b);

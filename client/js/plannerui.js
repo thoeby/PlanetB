@@ -204,12 +204,14 @@ export function mountPlanner(host, bag) {
     const load = loader(bag, state, parts, draw);
     acts = actionsOf(bag, load, parts.said);
     const close = () => { node.hidden = true; pop.hide(); };
+    // Closed by the player, it hands the page back (flowsui.js, UI.8).
+    const leave = () => { close(); bag.plannerClosed?.(); };
     node.append(
         el('div', { className: 'pl-top' },
             el('span', { className: 'name', textContent: 'Planner' }),
             parts.title, el('span', { className: 'spacer' }), parts.said,
             btn('New job', 'pl-new', () => acts.newJob()), btn('Refresh', 'pl-refresh', load),
-            btn('Close', 'pl-close', close)),
+            btn('Close', 'pl-close', leave)),
         toolsOf(state, draw, date),
         el('div', { className: 'pl-grid-head' },
             el('span', { className: 'muted', textContent: 'Job \u00b7 when it runs' }), head,
@@ -217,7 +219,7 @@ export function mountPlanner(host, bag) {
         rows, chart.node);
     // Its own report panel: the Automate one is under this view.
     const report = mountRunPanel(node);
-    node.addEventListener('keydown', (e) => { if (e.key === 'Escape') close(); });
+    node.addEventListener('keydown', (e) => { if (e.key === 'Escape') leave(); });
     host.append(node);
     return { node, close, async open() { node.hidden = false; await load(); } };
 }

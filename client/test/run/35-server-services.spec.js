@@ -13,7 +13,6 @@ const dialog = (b) => b.page.locator('#flows .fl-svc-dialog');
 async function onAlpha(b) {
     await openAutomate(b);
     await chooseServer(b, 'alpha');
-    await b.page.locator('#flows .fl-tab', { hasText: 'On alpha' }).click();
 }
 
 test('story 35 — services on a server', async ({ browser, world }, testInfo) => {

@@ -11,13 +11,24 @@ export const flows = (p) => p.page.locator('#flows');
 export const said = (p) => p.page.locator('#flows .fl-said');
 export const serverSelect = (p) => p.page.getByLabel('Server', { exact: true });
 
-export async function openAutomate(p) {
-    await panelApp(p, 'Automate');
-    await expect(flows(p)).toBeVisible({ timeout: UI });
+// One of Automate's four pages, by its tab in the top bar (UI.8).
+export async function automateTab(p, name) {
+    await p.page.locator(`#top .fl-pages button[data-tab="${name}"]`).click();
+    await expect(flows(p)).toHaveAttribute('data-page', name.toLowerCase(), { timeout: UI });
 }
 
+// Automate, at the Editor: the stories before UI.8 are about the canvas.
+export async function openAutomate(p, page = 'Editor') {
+    await panelApp(p, 'Automate');
+    await expect(flows(p)).toBeVisible({ timeout: UI });
+    await automateTab(p, page);
+}
+
+// A server, or My collection — which decides what the Editor's left column
+// holds (UI.8).
 export async function chooseServer(p, name) {
     await serverSelect(p).selectOption({ label: name });
+    if (name === 'My collection') return;
     await expect(p.page.locator('#flows .fl-srv .fl-dot'))
         .toHaveAttribute('data-state', 'up', { timeout: UI });
 }
@@ -56,11 +67,12 @@ export async function selectBlock(p, name) {
     await p.page.mouse.click(at.x, at.y);
 }
 
-// A new flow on a land, from the left column's New flow.
+// A new flow on a land, from the Flows page's New flow — there whichever
+// server is chosen, so the palette can already be that server's (UI.8).
 export async function newFlow(p, land, name) {
-    await expect(p.page.locator('#flows .fl-list li.land'))
-        .toContainText(land, { timeout: UI });
-    await p.page.locator('#flows .fl-new').click();
+    await automateTab(p, 'Flows');
+    await expect(p.page.locator('#flows .fh-new')).toBeEnabled({ timeout: UI });
+    await p.page.locator('#flows .fh-new').click();
     await p.page.locator('#flows .fl-land').selectOption({ label: land });
     await p.page.locator('#flows .fl-ask-name').fill(name);
     await p.page.getByRole('button', { name: 'Create' }).click();

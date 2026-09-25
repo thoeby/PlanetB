@@ -1,5 +1,5 @@
-// servertab.js — the left column's second tab, "On <server>" (TASKS-flows.md
-// FL.3–FL.5, docs/design/flows-servers.md §3).
+// servertab.js — the left column when a server is chosen, "On <server>"
+// (TASKS-flows.md FL.3–FL.5, docs/design/flows-servers.md §3).
 //
 // What is on the chosen process server, in sections: its processes, its
 // services, its jobs and its reports. Nothing listed here is kept in the world;
@@ -9,36 +9,21 @@
 
 import { el } from './poolui.js';
 
-// The two tabs over the left column: My flows, and On <server>.
-export function leftTabs(host) {
-    const mine = el('button', { type: 'button', className: 'fl-tab', textContent: 'My flows' });
-    const word = el('span', { textContent: 'On a server' });
-    const dot = el('i', { className: 'fl-tabdot' });
-    const remote = el('button', { type: 'button', className: 'fl-tab' }, word, dot);
-    for (const b of [mine, remote]) b.setAttribute('role', 'tab');
-    const bar = el('div', { className: 'fl-tabs', role: 'tablist' }, mine, remote);
-    const minePane = el('div', { className: 'fl-pane' });
-    const remotePane = el('div', { className: 'fl-pane' });
-    host.append(bar, minePane, remotePane);
-    const show = (which) => {
-        mine.setAttribute('aria-selected', String(which === 'mine'));
-        remote.setAttribute('aria-selected', String(which === 'remote'));
-        minePane.hidden = which !== 'mine';
-        remotePane.hidden = which !== 'remote';
+// The left column holds one of two things, and the Server control decides
+// which (TASKS-ui.md UI.8): with My collection chosen, your flows; with a
+// server chosen, what is on it.
+export function leftPanes(host) {
+    const head = el('div', { className: 'fl-pane-head' });
+    const minePane = el('div', { className: 'fl-pane fl-mine' });
+    const remotePane = el('div', { className: 'fl-pane fl-on-server' });
+    host.append(head, minePane, remotePane);
+    const server = (s) => {
+        head.textContent = s ? `On ${s.name}` : 'My collection';
+        minePane.hidden = Boolean(s);
+        remotePane.hidden = !s;
     };
-    mine.onclick = () => show('mine');
-    remote.onclick = () => show('remote');
-    show('mine');
-    return {
-        minePane, remotePane, show, dot,
-        // The tab is named for the server, and cannot be opened without one.
-        server(s) {
-            word.textContent = s ? `On ${s.name}` : 'On a server';
-            remote.disabled = !s;
-            remote.title = s ? '' : 'Choose a server first';
-            if (!s && !remotePane.hidden) show('mine');
-        },
-    };
+    server(null);
+    return { minePane, remotePane, server };
 }
 
 // One collapsible section with a heading, a Refresh, a line for what went

@@ -211,5 +211,7 @@ export function mountFlowList(host, on) {
             draw();
         },
         rows: () => state.rows,
+        // The Flows page's New flow asks the same question (flowhome.js).
+        newFlow: () => newFlowDialog(state, on),
     };
 }

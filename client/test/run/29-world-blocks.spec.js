@@ -16,6 +16,7 @@ import { readFileSync } from 'node:fs';
 
 import { test, expect, looking, open, panel, panelApp, signIn, UI }
     from './players.js';
+import { openAutomate } from './automate.js';
 
 const ELX_URL = (process.env.ELX_URL ?? '').trim();
 
@@ -114,7 +115,7 @@ const objectOnScreen = (player, id) => player.page.evaluate((want) => {
 
 // 1 — C opens Automate on B's land and makes a flow there.
 async function newFlow(c) {
-    await panelApp(c, 'Automate');
+    await openAutomate(c);
     await expect(c.page.locator('#flows')).toBeVisible({ timeout: UI });
     // The lands arrive after the view does; New flow asks which one, and it
     // can only ask once it knows.
