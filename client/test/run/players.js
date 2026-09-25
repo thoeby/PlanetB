@@ -12,7 +12,10 @@ import { surfaceOf, viewOf } from '../../js/tabbar.js';
 
 // A player waits on the world changing, never on the clock.
 export const UI = 30_000;
-export const RENDER = 600_000;
+// RUN_RENDER_S is for a developer's box with no GPU, where one small tile is
+// framed in software at seconds a frame: the gate's ceiling is ten minutes,
+// and a run that raised it says so in its first line.
+export const RENDER = Number(process.env.RUN_RENDER_S ?? 600) * 1000;
 
 // Every player in the run uses the same one: what is being proven is never
 // the password.
@@ -27,7 +30,9 @@ export const test = base.extend({
         // Which GeoServer answered, in the run's output: a story that passed
         // against the fixture has passed against the fixture only.
         process.stdout.write(`\n  world: ${world.pageUrl}`
-            + `\n  geoserver (${world.geoserverKind}): ${world.geoserverUrl}\n\n`);
+            + `\n  geoserver (${world.geoserverKind}): ${world.geoserverUrl}`
+            + (RENDER === 600_000 ? '' : `\n  render ceiling raised to ${RENDER / 1000} s`)
+            + '\n\n');
         await use(world);
         world.stop();
     }, { scope: 'worker', auto: false, timeout: 900_000 }],
