@@ -17,6 +17,8 @@ test('story 55 — the list, a rename and a delete, saved',
     async ({ browser, world }, testInfo) => {
         const b = await ben(browser, world, testInfo);
         await linesOnHisLand(b);
+        // The land's lines are a card off the toolbar, folded until asked for.
+        await b.page.locator('.ln-list-toggle').click();
         const rows = b.page.locator('.ln-list .ln-row');
         await test.step('two lines listed with kind, length and climb', async () => {
             await expect(rows).toHaveCount(2, { timeout: UI });

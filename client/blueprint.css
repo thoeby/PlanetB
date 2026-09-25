@@ -27,6 +27,10 @@
 .bp-num-row .warn { color: var(--warn); }
 .bp-num-row .bad { color: var(--bad); }
 .bp-tag[hidden], .bp-nums[hidden] { display: none; }
+/* #hud > * gives everything on the chrome the pointer back (client/hud.css),
+   and an id outranks the class above: the box sat above-right of the pointer
+   and took it off the clay whenever the pointer moved that way. */
+#hud > .bp-tag, #hud > .bp-nums { pointer-events: none; }
 
 /* On the ground: the overlays, a switch a row. */
 .bp-card { display: flex; flex-direction: column; gap: 6px; font-size: 12px; }

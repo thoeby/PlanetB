@@ -280,7 +280,8 @@ per kind and class, recent ones first, type to filter, `1`–`9` to pick.
 - `V` selects and edits: drag nodes and handles, click a curve to insert a
   node, right-click for corner/smooth, split and delete; the handle at the
   side sets the width at that node.
-- The selected line's panel: its profile (click to go there), **Walk it**,
+- The selected line's card, under the toolbar (the palette and the land's
+  lines are cards too, from the bar): its profile (click to go there), **Walk it**,
   **Reverse**, **Delete**, **Lay bed** (opens Shape with Along line in hand),
   and its fields. Ctrl-Z undoes; Save writes.
 

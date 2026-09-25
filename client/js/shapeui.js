@@ -131,6 +131,7 @@ function comings(ctx, state, list, open, { leave, save, surface, rail }) {
     const enter = async () => {
         state.on = true;
         rail.node.hidden = false;
+        ctx.bpmode.hold(surface);
         // The operator's switches, not the player's (PLAN-editors ideas
         // 13 and 16): the edge blend, and how far the ground may move.
         const set = await api.rpc('app_settings').catch(() => ({}));
@@ -165,6 +166,7 @@ function comings(ctx, state, list, open, { leave, save, surface, rail }) {
             rail.node.hidden = true;
             // Only the clay Shape opened: Lines may have it by now.
             if (ctx.bpmode.surface === surface) ctx.bpmode.close();
+            else ctx.bpmode.release(surface);
         },
     };
 }

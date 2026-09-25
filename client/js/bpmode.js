@@ -55,11 +55,12 @@ export function mountBlueprintMode(ctx) {
         get active() { return bp.active; },
         get surface() { return st.surface; },
         state: st,
+        ...holding(st, cam, bp),
         async open(area, shaping, surface) {
-            // Another surface had the clay (Shape, then Lines): it goes first.
+            // Another surface had the clay (Shape, then Lines): it goes first;
+            // the walk camera lets go before the ground has loaded.
             if (bp.active) this.close();
-            // The walk camera lets go before the ground has loaded (bpcamera hold).
-            cam.hold();
+            this.hold(surface);
             st.surface = surface;
             const ms = await bp.open(area, shaping);
             cam.enter();
@@ -75,14 +76,30 @@ export function mountBlueprintMode(ctx) {
             bp.close();
             strip.hide();
             words.hide();
-            st.section = null;
-            st.surface = null;
+            Object.assign(st, { section: null, surface: null, wanting: null });
         },
         // Every frame, from the page's update.
         frame: (dt = 1 / 60) => drawFrame(bp, app, pc, cam, st, dt),
         say,
     };
 }
+
+// A surface is on screen: the walk camera lets go of the mouse now, before
+// there is any clay — and whether or not there will be (no land to shape is
+// still no pointer lock and no looking around). When that surface leaves
+// without the clay ever opening, the walk camera comes back, unless another
+// surface has asked for it since.
+const holding = (st, cam, bp) => ({
+    hold(surface) {
+        st.wanting = surface;
+        cam.hold();
+    },
+    release(surface) {
+        if (st.wanting !== surface || bp.active) return;
+        st.wanting = null;
+        cam.leave();
+    },
+});
 
 function drawFrame(bp, app, pc, cam, st, dt) {
     if (!bp.active) return;

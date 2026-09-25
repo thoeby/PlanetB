@@ -23,9 +23,15 @@ const onTheSlope = (b) => b.page.evaluate(async () => {
     const k = Math.ceil(40 / (L.dLat * 110540));
     const deep = (i, j) => [[0, 0], [k, 0], [-k, 0], [0, k], [0, -k]].every(([di, dj]) =>
         bp.inside[(j + dj) * L.cols + i + di]);
+    // And clear of the toolbar's cards down the left and the corner card.
+    const clear = (i, j) => {
+        const [lo, la] = [L.bbox[0] + i * L.dLon, L.bbox[3] - j * L.dLat];
+        const q = sw.camera.camera.worldToScreen(bp.toScene(lo, la, bp.heightAt(lo, la)));
+        return q.x > 360 && q.x < 990 && q.y > 150 && q.y < 680;
+    };
     for (let j = 2; j < L.rows - 2; j += 2) {
         for (let i = 2; i < L.cols - 2; i += 2) {
-            if (!deep(i, j)) continue;
+            if (!deep(i, j) || !clear(i, j)) continue;
             const s = slopeAt(L, bp.heights, i, j);
             if (s < 45 && (!best || s > best.s)) best = { s, i, j };
         }

@@ -74,7 +74,7 @@ test('story 50 — a road of six nodes, saved as a densified line with its handl
             expect(n).toBeLessThan(pts.length);
             await b.page.keyboard.press('Escape');
             expect(await nodes()).toBe(n - 1);
-            await expect(b.page.locator('#panel')).toBeVisible();
+            await expect(b.page.locator('#lines-tools')).toBeVisible();
         });
         await b.close();
     });

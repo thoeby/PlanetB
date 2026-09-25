@@ -22,46 +22,16 @@ import { LINE_TOOLS } from './linetools.js';
 import { bindKeys, describeSelected, reselect, showProfile } from './linesdo.js';
 import { mountKindPicker } from './kindpicker.js';
 import { mountLeave } from './shapesave.js';
-import { el, icon } from './tabbar.js';
+import { linesBar } from './linesbar.js';
+import { el } from './tabbar.js';
 
 
+// The panel itself is not on screen while Lines is (client/lines.css): the
+// toolbar and its cards are over the land (client/js/linesbar.js).
 const HTML = `
-<div class="section">
-  <label class="sh-land-row"><span class="label">Land</span>
-    <select class="ln-land"></select></label>
-</div>
-<div class="ln-bar sc-bar"></div>
-<p class="ln-status status"></p>
-<div class="section"><div class="label">Kind</div><div class="ln-kinds"></div></div>
-<div class="ln-selected-host"></div>
-<div class="ln-list-host"></div>
-<p class="note">A line never moves the ground. Select one and Lay bed to shape
-  the ground under it in Shape. Nothing reaches the world until Save.</p>`;
-
-function railOf(pick, acts) {
-    const tools = el('div', { className: 'sc-rail ln-rail glass' }, ...LINE_TOOLS.map((t) => {
-        const b = el('button', { type: 'button', className: `sc-brush ln-tool-${t.id}`,
-            title: `${t.words} · ${t.key.toUpperCase()}` }, icon(t.icon),
-        el('i', { className: 'sc-key', textContent: t.key.toUpperCase() }));
-        b.dataset.tool = t.id;
-        b.onclick = () => pick(t.id);
-        return b;
-    }));
-    const deed = (cls, words, path, fn) => {
-        const b = el('button', { type: 'button', className: `sc-deed ${cls}`, title: words },
-            icon(path));
-        b.onclick = fn;
-        return b;
-    };
-    const deeds = el('div', { className: 'sc-deeds glass' },
-        deed('ln-undo', 'Undo · Ctrl-Z', 'M3 10h11a5 5 0 0 1 0 10h-4|m3 10 5-5|m3 10 5 5',
-            acts.undo),
-        deed('ln-redo', 'Redo · Ctrl-Shift-Z',
-            'M21 10H10a5 5 0 0 0 0 10h4|m21 10-5-5|m21 10-5 5', acts.redo),
-        deed('ln-save', 'Save the lines', 'M5 4h11l3 3v13H5z|M8 4v6h7V4|M8 20v-6h8v6',
-            acts.save));
-    return { tools, deeds };
-}
+<p class="note">Lines is the toolbar over the land, top left. A line never moves
+  the ground: select one and Lay bed to shape the ground under it in Shape.
+  Nothing reaches the world until Save.</p>`;
 
 /**
  * ctx: {bpmode, bp, app, pc, reopen, onSaved}; `lands()` the player's areas.
@@ -70,21 +40,25 @@ export function mountLines(host, ctx, { lands = () => [] } = {}) {
     const node = el('div');
     node.innerHTML = HTML;
     host.append(node);
-    const q = (sel) => node.querySelector(sel);
     const state = { on: false, tool: 'draw', lines: null, drawing: null, at: null,
         selected: null, node: null, entries: [], areas: [] };
+    let acts = null;
+    const bar = linesBar(document.getElementById('hud') ?? document.body,
+        (id) => pickTool(bar, state, id, say, { toggle: true }),
+        { save: () => acts.save(), undo: () => acts.undo(), redo: () => acts.redo() });
+    const q = (sel) => bar.q(sel) ?? node.querySelector(sel);
     const say = (msg, bad = false) => {
         q('.ln-status').textContent = msg;
         q('.ln-status').dataset.bad = bad ? '1' : '';
+        q('.ln-said').textContent = unsaved(state);
+        bar.selected.hidden = !state.selected;
         for (const part of parts) part.draw();
         ctx.onChange?.(state);
     };
     const parts = [];
     const picker = mountKindPicker(q('.ln-kinds'), { store: 'splatworld.lines.recent' });
-    const acts = actsOf(ctx, state, say, picker);
-    const rail = railOf((id) => pickTool(q, state, id, say), acts);
-    q('.ln-bar').append(rail.tools, rail.deeds);
-    acts.pickTool = (id) => pickTool(q, state, id, say);
+    acts = actsOf(ctx, state, say, picker);
+    acts.pickTool = (id) => pickTool(bar, state, id, say);
     const surface = linesSurface(ctx, state, acts, say);
     acts.deleteNode = surface.deleteNode;
     parts.push(mountSelected(q('.ln-selected-host'), ctx, state, say),
@@ -92,19 +66,21 @@ export function mountLines(host, ctx, { lands = () => [] } = {}) {
         mountList(q('.ln-list-host'), ctx, state, (line) => {
             state.selected = line;
             state.node = null;
-            pickTool(q, state, 'select', say);
+            pickTool(bar, state, 'select', say);
             say(describeSelected(state));
             showProfile(ctx, state);
         }));
     q('.ln-land').addEventListener('change', (e) => chooseLand(ctx, state, e.target.value,
         surface, say));
-    bindKeys(ctx, state, acts, picker, (id) => pickTool(q, state, id, say));
-    pickTool(q, state, 'draw', say);
+    bindKeys(ctx, state, acts, picker, (id) => pickTool(bar, state, id, say));
+    pickTool(bar, state, 'draw', say);
     const leave = mountLeave(document.getElementById('hud') ?? document.body);
     return { state, surface, picker, say, ...acts, q,
         lines: () => state.lines,
         async enter() {
             state.on = true;
+            bar.node.hidden = false;
+            ctx.bpmode.hold(surface);
             if (!state.entries.length) await loadKinds(state, picker);
             if (!state.lines) await listLands(q, state, lands);
             if (state.areas.length) {
@@ -112,11 +88,11 @@ export function mountLines(host, ctx, { lands = () => [] } = {}) {
             }
             else say('No land of yours to draw on — Land · 3.');
         },
-        async leave() { await leaving(ctx, state, acts, leave, surface); },
+        async leave() { await leaving(ctx, state, acts, leave, { surface, bar }); },
     };
 }
 
-async function leaving(ctx, state, acts, leave, surface) {
+async function leaving(ctx, state, acts, leave, { surface, bar }) {
     if (!state.on || state.asking) return;
     const n = state.lines?.items.filter((l) => l.state !== 'saved').length ?? 0;
     if (n) {
@@ -130,7 +106,15 @@ async function leaving(ctx, state, acts, leave, surface) {
     }
     state.on = false;
     state.drawing = null;
+    bar.node.hidden = true;
     if (ctx.bpmode.surface === surface) ctx.bpmode.close();
+    else ctx.bpmode.release(surface);
+}
+
+// How much is not saved yet, in the bar.
+function unsaved(state) {
+    const n = state.lines?.items.filter((l) => l.state !== 'saved').length ?? 0;
+    return n ? `${n} line${n === 1 ? '' : 's'} unsaved` : '';
 }
 
 async function loadKinds(state, picker) {
@@ -220,12 +204,9 @@ function actsOf(ctx, state, say, picker) {
     };
 }
 
-function pickTool(q, state, id, say) {
+function pickTool(bar, state, id, say, how) {
     state.tool = id;
-    for (const b of q('.ln-rail').children) {
-        b.classList.toggle('picked', b.dataset.tool === id);
-        b.setAttribute('aria-selected', String(b.dataset.tool === id));
-    }
+    bar.pick(id, how);
     say(LINE_TOOLS.find((t) => t.id === id)?.words ?? id);
 }
 

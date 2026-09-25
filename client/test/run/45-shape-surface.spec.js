@@ -5,7 +5,7 @@
 // clay under the camera, the rail heads the panel. Closing it hands the
 // camera back to him where he stood.
 
-import { test, expect, UI } from './players.js';
+import { test, expect, open, signUp, UI } from './players.js';
 import { ben, cameraOf, shot } from './editors.js';
 import { meanColour } from './pixels.js';
 
@@ -66,4 +66,28 @@ test('story 45 — open Shape, see white land, get his eyes back on close',
                 { timeout: UI });
         });
         await b.close();
+    });
+
+// The operator's note: a click on the ground in Shape locked the pointer and
+// looked around. Nobody with land could make it happen here; somebody with
+// none could — the clay never opened, so the walk camera kept the mouse.
+test('story 45b — no land: Shape and Lines say so, and a click locks nothing',
+    async ({ browser, world }, testInfo) => {
+        const c = await open(browser, world, 'C', testInfo);
+        await signUp(c, `noland${Date.now()}@visp.example`, 'Cleo');
+        const locked = () => c.page.evaluate(() => document.pointerLockElement?.id ?? null);
+        for (const [key, words, status] of [['4', 'No land of yours to shape', '.sc-status'],
+            ['5', 'No land of yours to draw on', '.ln-status']]) {
+            await c.page.mouse.move(640, 420);
+            await c.page.keyboard.press(key);
+            await expect(c.page.locator(status)).toContainText(words, { timeout: UI });
+            await c.page.mouse.click(640, 420);
+            await c.page.waitForTimeout(300);
+            expect(await locked(), `no pointer lock after ${key}`).toBeNull();
+        }
+        // And walking takes the mouse back once neither is open.
+        await c.page.keyboard.press('Escape');
+        await c.page.mouse.click(640, 420);
+        await expect.poll(locked, { timeout: UI }).toBe('view');
+        await c.close();
     });

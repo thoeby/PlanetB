@@ -50,3 +50,31 @@
   text-transform: none; letter-spacing: 0;
 }
 .ln-fields input:not([type="checkbox"]), .ln-fields select { width: 180px; }
+
+/* Lines' cards under its toolbar (client/js/linesbar.js), in Shape's look. */
+.ln-card {
+  width: 300px; max-height: 58vh; overflow-y: auto; padding: 10px 12px; --cut: 8px;
+  font-size: 12px; display: flex; flex-direction: column; gap: 6px;
+}
+.ln-card[hidden] { display: none; }
+.ln-kind-card .kp-list { max-height: 40vh; }
+#lines-tools .ln-fields label {
+  display: flex; align-items: center; justify-content: space-between; gap: 8px; margin: 0;
+  font-size: 11px; color: var(--ink-2);
+}
+#lines-tools .ln-fields input:not([type="checkbox"]), #lines-tools .ln-fields select {
+  width: 150px;
+}
+#lines-tools .ln-deeds { display: flex; flex-wrap: wrap; gap: 4px; }
+#lines-tools .ln-deeds button { flex: 1 1 auto; }
+#lines-tools .ln-status {
+  margin: 0; padding: 3px 10px; font-size: 11px; background: rgba(14, 16, 20, 0.85);
+}
+#lines-tools .ln-status:empty { display: none; }
+#lines-tools .ln-status[data-bad="1"] { color: var(--bad); }
+#lines-tools .sc-bar .ln-save {
+  width: auto; flex: 0 0 auto; gap: 6px; padding: 0 10px; color: var(--accent);
+}
+#lines-tools .sc-bar .ln-save:hover { background: var(--accent-dim); }
+#lines-tools .sc-bar .sc-deed[aria-pressed="true"] { color: var(--accent); }
+#lines-tools .ln-said { margin: 0 8px; font-size: 11px; color: var(--ink-3); white-space: nowrap; }

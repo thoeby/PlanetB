@@ -59,7 +59,7 @@ async function walk(b) {
     expect(Math.hypot(later.x - eye.x, later.z - eye.z), 'and walking').toBeGreaterThan(0.5);
     await b.page.keyboard.press('Escape');
     await expect(b.page.locator('.ln-status')).toHaveText('back over the land');
-    await expect(b.page.locator('#panel')).toBeVisible();
+    await expect(b.page.locator('#lines-tools')).toBeVisible();
     const back = await cameraOf(b);
     expect(Math.hypot(back.x - before.x, back.y - before.y, back.z - before.z)).toBeLessThan(0.5);
 }
