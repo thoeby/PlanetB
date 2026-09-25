@@ -10,7 +10,10 @@
 
 #top {
   position: absolute; top: 0; left: 0; right: 0; height: 44px; z-index: 4;
-  display: flex; align-items: stretch; justify-content: space-between;
+  /* Three columns, the two ends as wide as each other, so the middle — the
+     compass, or a workspace's tabs — is in the middle of the window. */
+  display: grid; grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+  align-items: stretch;
   background: linear-gradient(180deg, rgba(10, 12, 15, 0.97), rgba(20, 23, 28, 0.9));
   backdrop-filter: blur(16px);
   border-bottom: 1px solid rgba(255, 255, 255, 0.14);
@@ -49,16 +52,17 @@
    than the window folds them away and shows the drawer's button instead. */
 #top:not([data-fold="1"]) #apps-btn { display: none; }
 #top[data-fold="1"] .top-apps { display: none; }
-/* Still too wide with the views folded: the words go, the numbers stay. */
-#top[data-tight="1"] .clock, #top[data-tight="1"] .who .name,
-#top[data-tight="1"] #attention .label { display: none; }
+/* A right end too full for its column sheds words, then the two numbers. */
+#top:is([data-tight="1"], [data-tight="2"]) :is(.clock, .who .name, #attention .label,
+  .top-stats .caps, #standing .coords, #standing .right + .dot) { display: none; }
+#top[data-tight="2"] .top-stats { display: none; }
+#top .top-stats .num b { white-space: nowrap; }
 
 /* The middle of the bar: where you are standing in a view you stand in, the
-   tabs of a workspace that has the window. It takes what the two ends leave,
-   and never less than what it holds, so a bar that is too full folds. */
+   tabs of a workspace that has the window. It is as wide as what it holds;
+   an end that no longer fits beside it folds (client/js/hudbar.js). */
 #top .top-centre {
-  flex: 1 1 auto; display: flex; align-items: stretch; justify-content: center;
-  min-width: max-content; padding: 0 12px;
+  display: flex; align-items: stretch; justify-content: center; padding: 0 8px;
 }
 #top .top-centre[data-holds=""] { min-width: 0; padding: 0; }
 
@@ -197,7 +201,7 @@
 /* The attention chip (SPEC §2.1) keeps its place beside the bell: how many
    things are waiting for you, with the list of them under it. */
 #top #waiting { position: relative; display: flex; align-items: center;
-  padding: 0 10px; }
+  padding: 0 2px; }
 #top #attention-list { top: 40px; }
 /* `display: flex` on the list beats the hidden attribute, so the list of what
    is waiting stood open under the chip from the moment the page loaded. */

@@ -8,23 +8,26 @@
 // cards in the drawer is measured, not guessed: the bar is laid out with the
 // glyphs, and if it does not fit they fold away.
 
-// What the bar's three parts need, side by side. Each end may shrink below
-// what it holds and spill over the middle rather than scroll, so the bar's
-// own scrollWidth does not see it; the parts' own widths do.
-const needs = (top) => [...top.children].reduce((n, c) => n + c.scrollWidth, 0);
-const over = (top) => needs(top) > top.clientWidth + 1;
+// Whether an end of the bar holds what it is given. The two ends are equal
+// columns either side of the middle (top.css), and the right one is aligned
+// right, so what it cannot hold spills out on its left, where scrollWidth
+// does not count it: its children are added up instead.
+const spills = (end) => end
+    && [...end.children].reduce((n, k) => n + k.offsetWidth, 0) > end.clientWidth + 1;
 
-// The views fold into the drawer when the bar, laid out with them, is wider
-// than the window; if it still is, the clock and the words beside the
-// profile and the waiting count go (`data-tight`). Measured from the widest
-// layout every time, so it can also unfold.
+// Measured from the widest layout every time, so it can also unfold. The
+// views fold into the drawer when the left end cannot hold their glyphs; the
+// right end sheds words first (`data-tight` 1: the clock, the names beside
+// the numbers, the coordinates in the middle) and then the world's two
+// numbers (2).
 export function fitBar(top) {
+    const [left, , right] = top.children;
     top.dataset.fold = '';
     top.dataset.tight = '';
-    if (!over(top)) return true;
-    top.dataset.fold = '1';
-    if (over(top)) top.dataset.tight = '1';
-    return false;
+    if (spills(left)) top.dataset.fold = '1';
+    if (spills(right)) top.dataset.tight = '1';
+    if (spills(right)) top.dataset.tight = '2';
+    return !top.dataset.fold && !top.dataset.tight;
 }
 
 export function watchFit(top) {
