@@ -33,6 +33,15 @@ export function startFrames(ctx) {
         // work and one fast one does not let it back in too early.
         ctx.frame.ms = ctx.frame.ms ? ctx.frame.ms * 0.9 + dt * 1000 * 0.1 : dt * 1000;
         const p = move(ctx, dt);
+        // EDT.1: the clay's camera, and whatever the surface draws on it.
+        // While the clay is up, the world under it is hidden: nothing is
+        // streamed, nobody's position is written into the chrome or the
+        // address bar, and no mover is placed — that was most of a frame
+        // spent on what nobody could see (the operator's note on speed).
+        if (ctx.blueprint?.active) {
+            ctx.bpmode.frame(dt);
+            return;
+        }
         drawOverlays(ctx, f);
         stream(ctx, f, p);
         tellWhere(ctx, f, p);
@@ -57,6 +66,7 @@ function move(ctx, dt) {
         if (s.driving) player.position = { ...moved };
         ctx.preview.rebased();
         ctx.groundMesh?.rebased();
+        ctx.blueprint?.rebased();
     }
     ctx.groundMesh?.update(camera.getPosition());
     return camera.getPosition();
@@ -75,8 +85,6 @@ function drawOverlays(ctx, f) {
             .finally(() => { f.placing = null; });
     }
     ctx.build.drawGizmo();
-    // FND.9: the brush, on the ground, where the pointer is.
-    ctx.sculpt.drawBrush();
     drawAreas({ pc, app, origin, terrain }, land.areas());
     const labels = ctx.doc.getElementById('world-labels');
     labelAreas({ pc, app, origin, terrain }, land.areas(), labels);

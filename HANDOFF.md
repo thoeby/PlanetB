@@ -175,6 +175,18 @@ of published tiles.
 
 Things that cost time once. Do not rediscover them.
 
+**A replay that did not load is a replay you ran on anyway**
+- `tools/replay.sh load` needs the database's credentials in the
+  environment: `set -a && . ./.env && set +a` first. Without them `dropdb`
+  fails as role "root", and with `>/dev/null 2>&1` on the end nothing says
+  so — the stories then run on whatever world the last run left, and fail on
+  settings a later story changed (story 55's edge blend, switched off by
+  story 58).
+- A key that a surface takes may already be the HUD's: `P` opens Profile,
+  `N` the tray, the digits the plinth. Shape's Smooth is `M` and Lines' Draw
+  is `L` for that reason, and Survey → Areas' Paint is `B`; `S` and `D` are
+  the clay camera's flying keys.
+
 **A panel that redraws is a panel that loses things**
 - Every panel in this client rebuilds its nodes on a timer. Three separate
   bugs came out of that and each one looked like something else:

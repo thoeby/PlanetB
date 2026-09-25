@@ -11,6 +11,7 @@
 // world and decides what to do with the answers.
 
 import * as api from './api.js';
+import { defaultsOf, fillDefaults, loadDefaults } from './kinddefaults.js';
 import { APPLIES, GEOMETRIES, HTML, TYPES, drawKinds, options, propRow, whatWord }
     from './vocabui.js';
 
@@ -38,6 +39,7 @@ function fillKind(ui, kind) {
     ui.q('.vo-name').value = kind?.name ?? '';
     ui.q('.vo-geom').value = kind?.geometry ?? '';
     ui.q('.vo-order').value = String(kind?.ordering ?? 100);
+    fillDefaults(ui.q, kind, ui.state.defaults.get(kind?.name));
     ui.q('.vo-of').textContent = kind
         ? `${whatWord(kind.applies_to ?? 'feature')} · ${
             (kind.properties ?? []).length} propert${
@@ -58,7 +60,8 @@ export function mountAdmin(host, { onChange = () => {}, openPart = null } = {}) 
     const box = Object.assign(document.createElement('div'), { innerHTML: HTML });
     host.append(box);
     const q = (sel) => box.querySelector(sel);
-    const ui = { box, q, onChange, state: { at: null, vocab: [], counts: new Map() },
+    const ui = { box, q, onChange,
+        state: { at: null, vocab: [], counts: new Map(), defaults: new Map() },
         say: (msg, bad = false) => {
             q('.ad-status').textContent = msg;
             q('.ad-status').dataset.bad = bad ? '1' : '';
@@ -77,6 +80,7 @@ export function mountAdmin(host, { onChange = () => {}, openPart = null } = {}) 
 async function refresh(ui) {
     ui.state.vocab = await api.rpc('vocabulary').catch(() => []);
     ui.state.counts = await countKinds(ui.state.vocab);
+    ui.state.defaults = await loadDefaults();
     draw(ui);
     return ui.state.vocab;
 }
@@ -116,6 +120,17 @@ const kindOf = (ui) => ui.state.vocab.find((k) => k.name === ui.state.at) ?? nul
 async function saveKind(ui) {
     const kind = kindOf(ui);
     if (!kind) { ui.say('pick a kind first', true); return false; }
+    // What the editors offer for it first (db/0219), then the kind itself,
+    // whose save reads the world again.
+    const own = defaultsOf(ui.q, kind, ui.state.defaults.get(kind.name));
+    if (own) {
+        try {
+            await api.rpc('put_kind_default', own);
+        } catch (err) {
+            ui.say(String(err.body?.message ?? err.message ?? err), true);
+            return false;
+        }
+    }
     return wrote(ui, 'put_kind', {
         name: kind.name, applies_to: kind.applies_to ?? 'feature',
         geometry: ui.q('.vo-geom').value || null,

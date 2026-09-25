@@ -129,6 +129,7 @@ function handle(ctx) {
         'player', 'setDriving', 'work', 'groundMesh', 'hud', 'setup', 'admin', 'symbols',
         'catalog', 'land', 'submit', 'pool', 'permission', 'ground', 'share', 'goTo', 'spot',
         'build', 'preview', 'nearby', 'areas', 'wallet', 'flows', 'sculpt', 'liveDraw',
+        'blueprint', 'bpmode', 'lines', 'surveyAreas',
         'triggers', 'peers', 'hosting', 'movers', 'moverDraw'];
     const out = Object.fromEntries(pick.map((k) => [k, ctx[k]]));
     out.live = ctx.liveWorld;

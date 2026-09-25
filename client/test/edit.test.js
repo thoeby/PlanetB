@@ -7,7 +7,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 
-import { KINDS, KIND_NAMES, MAX_TILES, ewkt, geometryOf, permissionOf, propsFrom,
+import { KINDS, KIND_NAMES, MAX_TILES, PICKABLE, ewkt, geometryOf, permissionOf, propsFrom,
     tileSpan, tilesFor, valuesOf } from '../js/edit.js';
 import { tileX, tileY } from '../lib/tilemath.js';
 
@@ -25,6 +25,8 @@ test('the editor offers exactly the kinds the schema allows', () => {
     }
     assert.equal(geometryOf('highway'), 'LineString', 'a road is a centreline');
     assert.equal(geometryOf('landuse'), 'Polygon');
+    // EDT.21: a building is placed and the ground shaped, not drawn.
+    assert.deepEqual(PICKABLE, ['highway', 'landuse', 'natural']);
 });
 
 // ------------------------------------------------------------------- props

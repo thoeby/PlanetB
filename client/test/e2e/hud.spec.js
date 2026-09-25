@@ -77,13 +77,14 @@ test('the chrome says where you are and what the world is doing', async ({ page 
     // is named. Eight letters is a label, not an instrument.
     await expect(page.locator('#compass .tick')).toHaveCount(24);
 
-    // The plinth is the five surfaces the game is played through, on keys 1
-    // to 5, and nothing else: you, your wallet and settings are in the strip.
+    // The plinth is the six surfaces the game is played through, on keys 1
+    // to 6, and nothing else: you, your wallet and settings are in the strip.
     await expect(page.locator('#tabs .hotgroup')).toHaveCount(1);
-    await expect(page.locator('#tabs .tab')).toHaveCount(5);
+    await expect(page.locator('#tabs .tab')).toHaveCount(6);
     await expect(page.locator('#tabs .tab .label'))
-        .toHaveText(['Place', 'Catalog', 'Land', 'Publish', 'Work']);
-    await expect(page.locator('#tabs .tab .key')).toHaveText(['1', '2', '3', '4', '5']);
+        .toHaveText(['Place', 'Catalog', 'Land', 'Shape', 'Lines', 'Publish']);
+    await expect(page.locator('#tabs .tab .key'))
+        .toHaveText(['1', '2', '3', '4', '5', '6']);
     await expect(page.locator('#top button[data-tab]')).toHaveCount(3);
 
     // How high you are, and how far that is above the ground.
@@ -91,7 +92,7 @@ test('the chrome says where you are and what the world is doing', async ({ page 
 
     // Work is a surface with queues behind it: the machine strip above them,
     // and the five tabs of design 8 under it.
-    await page.locator('#tabs .tab[data-tab="Work"]').click();
+    await page.evaluate(() => window.splatworld.hud.show('Work'));
     // What this machine is computing is on the strip along the top now, as a
     // chip that is there while it is busy; the panel is its queues.
     await expect(page.locator('#top #machine')).toHaveCount(1);
@@ -113,7 +114,7 @@ test('a number key opens its panel, and Escape closes it', async ({ page }) => {
     // A key opens the surface it names, or the surface that holds the part it
     // names — Share is a tab of Profile now, and Setup one of Settings.
     for (const [key, name, holder] of [['3', 'Your land'], ['2', 'Catalog'],
-        ['4', 'Publish'], ['9', 'Profile', 'Profile'], ['`', 'Settings', 'Settings']]) {
+        ['6', 'Publish'], ['9', 'Profile', 'Profile'], ['`', 'Settings', 'Settings']]) {
         await page.keyboard.press(key);
         await expect(panel, `${name} did not open on ${key}`).toBeVisible();
         await expect(panel.locator('header .title')).toHaveText(name);
@@ -129,7 +130,7 @@ test('a number key opens its panel, and Escape closes it', async ({ page }) => {
     await page.keyboard.press('2');
     const wide = await page.locator('#panel').evaluate((n) => n.getBoundingClientRect().width);
     await page.keyboard.press('Escape');
-    await page.keyboard.press('6');
+    await page.keyboard.press('7');
     const narrow = await page.locator('#panel').evaluate((n) => n.getBoundingClientRect().width);
     expect(wide).toBeGreaterThan(narrow);
 
@@ -169,8 +170,7 @@ test('every panel has something in it', async ({ page }) => {
     // The strip comes first in the page, then the plinth.
     expect(tabs).toEqual(['Wallet', 'Profile', 'Share', 'Setup', 'Land',
         'Vocabulary', 'Symbols', 'Ground cover', 'Place', 'Catalog',
-        'Your land', 'Shape', 'Submit', 'Permission', 'Every job',
-        'Render jobs', 'Training', 'Publishing', 'Machine']);
+        'Your land', 'Shape', 'Lines', 'Submit', 'Permission']);
     // A world with no ground opens on Setup by itself, so close whatever is
     // docked before opening them one at a time.
     await page.evaluate(() => window.splatworld.hud.show('World'));

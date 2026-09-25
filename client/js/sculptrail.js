@@ -1,5 +1,5 @@
-// sculptrail.js — the tool rail over the world while a land's ground is open
-// to be shaped, and the small box of whatever the tool in hand needs.
+// sculptrail.js — the tool rail at the head of the Shape panel, and the small
+// box of whatever the tool in hand needs (docs/design/splatworld-v11 11a).
 //
 // FND.9. The panel had a row of six word-buttons — "Raise (R)", "Along line
 // (B)" — above every setting any of them might read, in a column beside the
@@ -7,10 +7,10 @@
 // settings it actually used, nothing said; and none of it was near the ground
 // being shaped.
 //
-// So: a rail of glyphs over the world, the one in hand lit, and beside it one
-// small box holding that tool's settings and nothing else. It is over the
-// world rather than in the panel because that is where the ground is, and it
-// is shown whenever the Shape panel is open (client/frame.css).
+// So: a rail of glyphs, the one in hand lit, and under it one small box
+// holding that tool's settings and nothing else. It hung over the world beside
+// the panel until the panel itself became the narrow column beside the
+// Blueprint clay (EDT.6); now it heads that column.
 //
 // Nodes only. client/js/sculptui.js decides; client/js/sculptmode.js says what
 // each tool is for and which of the numbers it reads.
@@ -28,12 +28,37 @@ const OPTIONS = `
 </div>
 <p class="note sc-brush-says"></p>
 <div class="sc-fields">
-  <label data-uses="size">Size (m)<input class="sc-size" type="number" min="1"
-    max="200" value="12"></label>
-  <label data-uses="strength">Strength (m)<input class="sc-strength" type="number"
-    min="0.05" step="0.05" value="0.5"></label>
+  <label data-uses="size">Size (m) <span class="mono muted">[ ]</span><input class="sc-size"
+    type="number" min="1" max="200" value="12"></label>
+  <label data-uses="strength">Strength (m/s)<input class="sc-strength" type="number"
+    min="0.05" max="20" step="0.05" value="1"></label>
+  <label data-uses="falloff">Falloff<input class="sc-soft" type="number" min="0" max="1"
+    step="0.05" value="0.6"></label>
+  <div data-uses="falloff" class="sc-curve-box">
+    <svg class="sc-curve" viewBox="0 0 100 30" preserveAspectRatio="none"><path/></svg>
+    <div class="sc-seg sc-curves">
+      <button type="button" data-curve="smooth">Smooth</button>
+      <button type="button" data-curve="linear">Linear</button>
+      <button type="button" data-curve="sharp">Sharp</button>
+      <button type="button" data-curve="plateau">Plateau</button>
+    </div>
+  </div>
+  <div data-uses="shape" class="sc-seg sc-shapes">
+    <button type="button" data-shape="circle">Circle</button>
+    <button type="button" data-shape="square">Square</button>
+  </div>
+  <label data-uses="fall">Fall (%)<input class="sc-fall" type="number" min="0" max="5"
+    step="0.5" value="0"></label>
+  <label data-uses="fall">Falls towards (°)<input class="sc-dir" type="number" min="0"
+    max="359" step="5" value="180"></label>
+  <p data-uses="fall" class="note">Ctrl-drag on the ground turns the arrow.</p>
   <label data-uses="target">Level to (m)<input class="sc-target" type="number"
-    step="0.5"><button type="button" class="sc-take">Take it from here</button></label>
+    step="0.5"></label>
+  <div data-uses="target" class="sc-seg">
+    <button type="button" class="sc-take">Take it from here</button>
+    <select class="sc-floor"></select>
+  </div>
+  <p data-uses="target" class="note">Alt-click on the ground takes its height.</p>
 </div>
 <div class="sc-line-box" hidden>
   <div class="note">Click the path out on the ground, or take one of this
@@ -50,7 +75,7 @@ const OPTIONS = `
   </div>
   <button type="button" class="sc-apply primary">Lay the bed</button>
 </div>
-<p class="note mono sc-here"></p>`;
+`;
 
 // What can be done to the ground, as glyphs beside the tools: undo, redo,
 // save, and back to the elevation. They were three wide buttons and a fourth
@@ -92,23 +117,49 @@ function toolButton(t, onPick) {
     return b;
 }
 
-// The rail and the box, as one thing hanging over the world beside the panel.
-// Put on the frame rather than in the panel body: a toolbar inside a scrolling
-// column scrolls away from the ground it is about.
-export function toolRail(onPick) {
-    const rail = el('div', { className: 'sc-rail glass' },
+// The toolbar over the world, top left, and its cards (the operator's note
+// on EDT.6): the land, the tools at one fixed size with their keys, undo and
+// redo, how much is unsaved, Save, Put back, and the Strokes card's toggle.
+// The tool in hand's settings are a card that flaps out under the bar when a
+// tool is picked, and folds away when it is picked again; the column down the
+// left the panel was took a third of the screen for a few numbers.
+export function toolRail(onPick, host) {
+    const rail = el('div', { className: 'sc-rail' },
         ...TOOLS.map((t) => toolButton(t, onPick)));
-    const deeds = el('div', { className: 'sc-deeds glass' }, ...DEEDS.map(deedButton));
+    const [undo, redo, save, clear] = DEEDS.map(deedButton);
+    save.append(el('span', { className: 'sc-save-words', textContent: 'Save' }));
+    const strokes = el('button', { type: 'button', className: 'sc-deed sh-strokes-toggle',
+        title: 'Strokes since the last save' }, icon('M4 6h16|M4 12h16|M4 18h10'));
+    const land = el('select', { className: 'sc-land', title: 'The land being shaped' });
+    const bar = el('div', { className: 'sc-bar glass' }, land, el('i', { className: 'sc-sep' }),
+        rail, el('i', { className: 'sc-sep' }), undo, redo, el('i', { className: 'sc-sep' }),
+        el('span', { className: 'sc-said' }), save, clear, strokes);
     const opt = el('div', { className: 'sc-opt glass' });
     opt.innerHTML = OPTIONS;
-    const node = el('div', { id: 'sculpt-tools' }, rail, opt, deeds);
-    (document.getElementById('hud') ?? document.body).append(node);
+    const fold = el('button', { type: 'button', className: 'sc-fold', title: 'Fold the card away',
+        textContent: '\u00d7' });
+    opt.querySelector('.sc-opt-head').append(fold);
+    const card = el('div', { className: 'sh-card glass', hidden: true });
+    const node = el('div', { id: 'sculpt-tools', hidden: true }, bar,
+        el('p', { className: 'sc-status status' }),
+        el('button', { type: 'button', className: 'sc-retry', hidden: true,
+            textContent: 'Retry the save' }),
+        el('div', { className: 'sh-cards' }, opt, card));
+    host.append(node);
+    const folded = (yes) => { opt.hidden = yes; node.dataset.card = yes ? '' : '1'; };
+    fold.onclick = () => folded(true);
+    strokes.onclick = () => {
+        card.hidden = !card.hidden;
+        strokes.setAttribute('aria-pressed', String(!card.hidden));
+    };
     return {
-        node,
+        node, card, folded,
         q: (sel) => node.querySelector(sel),
         all: (sel) => node.querySelectorAll(sel),
-        // Which tool is in hand: lit on the rail, named over the box.
-        pick(id) {
+        // Which tool is in hand: lit on the bar, named over its card, and the
+        // card flapped out — or, picked again, folded away.
+        pick(id, { toggle = false } = {}) {
+            const again = node.dataset.tool === id;
             for (const b of rail.children) {
                 b.classList.toggle('picked', b.dataset.brush === id);
                 b.setAttribute('aria-selected', String(b.dataset.brush === id));
@@ -117,6 +168,7 @@ export function toolRail(onPick) {
             node.dataset.tool = id;
             opt.querySelector('.sc-opt-name').textContent = t?.words ?? id;
             opt.querySelector('.sc-opt-key').textContent = t?.key.toUpperCase() ?? '';
+            folded(toggle && again ? !opt.hidden : false);
         },
     };
 }

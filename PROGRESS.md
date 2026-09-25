@@ -3144,3 +3144,57 @@ database after the stories that set their world up (0–7 and 32), as
 
 Two things are the fixture's word and not a real process server's:
 `POST /system/plugins/install` and a job's `until` (`docs/flow.md`).
+
+## The editors (TASKS-editors.md, PLAN-editors.md)
+
+Shape and Lines on the Blueprint clay, Areas in Survey, and the operator's
+kind defaults. One commit per story, `EDT.x: <title>`; stories 49-69 of the
+player-run are theirs. They were 40-60 on their branch and were renumbered
+after main's own 40-48 (TASKS-live) when the two met; their migration went
+from db/0199 to db/0219 for the same reason — a database that applied it as
+0199 finds everything already there and moves on (server/splatworld/migrate.py).
+
+| Story | State |
+|-------|-------|
+| EDT.0-5 Blueprint (clay, contours, camera, tags, section) | done; stories 49-53 |
+| EDT.6-11 Shape (surface, brushes, flatten/level, strokes, limits, earth) | done; stories 54-58 |
+| EDT.7 follow-up (the operator's notes) | toolbar + flap card, falloff disc brush, WASD fly / middle orbit, no pointer lock |
+| EDT.12-18 Lines (spline, draw, snap, edit, profile/walk, contour/bed, panel) | done; stories 59-64 |
+| EDT.19-22 Areas (map, draw/paint, merge/cut + form, edit/erase) | done; stories 65-68 |
+| EDT.23 Kind defaults | done; db/0219 + pgTAP, story 69 |
+| EDT.24 Retire oldshapes | **not done — asked first, per the task.** The test world has no `terrainmod` left (0 rows after story 26 converts the last), but `client/js/oldshapes.js` is Setup's converter and story 26 proves it; deleting it means rewriting that story. Waiting on the operator. |
+| EDT.25 Feel gate | done; client/test/feel.test.js |
+| EDT.26 Tags and words audit | done; checklist below, docs/manual.md §5 |
+| EDT.27 Ten-minute session | the operator's, not code |
+
+Deviations:
+1. Phase A's plumbing (the clay, its frame, the ring) landed in the EDT.1
+   commit rather than across EDT.1-2.
+2. EDT.10's api-test for a refused save is a browser route abort in story 58:
+   the refusal is the network's, not PostgREST's.
+3. Keys: Smooth is `M` (not `S`), Lines' Draw is `L` (not `D`), Areas' Paint
+   is `B` (not `P`) — `S`/`D` fly the clay camera and `P` opens Profile.
+4. EDT.21 takes building and terrainmod out of edit.js's picker (`PICKABLE`)
+   but keeps them in `KINDS`, so an existing row still opens with its form.
+5. EDT.23 adds a table of its own (`kind_default`, db/0219) instead of
+   columns on `kind`/`build_symbol`, so no existing table changed.
+6. EDT.25 measures the page's own code on the CPU in node, not frame time on
+   a GPU: it runs everywhere and is never skipped.
+7. The rendering stories (08, 14, …) and the QGIS stories cannot run on this
+   box; the editors' stories were run from replays (`after-05`, `after-49`,
+   `after-53`, `after-58`, `after-59`) with `RUN_KEEP_WORLD=1`, 49-69 green.
+   db/test/0179 and 0186 fail with or without db/0219 — red before it.
+
+EDT.26 checklist (each is asserted by a story or a node test; the stories'
+`shot()` pictures sit in `test-results/run/`, not committed):
+- [x] Every tag the clay says: `no ground`, `not your land`, `over limit`,
+      `edge blend`, `follow contour`, `snapped: …` — stories 52, 55, 49, 51, 54.
+- [x] Every Save says what it did: "ground saved · N tiles changed" (49),
+      "N lines saved" (50, 55), "forest saved · merged with 1",
+      "water saved · cut 1" (58); a save that only erases says "N areas
+      erased" (client/js/areasave.js, not asserted by a story).
+- [x] Keys printed on the rail and the card: Shape's toolbar and its card
+      head (46), Lines' rail (50), Areas' tool strip (56).
+- [x] Leaving with unsaved work asks Save / Discard / Stay: Shape (49);
+      Lines asks the same question through the same node.
+- [x] docs/manual.md §5: Blueprint, Shape, Lines, Areas, Kind defaults.

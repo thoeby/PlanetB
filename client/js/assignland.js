@@ -237,6 +237,8 @@ export function mountAssignLand(host, { filesUrl = '' } = {}) {
 
     refresh();
     return { refresh, requests: () => state.open, land: () => state.all,
+        // Survey → Requests: this one's boundary is the one being drawn.
+        choose: (id) => { state.chosen = id; drawRequests(); },
         view: () => state.view, pick: (id) => { state.picked = id; both(); },
         fitToRoom };
 }

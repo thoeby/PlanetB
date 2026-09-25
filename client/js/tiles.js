@@ -106,6 +106,14 @@ export class TileStreamer {
         return this.hidden.size;
     }
 
+    // Every splat put away, coarse ones too: Blueprint (client/js/blueprint.js)
+    // draws the ground as clay out to the horizon it shows, and a merge of half
+    // a country left standing blurs over it.
+    hideEverything(on) {
+        this.hideAll = Boolean(on);
+        for (const e of this.entries.values()) this.showOrHide(e);
+    }
+
     // A tile is hidden when the z14 tile it is part of is. Only the levels at
     // or below z14 — a coarser tile is a merge of half a country, and taking
     // one away to shape a field would be a hole the size of the merge.
@@ -113,7 +121,8 @@ export class TileStreamer {
         if (!e?.entity || !e.row) return false;
         const { z, x, y } = e.row;
         const f = 2 ** (z - 14);
-        const hide = z >= 14 && this.hidden.has(key(14, Math.floor(x / f), Math.floor(y / f)));
+        const hide = Boolean(this.hideAll)
+            || (z >= 14 && this.hidden.has(key(14, Math.floor(x / f), Math.floor(y / f))));
         e.entity.enabled = !hide;
         return hide;
     }

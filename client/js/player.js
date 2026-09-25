@@ -361,6 +361,9 @@ export class Player {
     // Pointer lock plus key state. Nothing here decides anything about the
     // world; update() does, and the tests drive it directly.
     attach(canvas) {
+        // Twice attached is two sets of listeners, and detach only ever took
+        // the last set off — the first went on locking the pointer.
+        if (this.onKeyDown) this.detach();
         this.canvas = canvas;
         this.onKeyDown = (e) => {
             if (typing(e.target)) return;
@@ -384,6 +387,7 @@ export class Player {
         window.removeEventListener('keyup', this.onKeyUp);
         window.removeEventListener('mousemove', this.onMove);
         this.canvas?.removeEventListener('click', this.onClick);
+        this.onKeyDown = null;
         this.held.clear();
     }
 }

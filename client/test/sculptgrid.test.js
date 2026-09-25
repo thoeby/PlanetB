@@ -63,3 +63,51 @@ test('putting back ground that was never moved moves nothing', () => {
     assert.equal(it.clear(), 0);
     assert.equal(it.summary().cells, 0);
 });
+
+// EDT.9 — the stroke stack: undo back to a stroke, redo forward to one, and
+// the history's order and marks.
+test('undo back to a stroke restores its cells exactly, and redo walks forward', async () => {
+    const { dab } = await import('../js/sculptbrush.js');
+    const s = made();
+    const mid = { lon: 7.885, lat: 46.295 };
+    const stroke = (brush) => {
+        s.begin({ brush, size: 40 });
+        dab(s, mid.lon, mid.lat, { brush, size: 40, strength: 1, dt: 1 });
+        s.end();
+    };
+    stroke('raise');
+    const afterFirst = s.grid.data.slice();
+    stroke('raise');
+    stroke('smooth');
+    assert.equal(s.history().length, 3);
+    assert.deepEqual(s.history().map((h) => h.n), [3, 2, 1]);
+    assert.equal(s.undoTo(1), 2);
+    assert.deepEqual([...s.grid.data], [...afterFirst], 'every cell as it was');
+    assert.deepEqual(s.history().map((h) => [h.n, h.done]), [[3, false], [2, false], [1, true]]);
+    assert.equal(s.history()[0].brush, 'smooth', 'the undone keep what they were');
+    assert.equal(s.redoTo(2), 1);
+    assert.deepEqual(s.history().map((h) => [h.n, h.done]), [[3, false], [2, true], [1, true]]);
+    stroke('raise');
+    assert.deepEqual(s.history().map((h) => [h.n, h.done]), [[3, true], [2, true], [1, true]],
+        'a new stroke replaces the undone');
+});
+
+// EDT.11 — the earth moved, raised and lowered apart, in cubic metres.
+test('the earth moved is metres times cell area, raised and lowered apart', async () => {
+    const { earthLine } = await import('../js/sculptmode.js');
+    const s = made();
+    assert.equal(earthLine(s), 'no earth moved');
+    const { cell, data } = s.grid;
+    data[0] = 2;
+    data[1] = 3;
+    data[2] = -1.5;
+    const e = s.earth();
+    assert.ok(Math.abs(e.raised - 5 * cell * cell) < 1e-6);
+    assert.ok(Math.abs(e.lowered - 1.5 * cell * cell) < 1e-6);
+    data.fill(0);
+    data.fill(1, 0, 310);
+    data.fill(-1, 310, 530);
+    const m3 = (n) => Math.round(n * cell * cell).toLocaleString('en-GB')
+        .replace(/,/g, '\u2009');
+    assert.equal(earthLine(s), `${m3(310)} m³ raised · ${m3(220)} m³ lowered`);
+});

@@ -429,17 +429,28 @@ and the world stops drawing behind it until it is closed.
   answers only the clock.
 
 ### 2.17 Shape (sculpting the ground)
-Land → Shape. The ground of one land, shaped by hand. The camera goes
-top-down-ish over the land, the boundary is drawn, and everybody else's
-ground is dimmed and marked "not yours".
-- **Brushes**: Raise · Lower · Smooth · Flatten (to the height the stroke
-  starts at) · Level (to a typed height) · Along line (click a path, or pick
-  a road that is already drawn: width, shoulder, greatest gradient — Apply
-  lays the bed once).
-- Size in metres and strength; the brush circle is drawn on the ground; the
-  terrain updates while painting; undo/redo per stroke.
-- Painting outside your land turns the brush red and changes nothing: "You
-  can only shape your own land."
+Build → Shape. The ground of one land, shaped by hand on the Blueprint clay:
+white ground with contours, the boundary drawn, everybody else's ground
+greyed out. The clay has its own camera — WASD flies, the middle button
+orbits, the wheel zooms to the pointer — and never takes the pointer away.
+- **A toolbar over the land**, top left, one fixed size: the land, the tools
+  with their keys, undo/redo, how many strokes are unsaved, Save, Put back,
+  and the strokes list. Picking a tool flaps out its card with the settings
+  that tool reads, and nothing else; picking it again folds it.
+- **Brushes**: Raise (Shift lowers) · Smooth · Flatten (to the height the
+  stroke starts at, with an optional fall so a terrace drains) · Level (to a
+  set height, or one taken from the ground or a house floor) · Along line
+  (click a path, or pick a line already drawn: width, shoulder, greatest
+  gradient — Lay the bed lays it once) · Put back (rubs shaping out).
+- Size in metres, strength in metres a second, a falloff with its curve,
+  circle or square. **The brush is drawn on the clay as what it will do**: a
+  disc at its true size, shaded by its falloff, with its rim and its core.
+  The clay updates while painting; undo/redo per stroke, and a click on a
+  listed stroke undoes back to it.
+- The operator's limit (8 m up and down by default) holds per cell and the
+  brush says so; the brush fades over the last 4 m inside the boundary.
+- Painting outside your land turns the brush red and changes nothing: "not
+  your land".
 - **Save** → "ground saved · N tiles changed", and from there Submit and
   approval like anything else. Leaving with unsaved strokes asks Save /
   Discard / Stay.
@@ -682,9 +693,12 @@ withdraws it before anyone claims. Nothing in the pool requires a price.
 
 Objects per fine tile; model footprint and height; triangles and texture
 size per product; land size per player; jobs per tab; price minimum for the
-pool to list a job to strangers. Defaults are the current ones in code where
+pool to list a job to strangers; how far a land's ground may be shaped above
+and below the elevation, and whether a brush fades out at a land's edge
+(Settings · Setup, EDT.7/EDT.10). Defaults are the current ones in code where
 they exist; where none exists: 200 objects/z18 tile, 60 × 60 × 60 m,
-200 k triangles, 4096² textures, 25 ha land, no minimum price.
+200 k triangles, 4096² textures, 25 ha land, no minimum price, 8 m up and 8 m
+down, edge blend on.
 
 ---
 

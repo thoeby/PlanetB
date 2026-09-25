@@ -1,0 +1,131 @@
+/* blueprint.css — the words and instruments of Blueprint mode (EDT.1–5,
+ * docs/design/splatworld-v11.dc.html 11a–11c): the tag and the numbers that
+ * follow the pointer, the overlays card, and the profile strip along the
+ * bottom. The clay itself is a mesh (client/js/blueprint.js). */
+
+/* At the pointer: two words, and the box of numbers above-right of them. They
+   never take the pointer, or the brush would stop under its own label. */
+.bp-tag, .bp-nums {
+  position: absolute; left: 0; top: 0; z-index: 30; pointer-events: none;
+  will-change: transform;
+}
+.bp-tag {
+  padding: 3px 8px; font-size: 11px; white-space: nowrap;
+  background: rgba(14, 16, 20, 0.9); border: 1px solid var(--edge);
+  color: var(--ink);
+}
+.bp-tag[data-tone="bad"] { color: var(--bad); border-color: var(--bad); }
+.bp-tag[data-tone="warn"] { color: var(--warn); border-color: var(--warn); }
+.bp-tag[data-tone="acc"] { color: var(--accent); border-color: var(--accent); }
+.bp-tag[data-tone="dim"] { color: var(--ink-3); }
+.bp-nums {
+  width: 220px; padding: 7px 11px; --cut: 6px; font-size: 11px;
+  display: flex; flex-direction: column; gap: 2px;
+}
+.bp-num-row { display: flex; justify-content: space-between; gap: 10px; }
+.bp-num-row .acc { color: var(--accent); }
+.bp-num-row .warn { color: var(--warn); }
+.bp-num-row .bad { color: var(--bad); }
+.bp-tag[hidden], .bp-nums[hidden] { display: none; }
+/* #hud > * gives everything on the chrome the pointer back (client/hud.css),
+   and an id outranks the class above: the box sat above-right of the pointer
+   and took it off the clay whenever the pointer moved that way. */
+#hud > .bp-tag, #hud > .bp-nums { pointer-events: none; }
+
+/* On the ground: the overlays, a switch a row. */
+.bp-card { display: flex; flex-direction: column; gap: 6px; font-size: 12px; }
+.bp-card .label { font-size: 10px; color: var(--ink-3); }
+.bp-row {
+  display: flex; align-items: center; justify-content: space-between; gap: 8px;
+  color: var(--ink-2); cursor: pointer;
+}
+.bp-row .bp-words { display: flex; align-items: center; gap: 4px; }
+.bp-row .bp-num { width: 46px; padding: 1px 4px; font-size: 11px; }
+.bp-row input[type="checkbox"] {
+  appearance: none; width: 30px; height: 16px; margin: 0; position: relative;
+  border: 1px solid rgba(255, 255, 255, 0.3); background: transparent; cursor: pointer;
+}
+.bp-row input[type="checkbox"]::after {
+  content: ''; position: absolute; top: 2px; left: 2px; width: 10px; height: 10px;
+  background: var(--ink-3); transition: left 0.12s;
+}
+.bp-row input[type="checkbox"]:checked { background: var(--accent-dim); border-color: var(--accent); }
+.bp-row input[type="checkbox"]:checked::after { left: 16px; background: var(--accent); }
+
+/* The strip: a drawer along the bottom, over the plinth's head room. */
+/* Between the panel down the left (24 + 440) and the corner card (24 + 240),
+   so it covers neither. */
+#profile-strip {
+  position: absolute; left: 484px; right: 284px; bottom: 96px; padding: 10px 14px 8px;
+  z-index: 12; display: flex; flex-direction: column; gap: 4px;
+}
+#profile-strip[hidden] { display: none; }
+#profile-strip .ps-head {
+  display: flex; justify-content: space-between; align-items: baseline; font-size: 12px;
+  gap: 16px;
+}
+#profile-strip .ps-says { font-size: 11px; margin-right: 10px; }
+#profile-strip .ps-close {
+  background: none; border: 0; color: var(--ink-3); cursor: pointer; font-size: 14px;
+}
+#profile-strip .ps-canvas { width: 100%; height: 110px; cursor: crosshair; }
+
+/* The corner card: Blueprint's keys, the overlays and the view, in place of
+   the walking keys — the camera is not the player's while it is open. */
+#bp-side {
+  width: 240px; padding: 10px 12px; --cut: 8px; font-size: 12px;
+  display: flex; flex-direction: column; gap: 10px;
+}
+#bp-side[hidden] { display: none; }
+#bp-side .bp-head { display: flex; justify-content: space-between; align-items: baseline; }
+#bp-side .bp-title { color: var(--accent); font-size: 13px; }
+#bp-side .bp-land { font-size: 11px; }
+#bp-side .bp-keys {
+  display: grid; grid-template-columns: auto 1fr; gap: 4px 8px; align-items: center;
+  font-size: 11px; color: var(--ink-2);
+}
+#bp-side .bp-keys kbd { justify-self: end; }
+#bp-side .bp-view { display: flex; gap: 6px; }
+#bp-side .bp-view button { flex: 1; padding: 4px 6px; font-size: 11px; }
+#bp-side .bp-ortho[aria-pressed="true"] { color: var(--accent); border-color: var(--accent); }
+#hud[data-blueprint="1"] #hints, #hud[data-blueprint="1"] #alt { display: none; }
+/* Where the player stands, over the middle: the clay camera is not the
+   player, and Shape's toolbar is under those words. */
+#hud[data-blueprint="1"] #compass, #hud[data-blueprint="1"] #land,
+#hud[data-blueprint="1"] #standing { display: none; }
+/* The world's labels stop being placed while the clay is up (play.html). */
+#hud[data-blueprint="1"] #world-labels { display: none; }
+
+/* The three views, one row: how the clay is seen (client/js/bpoverlay.js). */
+.bp-shades { display: flex; gap: 0; margin-bottom: 4px; }
+.bp-shades .bp-shade {
+  flex: 1; padding: 5px 0; font-size: 11px; background: rgba(255, 255, 255, 0.04);
+  border: 1px solid var(--edge); color: var(--ink-2); cursor: pointer;
+}
+.bp-shades .bp-shade + .bp-shade { border-left: 0; }
+.bp-shades .bp-shade:hover { color: var(--ink); }
+.bp-shades .bp-shade[aria-pressed="true"] {
+  color: var(--accent); border-color: var(--accent); background: var(--accent-dim);
+}
+
+/* Between pressing Shape or Lines and the clay being there
+   (client/js/bploading.js): the world dims under the chrome and one card
+   says what is happening. It takes no clicks: the plinth still leaves. */
+#bp-loading {
+  position: absolute; left: 0; right: 0; top: 44px; bottom: 0; z-index: 20;
+  display: flex; align-items: center; justify-content: center;
+  background: rgba(10, 12, 15, 0.72); pointer-events: none;
+}
+#hud > #bp-loading { pointer-events: none; }
+#bp-loading[hidden] { display: none; }
+.bp-loading-card {
+  display: flex; align-items: center; gap: 14px; padding: 16px 22px; --cut: 10px;
+  font-size: 13px; color: var(--ink);
+}
+.bp-loading-words { margin: 0; }
+.bp-loading-spin {
+  width: 18px; height: 18px; border: 2px solid rgba(255, 255, 255, 0.18);
+  border-top-color: var(--accent); border-radius: 50%;
+  animation: bp-spin 0.8s linear infinite;
+}
+@keyframes bp-spin { to { transform: rotate(360deg); } }

@@ -1,0 +1,46 @@
+/* areas.css — Survey → Areas (EDT.19-22, docs/design/splatworld-v11.dc.html
+ * 11d): a strip of tools over the map, the kinds down the left, the map, and
+ * the selected area's fields down the right. */
+
+.ar { display: flex; flex-direction: column; gap: 8px; height: calc(100vh - 190px); }
+.ar-top { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+.ar-tools { display: flex; gap: 2px; }
+.ar-tools button {
+  display: flex; align-items: center; gap: 6px; padding: 5px 10px; font-size: 12px;
+}
+.ar-tools button[aria-pressed="true"] {
+  color: oklch(0.8 0.15 145); border-color: oklch(0.8 0.15 145);
+}
+.ar-tools kbd { font-size: 9px; }
+.ar-land { max-width: 220px; }
+.ar-body {
+  flex: 1; min-height: 0; display: grid; grid-template-columns: 260px 1fr 300px; gap: 10px;
+}
+.ar-left, .ar-right {
+  overflow-y: auto; display: flex; flex-direction: column; gap: 10px; font-size: 12px;
+}
+.ar-map { position: relative; min-height: 300px; background: #1d2227; }
+.ar-tag {
+  position: absolute; z-index: 5; padding: 3px 8px; font-size: 11px; pointer-events: none;
+  background: rgba(14, 16, 20, 0.9); border: 1px solid var(--edge); color: var(--ink);
+}
+.ar-tag[hidden] { display: none; }
+
+/* Survey → Requests. */
+.rq-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
+.rq-row {
+  display: grid; grid-template-columns: 160px 1fr auto; gap: 12px; align-items: center;
+  padding: 8px 10px; border: 1px solid var(--edge-2);
+}
+
+/* Survey's grid is Parcels' (a column of words beside its map); Areas and
+   Requests lay themselves out, the whole width below their lede. */
+#panel[data-surface="Survey"][data-part="Areas"] .tab-body:not([hidden]),
+#panel[data-surface="Survey"][data-part="Requests"] .tab-body:not([hidden]) {
+  display: flex; flex-direction: column; gap: 8px;
+}
+#panel[data-part="Areas"] .ar { width: 100%; flex: 1; height: auto; min-height: 0; }
+
+/* Undo and redo under Save (EDT.22): two halves of one row. */
+.ar-steps { display: flex; gap: 6px; }
+.ar-steps button { flex: 1; }

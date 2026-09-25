@@ -16,6 +16,7 @@
 // Nodes only. client/js/adminui.js does the deciding and all the asking.
 
 import { el } from './poolui.js';
+import { DEFAULTS_HTML } from './kinddefaults.js';
 
 export const TYPES = ['text', 'number', 'boolean', 'choice'];
 export const GEOMETRIES = ['polygon', 'line', 'point'];
@@ -59,6 +60,7 @@ export const HTML = `
       <label>Order<input class="vo-order" type="number" value="100"></label>
       <button type="button" class="vo-save-kind">Save the kind</button>
     </div>
+    ${DEFAULTS_HTML}
     <div class="spread vo-props-head">
       <span class="label">What one may say about itself</span>
       <span class="muted">These are the fields QGIS shows, and what a symbol

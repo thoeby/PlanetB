@@ -47,8 +47,12 @@ export const KINDS = {
                 value: 'water' },
         ],
     },
+    // Still read, so a row of one opens with its form; no longer offered for a
+    // new one (EDT.21): buildings are placed in Build, and the ground is
+    // shaped in Shape rather than drawn as a terrainmod.
     building: {
         geometry: 'Polygon',
+        picker: false,
         fields: [
             { key: 'building', label: 'building', type: 'select',
                 options: ['yes', 'house', 'residential', 'barn', 'chalet', 'church',
@@ -62,6 +66,7 @@ export const KINDS = {
     },
     terrainmod: {
         geometry: 'Polygon',
+        picker: false,
         fields: [
             { key: 'op', label: 'operation', type: 'select',
                 options: ['flatten', 'raise', 'lower', 'smooth'], value: 'flatten' },
@@ -71,6 +76,9 @@ export const KINDS = {
 };
 
 export const KIND_NAMES = Object.keys(KINDS);
+
+// What the picker offers for a new feature.
+export const PICKABLE = KIND_NAMES.filter((k) => KINDS[k].picker !== false);
 
 export const geometryOf = (kind) => KINDS[kind]?.geometry ?? 'Polygon';
 

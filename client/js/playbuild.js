@@ -1,7 +1,7 @@
 // playbuild.js — what is built and where: the preview of placed things, the
-// wallet, what is live and what moves, Place, Your land and Shape (play.js).
+// wallet, what is live and what moves, Place, Your land, and the editors
+// (client/js/playeditors.js; play.js).
 
-import * as tm from '../lib/tilemath.js';
 import { nearbyInstances } from './build.js';
 import { mountBuild } from './buildui.js';
 import { InstancePreview } from './preview.js';
@@ -12,7 +12,7 @@ import { Movers } from './movers.js';
 import { MoverDraw } from './moverdraw.js';
 import { mountGetLand } from './getland.js';
 import { mountLand } from './land.js';
-import { mountSculpt } from './sculptui.js';
+import { mountEditors } from './playeditors.js';
 import { landChanged } from './playwhere.js';
 
 export function mountBuildSide(ctx) {
@@ -48,7 +48,7 @@ export function mountBuildSide(ctx) {
     ctx.moverDraw = new MoverDraw(app, pc, { preview: ctx.preview, origin });
     mountPlace(ctx);
     mountYourLand(ctx);
-    mountShape(ctx);
+    mountEditors(ctx);
 }
 
 // An instance row plus the digest of the asset's canonical GLB, which is what
@@ -111,44 +111,4 @@ function mountYourLand(ctx) {
         onRemove: (item) => ctx.api.remove('instance', { id: `eq.${item.id}` })
             .then(() => ctx.build.refresh()),
     });
-}
-
-// FND.9: the ground itself, shaped in the page. It is a mode the 3D view is in
-// while the panel is open, the way Place is, and what it changes is the land's
-// own grid of relative metres (client/js/sculpt.js).
-function mountShape(ctx) {
-    const { terrain, origin } = ctx;
-    const shaped = (lon, lat) => ctx.sculpt.shaping()?.at(lon, lat) ?? 0;
-    ctx.sculpt = mountSculpt(ctx.hud.panel('Shape'), {
-        canvas: ctx.canvas, camera: ctx.camera, pc: ctx.pc, app: ctx.app, origin, terrain,
-        player: ctx.player,
-        groundAt: (lon, lat) => terrain.heightAt(origin.localOf({ lon, lat, h: 0 })) ?? 0,
-        onShaped: () => ctx.groundMesh?.reshape(shaped, tilesOfShaping(ctx)),
-        // FND.9: shaping on or off. What is shaped is the mesh, so while it is
-        // on the splats over that land are put away and the mesh is what is on
-        // screen — and put back the moment it is off (client/js/tiles.js).
-        onMode: (on) => {
-            const tiles = on ? tilesOfShaping(ctx) : [];
-            ctx.groundMesh?.reshape(shaped, tiles);
-            // Only where there is a mesh to put in their place: a world whose
-            // operator has published no elevation has no DemGround at all
-            // (playview.js), and taking the splats off that land would leave a
-            // hole with nothing in it rather than ground to shape.
-            ctx.streamer.hideUnder(ctx.groundMesh ? tiles.map((k) => `14/${k}`) : []);
-        },
-        onSaved: () => { ctx.build.refresh(); ctx.submit.refresh(); },
-    }, { lands: () => ctx.api.rpc('my_areas').catch(() => []) });
-}
-
-// The z14 tiles the land being shaped falls in: they are drawn as ground while
-// Shape is on even where a published tile covers them, because you cannot
-// shape ground you cannot see.
-function tilesOfShaping(ctx) {
-    const b = ctx.sculpt.shaping()?.area?.bbox;
-    if (!b) return [];
-    const out = [];
-    for (let x = tm.tileX(b.west, 14); x <= tm.tileX(b.east, 14); x++) {
-        for (let y = tm.tileY(b.north, 14); y <= tm.tileY(b.south, 14); y++) out.push(`${x}/${y}`);
-    }
-    return out;
 }
