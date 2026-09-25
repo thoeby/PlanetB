@@ -3083,8 +3083,10 @@ EDT.26 checklist (each is asserted by a story or a node test; the stories'
       `edge blend`, `follow contour`, `snapped: …` — stories 43, 46, 49, 51, 54.
 - [x] Every Save says what it did: "ground saved · N tiles changed" (49),
       "N lines saved" (50, 55), "forest saved · merged with 1",
-      "water saved · cut 1" (58), "N areas erased" (59).
+      "water saved · cut 1" (58); a save that only erases says "N areas
+      erased" (client/js/areasave.js, not asserted by a story).
 - [x] Keys printed on the rail and the card: Shape's toolbar and its card
       head (46), Lines' rail (50), Areas' tool strip (56).
-- [x] Leaving with unsaved work asks Save / Discard / Stay: Shape (49), Lines.
+- [x] Leaving with unsaved work asks Save / Discard / Stay: Shape (49);
+      Lines asks the same question through the same node.
 - [x] docs/manual.md §5: Blueprint, Shape, Lines, Areas, Kind defaults.
