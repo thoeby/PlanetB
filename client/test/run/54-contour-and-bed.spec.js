@@ -19,9 +19,13 @@ const onTheSlope = (b) => b.page.evaluate(async () => {
     const L = bp.L;
     const { slopeAt } = await import('./lib/bpgrid.js');
     let best = null;
+    // Well inside: by the boundary the pointer snaps to it instead.
+    const k = Math.ceil(40 / (L.dLat * 110540));
+    const deep = (i, j) => [[0, 0], [k, 0], [-k, 0], [0, k], [0, -k]].every(([di, dj]) =>
+        bp.inside[(j + dj) * L.cols + i + di]);
     for (let j = 2; j < L.rows - 2; j += 2) {
         for (let i = 2; i < L.cols - 2; i += 2) {
-            if (!bp.inside[j * L.cols + i]) continue;
+            if (!deep(i, j)) continue;
             const s = slopeAt(L, bp.heights, i, j);
             if (s < 45 && (!best || s > best.s)) best = { s, i, j };
         }
@@ -43,7 +47,7 @@ async function alongTheContour(b) {
     await b.page.mouse.move(s.a.x, s.a.y);
     for (let n = 0; n < 7; n++) await b.page.mouse.wheel(0, -300);
     const t = await onTheSlope(b);
-    await b.page.keyboard.press('d');
+    await b.page.keyboard.press('l');
     await b.page.mouse.click(t.a.x, t.a.y);
     await b.page.keyboard.down('Alt');
     await b.page.mouse.move(t.b.x, t.b.y, { steps: 3 });

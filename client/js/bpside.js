@@ -8,8 +8,10 @@ import { overlayCard } from './bpoverlay.js';
 import { el } from './tabbar.js';
 
 const KEYS = [
+    ['W A S D', 'Fly over the land'],
+    ['Q E', 'Down and up'],
+    ['middle-drag', 'Orbit'],
     ['wheel', 'Zoom to the pointer'],
-    ['right-drag', 'Orbit'],
     ['H', 'Hand: drag the land'],
     ['C', 'Section: drag a line'],
     ['O', 'Ortho / perspective'],

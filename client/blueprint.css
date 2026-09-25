@@ -85,3 +85,7 @@
 #bp-side .bp-view button { flex: 1; padding: 4px 6px; font-size: 11px; }
 #bp-side .bp-ortho[aria-pressed="true"] { color: var(--accent); border-color: var(--accent); }
 #hud[data-blueprint="1"] #hints, #hud[data-blueprint="1"] #alt { display: none; }
+/* Where the player stands, over the middle: the clay camera is not the
+   player, and Shape's toolbar is under those words. */
+#hud[data-blueprint="1"] #compass, #hud[data-blueprint="1"] #land,
+#hud[data-blueprint="1"] #standing { display: none; }

@@ -21,7 +21,7 @@ import { tileBbox, tileX, tileY } from '../lib/tilemath.js';
 // (PLAN-editors.md D6): Lower was a second tool for the same stroke.
 export const BRUSHES = [
     { id: 'raise', words: 'Raise', key: 'r' },
-    { id: 'smooth', words: 'Smooth', key: 's' },
+    { id: 'smooth', words: 'Smooth', key: 'm' },
     { id: 'flatten', words: 'Flatten', key: 'g' },
     { id: 'level', words: 'Level', key: 'l' },
     { id: 'line', words: 'Along line', key: 'b' },

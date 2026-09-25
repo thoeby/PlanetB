@@ -22,23 +22,20 @@ import { restore } from './shapekeep.js';
 import { toolRail } from './sculptrail.js';
 import { shapeSurface } from './shapetool.js';
 
+// The panel itself is not on screen while Shape is (client/terrain.css): the
+// toolbar and its cards are over the world (client/js/sculptrail.js). What it
+// holds is for a surface that is open without the clay.
 const HTML = `
-<div class="section sh-head">
-  <label class="sh-land-row"><span class="label">Land</span>
-    <select class="sc-land"></select></label>
-  <p class="mono sh-earth"></p>
-</div>
-<div class="sh-rail-host"></div>
-<p class="sc-status status"></p>
-<button type="button" class="sc-retry" hidden>Retry the save</button>
-<div class="sh-history-host"></div>
-<div class="section">
-  <p class="muted sc-said"></p>
-  <p class="note mono sc-shaped"></p>
-  <p class="note">Nothing reaches the world until Save. What you shape is
-    metres off the ground the operator's elevation gives, so a better elevation
-    later keeps your shaping.</p>
-</div>`;
+<p class="note">Shape is the toolbar over the land, top left. Nothing reaches
+  the world until Save. What you shape is metres off the ground the operator's
+  elevation gives, so a better elevation later keeps your shaping.</p>`;
+
+// The Strokes card: how far the ground has moved, what has been done, and
+// Put back.
+const STROKES = `
+<p class="mono sh-earth"></p>
+<p class="note mono sc-shaped"></p>
+<div class="sh-history-host"></div>`;
 
 // What the panel says about itself, in one line.
 const sentence = (state) => {
@@ -56,8 +53,10 @@ export function mountShape(host, ctx, { lands = () => [] } = {}) {
     node.innerHTML = HTML;
     host.append(node);
     const state = fresh();
-    const rail = toolRail((id) => pick(id), node.querySelector('.sh-rail-host'));
-    const q = (sel) => node.querySelector(sel);
+    const rail = toolRail((id) => pick(id, { toggle: true }),
+        document.getElementById('hud') ?? document.body);
+    rail.card.innerHTML = STROKES;
+    const q = (sel) => rail.q(sel) ?? node.querySelector(sel);
     const say = (msg, bad = false) => {
         if (msg !== undefined) {
             q('.sc-status').textContent = msg;
@@ -71,6 +70,7 @@ export function mountShape(host, ctx, { lands = () => [] } = {}) {
     };
     const history = mountHistory(q('.sh-history-host'), { shaping: () => state.shaping,
         changed: (words) => { ctx.bp.rebuild(null); say(words); } });
+    rail.q('.sh-strokes-toggle').addEventListener('click', () => history.draw());
     const hover = () => corners(q, state, ctx);
     const ground = (lon, lat) => ctx.bp.demAt(lon, lat) ?? 0;
     // While a stroke is on, the clay is rebuilt without its contours, which
@@ -79,7 +79,7 @@ export function mountShape(host, ctx, { lands = () => [] } = {}) {
         shaped: (rect) => ctx.bp.rebuild(rect, { quick: state.painting }),
         levelTo: () => state.target, turn: (deg) => fields.turn(deg),
         take: (g) => levelHere(state, say, fields, g) });
-    const pick = (id) => pickBrush(rail, q, state, id, say);
+    const pick = (id, how) => pickBrush(rail, q, state, id, say, how);
     const open = () => openOver(ctx, state, surface, say);
     const load = (id) => chooseLand(q, state, say, id);
     const choose = async (id) => {
@@ -89,29 +89,34 @@ export function mountShape(host, ctx, { lands = () => [] } = {}) {
     const acts = { choose, say, pick, ctx,
         save: () => saveGround(state, say, ctx, q('.sc-retry')),
         apply: () => layBed(q, state, say, ctx, ground),
-        clear: () => history.confirm(() => putBack(state, say, ctx)),
+        clear: () => {
+            rail.card.hidden = false;
+            history.confirm(() => putBack(state, say, ctx));
+        },
         take: () => levelHere(state, say, fields) };
     const fields = wire(rail, q, state, acts);
     const life = comings(ctx, state, () => listLands(q, state, say, lands, load), open,
         { leave: mountLeave(document.getElementById('hud') ?? document.body),
-            save: acts.save, surface });
+            save: acts.save, surface, rail });
     return {
         state, say, surface, ...acts,
         shaping: () => state.shaping,
         refresh: () => listLands(q, state, say, lands, load),
         ...life,
         // From Lines' Lay bed: Along line in hand with that line's bed.
-        async bed({ points, width, gradient, name }) {
-            await life.enter();
-            pick('line');
-            state.line = points.map((p) => ({ lon: p.lon, lat: p.lat }));
-            q('.sc-road').value = '';
-            q('.sc-width').value = String(width ?? 5);
-            q('.sc-shoulder').value = '1';
-            q('.sc-gradient').value = String(gradient ?? 8);
-            say(`the bed of ${name} is loaded \u2014 Lay the bed lays it once`);
-        },
+        bed: (line) => bedOf(line, { life, pick, q, state, say }),
     };
+}
+
+async function bedOf({ points, width, gradient, name }, { life, pick, q, state, say }) {
+    await life.enter();
+    pick('line');
+    state.line = points.map((p) => ({ lon: p.lon, lat: p.lat }));
+    q('.sc-road').value = '';
+    q('.sc-width').value = String(width ?? 5);
+    q('.sc-shoulder').value = '1';
+    q('.sc-gradient').value = String(gradient ?? 8);
+    say(`the bed of ${name} is loaded \u2014 Lay the bed lays it once`);
 }
 
 // What the panel starts out holding.
@@ -121,10 +126,11 @@ const fresh = () => ({ on: false, brush: 'raise', size: 12, strength: 1, soft: 0
 
 // The surface opened (the land's grid, then the clay over it) and left —
 // asking first when there are strokes nobody has saved.
-function comings(ctx, state, list, open, { leave, save, surface }) {
+function comings(ctx, state, list, open, { leave, save, surface, rail }) {
     let entering = null;
     const enter = async () => {
         state.on = true;
+        rail.node.hidden = false;
         // The operator's switches, not the player's (PLAN-editors ideas
         // 13 and 16): the edge blend, and how far the ground may move.
         const set = await api.rpc('app_settings').catch(() => ({}));
@@ -156,6 +162,7 @@ function comings(ctx, state, list, open, { leave, save, surface }) {
                 else state.shaping.undoTo(0);
             }
             state.on = false;
+            rail.node.hidden = true;
             // Only the clay Shape opened: Lines may have it by now.
             if (ctx.bpmode.surface === surface) ctx.bpmode.close();
         },
@@ -176,7 +183,8 @@ async function openOver(ctx, state, surface, say) {
     if (ctx.bp.active && ctx.bpmode.surface === surface
         && ctx.bp.area?.id === state.shaping.area.id) return ctx.bp.openedMs;
     const ms = await ctx.bpmode.open(state.shaping.area, state.shaping, surface);
-    say('shaping — drag on the ground');
+    // What was kept from a save that failed says so until it is sent.
+    say(state.kept ? undefined : 'shaping — drag on the ground');
     return ms;
 }
 
@@ -198,6 +206,7 @@ async function chooseLand(q, state, say, id) {
     state.line = [];
     // What could not be saved last time, back as one stroke (EDT.10).
     const kept = await restore(state.shaping).catch(() => 0);
+    state.kept = kept;
     q('.sc-retry').hidden = !kept;
     floors(q('.sc-floor'), await api.rpc('area_contents', { area_id: area.id }).catch(() => []));
     q('.sc-road').replaceChildren(new Option('pick a road…', ''),
@@ -249,9 +258,9 @@ function layBed(q, state, say, ctx, ground) {
 
 // Which tool is in hand: lit on the rail, named over the box, and only the
 // fields it reads on screen.
-function pickBrush(rail, q, state, id, say) {
+function pickBrush(rail, q, state, id, say, how) {
     state.brush = id;
-    rail.pick(id);
+    rail.pick(id, how);
     for (const field of rail.all('.sc-fields [data-uses]')) {
         field.hidden = !brushUses(id, field.dataset.uses);
     }

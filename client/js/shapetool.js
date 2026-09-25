@@ -11,6 +11,7 @@
 
 import { bandAt, bearing, dab, fallPlane } from './sculptbrush.js';
 import { drawPath, drawRing } from './bpdraw.js';
+import { BrushDisc } from './brushdisc.js';
 
 export const REFUSED = 'You can only shape your own land';
 
@@ -25,6 +26,7 @@ const MAX_DT_S = 0.1;
  * {say, hover, shaped(rect), levelTo(), ground(lon, lat)}.
  */
 export function shapeSurface(bp, app, pc, state, acts) {
+    const disc = new BrushDisc(bp);
     const paintAt = (g, dt) => paint(state, acts, g, dt);
     return {
         tool: () => state.brush,
@@ -86,7 +88,7 @@ export function shapeSurface(bp, app, pc, state, acts) {
             }
             return out;
         },
-        draw: () => drawBrush(bp, app, pc, state),
+        draw: () => drawBrush(bp, app, pc, state, disc),
     };
 }
 
@@ -137,18 +139,21 @@ export function around(g, size) {
 
 // The brush where the pointer is: its ring, and the inner ring where it is at
 // full strength. Blue on the land, red off it; none for the hand or the section.
-function drawBrush(bp, app, pc, state) {
+function drawBrush(bp, app, pc, state, disc) {
     if (state.brush === 'line') {
+        disc.hide();
         if (state.line?.length) drawPath(bp, app, pc, state.line, new pc.Color(1, 0.85, 0.35));
         return;
     }
-    if (!state.at || state.brush === 'pan' || state.brush === 'section') return;
+    if (!state.at || state.brush === 'pan' || state.brush === 'section') { disc.hide(); return; }
     // Red off the land, amber where the operator's limit stopped it.
-    const tone = state.inside === false ? new pc.Color(1, 0.35, 0.3)
-        : state.over && state.painting ? new pc.Color(1, 0.75, 0.2)
-            : new pc.Color(0.3, 0.85, 1);
+    const rgb = state.inside === false ? [1, 0.35, 0.3]
+        : state.over && state.painting ? [1, 0.75, 0.2] : [0.3, 0.85, 1];
+    const tone = new pc.Color(...rgb);
     const square = state.shape === 'square' && state.brush === 'raise';
     const r = Math.max(1, state.size) / 2;
+    // What the brush will do, on the ground: its falloff as a shaded disc.
+    disc.show(state.at, r, { soft: state.soft ?? 0.6, curve: state.curve, square }, rgb);
     drawRing(bp, app, state.at, r, tone, square);
     // The core, where it is at full strength.
     drawRing(bp, app, state.at, r * (1 - (state.soft ?? 0.6)), tone, square);

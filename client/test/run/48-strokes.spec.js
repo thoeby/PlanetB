@@ -52,7 +52,7 @@ test('story 48 — undo back to a stroke, and put the ground back',
             await hold(b, p, 800);
             const afterOne = await grid(b);
             await hold(b, p, 800);
-            await b.page.keyboard.press('s');
+            await b.page.keyboard.press('m');
             await hold(b, p, 500);
             await expect(rows).toHaveCount(3, { timeout: UI });
             await expect(rows.first()).toContainText('Smooth');
@@ -64,11 +64,15 @@ test('story 48 — undo back to a stroke, and put the ground back',
         });
 
         await test.step('clicking the oldest undoes back to it, exactly', async () => {
+            // The strokes are a card off the toolbar, folded until asked for.
+            await b.page.locator('.sh-strokes-toggle').click();
             await rows.nth(2).click();
             await expect(b.page.locator('.sc-status')).toHaveText('undone back to it');
             expect(await grid(b), 'every cell as it was after the first stroke').toBe(first);
             await expect(b.page.locator('.sh-history .sh-stroke.undone')).toHaveCount(2);
             await shot(b, testInfo, 'story-48-history');
+            // Folded again: the card is over the ground he paints next.
+            await b.page.locator('.sh-strokes-toggle').click();
         });
 
         await test.step('Ctrl-Shift-Z walks forward; a new stroke replaces the undone',

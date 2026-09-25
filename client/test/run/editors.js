@@ -100,7 +100,8 @@ export const screenAt = (b, where) => b.page.evaluate((w) => {
         const y = dLat ? (dLat < 0 ? L.bbox[1] : L.bbox[3]) + dLat : L.lat0;
         if (s.inside(x, y)) continue;
         const q = sw.camera.camera.worldToScreen(bp.toScene(x, y, bp.heightAt(x, y)));
-        if (q.x > 560 && q.x < 1000 && q.y > 170 && q.y < 680) return { x: q.x, y: q.y };
+        const open = document.elementFromPoint(q.x, q.y) === sw.app.graphicsDevice.canvas;
+        if (open && q.y > 170 && q.y < 680) return { x: q.x, y: q.y };
     }
     return null;
 }, where);

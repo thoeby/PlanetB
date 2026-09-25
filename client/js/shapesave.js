@@ -19,6 +19,7 @@ export async function saveGround(state, say, ctx, retry) {
         const got = await state.shaping.save();
         await forget(state.shaping).catch(() => {});
         retry.hidden = true;
+        state.kept = 0;
         say(`ground saved · ${plural(Number(got.tiles ?? 0), 'tile')} changed`);
         ctx.bp.rebuild(null);
         ctx.onSaved?.();
@@ -35,17 +36,19 @@ export async function saveGround(state, say, ctx, retry) {
     }
 }
 
-// The question asked on the way out: three buttons over the world.
+// The question asked on the way out: three buttons over the world. One node
+// for Shape and Lines both: only one of them is ever leaving.
 export function mountLeave(host) {
-    const words = el('p', {});
-    const node = el('div', { id: 'sh-leave', className: 'glass', hidden: true }, words,
+    const had = host.querySelector('#sh-leave');
+    const words = had?.querySelector('p') ?? el('p', {});
+    const node = had ?? el('div', { id: 'sh-leave', className: 'glass', hidden: true }, words,
         el('div', { className: 'row' },
             el('button', { type: 'button', className: 'sh-leave-save primary',
                 textContent: 'Save' }),
             el('button', { type: 'button', className: 'sh-leave-discard',
                 textContent: 'Discard' }),
             el('button', { type: 'button', className: 'sh-leave-stay', textContent: 'Stay' })));
-    host.append(node);
+    if (!had) host.append(node);
     return {
         node,
         // Answers 'save', 'discard' or 'stay'.

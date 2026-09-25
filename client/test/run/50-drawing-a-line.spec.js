@@ -28,11 +28,11 @@ test('story 50 — a road of six nodes, saved as a densified line with its handl
         const b = await ben(browser, world, testInfo);
         await test.step('5 opens Lines on the clay', () => linesOnHisLand(b));
         await test.step('he picks a residential road', async () => {
-            await b.page.locator('.kp-search').fill('residential');
+            await b.page.locator('.ln-kinds .kp-search').fill('residential');
             await b.page.locator('.kp-kind[data-kind="highway:residential"]').click();
             await expect(b.page.locator('.kp-kind[data-kind="highway:residential"]'))
                 .toHaveAttribute('aria-selected', 'true');
-            await b.page.locator('.kp-search').fill('');
+            await b.page.locator('.ln-kinds .kp-search').fill('');
         });
         await test.step('six clicks, and Enter ends it', async () => {
             await sixNodes(b);

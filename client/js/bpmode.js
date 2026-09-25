@@ -58,6 +58,8 @@ export function mountBlueprintMode(ctx) {
         async open(area, shaping, surface) {
             // Another surface had the clay (Shape, then Lines): it goes first.
             if (bp.active) this.close();
+            // The walk camera lets go before the ground has loaded (bpcamera hold).
+            cam.hold();
             st.surface = surface;
             const ms = await bp.open(area, shaping);
             cam.enter();

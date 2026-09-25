@@ -25,6 +25,31 @@ async function handAndFit(b) {
     expect((await cameraOf(b)).pitch).toBe(60);
 }
 
+async function wheelIn(b, start) {
+    await b.page.mouse.move(CENTRE.x, CENTRE.y);
+    await b.page.mouse.wheel(0, -400);
+    expect((await cameraOf(b)).distance).toBeLessThan(start.distance);
+    await b.page.mouse.wheel(0, 400);
+}
+
+// The operator's note on EDT.7: WASD always flies, the middle button orbits,
+// and clicking the clay never takes the pointer away.
+async function flyAndOrbit(b) {
+    const was = await target(b);
+    await b.page.mouse.move(CENTRE.x, CENTRE.y);
+    await b.page.keyboard.down('w');
+    await b.page.waitForTimeout(500);
+    await b.page.keyboard.up('w');
+    const flown = await target(b);
+    expect(Math.abs(flown.lon - was.lon) + Math.abs(flown.lat - was.lat)).toBeGreaterThan(1e-5);
+    const yaw = (await cameraOf(b)).yaw;
+    await drag(b, [CENTRE, { x: CENTRE.x + 200, y: CENTRE.y }], { button: 'middle' });
+    expect((await cameraOf(b)).yaw).not.toBeCloseTo(yaw, 1);
+    await b.page.mouse.click(CENTRE.x, CENTRE.y);
+    expect(await b.page.evaluate(() => document.pointerLockElement)).toBeNull();
+    expect((await cameraOf(b)).on).toBe(true);
+}
+
 test('story 42 — B orbits, zooms, looks straight down, and gets his eyes back',
     async ({ browser, world }, testInfo) => {
         const b = await ben(browser, world, testInfo);
@@ -33,13 +58,7 @@ test('story 42 — B orbits, zooms, looks straight down, and gets his eyes back'
         const start = await cameraOf(b);
         expect(start.on, 'Blueprint has the camera').toBe(true);
 
-        await test.step('the wheel goes in towards the pointer', async () => {
-            await b.page.mouse.move(CENTRE.x, CENTRE.y);
-            await b.page.mouse.wheel(0, -400);
-            const now = await cameraOf(b);
-            expect(now.distance).toBeLessThan(start.distance);
-            await b.page.mouse.wheel(0, 400);
-        });
+        await test.step('the wheel goes in towards the pointer', () => wheelIn(b, start));
 
         await test.step('the right button orbits, never flatter than 30°', async () => {
             const was = await cameraOf(b);
@@ -68,6 +87,9 @@ test('story 42 — B orbits, zooms, looks straight down, and gets his eyes back'
 
         await test.step('the hand drags the land; Zoom to land frames it again',
             () => handAndFit(b));
+
+        await test.step('W flies, the middle button orbits, and a click locks nothing',
+            () => flyAndOrbit(b));
 
         await test.step('closing hands the camera back where the player was', async () => {
             await b.page.evaluate(() => window.splatworld.bpmode.close());

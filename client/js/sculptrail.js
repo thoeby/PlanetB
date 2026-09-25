@@ -117,23 +117,49 @@ function toolButton(t, onPick) {
     return b;
 }
 
-// The rail and the box, at the head of the Shape panel (EDT.6): the panel is
-// the column beside the clay now, and the rail is what it opens on.
+// The toolbar over the world, top left, and its cards (the operator's note
+// on EDT.6): the land, the tools at one fixed size with their keys, undo and
+// redo, how much is unsaved, Save, Put back, and the Strokes card's toggle.
+// The tool in hand's settings are a card that flaps out under the bar when a
+// tool is picked, and folds away when it is picked again; the column down the
+// left the panel was took a third of the screen for a few numbers.
 export function toolRail(onPick, host) {
-    const rail = el('div', { className: 'sc-rail glass' },
+    const rail = el('div', { className: 'sc-rail' },
         ...TOOLS.map((t) => toolButton(t, onPick)));
-    const deeds = el('div', { className: 'sc-deeds glass' }, ...DEEDS.map(deedButton));
+    const [undo, redo, save, clear] = DEEDS.map(deedButton);
+    save.append(el('span', { className: 'sc-save-words', textContent: 'Save' }));
+    const strokes = el('button', { type: 'button', className: 'sc-deed sh-strokes-toggle',
+        title: 'Strokes since the last save' }, icon('M4 6h16|M4 12h16|M4 18h10'));
+    const land = el('select', { className: 'sc-land', title: 'The land being shaped' });
+    const bar = el('div', { className: 'sc-bar glass' }, land, el('i', { className: 'sc-sep' }),
+        rail, el('i', { className: 'sc-sep' }), undo, redo, el('i', { className: 'sc-sep' }),
+        el('span', { className: 'sc-said' }), save, clear, strokes);
     const opt = el('div', { className: 'sc-opt glass' });
     opt.innerHTML = OPTIONS;
-    const node = el('div', { id: 'sculpt-tools' }, el('div', { className: 'sc-bar' }, rail, deeds),
-        opt);
+    const fold = el('button', { type: 'button', className: 'sc-fold', title: 'Fold the card away',
+        textContent: '\u00d7' });
+    opt.querySelector('.sc-opt-head').append(fold);
+    const card = el('div', { className: 'sh-card glass', hidden: true });
+    const node = el('div', { id: 'sculpt-tools', hidden: true }, bar,
+        el('p', { className: 'sc-status status' }),
+        el('button', { type: 'button', className: 'sc-retry', hidden: true,
+            textContent: 'Retry the save' }),
+        el('div', { className: 'sh-cards' }, opt, card));
     host.append(node);
+    const folded = (yes) => { opt.hidden = yes; node.dataset.card = yes ? '' : '1'; };
+    fold.onclick = () => folded(true);
+    strokes.onclick = () => {
+        card.hidden = !card.hidden;
+        strokes.setAttribute('aria-pressed', String(!card.hidden));
+    };
     return {
-        node,
+        node, card, folded,
         q: (sel) => node.querySelector(sel),
         all: (sel) => node.querySelectorAll(sel),
-        // Which tool is in hand: lit on the rail, named over the box.
-        pick(id) {
+        // Which tool is in hand: lit on the bar, named over its card, and the
+        // card flapped out — or, picked again, folded away.
+        pick(id, { toggle = false } = {}) {
+            const again = node.dataset.tool === id;
             for (const b of rail.children) {
                 b.classList.toggle('picked', b.dataset.brush === id);
                 b.setAttribute('aria-selected', String(b.dataset.brush === id));
@@ -142,6 +168,7 @@ export function toolRail(onPick, host) {
             node.dataset.tool = id;
             opt.querySelector('.sc-opt-name').textContent = t?.words ?? id;
             opt.querySelector('.sc-opt-key').textContent = t?.key.toUpperCase() ?? '';
+            folded(toggle && again ? !opt.hidden : false);
         },
     };
 }
