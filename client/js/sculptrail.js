@@ -1,5 +1,5 @@
-// sculptrail.js — the tool rail over the world while a land's ground is open
-// to be shaped, and the small box of whatever the tool in hand needs.
+// sculptrail.js — the tool rail at the head of the Shape panel, and the small
+// box of whatever the tool in hand needs (docs/design/splatworld-v11 11a).
 //
 // FND.9. The panel had a row of six word-buttons — "Raise (R)", "Along line
 // (B)" — above every setting any of them might read, in a column beside the
@@ -7,10 +7,10 @@
 // settings it actually used, nothing said; and none of it was near the ground
 // being shaped.
 //
-// So: a rail of glyphs over the world, the one in hand lit, and beside it one
-// small box holding that tool's settings and nothing else. It is over the
-// world rather than in the panel because that is where the ground is, and it
-// is shown whenever the Shape panel is open (client/frame.css).
+// So: a rail of glyphs, the one in hand lit, and under it one small box
+// holding that tool's settings and nothing else. It hung over the world beside
+// the panel until the panel itself became the narrow column beside the
+// Blueprint clay (EDT.6); now it heads that column.
 //
 // Nodes only. client/js/sculptui.js decides; client/js/sculptmode.js says what
 // each tool is for and which of the numbers it reads.
@@ -50,7 +50,7 @@ const OPTIONS = `
   </div>
   <button type="button" class="sc-apply primary">Lay the bed</button>
 </div>
-<p class="note mono sc-here"></p>`;
+`;
 
 // What can be done to the ground, as glyphs beside the tools: undo, redo,
 // save, and back to the elevation. They were three wide buttons and a fourth
@@ -92,17 +92,17 @@ function toolButton(t, onPick) {
     return b;
 }
 
-// The rail and the box, as one thing hanging over the world beside the panel.
-// Put on the frame rather than in the panel body: a toolbar inside a scrolling
-// column scrolls away from the ground it is about.
-export function toolRail(onPick) {
+// The rail and the box, at the head of the Shape panel (EDT.6): the panel is
+// the column beside the clay now, and the rail is what it opens on.
+export function toolRail(onPick, host) {
     const rail = el('div', { className: 'sc-rail glass' },
         ...TOOLS.map((t) => toolButton(t, onPick)));
     const deeds = el('div', { className: 'sc-deeds glass' }, ...DEEDS.map(deedButton));
     const opt = el('div', { className: 'sc-opt glass' });
     opt.innerHTML = OPTIONS;
-    const node = el('div', { id: 'sculpt-tools' }, rail, opt, deeds);
-    (document.getElementById('hud') ?? document.body).append(node);
+    const node = el('div', { id: 'sculpt-tools' }, el('div', { className: 'sc-bar' }, rail, deeds),
+        opt);
+    host.append(node);
     return {
         node,
         q: (sel) => node.querySelector(sel),

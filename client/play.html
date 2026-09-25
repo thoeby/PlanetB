@@ -99,7 +99,7 @@
   import { mountCatalogPanel } from './js/catalogpanel.js';
   import { drawAreas, labelAreas, labelObjects, mountLand, ringsOf } from './js/land.js';
   import { mountGetLand } from './js/getland.js';
-  import { mountSculpt } from './js/sculptui.js';
+  import { mountShape } from './js/shapeui.js';
   import { Blueprint } from './js/blueprint.js';
   import { mountBlueprintMode } from './js/bpmode.js';
   import { mountAssignLand } from './js/assignland.js';
@@ -396,7 +396,13 @@
   // EDT.1–5: the mode around it — its camera, the words at the pointer, Tab's
   // peek and the section strip — which Shape and Lines open (client/js/bpmode.js).
   const bpmode = mountBlueprintMode({ bp: blueprint, app, pc, camera, canvas, player,
-      setDriving: (v) => setDriving(v), host: document.getElementById('hud') });
+      setDriving: (v) => setDriving(v), host: document.getElementById('hud'),
+      // How much of the view the open panel and the corner card cover.
+      inset: () => ({
+          left: document.querySelector('#panel[data-open="1"]')?.getBoundingClientRect().right ?? 0,
+          right: Math.max(0, innerWidth - (document.querySelector('#bp-side:not([hidden])')
+              ?.getBoundingClientRect().left ?? innerWidth)),
+      }) });
 
   // An instance row plus the digest of the asset's canonical GLB, which is what
   // both the preview and `assemble` actually draw.
@@ -476,42 +482,17 @@
           .then(() => build.refresh()),
   });
 
-  // FND.9: the ground itself, shaped in the page. It is a mode the 3D view is
-  // in while the panel is open, the way Place is, and what it changes is the
-  // land's own grid of relative metres (client/js/sculpt.js).
-  const sculpt = mountSculpt(hud.panel('Shape'), {
-      canvas, camera, pc, app, origin, terrain, player,
-      groundAt: (lon, lat) => terrain.heightAt(origin.localOf({ lon, lat, h: 0 })) ?? 0,
-      onShaped: () => groundMesh?.reshape(
-          (lon, lat) => sculpt.shaping()?.at(lon, lat) ?? 0, tilesOfShaping()),
-      // FND.9: shaping on or off. What is shaped is the mesh, so while it is on
-      // the splats over that land are put away and the mesh is what is on
-      // screen — and put back the moment it is off (client/js/tiles.js).
-      onMode: (on) => {
-          const tiles = on ? tilesOfShaping() : [];
-          groundMesh?.reshape(
-              (lon, lat) => sculpt.shaping()?.at(lon, lat) ?? 0, tiles);
-          // Only where there is a mesh to put in their place: a world whose
-          // operator has published no elevation has no DemGround at all
-          // (`floor` above), and taking the splats off that land would leave
-          // a hole with nothing in it rather than ground to shape.
-          streamer.hideUnder(groundMesh ? tiles.map((k) => `14/${k}`) : []);
-      },
+  // EDT.6: the ground itself, shaped on the Blueprint clay. Opening Shape is
+  // shaping (client/js/shapeui.js); opening anything else, or closing it,
+  // closes the clay and hands the camera back.
+  const sculpt = mountShape(hud.panel('Shape'), {
+      bpmode, bp: blueprint, app, pc,
       onSaved: () => { build.refresh(); submit.refresh(); },
   }, { lands: () => api.rpc('my_areas').catch(() => []) });
-
-  // The z14 tiles the land being shaped falls in: they are drawn as ground
-  // while Shape is on even where a published tile covers them, because you
-  // cannot shape ground you cannot see.
-  function tilesOfShaping() {
-      const b = sculpt.shaping()?.area?.bbox;
-      if (!b) return [];
-      const out = [];
-      for (let x = tm.tileX(b.west, 14); x <= tm.tileX(b.east, 14); x++) {
-          for (let y = tm.tileY(b.north, 14); y <= tm.tileY(b.south, 14); y++) out.push(`${x}/${y}`);
-      }
-      return out;
-  }
+  hud.whenShown('Shape', () => sculpt.enter());
+  hud.panel('Lines').append(Object.assign(document.createElement('p'), {
+      className: 'note', textContent: 'Lines open onto the same clay as Shape.' }));
+  hud.whenOpened((name) => { if (name !== 'Shape') sculpt.leave(); });
 
   // SPEC §2.16: Automate is a workspace of its own rather than a panel, so it
   // takes the window and the world stops being drawn under it. litegraph is
@@ -1040,8 +1021,7 @@
         .finally(() => { placing = null; });
     }
     build.drawGizmo();
-    // FND.9: the brush, on the ground, where the pointer is.
-    sculpt.drawBrush();
+    // EDT.1: the clay's camera, and whatever the surface draws on it.
     bpmode.frame();
     drawAreas({ pc, app, origin, terrain }, land.areas());
     const labels = document.getElementById('world-labels');

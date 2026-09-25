@@ -24,7 +24,9 @@ export const ICONS = {
     Publish: 'm22 2-7 20-4-9-9-4Z|M22 2 11 13',
     Work: 'M2 7h20v14H2z|M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16|M2 13h20',
     // Two ridges and a brush over them: the ground itself, shaped by hand.
-    Terrain: 'M2 18l5-7 4 5 3-4 8 6z|M12 3v5|M9.5 5.5 12 3l2.5 2.5',
+    Shape: 'M2 18l5-7 4 5 3-4 8 6z|M12 3v5|M9.5 5.5 12 3l2.5 2.5',
+    // A road curving between two nodes.
+    Lines: 'M4 20c4-1 5-6 8-8s7-3 8-8|M4 20h.01|M20 4h.01|M12 12h.01',
     Settings: 'M21 4h-7M10 4H3M21 12h-9M8 12H3M21 20h-5M12 20H3M14 2v4M8 10v4M16 18v4',
     Share: 'M18 2a3 3 0 1 0 0 6 3 3 0 0 0 0-6M6 9a3 3 0 1 0 0 6 3 3 0 0 0 0-6'
         + '|M18 16a3 3 0 1 0 0 6 3 3 0 0 0 0-6|m8.6 13.5 6.8 4M15.4 6.5l-6.8 4',
@@ -53,14 +55,15 @@ export const TABS = [
         lede: 'Products anyone may build with. Register your own.' },
     { name: 'Your land', group: 'bar', key: '3', label: 'Land', width: 500, view: 'Build',
         lede: 'The ground you own, and what stands on it.' },
-    { name: 'Publish', group: 'bar', key: '4', width: 500, view: 'Build',
+    // PLAN-editors D1: the ground and the lines on it are two surfaces of
+    // Build's plinth, and both open onto the Blueprint clay
+    // (client/js/bpmode.js). Shape was a part of a Terrain surface, which was
+    // a second click for the one thing on it.
+    { name: 'Shape', group: 'bar', key: '4', width: 440, view: 'Build' },
+    { name: 'Lines', group: 'bar', key: '5', width: 440, view: 'Build' },
+    { name: 'Publish', group: 'bar', key: '6', width: 500, view: 'Build',
         parts: [{ name: 'Submit', label: 'Submit' },
             { name: 'Permission', label: 'Approve' }] },
-    // FND.9's tools are a surface of Build's own now, not a second tab of
-    // Land: shaping the ground is a thing you do standing in it, with a brush
-    // in hand, and it was two clicks down a panel about who owns what.
-    { name: 'Terrain', group: 'bar', key: '5', width: 520, view: 'Build',
-        parts: [{ name: 'Shape', label: 'Shape' }] },
     // Work is a surface with queues behind it, not one list (design 8a–8f).
     // The machine strip is the surface's own head (hud.js panelHead) because
     // what this tab can do is the same answer whichever queue is open, and the
@@ -83,7 +86,7 @@ export const TABS = [
     { name: 'Profile', group: 'top', key: 'p', width: 470,
         parts: [{ name: 'Profile', label: 'You' },
             { name: 'Share', label: 'Share', key: '9' }] },
-    { name: 'Wallet', group: 'top', key: '6', width: 500,
+    { name: 'Wallet', group: 'top', key: '7', width: 500,
         lede: 'What you have, and what moved.' },
     // Settings is one panel with tabs, not three buttons: the account and the
     // ground the world stands on, and the tools that say what the compiler
@@ -132,6 +135,7 @@ export const PART_LEDE = {
     Symbols: 'What the compiler lays down where a thing is drawn.',
     'Ground cover': 'What the ground between the drawn things is made of.',
     Shape: 'The ground itself: pull it up, push it down, lay a road bed.',
+    Lines: 'Roads, streams, walls and hedges: drawn on the ground, never moving it.',
 };
 
 // Every panel body there is: a surface without parts is its own leaf.

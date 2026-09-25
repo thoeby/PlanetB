@@ -8,47 +8,9 @@
 // does not open the apps drawer while it does.
 
 import { test, expect, UI } from './players.js';
-import { ben, blueprintOverHisLand } from './editors.js';
+import { ben, blueprintOverHisLand, screenAt } from './editors.js';
 
 test.setTimeout(600_000);
-
-// Where on the screen a point of the ground is: a vertex inside his land near
-// its middle, or one a few hundred metres past its eastern edge.
-const screenAt = (b, where) => b.page.evaluate((w) => {
-    const sw = window.splatworld;
-    const bp = sw.blueprint;
-    const L = bp.L;
-    let lon = L.lon0;
-    let lat = L.lat0;
-    if (w === 'inside') {
-        let best = null;
-        for (let k = 0; k < bp.inside.length; k++) {
-            if (!bp.inside[k]) continue;
-            const i = k % L.cols;
-            const j = Math.floor(k / L.cols);
-            const d = Math.hypot(i - L.cols / 2, j - L.rows / 2);
-            if (!best || d < best.d) best = { d, i, j };
-        }
-        lon = L.bbox[0] + best.i * L.dLon;
-        lat = L.bbox[3] - best.j * L.dLat;
-        const p = bp.toScene(lon, lat, bp.heightAt(lon, lat));
-        const s = sw.camera.camera.worldToScreen(p);
-        return { x: s.x, y: s.y };
-    }
-    // Off the land a little way each side in turn, the first that is on the
-    // open part of the screen rather than under a panel.
-    const tries = [[0, -150 / 110540], [0, 150 / 110540], [-200 / L.mLon, 0],
-        [200 / L.mLon, 0]];
-    const s = bp.shaping;
-    for (const [dLon, dLat] of tries) {
-        const x = dLon ? (dLon < 0 ? L.bbox[0] : L.bbox[2]) + dLon : L.lon0;
-        const y = dLat ? (dLat < 0 ? L.bbox[1] : L.bbox[3]) + dLat : L.lat0;
-        if (s.inside(x, y)) continue;
-        const q = sw.camera.camera.worldToScreen(bp.toScene(x, y, bp.heightAt(x, y)));
-        if (q.x > 560 && q.x < 1000 && q.y > 170 && q.y < 680) return { x: q.x, y: q.y };
-    }
-    return null;
-}, where);
 
 test('story 43 — numbers and words at the pointer, and a peek under the clay',
     async ({ browser, world }, testInfo) => {

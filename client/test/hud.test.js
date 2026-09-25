@@ -60,16 +60,16 @@ test('every surface is in one of the two groups, and has a key of its own', () =
 test('the groups hold what the design puts in them', () => {
     const of = (g) => TABS.filter((t) => t.group === g).map((t) => t.name);
     assert.deepEqual(of('bar'),
-        ['Place', 'Catalog', 'Your land', 'Publish', 'Terrain']);
+        ['Place', 'Catalog', 'Your land', 'Shape', 'Lines', 'Publish']);
     assert.deepEqual(of('top'), ['Profile', 'Wallet', 'Settings']);
 });
 
 // The plinth is the view's own, and every surface on it belongs to a view.
-test('the five surfaces Build is played through are its plinth, on keys 1 to 5', () => {
+test('the six surfaces Build is played through are its plinth, on keys 1 to 6', () => {
     assert.deepEqual(barOf('Build').map((t) => t.name),
-        ['Place', 'Catalog', 'Your land', 'Publish', 'Terrain']);
+        ['Place', 'Catalog', 'Your land', 'Shape', 'Lines', 'Publish']);
     assert.deepEqual(barOf('Build').map((t) => t.key).sort(),
-        ['1', '2', '3', '4', '5']);
+        ['1', '2', '3', '4', '5', '6']);
     // And a workspace has none: Work was the fifth button on Build's.
     for (const view of ['Work', 'Survey', 'Automate', 'Trade & Sell']) {
         assert.deepEqual(barOf(view), [], `${view} has a plinth of its own`);
@@ -138,7 +138,10 @@ test('a view that opens nothing says so on its own card', () => {
 
 test('a key names its surface, and a key nobody bound names none', () => {
     assert.equal(keyed('1'), 'Place');
-    assert.equal(keyed('4'), 'Publish');
+    assert.equal(keyed('4'), 'Shape');
+    assert.equal(keyed('5'), 'Lines');
+    assert.equal(keyed('6'), 'Publish');
+    assert.equal(keyed('7'), 'Wallet');
     assert.equal(keyed('p'), 'Profile');
     assert.equal(keyed('`'), 'Settings');
     assert.equal(keyed('9'), 'Share');

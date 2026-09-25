@@ -1,26 +1,21 @@
-/* terrain.css — FND.9: the tool rail over the world while a land's ground is
- * open to be shaped, and the small box of what the tool in hand needs.
+/* terrain.css — the Shape panel: the tool rail at its head, the small box of
+ * what the tool in hand needs, and what has been done (FND.9, EDT.6).
  *
- * The nodes are client/js/sculptrail.js. They hang off the frame rather than
- * the panel body, because a toolbar in a scrolling column scrolls away from
- * the ground it is about, and because the panel is glass over the world and
- * the ground being shaped is on the other side of it.
+ * The nodes are client/js/sculptrail.js and client/js/shapeui.js.
  */
 
-/* Beside the panel, under the chrome. 24 is the gutter every panel keeps and
-   520 is the Terrain surface's width (js/tabbar.js TABS) — the rail stands
-   just clear of its right-hand edge. */
+/* At the head of the Shape panel since EDT.6: the panel is the narrow column
+   beside the Blueprint clay (docs/design/splatworld-v11.dc.html 11a), and the
+   rail and the box are what it opens on. */
 #sculpt-tools {
-  position: absolute; left: 556px; top: 96px; display: none;
-  flex-direction: column; gap: 10px; align-items: flex-start;
-  width: 264px;
+  display: flex; flex-direction: column; gap: 10px; align-items: stretch;
+  margin: 0 0 12px;
 }
-/* Shown with the surface it belongs to and with nothing else: a toolbar over
-   the world with no panel saying which land it is about is a toolbar for
-   nothing. */
-#hud:has(> #panel[data-open="1"][data-part="Shape"]) #sculpt-tools {
-  display: flex;
+#sculpt-tools .sc-bar { display: flex; flex-wrap: wrap; gap: 6px; }
+.sh-land-row {
+  display: flex; align-items: center; justify-content: space-between; gap: 10px;
 }
+.sh-land-row select { flex: 1; }
 
 /* The rail: one glyph per tool, the key in the corner of each, the one in hand
    lit. A row rather than a column because the box beneath it is the width of
@@ -104,9 +99,18 @@
    pointer — a box of blank fields would say it had settings it has not. */
 #sculpt-tools[data-tool="pan"] .sc-opt .sc-fields { display: none; }
 
-/* While shaping is off the rail is on screen but does nothing: the tools are
-   there to be read before the switch is thrown, and pressing one then would be
-   a tool in hand with no hand on the ground. */
-#sculpt-tools:not([data-on="1"]) .sc-rail, #sculpt-tools:not([data-on="1"]) .sc-opt {
-  opacity: 0.72;
+
+
+/* In the panel since EDT.6, where every label is a block over its field. The
+   box's fields are rows, and a field the tool in hand does not read is gone:
+   #panel's own label rule outranks a class, so these say #sculpt-tools. */
+#sculpt-tools .sc-fields label, #sculpt-tools .sc-line-fields label {
+  display: flex; align-items: center; justify-content: space-between; gap: 8px;
+  margin: 0; text-transform: none; letter-spacing: 0;
+}
+#sculpt-tools .sc-fields input[type="number"], #sculpt-tools .sc-line-fields input {
+  width: 90px; flex: 0 0 auto;
+}
+#sculpt-tools .sc-fields label[hidden], #sculpt-tools .sc-line-box[hidden] {
+  display: none;
 }

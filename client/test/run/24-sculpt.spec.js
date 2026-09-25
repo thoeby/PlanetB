@@ -12,6 +12,7 @@
 
 import { test, expect, open, panel, signIn, RENDER, UI } from './players.js';
 import { differs, variety } from './pixels.js';
+import { screenAt } from './editors.js';
 
 test.setTimeout(1_500_000);
 
@@ -54,10 +55,16 @@ async function theBed(b) {
         .toBeLessThanOrEqual(8.001);
 }
 
+// Three points of his land on the screen, a short drag's worth apart.
+async function onHisLand(b) {
+    const c = await screenAt(b, 'inside');
+    return [{ x: c.x - 20, y: c.y - 15 }, c, { x: c.x + 20, y: c.y + 15 }];
+}
+
 // 2 — a plateau, smoothed, undone, redone. The brush is dragged on the ground
-// the way a person drags it.
+// the way a person drags it. Opening Shape is shaping (EDT.6): there is no
+// switch to throw first.
 async function thePlateau(b) {
-    await b.page.locator('.sc-toggle').check();
     await expect(said(b)).toContainText('drag on the ground', { timeout: UI });
     await brush(b, 'raise');
     await b.page.locator('.sc-size').fill('20');
@@ -66,11 +73,12 @@ async function thePlateau(b) {
     await b.page.locator('.sc-strength').dispatchEvent('change');
 
     const before = Number(/(\d+) stroke/.exec(await summary(b).textContent())?.[1] ?? 0);
-    await drag(b, [{ x: 860, y: 520 }, { x: 880, y: 535 }, { x: 900, y: 550 }]);
+    const here = await onHisLand(b);
+    await drag(b, here);
     await expect(summary(b)).toContainText(`${before + 1} strokes unsaved`, { timeout: UI });
 
     await brush(b, 'smooth');
-    await drag(b, [{ x: 870, y: 525 }, { x: 890, y: 540 }]);
+    await drag(b, here.slice(0, 2));
     await expect(summary(b)).toContainText(`${before + 2} strokes unsaved`, { timeout: UI });
 
     await b.page.locator('.sc-undo').click();
@@ -82,9 +90,9 @@ async function thePlateau(b) {
 }
 
 // 2b — the hand. Moving over a field used to mean turning Shape off, walking,
-// and turning it back on; and what is on screen while shaping is the mesh, not
-// the splats, because the mesh is what a brush writes into.
-async function theHand(b, here) {
+// and turning it back on; and what is on screen while shaping is the clay, not
+// the splats, because the clay is what a brush writes into.
+async function theHand(b) {
     await expect(b.page.locator('#sculpt-tools')).toBeVisible();
     const hidden = await b.page.evaluate(
         () => window.splatworld.streamer?.hidden?.size ?? 0);
@@ -92,11 +100,13 @@ async function theHand(b, here) {
         .toBeGreaterThan(0);
 
     await brush(b, 'pan');
-    await expect(b.page.locator('.sc-opt-name')).toHaveText('Pan & zoom');
+    await expect(b.page.locator('.sc-opt-name')).toHaveText('Hand');
     const strokes = await summary(b).textContent();
-    await drag(b, [{ x: 860, y: 520 }, { x: 900, y: 540 }, { x: 940, y: 560 }]);
-    const moved = readCoords(await b.page.locator('#standing .coords').textContent());
-    expect(moved, 'the hand moved him over the land').not.toEqual(here);
+    const target = () => b.page.evaluate(() => ({ ...window.splatworld.bpmode.cam.state.target }));
+    const was = await target();
+    const c = await screenAt(b, 'inside');
+    await drag(b, [c, { x: c.x + 40, y: c.y + 20 }, { x: c.x + 80, y: c.y + 40 }]);
+    expect(await target(), 'the hand moved him over the land').not.toEqual(was);
     await expect(summary(b)).toHaveText(strokes, 'and shaped nothing doing it');
     await brush(b, 'raise');
 }
@@ -118,9 +128,12 @@ async function notHisGround(b, world, here) {
         { timeout: 120000 });
     await panel(b, 'Shape');
     await expect(b.page.locator('.sc-land option')).not.toHaveCount(0, { timeout: UI });
-    await b.page.locator('.sc-toggle').check();
+    await b.page.waitForFunction(() => window.splatworld.blueprint.active, null,
+        { timeout: UI });
     await brush(b, 'raise');
-    await drag(b, [{ x: 860, y: 520 }, { x: 880, y: 535 }, { x: 900, y: 550 }]);
+    const off = await screenAt(b, 'outside');
+    expect(off, 'ground off his land is in view').not.toBeNull();
+    await drag(b, [off, { x: off.x + 10, y: off.y + 5 }, { x: off.x + 20, y: off.y + 10 }]);
     await expect(said(b)).toHaveText('You can only shape your own land',
         { timeout: UI });
 }
@@ -130,7 +143,7 @@ async function savesIt(b) {
     await b.page.locator('.sc-save').click();
     await expect(said(b)).toContainText('ground saved', { timeout: UI });
     await expect(said(b)).toContainText('tile(s) changed');
-    await b.page.locator('.sc-toggle').uncheck();
+    await b.page.keyboard.press('Escape');
 }
 
 async function sendsIt(b) {
@@ -184,7 +197,7 @@ test('story 24 — B shapes his ground, and the world is rendered with it',
         await test.step('2 — a plateau, smoothed, undone and redone',
             () => thePlateau(b));
         await test.step('2b — the hand moves him over it, and shapes nothing',
-            () => theHand(b, here));
+            () => theHand(b));
         await test.step('3 — saved, and sent', async () => {
             await savesIt(b);
             await sendsIt(b);

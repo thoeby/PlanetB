@@ -43,8 +43,8 @@ export function chunkLines(bp, c) {
     const { L, heights, overlays: o } = bp;
     const segs = [];
     if (o.contours) {
-        for (const s of isolines(eased(L, heights), c.i0, c.j0, c.i1, c.j1,
-            CONTOUR_M)) segs.push([s, boldAt(s[4], BOLD_M) ? BOLD : FINE]);
+        for (const s of isolines(eased(L, heights, c), c.i0, c.j0, c.i1, c.j1,
+            bp.far ? BOLD_M : CONTOUR_M)) segs.push([s, boldAt(s[4], BOLD_M) ? BOLD : FINE]);
     }
     if (o.grid) {
         const east = (i) => (lonAt(L, i) - L.lon0) * L.mLon;
@@ -69,14 +69,42 @@ export function chunkLines(bp, c) {
     return { positions, colors };
 }
 
-// The heights a contour is traced through: each with its four neighbours, so
-// a survey's centimetre noise on a flat valley floor is not drawn as a field
-// of two-metre rings.
-function eased(L, h) {
-    const at = (i, j) => h[Math.min(L.rows - 1, Math.max(0, j)) * L.cols
-        + Math.min(L.cols - 1, Math.max(0, i))];
-    return (i, j) => (at(i, j) * 4 + at(i - 1, j) + at(i + 1, j) + at(i, j - 1)
-        + at(i, j + 1)) / 8;
+// The heights a contour is traced through: averaged over about four metres
+// each way (a separable box over the chunk and a margin), so a surface model's
+// hedges and roofs on a flat valley floor are not drawn as a field of rings.
+export function eased(L, h, c, metres = 4) {
+    const r = Math.max(1, Math.min(6, Math.round(metres / L.step)));
+    const i0 = Math.max(0, c.i0 - r);
+    const j0 = Math.max(0, c.j0 - r);
+    const i1 = Math.min(L.cols - 1, c.i1 + r);
+    const j1 = Math.min(L.rows - 1, c.j1 + r);
+    const w = i1 - i0 + 1;
+    const rows = j1 - j0 + 1;
+    const across = new Float32Array(w * rows);
+    for (let j = 0; j < rows; j++) {
+        for (let i = 0; i < w; i++) {
+            let sum = 0;
+            let n = 0;
+            for (let d = -r; d <= r; d++) {
+                const x = i + d;
+                if (x < 0 || x >= w) continue;
+                sum += h[(j0 + j) * L.cols + i0 + x];
+                n += 1;
+            }
+            across[j * w + i] = sum / n;
+        }
+    }
+    return (i, j) => {
+        let sum = 0;
+        let n = 0;
+        for (let d = -r; d <= r; d++) {
+            const y = j - j0 + d;
+            if (y < 0 || y >= rows) continue;
+            sum += across[y * w + (i - i0)];
+            n += 1;
+        }
+        return sum / n;
+    };
 }
 
 // The line mesh of one chunk, built again with it; gone when it has none.

@@ -7,10 +7,12 @@
 // on the way in, as Shape always did (client/js/sculptui.js), and handed back
 // on the way out exactly where the player left it.
 
-import { fitDistance, orbitBy, orthoHeight, pose, zoomToward } from '../lib/orbit.js';
+import { clampDistance, orbitBy, orthoHeight, pose, zoomToward } from '../lib/orbit.js';
 import { pickGround } from './blueprint.js';
 
 const FOV = 45;
+// Past this distance only the ten-metre contours are drawn.
+const FAR_CONTOURS_M = 1200;
 
 export class BlueprintCamera {
     constructor(bp, ctx) {
@@ -25,7 +27,8 @@ export class BlueprintCamera {
     enter() {
         if (this.on) return;
         this.on = true;
-        this.was = { yaw: this.ctx.player?.heading ?? 0 };
+        this.was = { yaw: this.ctx.player?.heading ?? 0,
+            near: this.ctx.camera.camera.nearClip };
         this.ctx.setDriving?.(false);
         this.ctx.player?.detach();
         document.exitPointerLock?.();
@@ -43,6 +46,7 @@ export class BlueprintCamera {
             (name.startsWith('key') ? window : this.ctx.canvas).removeEventListener(name, fn);
         }
         this.setOrtho(false);
+        this.ctx.camera.camera.nearClip = this.was?.near ?? 0.3;
         this.ctx.player?.attach(this.ctx.canvas);
         this.ctx.setDriving?.(true);
     }
@@ -51,12 +55,39 @@ export class BlueprintCamera {
     toLand() {
         const L = this.bp.L;
         if (!L) return;
-        const wide = Math.max((L.cols - 1) * L.dx, (L.rows - 1) * L.dz);
         this.state.target = { lon: L.lon0, lat: L.lat0,
             h: this.bp.heightAt(L.lon0, L.lat0) ?? this.bp.h0 };
-        this.state.distance = fitDistance(wide, FOV) * 1.2;
+        // Framed in the part of the view the panel and the card leave open:
+        // its width by the horizontal field, its depth by the vertical one.
+        const { left = 0, right = 0 } = this.ctx.inset?.() ?? {};
+        const w = this.ctx.canvas.clientWidth || 1;
+        const h = this.ctx.canvas.clientHeight || 1;
+        const open = Math.max(0.3, (w - left - right) / w);
+        const half = Math.tan((FOV / 2) * Math.PI / 180);
+        const across = (L.cols - 1) * L.dx;
+        const deep = (L.rows - 1) * L.dz;
+        this.state.distance = clampDistance(1.15 * Math.max(across / 2 / (half * (w / h) * open),
+            deep / 2 / half));
         this.state.pitch = 60;
+        this.aside();
         this.update();
+    }
+
+    // The panel down the left and the card on the right cover part of the
+    // view, so the land is framed in what is left of it: the target moves by
+    // half the difference, in metres at the target's distance.
+    aside() {
+        const { left = 0, right = 0 } = this.ctx.inset?.() ?? {};
+        const w = this.ctx.canvas.clientWidth || 1;
+        if (left + right >= w) return;
+        const h = this.ctx.canvas.clientHeight || 1;
+        const across = 2 * this.state.distance * Math.tan((FOV / 2) * Math.PI / 180) * (w / h);
+        const shift = ((left - right) / 2) / w * across;
+        const yaw = this.state.yaw * Math.PI / 180;
+        const t = this.state.target;
+        const mLon = 111320 * Math.cos(t.lat * Math.PI / 180);
+        this.state.target = { ...t, lon: t.lon - Math.cos(yaw) * shift / mLon,
+            lat: t.lat + Math.sin(yaw) * shift / 110540 };
     }
 
     setOrtho(on) {
@@ -81,7 +112,18 @@ export class BlueprintCamera {
         const cam = this.ctx.camera;
         cam.setPosition(got.pos.x, got.pos.y, got.pos.z);
         cam.setEulerAngles(got.euler[0], got.euler[1], got.euler[2]);
+        // The walk camera's near plane is a hand's breadth; from a kilometre
+        // up that spends the depth buffer on nothing, and the ring half a
+        // metre under the land showed through it in specks.
+        cam.camera.nearClip = Math.min(50, Math.max(0.5, this.state.distance / 100));
         if (this.state.ortho) cam.camera.orthoHeight = orthoHeight(this.state.distance, FOV);
+        // From far off, two-metre contours are a moiré, not a map: only the
+        // bold ones are drawn until the camera comes closer.
+        const far = this.state.distance > FAR_CONTOURS_M;
+        if (far !== this.bp.far) {
+            this.bp.far = far;
+            this.bp.relines();
+        }
     }
 
     // The ground point under a pixel.

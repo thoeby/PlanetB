@@ -279,8 +279,9 @@ export function mountHud(doc) {
     const drawers = drawersOf(() => f);
     // A view that is a workspace of its own — Automate is the first — is told
     // when it is switched to and away from; the chrome itself only changes hue.
-    const watching = [];
-    const taking = [];
+    // And Blueprint, which a surface opens and has to close again when
+    // anything else is opened, is told every panel that is.
+    const [watching, taking, onOpened] = [[], [], []];
     // Switching a view dresses the chrome for it and tells whoever is
     // watching. `open` is left alone: pickApp decides what to open, and
     // `show` calls this when a panel belongs to another view.
@@ -324,6 +325,7 @@ export function mountHud(doc) {
         if (name === 'World' && open !== 'World' && appSurface(app)) {
             open = name;
             pickApp('Build');
+            for (const fn of onOpened) fn(name);
             return f.bodies.get(name);
         }
         open = name;
@@ -351,6 +353,7 @@ export function mountHud(doc) {
         onShow.get(name)?.();
         const leaf = at?.part;
         if (leaf && leaf !== name) onShow.get(leaf)?.();
+        for (const fn of onOpened) fn(leaf ?? name);
         return f.bodies.get(leaf ?? name);
     }
 
@@ -362,11 +365,11 @@ export function mountHud(doc) {
     show(open);
 
     return handle(f, { show, pickApp, onShow, app: () => app, opened: () => open,
-        watching, taking });
+        watching, taking, onOpened });
 }
 
 // What the rest of the page holds the chrome by.
-function handle(f, { show, pickApp, onShow, app, opened, watching, taking }) {
+function handle(f, { show, pickApp, onShow, app, opened, watching, taking, onOpened }) {
     return {
         show,
         // What happened while you were looking somewhere else: under the bell
@@ -382,6 +385,8 @@ function handle(f, { show, pickApp, onShow, app, opened, watching, taking }) {
         // What a surface says above its parts, rather than inside one of them.
         panelHead: (name) => f.frame.heads.get(name),
         whenShown(name, fn) { onShow.set(name, fn); },
+        // Every panel opened, by the name of the body now on screen.
+        whenOpened(fn) { onOpened.push(fn); },
         opened,
         ...state(f),
         ...place(f.top),
