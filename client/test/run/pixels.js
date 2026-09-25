@@ -92,3 +92,15 @@ export function variety(png) {
     }
     return seen.size;
 }
+
+// The mean colour of a picture, 0..255 per channel: Blueprint's clay is white
+// and what was changed on it is blue or red, and that is what is asked of it.
+export function meanColour(png) {
+    const img = decodePng(png);
+    const sum = [0, 0, 0];
+    const pixels = img.width * img.height;
+    for (let i = 0; i < pixels; i++) {
+        for (let c = 0; c < 3; c++) sum[c] += img.data[i * img.stride + c];
+    }
+    return sum.map((s) => s / pixels);
+}

@@ -10,6 +10,7 @@
 import { inTile } from '../lib/demshade.js';
 import { sampleHeight } from '../lib/geo.js';
 import { terrainColour } from '../lib/terrain.js';
+import { DIM, clayAt, linear, litBy } from '../lib/clay.js';
 import * as tm from '../lib/tilemath.js';
 import { key } from './traverse.js';
 
@@ -22,6 +23,8 @@ const RING = 3;
 // The sun the ramp is lit by, baked into the vertex colours: the scene has no
 // light of its own, and the splats carry their own.
 const SUN = [-0.45, 0.8, -0.4];
+// How far under the Blueprint mesh the ground around it is drawn.
+const CLAY_BELOW_M = 3;
 
 // A published tile at this key, or any published tile above it, covers it —
 // but only once that tile is actually drawing. `drawn(key)` answers that.
@@ -44,7 +47,7 @@ export function covered(tiles, z, x, y, drawn = () => true) {
 
 // One tile's heights on an N×N grid, in its own frame (tile centre at 0 m),
 // and their shaded colours. `dem` is the loaded raster for this tile.
-export function tileGeometry(z, x, y, dem, n = N, bump = null) {
+export function tileGeometry(z, x, y, dem, n = N, bump = null, clay = false) {
     const b = tm.tileBbox(z, x, y);
     const frame = tm.tileFrame(z, x, y);
     const heights = new Float32Array(n * n);
@@ -66,11 +69,13 @@ export function tileGeometry(z, x, y, dem, n = N, bump = null) {
     }
     const stepX = (positions[3] - positions[0]) || 1;
     const stepZ = (positions[n * 3 + 2] - positions[2]) || 1;
-    const { normals, colors } = shade(heights, n, stepX, stepZ);
+    const { normals, colors } = shade(heights, n, stepX, stepZ, clay);
     return { positions, normals, colors, indices: gridIndices(n) };
 }
 
-function shade(h, n, stepX, stepZ) {
+// `clay`: Blueprint is open (client/js/blueprint.js), and this is the ground
+// beyond the land being edited — white clay, dimmed, like everybody else's.
+function shade(h, n, stepX, stepZ, clay = false) {
     const normals = new Float32Array(n * n * 3);
     const colors = new Float32Array(n * n * 3);
     const sun = Math.hypot(...SUN);
@@ -88,7 +93,10 @@ function shade(h, n, stepX, stepZ) {
             // The ramp's slope is a gradient, rise over run, as terrain.js has it.
             const slope = Math.hypot(v[0], v[2]);
             const lit = Math.max(0, (nx * SUN[0] + ny * SUN[1] + nz * SUN[2]) / sun);
-            const c = terrainColour(slope, h[k]).map((q) => q * (0.35 + 0.65 * lit));
+            const c = clay
+                ? linear(clayAt(Math.atan(slope) * 180 / Math.PI)
+                    .map((q) => q * litBy(nx, ny, nz) * DIM))
+                : terrainColour(slope, h[k]).map((q) => q * (0.35 + 0.65 * lit));
             colors.set(c, k * 3);
         }
     }
@@ -140,9 +148,12 @@ export class DemGround {
 
     // Shape mode, on or off: the meshes are thrown away so the next few
     // frames build them again with the shaping in them.
-    reshape(bump, force = []) {
+    // `clay` draws it as Blueprint's dimmed clay, a little lower than the
+    // Blueprint mesh so that mesh is always the one on top.
+    reshape(bump, force = [], { clay = false } = {}) {
         this.bump = bump;
         this.force = new Set(force);
+        this.clay = clay;
         for (const e of this.entities.values()) e.destroy();
         this.entities.clear();
     }
@@ -210,7 +221,7 @@ export class DemGround {
 
     add(k, x, y, dem) {
         const { pc } = this;
-        const geo = tileGeometry(Z, x, y, dem, undefined, this.bump);
+        const geo = tileGeometry(Z, x, y, dem, undefined, this.bump, this.clay);
         const mesh = new pc.Mesh(this.app.graphicsDevice);
         mesh.setPositions(geo.positions);
         mesh.setNormals(geo.normals);
@@ -245,7 +256,7 @@ export class DemGround {
     // The tile's mesh is in its own ENU frame; the scene is in the anchor's.
     place(entity) {
         const p = this.origin.localOf(entity.frame);
-        entity.setLocalPosition(p.x, p.y, p.z);
+        entity.setLocalPosition(p.x, p.y - (this.clay ? CLAY_BELOW_M : 0), p.z);
         const q = tm.matrixToQuaternion(tm.enuRotation(entity.frame, this.origin.anchor));
         entity.setLocalRotation(q[0], q[1], q[2], q[3]);
     }

@@ -51,7 +51,12 @@ export class Shaping {
         this.undone = [];
         this.touched = null;
         this.stroke = null;
+        // What the world holds, so what is shaped but not saved can be told
+        // apart from it (Blueprint hatches it: client/lib/clay.js).
+        this.saved = grid.data.slice();
     }
+
+    savedAt(lon, lat) { return sampleR32({ ...this.grid, data: this.saved }, lon, lat); }
 
     // What the land is shaped into right now, as the world holds it.
     static async load(area) {
@@ -215,6 +220,7 @@ export class Shaping {
             bbox: this.touched ?? null,
         });
         this.rev = Number(got.rev);
+        this.saved = this.grid.data.slice();
         this.strokes.length = 0;
         this.undone.length = 0;
         this.touched = null;

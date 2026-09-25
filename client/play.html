@@ -15,6 +15,7 @@
 <link rel="stylesheet" href="./work.css">
 <link rel="stylesheet" href="./symbols.css">
 <link rel="stylesheet" href="./terrain.css">
+<link rel="stylesheet" href="./blueprint.css">
 <style>
   /* Only what a module's own markup needs and hud.css cannot know about. */
   .work-progress { white-space: pre-line; font-size: 12px; margin: 4px 0; }
@@ -99,6 +100,8 @@
   import { drawAreas, labelAreas, labelObjects, mountLand, ringsOf } from './js/land.js';
   import { mountGetLand } from './js/getland.js';
   import { mountSculpt } from './js/sculptui.js';
+  import { Blueprint } from './js/blueprint.js';
+  import { mountBlueprintMode } from './js/bpmode.js';
   import { mountAssignLand } from './js/assignland.js';
   import { mountAttention } from './js/attention.js';
   import { mountPlaces, sameSpot } from './js/places.js';
@@ -387,6 +390,13 @@
   const preview = new InstancePreview(app, pc, {
     origin, filesUrl: api.endpoints().files,
   });
+
+  // EDT.1: the ground as white clay, for Shape and Lines (client/js/blueprint.js).
+  const blueprint = new Blueprint(app, pc, { origin, floor, streamer, groundMesh, preview });
+  // EDT.1–5: the mode around it — its camera, the words at the pointer, Tab's
+  // peek and the section strip — which Shape and Lines open (client/js/bpmode.js).
+  const bpmode = mountBlueprintMode({ bp: blueprint, app, pc, camera, canvas, player,
+      setDriving: (v) => setDriving(v), host: document.getElementById('hud') });
 
   // An instance row plus the digest of the asset's canonical GLB, which is what
   // both the preview and `assemble` actually draw.
@@ -1020,6 +1030,7 @@
       if (driving) player.position = { ...moved };
       preview.rebased();
       groundMesh?.rebased();
+      blueprint.rebased();
     }
     groundMesh?.update(camera.getPosition());
     // FND.16: every mover put where this second says it is. Nothing is stored
@@ -1031,6 +1042,7 @@
     build.drawGizmo();
     // FND.9: the brush, on the ground, where the pointer is.
     sculpt.drawBrush();
+    bpmode.frame();
     drawAreas({ pc, app, origin, terrain }, land.areas());
     const labels = document.getElementById('world-labels');
     labelAreas({ pc, app, origin, terrain }, land.areas(), labels);
@@ -1080,6 +1092,6 @@
     app, pc, api, origin, streamer, camera, rows, terrain, player, setDriving, work, groundMesh,
     hud, setup, admin, symbols, catalog, land, submit, pool, permission, ground,
     share, goTo,
-    spot, build, preview, nearby, areas, wallet, flows, sculpt, live: liveWorld, liveDraw, movers, moverDraw, xr: { wants: wantsXr, rig: () => rig },
+    spot, build, preview, blueprint, bpmode, nearby, areas, wallet, flows, sculpt, live: liveWorld, liveDraw, movers, moverDraw, xr: { wants: wantsXr, rig: () => rig },
   };
 </script>
