@@ -66,6 +66,7 @@ db-test: db-reset
 api-test:
 	@if [ -x tools/api-test.sh ]; then bash tools/api-test.sh; else echo 'api-test: not implemented yet (WP0.9)'; fi
 	@if [ -x tools/files-test.sh ]; then bash tools/files-test.sh; else echo 'api-test: files-test not implemented yet (WP0.10)'; fi
+	@bash tools/register-test.sh
 	@if [ -x tools/ops-test.sh ]; then bash tools/ops-test.sh; else echo 'api-test: ops-test not implemented yet (WP5.5)'; fi
 	@python3 -m unittest discover -q -s server -p 'test_*.py'
 
