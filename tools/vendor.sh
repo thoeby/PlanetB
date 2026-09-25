@@ -44,6 +44,23 @@ vendor_draco () {
     echo "vendor: draco3d $DRACO_VERSION from npm"
 }
 
+# Helia and libp2p (Apache-2.0/MIT), the tab's own IPFS node (TASKS-live.md
+# LV.12), bundled once into one ES module from what `npm install` put in
+# node_modules — the client has no bundler, and these import each other by
+# bare specifier. Without it a tab is not a peer and reads files by HTTP.
+vendor_helia () {
+    local dest=client/vendor/helia
+    [ -f "$dest/helia.js" ] && [ "${FORCE:-}" != "1" ] && {
+        echo "vendor: $dest is already here (FORCE=1 to rebuild)"; return 0; }
+    [ -x node_modules/.bin/esbuild ] || {
+        echo "vendor: esbuild missing (npm install), helia skipped"; return 0; }
+    mkdir -p "$dest"
+    node_modules/.bin/esbuild tools/vendor/helia-entry.mjs --bundle --format=esm \
+        --platform=browser --minify --log-level=warning --outfile="$dest/helia.js"
+    echo "helia/libp2p from node_modules (see package.json), Apache-2.0 OR MIT" > "$dest/NOTICE"
+    echo "vendor: helia bundled from node_modules"
+}
+
 # OpenLayers (BSD-2-Clause), the map edit.html draws on. What is fetched is the
 # built bundle and its stylesheet, not the ES modules: those import each other
 # by bare specifier, and client/ has no bundler to resolve one with.
@@ -165,6 +182,7 @@ vendor_ol
 vendor_fonts
 vendor_three
 vendor_litegraph
+vendor_helia
 
 mkdir -p "$DEST"
 if [ -f "$DEST/playcanvas.js" ] && [ "${FORCE:-}" != "1" ]; then

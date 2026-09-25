@@ -85,6 +85,8 @@
   import { InstancePreview } from './js/preview.js';
   import { mountTriggers } from './js/triggerwire.js';
   import { mountDuties } from './js/dutiesui.js';
+  import { Peers } from './js/peers.js';
+  import { peerFetch } from './js/peerfetch.js';
   import { LiveWorld, EVERY_MS, NEAR_M } from './js/live.js';
   import { LiveDraw } from './js/livedraw.js';
   import { Movers, EVERY_MS as MOVERS_MS, REACH_M } from './js/movers.js';
@@ -305,9 +307,22 @@
   // why the ground at the edge of the view went missing rather than going
   // soft (client/js/traverse.js applyTileCap).
   app.scene.gsplat.splatBudget = limits.splatBudget;
+  // LV.12: this tab is a peer. What it reads from the store it asks the other
+  // open tabs for first, by CID, and keeps and serves while it is open
+  // (client/js/peers.js); a tab that cannot be one reads by HTTP as before.
+  let peerSay = () => {};
+  const peers = new Peers({ filesUrl: api.endpoints().files,
+    say: (text, bad) => peerSay(text, bad),
+    where: () => {
+      const p = camera.getPosition();
+      return origin.geodeticOf({ x: p.x, y: p.y, z: p.z });
+    } });
+  peers.start();
+  const fromPeers = peerFetch(peers);
   const streamer = new TileStreamer(app, pc, {
     origin, filesUrl: api.endpoints().files, fetchRows, limits,
   });
+  streamer.peerFetch = fromPeers;
   streamer.setTiles(rows);
   streamer.startPolling();
 
@@ -329,7 +344,7 @@
   const floor = ground?.coverage
       ? new DemFloor({ filesUrl: api.endpoints().files, version: ground.set_at ?? '' })
       : null;
-  const terrain = new Terrain(streamer, { ground: floor });
+  const terrain = new Terrain(streamer, { ground: floor, fetchFn: fromPeers });
   // SPEC §0.1: ground is always drawn. Where no published tile covers it,
   // the same elevation is drawn as plain terrain (client/js/ground.js).
   const groundMesh = floor ? new DemGround(app, pc, { origin, floor, streamer }) : null;
@@ -387,7 +402,7 @@
   // compiled — a published tile is splats, and a bench put down a second ago is
   // in none of them until some tab renders that tile again.
   const preview = new InstancePreview(app, pc, {
-    origin, filesUrl: api.endpoints().files,
+    origin, filesUrl: api.endpoints().files, fetchFn: fromPeers,
   });
 
   // An instance row plus the digest of the asset's canonical GLB, which is what
@@ -978,6 +993,7 @@
   // — noticed here and said to the world once (client/js/triggers.js).
   const triggers = mountTriggers({ pc, preview, camera, canvas,
     building: () => build.state.on, clock: () => movers.clock() });
+  peerSay = triggers.say;
 
   // FND.15: what changed since the number this tab last saw, for things within
   // sight of it. Nothing is asked while nobody is looking at the tab — the
@@ -1098,6 +1114,6 @@
     app, pc, api, origin, streamer, camera, rows, terrain, player, setDriving, work, groundMesh,
     hud, setup, admin, symbols, catalog, land, submit, pool, permission, ground,
     share, goTo,
-    spot, build, preview, nearby, areas, wallet, flows, sculpt, live: liveWorld, liveDraw, triggers, movers, moverDraw, xr: { wants: wantsXr, rig: () => rig },
+    spot, build, preview, nearby, areas, wallet, flows, sculpt, live: liveWorld, liveDraw, triggers, peers, movers, moverDraw, xr: { wants: wantsXr, rig: () => rig },
   };
 </script>

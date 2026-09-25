@@ -6,6 +6,7 @@
 
 import * as tm from '../lib/tilemath.js';
 import { RESIDENT_MS, splatsHere } from './tileengine.js';
+import { tileFile } from './peerfetch.js';
 import { LIMITS, POLL_MS, RETRY_MS, key, parseKey, selectTiles, showing }
     from './traverse.js';
 
@@ -210,8 +211,15 @@ export class TileStreamer {
             this.app.assets.remove(asset);
             console.warn(`tile ${c.key} failed to load: ${err}`);
         });
-        this.app.assets.add(asset);
-        this.app.assets.load(asset);
+        // LV.12: from the peers, when this tab is one — the engine is handed
+        // the bytes as blob URLs (client/js/peerfetch.js).
+        const load = () => {
+            this.app.assets.add(asset);
+            this.app.assets.load(asset);
+        };
+        if (!this.peerFetch) { load(); return; }
+        tileFile(this.peerFetch, asset.file).then((file) => { asset.file = file; load(); },
+            (err) => asset.fire('error', err));
     }
 
     // Puts one arrived tile into the scene. Called once per frame.
