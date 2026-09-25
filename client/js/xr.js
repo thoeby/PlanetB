@@ -2,7 +2,7 @@
 // loaded, and how the player moves.
 //
 // No PlayCanvas and no DOM: the budget and the teleport are arithmetic, so
-// client/test/xr.test.js flies them without a device. play.html owns the
+// client/test/xr.test.js flies them without a device. playxr.js owns the
 // session itself, because starting one is a gesture on a button and there is
 // nothing to test about that without a headset to press it on.
 //

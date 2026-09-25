@@ -35,7 +35,7 @@ function bbox(a) {
 }
 
 // `ground` answers the height at a lon/lat in metres, or null where it has
-// none: the published tiles the player is standing on (client/play.html).
+// none: the published tiles the player is standing on (client/js/playticks.js).
 // Without it the map was a grid with a triangle in the middle — nothing about
 // where you are, which is the one thing a map is for.
 export function drawMinimap(canvas,

@@ -3044,3 +3044,35 @@ artboards 10a–10k:
 - Alpha, in the player-run, now has the world plugin, as a server that runs
   World blocks does.
 - Auto-layout spaces layers 300 apart, because blocks are wider.
+
+## Cleanup: docs, dead code, grants, and play.html in modules
+
+No story; the operator asked for the codebase to be tidied and the docs
+brought up to date.
+
+- **Docs.** The root documents, the manuals and the READMEs describe the code
+  as it is; `docs/code-map.md` says what every file is. Finished task files
+  are in `docs/history/`. Invariant 9 says what it meant: no atom runs on
+  the server, which may still cut and serve data; GeoServer serves elevation
+  over WCS and albedo, shade and cover over WMS.
+- **Gone.** `tools/elx-relay.py` (a process server has to send CORS headers
+  itself), `tilestate.py`, the setup and import routes nothing called,
+  `infra/geoserver/`, `ch.geojson`, the committed `gis/splatworld.qgs`
+  (`splatworld qgis` writes it), and the dead RPCs approve_tile, refuse_tile,
+  my_candidates, height_edit_rev and inside_ground (db/0200; may_approve_tile
+  stays ungranted, because db/0060 re-creates my_candidates over it when
+  `splatworld run` replays a pre-ledger database).
+- **Grants.** db/0199: no api function is executable by PUBLIC, and
+  revive_job is no longer granted to player — every QGIS login is one.
+- **The Python server.** A POST to /setup/* from a page it did not serve is
+  refused; a non-loopback `--host` with the development JWT_SECRET is
+  refused; a bad Content-Length is a 400; concurrent uploads write separate
+  partial files.
+- **Tests that never ran.** `make api-test` ran the server tests under
+  unittest, which collects nothing from pytest-style modules; seven had gone
+  red, one of them a real crash (a coverage description without an envelope).
+  `tools/make-test-tiles.mjs` stopped at the `dataset` op since FND.5, so the
+  viewer specs skipped for want of published tiles; both run again.
+- **play.html** is a two-line boot; its inline module is `client/js/play.js`
+  and nine `play*.js` modules sharing one `ctx`, each under the 400-line and
+  60-line rules.

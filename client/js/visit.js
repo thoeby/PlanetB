@@ -2,7 +2,7 @@
 //
 // A link carries where you are standing and which way you are facing, so
 // sending one is how you show somebody something. Nothing else in the page
-// needs to know: play.html asks parseVisit() once on load, keeps the address
+// needs to know: the page asks parseVisit() once on load, keeps the address
 // bar current as you walk, and the Share panel hands the link over.
 //
 // The order in the link is latitude, longitude, height — what people paste out

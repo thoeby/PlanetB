@@ -23,7 +23,7 @@ export const LIMITS = { tiles: 64, splatBudget: 12e6, inflight: 4 };
 // Without WebGPU the engine sorts every loaded splat on the CPU each time the
 // camera turns and ships the order back as a texture; past a few million that
 // is the stutter, not the draw. Under WebGL2 the world is kept a third the
-// size and tiles are taken two at a time (client/play.html).
+// size and tiles are taken two at a time (client/js/playview.js).
 export const WEBGL_LIMITS = { tiles: 48, splatBudget: 4e6, inflight: 2 };
 
 // How long a tile that has left the view is kept before it is thrown away.
@@ -202,7 +202,7 @@ function prioritise(world, camera, wanted) {
 // This used to cap the splats too, and skip a tile that did not fit — which is
 // why the ground at the edge of the view went missing rather than going
 // coarse. A tile now carries its own levels and the engine spends one budget
-// across all of them (client/js/tiles.js fileOf, play.html splatBudget), so
+// across all of them (client/js/tiles.js fileOf, playview.js splatBudget), so
 // how much of a tile to draw is the engine's question and it can answer it for
 // every tile at once. What is left here is memory: each tile is an asset, an
 // entity and a placement, and that is what `tiles` bounds.

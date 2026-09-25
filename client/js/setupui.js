@@ -364,7 +364,7 @@ export function mountSetup(host, { onGround = () => {}, onRecut = () => {} } = {
     wireSetup(q, say, { show, done, layers, onRecut });
 
     show();
-    // Where client/play.html mounts the sign-in form, so step 1 is a step
+    // Where client/js/play.js mounts the sign-in form, so step 1 is a step
     // rather than a form at the bottom of the panel.
     return { refresh: show, done, account: q('.gs-account'),
         blocks: () => registerBlocks(q, say),

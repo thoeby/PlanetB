@@ -29,7 +29,7 @@ Plain ES modules served as static files; no build step.
 
 | page | what | boots |
 |---|---|---|
-| `play.html` | the whole game: viewer, chrome and every panel (setup, land, catalog, work, Automate, settings) | inline module; imports ~40 `js/*` mounts (`mountHud` first, then `mountWork`, `mountBuild`, `mountLand`, `mountFlows`, …) and loads PlayCanvas from `vendor/playcanvas/` or the CDN |
+| `play.html` | the whole game: viewer, chrome and every panel (setup, land, catalog, work, Automate, settings) | loads PlayCanvas from `vendor/playcanvas/` or the CDN, then `js/play.js` `startPlay` |
 | `edit.html` | the web GIS editor on OpenLayers (WP5.3) | `js/editui.js` `mountEditor`, with `api.js`, `auth.js` |
 | `view.html` | read-only viewer over a folder `tools/export-world.mjs` wrote; asks no database | inline module: `tiles.js`, `player.js`, `sky.js`, `origin.js` |
 | `catalog.html` `setup.html` `import.html` `rules.html` | redirects to `play.html`; each is a tab of it now | — |
@@ -40,6 +40,19 @@ CSS: `hud.css` `top.css` `bar.css` `frame.css` `panel.css` `panels.css` `work.cs
 `flow.css` `flowsrv.css` `planner.css` are added by `flow/boot.js` when Automate opens.
 
 ### client/js/ — by concern
+
+**The page** (`play.html` boots `play.js`; every module shares one `ctx`)
+
+| module | what |
+|---|---|
+| `play.js` | the order things are mounted in; the chrome; auth; `window.splatworld`, the handle the browser tests fly |
+| `playsetup.js` | Setup, Vocabulary, Symbols, Ground cover, land assignment, what is waiting, the catalog |
+| `playview.js` | tile rows, floating origin, graphics device, camera, sky, streamer, spot checks, floor, ground mesh, player |
+| `playwhere.js` | links in (`goTo`), the address bar, the land under the player (`whereAmI`) |
+| `playbuild.js` | the placed-things preview, wallet, live things and movers, Place, Your land, Shape |
+| `playapps.js` | Automate and Pick in world, the workspaces that take the window, Profile |
+| `playpublish.js` | Submit, the render pool, Approve, map search, Share, grants and proposals |
+| `playxr.js` · `playticks.js` · `playframe.js` | the headset; what is redrawn on a timer (map, next step, live things); every frame |
 
 **Auth, API**
 
@@ -210,7 +223,7 @@ How it fits: a flow is an ELX file stored as an artifact plus a `flow` row
 (`save_flow`, CAS on `rev`). The page draws it with litegraph over the bundled
 palette plus whatever blocks the chosen process server reports. A process
 server is a player's own external service (db/0196); the browser talks to it
-directly (or through `tools/elx-relay.py` when it sends no CORS headers). A
+directly, so the server has to send CORS headers for the page. A
 flow that runs there reaches back into the world through PostgREST with a key
 of its own (db/0198), as a player under RLS (Invariant 9). `docs/flow.md` has
 the detail.
@@ -320,7 +333,6 @@ ones needing PostGIS skip without it.
 | `make-seed-dem.sh` · `make-seed-osm.sh` · `make-seed-osm-standin.py` · `make-seed-cover.sh` | player-run seed data around Visp (DEM, OSM or stand-in, cover) into `infra/seed/` | `client/test/run/world.js` |
 | `geoserver-fixture.py` · `geoserver_cover.py` | stand-in GeoServer (WCS elevation, WMS cover) | `run/world.js` |
 | `elx-fixture.py` · `elx_fixture_routes.py` | stand-in process server (`/api/v1`, CORS on) | `run/elx.js` |
-| `elx-relay.py` | CORS relay a player runs beside a real process server | `run/elx.js`; by hand (`docs/flow.md`) |
 | `replay.sh` | save/restore a player-run's world to rerun a late story | `run/world.js` |
 | `palette.sh` | writes `client/flow/palette/manifest.json` | by hand; checked by `palette.test.js` |
 | `vendor.sh` | fetches gitignored vendor code at pinned versions | `make vendor` |
@@ -359,7 +371,7 @@ ones needing PostGIS skip without it.
 | importing a region's layers | `docs/import.md` |
 | deploy, operate, feature tour (WP-era) | `docs/manual.md` |
 | on call: backup, restore, drift, GC | `docs/runbook.md` |
-| Automate, flows, process servers, the CORS relay | `docs/flow.md` |
+| Automate, flows, process servers | `docs/flow.md` |
 | rendering pipeline, quality vs time, `.r32` | `docs/rendering.md` |
 | headset mode | `docs/xr.md` |
 | the pilot picture and how to reproduce it | `docs/pilot.md` (+ `pilot.png`) |

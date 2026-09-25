@@ -10,7 +10,7 @@ import * as api from './api.js';
 // How far the player may be from where a question was asked before the answer
 // is about somewhere else. A degree of latitude is 111 km, so this is about
 // fifty-five metres — the same distance that makes the question worth asking
-// again (client/play.html).
+// again (client/js/playwhere.js).
 export const SAME_SPOT_DEG = 0.0005;
 
 // Whether an answer that has just arrived is still about where the player is.

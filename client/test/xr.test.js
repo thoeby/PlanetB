@@ -44,7 +44,7 @@ test('a headset holds fewer tiles, and is given a smaller budget to draw them', 
     // Thirty z6 roots, all in view. What the traversal caps is how many tiles
     // are *held* — each one is an asset, an entity and a placement per eye.
     // How many splats are *drawn* out of them is the engine's, against
-    // `splatBudget`, which client/play.html hands it (client/js/traverse.js
+    // `splatBudget`, which client/js/playview.js hands it (client/js/traverse.js
     // applyTileCap). The two used to be the same number and are not.
     const rows = [];
     for (let i = 0; i < 30; i++) {

@@ -190,7 +190,7 @@ Things that cost time once. Do not rediscover them.
   new panel.
 - The same shape in the world: an answer that arrives after the next question
   was asked must not be discarded by *identity*, only by the question having
-  moved on. `whereAmI` in `client/play.html` discards by position, because under
+  moved on. `whereAmI` in `client/js/playwhere.js` discards by position, because under
   load every answer arrived after the next question and the line never changed.
 
 **Frames: metres above sea level are not metres in the scene**
@@ -754,7 +754,7 @@ world, so a flow looks the same on the next machine. That is the whole of what
 and `client/test/run/16-drawing-a-flow.spec.js` asserts the ELX has no
 coordinates in it.
 
-**While Automate is open the world is not drawn.** `client/play.html` sets a
+**While Automate is open the world is not drawn.** `client/js/playapps.js` sets a
 `paused` flag and `app.autoRender = false`; the update handler returns at once.
 A story that opens Automate and then expects the position line to move has to
 close it first.

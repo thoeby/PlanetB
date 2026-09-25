@@ -217,7 +217,7 @@ function showPanel(name, f) {
     // A workspace has the window when the surface it exists to open is the one
     // on screen. Then there is nothing behind the panel to look at, so the
     // world is not drawn at all and the glass is not glass (client/frame.css,
-    // client/play.html). Automate is full too and has no surface of its own:
+    // client/js/playapps.js). Automate is full too and has no surface of its own:
     // it is its own window (client/flow) and puts the world away itself.
     const takes = appIsFull(app) && appSurface(app) !== null
         && appSurface(app) === at.tab;

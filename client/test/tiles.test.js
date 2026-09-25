@@ -172,7 +172,7 @@ test('the tile cap bounds the loaded set and evicts the least recently used', ()
 
     // And it is the only cap here now: how much of a tile to draw is the
     // engine's to decide, tile by tile, against one budget for the scene
-    // (client/js/traverse.js applyTileCap, client/play.html splatBudget). A
+    // (client/js/traverse.js applyTileCap, client/js/playview.js splatBudget). A
     // tile that would once have been skipped for being too big is held and
     // drawn coarse instead.
     const fat = selectTiles(w, camera(1e6),
