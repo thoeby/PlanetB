@@ -125,6 +125,8 @@ test('a view opens the surface it names, and Build opens the world', () => {
     assert.equal(appSurface('Build'), null);
     assert.equal(appSurface('Play'), null);
     assert.deepEqual(surfaceOf('Land'), { tab: 'Survey', part: 'Land' });
+    assert.deepEqual(surfaceOf('Areas'), { tab: 'Survey', part: 'Areas' });
+    assert.deepEqual(surfaceOf('Requests'), { tab: 'Survey', part: 'Requests' });
 });
 
 test('a view that opens nothing says so on its own card', () => {

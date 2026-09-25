@@ -103,8 +103,13 @@ export const TABS = [
     // either bar, because a map of the whole world is a workspace rather than
     // a drawer over the one you are standing in. It was a tab of Settings,
     // where nobody looking for a map would think to open it.
+    // PLAN-editors D1: areas — a wood, a meadow, a pond — are drawn here, on
+    // the map, not on the clay. Parcels is the land and who holds it (the
+    // part keeps its old name, which the stories and the rest of the app
+    // call it by), Requests who is waiting for some.
     { name: 'Survey', group: null, key: '0', view: 'Survey', wide: true,
-        parts: [{ name: 'Land', label: 'Land' }] },
+        parts: [{ name: 'Land', label: 'Parcels' }, { name: 'Areas', label: 'Areas' },
+            { name: 'Requests', label: 'Requests' }] },
 ];
 
 // Every part there is, with the surface that holds it.
@@ -131,6 +136,8 @@ export const PART_LEDE = {
     Machine: 'What this machine gives the world, and how much of it.',
     Land: 'Who is waiting for land, the ground it would be drawn on, and every'
         + ' piece of it there is.',
+    Areas: 'Woods, meadows, water: drawn on the map, clipped to your land.',
+    Requests: 'Who has asked for land, and what they wrote.',
     Vocabulary: 'What things may say about themselves.',
     Symbols: 'What the compiler lays down where a thing is drawn.',
     'Ground cover': 'What the ground between the drawn things is made of.',

@@ -186,3 +186,19 @@ export const linesInTheWorld = (b) => b.page.evaluate(async () => {
     const area = sw.lines.lines().area;
     return sw.api.rpc('area_lines', { area: area.id });
 });
+
+// Survey → Areas open on his field, the map drawn.
+export async function areasOfHisLand(b) {
+    await panel(b, 'Areas');
+    await b.page.waitForFunction(() => window.splatworld.surveyAreas.state.opened
+        && window.splatworld.surveyAreas.state.land, null, { timeout: UI });
+    await expect(b.page.locator('.ar-map .ol-viewport')).toBeVisible({ timeout: UI });
+}
+
+// A point in degrees as a point on the Areas map, in page pixels.
+export const onTheMap = (b, lon, lat) => b.page.evaluate(({ x, y }) => {
+    const m = window.splatworld.surveyAreas.state.m;
+    const px = m.map.getPixelFromCoordinate(m.ol.proj.fromLonLat([x, y]));
+    const r = m.map.getTargetElement().getBoundingClientRect();
+    return { x: r.left + px[0], y: r.top + px[1] };
+}, { x: lon, y: lat });
