@@ -169,22 +169,29 @@ def as_number(value) -> float | None:
     return number if math.isfinite(number) else None
 
 
-# What the compiler reads as words rather than numbers (client/lib/props.js).
-TEXT_PROPS = ("species", "leaf_type", "roof", "name", "model")
+# Always words, even when they look like a number: the names, and the OSM
+# keys whose value says what a thing is (landuse=forest, db/0157), which the
+# symbols' filters compare as text.
+TEXT_PROPS = ("species", "leaf_type", "roof", "name", "model",
+              "highway", "railway", "aerialway", "barrier", "waterway",
+              "building", "landuse", "natural")
 
 
 def props_of(spec: dict, attrs: dict | None) -> dict:
-    """`{"height": "bldg_hoehe"}` — your column, the world's property."""
+    """`{"height": "bldg_hoehe"}` — your column, the world's property.
+
+    A number where the column holds one ("12 m" is 12), the words where it
+    does not: `{"landuse": "nutzung"}` over a column saying "forest" is
+    landuse=forest, not nothing.
+    """
     out: dict = {}
     for want, source in (spec.get("props") or {}).items():
         raw = (attrs or {}).get(source)
-        if want in TEXT_PROPS:
-            if raw is not None and str(raw).strip():
-                out[want] = str(raw).strip()
+        text = str(raw).strip() if raw is not None else ""
+        if not text:
             continue
-        value = as_number(raw)
-        if value is not None:
-            out[want] = value
+        value = None if want in TEXT_PROPS else as_number(raw)
+        out[want] = value if value is not None else text
     for key in spec.get("keep") or []:
         if (attrs or {}).get(key) is not None:
             out[key] = attrs[key]

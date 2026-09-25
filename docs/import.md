@@ -29,12 +29,12 @@ Which one a feature is, is a property of the same name: a row says
 Vocabulary).
 
 Two ways a column reaches a feature. `props` maps the world's name to your
-column and is read as a **number** — except `species`, `leaf_type`, `roof`,
-`name` and `model`, which are kept as words (`TEXT_PROPS` in
+column: `{"landuse": "nutzung"}` makes your `nutzung` column the feature's
+`landuse`. A value that reads as a number is stored as one (`"12 m"` is 12);
+anything else is kept as words. The names and the OSM keys themselves
+(`landuse`, `highway`, `building`, …) are always words (`TEXT_PROPS` in
 `server/splatworld/importer.py`). `keep` copies columns as they are, under
-their own names. So the key's own value (`landuse`, `highway`, …) arrives only
-through `keep`, from a column already called that; mapped through `props` it
-is not a number and is dropped. Anything else is ignored; it does no harm.
+their own names. Anything else is ignored; it does no harm.
 
 Geometry goes in flat. The world keeps plan geometry at Z = 0 and takes ground
 height from your elevation when a tile is compiled, so you never draw in 3D.
