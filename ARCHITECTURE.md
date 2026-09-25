@@ -167,6 +167,12 @@ Capability filter at claim: `train` needs `webgpu` and a `maxBufferSize` at leas
 ```
 `PUT` allowed only where `can_write` says yes; `Cache-Control: immutable` everywhere.
 
+nginx and the `splatworld` server agree on the store (`tools/files-test.sh`
+holds both to it), and nowhere else: only `splatworld` cuts `/geo` tiles on a
+miss (`server/splatworld/ground.py`), serves `/qgis/project.qgs` and
+`/tiles/cover/…`, and answers the Setup panel's `/setup/*`. Behind nginx those
+have to exist already or are missing.
+
 ## 8. Verification model (explicit)
 
 - structural: server-side in `submit_atom` — cheap, rejects garbage.

@@ -7,8 +7,9 @@ run:
 1. **`PLAYER-RUN.md`** — the stories of `docs/SPEC.md` §3, each proven by a
    script that behaves like a player. All fifteen green.
 2. **`TASKS-foundation.md`** (decisions in `PLAN-foundation.md`) — FND.0–16, done.
-3. **`TASKS-flows.md`** (F10: process servers, flows on objects) — FL.1–FL.8
-   done; FL.9 (the pool) gets a task file of its own. What is blocked is at the
+3. **`TASKS-flows.md`** (F10: process servers, flows on objects) — FL.1–FL.7
+   green; FL.8 (the Planner) committed with story 39 written and not yet run;
+   FL.9 (the pool) gets a task file of its own. What is blocked is at the
    end of that file.
 
 Finished task files are in `docs/history/`.

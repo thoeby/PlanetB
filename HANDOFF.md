@@ -1,12 +1,13 @@
 # HANDOFF.md — for the next instance
 
-Read `CLAUDE.md`, then `PLAYER-RUN.md`, then `ARCHITECTURE.md` and
-`PROGRESS.md`. One story, one commit, `make player-run` green — and `make
-gate` under it — before you commit.
+Read `CLAUDE.md` (it names the task file being worked, now `TASKS-flows.md`),
+then `ARCHITECTURE.md` and `PROGRESS.md`. One story, one commit, `make
+player-run` green — and `make gate` under it — before you commit.
 
-**`TASKS.md` is history** (`docs/history/`). Every task in it is done, and finishing them did not
-make the thing usable: `PLAYER-RUN.md` is the task list now, and a story counts
-only when a script that behaves like a player completes it through the page.
+**`TASKS.md` is history** (`docs/history/`). Every task in it is done, and
+finishing them did not make the thing usable: since `PLAYER-RUN.md`, a story
+counts only when a script that behaves like a player completes it through the
+page.
 What is still unrun for want of hardware or data this container has not got is
 in §6: WP3.1's acceptance on a GPU, WP5.4's on a headset, and the full
 Switzerland raster seed.
@@ -53,7 +54,9 @@ the container.
 
 `docs/manual.md` is the install and user manual; this section is the short form.
 
-`make gate` needs a live Postgres, a PostgREST and an nginx. If the sandbox has
+`make gate` needs a live Postgres and a PostgREST; the file store is either a
+running `splatworld run` on `$FILES_URL` or an nginx built with the DAV module,
+which `tools/files-test.sh` starts itself when nothing listens. If the sandbox has
 no Docker daemon (check with `docker info`), do not fight compose — install the
 four pieces directly. This takes about three minutes:
 

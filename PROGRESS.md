@@ -2,7 +2,7 @@
 
 A log, newest at the bottom. The task files, in order: `PLAYER-RUN.md` (the
 stories of `docs/SPEC.md` §3, all green), `TASKS-foundation.md` (FND.0–16,
-done), `TASKS-flows.md` (FL.1–FL.8 done). Finished ones are in
+done), `TASKS-flows.md` (FL.1–FL.7 green; FL.8's story 39 not yet run). Finished ones are in
 `docs/history/`. Rules: `CLAUDE.md`. Design: `ARCHITECTURE.md`. Picking up the
 work: `HANDOFF.md`. What each file is: `docs/code-map.md`.
 
@@ -53,6 +53,7 @@ Proven against `tools/elx-fixture.py`, on a world saved after stories 0, 1, 2,
 | 36 | a job with a cron trigger and its next five firings, run now, its report read and found again | green (fixture) |
 | 37 | a flow added to the lamp from its own panel, already pointed at it; opened by C from the lamp; D told why there is nothing to press; detached and attached again | green |
 | 38 | the lamp's flow run on alpha under a key of its own switches the lamp on for A; Stop withdraws the key and a late run is refused | green (fixture) |
+| 39 | the Planner: a server's jobs on a timeline, runs and failures, Run now from a run's card (FL.8) | written, not yet run |
 
 What each story forced is in its commit message. Nothing is "done" here
 because a function exists: if the script cannot find the button, the button is
