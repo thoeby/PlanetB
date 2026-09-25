@@ -5,7 +5,7 @@
 // (Invariant 6).
 
 import * as api from './api.js';
-import { buyAsset, myRights, offerOf } from './wallet.js';
+import { myRights, offerOf, orderAsset } from './wallet.js';
 import { CATEGORIES, LICENSES, TYPES, getAsset, glbUrl,
     searchAssets, thumbUrl, typeWords } from './catalog.js';
 import { mountMarksForm } from './catalogmarks.js';
@@ -105,8 +105,8 @@ function detailOf(asset) {
 }
 
 // WP4.4: a licence is bought here. What it costs and whether there is one left
-// is the asset's own business; buy_asset is one transaction and refuses the
-// rest (Invariant 5), so the button only has to show what it said.
+// is the asset's own business; an order is one transaction and refuses the
+// rest (Invariant 5, LV.5), so the button only has to show what it said.
 function buyButton(asset, held, status, reopen) {
     const offer = offerOf(asset, held.has(asset.san));
     const buy = el('button', { type: 'button', className: 'buy',
@@ -114,7 +114,13 @@ function buyButton(asset, held, status, reopen) {
     buy.onclick = async () => {
         buy.disabled = true;
         try {
-            await buyAsset(asset.san);
+            const order = await orderAsset(asset.san);
+            if (order.state !== 'paid') {
+                status.textContent = order.pay_url
+                    ? `ordered ${asset.san}: pay at ${order.pay_url}`
+                    : `ordered ${asset.san}: waiting for ${order.provider}`;
+                return;
+            }
             held.add(asset.san);
             status.textContent = `licensed ${asset.san}`;
             await reopen(asset.san);
