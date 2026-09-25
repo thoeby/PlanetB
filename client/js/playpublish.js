@@ -25,10 +25,6 @@ const standBefore = (ctx, at, back) => {
 
 export function mountPublishSide(ctx) {
     const { hud } = ctx;
-    // What Submit and Permission last counted, which is what the next-step
-    // card needs and neither panel has to be open for.
-    ctx.s.lastCount = null;
-    ctx.s.lastWaiting = 0;
     ctx.s.onMyLand = null;
     mountSubmitPanel(ctx);
     mountPoolPanels(ctx);
@@ -76,7 +72,6 @@ function mountSubmitPanel(ctx) {
         onCount: (p) => {
             // The route through the app, as the chrome shows it. Every number
             // is one area_progress already reports; none is invented here.
-            ctx.s.lastCount = p;
             hud.stat('placed', String(ctx.land.things?.().length ?? 0));
             hud.stat('pool', `${p.open_jobs ?? 0} tiles`);
             // The tiles this land is compiled into, not every tile whose box
@@ -145,7 +140,6 @@ function mountPermissionPanel(ctx) {
         where: () => whereNow(ctx),
         onDecided: () => { ctx.land.refresh(); ctx.submit.refresh(); },
         onCount: (n) => {
-            ctx.s.lastWaiting = n;
             hud.badge('Permission', n);
             hud.stat('awaiting', String(n));
         },

@@ -7,7 +7,6 @@ import { drawMinimap } from './hudmap.js';
 import { ringsOf } from './land.js';
 import { EVERY_MS, NEAR_M } from './live.js';
 import { EVERY_MS as MOVERS_MS, REACH_M } from './movers.js';
-import { mountNextStep } from './nextstep.js';
 import { mountTriggers } from './triggerwire.js';
 
 const every = (ms, fn) => { setInterval(fn, ms); fn(); };
@@ -18,15 +17,10 @@ const whereNow = (ctx) => {
 };
 
 export function startTicks(ctx) {
-    // What is missing, and what to do about it. The sentence is for a world
-    // that is not set up yet — no ground, no land — because until then there
-    // is no route to be on. Once there is land, the card (design 3a) says
-    // which of the four steps that land is on and opens the panel that does
-    // the next one.
-    const nextStep = mountNextStep(ctx.doc.getElementById('hud'), {
-        open: (name) => ctx.hud.show(name),
-    });
-    every(5000, () => sayWhatIsMissing(ctx, nextStep));
+    // What is missing, and what to do about it: a sentence for a world that
+    // is not set up yet — no ground, no land. The "Next on …" card is gone
+    // (UI.2): Publish on the plinth carries the count of what is waiting.
+    every(5000, () => sayWhatIsMissing(ctx));
     // The map in the corner, on a slow tick: it is a canvas, and nothing on it
     // changes between frames.
     ctx.drawTheMap = () => drawTheMap(ctx);
@@ -54,7 +48,7 @@ function trouble(floor) {
         : '';
 }
 
-function sayWhatIsMissing(ctx, nextStep) {
+function sayWhatIsMissing(ctx) {
     const { s, ground, hud } = ctx;
     const areas = ctx.land.areas() ?? [];
     const published = [...ctx.streamer.tiles.values()]
@@ -70,14 +64,6 @@ function sayWhatIsMissing(ctx, nextStep) {
     const onTheRoute = areas.some((a) => a.mine) && ground?.coverage;
     if (Date.now() < s.arrival.until) hud.notice(s.arrival.text);
     else hud.notice(trouble(ctx.floor) || (onTheRoute ? '' : missing));
-    const mine = areas.find((a) => a.mine) ?? areas[0];
-    nextStep.show({
-        things: (ctx.land.things?.() ?? []).length,
-        changed: Math.max(0, (s.lastCount?.waiting ?? 0) - (s.lastCount?.open_jobs ?? 0)),
-        open: s.lastCount?.open_jobs ?? 0,
-        waiting: s.lastWaiting,
-        published,
-    }, onTheRoute ? (mine?.rules?.name || 'your land') : null);
 }
 
 // The tile this tab is computing, as a box on the map: where the minutes of GPU

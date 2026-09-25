@@ -85,34 +85,31 @@
  * fixed line. The line is you. client/js/altimeter.js drives it.
  */
 
-/* Above the corner rather than across the middle of it: the map and the key
-   hints are already on this edge, and an instrument drawn over them is two
-   things nobody can read. */
+/* UI.2: inside the map, down its left edge — one instrument box in the corner
+   rather than a ladder standing on its own over the world. The reading sits
+   in the map's top-right corner. */
 #alt {
-  position: absolute; right: 24px; bottom: 396px;
-  display: flex; flex-direction: column; align-items: flex-end; gap: 10px;
+  position: absolute; left: 0; top: 0; bottom: 0; width: 44px; z-index: 1;
   pointer-events: none;
 }
-#alt .read { display: flex; flex-direction: column; align-items: flex-end; gap: 2px;
-  text-shadow: 0 2px 12px rgba(0, 0, 0, 0.7); }
+#alt .read {
+  position: absolute; left: 52px; top: 8px; display: flex; flex-direction: column;
+  align-items: flex-start; gap: 2px; text-shadow: 0 1px 6px rgba(0, 0, 0, 0.9);
+  white-space: nowrap;
+}
 #alt .read .v {
-  font-family: var(--head); font-weight: 700; font-size: 26px; line-height: 1;
+  font-family: var(--head); font-weight: 700; font-size: 18px; line-height: 1;
   color: var(--accent);
 }
-#alt .read .u { font-size: 13px; letter-spacing: 0.08em; margin-left: 3px;
+#alt .read .u { font-size: 11px; letter-spacing: 0.08em; margin-left: 3px;
   color: var(--accent); }
-#alt .read .agl { font-size: 11px; color: var(--ink-2); }
-#alt .row { display: flex; align-items: center; gap: 6px; }
-#alt .cap {
-  font-family: var(--head); font-weight: 600; font-size: 11px;
-  letter-spacing: 0.14em; text-transform: uppercase; color: var(--ink-3);
-  text-shadow: 0 1px 6px rgba(0, 0, 0, 0.8);
-}
+#alt .read .agl { font-size: 10px; color: var(--ink-2); }
+#alt .row { position: absolute; inset: 0; display: block; }
+#alt .cap, #alt .pitch { display: none; }
 #alt .ladder {
-  position: relative; width: 44px; overflow: hidden;
-  height: clamp(140px, calc(100vh - 560px), 300px);
-  /* Cut on the left, where the world is — the mirror of every other panel. */
-  clip-path: polygon(0 8px, 8px 0, 100% 0, 100% 100%, 8px 100%, 0 calc(100% - 8px));
+  position: absolute; inset: 0; width: 44px; height: 100%; overflow: hidden;
+  background: rgba(10, 12, 15, 0.72); border-right: 1px solid var(--edge-2);
+  clip-path: none;
 }
 #alt .hatch { position: absolute; inset: 0; background: repeating-linear-gradient(
     180deg, transparent 0 20px, rgba(255, 255, 255, 0.05) 20px 21px, transparent 21px 30px); }
@@ -151,6 +148,4 @@
 #alt .pitch .cur { position: absolute; left: 0; transform: translateY(-50%);
   color: var(--accent); white-space: nowrap; }
 
-@media (max-width: 1200px) {
-  #alt .pitch { display: none; }
-}
+
