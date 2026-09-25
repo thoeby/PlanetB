@@ -399,8 +399,12 @@
     const assets = await api.select('asset',
       { san: `in.(${sans.join(',')})`, select: 'san,sha256,parts,name' }).catch(() => []);
     const bySan = new Map(assets.map((a) => [a.san, a]));
+    // LV.9: each thing is drawn from the version it runs, which is its
+    // owner's to move on (db/0210) — not always the product's newest file.
+    const files = await api.rpc('things_files', { p_ids: rows.map((r) => r.id) })
+      .catch(() => ({}));
     return rows.filter((r) => bySan.has(r.san))
-      .map((r) => ({ ...r, sha256: bySan.get(r.san).sha256,
+      .map((r) => ({ ...r, sha256: files?.[r.id] ?? bySan.get(r.san).sha256,
                      parts: bySan.get(r.san).parts ?? {}, name: bySan.get(r.san).name }));
   }
 

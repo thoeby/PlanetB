@@ -17,6 +17,7 @@ import { getAsset, searchAssets } from './catalog.js';
 import { assetRow } from './buildrows.js';
 import { describe, looker, saveAndSay, showChosen } from './buildsay.js';
 import { mountHolding } from './holding.js';
+import { mountUpdates } from './updatesui.js';
 import { mountPorts } from './portsui.js';
 import { mountObjectFlows } from './objectflows.js';
 import { mountMovers } from './moversui.js';
@@ -263,7 +264,7 @@ function wire(host, state, { toggle, catalog, acts, say }) {
 
 // The buttons say what is chosen, so nothing on this panel is only in
 // somebody's head (T5).
-function followSelection(state, ports, flowsOf, holding) {
+function followSelection(state, ports, flowsOf, holding, updates) {
     let showing = null;
     return async () => {
         const row = Edits.isPlacing(state.selected) ? null : state.selected;
@@ -272,6 +273,8 @@ function followSelection(state, ports, flowsOf, holding) {
         const asset = row ? await getAsset(row.san).catch(() => null) : null;
         // LV.4: a thing that may be carried may be picked up by anybody.
         holding.show(row, asset);
+        // LV.9: the version it runs, and an update waiting on its owner.
+        await updates.show(row, Boolean(state.area?.may_write));
         await ports.show(row && { id: row.id, san: row.san,
             mine: Boolean(state.area?.may_write) }, asset);
         // FL.6: the flows that belong to it.
@@ -293,7 +296,8 @@ export function mountBuild(host, ctx) {
     const holding = mountHolding(host, { camera: ctx.camera, origin: ctx.origin,
         terrain: ctx.terrain,
         changed: async () => { state.selected = null; await acts.sync(); } });
-    const showPorts = followSelection(state, ports, objectFlows, holding);
+    const updates = mountUpdates(host);
+    const showPorts = followSelection(state, ports, objectFlows, holding, updates);
     // FND.16: the buses on this land, and the route being drawn for a new one.
     const movers = mountMovers(host, { clock: () => ctx.movers?.clock() ?? Date.now() / 1000 });
 
