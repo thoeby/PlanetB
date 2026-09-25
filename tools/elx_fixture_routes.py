@@ -3,8 +3,10 @@
 Split out of it only for size (CLAUDE.md: files < 400 lines). Everything the
 docstring there says holds here.
 """
+import io
 import json
 import re
+import tarfile
 import threading
 import time
 import urllib.error
@@ -178,6 +180,8 @@ def routes(method, parts, query, fields, raw):
     head = parts[0] if parts else ''
     one = parts[1] if len(parts) > 1 else None
     if head == 'system':
+        if method == 'POST' and parts[1:3] == ['plugins', 'install']:
+            return install_plugin(raw)
         return system(method, one)
     if head == 'process':
         return process(method, one, parts, query, fields, raw)
@@ -188,6 +192,25 @@ def routes(method, parts, query, fields, raw):
     if head == 'report':
         return report(method, one, query)
     return 400, None
+
+
+def install_plugin(raw):
+    """LV.7: a plugin folder, as the tar the catalog sells it as. Its
+    plugin.xml joins (or replaces) what /system/plugins/available lists."""
+    try:
+        with tarfile.open(fileobj=io.BytesIO(raw)) as tar:
+            names = [m for m in tar.getmembers() if m.isfile()
+                     and (m.name == 'plugin.xml' or m.name.endswith('/plugin.xml'))]
+            xml = tar.extractfile(sorted(names, key=lambda m: len(m.name))[0]).read().decode()
+    except (tarfile.TarError, IndexError, UnicodeDecodeError):
+        return 400, None
+    m = re.search(r'<plugin[^>]*\bid="([^"]+)"', xml)
+    if not m:
+        return 400, None
+    STATE['plugins'] = [x for x in STATE['plugins']
+                        if not re.search(r'<plugin[^>]*\bid="%s"' % re.escape(m.group(1)), x)]
+    STATE['plugins'].append(xml)
+    return 200, tag('plugin', m.group(1))
 
 
 def system(method, one):

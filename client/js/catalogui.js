@@ -9,6 +9,7 @@ import { myRights, offerOf, orderAsset } from './wallet.js';
 import { CATEGORIES, LICENSES, TYPES, getAsset, glbUrl, policyWords,
     searchAssets, thumbUrl, typeWords } from './catalog.js';
 import { mountMarksForm } from './catalogmarks.js';
+import { installRow, mayInstall, mountFileForm } from './catalogplugin.js';
 import { Upload, fmtBytes } from './catalogupload.js';
 import { canonMarks, isMarked, portWords, roleWords } from '../lib/marks.js';
 import { mountCollectionForm, mountProfileForm, paintMaterial, publishTyped }
@@ -154,6 +155,7 @@ function typeForms(doc, say) {
     const material = { bytes: null, width: 0, height: 0, tiling: 4 };
     const profile = mountProfileForm(at('form-profile'));
     const collection = mountCollectionForm(at('form-collection'));
+    const picked = mountFileForm(doc);
 
     const paint = async () => {
         if (!material.bytes) return;
@@ -176,7 +178,8 @@ function typeForms(doc, say) {
         for (const [id, want] of [['form-model', type === 'model' || type === 'segment'],
             ['form-material', type === 'material'],
             ['form-profile', type === 'profile'],
-            ['form-collection', type === 'collection']]) {
+            ['form-collection', type === 'collection'],
+            ['form-file', type === 'plugin' || type === 'flow']]) {
             at(id).hidden = !want;
         }
         // The GLB form's own Register button is enabled by a file being
@@ -195,7 +198,7 @@ function typeForms(doc, say) {
         collection: () => collection.value(),
         publish: (type, meta) => publishTyped(type,
             { material, profile: () => profile.value(),
-                collection: () => collection.value() }, meta, say),
+                collection: () => collection.value(), picked }, meta, say),
     };
 }
 
@@ -228,7 +231,8 @@ export function mountCatalog(doc, { mountAuth, choices } = {}) {
         detail.innerHTML = '';
         detail.append(el('h2', { textContent: asset.name }), detailOf(asset),
             el('p', {}, buyButton(asset, held, status, open), ' ',
-                el('a', { href: glbUrl(asset), textContent: 'canonical glb' })));
+                el('a', { href: glbUrl(asset), textContent: 'canonical glb' })),
+            ...[installRow(asset, mayInstall(asset, held))].filter(Boolean));
     };
 
     const refresh = async () => {

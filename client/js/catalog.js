@@ -16,6 +16,7 @@ import { isMarked, partNodes } from '../lib/marks.js';
 import { sha256 } from '../lib/hash.js';
 import { renderThumb, ALGO as THUMB_ALGO } from '../lib/thumb.js';
 import { canonCollection, canonProfile, describe } from '../lib/product.js';
+import { ALGO as PLUGIN_ALGO } from '../lib/plugintar.js';
 
 const CATEGORIES = ['prop', 'building', 'vegetation', 'vehicle', 'furniture', 'other'];
 const LICENSES = ['cc0', 'free', 'paid', 'limited'];
@@ -44,6 +45,9 @@ export const TYPES = [
     { id: 'profile', words: 'Road cross-section' },
     { id: 'collection', words: 'Collection' },
     { id: 'material', words: 'Surface material' },
+    // LV.7: blocks for flows, and a flow itself.
+    { id: 'plugin', words: 'Plugin' },
+    { id: 'flow', words: 'Flow' },
 ];
 
 export const typeWords = (type) =>
@@ -215,3 +219,14 @@ export const membersOf = (san) => api.select('collection_item', {
 });
 
 export { CATEGORIES, LICENSES };
+
+// LV.7: a plugin folder, as its canonical tar, and a flow, as its ELX.
+export const publishPlugin = (plugin, meta) =>
+    publishFile(plugin.bytes, 'tar', 'plugin', PLUGIN_ALGO,
+        { ...meta, type: 'plugin', parts: { plugin: plugin.id, blocks: plugin.blocks } });
+
+export const publishFlow = (elx, meta) =>
+    publishFile(elx, 'elx', 'flow', 'elx', { ...meta, type: 'flow' });
+
+export const tarUrl = (asset, sha = asset.pointer?.current ?? asset.sha256) =>
+    `${api.endpoints().files}/assets/${sha}.tar`;

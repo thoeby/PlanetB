@@ -59,6 +59,13 @@ const HTML = `
         <canvas class="preview" id="material-preview" width="256" height="256"></canvas>
         <div id="material-said" class="muted mono"></div>
       </div>
+      <div id="form-file" hidden>
+        <input id="product-file" type="file" accept=".tar,.elx,application/x-tar">
+        <div id="product-said" class="muted mono"></div>
+        <div class="note">A plugin is its folder as a .tar — plugin.xml and its
+          assets — and is rewritten here in one canonical order, so the same
+          folder is one product. A flow is its .elx.</div>
+      </div>
       <div id="form-profile" hidden></div>
       <div id="form-collection" hidden></div>
     </div>
