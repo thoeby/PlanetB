@@ -14,7 +14,7 @@ import * as api from './api.js';
 import { Shaping, brushWords } from './sculpt.js';
 import { alongLine } from './sculptbrush.js';
 import { el } from './poolui.js';
-import { brushLine, brushUses, keyHandler, shapedLine } from './sculptmode.js';
+import { brushLine, brushUses, earthLine, keyHandler, shapedLine } from './sculptmode.js';
 import { floors, wireBox } from './shapebox.js';
 import { mountHistory } from './shapehistory.js';
 import { mountLeave, saveGround } from './shapesave.js';
@@ -26,6 +26,7 @@ const HTML = `
 <div class="section sh-head">
   <label class="sh-land-row"><span class="label">Land</span>
     <select class="sc-land"></select></label>
+  <p class="mono sh-earth"></p>
 </div>
 <div class="sh-rail-host"></div>
 <p class="sc-status status"></p>
@@ -64,6 +65,7 @@ export function mountShape(host, ctx, { lands = () => [] } = {}) {
         }
         q('.sc-said').textContent = sentence(state);
         q('.sc-shaped').textContent = shapedLine(state.shaping);
+        q('.sh-earth').textContent = earthLine(state.shaping);
         history.draw();
         hover();
     };

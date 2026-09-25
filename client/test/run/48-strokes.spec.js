@@ -58,6 +58,8 @@ test('story 48 — undo back to a stroke, and put the ground back',
             await expect(rows.first()).toContainText('Smooth');
             await expect(rows.nth(2)).toContainText('Raise');
             await expect(rows.nth(2)).toContainText(/\+\d\.\d\d m/);
+            // EDT.11: and the earth it moved, in the land's card.
+            await expect(b.page.locator('.sh-earth')).toContainText(/m³ raised · .* m³ lowered/);
             return afterOne;
         });
 

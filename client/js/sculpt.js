@@ -98,6 +98,20 @@ export class Shaping {
             metres: Math.round(cells * this.grid.cell * this.grid.cell) };
     }
 
+    // How much earth the shaping moves altogether, in cubic metres: every
+    // cell's height off the elevation times its area, raised and lowered
+    // counted apart (PLAN-editors idea 7).
+    earth() {
+        const { data, cell } = this.grid;
+        let raised = 0;
+        let lowered = 0;
+        for (let k = 0; k < data.length; k++) {
+            if (data[k] > 0) raised += data[k];
+            else lowered -= data[k];
+        }
+        return { raised: raised * cell * cell, lowered: lowered * cell * cell };
+    }
+
     // The ground put back as the operator gave it: one stroke, so it is undone
     // like any other and only reaches the world when it is saved. Clearing was
     // possible only by raising and lowering every cell by hand.

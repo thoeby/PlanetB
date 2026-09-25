@@ -91,3 +91,23 @@ test('undo back to a stroke restores its cells exactly, and redo walks forward',
     assert.deepEqual(s.history().map((h) => [h.n, h.done]), [[3, true], [2, true], [1, true]],
         'a new stroke replaces the undone');
 });
+
+// EDT.11 — the earth moved, raised and lowered apart, in cubic metres.
+test('the earth moved is metres times cell area, raised and lowered apart', async () => {
+    const { earthLine } = await import('../js/sculptmode.js');
+    const s = made();
+    assert.equal(earthLine(s), 'no earth moved');
+    const { cell, data } = s.grid;
+    data[0] = 2;
+    data[1] = 3;
+    data[2] = -1.5;
+    const e = s.earth();
+    assert.ok(Math.abs(e.raised - 5 * cell * cell) < 1e-6);
+    assert.ok(Math.abs(e.lowered - 1.5 * cell * cell) < 1e-6);
+    data.fill(0);
+    data.fill(1, 0, 310);
+    data.fill(-1, 310, 530);
+    const m3 = (n) => Math.round(n * cell * cell).toLocaleString('en-GB')
+        .replace(/,/g, '\u2009');
+    assert.equal(earthLine(s), `${m3(310)} m³ raised · ${m3(220)} m³ lowered`);
+});

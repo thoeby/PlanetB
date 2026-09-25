@@ -85,6 +85,16 @@ export function shapedLine(shaping) {
         + ` to +${highest.toFixed(1)} m`;
 }
 
+// The earth moved, as the land card says it (EDT.11): "1 240 m³ raised ·
+// 880 m³ lowered", or nothing where nothing is.
+export function earthLine(shaping) {
+    if (!shaping?.earth) return '';
+    const { raised, lowered } = shaping.earth();
+    const m3 = (v) => `${Math.round(v).toLocaleString('en-GB').replace(/,/g, '\u2009')} m\u00b3`;
+    if (raised < 0.5 && lowered < 0.5) return 'no earth moved';
+    return `${m3(raised)} raised \u00b7 ${m3(lowered)} lowered`;
+}
+
 // ------------------------------------------------------------------- keys
 
 // Every one of these is on the rail as well (T5: no key you have to know).
