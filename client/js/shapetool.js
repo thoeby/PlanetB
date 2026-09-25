@@ -9,7 +9,7 @@
 // not the rule: the rule is row-level security on the save (Invariant 6) and
 // the compiler ignoring every cell outside the land whatever was written.
 
-import { bandAt, dab } from './sculptbrush.js';
+import { bandAt, bearing, dab, fallPlane } from './sculptbrush.js';
 import { drawPath, drawRing } from './bpdraw.js';
 
 export const REFUSED = 'You can only shape your own land';
@@ -32,13 +32,13 @@ export function shapeSurface(bp, app, pc, state, acts) {
             if (!g) { acts.say('no ground under the pointer', true); return; }
             state.at = g;
             state.invert = Boolean(e?.shiftKey);
-            if (state.brush === 'line') {
-                state.line = [...(state.line ?? []), g];
-                acts.hover();
-                return;
-            }
+            if (special(state, acts, g, e)) return;
             state.painting = true;
             state.strokeFrom = state.shaping?.at(g.lon, g.lat) ?? 0;
+            // Flatten's plane goes through where the stroke began.
+            state.plane = state.brush === 'flatten'
+                ? fallPlane({ ...g, h: bp.heightAt(g.lon, g.lat) }, state.fall, state.dir)
+                : null;
             state.shaping?.begin();
             paintAt(g, FIRST_DAB_S);
         },
@@ -46,6 +46,7 @@ export function shapeSurface(bp, app, pc, state, acts) {
             if (g) state.at = g;
             state.invert = Boolean(e?.shiftKey);
             state.inside = g ? Boolean(state.shaping?.inside(g.lon, g.lat)) : null;
+            if (state.turning && g) acts.turn(bearing(state.turning, g));
         },
         // Every frame the pointer is held down, moving or not: holding still
         // keeps raising (PLAN-editors idea 9).
@@ -53,6 +54,7 @@ export function shapeSurface(bp, app, pc, state, acts) {
             if (state.painting && state.at) paintAt(state.at, Math.min(dt, MAX_DT_S));
         },
         up() {
+            state.turning = null;
             state.painting = false;
             state.shaping?.end();
             bp.settle();
@@ -77,6 +79,25 @@ export function shapeSurface(bp, app, pc, state, acts) {
     };
 }
 
+// A press that is not a stroke: a corner of the bed's line, Alt picking
+// Level's height off the ground, Ctrl turning Flatten's arrow. True if so.
+function special(state, acts, g, e) {
+    if (state.brush === 'line') {
+        state.line = [...(state.line ?? []), g];
+        acts.hover();
+        return true;
+    }
+    if (state.brush === 'level' && e?.altKey) {
+        acts.take(g);
+        return true;
+    }
+    if (state.brush === 'flatten' && (e?.ctrlKey || e?.metaKey)) {
+        state.turning = g;
+        return true;
+    }
+    return false;
+}
+
 // One dab where the brush is, for `dt` seconds of holding it there.
 function paint(state, acts, g, dt) {
     if (!state.shaping || !g) return;
@@ -88,7 +109,7 @@ function paint(state, acts, g, dt) {
     dab(state.shaping, g.lon, g.lat, { brush: state.brush, size: state.size,
         strength: state.strength, dt, soft: state.soft, curve: state.curve,
         shape: state.brush === 'raise' ? state.shape : 'circle', invert: state.invert,
-        blend: state.blend, ground: acts.ground,
+        blend: state.blend, ground: acts.ground, plane: state.plane,
         target: state.brush === 'level' ? acts.levelTo() : undefined });
     acts.shaped(around(g, state.size));
     if (state.refused) { state.refused = false; acts.say(''); } else acts.hover();
@@ -117,4 +138,44 @@ function drawBrush(bp, app, pc, state) {
     drawRing(bp, app, state.at, r, tone, square);
     // The core, where it is at full strength.
     drawRing(bp, app, state.at, r * (1 - (state.soft ?? 0.6)), tone, square);
+    if (state.brush === 'flatten' && state.fall > 0) drawArrow(bp, app, pc, state);
+    const sheet = state.brush === 'level' ? () => state.target
+        : state.painting && state.plane ? state.plane : null;
+    if (sheet && (state.painting || state.brush === 'level')) {
+        drawSheet(bp, app, pc, state.at, r, sheet);
+    }
 }
+
+// Which way Flatten's plane falls: an arrow on the ground from the pointer.
+function drawArrow(bp, app, pc, state) {
+    const len = Math.max(4, state.size * 0.6);
+    const at = state.at;
+    const tip = step(at, state.dir, len);
+    const colour = new pc.Color(1, 0.8, 0.3);
+    drawPath(bp, app, pc, [at, tip], colour);
+    drawPath(bp, app, pc, [step(tip, state.dir + 150, len / 4), tip,
+        step(tip, state.dir - 150, len / 4)], colour);
+}
+
+// The height Level or Flatten aims at, as a translucent-looking sheet: its
+// edge and a cross, drawn at that height over the brush.
+function drawSheet(bp, app, pc, at, r, heightAt) {
+    const colour = new pc.Color(0.55, 0.8, 0.95);
+    const corners = [[-1, -1], [1, -1], [1, 1], [-1, 1], [-1, -1]]
+        .map(([x, z]) => stepXY(at, x * r, z * r));
+    const lift = corners.map((p) => {
+        const h = heightAt(p.lon, p.lat);
+        return Number.isFinite(h) ? bp.toScene(p.lon, p.lat, h) : null;
+    });
+    for (let i = 1; i < lift.length; i++) {
+        if (lift[i - 1] && lift[i]) app.drawLine(lift[i - 1], lift[i], colour);
+    }
+    if (lift[0] && lift[2]) app.drawLine(lift[0], lift[2], colour);
+    if (lift[1] && lift[3]) app.drawLine(lift[1], lift[3], colour);
+}
+
+// A point `metres` from `at` along a compass bearing, and `x` east, `z` north.
+const step = (at, deg, metres) => stepXY(at, Math.sin(deg * Math.PI / 180) * metres,
+    Math.cos(deg * Math.PI / 180) * metres);
+const stepXY = (at, x, z) => ({ lon: at.lon + x / (111320 * Math.cos(at.lat * Math.PI / 180)),
+    lat: at.lat + z / 110540 });

@@ -97,6 +97,26 @@ export function dab(shaping, lon, lat, how) {
     return moved.length;
 }
 
+/**
+ * A plane through `at` {lon, lat, h} that falls `pct` percent towards the
+ * compass bearing `dir` (0 north, 90 east): Flatten with a fall, so a terrace
+ * drains (PLAN-editors idea 11). With no fall it is level.
+ */
+export function fallPlane(at, pct = 0, dir = 0) {
+    const mLon = 111320 * Math.cos(at.lat * Math.PI / 180);
+    const s = Math.sin(dir * Math.PI / 180);
+    const c = Math.cos(dir * Math.PI / 180);
+    const k = (Number(pct) || 0) / 100;
+    return (lon, lat) => at.h - k * ((lon - at.lon) * mLon * s + (lat - at.lat) * 110540 * c);
+}
+
+// The compass bearing from one point to another, degrees.
+export function bearing(a, b) {
+    const mLon = 111320 * Math.cos(a.lat * Math.PI / 180);
+    const d = Math.atan2((b.lon - a.lon) * mLon, (b.lat - a.lat) * 110540) * 180 / Math.PI;
+    return (d + 360) % 360;
+}
+
 // Towards `to` by no more than `most`.
 const toward = (from, to, most) => from + Math.max(-most, Math.min(most, to - from));
 
@@ -110,8 +130,10 @@ function value(shaping, c, at, how) {
     if (brush === 'putback') return toward(was, 0, step * k);
     // Flatten and level both aim at an absolute height and store the
     // difference: what the player sees is the DEM plus what is written here.
-    const want = brush === 'level' ? Number(how.target)
-        : how.target ?? (how.ground?.(how.lon, how.lat) ?? 0) + shaping.at(how.lon, how.lat);
+    // A plane (Flatten with a fall) aims at a different height at each cell.
+    const want = how.plane ? how.plane(at.lon, at.lat)
+        : brush === 'level' ? Number(how.target)
+            : how.target ?? (how.ground?.(how.lon, how.lat) ?? 0) + shaping.at(how.lon, how.lat);
     if (!Number.isFinite(want)) return was;
     const wanted = want - (how.ground?.(at.lon, at.lat) ?? 0);
     // A bed is laid in one pass, its shoulder blending into what was there.

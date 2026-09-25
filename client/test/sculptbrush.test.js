@@ -99,3 +99,37 @@ test('a bed is laid in one pass, no steeper than asked, and one undo takes it', 
     s.undo();
     assert.ok(near(s.at(mid.lon, mid.lat), 0));
 });
+
+test('a plane with a fall drops towards its bearing, and is level with none', async () => {
+    const { bearing, fallPlane } = await import('../js/sculptbrush.js');
+    const at = { lon: mid.lon, lat: mid.lat, h: 100 };
+    const east = { lon: mid.lon + 10 / M_LON, lat: mid.lat };
+    const north = { lon: mid.lon, lat: mid.lat + 10 / 110540 };
+    const p = fallPlane(at, 5, 90);
+    assert.ok(near(p(at.lon, at.lat), 100));
+    assert.ok(near(p(east.lon, east.lat), 99.5, 1e-3), 'half a metre lower 10 m east');
+    assert.ok(near(p(north.lon, north.lat), 100, 1e-6), 'level across the fall');
+    assert.ok(near(fallPlane(at, 0, 90)(east.lon, east.lat), 100));
+    assert.ok(near(bearing(at, east), 90, 1e-3));
+    assert.ok(near(bearing(at, north), 0, 1e-6));
+});
+
+test('Flatten with a fall shapes a terrace that drains; Level holds a height', async () => {
+    const { fallPlane } = await import('../js/sculptbrush.js');
+    const s = land();
+    const ground = () => 50;
+    const plane = fallPlane({ lon: mid.lon, lat: mid.lat, h: 52 }, 4, 90);
+    for (let f = 0; f < 20; f++) {
+        dab(s, mid.lon, mid.lat, { brush: 'flatten', size: 20, strength: 5, dt: 0.5,
+            soft: 0.2, plane, ground });
+    }
+    const w = s.at(mid.lon - 5 / M_LON, mid.lat) + 50;
+    const e = s.at(mid.lon + 5 / M_LON, mid.lat) + 50;
+    assert.ok(near(w - e, 0.4, 0.05), `west ${w} east ${e}`);
+    const t = land();
+    for (let f = 0; f < 20; f++) {
+        dab(t, mid.lon, mid.lat, { brush: 'level', size: 20, strength: 5, dt: 0.5,
+            soft: 0.2, target: 47, ground });
+    }
+    assert.ok(near(t.at(mid.lon, mid.lat) + 50, 47, 1e-3));
+});

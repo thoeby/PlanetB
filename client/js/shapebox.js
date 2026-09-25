@@ -55,8 +55,31 @@ export function wireBox(q, all, state, said) {
     for (const b of all('.sc-shapes button')) {
         b.onclick = () => { state.shape = b.dataset.shape; redraw(); };
     }
+    q('.sc-fall').addEventListener('change', (e) => {
+        state.fall = Math.min(5, Math.max(0, Number(e.target.value) || 0));
+        redraw();
+    });
+    const turn = (deg) => {
+        state.dir = ((Math.round(Number(deg) || 0) % 360) + 360) % 360;
+        q('.sc-dir').value = String(state.dir);
+    };
+    q('.sc-dir').addEventListener('change', (e) => { turn(e.target.value); redraw(); });
+    // Level's height: typed, taken off the ground, or the floor of a thing.
+    const aim = (h) => {
+        state.target = Number(h);
+        if (Number.isFinite(state.target)) q('.sc-target').value = state.target.toFixed(1);
+    };
+    q('.sc-target').addEventListener('change', (e) => aim(e.target.value));
+    q('.sc-floor').addEventListener('change', (e) => { if (e.target.value) aim(e.target.value); });
     q('.sc-strength').value = String(state.strength);
     q('.sc-soft').value = String(state.soft);
     redraw();
-    return { resize, redraw };
+    return { resize, redraw, turn, aim };
+}
+
+// The things standing on this land, as "floor of …" choices for Level.
+export function floors(select, things) {
+    select.replaceChildren(new Option('floor of…', ''),
+        ...(things ?? []).filter((t) => Number.isFinite(Number(t.h))).map((t) =>
+            new Option(`${t.name ?? t.san} · ${Number(t.h).toFixed(1)} m`, String(t.h))));
 }

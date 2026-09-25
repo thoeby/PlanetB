@@ -15,7 +15,7 @@ import { Shaping, brushWords } from './sculpt.js';
 import { alongLine } from './sculptbrush.js';
 import { el } from './poolui.js';
 import { brushLine, brushUses, keyHandler, shapedLine } from './sculptmode.js';
-import { wireBox } from './shapebox.js';
+import { floors, wireBox } from './shapebox.js';
 import { toolRail } from './sculptrail.js';
 import { shapeSurface } from './shapetool.js';
 
@@ -46,14 +46,15 @@ const sentence = (state) => {
  * ctx: {bpmode, bp, app, pc, onSaved}; `lands()` answers the player's areas.
  */
 export function mountShape(host, ctx, { lands = () => [] } = {}) {
-    const box = el('div');
-    box.innerHTML = HTML;
-    host.append(box);
+    const node = el('div');
+    node.innerHTML = HTML;
+    host.append(node);
     const state = { on: false, brush: 'raise', size: 12, strength: 1, soft: 0.6,
-        curve: 'smooth', shape: 'circle', blend: true, shaping: null,
+        curve: 'smooth', shape: 'circle', blend: true, fall: 0, dir: 180, target: NaN,
+        shaping: null,
         areas: [], roads: [], painting: false, at: null, inside: null, line: [] };
-    const rail = toolRail((id) => pick(id), box.querySelector('.sh-rail-host'));
-    const q = (sel) => box.querySelector(sel);
+    const rail = toolRail((id) => pick(id), node.querySelector('.sh-rail-host'));
+    const q = (sel) => node.querySelector(sel);
     const say = (msg, bad = false) => {
         if (msg !== undefined) {
             q('.sc-status').textContent = msg;
@@ -69,7 +70,8 @@ export function mountShape(host, ctx, { lands = () => [] } = {}) {
     // are drawn again once it is let go of (client/js/blueprint.js quick).
     const shaped = (rect) => ctx.bp.rebuild(rect, { quick: state.painting });
     const surface = shapeSurface(ctx.bp, ctx.app, ctx.pc, state, { say, hover, shaped, ground,
-        levelTo: () => Number(q('.sc-target').value) });
+        levelTo: () => state.target, turn: (deg) => fields.turn(deg),
+        take: (g) => levelHere(state, say, fields, g) });
     const pick = (id) => pickBrush(rail, q, state, id, say);
     const open = () => openOver(ctx, state, surface, say);
     const load = (id) => chooseLand(q, state, say, id);
@@ -81,8 +83,8 @@ export function mountShape(host, ctx, { lands = () => [] } = {}) {
         save: () => saveGround(state, say, ctx),
         apply: () => layBed(q, state, say, ctx, ground),
         clear: () => putBack(state, say, ctx),
-        take: () => levelHere(q, state, say, ground) };
-    wire(rail, q, state, acts);
+        take: () => levelHere(state, say, fields) };
+    const fields = wire(rail, q, state, acts);
     return {
         state, say, surface, ...acts,
         shaping: () => state.shaping,
@@ -137,6 +139,7 @@ async function chooseLand(q, state, say, id) {
     state.shaping = await Shaping.load(area);
     state.roads = await roadsOn(area);
     state.line = [];
+    floors(q('.sc-floor'), await api.rpc('area_contents', { area_id: area.id }).catch(() => []));
     q('.sc-road').replaceChildren(new Option('pick a road…', ''),
         ...state.roads.map((r) => new Option(r.name, String(r.id))));
     say('');
@@ -167,13 +170,12 @@ function putBack(state, say, ctx) {
     return moved;
 }
 
-// What Level aims at, read off the ground rather than typed from nothing.
-function levelHere(q, state, say, ground) {
-    const at = state.at;
-    const dem = at ? ground(at.lon, at.lat) : null;
-    if (!Number.isFinite(dem)) { say('point at some ground first', true); return null; }
-    const here = dem + (state.shaping?.at(at.lon, at.lat) ?? 0);
-    q('.sc-target').value = here.toFixed(1);
+// What Level aims at, read off the clay rather than typed from nothing: where
+// the pointer is, or where an Alt-click landed.
+function levelHere(state, say, box, g = state.at) {
+    const here = g?.h;
+    if (!Number.isFinite(here)) { say('point at some ground first', true); return null; }
+    box.aim(here);
     say(`levelling to ${here.toFixed(1)} m`);
     return here;
 }
@@ -213,7 +215,8 @@ function pickBrush(rail, q, state, id, say) {
 
 function wire(rail, q, state, acts) {
     q('.sc-land').addEventListener('change', (e) => acts.choose(e.target.value));
-    const { resize } = wireBox(q, (sel) => rail.all(sel), state, () => acts.say(''));
+    const box = wireBox(q, (sel) => rail.all(sel), state, () => acts.say(''));
+    const { resize } = box;
     const redraw = () => acts.ctx.bp.rebuild(null);
     const undo = () => {
         acts.say(state.shaping?.undo() ? 'undone' : 'nothing to undo');
@@ -236,6 +239,7 @@ function wire(rail, q, state, acts) {
     document.addEventListener('keydown',
         keyHandler(state, { brush: acts.pick, size: resize, undo, redo }));
     acts.pick(state.brush);
+    return box;
 }
 
 // The lines this land holds, so a bed can be laid along one without clicking

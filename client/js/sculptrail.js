@@ -47,8 +47,18 @@ const OPTIONS = `
     <button type="button" data-shape="circle">Circle</button>
     <button type="button" data-shape="square">Square</button>
   </div>
+  <label data-uses="fall">Fall (%)<input class="sc-fall" type="number" min="0" max="5"
+    step="0.5" value="0"></label>
+  <label data-uses="fall">Falls towards (°)<input class="sc-dir" type="number" min="0"
+    max="359" step="5" value="180"></label>
+  <p data-uses="fall" class="note">Ctrl-drag on the ground turns the arrow.</p>
   <label data-uses="target">Level to (m)<input class="sc-target" type="number"
-    step="0.5"><button type="button" class="sc-take">Take it from here</button></label>
+    step="0.5"></label>
+  <div data-uses="target" class="sc-seg">
+    <button type="button" class="sc-take">Take it from here</button>
+    <select class="sc-floor"></select>
+  </div>
+  <p data-uses="target" class="note">Alt-click on the ground takes its height.</p>
 </div>
 <div class="sc-line-box" hidden>
   <div class="note">Click the path out on the ground, or take one of this

@@ -42,10 +42,12 @@ export const BRUSH_SAYS = {
         + ' Shift lowers instead.', uses: ['size', 'strength', 'falloff', 'shape'] },
     smooth: { does: 'Pulls every cell towards the mean of the eight around it.',
         uses: ['size', 'strength', 'falloff'] },
-    flatten: { does: 'Levels the ground to whatever height the brush landed on.',
-        uses: ['size', 'strength', 'falloff'] },
-    level: { does: 'Levels it to a height you name, wherever the brush goes.',
-        uses: ['size', 'strength', 'falloff', 'target'] },
+    flatten: { does: 'Levels the ground to a plane through where the stroke began,'
+        + ' falling a little one way if you ask, so a terrace drains.',
+    uses: ['size', 'strength', 'falloff', 'fall'] },
+    level: { does: 'Levels it to a height you name, pick off the ground, or take from'
+        + ' the floor of something standing here.',
+    uses: ['size', 'strength', 'falloff', 'target'] },
     line: { does: 'Lays a road bed along a line: a flat width, a shoulder either'
         + ' side, and never steeper than the gradient you allow.',
     uses: [] },

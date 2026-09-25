@@ -128,3 +128,5 @@
 #sculpt-tools .sc-seg button[aria-pressed="true"] {
   color: var(--accent); border-color: var(--accent);
 }
+#sculpt-tools .sc-seg .sc-take { flex: 0 0 auto; padding: 4px 10px; white-space: nowrap; }
+#sculpt-tools .sc-seg .sc-floor { flex: 1; min-width: 0; margin: 0; }
