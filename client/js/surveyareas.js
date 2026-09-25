@@ -17,7 +17,7 @@ import { drawInteraction, paintHandlers, toolsFor } from './areastools.js';
 import { areaKeys, mountColumns } from './areaspanel.js';
 import { saveAreas } from './areasave.js';
 import { areaClick, editInteractions, erase, stepBack } from './areasedit.js';
-import { entriesFor, entryOf } from '../lib/kinds.js';
+import { defaultsFrom, entriesFor, entryOf } from '../lib/kinds.js';
 
 const HTML = `
 <div class="ar-top">
@@ -69,12 +69,15 @@ async function start(state, q, say, acts) {
     const ground = await api.rpc('ground').catch(() => null);
     state.m = buildAreasMap(ol, q('.ar-map'), ground);
     clicks(state, q, acts);
-    const [kinds, props] = await Promise.all([
+    const [kinds, props, own] = await Promise.all([
         api.select('kind', { order: 'ordering' }).catch(() => []),
-        api.select('property', { order: 'kind,ordering' }).catch(() => [])]);
+        api.select('property', { order: 'kind,ordering' }).catch(() => []),
+        api.select('kind_default').catch(() => [])]);
     state.properties = props;
+    // A building is placed and the ground shaped, not drawn here; the rest is
+    // what the operator says (db/0199, EDT.23).
     state.entries = entriesFor('polygon', kinds, props,
-        { building: { hidden: true }, terrainmod: { hidden: true } });
+        defaultsFrom(own, { building: { hidden: true }, terrainmod: { hidden: true } }));
     state.cols.picker.set(state.entries);
     state.own = { draw: drawInteraction(state.m, state, acts.made),
         edit: editInteractions(state.m, state, acts) };

@@ -8,7 +8,7 @@
 // same row-level security everything else is (Invariant 6).
 
 import * as api from './api.js';
-import { entriesFor, entryOf } from '../lib/kinds.js';
+import { defaultsFrom, entriesFor, entryOf } from '../lib/kinds.js';
 import { Lines } from './lines.js';
 import { aroundLand, onContour, snapNode } from './linesnap.js';
 import { Shaping } from './sculpt.js';
@@ -134,11 +134,13 @@ async function leaving(ctx, state, acts, leave, surface) {
 }
 
 async function loadKinds(state, picker) {
-    const [kinds, props] = await Promise.all([
+    const [kinds, props, own] = await Promise.all([
         api.select('kind', { order: 'ordering' }).catch(() => []),
-        api.select('property', { order: 'kind,ordering' }).catch(() => [])]);
+        api.select('property', { order: 'kind,ordering' }).catch(() => []),
+        api.select('kind_default').catch(() => [])]);
     state.properties = props;
-    state.entries = entriesFor('line', kinds, props, state.defaults ?? {});
+    // What the operator says a kind is (db/0199, EDT.23), over the guesses.
+    state.entries = entriesFor('line', kinds, props, defaultsFrom(own));
     picker.set(state.entries);
 }
 

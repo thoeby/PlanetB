@@ -60,6 +60,26 @@ export function entriesFor(geometry, kinds, properties, defaults = {}) {
     return out;
 }
 
+/**
+ * Rows of `kind_default` (db/0199) as `entriesFor`'s defaults: only what the
+ * operator said, so a blank width still falls back to the class's own.
+ * `extra` is merged under them.
+ */
+export function defaultsFrom(rows = [], extra = {}) {
+    const out = Object.fromEntries(Object.entries(extra).map(([k, v]) => [k, { ...v }]));
+    for (const r of rows ?? []) {
+        const own = { ...(out[r.kind] ?? {}) };
+        for (const k of ['width', 'corner', 'gradient']) if (r[k] != null) own[k] = r[k];
+        if (r.hidden) own.hidden = true;
+        out[r.kind] = own;
+    }
+    return out;
+}
+
+// What the editors guess for a kind nobody has set, for the admin's fields.
+export const guessOf = (kind) => ({ width: KIND_WIDTH[kind] ?? 2,
+    corner: CORNERED.has(kind), gradient: GRADIENT[kind] ?? 100 });
+
 const says = (geometry, label, width) => (geometry === 'line'
     ? `${label.toLowerCase()}, ${width} m wide` : `an area of ${label.toLowerCase()}`);
 

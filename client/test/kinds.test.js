@@ -3,7 +3,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 
-import { entriesFor, entryOf, ordered, touched } from '../lib/kinds.js';
+import { defaultsFrom, entriesFor, entryOf, guessOf, ordered, touched } from '../lib/kinds.js';
 
 const KINDS = [
     { name: 'highway', applies_to: 'feature', geometry: 'line', label: 'Highway' },
@@ -38,6 +38,24 @@ test('the operator’s defaults win, and a hidden kind is not offered', () => {
     assert.deepEqual(e.map((x) => x.id), ['highway:residential', 'highway:track']);
     assert.equal(e[0].width, 7);
     assert.equal(e[0].gradient, 9);
+});
+
+test('EDT.23: kind_default rows over the guesses; a blank width keeps the class width', () => {
+    const rows = [{ kind: 'highway', width: null, corner: null, gradient: 9, hidden: false },
+        { kind: 'barrier', width: 0.8, corner: false, gradient: null, hidden: false },
+        { kind: 'landuse', width: null, corner: null, gradient: null, hidden: true }];
+    const own = defaultsFrom(rows, { building: { hidden: true } });
+    assert.deepEqual(own.highway, { gradient: 9 });
+    assert.deepEqual(own.barrier, { width: 0.8, corner: false });
+    assert.equal(own.landuse.hidden, true);
+    assert.equal(own.building.hidden, true, 'what the editor hides itself stays hidden');
+    const lines = entriesFor('line', KINDS, PROPS, own);
+    assert.equal(entryOf(lines, 'highway', { highway: 'residential' }).width, 5,
+        'the class width, since the operator left width blank');
+    assert.equal(entryOf(lines, 'highway', { highway: 'residential' }).gradient, 9);
+    assert.equal(entryOf(lines, 'barrier', { barrier: 'wall' }).corner, false);
+    assert.deepEqual(entriesFor('polygon', KINDS, PROPS, own), [], 'landuse hidden');
+    assert.deepEqual(guessOf('barrier'), { width: 0.5, corner: true, gradient: 100 });
 });
 
 test('recent on top, typed filters, nine at most remembered', () => {
