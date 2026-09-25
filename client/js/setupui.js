@@ -135,7 +135,7 @@ async function connect(q, say) {
     const user = q('.gs-user').value.trim() || 'admin';
     const password = q('.gs-pw').value;
     say('.gs-status', 'asking that GeoServer what it publishes\u2026');
-    const test = await post('/setup/geoserver', { url, user, password, provision: false })
+    const test = await post('/setup/geoserver', { url, user, password })
         .catch((err) => ({ ok: false, error: String(err.message ?? err) }));
     if (!test.ok) { say('.gs-status', short(test.error) || 'that did not work', true); return []; }
     say('.gs-status', 'reached \u2014 reading its coverages\u2026');

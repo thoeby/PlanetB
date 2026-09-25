@@ -9,11 +9,11 @@ Two sets live here.
 `tools/make-asset-fixtures.mjs` for `client/test/canon.test.js`. Their bytes
 are pinned by that test: do not re-make them unless canon-v1 changes.
 
-## The eleven foundation models (TASKS-foundation.md FND.0)
+## The twelve foundation models (TASKS-foundation.md FND.0)
 
 `tree-fir.glb`, `tree-larch.glb`, `bush.glb`, `rock.glb`, `street-lamp.glb`,
 `billboard.glb`, `bus.glb`, `tunnel-portal.glb`, `bridge-deck.glb`,
-`wall-segment-2m.glb`, `kerb-segment-1m.glb`.
+`wall-segment-2m.glb`, `kerb-segment-1m.glb`, `pebble-segment-5cm.glb`.
 
 | source | made here, by `tools/make-fixture-models.mjs` (which builds them out of `tools/glbkit.mjs`) |
 |---|---|
@@ -30,3 +30,10 @@ tunnel portal), and a tree's height for scatter. Re-make them with
 Replacing any of them with a real model off a CC0 site is welcome on a machine
 that can reach one: keep the file name and the node names, put the real
 source and licence in the table above, and the stories will not notice.
+
+## The three materials (FND.5)
+
+`asphalt.png`, `kerb-stone.png` and `too-big.png` (3000 px wide on purpose:
+story 20 registers it and reads the refusal), made by
+`tools/make-fixture-materials.mjs`, deterministic, **CC0 1.0** on the same
+terms as the models above.

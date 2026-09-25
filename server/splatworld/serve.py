@@ -414,10 +414,10 @@ class Handler(BaseHTTPRequestHandler):
             with target.open("rb") as fh:
                 shutil.copyfileobj(fh, self.wfile)
 
-    # ----------------------------------------------------------- the importer
+    # --------------------------------------------------------- setup, local only
 
     def _from_this_machine(self) -> bool:
-        """The import endpoints write to the world with the owner's authority.
+        """The setup endpoints change what this server is configured with.
 
         They are therefore offered only to a browser on this very machine, even
         when the server is bound to 0.0.0.0 so other people can look at the
@@ -474,18 +474,6 @@ class Handler(BaseHTTPRequestHandler):
             # What that GeoServer publishes, for the Setup panel to offer as the
             # ground (T0). The import page that used to ask this is gone.
             self._probe(body)
-        elif path == "/setup/account":
-            self._setup_account(body)
-        elif path == "/setup/lastfail":
-            self._last_db_errors()
-        elif path == "/setup/clear":
-            self._clear_drawn()
-        elif path == "/import/properties":
-            self._import_properties()
-        elif path == "/import/probe":
-            self._probe(body)
-        elif path == "/import/run":
-            self._import(body)
         else:
             self._json(404, {"ok": False, "error": f"no such thing as {path}"})
 
@@ -513,78 +501,6 @@ class Handler(BaseHTTPRequestHandler):
             "repo": str(self.cfg.repo),
             "version": __version__,
         })
-
-    def _setup_account(self, body: dict) -> None:
-        """The account you sign in with, and the one QGIS draws as."""
-        from . import config as configmod
-        from . import importer
-
-        email = (body.get("email") or "").strip()
-        password = body.get("password") or ""
-        if not email or not password:
-            self._json(400, {"error": "An email and a password, please."})
-            return
-        try:
-            importer.ensure_account(self.cfg, email, password)
-        except Exception as err:  # noqa: BLE001
-            self._json(200, {"ok": False, "error": f"{type(err).__name__}: {err}"})
-            return
-        configmod.save(self.cfg, {"SPLATWORLD_ACCOUNT": email})
-        self._json(200, {"ok": True, "log": [f"  account {email} is ready"]})
-
-    def _clear_drawn(self) -> None:
-        """Everything drawn, gone — for a world that is being set up.
-
-        A polygon saved in the wrong place (an axis-order mishap puts one off
-        Somalia; a reprojection one puts it at longitude 877197) is hard to
-        even select in QGIS. This is the one place it can be undone without
-        typing SQL. Accounts, elevation and the catalogue are untouched.
-        """
-        import psycopg
-
-        try:
-            with psycopg.connect(self.cfg.dsn(), connect_timeout=5) as conn:
-                gone = {t: conn.execute(f"DELETE FROM {t}").rowcount
-                        for t in ("instance", "feature", "area")}
-                conn.commit()
-        except psycopg.Error as err:
-            self._json(200, {"ok": False, "error": f"could not clear: {err}"})
-            return
-        self._json(200, {"ok": True, "log": [
-            f"  removed {gone['area']} area(s), {gone['feature']} feature(s), "
-            f"{gone['instance']} instance(s)"]})
-
-    def _last_db_errors(self) -> None:
-        """What Postgres refused lately, in its own words.
-
-        A Save in QGIS that the database rejects reaches QGIS as "Error
-        inserting features" — GeoServer keeps the reason. Postgres writes it
-        to its log, and the server is on the same machine as the database, so
-        it can be read from here rather than found in a folder.
-        """
-        import psycopg
-
-        try:
-            with psycopg.connect(self.cfg.dsn(), autocommit=True, connect_timeout=5) as conn:
-                logfile = conn.execute("SELECT pg_current_logfile()").fetchone()[0]
-                if not logfile:
-                    self._json(200, {"ok": False, "error":
-                               "Postgres is not writing a log file (logging_collector is off),"
-                               " so the reason is not recorded anywhere I can read."})
-                    return
-                size = conn.execute("SELECT size FROM pg_stat_file(%s)", (logfile,)).fetchone()[0]
-                start = max(size - 200_000, 0)
-                tail = conn.execute("SELECT pg_read_file(%s, %s, %s)",
-                                    (logfile, start, size - start)).fetchone()[0]
-        except psycopg.Error as err:
-            self._json(200, {"ok": False, "error": f"could not read the log: {err}"})
-            return
-        keep = [line for line in tail.splitlines()
-                if any(tag in line for tag in ("ERROR:", "DETAIL:", "STATEMENT:",
-                                               "CONTEXT:", "HINT:"))]
-        self._json(200, {"ok": True, "log": keep[-40:] or
-                         ["nothing refused in the last part of the log"],
-                         "file": logfile})
 
     def _setup_geoserver(self, body: dict) -> None:
         """Prove the address and the login, and remember them.
@@ -651,36 +567,6 @@ class Handler(BaseHTTPRequestHandler):
         except Exception as err:  # noqa: BLE001 - the page shows whatever broke
             self._json(200, {"error": f"{type(err).__name__}: {err}"})
 
-    def _import_properties(self) -> None:
-        """Which feature properties the world's symbols actually read.
-
-        The import page offers these as the things a column can be mapped to.
-        They are not a list in the page and not a constant in the compiler:
-        they are whatever a symbol mentions (db/0161), so adding a layer that
-        reads `bhd` makes `bhd` mappable with nothing to change.
-        """
-        import psycopg
-
-        query = """
-            SELECT s.kind, array_agg(DISTINCT p) FROM symbol s,
-            LATERAL (
-              SELECT jsonb_path_query(jsonb_build_array(s.filter, s.layers),
-                                      '$.**.prop') #>> '{}' AS p
-              UNION
-              SELECT v #>> '{}' FROM jsonb_array_elements(s.layers) l,
-                   LATERAL jsonb_each(coalesce(l -> 'params', '{}'::jsonb)) e(k, v)
-              WHERE e.k LIKE %s
-            ) q
-            WHERE p IS NOT NULL AND s.enabled GROUP BY s.kind
-        """
-        try:
-            with psycopg.connect(self.cfg.dsn(), autocommit=True,
-                                 connect_timeout=10) as conn:
-                rows = conn.execute(query, (r"%\_prop",)).fetchall()
-            self._json(200, {"properties": {kind: sorted(props) for kind, props in rows}})
-        except Exception as err:  # noqa: BLE001 - the page falls back to typing
-            self._json(200, {"properties": {}, "error": f"{type(err).__name__}: {err}"})
-
     def _probe_postgis(self, body: dict) -> None:
         """The spatial tables of a database, offered exactly like WFS layers."""
         from . import postgis
@@ -695,19 +581,6 @@ class Handler(BaseHTTPRequestHandler):
             self._json(200, {"error": str(err)})
         except Exception as err:  # noqa: BLE001 - the page shows whatever broke
             self._json(200, {"error": f"{type(err).__name__}: {err}"})
-
-    def _import(self, body: dict) -> None:
-        from . import importer
-
-        lines: list[str] = []
-        try:
-            importer.run_spec(self.cfg, body, Path.cwd(), out=lambda m: lines.append(str(m)))
-            self._json(200, {"ok": True, "log": lines})
-        except SystemExit as err:
-            self._json(200, {"ok": False, "log": lines, "error": str(err)})
-        except Exception as err:  # noqa: BLE001
-            self._json(200, {"ok": False, "log": lines,
-                             "error": f"{type(err).__name__}: {err}"})
 
     def _drain(self, length: int) -> None:
         """Read the body and throw it away, before refusing the request.

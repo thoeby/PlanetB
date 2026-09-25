@@ -60,13 +60,13 @@ db-migrate:
 
 db-test: db-reset
 	@$(PSQL) -c 'CREATE EXTENSION IF NOT EXISTS pgtap'
-	@if [ -n '$(DB_TESTS)' ]; then pg_prove --ext .sql -v $(DB_TESTS); else echo 'db-test: no pgTAP tests yet'; fi
+	@pg_prove --ext .sql -v $(DB_TESTS)
 	@for s in $(DB_TEST_SCRIPTS); do echo "  run $$s"; bash "$$s"; done
 
 api-test:
-	@if [ -x tools/api-test.sh ]; then bash tools/api-test.sh; else echo 'api-test: not implemented yet (WP0.9)'; fi
-	@if [ -x tools/files-test.sh ]; then bash tools/files-test.sh; else echo 'api-test: files-test not implemented yet (WP0.10)'; fi
-	@if [ -x tools/ops-test.sh ]; then bash tools/ops-test.sh; else echo 'api-test: ops-test not implemented yet (WP5.5)'; fi
+	@bash tools/api-test.sh
+	@bash tools/files-test.sh
+	@bash tools/ops-test.sh
 	@python3 -m unittest discover -q -s server -p 'test_*.py'
 
 # FND.2: the flow editor's own two specs, by name — the copied modules' suite
@@ -81,7 +81,7 @@ flow-test:
 	else echo 'flow-test: playwright not installed, skipped'; fi
 
 client-test:
-	@if compgen -G 'client/test/*.test.js' > /dev/null; then node --test client/test/*.test.js; else echo 'client-test: no tests yet (WP1)'; fi
+	@node --test client/test/*.test.js
 	@if $(PSQL) -c 'SELECT 1' > /dev/null 2>&1; then bash tools/test-tiles.sh; else echo 'client-test: no database, test tiles skipped'; fi
 	@if [ -f playwright.config.js ] && [ -d node_modules/@playwright ]; then npx playwright test; else echo 'client-test: playwright not installed, browser tests skipped'; fi
 
@@ -92,7 +92,7 @@ player-run:
 	@npx playwright test --config client/test/run/playwright.config.js $(RUN_ARGS)
 
 lint:
-	@if command -v sqlfluff > /dev/null; then sqlfluff lint db tools --disable-progress-bar; else echo 'lint: sqlfluff not installed, skipped'; fi
+	@if command -v sqlfluff > /dev/null; then sqlfluff lint db --disable-progress-bar; else echo 'lint: sqlfluff not installed, skipped'; fi
 	@if [ -d node_modules/eslint ]; then npx eslint .; else echo 'lint: eslint not installed, skipped'; fi
 
 gate: db-test api-test client-test lint

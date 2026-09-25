@@ -65,15 +65,6 @@
    the words sit above the control, not beside it. */
 #panel label > select { margin-top: 2px; }
 
-/* A build rule (client/js/rulesui.js): a condition or a produced property is
-   three fields on one line, and the last of them is the × that drops it. */
-#panel .ru-row { display: flex; gap: 4px; margin: 4px 0; }
-#panel .ru-row .prop { flex: 2; min-width: 4rem; }
-#panel .ru-row .val { flex: 3; min-width: 4rem; }
-#panel .ru-row .op { flex: 0 0 5rem; }
-#panel .ru-row button { flex: 0 0 auto; padding: 4px 8px; }
-#panel .ru-rule button { text-align: left; }
-
 /* ------------------------------------------------- the design's components
  *
  * The parts every panel in docs/design/ is built from. A module uses these
@@ -272,7 +263,6 @@
 #panel .po-tabs, #panel .po-pager { display: flex; align-items: center; gap: 8px; }
 #panel .po-pager { justify-content: space-between; margin-top: 4px; }
 #panel .po-pager button[disabled] { opacity: 0.4; cursor: default; }
-#panel .po-shot-box { margin: 0 0 6px; display: flex; flex-direction: column; gap: 3px; }
 #panel .po-shot { width: 100%; max-width: 220px; height: auto; display: block;
   border: 1px solid var(--line); background: #0b0e12; image-rendering: auto; }
 

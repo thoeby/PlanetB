@@ -26,7 +26,6 @@ import urllib.request
 from pathlib import Path
 
 import psycopg
-from psycopg import sql
 
 from . import crs
 from .config import Config
@@ -373,26 +372,3 @@ def run_spec(cfg: Config, spec: dict, base_dir: Path, out=print) -> int:
 
     print_(f"\nDone. Sign in at /app/play.html as {owner} and turn on background work.")
     return 0
-
-
-# ------------------------------------------------- elevation for what exists
-
-def area_bboxes(conn) -> list[list[float]]:
-    """One region per area drawn — nobody types it.
-
-    Per area, not one box over all of them: two areas far apart make a box
-    that covers everything between, and one polygon drawn in the wrong place
-    once turned "a valley" into "Africa to the Alps" and an hour of download.
-    """
-    rows = conn.execute(
-        "SELECT st_xmin(geom), st_ymin(geom), st_xmax(geom), st_ymax(geom)"
-        " FROM area ORDER BY created_at").fetchall()
-    return [[float(v) for v in row] for row in rows]
-
-
-def ensure_account(cfg: Config, email: str, password: str) -> str:
-    """The account you sign in as, and the owner QGIS draws as."""
-    with psycopg.connect(cfg.dsn()) as conn:
-        uid = ensure_owner(conn, email, password)
-        conn.commit()
-        return str(uid)

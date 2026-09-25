@@ -58,8 +58,9 @@ splatworld run
 ```
 
 It creates the database, applies the schema, starts PostgREST, serves the
-client, and opens the browser at the setup page. Leave it running; `Ctrl-C`
-stops it. Later `git pull`s apply their own migrations on the next `run`.
+client, and opens the browser at the world (`/app/play.html`). Everything —
+setup, your land, the catalog, the render pool — is a panel of that one page.
+Leave it running; `Ctrl-C` stops it. Later `git pull`s apply their own migrations on the next `run`.
 
 It prints the address it is serving on — usually `http://127.0.0.1:8081`, but
 if something else holds that port (GeoServer often does) it moves up and says
@@ -67,13 +68,15 @@ so. The pages are told which port they landed on, so nothing needs editing.
 
 Stuck? `splatworld doctor` prints everything it resolved and what is missing.
 
-### 5. Setup page — three steps, once
+### 5. Setup — three steps, once
+
+On an empty world the page opens on **Settings → Setup**.
 
 | | |
 |---|---|
-| **1 · Your account** | an email and a password (8+ characters). You sign in with it, and QGIS draws as it. |
-| **2 · Your GeoServer** | the address that opens its pages, e.g. `localhost:8083/geoserver`, and a login that may read your elevation. **Connect** asks its WCS what it publishes. Nothing is created on it: it serves the elevation and nothing else. |
-| **3 · Elevation** | after you have drawn an area, this works out the region from what you drew and fetches free Copernicus elevation for exactly that. Nothing to type. |
+| **1 · Account** | an email and a password. You sign in with it, and QGIS draws as it. The first account is the admin. |
+| **2 · GeoServer** | the address that opens its pages, e.g. `localhost:8083/geoserver`, and a login that may read your elevation. **Connect** asks its WCS what it publishes. Nothing is created on it: it serves the elevation and nothing else. |
+| **3 · Ground** | pick the coverage the world stands on and press **Use this ground**. Every z14 tile of it goes into the render pool, and until one is rendered the elevation is drawn as plain terrain you can already walk on. |
 
 You need a GeoServer for step 2 — [it's a zip and a script](https://geoserver.org/download/),
 no installer — with your elevation published as a coverage store
@@ -82,7 +85,8 @@ nothing else.
 
 ### 6. Draw something in QGIS
 
-1. In the page: **Your land → Shape this land in QGIS**. You get a `.qgs` with
+1. Get land first: **Your land** asks an admin for it (the admin draws it on
+   the map). Then **Your land → Shape this land in QGIS**. You get a `.qgs` with
    your own database login in it.
 2. Open it in QGIS. The layers are there, with the hillshade under them.
 3. Pick a layer — Wood, Road, Single tree — press the pencil
@@ -95,11 +99,13 @@ its revision are worked out from what you drew and where. QGIS connects as
 **you**, so you can draw on your own land and nowhere else, and what it
 refuses it refuses in words ([`gis/README.md`](gis/README.md)).
 
-### 7. Compile and walk around
+### 7. Submit, approve, compile
 
-Back on the setup page press **Fetch elevation**, then open `/app/play.html`
-on the address `splatworld run` printed, and turn on background work. The tabs
-compile what you drew, tile by tile, and the viewer streams it.
+What you drew is compiled only after somebody approves it: **Publish →
+Submit** sends the changed tiles, and the land's owner (or whoever they granted
+`approve`) approves them in **Publish → Approve**. In **Work**, press **Render** on a
+job in the pool (or tick **Help render the world**): that tab compiles it and
+publishes it, and every viewer streams it.
 
 ---
 
@@ -107,11 +113,11 @@ compile what you drew, tile by tile, and the viewer streams it.
 
 | | |
 |---|---|
-| QGIS says *Error inserting features* | Setup page → **Why did the last save fail?** It reads the Postgres log and shows the actual reason — GeoServer swallows it. |
+| QGIS says *Error inserting features* | QGIS's message log (*View → Panels → Log Messages*, PostGIS tab) has the database's own sentence; the Postgres log has it too. |
 | Something ended up in the wrong place | The database refuses a geometry outside the world's ground and says whether its coordinates are the wrong way round; draw with the project the page hands you. |
 | *libpq.dll was not found* (Windows) | PostgREST does not ship it. Put PostgreSQL's `bin` directory — the one with `psql.exe` — on PATH. `splatworld run` does this for you when it can find that directory. |
 | *Could not find a version that satisfies setuptools* when installing | `pip` could not reach an index to build in isolation: `python -m pip install -U pip setuptools wheel` then `python -m pip install --no-build-isolation -e ./server`. |
-| A fix from `git pull` seems to do nothing | The setup page shows a red bar when the server answering it is older than the page, and the setup buttons refuse to run stale code. Restart `splatworld run`; if it persists, `python -m pip install -e ./server`. |
+| A fix from `git pull` seems to do nothing | The Setup buttons refuse to run code older than the checkout and say so. Restart `splatworld run`; if it persists, `python -m pip install -e ./server`. |
 | Anything else | `splatworld doctor` |
 
 ## The documentation

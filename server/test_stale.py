@@ -25,8 +25,8 @@ class VersionTest(unittest.TestCase):
         stated = (Path(__file__).resolve().parents[1]
                   / "client" / "version.txt").read_text().strip()
         self.assertEqual(stated, serve.__version__,
-                         "client/version.txt is what the setup page compares "
-                         "against; if they drift the page cries wolf")
+                         "client/version.txt and the package's __version__ "
+                         "are one number; bump both")
 
 
 class CopyTest(unittest.TestCase):

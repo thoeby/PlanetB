@@ -32,7 +32,7 @@ SELECT columns_are('public', 'proposal', ARRAY[
 SELECT columns_are('public', 'approval', ARRAY['proposal_id', 'reviewer_id', 'at']);
 -- thumb_sha256 was added by db/0020_assets.sql (WP4.1): the catalog renders a
 -- thumbnail client-side and nothing pointed at it. `type` and `parts` are
--- db/0137_productshaveatype.sql's (FND.5): a product says what it is.
+-- db/0159_productshaveatype.sql's (FND.5): a product says what it is.
 SELECT columns_are('public', 'asset', ARRAY[
     'san', 'sha256', 'canon_version', 'name', 'category', 'bbox', 'tris',
     'tex_bytes', 'license', 'price', 'editions', 'issued', 'creator_id',

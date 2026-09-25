@@ -250,14 +250,13 @@ Dependencies: `psycopg`, `rasterio` (import only).
 | `config.py` | settings from env, `.env`, flags; ports (files 8081, API 3000) |
 | `migrate.py` | create DB, apply `db/*.sql` in order, ledger table `migration`, advisory lock |
 | `services.py` | starts, waits for and stops PostgREST (and puts libpq on PATH on Windows) |
-| `serve.py` | HTTP on one port: `/app/` (client), `/assets /tiles /jobs /geo` (GET immutable, PUT via `can_write`), `/tiles/cover/…png`, `/qgis/{project.qgs,credentials,save-ground.py}`, `/setup/*`, `/import/*`, `/healthz` |
+| `serve.py` | HTTP on one port: `/app/` (client), `/assets /tiles /jobs /geo` (GET immutable, PUT via `can_write`), `/tiles/cover/…png`, `/qgis/{project.qgs,credentials,save-ground.py}`, `/setup/{state,geoserver,probe}` (this machine only), `/healthz` |
 | `ground.py` · `dem.py` | cut `/geo/dem/{z}/{x}/{y}.r16` from the operator's WCS on first request; the dem encoding |
 | `geoserver.py` | parse WFS/WCS GetCapabilities for the Setup panel |
 | `png.py` · `geotiff.py` | stdlib PNG compose (cover sources); `.r32` → GeoTIFF for QGIS |
 | `qgis.py` | writes `gis/splatworld.qgs` from the world's vocabulary |
 | `importer.py` · `postgis.py` | `splatworld import`: layers from WFS, GeoJSON or local PostGIS tables |
 | `crs.py` | the two SRIDs, mirrored from db/0056 |
-| `tilestate.py` | read-only: why a tile is not finished |
 
 Commands (`splatworld <cmd>`; each also takes `--host`, `--port`, `--api-port`, `--verbose`):
 
