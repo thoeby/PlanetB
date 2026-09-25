@@ -43,6 +43,10 @@ export class BlueprintCamera {
         this.ctx.setDriving?.(false);
         this.ctx.player?.detach();
         document.exitPointerLock?.();
+        // And never again while the clay has the camera, whoever asks: a
+        // walk camera attached by something else would lock it on a click.
+        this.unlock = () => { if (document.pointerLockElement) document.exitPointerLock?.(); };
+        document.addEventListener('pointerlockchange', this.unlock);
     }
 
     // Blueprint opened: it frames the land.
@@ -63,6 +67,7 @@ export class BlueprintCamera {
         this.on = false;
         this.holding = false;
         this.keys.clear();
+        document.removeEventListener('pointerlockchange', this.unlock);
         for (const [name, fn] of this.handlers) {
             (name.startsWith('key') || name === 'blur' ? window : this.ctx.canvas)
                 .removeEventListener(name, fn);
