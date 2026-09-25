@@ -24,13 +24,14 @@ SELECT ok(abs(world_clock() - extract(epoch FROM now())) < 1,
 -- Two of them have since been given their real answer — `port_write` by FND.15
 -- (db/0169) and `mover_set` by FND.16 (db/0172) — so what they say now is what
 -- is wrong with the call, which is the better sentence and the point of having
--- written them. `world_events` is still F10's, and still says so.
+-- written them. `world_events` answers since LV.2 (db/0203): somebody with
+-- no land is told that nothing happened on it.
 SELECT throws_like($$SELECT port_write(gen_random_uuid(), 'on', 'true'::jsonb)$$,
     '%standing anywhere%', 'writing a port answers a player now (FND.15)');
 SELECT throws_like($$SELECT mover_set(gen_random_uuid(), '{}'::jsonb)$$,
     '%no such mover%', 'and so does setting a mover (FND.16)');
-SELECT throws_like($$SELECT world_events(0)$$,
-    '%flows do not run yet%', 'what has happened is still the runner''s, in F10');
+SELECT is(world_events(0) -> 'events', '[]'::jsonb,
+    'and so does reading what happened (LV.2)');
 
 SELECT has_function('api'::name, 'world_clock'::name,
                     'and every one of them is reachable over the API');

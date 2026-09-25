@@ -83,6 +83,7 @@
   import { mountProfile } from './js/profileui.js';
   import { nearbyInstances } from './js/build.js';
   import { InstancePreview } from './js/preview.js';
+  import { mountTriggers } from './js/triggerwire.js';
   import { LiveWorld, EVERY_MS, NEAR_M } from './js/live.js';
   import { LiveDraw } from './js/livedraw.js';
   import { Movers, EVERY_MS as MOVERS_MS, REACH_M } from './js/movers.js';
@@ -396,11 +397,11 @@
     const sans = [...new Set(rows.map((r) => r.san))];
     // FND.15: and its markings, which say which of its parts are live.
     const assets = await api.select('asset',
-      { san: `in.(${sans.join(',')})`, select: 'san,sha256,parts' }).catch(() => []);
+      { san: `in.(${sans.join(',')})`, select: 'san,sha256,parts,name' }).catch(() => []);
     const bySan = new Map(assets.map((a) => [a.san, a]));
     return rows.filter((r) => bySan.has(r.san))
       .map((r) => ({ ...r, sha256: bySan.get(r.san).sha256,
-                     parts: bySan.get(r.san).parts ?? {} }));
+                     parts: bySan.get(r.san).parts ?? {}, name: bySan.get(r.san).name }));
   }
 
   // WP4.4: the wallet, and the bounty that puts a tile in front of a stranger.
@@ -965,6 +966,11 @@
   setInterval(showWhatIsAround, 8000);
   showWhatIsAround();
 
+  // LV.2: what sets a placed thing off — walking up to it, clicking it, a key
+  // — noticed here and said to the world once (client/js/triggers.js).
+  const triggers = mountTriggers({ pc, preview, camera, canvas,
+    building: () => build.state.on, clock: () => movers.clock() });
+
   // FND.15: what changed since the number this tab last saw, for things within
   // sight of it. Nothing is asked while nobody is looking at the tab — the
   // lamp will still be lit when they come back.
@@ -973,6 +979,7 @@
     const p = camera.getPosition();
     const g = origin.geodeticOf({ x: p.x, y: p.y, z: p.z });
     await liveWorld.poll(g.lon, g.lat, NEAR_M).catch(() => 0);
+    await triggers.hear(g.lon, g.lat);
     // Applied either way: a thing that came into view since the last sweep has
     // to be put in the state the world already said it was in.
     liveDraw.apply(liveWorld);
@@ -1045,6 +1052,7 @@
     const pose = `${p.x.toFixed(1)} ${p.y.toFixed(1)} ${p.z.toFixed(1)} `
       + `${r.x.toFixed(3)} ${r.y.toFixed(3)} ${r.z.toFixed(3)} ${r.w.toFixed(3)}`;
     tick++;
+    if (tick % 6 === 0) triggers.tick();
     if (pose !== lastPose || streamer.pending !== lastPending || tick % 10 === 0) {
       lastPose = pose;
       streamer.update(cameraState(camera, app.graphicsDevice.height, pc));
@@ -1082,6 +1090,6 @@
     app, pc, api, origin, streamer, camera, rows, terrain, player, setDriving, work, groundMesh,
     hud, setup, admin, symbols, catalog, land, submit, pool, permission, ground,
     share, goTo,
-    spot, build, preview, nearby, areas, wallet, flows, sculpt, live: liveWorld, liveDraw, movers, moverDraw, xr: { wants: wantsXr, rig: () => rig },
+    spot, build, preview, nearby, areas, wallet, flows, sculpt, live: liveWorld, liveDraw, triggers, movers, moverDraw, xr: { wants: wantsXr, rig: () => rig },
   };
 </script>

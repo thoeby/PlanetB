@@ -12,6 +12,8 @@ import urllib.request
 import xml.etree.ElementTree as ET
 from xml.sax.saxutils import escape
 
+from elx_fixture_world import run_flow
+
 LOCK = threading.Lock()
 STATE = {'process': {}, 'service': {}, 'job': {}, 'report': {}, 'next': 1,
          'plugins': [], 'settings': {'server.control.port': ('integer', '8080')},
@@ -108,14 +110,6 @@ def input_values(inputs_xml):
     return out
 
 
-def constants(node):
-    out = {}
-    for c in node.findall('constant'):
-        v = c.find('.//value')
-        out[c.get('port', '')] = (v.text or '') if v is not None else ''
-    return out
-
-
 def call_world(world, key, fn, args):
     try:
         req = urllib.request.Request(
@@ -132,22 +126,20 @@ def call_world(world, key, fn, args):
 
 
 def run_job(job):
-    """One run: every World Write Port block, in document order."""
+    """One run: every block the fixture knows, in an order the wires allow
+    (tools/elx_fixture_world.py)."""
     values = input_values(job.get('inputs', ''))
     world, key = values.get('world', ''), values.get('world_key', '')
     proc = STATE['process'].get(str(job.get('process_id', '')))
     lines, code = [], 0
     if not proc:
         return 1, ['no such process']
-    for node in ET.fromstring(proc['elx']).iter('node'):
-        if node.get('plugin') != 'world' or node.get('id') != 'port.write':
-            continue
-        c = constants(node)
-        status, said = call_world(world, key, 'port_write', {
-            'p_instance': c.get('Object', ''), 'p_port': c.get('Port', ''),
-            'p_value': c.get('Value', '')})
-        STATE['calls'].append({'job': job['name'], 'status': status, 'said': said})
-        lines.append('%s: %s %s' % (node.get('name'), status, said[:200]))
+    ran = run_flow(proc['elx'], lambda rpc, args: call_world(world, key, rpc, args))
+    lines, code = [], 0
+    for name, rpc, status, said in ran:
+        STATE['calls'].append({'job': job['name'], 'rpc': rpc, 'status': status,
+                               'said': said})
+        lines.append('%s: %s %s' % (name, status, said[:200]))
         if status >= 300 or status == 0:
             code = 1
     return code, lines or ['nothing to do']
