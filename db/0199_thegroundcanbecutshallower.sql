@@ -28,7 +28,7 @@ LANGUAGE sql IMMUTABLE STRICT AS $$
 SELECT CASE p_key
     WHEN 'budget_scale' THEN '1'
     WHEN 'iters' THEN '2400'
-    WHEN 'frame_px' THEN '1024'
+    WHEN 'frame_px' THEN '1280'
     WHEN 'lease' THEN '00:05:00'
     WHEN 'lease_train' THEN '00:30:00'
     WHEN 'dem_deeper' THEN 'by zoom' END;
