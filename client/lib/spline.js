@@ -24,8 +24,7 @@ export function frameAt(lon0, lat0) {
 const sub = (a, b) => [a[0] - b[0], a[1] - b[1]];
 const add = (a, b) => [a[0] + b[0], a[1] + b[1]];
 const mul = (a, k) => [a[0] * k, a[1] * k];
-const len = (a) => Math.hypot(a[0], a[1]);
-export const dist = (a, b) => len(sub(a, b));
+export const dist = (a, b) => Math.hypot(a[0] - b[0], a[1] - b[1]);
 
 // The tangents a segment leaves node i and arrives at node i + 1 with:
 // Catmull-Rom's at a smooth node, and at a corner or an end the segment's own
@@ -66,12 +65,16 @@ export function curve(nodes, corner = [], fine = 0.25) {
     return out;
 }
 
+// In scalars: it runs for every quarter-metre of a curve, and a pair of arrays
+// a sample was most of what a long road cost (client/test/feel.test.js).
 const turn = (a, b, c) => {
-    const u = sub(b, a);
-    const v = sub(c, b);
-    const d = len(u) * len(v);
+    const ux = b[0] - a[0];
+    const uz = b[1] - a[1];
+    const vx = c[0] - b[0];
+    const vz = c[1] - b[1];
+    const d = Math.hypot(ux, uz) * Math.hypot(vx, vz);
     if (!d) return 0;
-    return Math.acos(Math.max(-1, Math.min(1, (u[0] * v[0] + u[1] * v[1]) / d))) * 180 / Math.PI;
+    return Math.acos(Math.max(-1, Math.min(1, (ux * vx + uz * vz) / d))) * 180 / Math.PI;
 };
 
 /**
@@ -80,9 +83,17 @@ const turn = (a, b, c) => {
  * control nodes are kept exactly.
  */
 export function densify(nodes, corner = [], { step = 1, degrees = 5 } = {}) {
-    const fine = curve(nodes, corner, Math.min(0.25, step / 4));
+    const every = Math.min(0.25, step / 4);
+    const fine = curve(nodes, corner, every);
     if (fine.length < 3) return fine;
-    const isNode = new Set(nodes.map((p) => `${p[0]},${p[1]}`));
+    // Which samples are the nodes: curve() ends each segment on its node, so
+    // they are counted rather than looked up — a string key per sample was
+    // most of the cost of a node on a long road (client/test/feel.test.js).
+    const isNode = new Uint8Array(fine.length);
+    for (let i = 0, at = 0; i + 1 < nodes.length; i++) {
+        at += Math.max(1, Math.ceil(dist(nodes[i], nodes[i + 1]) / every));
+        isNode[at] = 1;
+    }
     const out = [fine[0]];
     let run = 0;
     let bent = 0;
@@ -92,7 +103,7 @@ export function densify(nodes, corner = [], { step = 1, degrees = 5 } = {}) {
         // Kept when the next sample would be past a metre from the last kept,
         // so no two stored points are ever further apart than that.
         const full = run + dist(fine[i], fine[i + 1]) > step + 1e-9;
-        if (full || bent >= degrees || isNode.has(`${fine[i][0]},${fine[i][1]}`)) {
+        if (full || bent >= degrees || isNode[i]) {
             out.push(fine[i]);
             run = 0;
             bent = 0;

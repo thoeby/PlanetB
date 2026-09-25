@@ -21,19 +21,26 @@ export function bandOf(line, width, widths = null) {
     const centre = curveOf(line);
     if (centre.length < 2) return { centre, left: [], right: [] };
     const f = frameAt(centre[0].lon, centre[0].lat);
-    const xz = centre.map((p) => f.toXZ(p.lon, p.lat));
-    const at = widths ? widthAlong(line, xz, f, widths) : null;
+    const at = widths ? widthAlong(line, centre.map((p) => f.toXZ(p.lon, p.lat)), f, widths)
+        : null;
+    // Offsets in metres straight off the curve's own degrees: a few metres
+    // either side is flat enough, and a long road redrawn on every node is
+    // thousands of points (client/test/feel.test.js).
+    const [mLon, mLat] = [f.mLon, 110540];
     const left = [];
     const right = [];
-    for (let i = 0; i < xz.length; i++) {
+    for (let i = 0; i < centre.length; i++) {
         const half = Math.max(0.1, (at ? at[i] : width) / 2);
-        const a = xz[Math.max(0, i - 1)];
-        const b = xz[Math.min(xz.length - 1, i + 1)];
-        const d = Math.hypot(b[0] - a[0], b[1] - a[1]) || 1;
-        const nx = -(b[1] - a[1]) / d;
-        const nz = (b[0] - a[0]) / d;
-        left.push(f.toLonLat([xz[i][0] + nx * half, xz[i][1] + nz * half]));
-        right.push(f.toLonLat([xz[i][0] - nx * half, xz[i][1] - nz * half]));
+        const a = centre[Math.max(0, i - 1)];
+        const b = centre[Math.min(centre.length - 1, i + 1)];
+        const dx = (b.lon - a.lon) * mLon;
+        const dz = (a.lat - b.lat) * mLat;
+        const d = Math.hypot(dx, dz) || 1;
+        const ox = -dz / d * half;
+        const oz = dx / d * half;
+        const c = centre[i];
+        left.push({ lon: c.lon + ox / mLon, lat: c.lat - oz / mLat });
+        right.push({ lon: c.lon - ox / mLon, lat: c.lat + oz / mLat });
     }
     return { centre, left, right };
 }
