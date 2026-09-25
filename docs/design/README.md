@@ -1,5 +1,11 @@
 # The design
 
+`splatworld-v11.dc.html` is the design of record for the editors
+(PLAN-editors.md, TASKS-editors.md): Shape and Lines on the Blueprint ground
+view (11a–11c), Areas in Survey (11d), and every tag and sentence they say
+(11e). Blueprint's corner card, the tag and numbers at the pointer and the
+profile strip are `client/blueprint.css`; the clay is `client/js/blueprint.js`.
+
 `splatworld-v8.dc.html` is the design of record for the Work window — five
 tabs, a card for every job, and a card opened — on the `chrome7.dc.html`
 chrome; `splatworld-v7.dc.html` is the turn before it, which adds a seventh

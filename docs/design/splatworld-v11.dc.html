@@ -1,0 +1,270 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <meta name="design_doc_mode" content="canvas">
+  <link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@600;700&family=Sora:wght@400;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <style>
+    body{margin:0;background:#0b0d10;font-family:'Sora',sans-serif;color:#f2efe8}
+    *{box-sizing:border-box}
+    a{color:#f2efe8}
+    .board{position:relative;width:1920px;height:1080px;overflow:hidden;background:#0b0d10;font-size:14px}
+    .clay{position:absolute;inset:44px 0 0 0;background:
+      repeating-linear-gradient(35deg,transparent 0 46px,rgba(40,44,50,.10) 46px 47px),
+      repeating-linear-gradient(-20deg,transparent 0 58px,rgba(40,44,50,.08) 58px 59px),
+      radial-gradient(ellipse at 30% 20%,#f4f2ee,#d9d6d0 55%,#b8b4ad)}
+    .dimmed{position:absolute;background:rgba(10,12,15,.6)}
+    .glass{background:rgba(14,16,20,.88);border:1px solid rgba(255,255,255,.12);backdrop-filter:blur(14px);
+      clip-path:polygon(10px 0,100% 0,100% calc(100% - 10px),calc(100% - 10px) 100%,0 100%,0 10px)}
+    .caps{font-family:'Rajdhani',sans-serif;font-weight:700;letter-spacing:.12em;text-transform:uppercase}
+    .mono{font-family:'JetBrains Mono',monospace}
+    .ink2{color:rgba(242,239,232,.75)} .ink3{color:rgba(242,239,232,.55)}
+    .acc{color:oklch(.78 .14 200)} .warn{color:oklch(.82 .16 80)} .bad{color:oklch(.68 .19 25)}
+    .rail{position:absolute;left:24px;top:60px;display:flex;gap:2px;padding:4px}
+    .tool{width:44px;height:48px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;font-size:9px;color:rgba(242,239,232,.55)}
+    .tool b{display:block;width:18px;height:18px;border:1.6px solid currentColor;border-radius:3px}
+    .tool.on{color:oklch(.78 .14 200);background:oklch(.78 .14 200 / .14);box-shadow:inset 0 0 0 1px oklch(.78 .14 200)}
+    .sep{width:1px;background:rgba(255,255,255,.12);margin:6px 4px}
+    .box{position:absolute;left:24px;top:124px;width:340px;padding:16px 18px;display:flex;flex-direction:column;gap:12px;font-size:12px}
+    .row{display:flex;justify-content:space-between;align-items:center;gap:10px}
+    .slider{height:3px;background:rgba(255,255,255,.14);position:relative}
+    .slider i{position:absolute;left:0;top:0;height:3px;background:oklch(.78 .14 200)}
+    .seg{display:flex;gap:4px}.seg span{flex:1;text-align:center;padding:5px 0;border:1px solid rgba(255,255,255,.12);font-size:10px}
+    .seg span.on{border-color:oklch(.78 .14 200);color:oklch(.78 .14 200)}
+    .sw{width:30px;height:16px;border:1px solid rgba(255,255,255,.3);position:relative}
+    .sw.on{background:oklch(.78 .14 200 / .5)}
+    .hist div{display:flex;justify-content:space-between;padding:5px 0;border-bottom:1px solid rgba(255,255,255,.06)}
+    .hist .undone{text-decoration:line-through;color:rgba(242,239,232,.4)}
+    .tag{position:absolute;padding:3px 8px;font-size:11px;background:rgba(14,16,20,.9);border:1px solid rgba(255,255,255,.2)}
+    .nums{position:absolute;padding:8px 12px;font-size:11px;width:230px}
+    .plinth{position:absolute;left:50%;bottom:0;transform:translateX(-50%);display:flex;gap:4px;padding:6px}
+    .plinth span{width:98px;height:62px;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;padding-bottom:8px;font-size:11px}
+    .plinth span.on{color:oklch(.78 .14 200);box-shadow:inset 0 0 0 1px oklch(.78 .14 200)}
+    .strip{position:absolute;left:390px;right:390px;bottom:86px;height:150px;padding:12px 16px}
+    .note{font-size:11px;color:rgba(242,239,232,.6);line-height:1.5}
+    h2{margin:0}
+  </style>
+</helmet>
+
+<section style="display:flex;flex-wrap:wrap;gap:56px;padding:56px;width:max-content;max-width:3960px;align-items:flex-start">
+
+  <div style="flex:0 0 100%;max-width:1400px;display:flex;flex-direction:column;gap:10px">
+    <div class="caps" style="font-size:28px">Turn 11 · The editors: Shape, Lines, Areas</div>
+    <div class="ink2" style="font-size:15px;line-height:1.5">PLAN-editors.md drawn. Shape and Lines are two surfaces of the Build
+      plinth and share one ground view, Blueprint: the land as white clay, contours on it, what you changed as colour, everybody
+      else dimmed. Areas are drawn in Survey. The tool rail runs along the top-left, each glyph carrying its key; one box under
+      it holds only what the tool in hand reads and the strokes. The corner card where the walking keys are holds Blueprint's
+      own keys, the overlays and the view, because while Blueprint is open the camera is not the player's. Words at the pointer, not in the manual:
+      <a href="#11e">11e</a> has every tag and every sentence after Save. Plinth: Place · Catalog · Land · Shape · Lines · Publish (1–6).</div>
+  </div>
+
+  <!-- 11a -->
+  <div id="11a" style="display:flex;flex-direction:column;gap:12px">
+    <div class="row" style="justify-content:flex-start;font-size:15px"><span class="mono" style="font-size:12px;padding:3px 8px;background:oklch(.78 .14 200);color:#0b0d10">11a</span>
+      <span class="caps" style="font-size:20px">Shape · Raise in hand, Blueprint</span>
+      <span class="ink3">EDT.1 clay · EDT.2 overlays · EDT.4 numbers · EDT.7 brush · EDT.9 strokes · EDT.11 earth moved</span></div>
+    <div class="board">
+      <div class="clay"></div>
+      <div class="dimmed" style="left:0;top:44px;width:560px;bottom:0"></div>
+      <div class="dimmed" style="left:1480px;top:44px;right:0;bottom:0"></div>
+      <div class="dimmed" style="left:560px;top:44px;width:920px;height:120px"></div>
+      <div style="position:absolute;left:560px;top:164px;width:920px;height:760px;border:1.5px solid oklch(.78 .14 200)"></div>
+      <div style="position:absolute;left:760px;top:420px;width:260px;height:180px;background:rgba(60,110,220,.28)"></div>
+      <div style="position:absolute;left:800px;top:450px;width:120px;height:90px;background:repeating-linear-gradient(45deg,rgba(60,110,220,.55) 0 6px,transparent 6px 12px)"></div>
+      <div style="position:absolute;left:1100px;top:640px;width:200px;height:120px;background:rgba(210,70,60,.22)"></div>
+      <div style="position:absolute;left:830px;top:445px;width:180px;height:120px;border:2px solid oklch(.8 .14 200);border-radius:50%"></div>
+      <div style="position:absolute;left:875px;top:475px;width:90px;height:60px;border:1px dashed oklch(.8 .14 200);border-radius:50%"></div>
+      <dc-import name="Chrome8" app="Build" toast="" toast-action="" toast-age="" toast-progress="0%" hint-size="100%,100%" style="position:absolute;inset:0"></dc-import>
+      <div class="rail glass">
+        <div class="tool"><b></b>H</div><div class="tool on"><b></b>R</div><div class="tool"><b></b>S</div>
+        <div class="tool"><b></b>G</div><div class="tool"><b></b>L</div><div class="tool"><b></b>B</div>
+        <div class="tool"><b></b>X</div><div class="tool"><b></b>C</div><div class="sep"></div>
+        <div class="tool"><b></b>⌘Z</div><div class="tool"><b></b>⇧⌘Z</div>
+        <div class="tool warn" style="width:auto;padding:0 10px;flex-direction:row">◆ 3 strokes unsaved</div>
+        <div class="tool on" style="width:auto;padding:0 14px">SAVE</div>
+      </div>
+      <div class="box glass">
+        <div class="row"><span class="caps acc" style="font-size:18px">Raise</span><span class="mono ink3">R · Shift lowers</span></div>
+        <div class="note">Pulls the ground up under the brush. Hold longer to go higher. Shift lowers instead.</div>
+        <div class="row"><span class="caps ink3">Land</span><span>Ben's field · yours</span></div>
+        <div class="row"><span class="caps ink3">Size</span><span class="mono">[ ] 24 m</span></div><div class="slider"><i style="width:30%"></i></div>
+        <div class="row"><span class="caps ink3">Strength</span><span class="mono">- + 0.8 m/s</span></div><div class="slider"><i style="width:40%"></i></div>
+        <div class="row"><span class="caps ink3">Falloff</span><span class="mono">0.60</span></div><div class="slider"><i style="width:60%"></i></div>
+        <svg width="300" height="54" style="background:rgba(0,0,0,.25)"><path d="M0 52 C60 52 70 6 110 6 L190 6 C230 6 240 52 300 52" stroke="oklch(.78 .14 200)" fill="none" stroke-width="2"/></svg>
+        <div class="seg"><span class="on">SMOOTH</span><span>LINEAR</span><span>SHARP</span><span>PLATEAU</span></div>
+        <div class="seg"><span class="on">CIRCLE</span><span>SQUARE</span></div>
+        <div class="row caps ink3" style="padding-top:6px;border-top:1px solid rgba(255,255,255,.08)"><span>Strokes</span><span style="text-transform:none;letter-spacing:0">click one to undo back to it</span></div>
+        <div class="hist mono">
+          <div><span>Raise · 24 m · 0.8</span><span class="acc">now</span></div>
+          <div><span>Smooth · 18 m</span><span class="ink3">1 min</span></div>
+          <div><span>Raise · 24 m · 0.8</span><span class="ink3">2 min</span></div>
+          <div class="undone"><span>Lower · 12 m · 0.4</span><span>3 min</span></div>
+        </div>
+        <div class="mono ink2">1 240 m³ raised · 880 m³ lowered</div>
+        <div class="note">Nothing reaches the world until Save. Put back returns the land to the ground the elevation gives.</div>
+      </div>
+      <div class="nums glass" style="left:1060px;top:380px">
+        <div class="row"><span class="ink3">ground</span><span class="mono">662.4 m</span></div>
+        <div class="row"><span class="ink3">this stroke</span><span class="mono acc">+1.20 m</span></div>
+        <div class="row"><span class="ink3">off the elevation</span><span class="mono">+2.00 m</span></div>
+        <div class="row"><span class="ink3">slope</span><span class="mono">14°</span></div>
+        <div class="row"><span class="ink3">limit</span><span class="mono">+8 / −8 m</span></div>
+      </div>
+      <div class="glass" style="position:absolute;right:12px;top:136px;padding:10px 12px;font-size:12px;width:240px;display:flex;flex-direction:column;gap:8px">
+        <div class="row"><span class="caps acc">Blueprint</span><span class="ink3">Ben's field</span></div>
+        <div class="row ink2"><span class="mono">wheel</span><span>Zoom to the pointer</span></div>
+        <div class="row ink2"><span class="mono">right-drag</span><span>Orbit</span></div>
+        <div class="row ink2"><span class="mono">H · C · O</span><span>Hand · Section · Ortho</span></div>
+        <div class="row ink2"><span class="mono">Tab</span><span>Hold to peek at the splats</span></div>
+        <div class="caps ink3" style="padding-top:6px;border-top:1px solid rgba(255,255,255,.08)">On the ground</div>
+        <div class="row">Contour lines · 2 m<span class="sw on"></span></div>
+        <div class="row">What you changed, as colour<span class="sw on"></span></div>
+        <div class="row">Grid · 5 m<span class="sw"></span></div>
+        <div class="row">Slopes above 35°<span class="sw"></span></div>
+        <div class="row">Neighbours' lines and areas<span class="sw on"></span></div>
+        <div class="seg"><span>ZOOM TO LAND</span><span>ORTHO · O</span></div>
+      </div>
+      <div class="plinth glass"><span>1 PLACE</span><span>2 CATALOG</span><span>3 LAND</span><span class="on">4 SHAPE</span><span>5 LINES</span><span>6 PUBLISH</span></div>
+    </div>
+  </div>
+
+  <!-- 11b -->
+  <div id="11b" style="display:flex;flex-direction:column;gap:12px">
+    <div class="row" style="justify-content:flex-start;font-size:15px"><span class="mono" style="font-size:12px;padding:3px 8px;background:oklch(.78 .14 200);color:#0b0d10">11b</span>
+      <span class="caps" style="font-size:20px">Shape · Level to, section and the limit</span>
+      <span class="ink3">EDT.5 section strip · EDT.8 level plane · EDT.10 limit and Retry · EDT.4 tag at the boundary</span></div>
+    <div class="board">
+      <div class="clay"></div>
+      <div class="dimmed" style="left:1380px;top:44px;right:0;bottom:0"></div>
+      <div style="position:absolute;left:700px;top:360px;width:420px;height:220px;background:rgba(120,190,230,.25);border:1px solid rgba(120,190,230,.8);transform:skewX(-20deg)"></div>
+      <div style="position:absolute;left:560px;top:700px;width:760px;height:2px;background:oklch(.82 .16 80);transform:rotate(-8deg)"></div>
+      <div class="tag bad" style="left:1390px;top:500px">not your land</div>
+      <div class="tag warn" style="left:960px;top:440px">over limit</div>
+      <dc-import name="Chrome8" app="Build" toast="The file store did not answer — 3 strokes are kept on this machine" toast-action="RETRY" toast-age="6 s" toast-progress="40%" hint-size="100%,100%" style="position:absolute;inset:0"></dc-import>
+      <div class="rail glass"><div class="tool"><b></b>H</div><div class="tool"><b></b>R</div><div class="tool"><b></b>S</div>
+        <div class="tool"><b></b>G</div><div class="tool on"><b></b>L</div><div class="tool"><b></b>B</div><div class="tool"><b></b>X</div><div class="tool"><b></b>C</div></div>
+      <div class="box glass">
+        <div class="row"><span class="caps acc" style="font-size:18px">Level</span><span class="mono ink3">L</span></div>
+        <div class="note">Levels the ground to a height you name. The plane is drawn while you drag.</div>
+        <div class="row"><span class="caps ink3">Height</span><span class="mono">664.0 m</span></div>
+        <div class="seg"><span class="on">TYPED</span><span>ALT-CLICK PICKS</span><span>FLOOR OF…</span></div>
+        <div class="row"><span class="ink3">floor of</span><span>Chalet · 664.0 m</span></div>
+        <div class="row"><span class="caps ink3">Size</span><span class="mono">16 m</span></div><div class="slider"><i style="width:22%"></i></div>
+        <div class="row"><span class="caps ink3">Strength</span><span class="mono">1.0 m/s</span></div><div class="slider"><i style="width:50%"></i></div>
+        <div class="note">Flatten (G) has a fall instead: 0–5 %, and an arrow on the ground you drag to turn.</div>
+      </div>
+      <div class="strip glass">
+        <div class="row"><span class="caps">Section · 212 m</span><span class="mono ink3">height · slope % · drag a line with C</span></div>
+        <svg width="1100" height="100"><path d="M0 80 L120 70 L260 62 L380 40 L470 38 L600 45 L760 30 L900 26 L1100 18" stroke="#f2efe8" fill="none" stroke-width="1.5"/>
+          <path d="M380 40 L470 38" stroke="oklch(.68 .19 25)" stroke-width="4"/><line x1="520" x2="520" y1="0" y2="100" stroke="oklch(.82 .16 80)"/></svg>
+      </div>
+      <div class="plinth glass"><span>1 PLACE</span><span>2 CATALOG</span><span>3 LAND</span><span class="on">4 SHAPE</span><span>5 LINES</span><span>6 PUBLISH</span></div>
+    </div>
+  </div>
+
+  <!-- 11c -->
+  <div id="11c" style="display:flex;flex-direction:column;gap:12px">
+    <div class="row" style="justify-content:flex-start;font-size:15px"><span class="mono" style="font-size:12px;padding:3px 8px;background:oklch(.78 .14 200);color:#0b0d10">11c</span>
+      <span class="caps" style="font-size:20px">Lines · drawing a road</span>
+      <span class="ink3">EDT.13 kind picker and ribbon · EDT.14 snaps · EDT.15 handles · EDT.16 profile · EDT.18 list and ghosts</span></div>
+    <div class="board">
+      <div class="clay"></div>
+      <svg style="position:absolute;inset:44px 0 0 0" width="1920" height="1036">
+        <path d="M420 900 C620 760 760 700 980 640 S1300 520 1520 380" stroke="rgba(216,184,74,.55)" stroke-width="30" fill="none"/>
+        <path d="M420 900 C620 760 760 700 980 640 S1300 520 1520 380" stroke="#d8b84a" stroke-width="2" fill="none"/>
+        <circle cx="420" cy="900" r="6" fill="#fff" stroke="#0b0d10"/><circle cx="700" cy="720" r="6" fill="#fff" stroke="#0b0d10"/>
+        <circle cx="980" cy="640" r="6" fill="#fff" stroke="#0b0d10"/><rect x="1234" y="494" width="12" height="12" fill="#fff" stroke="#0b0d10"/>
+        <circle cx="1520" cy="380" r="8" fill="none" stroke="oklch(.78 .14 200)" stroke-width="2"/>
+        <path d="M1520 380 L1700 260" stroke="rgba(255,255,255,.35)" stroke-dasharray="6 6" stroke-width="2"/>
+        <path d="M200 300 L700 180" stroke="rgba(242,239,232,.3)" stroke-width="2" stroke-dasharray="3 5"/>
+      </svg>
+      <div class="tag acc" style="left:1540px;top:400px">snapped: road end</div>
+      <dc-import name="Chrome8" app="Build" toast="" toast-action="" toast-age="" toast-progress="0%" hint-size="100%,100%" style="position:absolute;inset:0"></dc-import>
+      <div class="rail glass"><div class="tool"><b></b>H</div><div class="tool on"><b></b>D</div><div class="tool"><b></b>V</div><div class="tool"><b></b>C</div>
+        <div class="sep"></div><div class="tool"><b></b>⌘Z</div><div class="tool"><b></b>⇧⌘Z</div><div class="tool on" style="width:auto;padding:0 14px">SAVE</div></div>
+      <div class="box glass">
+        <div class="row"><span class="caps acc" style="font-size:18px">Draw a line</span><span class="mono ink3">D</span></div>
+        <div class="note">Click corners, or hold and sketch. Enter or double-click ends it, Esc drops the last node. Hold Alt to follow the contour.</div>
+        <div class="row" style="border:1px solid rgba(255,255,255,.12);padding:6px 8px"><span class="ink3">⌕ kind</span><span class="mono ink3">1–9</span></div>
+        <div class="hist">
+          <div><span><b style="display:inline-block;width:10px;height:10px;background:#d8b84a"></b> highway · residential</span><span class="ink3">1 · a road 5 m wide</span></div>
+          <div><span><b style="display:inline-block;width:10px;height:10px;background:#8a7f6a"></b> highway · track</span><span class="ink3">2 · gravel, 3 m</span></div>
+          <div><span><b style="display:inline-block;width:10px;height:10px;background:#4a8fc4"></b> waterway · stream</span><span class="ink3">3 · open water</span></div>
+          <div><span><b style="display:inline-block;width:10px;height:10px;background:#9aa4ad"></b> barrier · wall</span><span class="ink3">4 · corners</span></div>
+        </div>
+        <div class="caps ink3" style="padding-top:6px;border-top:1px solid rgba(255,255,255,.08)">Lines on this land</div>
+        <div class="hist mono">
+          <div><span>Upper lane · residential</span><span>412 m · 7 %</span></div>
+          <div><span class="bad">Steep track · track</span><span class="bad">180 m · 16 %</span></div>
+        </div>
+        <div class="seg"><span>LAY BED</span><span>WALK IT · F</span><span>REVERSE</span><span>DELETE</span></div>
+      </div>
+      <div class="strip glass">
+        <div class="row"><span class="caps">Upper lane · 412 m</span><span class="mono ink3">max 12 % for residential · 1 segment over</span></div>
+        <svg width="1100" height="100"><path d="M0 80 L200 70 L420 50 L520 22 L700 20 L1100 12" stroke="#f2efe8" fill="none" stroke-width="1.5"/>
+          <path d="M420 50 L520 22" stroke="oklch(.68 .19 25)" stroke-width="4"/></svg>
+      </div>
+      <div class="plinth glass"><span>1 PLACE</span><span>2 CATALOG</span><span>3 LAND</span><span>4 SHAPE</span><span class="on">5 LINES</span><span>6 PUBLISH</span></div>
+    </div>
+  </div>
+
+  <!-- 11d -->
+  <div id="11d" style="display:flex;flex-direction:column;gap:12px">
+    <div class="row" style="justify-content:flex-start;font-size:15px"><span class="mono" style="font-size:12px;padding:3px 8px;background:oklch(.8 .15 145);color:#0b0d10">11d</span>
+      <span class="caps" style="font-size:20px">Survey · Areas, painting a forest</span>
+      <span class="ink3">EDT.19 the map in the page · EDT.20 draw and paint · EDT.21 merge, cut, the form · EDT.22 edit and erase</span></div>
+    <div class="board" style="background:#15191e">
+      <dc-import name="Chrome8" app="Survey" toast="" toast-action="" toast-age="" toast-progress="0%" hint-size="100%,100%" style="position:absolute;inset:0"></dc-import>
+      <div style="position:absolute;left:0;right:0;top:44px;height:40px;display:flex;gap:18px;align-items:center;padding:0 16px;background:#1a1f25;border-bottom:1px solid rgba(255,255,255,.08);font-size:13px">
+        <span class="caps" style="color:oklch(.8 .15 145)">Parcels</span><span class="caps" style="color:oklch(.8 .15 145);box-shadow:inset 0 -2px 0 oklch(.8 .15 145);padding:10px 0">Areas</span><span class="caps ink3">Requests</span>
+        <span class="sep" style="height:20px"></span><span>✋ Hand H</span><span>✎ Draw D</span><span style="color:oklch(.8 .15 145)">● Paint P</span><span>⌖ Edit V</span><span>⌫ Erase E</span>
+      </div>
+      <div style="position:absolute;left:0;top:84px;bottom:0;width:300px;padding:16px;background:#12161a;border-right:1px solid rgba(255,255,255,.08);display:flex;flex-direction:column;gap:10px;font-size:12px">
+        <div class="caps ink3">Kind</div>
+        <div class="hist">
+          <div><span><b style="display:inline-block;width:10px;height:10px;background:#54a15a"></b> landuse · forest</span><span class="ink3">1</span></div>
+          <div><span><b style="display:inline-block;width:10px;height:10px;background:#a7c46a"></b> landuse · meadow</span><span class="ink3">2</span></div>
+          <div><span><b style="display:inline-block;width:10px;height:10px;background:#4a8fc4"></b> natural · water</span><span class="ink3">3</span></div>
+        </div>
+        <div class="caps ink3">Brush</div><div class="row"><span>Size</span><span class="mono">30 m</span></div>
+        <div class="note">Two areas of the same kind that overlap become one on Save; a different kind cuts a hole. Anything past your land is clipped off.</div>
+      </div>
+      <div style="position:absolute;left:300px;right:360px;top:84px;bottom:0;background:radial-gradient(ellipse at 40% 40%,#3a4046,#1d2227)">
+        <svg width="1260" height="996"><path d="M200 200 L900 160 L1000 700 L260 760 Z" fill="rgba(95,169,106,.06)" stroke="#5fa96a" stroke-width="2" stroke-dasharray="7 5"/>
+          <path d="M1000 700 L1200 680 L1180 300 L900 160" fill="none" stroke="#6d7780" stroke-width="2" stroke-dasharray="7 5"/>
+          <path d="M320 300 C420 240 560 280 600 360 S520 520 400 500 S260 380 320 300 Z" fill="rgba(84,161,90,.45)" stroke="#54a15a" stroke-width="2"/>
+          <circle cx="600" cy="420" r="40" fill="none" stroke="#fff" stroke-width="1.5"/>
+          <path d="M200 620 C400 600 600 560 1000 520" stroke="#d8b84a" stroke-width="3" fill="none"/>
+          <text x="410" y="390" fill="#fff" font-size="13">forest · 1.2 ha</text></svg>
+        <div class="tag" style="left:620px;top:540px">Edit in Build → Lines</div>
+      </div>
+      <div style="position:absolute;right:0;top:84px;bottom:0;width:360px;padding:16px;background:#12161a;border-left:1px solid rgba(255,255,255,.08);display:flex;flex-direction:column;gap:10px;font-size:12px">
+        <div class="caps ink3">Properties</div><div class="row" style="font-size:16px"><b>forest</b><span class="mono ink3">landuse</span></div>
+        <div class="row"><span class="ink3">leaves</span><span>needleleaved ▾</span></div>
+        <div class="row"><span class="ink3">name</span><span>Upper wood</span></div>
+        <div class="row" style="gap:6px"><span class="glass" style="padding:8px 14px;background:oklch(.8 .15 145);color:#0b0d10">SAVE</span><span class="ink3">forest saved · merged with 1</span></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 11e -->
+  <div id="11e" style="display:flex;flex-direction:column;gap:12px;width:1920px">
+    <div class="row" style="justify-content:flex-start;font-size:15px"><span class="mono" style="font-size:12px;padding:3px 8px;background:oklch(.78 .14 200);color:#0b0d10">11e</span>
+      <span class="caps" style="font-size:20px">Every tag, every sentence</span></div>
+    <div class="glass" style="padding:24px;display:grid;grid-template-columns:1fr 1fr 1fr;gap:24px;font-size:13px">
+      <div><div class="caps acc">Tags at the pointer</div><div class="mono" style="line-height:2">not your land · over limit · on boundary · edge blend · snapped: road end · snapped: boundary · snapped: area edge · snapped: 15° · snapped: grid · follow contour · no ground · off the land</div></div>
+      <div><div class="caps acc">After Save</div><div class="mono" style="line-height:2">ground saved · 3 tiles changed<br>2 lines saved<br>forest saved · merged with 1<br>meadow saved · cut 1<br>3 strokes kept on this machine — Retry</div></div>
+      <div><div class="caps acc">Keys, the same everywhere</div><div class="mono" style="line-height:2">H hand · V select · Ctrl-Z / Ctrl-Shift-Z · Esc drop · Enter end · Tab peek · O ortho · C section · [ ] size</div></div>
+    </div>
+  </div>
+
+</section>
+</x-dc>
+</body>
+</html>
