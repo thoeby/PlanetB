@@ -16,6 +16,12 @@ const URL_ = (process.env.ELX_URL ?? '').replace(/\/+$/, '');
 
 const samples = () => readdirSync(SAMPLES).filter((f) => f.endsWith('.elx'));
 
+// LV.3: every composite of the world's own plugins is a flow too, and a server
+// that runs them must say yes to it.
+const COMPOSITES = ['world', 'motion', 'interact'].flatMap((p) =>
+    readdirSync(join(CLIENT, 'flow', p, 'assets/nodes'))
+        .map((f) => join(CLIENT, 'flow', p, 'assets/nodes', f)));
+
 test.beforeAll(() => {
     if (!URL_) test.skip(true, 'flow-test: ELX_URL not set, server validation skipped');
 });
@@ -38,5 +44,18 @@ for (const name of samples()) {
         const text = await res.text();
         expect(res.ok, `${name}: HTTP ${res.status}`).toBe(true);
         expect(codeOf(text), `${name}: ${text.slice(0, 300)}`).toBe(0);
+    });
+}
+
+for (const file of COMPOSITES) {
+    test(`the process server would run the composite ${file.split('/flow/')[1]}`, async () => {
+        const res = await fetch(`${URL_}/api/v1/process/validate`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/xml', Accept: 'application/xml' },
+            body: readFileSync(file, 'utf8'),
+        });
+        const text = await res.text();
+        expect(res.ok, `${file}: HTTP ${res.status}`).toBe(true);
+        expect(codeOf(text), `${file}: ${text.slice(0, 300)}`).toBe(0);
     });
 }

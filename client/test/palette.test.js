@@ -16,7 +16,7 @@ const manifest = () => JSON.parse(readFileSync(join(ROOT, 'manifest.json'), 'utf
 // they are not the reference editor's, and they live whole in
 // client/flow/world so that directory can be copied into a process server's
 // plugin folder as it is.
-const OURS = ['world'];
+const OURS = ['world', 'motion', 'interact'];
 
 test('the manifest lists every plugin that is there, and nothing that is not', () => {
     const onDisk = readdirSync(join(ROOT, 'plugins'))

@@ -1,0 +1,167 @@
+<plugin format="1" id="interact">
+    <name>Interact</name>
+    <icon type="simicons">file::http</icon>
+
+    <group id="trigger">
+        <name>Trigger</name>
+
+        <node id="on">
+            <name>On Trigger</name>
+            <description type="short">Whether a thing was set off, and how, since an event</description>
+            <description type="long">Asks the world whether this thing was set off by the given kind — click, near, far, key, use (LV.2) — after the event whose number is given. Fired is true when it was.</description>
+            <input name="World">
+                <structure id="droplet"/>
+                <value id="url"/>
+            </input>
+            <input name="World Key">
+                <structure id="droplet"/>
+                <value id="string"/>
+            </input>
+            <input name="Object">
+                <structure id="droplet"/>
+                <value id="string"/>
+            </input>
+            <input name="Kind">
+                <structure id="droplet" default="true">
+                    <value id="string">near</value>
+                </structure>
+                <value id="string"/>
+            </input>
+            <input name="After">
+                <structure id="droplet" default="true">
+                    <value id="integer">0</value>
+                </structure>
+                <value id="integer"/>
+            </input>
+            <output name="Fired">
+                <structure id="droplet"/>
+                <value id="boolean"/>
+            </output>
+            <output name="Events">
+                <structure id="droplet"/>
+                <value id="json"/>
+            </output>
+            <output name="Last ID">
+                <structure id="droplet"/>
+                <value id="integer"/>
+            </output>
+            <output name="Error">
+                <structure id="droplet"/>
+                <value id="error-code"/>
+            </output>
+        </node>
+    </group>
+
+    <group id="hold">
+        <name>Hold</name>
+
+        <node id="give">
+            <name>Give</name>
+            <description type="short">Hand a thing to somebody, or put it in something</description>
+            <description type="long">Gives a thing that may be carried (LV.4) to a player, or puts it into a container, by id. Refused in words when it is not the giver's to give.</description>
+            <input name="World">
+                <structure id="droplet"/>
+                <value id="url"/>
+            </input>
+            <input name="World Key">
+                <structure id="droplet"/>
+                <value id="string"/>
+            </input>
+            <input name="Object">
+                <structure id="droplet"/>
+                <value id="string"/>
+            </input>
+            <input name="To">
+                <structure id="droplet"/>
+                <value id="string"/>
+            </input>
+            <input name="When">
+                <structure id="droplet" default="true">
+                    <value id="boolean">true</value>
+                </structure>
+                <value id="boolean"/>
+            </input>
+            <output name="OK">
+                <structure id="droplet"/>
+                <value id="boolean"/>
+            </output>
+            <output name="Error">
+                <structure id="droplet"/>
+                <value id="error-code"/>
+            </output>
+        </node>
+
+        <node id="take">
+            <name>Take</name>
+            <description type="short">Take a thing into the land owner's hands</description>
+            <description type="long">Takes a thing that may be carried (LV.4). Refused in words when somebody else already has it.</description>
+            <input name="World">
+                <structure id="droplet"/>
+                <value id="url"/>
+            </input>
+            <input name="World Key">
+                <structure id="droplet"/>
+                <value id="string"/>
+            </input>
+            <input name="Object">
+                <structure id="droplet"/>
+                <value id="string"/>
+            </input>
+            <input name="When">
+                <structure id="droplet" default="true">
+                    <value id="boolean">true</value>
+                </structure>
+                <value id="boolean"/>
+            </input>
+            <output name="OK">
+                <structure id="droplet"/>
+                <value id="boolean"/>
+            </output>
+            <output name="Error">
+                <structure id="droplet"/>
+                <value id="error-code"/>
+            </output>
+        </node>
+    </group>
+
+    <group id="say">
+        <name>Say</name>
+
+        <node id="post">
+            <name>Post</name>
+            <description type="short">Say something over a thing</description>
+            <description type="long">Puts a line of words over a thing, for everybody standing near it to read.</description>
+            <input name="World">
+                <structure id="droplet"/>
+                <value id="url"/>
+            </input>
+            <input name="World Key">
+                <structure id="droplet"/>
+                <value id="string"/>
+            </input>
+            <input name="Object">
+                <structure id="droplet"/>
+                <value id="string"/>
+            </input>
+            <input name="Text">
+                <structure id="droplet"/>
+                <value id="string"/>
+            </input>
+            <input name="When">
+                <structure id="droplet" default="true">
+                    <value id="boolean">true</value>
+                </structure>
+                <value id="boolean"/>
+            </input>
+            <output name="OK">
+                <structure id="droplet"/>
+                <value id="boolean"/>
+            </output>
+            <output name="Error">
+                <structure id="droplet"/>
+                <value id="error-code"/>
+            </output>
+        </node>
+    </group>
+
+</plugin>

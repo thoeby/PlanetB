@@ -29,13 +29,15 @@ cd "$root"
             echo "      \"xml\": \"plugins/$id/plugin.xml\""
         fi
     done
-    echo '    },'
-    # The world's own blocks (FND.14). They are not the reference editor's and
-    # they are not in plugins/: client/flow/world is a plugin folder whole, so
-    # it can be copied into a process server's as it is.
-    echo '    {'
-    echo '      "id": "world",'
-    echo '      "xml": "../world/plugin.xml"'
+    # The world's own blocks (FND.14), and the two built over them (LV.3).
+    # They are not the reference editor's and they are not in plugins/: each is
+    # a plugin folder whole, so it can be copied into a process server's as it is.
+    for id in world motion interact; do
+        echo '    },'
+        echo '    {'
+        echo "      \"id\": \"$id\","
+        echo "      \"xml\": \"../$id/plugin.xml\""
+    done
     echo '    }'
     echo '  ]'
     echo '}'

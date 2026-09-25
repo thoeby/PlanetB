@@ -1,0 +1,313 @@
+<plugin format="1" id="motion">
+    <name>Motion</name>
+    <icon type="simicons">file::http</icon>
+
+    <group id="part">
+        <name>Part</name>
+
+        <node id="move-to">
+            <name>Move To</name>
+            <description type="short">Move a part to a place, taking so long</description>
+            <description type="long">Tells a joint (LV.1) to go to x, y, z metres from where the maker left it, over so many seconds. Every tab moves it from where it is, by the world clock.</description>
+            <input name="World">
+                <structure id="droplet"/>
+                <value id="url"/>
+            </input>
+            <input name="World Key">
+                <structure id="droplet"/>
+                <value id="string"/>
+            </input>
+            <input name="Object">
+                <structure id="droplet"/>
+                <value id="string"/>
+            </input>
+            <input name="Port">
+                <structure id="droplet"/>
+                <value id="string"/>
+            </input>
+            <input name="X">
+                <structure id="droplet" default="true">
+                    <value id="real">0.0</value>
+                </structure>
+                <value id="real"/>
+            </input>
+            <input name="Y">
+                <structure id="droplet" default="true">
+                    <value id="real">0.0</value>
+                </structure>
+                <value id="real"/>
+            </input>
+            <input name="Z">
+                <structure id="droplet" default="true">
+                    <value id="real">0.0</value>
+                </structure>
+                <value id="real"/>
+            </input>
+            <input name="Over">
+                <structure id="droplet" default="true">
+                    <value id="real">1.0</value>
+                </structure>
+                <value id="real"/>
+            </input>
+            <input name="When">
+                <structure id="droplet" default="true">
+                    <value id="boolean">true</value>
+                </structure>
+                <value id="boolean"/>
+            </input>
+            <output name="OK">
+                <structure id="droplet"/>
+                <value id="boolean"/>
+            </output>
+            <output name="Error">
+                <structure id="droplet"/>
+                <value id="error-code"/>
+            </output>
+        </node>
+
+        <node id="turn-to">
+            <name>Turn To</name>
+            <description type="short">Turn a part to an angle, taking so long</description>
+            <description type="long">Tells a joint to turn to yaw, pitch and roll, in degrees, over so many seconds.</description>
+            <input name="World">
+                <structure id="droplet"/>
+                <value id="url"/>
+            </input>
+            <input name="World Key">
+                <structure id="droplet"/>
+                <value id="string"/>
+            </input>
+            <input name="Object">
+                <structure id="droplet"/>
+                <value id="string"/>
+            </input>
+            <input name="Port">
+                <structure id="droplet"/>
+                <value id="string"/>
+            </input>
+            <input name="Yaw">
+                <structure id="droplet" default="true">
+                    <value id="real">0.0</value>
+                </structure>
+                <value id="real"/>
+            </input>
+            <input name="Pitch">
+                <structure id="droplet" default="true">
+                    <value id="real">0.0</value>
+                </structure>
+                <value id="real"/>
+            </input>
+            <input name="Roll">
+                <structure id="droplet" default="true">
+                    <value id="real">0.0</value>
+                </structure>
+                <value id="real"/>
+            </input>
+            <input name="Over">
+                <structure id="droplet" default="true">
+                    <value id="real">1.0</value>
+                </structure>
+                <value id="real"/>
+            </input>
+            <input name="When">
+                <structure id="droplet" default="true">
+                    <value id="boolean">true</value>
+                </structure>
+                <value id="boolean"/>
+            </input>
+            <output name="OK">
+                <structure id="droplet"/>
+                <value id="boolean"/>
+            </output>
+            <output name="Error">
+                <structure id="droplet"/>
+                <value id="error-code"/>
+            </output>
+        </node>
+
+        <node id="scale-to">
+            <name>Scale To</name>
+            <description type="short">Make a part bigger or smaller</description>
+            <description type="long">Tells a joint to take on a scale, over so many seconds. 1 is the size it was made.</description>
+            <input name="World">
+                <structure id="droplet"/>
+                <value id="url"/>
+            </input>
+            <input name="World Key">
+                <structure id="droplet"/>
+                <value id="string"/>
+            </input>
+            <input name="Object">
+                <structure id="droplet"/>
+                <value id="string"/>
+            </input>
+            <input name="Port">
+                <structure id="droplet"/>
+                <value id="string"/>
+            </input>
+            <input name="Scale">
+                <structure id="droplet" default="true">
+                    <value id="real">1.0</value>
+                </structure>
+                <value id="real"/>
+            </input>
+            <input name="Over">
+                <structure id="droplet" default="true">
+                    <value id="real">1.0</value>
+                </structure>
+                <value id="real"/>
+            </input>
+            <input name="When">
+                <structure id="droplet" default="true">
+                    <value id="boolean">true</value>
+                </structure>
+                <value id="boolean"/>
+            </input>
+            <output name="OK">
+                <structure id="droplet"/>
+                <value id="boolean"/>
+            </output>
+            <output name="Error">
+                <structure id="droplet"/>
+                <value id="error-code"/>
+            </output>
+        </node>
+
+        <node id="follow-path">
+            <name>Follow Path</name>
+            <description type="short">Send a part along a line of points</description>
+            <description type="long">Tells a joint to follow a line of [x, y, z] points in metres, at so many metres a second, once or round and round.</description>
+            <input name="World">
+                <structure id="droplet"/>
+                <value id="url"/>
+            </input>
+            <input name="World Key">
+                <structure id="droplet"/>
+                <value id="string"/>
+            </input>
+            <input name="Object">
+                <structure id="droplet"/>
+                <value id="string"/>
+            </input>
+            <input name="Port">
+                <structure id="droplet"/>
+                <value id="string"/>
+            </input>
+            <input name="Route">
+                <structure id="droplet"/>
+                <value id="json"/>
+            </input>
+            <input name="Speed">
+                <structure id="droplet" default="true">
+                    <value id="real">1.0</value>
+                </structure>
+                <value id="real"/>
+            </input>
+            <input name="Loop">
+                <structure id="droplet" default="true">
+                    <value id="boolean">false</value>
+                </structure>
+                <value id="boolean"/>
+            </input>
+            <input name="When">
+                <structure id="droplet" default="true">
+                    <value id="boolean">true</value>
+                </structure>
+                <value id="boolean"/>
+            </input>
+            <output name="OK">
+                <structure id="droplet"/>
+                <value id="boolean"/>
+            </output>
+            <output name="Error">
+                <structure id="droplet"/>
+                <value id="error-code"/>
+            </output>
+        </node>
+
+        <node id="spin">
+            <name>Spin</name>
+            <description type="short">Turn a part round and round</description>
+            <description type="long">Tells a joint to turn about x, y or z at so many turns a minute, for as long as nobody says otherwise.</description>
+            <input name="World">
+                <structure id="droplet"/>
+                <value id="url"/>
+            </input>
+            <input name="World Key">
+                <structure id="droplet"/>
+                <value id="string"/>
+            </input>
+            <input name="Object">
+                <structure id="droplet"/>
+                <value id="string"/>
+            </input>
+            <input name="Port">
+                <structure id="droplet"/>
+                <value id="string"/>
+            </input>
+            <input name="Axis">
+                <structure id="droplet" default="true">
+                    <value id="string">y</value>
+                </structure>
+                <value id="string"/>
+            </input>
+            <input name="RPM">
+                <structure id="droplet" default="true">
+                    <value id="real">6.0</value>
+                </structure>
+                <value id="real"/>
+            </input>
+            <input name="When">
+                <structure id="droplet" default="true">
+                    <value id="boolean">true</value>
+                </structure>
+                <value id="boolean"/>
+            </input>
+            <output name="OK">
+                <structure id="droplet"/>
+                <value id="boolean"/>
+            </output>
+            <output name="Error">
+                <structure id="droplet"/>
+                <value id="error-code"/>
+            </output>
+        </node>
+
+        <node id="stop">
+            <name>Stop</name>
+            <description type="short">Stop a part where it is</description>
+            <description type="long">Tells a joint to stay exactly where it is now, whatever it was doing.</description>
+            <input name="World">
+                <structure id="droplet"/>
+                <value id="url"/>
+            </input>
+            <input name="World Key">
+                <structure id="droplet"/>
+                <value id="string"/>
+            </input>
+            <input name="Object">
+                <structure id="droplet"/>
+                <value id="string"/>
+            </input>
+            <input name="Port">
+                <structure id="droplet"/>
+                <value id="string"/>
+            </input>
+            <input name="When">
+                <structure id="droplet" default="true">
+                    <value id="boolean">true</value>
+                </structure>
+                <value id="boolean"/>
+            </input>
+            <output name="OK">
+                <structure id="droplet"/>
+                <value id="boolean"/>
+            </output>
+            <output name="Error">
+                <structure id="droplet"/>
+                <value id="error-code"/>
+            </output>
+        </node>
+    </group>
+
+</plugin>

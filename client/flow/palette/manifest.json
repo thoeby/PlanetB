@@ -100,6 +100,14 @@
     {
       "id": "world",
       "xml": "../world/plugin.xml"
+    },
+    {
+      "id": "motion",
+      "xml": "../motion/plugin.xml"
+    },
+    {
+      "id": "interact",
+      "xml": "../interact/plugin.xml"
     }
   ]
 }

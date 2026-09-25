@@ -69,12 +69,14 @@ api-test:
 	@if [ -x tools/ops-test.sh ]; then bash tools/ops-test.sh; else echo 'api-test: ops-test not implemented yet (WP5.5)'; fi
 	@python3 -m unittest discover -q -s server -p 'test_*.py'
 
+# LV.3: the composites of world, motion and interact, held to the palette.
 # FND.2: the flow editor's own two specs, by name — the copied modules' suite
 # (which round-trips every file in client/flow/samples/) and the validation
 # against a real process server, which needs ELX_URL and says so when it is not
 # set. `client-test` runs the whole browser suite, these included; this target
 # is for running only them.
 flow-test:
+	@node --test client/test/world-plugin.test.js client/test/live-plugins.test.js
 	@if [ -d node_modules/@playwright ]; then \
 		npx playwright test client/test/e2e/flow-modules.spec.js \
 			client/test/e2e/flow-validate.spec.js; \
