@@ -15,6 +15,8 @@ run:
 5. **`TASKS-editors.md`** (Shape, Lines, Areas; decisions in `PLAN-editors.md`,
    the artboards in `docs/design/splatworld-v11.dc.html`) — EDT.0–26 done but
    EDT.24, which waits on the operator; EDT.27 is the operator's session.
+6. **`TASKS-ui.md`** (the chrome, the Marketplace, Automate's tabs) — UI.1–UI.9,
+   stories 70–74.
 
 Finished task files are in `docs/history/`.
 
