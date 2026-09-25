@@ -1,4 +1,5 @@
-// train.js — `train-v16`. The tile, learned from its own frames, by brush.
+// train.js — `train-v22` (ALGO below; each version's change is noted in this
+// header). The tile, learned from its own frames, by brush.
 //
 // `assemble` built the surfaces and `frame` path-traced them from a fixed
 // camera set. The seed is those surfaces sampled at the tile's whole budget

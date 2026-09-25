@@ -1,8 +1,8 @@
 """The ground, cut from the world's coverage one tile at a time.
 
 TASKS-usable T1: `/geo/dem/{z}/{x}/{y}.r16` is served on demand. On a miss the
-server asks the operator's GeoServer for exactly that tile's bounds at 256²,
-encodes dem-v1, stores it, registers the artifact and records which tile it is,
+server asks the operator's GeoServer for exactly that tile's bounds, encodes it
+as dem-v2 (server/splatworld/dem.py: float32 metres, DEM_SIZE across), stores it, registers the artifact and records which tile it is,
 so `geo_inputs()` can pin the elevation a compile actually read (Invariant 2).
 
 Nothing is fetched ahead of time and nothing is fetched twice: a tile is cut

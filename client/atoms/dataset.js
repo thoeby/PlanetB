@@ -1,4 +1,5 @@
-// dataset.js — `dataset-v2`. One tile, one folder: everything the trainer
+// dataset.js — `dataset-v8` (ALGO below; each version's change is noted in this
+// header). One tile, one folder: everything the trainer
 // learns a tile from, made in one piece of work.
 //
 // Until FND.5 a tile was assembled by one atom and framed by three to six

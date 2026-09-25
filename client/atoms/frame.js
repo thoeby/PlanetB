@@ -1,4 +1,5 @@
-// frame.js — `frame-v10`. The views `train` learns a tile from.
+// frame.js — `frame-v11` (ALGO below; each version's change is noted in this
+// header). The views `train` learns a tile from.
 //
 // One atom renders a range of a camera set (db/0005_jobs.sql chunks them at 20
 // views), so a z18 job's 120 views spread across six tabs. Out comes a tar of

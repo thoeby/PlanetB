@@ -39,7 +39,7 @@ A persistent digital world on real geography, compiled into Gaussian-splat LOD t
 - SQL: PostgreSQL 16, PostGIS 3.4. Schema in `db/` as numbered migrations (`db/0001_*.sql`). Every function has a pgTAP test in `db/test/` (`.sql`, or `.sh` where a test needs more than one session).
 - API: PostgREST 12, config in `infra/postgrest.conf`. JWT HS256. Roles: `anon`, `player`, `admin`.
 - Files: nginx with `ngx_http_dav_module`, `auth_request` to PostgREST `rpc/can_write`. Config in `infra/nginx.conf`. `server/` is the same contract in Python, for machines without such an nginx; the two are kept interchangeable by `tools/files-test.sh`.
-- Client: plain ES modules, no bundler, no framework. PlayCanvas engine 2.x pinned from CDN. Splat.js vendored under `client/vendor/` (MIT). Everything under `client/` must be servable as static files.
+- Client: plain ES modules, no bundler, no framework. PlayCanvas engine 2.x pinned from CDN. Checked in under `client/vendor/`: three.js, brush's wasm, litegraph (`client/vendor/README.md`); `make vendor` fetches the rest. Everything under `client/` must be servable as static files.
 - Tests: `db/test` (pgTAP via `pg_prove`), `client/test` (node + playwright for headless Chromium with WebGPU; browser tests may be skipped in CI if no GPU, but must run locally).
 - No TypeScript build, no npm dependencies in the client beyond vendored files. Node is used only for tests and tooling.
 
