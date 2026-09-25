@@ -682,9 +682,12 @@ withdraws it before anyone claims. Nothing in the pool requires a price.
 
 Objects per fine tile; model footprint and height; triangles and texture
 size per product; land size per player; jobs per tab; price minimum for the
-pool to list a job to strangers. Defaults are the current ones in code where
+pool to list a job to strangers; how far a land's ground may be shaped above
+and below the elevation, and whether a brush fades out at a land's edge
+(Settings · Setup, EDT.7/EDT.10). Defaults are the current ones in code where
 they exist; where none exists: 200 objects/z18 tile, 60 × 60 × 60 m,
-200 k triangles, 4096² textures, 25 ha land, no minimum price.
+200 k triangles, 4096² textures, 25 ha land, no minimum price, 8 m up and 8 m
+down, edge blend on.
 
 ---
 

@@ -100,6 +100,7 @@
   import { drawAreas, labelAreas, labelObjects, mountLand, ringsOf } from './js/land.js';
   import { mountGetLand } from './js/getland.js';
   import { mountShape } from './js/shapeui.js';
+  import { mountShapeSettings } from './js/shapesettings.js';
   import { Blueprint } from './js/blueprint.js';
   import { mountBlueprintMode } from './js/bpmode.js';
   import { mountAssignLand } from './js/assignland.js';
@@ -488,11 +489,16 @@
   const sculpt = mountShape(hud.panel('Shape'), {
       bpmode, bp: blueprint, app, pc,
       onSaved: () => { build.refresh(); submit.refresh(); },
+      // Stay, when leaving with strokes unsaved.
+      reopen: () => hud.show('Shape'),
   }, { lands: () => api.rpc('my_areas').catch(() => []) });
   hud.whenShown('Shape', () => sculpt.enter());
   hud.panel('Lines').append(Object.assign(document.createElement('p'), {
       className: 'note', textContent: 'Lines open onto the same clay as Shape.' }));
   hud.whenOpened((name) => { if (name !== 'Shape') sculpt.leave(); });
+  // The operator's say over shaping: how far the ground may move, and the
+  // fade at a land's edge (Settings · Setup, admins).
+  mountShapeSettings(hud.panel('Setup'));
 
   // SPEC §2.16: Automate is a workspace of its own rather than a panel, so it
   // takes the window and the world stops being drawn under it. litegraph is

@@ -130,3 +130,14 @@
 }
 #sculpt-tools .sc-seg .sc-take { flex: 0 0 auto; padding: 4px 10px; white-space: nowrap; }
 #sculpt-tools .sc-seg .sc-floor { flex: 1; min-width: 0; margin: 0; }
+
+/* Leaving Shape with strokes unsaved (EDT.10): one question over the world. */
+#sh-leave {
+  position: absolute; left: 50%; top: 40%; transform: translate(-50%, -50%);
+  z-index: 40; padding: 16px 20px; display: flex; flex-direction: column; gap: 12px;
+  min-width: 340px;
+}
+#sh-leave[hidden] { display: none; }
+#sh-leave .row { display: flex; gap: 8px; justify-content: flex-end; }
+.sc-retry { margin: 4px 0 8px; }
+.sc-retry[hidden] { display: none; }

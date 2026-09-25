@@ -142,7 +142,7 @@ async function notHisGround(b, world, here) {
 async function savesIt(b) {
     await b.page.locator('.sc-save').click();
     await expect(said(b)).toContainText('ground saved', { timeout: UI });
-    await expect(said(b)).toContainText('tile(s) changed');
+    await expect(said(b)).toContainText(/tiles? changed/);
     await b.page.keyboard.press('Escape');
 }
 

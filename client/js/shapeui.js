@@ -17,6 +17,8 @@ import { el } from './poolui.js';
 import { brushLine, brushUses, keyHandler, shapedLine } from './sculptmode.js';
 import { floors, wireBox } from './shapebox.js';
 import { mountHistory } from './shapehistory.js';
+import { mountLeave, saveGround } from './shapesave.js';
+import { restore } from './shapekeep.js';
 import { toolRail } from './sculptrail.js';
 import { shapeSurface } from './shapetool.js';
 
@@ -27,6 +29,7 @@ const HTML = `
 </div>
 <div class="sh-rail-host"></div>
 <p class="sc-status status"></p>
+<button type="button" class="sc-retry" hidden>Retry the save</button>
 <div class="sh-history-host"></div>
 <div class="section">
   <p class="muted sc-said"></p>
@@ -82,7 +85,7 @@ export function mountShape(host, ctx, { lands = () => [] } = {}) {
         if (state.on) await open();
     };
     const acts = { choose, say, pick, ctx,
-        save: () => saveGround(state, say, ctx),
+        save: () => saveGround(state, say, ctx, q('.sc-retry')),
         apply: () => layBed(q, state, say, ctx, ground),
         clear: () => history.confirm(() => putBack(state, say, ctx)),
         take: () => levelHere(state, say, fields) };
@@ -91,7 +94,9 @@ export function mountShape(host, ctx, { lands = () => [] } = {}) {
         state, say, surface, ...acts,
         shaping: () => state.shaping,
         refresh: () => listLands(q, state, say, lands, load),
-        ...comings(ctx, state, () => listLands(q, state, say, lands, load), open),
+        ...comings(ctx, state, () => listLands(q, state, say, lands, load), open,
+            { leave: mountLeave(document.getElementById('hud') ?? document.body),
+                save: acts.save }),
     };
 }
 
@@ -100,22 +105,36 @@ const fresh = () => ({ on: false, brush: 'raise', size: 12, strength: 1, soft: 0
     curve: 'smooth', shape: 'circle', blend: true, fall: 0, dir: 180, target: NaN,
     shaping: null, areas: [], roads: [], painting: false, at: null, inside: null, line: [] });
 
-// The surface opened (the land's grid, then the clay over it) and left.
-function comings(ctx, state, list, open) {
+// The surface opened (the land's grid, then the clay over it) and left —
+// asking first when there are strokes nobody has saved.
+function comings(ctx, state, list, open, { leave, save }) {
     return {
         async enter() {
             state.on = true;
-            // The operator's switch, not the player's (PLAN-editors idea 13).
+            // The operator's switches, not the player's (PLAN-editors ideas
+            // 13 and 16): the edge blend, and how far the ground may move.
             const set = await api.rpc('app_settings').catch(() => ({}));
             state.blend = set?.edge_blend !== 'off';
+            state.limit = { up: Number(set?.shape_max_up) || 8,
+                down: Number(set?.shape_max_down) || 8 };
             if (!state.shaping) await list();
             if (state.shaping && state.on) await open();
             return state.shaping;
         },
-        leave() {
-            if (!state.on) return;
-            state.on = false;
+        async leave() {
+            if (!state.on || state.asking) return;
             state.painting = false;
+            const n = state.shaping?.strokes.length ?? 0;
+            if (n) {
+                state.asking = true;
+                const answer = await leave.ask(`${n} stroke${n === 1 ? '' : 's'} on`
+                    + ` ${state.shaping.area.rules?.name ?? 'this land'} not saved.`);
+                state.asking = false;
+                if (answer === 'stay') { ctx.reopen?.(); return; }
+                if (answer === 'save') await save();
+                else state.shaping.undoTo(0);
+            }
+            state.on = false;
             ctx.bpmode.close();
         },
     };
@@ -131,6 +150,9 @@ function corners(q, state, ctx) {
 
 async function openOver(ctx, state, surface, say) {
     if (!state.shaping) return null;
+    // Stay, after asking whether to leave: the clay is still open over it.
+    if (ctx.bp.active && ctx.bpmode.surface === surface
+        && ctx.bp.area?.id === state.shaping.area.id) return ctx.bp.openedMs;
     const ms = await ctx.bpmode.open(state.shaping.area, state.shaping, surface);
     say('shaping — drag on the ground');
     return ms;
@@ -152,25 +174,15 @@ async function chooseLand(q, state, say, id) {
     state.shaping = await Shaping.load(area);
     state.roads = await roadsOn(area);
     state.line = [];
+    // What could not be saved last time, back as one stroke (EDT.10).
+    const kept = await restore(state.shaping).catch(() => 0);
+    q('.sc-retry').hidden = !kept;
     floors(q('.sc-floor'), await api.rpc('area_contents', { area_id: area.id }).catch(() => []));
     q('.sc-road').replaceChildren(new Option('pick a road…', ''),
         ...state.roads.map((r) => new Option(r.name, String(r.id))));
-    say('');
+    say(kept ? `${kept.toLocaleString()} cells kept on this machine from a save that did`
+        + ' not go through \u2014 Save to send them' : '');
     return state.shaping;
-}
-
-async function saveGround(state, say, ctx) {
-    if (!state.shaping?.dirty) { say('nothing shaped yet'); return null; }
-    try {
-        const got = await state.shaping.save();
-        say(`ground saved · ${got.tiles} tile(s) changed`);
-        ctx.bp.rebuild(null);
-        ctx.onSaved?.();
-        return got;
-    } catch (err) {
-        say(String(err.body?.message ?? err.message ?? err), true);
-        return null;
-    }
 }
 
 // The ground as the operator's elevation gave it: one stroke, undoable, and
@@ -242,6 +254,7 @@ function wire(rail, q, state, acts) {
     q('.sc-undo').onclick = undo;
     q('.sc-redo').onclick = redo;
     q('.sc-save').onclick = acts.save;
+    q('.sc-retry').onclick = acts.save;
     q('.sc-apply').onclick = acts.apply;
     q('.sc-clear').onclick = acts.clear;
     q('.sc-take').onclick = acts.take;

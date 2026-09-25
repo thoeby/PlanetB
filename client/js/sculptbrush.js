@@ -67,7 +67,8 @@ export function bandAt(rings, lon, lat, band = BAND_M) {
 
 /**
  * One dab. `how` is {brush, size (m), strength (m/s), dt (s), soft, curve,
- * shape, invert (Shift), target, ground, blend (edge blend on)}.
+ * shape, invert (Shift), target, plane, ground, blend (edge blend on),
+ * limit: {up, down} metres off the elevation}.
  *
  * Returns how many cells moved — none outside the land, which is what the red
  * brush on the clay is about.
@@ -80,6 +81,7 @@ export function dab(shaping, lon, lat, how) {
     const mLon = 111320 * Math.cos(lat * Math.PI / 180);
     const step = Math.max(0, how.strength ?? 0.5) * Math.max(0, how.dt ?? 1 / 60);
     const moved = [];
+    let over = false;
     for (const c of cells) {
         const at = { lon: shaping.lonOf(c.i), lat: shaping.latOf(c.j) };
         const t = reach((at.lon - lon) * mLon, (at.lat - lat) * 110540, radius, how.shape);
@@ -87,13 +89,20 @@ export function dab(shaping, lon, lat, how) {
             * (how.blend === false ? 1 : bandAt(shaping.rings, at.lon, at.lat));
         if (k <= 0 || !shaping.inside(at.lon, at.lat)) continue;
         const was = shaping.grid.data[c.k];
-        const now = value(shaping, c, at, { ...how, k, was, lon, lat, step });
+        let now = value(shaping, c, at, { ...how, k, was, lon, lat, step });
+        // The operator's limit, per cell (SPEC §6): the brush stops at it and
+        // says so (shaping.over), it does not quietly go on.
+        if (how.limit && (now > how.limit.up || now < -how.limit.down)) {
+            now = Math.min(how.limit.up, Math.max(-how.limit.down, now));
+            over = true;
+        }
         if (now === was || !Number.isFinite(now)) continue;
         shaping.remember(c.k);
         shaping.grid.data[c.k] = now;
         moved.push(c.k);
     }
     if (moved.length) shaping.mark(moved);
+    shaping.over = over;
     return moved.length;
 }
 

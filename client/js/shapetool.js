@@ -76,8 +76,11 @@ export function shapeSurface(bp, app, pc, state, acts) {
         // in the band where it fades, for the words at the pointer.
         describe(g, base) {
             if (!g || base.lost) return base;
-            const out = { ...base, band: base.inside && state.blend
-                && bandAt(state.shaping?.rings ?? [], g.lon, g.lat) < 1 };
+            const lim = state.limit;
+            const out = { ...base, limit: lim, band: base.inside && state.blend
+                && bandAt(state.shaping?.rings ?? [], g.lon, g.lat) < 1,
+            over: Boolean(lim) && (base.off >= lim.up - 0.005 || base.off <= -lim.down + 0.005
+                || (state.painting && state.over)) };
             if (state.painting) {
                 out.stroke = (state.shaping?.at(g.lon, g.lat) ?? 0) - (state.strokeFrom ?? 0);
             }
@@ -117,8 +120,9 @@ function paint(state, acts, g, dt) {
     dab(state.shaping, g.lon, g.lat, { brush: state.brush, size: state.size,
         strength: state.strength, dt, soft: state.soft, curve: state.curve,
         shape: state.brush === 'raise' ? state.shape : 'circle', invert: state.invert,
-        blend: state.blend, ground: acts.ground, plane: state.plane,
+        blend: state.blend, ground: acts.ground, plane: state.plane, limit: state.limit,
         target: state.brush === 'level' ? acts.levelTo() : undefined });
+    state.over = Boolean(state.shaping.over);
     acts.shaped(around(g, state.size));
     if (state.refused) { state.refused = false; acts.say(''); } else acts.hover();
 }
@@ -139,8 +143,10 @@ function drawBrush(bp, app, pc, state) {
         return;
     }
     if (!state.at || state.brush === 'pan' || state.brush === 'section') return;
+    // Red off the land, amber where the operator's limit stopped it.
     const tone = state.inside === false ? new pc.Color(1, 0.35, 0.3)
-        : new pc.Color(0.3, 0.85, 1);
+        : state.over && state.painting ? new pc.Color(1, 0.75, 0.2)
+            : new pc.Color(0.3, 0.85, 1);
     const square = state.shape === 'square' && state.brush === 'raise';
     const r = Math.max(1, state.size) / 2;
     drawRing(bp, app, state.at, r, tone, square);
