@@ -817,3 +817,43 @@ API exposes has to replace that table's view in the same file.
 disk on every navigation, so a spec that started before the edit meets the code
 after it — and a story that had nothing to do with the change fails in a way
 that reads like a real bug. Wait for the run, or run the affected stories only.
+
+## 9. Live objects, the store, files anywhere (TASKS-live.md)
+
+Stories 40–48, migrations `db/0199`–`db/0215`. What cost time:
+
+**A box without `shader-f16` cannot get past story 8.** SwiftShader's WebGPU
+here has no `shader-f16`, so `train` is never claimed and story 8 (and every
+story that needs a rendered tile) waits for ever. The live stories need no
+rendered tile, so they were proven on a run of the stories that do not either:
+
+```
+# 00–07 and 32 set up the world the live stories stand in, then 40–48
+npx playwright test --config client/test/run/playwright.config.js \
+    client/test/run/0[0-7]-*.spec.js client/test/run/32-*.spec.js \
+    client/test/run/4[0-8]-*.spec.js
+```
+
+Two knobs came out of getting that far on a slow box: `RUN_RENDER_S` (how
+long the render stories wait, default 600) and `splatworld.dem_deeper`
+(db/0199: how much finer than the tile the ground mesh is cut; the run sets 0,
+because the 8-million-triangle mesh crashed the tab under SwiftShader).
+
+**PostgREST retries SQLSTATE 40001 until it succeeds.** A refusal raised with
+`serialization_failure` ("somebody else has it") never answers: the request
+hangs until the client gives up. Refusals of a lost race are `PT409`.
+
+**nginx's WebDAV PUT and `mirror_request_body` do not go together** ("PUT
+request body must be in a file"). The operator's node takes files by
+watching the store's directory instead (`tools/nodewatch.mjs`), which also
+backfills whatever was there before it.
+
+**An `error_page` inside a location reached by an `error_page` is ignored**
+unless the first location says `recursive_error_pages on` (LV.14's GET → 302
+→ disk fallback in `infra/nginx.conf`).
+
+**Every tab is a libp2p node** (`client/js/peers.js`, the bundle built by
+`tools/vendor.sh` from node_modules). A tab that cannot be one — no bundle, no
+node at `/node/peer` — reads files by CID over HTTP and nothing else changes.
+Relayed connections are "limited" to libp2p: both the handler and the dial say
+`runOnLimitedConnection`, and the relay applies no data limit.

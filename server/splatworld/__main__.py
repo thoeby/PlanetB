@@ -54,6 +54,8 @@ def parse(argv: list[str]) -> argparse.Namespace:
     _common(gnd)
 
     _common(sub.add_parser("doctor", help="check what is ready"))
+    _common(sub.add_parser("cids",
+        help="give the IPFS node every stored file it does not have a CID for yet"))
     return parser.parse_args(argv)
 
 
@@ -252,10 +254,23 @@ def cmd_qgis(args: argparse.Namespace) -> int:
     return 0
 
 
+def cmd_cids(args: argparse.Namespace) -> int:
+    """LV.14: the files stored before the node was, given to it now."""
+    cfg = _cfg(args)
+    with ipfsnode.Node(cfg):
+        if not ipfsnode.alive(cfg):
+            print("splatworld: the IPFS node is not running, so nothing was added",
+                  file=sys.stderr)
+            return 1
+        print(f"  {ipfsnode.backfill(cfg)} file(s) given a CID")
+    return 0
+
+
 def main(argv: list[str] | None = None) -> int:
     args = parse(argv if argv is not None else sys.argv[1:])
     commands = {"init": cmd_init, "run": cmd_run, "doctor": cmd_doctor,
-                "import": cmd_import, "qgis": cmd_qgis, "ground": cmd_ground}
+                "import": cmd_import, "qgis": cmd_qgis, "ground": cmd_ground,
+                "cids": cmd_cids}
     try:
         return commands[args.command](args)
     except psycopg.OperationalError as err:

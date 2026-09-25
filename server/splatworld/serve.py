@@ -404,6 +404,11 @@ class Handler(BaseHTTPRequestHandler):
     def _serve_store(self, path: str) -> None:
         if self._rendered_cover(path):
             return
+        # LV.14: a file the world has a CID for is read by it.
+        where = ipfsnode.redirect_for(self.cfg, path)
+        if where:
+            self._send(302, b"", "text/plain", {"Location": where, **CORS})
+            return
         target = safe_join(self.cfg.files, path)
         # T1: the ground is cut when somebody first walks onto it, not seeded
         # ahead of time. Outside the coverage there is no world, and 404 is the

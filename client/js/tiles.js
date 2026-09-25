@@ -6,7 +6,7 @@
 
 import * as tm from '../lib/tilemath.js';
 import { RESIDENT_MS, splatsHere } from './tileengine.js';
-import { tileFile } from './peerfetch.js';
+import { tileDir, tileFile } from './peerfetch.js';
 import { LIMITS, POLL_MS, RETRY_MS, key, parseKey, selectTiles, showing }
     from './traverse.js';
 
@@ -164,7 +164,7 @@ export class TileStreamer {
     fileOf(c) {
         const shown = showing(c.row, this.candidates);
         const sha = shown?.sha ?? c.row.sog_sha256;
-        const dir = `${this.filesUrl}/tiles/${c.z}/${c.x}/${c.y}`;
+        const dir = tileDir(this.filesUrl, c.z, c.x, c.y);
         const lod = shown?.manifest?.lod;
         return lod
             ? { url: `${dir}/${lod.sha256}.json`, filename: 'lod-meta.json' }

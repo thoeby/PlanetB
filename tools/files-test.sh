@@ -144,9 +144,15 @@ is "PUT of a flow's ELX is 201" 201 \
         -H "X-Sha256: $ELX_SHA" -H "Authorization: Bearer $JWT" --data-binary "@$ELX")"
 is "PUT of an asset with an extension nobody allowed is 403" 403 \
     "$(put "/assets/$SHA2.zip" "$SHA2" "$JWT")"
-grep -qi 'content-type: application/xml' \
-    <<< "$(curl -s -D - -o /dev/null "$FILES_URL/assets/$ELX_SHA.elx")" \
-    && ok "an ELX is served as XML" || no "an ELX is served as XML"
+# Followed where it leads: an old path is sent on to its CID (LV.14), which
+# answers once the node has taken the file (tools/nodewatch.mjs).
+xml=no
+for _ in $(seq 1 40); do
+    grep -qi 'content-type: application/xml' \
+        <<< "$(curl -sL -D - -o /dev/null "$FILES_URL/assets/$ELX_SHA.elx")" && { xml=yes; break; }
+    sleep 0.25
+done
+is "an ELX is served as XML" yes "$xml"
 
 HDRS=$(curl -s -D - -o /dev/null "$FILES_URL/jobs/$ATOM/$SHA")
 is "GET returns the bytes" 200 "$(curl -s -o "$body" -w '%{http_code}' "$FILES_URL/jobs/$ATOM/$SHA")"
@@ -235,5 +241,29 @@ curl -s -X POST "$API_URL/rpc/register_artifact" -H 'Content-Type: application/j
         \"bytes\":600000,\"algo_version\":\"canon-v1\"}" > /dev/null
 is "an artifact registered after its bytes takes their CID" "$BIG_CID" \
     "$($PSQL -c "SELECT cid FROM artifact WHERE sha256 = '$BIG_SHA'")"
+
+# ------------------------------------------------ LV.14: old paths, read by CID
+
+# A GET of the path a file was PUT at is sent on to its CID; PUT is unchanged
+# (everything above). What the world has no CID for is served as it was.
+cid_for "$ELX_SHA" > /dev/null
+is "GET of an old path is sent on to /ipfs/{cid}" \
+    "$FILES_URL/ipfs/$CID?filename=$SHA.glb" \
+    "$(curl -s -o /dev/null -w '%{redirect_url}' "$FILES_URL/assets/$SHA.glb")"
+is "and following it is the file" 200 \
+    "$(curl -sL -o "$body" -w '%{http_code}' "$FILES_URL/assets/$SHA.glb")"
+cmp -s "$body" "$PAYLOAD" && ok "the same bytes" || no "the same bytes"
+grep -qi 'content-type: application/xml' \
+    <<< "$(curl -sL -D - -o /dev/null "$FILES_URL/assets/$ELX_SHA.elx")" \
+    && ok "an ELX read by its CID is still XML" || no "an ELX read by its CID is still XML"
+if [ -n "${ROOT:-}" ]; then
+    # Bytes under a name that is not their sha256: nobody records a CID for
+    # them, so they are what a file without one looks like.
+    ODD=$(printf 'x%.0s' $(seq 64) | tr x 0 | head -c 63)1
+    cp "$PAYLOAD" "$ROOT/assets/$ODD.glb"; chmod 644 "$ROOT/assets/$ODD.glb"
+    is "a file with no CID yet is served from the store" 200 \
+        "$(curl -s -o /dev/null -w '%{http_code}' "$FILES_URL/assets/$ODD.glb")"
+fi
+
 echo "# $PASS passed, $FAIL failed"
 [ "$FAIL" -eq 0 ]

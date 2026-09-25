@@ -13,6 +13,8 @@
 // here is immutable and cacheable for ever. The Cache API keeps them across
 // atoms and across tabs, keyed by the URL, which carries the hash.
 
+import { tileDir } from './peerfetch.js';
+
 const SHA = /^[0-9a-f]{64}$/;
 
 // Every atom id and artifact sha the atom names, deduplicated, so the whole
@@ -42,7 +44,7 @@ async function locate(api, refs, inputs) {
     }
     if (refs.shas.length) {
         const rows = await api.select('artifact',
-            { sha256: inList(refs.shas), select: 'sha256,kind' });
+            { sha256: inList(refs.shas), select: 'sha256,kind,cid' });
         const sogs = rows.filter((r) => r.kind === 'sog').map((r) => r.sha256);
         const tiles = sogs.length
             ? await api.select('tile',
@@ -72,9 +74,13 @@ function path(artifact, tile, inputs) {
     if (kind === 'dem' && inputs?.dem === sha) {
         return `/geo/dem/${inputs.dem_at}.r16`;
     }
+    // LV.14: a stored file the world has a CID for is read by it; the path
+    // it was PUT at is only where it was written.
+    const ext = { sog: 'sog', glb: 'glb', height_edit: 'r32', thumb: 'webp' }[kind];
+    if (artifact.cid && ext) return `/ipfs/${artifact.cid}?filename=${sha}.${ext}`;
     if (kind === 'sog') {
         if (!tile) throw new Error(`no published tile or atom holds sog ${sha}`);
-        return tile.path ?? `/tiles/${tile.z}/${tile.x}/${tile.y}/${sha}.sog`;
+        return tile.path ?? `${tileDir('', tile.z, tile.x, tile.y)}/${sha}.sog`;
     }
     if (kind === 'glb') return `/assets/${sha}.glb`;
     // FND.9: a land's shaped ground, pinned in the atom's inputs so the atom

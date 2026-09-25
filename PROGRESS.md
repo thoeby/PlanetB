@@ -3039,3 +3039,30 @@ artboards 10a–10k:
 - Alpha, in the player-run, now has the world plugin, as a server that runs
   World blocks does.
 - Auto-layout spaces layers 300 apart, because blocks are wider.
+
+## TASKS-live.md — live objects, the store, files anywhere (LV.1–LV.14)
+
+Migrations `db/0199`–`db/0215`, stories 40–48. `VISION.md`, named as the
+first thing to read, is in no branch; the decisions are the ones the owner's
+list states, and the ones made while planning are in `TASKS-live.md`.
+
+| story | what it proves | state |
+|---|---|---|
+| 40 | a crane's arm swings; two tabs put it at the same place at the same world second; the tile under it keeps its sog | green (subset) |
+| 41 | a gate declares `near 5`; walking up sets it off once; a flow on alpha reads it with Events Since | green (subset) |
+| 42 | a flow of On Trigger and Turn To only opens the gate for A after A clicks it | green (subset, fixture) |
+| 43 | a crate is carried a hundred metres and put down; A and C reach for it at once, one has it, one is told who | green (subset) |
+| 44 | the motion plugin is registered, bought and installed on beta; the palette says it is from beta | green (subset, fixture) |
+| 45 | the registrar puts a folder in the world; a fix that asks to pay waits for the owner's Allow | green (subset) |
+| 46 | B delegates the gate's flow; C runs it on beta under the duty's key; after the term it is gone and the key refuses | green (subset, fixture) |
+| 47 | C gets the gate from Ben's tab with the store out of reach; a lying tab is dropped and said | green (subset) |
+| 48 | C hosts Ben's field for three minutes; A gets the gate from Cara's tab; C settles for the share of its bytes she served (the bounty is 0: nobody here has earned a credit; the split is pgTAP's) | green (subset) |
+
+"Subset": this container's WebGPU (SwiftShader) has no `shader-f16`, so
+`train` is never claimed and story 8 cannot pass here; nor can any story that
+needs a rendered tile. The live stories need none, and were run from an empty
+database after the stories that set their world up (0–7 and 32), as
+`HANDOFF.md` §9 says. The whole `make player-run` is unrun here.
+
+Two things are the fixture's word and not a real process server's:
+`POST /system/plugins/install` and a job's `until` (`docs/flow.md`).

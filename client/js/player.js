@@ -8,6 +8,7 @@
 
 import * as tm from '../lib/tilemath.js';
 import { key } from './tiles.js';
+import { tileDir } from './peerfetch.js';
 
 export const WALK = 'walk';
 export const FLY = 'fly';
@@ -219,7 +220,7 @@ export class Terrain {
         this.wanted.add(k);
         const { z, x, y } = row ?? {};
         if (!man?.height || !man?.colliders) return;
-        const base = `${this.streamer.filesUrl}/tiles/${z}/${x}/${y}`;
+        const base = tileDir(this.streamer.filesUrl, z, x, y);
         const keep = () => this.wanted.has(k);
         this.fetchFn(`${base}/${man.height.sha256}.r16`)
             .then((r) => (r.ok ? r.arrayBuffer() : null))
