@@ -32,12 +32,22 @@ export function drawTool(state, acts) {
             if (!press) return;
             const was = press;
             press = null;
-            if (was.sketching) { addNodes(state, acts, sketched(was.sketch)); return; }
+            if (was.sketching) {
+                addNodes(state, acts, sketched(was.sketch).map((n) => acts.snap(n, e)));
+                return;
+            }
             const again = last && Date.now() - last.t < AGAIN_MS
                 && Math.hypot(e.clientX - last.x, e.clientY - last.y) < AGAIN_PX;
             last = { t: Date.now(), x: e.clientX, y: e.clientY };
             if (again) { acts.finish(); return; }
-            addNodes(state, acts, [was.g]);
+            // Where the node lands is where it snaps (client/js/linesnap.js);
+            // deep in somebody else's ground it does not land at all (D5).
+            const at = acts.snap(was.g, e);
+            if (at.refused) {
+                acts.say('not your land \u2014 a line stops at your boundary', true);
+                return;
+            }
+            addNodes(state, acts, [at]);
         },
         sketch: () => press?.sketching ? press.sketch : null,
     };
@@ -57,7 +67,7 @@ function addNodes(state, acts, nodes) {
         state.drawing = lineOf({ kind: entry.kind, props: { ...entry.props, width: entry.width },
             nodes: [], corner: [], entry });
     }
-    for (const n of nodes) {
+    for (const n of nodes.filter((m) => !m.refused)) {
         state.drawing.nodes.push({ lon: n.lon, lat: n.lat });
         state.drawing.corner.push(Boolean(entry.corner));
     }

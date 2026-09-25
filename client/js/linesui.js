@@ -10,6 +10,7 @@
 import * as api from './api.js';
 import { entriesFor, entryOf } from '../lib/kinds.js';
 import { Lines } from './lines.js';
+import { aroundLand, snapNode } from './linesnap.js';
 import { Shaping } from './sculpt.js';
 import { drawTool, dropLast } from './linetool.js';
 import { drawLines } from './linedraw.js';
@@ -135,7 +136,10 @@ async function listLands(q, state, lands) {
 async function chooseLand(ctx, state, id, surface, say) {
     const area = state.areas.find((a) => a.id === id) ?? state.areas[0];
     if (!area) return;
-    if (state.lines?.area.id !== area.id) state.lines = await Lines.load(area, state.entries);
+    if (state.lines?.area.id !== area.id) {
+        state.lines = await Lines.load(area, state.entries);
+        Object.assign(state, await aroundLand(area));
+    }
     state.drawing = null;
     state.selected = null;
     if (!(ctx.bp.active && ctx.bpmode.surface === surface && ctx.bp.area?.id === area.id)) {
@@ -145,10 +149,16 @@ async function chooseLand(ctx, state, id, surface, say) {
     say(`drawing on ${area.rules?.name ?? 'your land'} — click the ground`);
 }
 
+// How much ground a pixel of the screen is, at the camera's distance.
+const metresPerPx = (ctx) => 2 * (ctx.bpmode.cam.state.distance ?? 400)
+    * Math.tan(22.5 * Math.PI / 180) / (ctx.bpmode.cam.ctx.canvas.clientHeight || 800);
+
 function actsOf(ctx, state, say, picker) {
     const heightAt = (lon, lat) => ctx.bp.heightAt(lon, lat);
     return {
         entry: () => picker.picked,
+        snap: (g, e) => snapNode(state, g, e, { metresPerPx: metresPerPx(ctx),
+            grid: ctx.bp.overlays.grid ? 1 : 0 }),
         finish() {
             const d = state.drawing;
             if (!d || d.nodes.length < 2) { say('a line needs two nodes', true); return null; }
@@ -196,8 +206,13 @@ function linesSurface(ctx, state, acts, say) {
         down: (g, e) => { if (state.tool === 'draw') draw.down(g, e); },
         move: (g, e) => { if (g) state.at = g; if (state.tool === 'draw') draw.move(g, e); },
         up: (g, e) => { if (state.tool === 'draw') draw.up(g, e); },
-        hover: (g) => { if (g) state.at = g; },
-        describe: (g, base) => base,
+        // Where a node would land, said at the pointer before it is dropped.
+        hover: (g, e) => {
+            if (g) state.at = g;
+            state.snap = g && state.tool === 'draw' ? acts.snap(g, e) : null;
+        },
+        describe: (g, base) => (state.snap ? { ...base, snapped: state.snap.hit,
+            inside: !state.snap.refused } : base),
         draw: () => drawLines(ctx.bp, ctx.app, ctx.pc, { lines: state.lines?.live ?? [],
             drawing: state.drawing, look, selected: state.selected,
             at: state.tool === 'draw' ? state.at : null }),
