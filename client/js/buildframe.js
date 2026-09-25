@@ -23,7 +23,7 @@ export function framing(size) {
     return { d, back: d * Math.cos(a), up: d * Math.sin(a), pitch: -a };
 }
 
-export function frameFor({ player, terrain }, asset) {
+export function frameFor({ player, terrain, camera }, asset) {
     if (!player) return null;
     const f = framing(sizeOf(asset?.bbox));
     const p = player.position;
@@ -35,5 +35,10 @@ export function frameFor({ player, terrain }, asset) {
     player.position = { x: spot.x - fwd.x * f.back, y: ground + f.up,
         z: spot.z - fwd.z * f.back };
     player.pitch = f.pitch;
+    // The frame loop moves the camera to the player on its next tick; a
+    // click before it would be aimed from where the camera was.
+    const q = player.position;
+    camera?.setPosition(q.x, q.y, q.z);
+    camera?.setEulerAngles(f.pitch / Math.PI * 180, player.yaw / Math.PI * 180, 0);
     return { spot: { ...spot, y: ground }, ...f };
 }
