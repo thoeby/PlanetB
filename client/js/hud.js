@@ -209,6 +209,15 @@ function barFor(f, tabsUp) {
 }
 
 
+// How many notifications are waiting, on the bell.
+function countOnTheBell(f) {
+    f.notify.onCount((n) => {
+        const count = f.strip.bell.querySelector('.count');
+        count.hidden = n === 0;
+        count.textContent = String(n);
+    });
+}
+
 export function mountHud(doc) {
     let open = 'World';
     let app = 'Build';
@@ -231,10 +240,9 @@ export function mountHud(doc) {
     const pickApp = (name) => {
         if (name === null) { drawers.apps(f.drawer.node.hidden); return app; }
         dressOnly(name);
-        // A view opens what it is: Work its queues, Survey its map, Trade &
-        // Sell the catalog (apps.js appSurface). A view that is the world
-        // itself closes whatever the last one had open, because a panel
-        // belonging to another workspace left over the world is not this one.
+        // A view opens what it is (apps.js appSurface). A view that is the
+        // world closes whatever the last one had open: a panel belonging to
+        // another workspace left over the world is not this one.
         show(appSurface(app) ?? 'World');
         return app;
     };
@@ -242,11 +250,7 @@ export function mountHud(doc) {
         onApps: pickApp, onTray: () => drawers.tray(!f.notify.isOpen()),
         pick: pickApp,
     });
-    f.notify.onCount((n) => {
-        const count = f.strip.bell.querySelector('.count');
-        count.hidden = n === 0;
-        count.textContent = String(n);
-    });
+    countOnTheBell(f);
     dressFor(f, app);
     watchFit(f.strip.node);
     // What a panel wants done when it is opened. A queue somebody else is

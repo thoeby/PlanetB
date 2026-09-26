@@ -848,7 +848,7 @@ Relayed connections are "limited" to libp2p: both the handler and the dial say
 
 ## 10. The chrome, the Marketplace, Automate's tabs (TASKS-ui.md)
 
-Stories 49–53, no migrations. What to know before changing the chrome:
+Stories 70–74 (written as 49–53; renumbered after the editors' 49–69 when both met on main), no migrations. What to know before changing the chrome:
 
 **The top bar decides "room" by measuring.** It is three columns, the two
 ends equally wide, so the middle (the compass, or a workspace's tabs) is in
@@ -857,7 +857,7 @@ drawer (`#top[data-fold]`) when the left end cannot hold their glyphs, and
 has the right end shed words (`data-tight` 1: clock, names, coordinates) and
 then the world's two numbers (2) when it cannot hold those; a
 `ResizeObserver` asks again. The right end spills leftwards, where
-`scrollWidth` does not see it, so the ends' children are added up. Story 49
+`scrollWidth` does not see it, so the ends' children are added up. Story 70
 checks 1600 and 900 wide, and `panelApp()` presses whichever is there.
 
 **The middle of the bar has one tenant** (`centreSlot`): where you stand in

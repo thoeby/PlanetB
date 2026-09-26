@@ -1,4 +1,4 @@
-// Story 49 — one bar at the top, and a quieter Build (TASKS-ui.md UI.1, UI.2).
+// Story 70 — one bar at the top, and a quieter Build (TASKS-ui.md UI.1, UI.2).
 //
 // B stands on his field. The bar has no wordmark; where he stands is in the
 // middle of it. The views are glyphs on the bar while there is room and cards
@@ -22,7 +22,7 @@ async function viewsAre(b, where) {
     }
 }
 
-test('story 49 — one bar, and Build without the clutter', async ({ browser, world }, testInfo) => {
+test('story 70 — one bar, and Build without the clutter', async ({ browser, world }, testInfo) => {
     const b = await open(browser, world, 'B', testInfo);
     await test.step('B signs back in and stands on his field', async () => {
         await signIn(b, 'ben@visp.example', 'Ben');

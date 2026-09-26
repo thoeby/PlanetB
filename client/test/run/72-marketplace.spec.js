@@ -1,4 +1,4 @@
-// Story 51 — the Marketplace (TASKS-ui.md UI.4–UI.6).
+// Story 72 — the Marketplace (TASKS-ui.md UI.4–UI.6).
 //
 // C puts a boulder on sale in four steps — the model, its parts, its name and
 // price, Register. B finds it in the Shop and takes two; they are his under
@@ -47,7 +47,7 @@ async function takesTwo(b) {
     await expect(b.page.locator('#status')).toContainText('licensed S', { timeout: UI });
 }
 
-test('story 51 — a boulder is put on sale, and bought', async ({ browser, world }, testInfo) => {
+test('story 72 — a boulder is put on sale, and bought', async ({ browser, world }, testInfo) => {
     const c = await open(browser, world, 'C', testInfo);
     await test.step('C signs back in', () => signIn(c, 'cara@visp.example', 'Cara'));
     const san = await test.step('1 — C puts a boulder on sale in four steps',

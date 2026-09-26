@@ -1,4 +1,4 @@
-// Story 52 — Work › Hosting says what it is before it asks anything
+// Story 73 — Work › Hosting says what it is before it asks anything
 // (TASKS-ui.md UI.7).
 //
 // B reads what hosting is — three steps — sees what his field holds before he
@@ -42,7 +42,7 @@ async function hostsFromTheCard(c) {
         { timeout: UI });
 }
 
-test('story 52 — hosting explains itself, and is done from cards',
+test('story 73 — hosting explains itself, and is done from cards',
     async ({ browser, world }, testInfo) => {
         const b = await open(browser, world, 'B', testInfo);
         await test.step('B signs back in', () => signIn(b, 'ben@visp.example', 'Ben'));

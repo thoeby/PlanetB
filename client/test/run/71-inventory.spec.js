@@ -1,4 +1,4 @@
-// Story 50 — the Inventory, and placing from it (TASKS-ui.md UI.3).
+// Story 71 — the Inventory, and placing from it (TASKS-ui.md UI.3).
 //
 // B takes the crate in the Shop; it is in his Inventory beside what he already
 // holds. Place on its card walks into build mode with the crate in hand and
@@ -26,7 +26,7 @@ const camera = (b) => b.page.evaluate(() => {
     return { over: p.y - ground, mode: document.getElementById('hints').dataset.mode };
 });
 
-test('story 50 — B places a crate from his Inventory', async ({ browser, world }, testInfo) => {
+test('story 71 — B places a crate from his Inventory', async ({ browser, world }, testInfo) => {
     const b = await open(browser, world, 'B', testInfo);
     await test.step('B signs back in', () => signIn(b, 'ben@visp.example', 'Ben'));
     const here = await goesToTheLand(b);

@@ -1,4 +1,4 @@
-// Story 53 — Automate's four tabs, and undo on the bar (TASKS-ui.md UI.8, UI.9).
+// Story 74 — Automate's four tabs, and undo on the bar (TASKS-ui.md UI.8, UI.9).
 //
 // B opens Automate on its Flows page: his flows as cards. One opens into the
 // Editor, where a change is undone from the top bar. The Server control, not a
@@ -7,9 +7,10 @@
 // on his field from above and puts a product on it. And in Terrain, the same
 // two glyphs on the bar undo and redo the ground.
 
-import { test, expect, open, panel, panelApp, signIn, UI } from './players.js';
+import { test, expect, open, panelApp, signIn, UI } from './players.js';
 import { automateTab, chooseServer, dragIn } from './automate.js';
 import { goesToTheLand } from './things.js';
+import { pointOfHisLand, shapeHisLand } from './editors.js';
 
 const flows = (b) => b.page.locator('#flows');
 const elx = (b) => b.page.evaluate(() => window.splatworld.flows.canvas().elx());
@@ -97,32 +98,29 @@ async function leaves(b) {
     await expect(b.page.locator('#top .fl-pages')).toHaveCount(0);
 }
 
-// UI.9: a raise of the ground, undone from the bar.
+// UI.9: a stroke on the ground, undone from the bar. Shape opens the clay
+// over his land (EDT.6); a press held on it is one stroke.
 async function theGround(b) {
     await goesToTheLand(b);
-    await panel(b, 'Shape');
-    await expect(b.page.locator('.sc-land option')).not.toHaveCount(0, { timeout: UI });
-    await b.page.locator('.sc-toggle').check();
-    await b.page.locator('.sc-brush-raise').click();
+    await shapeHisLand(b);
+    const p = await pointOfHisLand(b);
     const undo = b.page.locator('#bar-undo');
     await expect(undo).toBeVisible({ timeout: UI });
     await expect(undo).toBeDisabled();
-    await b.page.mouse.move(860, 520);
+    await b.page.mouse.move(p.x, p.y);
     await b.page.mouse.down();
-    await b.page.mouse.move(880, 535);
-    await b.page.mouse.move(900, 550);
+    await b.page.waitForTimeout(300);
     await b.page.mouse.up();
     await expect(undo).toBeEnabled({ timeout: UI });
     await undo.click();
     await expect(b.page.locator('.sc-status')).toHaveText('undone');
     await expect(b.page.locator('#bar-redo')).toBeEnabled();
-    await b.page.locator('.sc-toggle').uncheck();
-    // Terrain closed, the two glyphs go with it.
-    await b.page.locator('#panel .close').click();
-    await expect(undo).toBeHidden();
+    // Shape closed — nothing unsaved is left to ask about — the glyphs go too.
+    await b.page.keyboard.press('Escape');
+    await expect(undo).toBeHidden({ timeout: UI });
 }
 
-test('story 53 — Automate’s four tabs, and undo on the bar', async ({ browser, world },
+test('story 74 — Automate’s four tabs, and undo on the bar', async ({ browser, world },
     testInfo) => {
     const b = await open(browser, world, 'B', testInfo);
     await test.step('B signs back in', () => signIn(b, 'ben@visp.example', 'Ben'));

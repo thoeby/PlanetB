@@ -60,7 +60,7 @@ green (their helpers change with it).
 
 ## The tasks
 
-### UI.1 One bar — story 49
+### UI.1 One bar — story 70
 * `topbar.js`: no wordmark; views inline or in the drawer (measured); a
   centre slot that holds the compass and the place line in Build and Play and
   the view's tabs in Work, Marketplace and Automate; an edit slot for undo /
@@ -69,31 +69,31 @@ green (their helpers change with it).
 * Stories: `players.js` `panel()` finds a part wherever the tabs are drawn;
   `panelApp()` presses the view's glyph when it is on the bar, the drawer
   when it is not.
-* **Story 49**: at 1280 px the views are glyphs and the drawer button is
+* **Story 70**: at 1280 px the views are glyphs and the drawer button is
   gone; narrowed, they fold into the drawer and the button is back. The land
   line is in the bar. Work's tabs are in the bar and the panel has no title.
 
-### UI.2 Build is quieter — story 49 (continued)
+### UI.2 Build is quieter — story 70 (continued)
 * No `nextstep.js` card; no legend; the altimeter drawn inside the map box;
   the key hints fold to one line (remembered per browser).
 
-### UI.3 Inventory and placing — story 50
+### UI.3 Inventory and placing — story 71
 * Build › Inventory: your products, your licences, what you took for free, as
   cards with **Place**. Place picks it in the Place panel, enters build mode
   and frames the camera to the product's size, with a line saying how to put
   it down and how to cancel.
-* **Story 50**: B opens Inventory, presses Place on the crate; the camera
+* **Story 71**: B opens Inventory, presses Place on the crate; the camera
   comes close enough that the crate fills a sensible part of the view; one
   click puts it down.
 
-### UI.4 Marketplace: Shop — story 51
+### UI.4 Marketplace: Shop — story 72
 * Trade & Sell is Marketplace. Shop: category and maker filters with counts,
   search, sort (newest, cheapest, most placed), product cards (price, placed
   count, Buy / Yours / Held), a detail column (what it is, placed count, how
   many you hold, the price, how many, pay from, Buy new). Market is a greyed
   tab and a greyed "market offer" line.
 
-### UI.5 Marketplace: Selling and putting a model on sale — story 51
+### UI.5 Marketplace: Selling and putting a model on sale — story 72
 * Your products; the selected one's numbers (sold, earned, placed; resold
   greyed), its price (greyed editing: changing a price comes with the new
   payment system), 14 days of sales, and the orders (who, how many, state,
@@ -104,31 +104,31 @@ green (their helpers change with it).
   its parts and what sets it off, name and price, register — replacing the
   catalog's one long form. Selling's "Register a model" opens it.
 
-### UI.6 Marketplace: Licences and Earnings — story 51
+### UI.6 Marketplace: Licences and Earnings — story 72
 * Licences: what you hold, since when, which version it follows, how many
   you have placed. Earnings: this month, new copies, resales (greyed), on its
   way (pending orders), 30 days, and what came in.
-* **Story 51**: C puts a model on sale through the steps; B finds it in the
+* **Story 72**: C puts a model on sale through the steps; B finds it in the
   Shop, buys two, sees them under Licences and in Inventory; C sees the sale
   under Selling and the credit under Earnings.
 
-### UI.7 Work tabs and Hosting — story 52
+### UI.7 Work tabs and Hosting — story 73
 * Work's tabs are in the bar (UI.1). Hosting explains itself: what hosting
   is, the three steps, your land's files, what your tab hosts now and what it
   has served; offers are cards with land, files, size, term and bounty.
-* **Story 52**: B reads what hosting is and offers his field from the card;
+* **Story 73**: B reads what hosting is and offers his field from the card;
   C hosts it from the offer card and sees the files her tab holds.
 
-### UI.8 Automate's four tabs — story 53
+### UI.8 Automate's four tabs — story 74
 * Flows (start page), Editor, Schedule (the Planner), Paths (routes for
   movers, drawn on the land's map). The Server control lists My collection
   first; the left column follows it. The Automate bar: where and what on the
   left, Server and Auto-layout and the actions on the right; undo / redo on
   the top bar.
-* **Story 53**: B opens Automate on the Flows tab, opens a flow into the
+* **Story 74**: B opens Automate on the Flows tab, opens a flow into the
   Editor, undoes a change from the top bar, switches the Server control to
   alpha and back to My collection, opens Schedule, and draws a route in
   Paths.
 
-### UI.9 Terrain's undo and redo on the bar — story 53 (continued)
+### UI.9 Terrain's undo and redo on the bar — story 74 (continued)
 * The Shape panel's undo / redo are the bar's icons while Terrain is open.
