@@ -3217,7 +3217,14 @@ sale, resales — is drawn, greyed, and says so.
 | 73 | Hosting says what it is in three steps and what a land holds before it is offered; C hosts from the offer's card and her tab's card says what it holds | green (subset) |
 | 74 | Automate opens on the Flows page; a flow opens into the Editor; a change is undone and redone from the bar; the Server control's My collection and alpha decide the left column; Schedule is alpha's Planner; Paths puts a product on a route drawn on the map; Terrain's undo is the same glyph | green (subset) |
 
-Run here from an empty database: 0–7, 9, 10 and 32, then 40–48 and 70–74 on that
+After the rebase onto main (the editors' EDT.0–26), one run from an empty
+database: 0–7, 9, 10, 32, 40–51, 53–59, 61, 62, 64–66, 69 and 70–74 green.
+52, 60 and 63 fail the same on main itself with this world, and main does
+not reach 65's or 67's checks on it; 67 fails on a forest the world already
+holds and 68 needs 67's pond. The editors' stories were proven from their own
+replays (below), not after this chain.
+
+Before that, on the branch: 0–7, 9, 10 and 32, then 40–48 and 70–74 on that
 world (`HANDOFF.md` §9 says why the subset). Story 9 failed once in three
 runs ("A walks off it": the land line kept the old land) and passed on the
 next; nothing in this work touches that path, and it is recorded as a flake,

@@ -75,7 +75,7 @@ export const sees = (player, id) => expect.poll(() => player.page.evaluate((want
     Boolean(window.splatworld.preview.entities.get(want)), id), { timeout: UI });
 
 // One product from the catalog, put down on bare ground, saved, and picked up
-// again so the Ports section is about it. Returns the id the world gave it.
+// again so the panel's sections are about it. Returns the id the world gave it.
 export async function plants(b, name) {
     const before = new Set(await thingsOn(b));
     await panel(b, 'Place');
@@ -97,7 +97,9 @@ export async function plants(b, name) {
         (await thingsOn(b)).filter((id) => !before.has(id)).length,
     { timeout: UI }).toBe(1);
     await b.page.mouse.click(640, 520);
-    await expect(b.page.locator('.build-ports-section')).toBeVisible({ timeout: UI });
+    // A thing the world holds is selected: its Flows section is there (a
+    // crate has no ports, and its Ports section stays hidden).
+    await expect(b.page.locator('.build-flows-section')).toBeVisible({ timeout: UI });
     return (await thingsOn(b)).find((id) => !before.has(id));
 }
 
