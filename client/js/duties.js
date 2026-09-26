@@ -81,3 +81,13 @@ export async function sendReceipts(dutyId) {
 export const settleDuty = (dutyId) => api.rpc('settle_duty', { duty: dutyId });
 
 export const runningHere = (dutyId) => Boolean(mine()[dutyId]);
+
+// A term that ends while its list is on screen brings its Settle with it: the
+// list is read again a second after the next one ends. `prev` is the timer
+// the last reading set, which this one replaces.
+export function onTermEnd(rows, fn, prev = null) {
+    clearTimeout(prev);
+    const next = rows.map((d) => (d.ends_at ? new Date(d.ends_at) - Date.now() : -1))
+        .filter((ms) => ms > 0).sort((a, b) => a - b)[0];
+    return next === undefined ? null : setTimeout(fn, next + 1000);
+}

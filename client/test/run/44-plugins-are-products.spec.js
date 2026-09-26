@@ -12,6 +12,7 @@ import { dirname, join } from 'node:path';
 import { test, expect, open, panel, signIn, UI } from './players.js';
 import { chooseServer, openAutomate } from './automate.js';
 import { REPO } from './world.js';
+import { onSale, register, step } from './selling.js';
 import { writeTar } from '../../lib/tar.js';
 
 // What C is given: the plugin folder, packed as anybody packs a folder —
@@ -30,14 +31,15 @@ function givenTar() {
 }
 
 async function registersThePlugin(c, file) {
-    await panel(c, 'Catalog');
+    await onSale(c);
     await c.page.locator('#upload-type').selectOption('plugin');
     await c.page.locator('#product-file').setInputFiles(file);
     await expect(c.page.locator('#product-said')).toHaveText('plugin motion · 6 blocks',
         { timeout: UI });
+    await step(c, 'price');
     await c.page.locator('#name').fill('Motion');
     await c.page.locator('#upload-license').selectOption('free');
-    await c.page.locator('#publish').click();
+    await register(c);
     await expect(c.page.locator('#upload-status')).toContainText('published S', { timeout: UI });
 }
 
@@ -49,7 +51,7 @@ async function looksForMoveTo(b) {
 }
 
 async function buysAndInstalls(b) {
-    await panel(b, 'Catalog');
+    await panel(b, 'Shop');
     await b.page.locator('#type').selectOption('plugin');
     await b.page.locator('#q').fill('Motion');
     await b.page.getByRole('button', { name: 'Find' }).click();

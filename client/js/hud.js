@@ -18,50 +18,12 @@ import { APPS, appIsFull, appKeyed, appNamed, appSurface, appsDrawer } from './a
 import { mountNotify } from './notify.js';
 import { state, whatIsMissing } from './hudsays.js';
 import { topBar } from './topbar.js';
+import { centreSlot, editSlot, fitBar, watchFit } from './hudbar.js';
+import { drawersOf, panelFrame, windowWatch } from './hudframe.js';
 
 export { GROUPS, TABS, keyed };
 export { APPS };
 export { whatIsMissing };
-
-// The panel frame: a title, whatever this surface says about itself above its
-// parts, the parts where it has more than one, and the × that closes it.
-function panelFrame(onClose, onPart) {
-    const title = el('span', { className: 'title' });
-    const close = el('button', { type: 'button', className: 'close',
-        textContent: '×', title: 'close' });
-    close.onclick = onClose;
-    // One host per surface, between the title and the parts: what is true of
-    // every part of a surface belongs above the tabs rather than repeated
-    // inside each of them. Work's machine strip is the case — what this tab
-    // can do and what it is doing is the same answer whichever queue you are
-    // looking at.
-    const heads = new Map();
-    const head = el('div', { className: 'head' });
-    for (const t of TABS) {
-        const host = el('div', { className: 'tab-head' });
-        host.hidden = true;
-        heads.set(t.name, host);
-        head.append(host);
-    }
-    const parts = el('nav', { className: 'parts' });
-    const partButtons = new Map();
-    for (const t of TABS) {
-        for (const part of t.parts ?? []) {
-            const b = el('button', { type: 'button', className: 'part',
-                textContent: part.label });
-            b.dataset.tab = part.name;
-            b.dataset.of = t.name;
-            b.setAttribute('aria-selected', 'false');
-            b.onclick = () => onPart(part.name);
-            partButtons.set(part.name, b);
-            parts.append(b);
-        }
-    }
-    const body = el('div', { className: 'body' });
-    const node = el('aside', { id: 'panel', className: 'glass' },
-        el('header', {}, title, close), head, parts, body);
-    return { node, title, body, head, heads, parts, partButtons };
-}
 
 // Everything that is on screen, built once. `show` is passed in because the
 // bar's buttons need it before mountHud has defined it.
@@ -109,24 +71,23 @@ function buildFrame(doc, show, on) {
     const hints = keyHints();
     // SPEC §3.2: a land's name is drawn on the ground, and letters are HTML.
     const labels = el('div', { id: 'world-labels' });
+    // UI.1: the compass and the place line are the middle of the top bar.
+    const slot = centreSlot(strip.centre, top.node);
+    const edits = editSlot(strip.edit);
     const hud = el('div', { id: 'hud' },
         labels, strip.node, drawer.node, notify.tray, notify.toasts,
-        top.node, frame.node, bar,
+        frame.node, bar,
         el('div', { id: 'corner' },
             hints,
             el('div', { id: 'map', className: 'glass' }, map, scale, mapBox)),
-        el('div', { id: 'legend', className: 'glass' },
-            el('span', { className: 'published' }, el('i'), 'Published'),
-            el('span', { className: 'candidate' }, el('i'),
-                'Candidate \u00b7 awaiting approval'),
-            el('span', { className: 'mine' }, el('i'), 'Yours \u00b7 not yet submitted'),
-            el('span', { className: 'theirs' }, el('i'), 'No build rights')),
         el('div', { id: 'crosshair' }, el('i'), el('i'), el('i'), el('i')),
         notice);
 
     doc.body.append(el('div', { id: 'vignette' }), hud);
-    const alt = mountAltimeter(hud);
+    // UI.2: the altimeter is part of the map in the corner.
+    const alt = mountAltimeter(hud.querySelector('#map'));
     return { hud, top, strip, drawer, notify, you: strip.you, stats: strip.stats,
+        slot, edits,
         frame, buttons, bodies, notice, map, mapBox, scale,
         waiting: strip.waiting, hints, alt };
 }
@@ -230,47 +191,31 @@ function showPanel(name, f) {
     // A view that takes the window puts them away for good (apps.js `full`).
     f.hud.dataset.covered = wide && at.tab !== 'World' ? '1' : '';
     frame.node.style.width = !wide && tab?.width ? `${tab.width}px` : '';
+    barFor(f, takes && !frame.parts.hidden);
+}
+
+// UI.1: a workspace that has the window shows its tabs in the top bar and has
+// no title of its own — the view's glyph already says what it is. Anywhere
+// else the tabs stay under the panel's title and the bar says where you are.
+function barFor(f, tabsUp) {
+    const { frame } = f;
+    if (!tabsUp && frame.parts.parentNode !== frame.node) {
+        frame.node.insertBefore(frame.parts, frame.body);
+    }
+    f.slot.show({ parts: tabsUp ? frame.parts : null,
+        world: !appIsFull(f.hud.dataset.app) });
+    fitBar(f.strip.node);
+    f.edits.changed();
 }
 
 
-// The drawer and the tray are the two things that hang off the top strip, and
-// only one of them is ever down.
-function drawersOf(at) {
-    const d = {
-        apps(yes) {
-            at().drawer.node.hidden = !yes;
-            at().strip.appsBtn.setAttribute('aria-selected', String(yes));
-            if (yes) d.tray(false);
-        },
-        tray(yes) {
-            at().notify.open(yes);
-            at().strip.bell.setAttribute('aria-selected', String(yes));
-            if (yes) {
-                at().drawer.node.hidden = true;
-                at().strip.appsBtn.setAttribute('aria-selected', 'false');
-            }
-        },
-        toggleTray() { d.tray(!at().notify.isOpen()); },
-        close() {
-            const was = !at().drawer.node.hidden || at().notify.isOpen();
-            d.apps(false);
-            d.tray(false);
-            return was;
-        },
-    };
-    return d;
-}
-
-// Whoever is drawing the world is told when a workspace takes it over, because
-// a world nobody can see is a world nobody should be rendering. Once, when it
-// changes, rather than on every panel that opens.
-function windowWatch(f, taking) {
-    let held = '';
-    return () => {
-        if (f.hud.dataset.window === held) return;
-        held = f.hud.dataset.window;
-        for (const fn of taking) fn(held === '1');
-    };
+// How many notifications are waiting, on the bell.
+function countOnTheBell(f) {
+    f.notify.onCount((n) => {
+        const count = f.strip.bell.querySelector('.count');
+        count.hidden = n === 0;
+        count.textContent = String(n);
+    });
 }
 
 export function mountHud(doc) {
@@ -295,10 +240,9 @@ export function mountHud(doc) {
     const pickApp = (name) => {
         if (name === null) { drawers.apps(f.drawer.node.hidden); return app; }
         dressOnly(name);
-        // A view opens what it is: Work its queues, Survey its map, Trade &
-        // Sell the catalog (apps.js appSurface). A view that is the world
-        // itself closes whatever the last one had open, because a panel
-        // belonging to another workspace left over the world is not this one.
+        // A view opens what it is (apps.js appSurface). A view that is the
+        // world closes whatever the last one had open: a panel belonging to
+        // another workspace left over the world is not this one.
         show(appSurface(app) ?? 'World');
         return app;
     };
@@ -306,12 +250,9 @@ export function mountHud(doc) {
         onApps: pickApp, onTray: () => drawers.tray(!f.notify.isOpen()),
         pick: pickApp,
     });
-    f.notify.onCount((n) => {
-        const count = f.strip.bell.querySelector('.count');
-        count.hidden = n === 0;
-        count.textContent = String(n);
-    });
+    countOnTheBell(f);
     dressFor(f, app);
+    watchFit(f.strip.node);
     // What a panel wants done when it is opened. A queue somebody else is
     // working out of is out of date the moment it is drawn, and opening the
     // surface is the player asking what is in it.
@@ -384,6 +325,13 @@ function handle(f, { show, pickApp, onShow, app, opened, watching, taking, onOpe
         panel: (name) => f.bodies.get(name),
         // What a surface says above its parts, rather than inside one of them.
         panelHead: (name) => f.frame.heads.get(name),
+        // UI.1: undo and redo on the bar for whoever is editing, and the
+        // middle of the bar lent to a workspace's own tabs (Automate).
+        edits: f.edits,
+        barTabs(node) {
+            f.slot.lend(node);
+            barFor(f, f.hud.dataset.window === '1' && !f.frame.parts.hidden);
+        },
         whenShown(name, fn) { onShow.set(name, fn); },
         // Every panel opened, by the name of the body now on screen.
         whenOpened(fn) { onOpened.push(fn); },

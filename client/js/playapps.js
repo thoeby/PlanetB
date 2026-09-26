@@ -64,6 +64,9 @@ function mountAutomate(ctx) {
     ctx.flows = mountFlows(doc, {
         lands: () => ctx.api.rpc('my_areas').catch(() => []),
         pickObject: (where) => pickWorld.ask(where),
+        // UI.8: its four tabs up in the top bar, its undo and redo there too.
+        barTabs: (nav) => hud.barTabs(nav),
+        edits: hud.edits,
         onOpen: () => pause(ctx, true),
         onClose: () => {
             pause(ctx, false);

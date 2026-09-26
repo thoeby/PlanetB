@@ -1,7 +1,7 @@
 // serverpicker.js — the Server control in Automate's top bar (TASKS-flows.md
 // FL.1, docs/design/flows-servers.md §1).
 //
-// A dropdown of the player's process servers, a dot that says whether the
+// A dropdown of My collection and the player's process servers, a dot that says whether the
 // chosen one is answering, and the two dialogs behind "Add a server…" and
 // "Manage servers…". Choosing another server tells whoever is listening at
 // once — nothing reloads. The dot is asked every 15 s, and only while
@@ -13,6 +13,9 @@ import { reach, reachWords } from '../flow/server/client.js';
 
 const POLL_MS = 15_000;
 const ADD = '__add', MANAGE = '__manage';
+// UI.8: not a server — your own flows, on your land. Chosen, the left column
+// lists them; it is where Automate starts.
+export const MINE = '__mine';
 
 const field = (label, value = '', cls = '') => {
     const input = el('input', { type: 'text', value, className: cls });
@@ -158,7 +161,14 @@ function drawMenu(parts, state, pick) {
     const manage = el('button', { type: 'button', className: 'fl-srv-item fl-srv-manage',
         textContent: 'Manage servers\u2026' });
     manage.onclick = () => pick(MANAGE);
-    parts.menu.replaceChildren(...state.list.map((s) => menuRow(s, state, pick)), add, manage);
+    const mine = el('button', { type: 'button', className: 'fl-srv-item fl-srv-mine' },
+        el('span', { className: 'fl-srv-what' }, el('span', { textContent: 'My collection' }),
+            el('span', { className: 'mono', textContent: 'your flows, on your land' })));
+    mine.dataset.on = state.current ? '' : '1';
+    mine.onclick = () => pick(MINE);
+    parts.menu.replaceChildren(mine, el('span', { className: 'fl-srv-sec',
+        textContent: 'Servers' }), ...state.list.map((s) => menuRow(s, state, pick)),
+    add, manage);
 }
 
 // Ask the chosen server whether it is there. Up, the bar shows its version;
@@ -167,7 +177,7 @@ function drawMenu(parts, state, pick) {
 function prober(state, { dot, words, name, tip }) {
     return async () => {
         const s = state.current;
-        name.textContent = s?.name ?? 'none';
+        name.textContent = s?.name ?? 'My collection';
         if (!s) {
             dot.dataset.state = 'none';
             words.textContent = '';
@@ -205,15 +215,16 @@ export function mountServerPicker(host, dialogs, on = {}) {
     const state = { list: [], current: null, timer: null, listeners: [] };
     const probe = prober(state, parts);
     const draw = () => {
-        select.replaceChildren(...state.list.map((s) =>
-            el('option', { value: s.id, textContent: s.name })),
-        el('option', { value: ADD, textContent: 'Add a server…' }),
-        el('option', { value: MANAGE, textContent: 'Manage servers…' }));
-        select.value = state.current?.id ?? ADD;
+        select.replaceChildren(el('option', { value: MINE, textContent: 'My collection' }),
+            el('optgroup', { label: 'Servers' }, ...state.list.map((s) =>
+                el('option', { value: s.id, textContent: s.name }))),
+            el('option', { value: ADD, textContent: 'Add a server…' }),
+            el('option', { value: MANAGE, textContent: 'Manage servers…' }));
+        select.value = state.current?.id ?? MINE;
     };
     const set = (s) => {
         state.current = s;
-        ps.choose(s?.id ?? null);
+        ps.choose(s?.id ?? MINE);
         draw();
         probe();
         for (const fn of state.listeners) fn(s);
@@ -221,7 +232,8 @@ export function mountServerPicker(host, dialogs, on = {}) {
     async function refresh(wantName = null) {
         state.list = await ps.servers();
         const want = wantName && state.list.find((s) => s.name === wantName);
-        const next = want ?? ps.pick(state.list, state.current?.id ?? ps.chosenId());
+        const id = state.current?.id ?? ps.chosenId();
+        const next = want ?? (id && id !== MINE ? ps.pick(state.list, id) : null);
         if (next?.id !== state.current?.id || next?.url !== state.current?.url) set(next);
         else { state.current = next; draw(); }
     }
@@ -233,11 +245,12 @@ export function mountServerPicker(host, dialogs, on = {}) {
                 removable: on.removable ?? (async () => ''),
                 changed: () => refresh(),
             });
-        } else set(state.list.find((s) => s.id === v) ?? null);
+        } else if (v === MINE) set(null);
+        else set(state.list.find((s) => s.id === v) ?? null);
     };
     select.onchange = () => {
         const v = select.value;
-        select.value = state.current?.id ?? ADD;
+        select.value = state.current?.id ?? MINE;
         choose(v);
     };
     dropdown(host, parts, state, choose);

@@ -37,6 +37,7 @@ export function mountEditors(ctx) {
         reopen: () => hud.show('Shape'),
     }, { lands });
     hud.whenShown('Shape', () => ctx.sculpt.enter());
+    groundEdits(ctx);
     // EDT.13: the lines on a land, drawn on the same clay (client/js/linesui.js).
     ctx.lines = mountLines(hud.panel('Lines'), {
         bpmode: ctx.bpmode, bp: ctx.blueprint, app, pc, onSaved,
@@ -58,4 +59,21 @@ export function mountEditors(ctx) {
         draw: (id) => { hud.show('Land'); ctx.assignLand?.choose?.(id); },
     });
     hud.whenShown('Requests', () => ctx.requests.refresh());
+}
+
+// UI.9: while Shape is open, the bar's undo and redo are the ground's — the
+// same two the rail beside the tools has. A stroke is one once it is let go
+// of, on the canvas, so the bar asks again wherever a pointer comes up.
+function groundEdits(ctx) {
+    const { hud } = ctx;
+    const shaping = () => ctx.sculpt.shaping();
+    hud.edits.use('ground', {
+        live: () => hud.opened() === 'Shape' && Boolean(shaping()),
+        undo: () => document.querySelector('.sc-undo')?.click(),
+        redo: () => document.querySelector('.sc-redo')?.click(),
+        canUndo: () => Boolean(shaping()?.strokes.length),
+        canRedo: () => Boolean(shaping()?.undone.length),
+    });
+    window.addEventListener('pointerup', () => hud.edits.changed());
+    window.addEventListener('keyup', () => hud.edits.changed());
 }

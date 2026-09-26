@@ -15,8 +15,9 @@ export const HTML = `
 <div class="section">
   <span class="label">Pick</span>
   <input class="build-search" type="search"
-    placeholder="Search the catalog to pick a product…">
+    placeholder="Find a product to place…">
   <ul class="build-assets rows"></ul>
+  <p class="build-hint note"></p>
 </div>
 
 <div class="section">

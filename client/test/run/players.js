@@ -142,8 +142,14 @@ export async function panel(player, name) {
     await looking(player);
     const page = player.page;
     const bars = '#tabs, #top';
-    const tab = page.locator(`:is(${bars}) button[data-tab="${name}"]`);
+    // A surface's own button, not a part of one that is up in the bar (UI.1).
+    const tab = page.locator(`:is(${bars}) button[data-tab="${name}"]:not(.part)`);
     if (await tab.count()) {
+        // A surface on another view's plinth is reached by going to that view
+        // first, the way a player in the Marketplace goes back to Build.
+        if (!(await tab.isVisible())) {
+            await panelApp(player, (await tab.getAttribute('data-view')) || 'Build');
+        }
         if (await tab.getAttribute('aria-selected') === 'true') return;
         await tab.click();
         return;
@@ -163,19 +169,32 @@ export async function panel(player, name) {
     // window of queues ('Every job' first, tabbar.js), and the stories that
     // ask for "Work" mean the pool as a whole.
     const leaf = surfaceOf(name)?.part ?? name;
-    const part = page.locator(`#panel .parts button[data-tab="${leaf}"]`);
+    // A workspace that has the window shows its tabs in the top bar (UI.1);
+    // anywhere else they are under the panel's title.
+    const part = page.locator(`.parts button[data-tab="${leaf}"]`);
     if (await part.getAttribute('aria-selected') !== 'true') await part.click();
 }
 
-// A view, by its card in the drawer (SPEC §2.1 Views). A player who wants
-// another workspace presses Tab and picks it off the card that says what it
-// is; nobody memorises F-keys on their first day, so neither does this.
+// A view, by its glyph on the bar or its card in the drawer (SPEC §2.1 Views).
+// A player who wants another workspace presses what is on screen; nobody
+// memorises F-keys on their first day, so neither does this.
 //
 // `where` is a page or a player, because a story holds players and the
 // harness's own checks hold pages.
 export async function panelApp(where, name) {
     const page = where.page ?? where;
     if (page.bringToFront) await page.bringToFront();
+    // UI.1: the views are glyphs on the bar when it has room, and cards in
+    // the drawer when it has not — a player presses whichever is there.
+    const glyph = page.locator(`#top .app-tab[data-app="${name}"]`);
+    // Already there: pressing a view again leaves it (hud.js show).
+    if (await glyph.getAttribute('aria-selected') === 'true') return;
+    if (await glyph.isVisible()) {
+        await glyph.click();
+        await expect(page.locator('#top .app-tab[aria-selected="true"] .name'))
+            .toHaveText(name, { timeout: UI });
+        return;
+    }
     const drawer = page.locator('#apps');
     if (await drawer.isHidden()) await page.keyboard.press('Tab');
     await drawer.waitFor({ state: 'visible', timeout: UI });

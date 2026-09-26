@@ -118,6 +118,7 @@ function mountAuthPanel(ctx) {
             ctx.land.refresh(); ctx.assignLand.refresh(); ctx.attention.refresh();
             ctx.submit.refresh(); ctx.pool.refresh(); ctx.permission.refresh();
             ctx.sculpt.refresh();
+            ctx.peers.signedIn();
             ctx.showWho();
         },
     });
@@ -127,7 +128,8 @@ function mountAuthPanel(ctx) {
 function handle(ctx) {
     const pick = ['app', 'pc', 'api', 'origin', 'streamer', 'camera', 'rows', 'terrain',
         'player', 'setDriving', 'work', 'groundMesh', 'hud', 'setup', 'admin', 'symbols',
-        'catalog', 'land', 'submit', 'pool', 'permission', 'ground', 'share', 'goTo', 'spot',
+        'catalog', 'inventory', 'land', 'submit', 'pool', 'permission', 'ground', 'share',
+        'goTo', 'spot',
         'build', 'preview', 'nearby', 'areas', 'wallet', 'flows', 'sculpt', 'liveDraw',
         'blueprint', 'bpmode', 'lines', 'surveyAreas',
         'triggers', 'peers', 'hosting', 'movers', 'moverDraw'];

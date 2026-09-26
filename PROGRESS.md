@@ -3198,3 +3198,62 @@ EDT.26 checklist (each is asserted by a story or a node test; the stories'
 - [x] Leaving with unsaved work asks Save / Discard / Stay: Shape (49);
       Lines asks the same question through the same node.
 - [x] docs/manual.md §5: Blueprint, Shape, Lines, Areas, Kind defaults.
+
+## TASKS-ui.md — the chrome, the Marketplace, Automate's tabs (UI.1–UI.9)
+
+No migrations; stories 70–74 (49–53 on their branch, renumbered after the
+editors' 49–69 when both met on main). The owner's list of 2026-09-25: one bar at the
+top, Build quieter, an Inventory to place from, the Marketplace in place of
+Trade & Sell, Hosting that explains itself, Automate in four tabs. The money
+system is not built here (GNU Taler replaces it): what would need new money
+code — the Market of used licences, changing a price, taking a product off
+sale, resales — is drawn, greyed, and says so.
+
+| story | what it proves | state |
+|---|---|---|
+| 70 | no wordmark; the land line in the bar; the views are glyphs at 1600 px and the drawer at 900 px, never both; Work's tabs in the bar and no panel title; no Next-on card, no legend; the altimeter in the map; the key hints fold | green (subset) |
+| 71 | B takes the crate in the Shop; it is on his Inventory shelf; Place enters build mode with the camera four metres off, flying; one click puts it down | green (subset) |
+| 72 | C puts a boulder on sale in Marketplace › Register's four steps; B finds it in the Shop and takes two; Licences and Inventory have it; C's Selling says 2 sold and whom to; Earnings' resales are greyed | green (subset) |
+| 73 | Hosting says what it is in three steps and what a land holds before it is offered; C hosts from the offer's card and her tab's card says what it holds | green (subset) |
+| 74 | Automate opens on the Flows page; a flow opens into the Editor; a change is undone and redone from the bar; the Server control's My collection and alpha decide the left column; Schedule is alpha's Planner; Paths puts a product on a route drawn on the map; Terrain's undo is the same glyph | green (subset) |
+
+After the rebase onto main (the editors' EDT.0–26), one run from an empty
+database: 0–7, 9, 10, 32, 40–51, 53–59, 61, 62, 64–66, 69 and 70–74 green.
+52, 60 and 63 fail the same on main itself with this world, and main does
+not reach 65's or 67's checks on it; 67 fails on a forest the world already
+holds and 68 needs 67's pond. The editors' stories were proven from their own
+replays (below), not after this chain.
+
+Before that, on the branch: 0–7, 9, 10 and 32, then 40–48 and 70–74 on that
+world (`HANDOFF.md` §9 says why the subset). Story 9 failed once in three
+runs ("A walks off it": the land line kept the old land) and passed on the
+next; nothing in this work touches that path, and it is recorded as a flake,
+not fixed.
+
+The stories that went through the old catalog and the left column's tabs
+(4, 16, 17, 20–22, 27, 29, 31, 33–36, 39, 40–45) do the same things through
+the new surfaces (`client/test/run/selling.js`, `automate.js`). Of those,
+4 and 40–45 were run here; the rest need a rendered tile or the chain
+through story 8 and are unrun.
+
+Three things the stories found on the way, fixed:
+* a file got from a host before anybody signed in was never receipted
+  (`peers.js`: it is said at sign-in) — story 48 depended on the gate
+  arriving after the sign-in;
+* the flows-to-run and hosting lists showed Settle only when re-read after
+  the term (`duties.js` `onTermEnd`: they read themselves again when it ends);
+* the crosshair took the click meant for the ground under it.
+
+`make gate` under it: lint and the 507 node tests green; the rest red in the
+same places on db9e801, the commit before this work, which touches nothing
+in `db/`, `server/`, `tools/` or `infra/`:
+* db-test: `db/test/0179` (claim_for hands out `NULL`, wants `dataset-v9`)
+  and `db/test/0186` (refine interval 100, wants `NULL`);
+* api-test: "the claimed atom is the assemble" (it is a `dataset` atom);
+  files-, register- and ops-test green;
+* server unittests: `test_crs_agree` — `db/0205` (LV.4) spells SRID 4326
+  where it runs, instead of `world_srid()`;
+* browser: `tools/test-tiles.sh` cannot make its tiles here, so client-test
+  stops before Playwright; run directly, background (2), frame, spot, train
+  and work fail, all render-pool specs, and fail the same on db9e801;
+  catalog and money, which this work changed, pass.

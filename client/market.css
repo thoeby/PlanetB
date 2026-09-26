@@ -1,0 +1,174 @@
+/* market.css — the Marketplace (Shop, Selling, Licences, Earnings), the
+ * register steps, and Build's Inventory (TASKS-ui.md UI.3–6). The owner's
+ * three screenshots are the model: columns, cards, and numbers set large.
+ */
+
+#panel[data-surface="Marketplace"] .body { padding: 0; overflow: hidden; }
+#panel[data-surface="Marketplace"] .tab-body { height: 100%; }
+#panel[data-surface="Marketplace"] .tab-body > div { height: 100%; }
+#panel .mk-shop, #panel .mk-selling {
+  display: grid; height: 100%; min-height: 0; gap: 0;
+}
+#panel .mk-shop { grid-template-columns: 240px 1fr 380px; }
+#panel .mk-selling { grid-template-columns: 300px 1fr; }
+#panel .mk-filters, #panel .mk-mine, #panel .mk-detail,
+#panel .mk-main, #panel .mk-one {
+  min-height: 0; overflow-y: auto; padding: 16px 18px;
+}
+#panel .mk-filters, #panel .mk-mine { border-right: 1px solid var(--edge-2); }
+#panel .mk-detail { border-left: 1px solid var(--edge-2);
+  background: rgba(255, 255, 255, 0.02); }
+#panel .label { display: block; font-family: var(--head); font-weight: 700; font-size: 11px;
+  letter-spacing: 0.14em; text-transform: uppercase; color: var(--ink-3); margin: 10px 0 6px; }
+#panel .mk-head { display: flex; align-items: baseline; justify-content: space-between; }
+
+/* A list you pick from: one row each, the count at the right. */
+#panel .mk-list { margin: 0 0 8px; }
+#panel .mk-list li { padding: 0; border: 0; }
+#panel .mk-list button {
+  display: flex; justify-content: space-between; align-items: center; gap: 8px; width: 100%;
+  padding: 8px 10px; background: none; border: 0; border-left: 2px solid transparent;
+  font-family: var(--body); font-weight: 400; font-size: 13px; letter-spacing: 0;
+  text-transform: none; text-align: left; color: var(--ink-2);
+}
+#panel .mk-list button small { color: var(--ink-3); font-size: 11px; }
+#panel .mk-list button span { display: flex; flex-direction: column; }
+#panel .mk-list button[aria-pressed="true"] {
+  background: var(--accent-dim); border-left-color: var(--accent); color: var(--ink);
+}
+#panel .mk-sel { margin-top: 10px; }
+#panel .mk-off, #panel .mk-off-line, #panel .rg-off { opacity: 0.45; }
+#panel .mk-off-line { font-family: var(--mono); font-size: 10px; color: var(--ink-3); }
+
+/* The search line: the field, Find, the three sorts and the count. */
+#panel .mk-search { display: flex; gap: 8px; align-items: center; margin-bottom: 14px; }
+#panel .mk-search input { flex: 1; }
+#panel .mk-search .label { margin: 0 0 0 8px; }
+#panel .mk-seg { display: flex; }
+#panel .mk-seg button { border-right-width: 0; }
+#panel .mk-seg button:last-child { border-right-width: 1px; }
+#panel .mk-seg button[aria-pressed="true"] { background: var(--accent-dim);
+  border-color: var(--accent); color: var(--accent); }
+#panel .mk-count { white-space: nowrap; font-size: 12px; }
+
+/* Product cards: the picture with its kind, the name, who and how often, and
+   the price with Buy. */
+#panel .mk-cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 12px; margin: 0; }
+#panel .mk-card { padding: 0; border: 1px solid var(--edge); background: rgba(255, 255, 255, 0.03); }
+#panel .mk-card[aria-current="true"] { border-color: var(--accent); }
+#panel .mk-card > .empty { grid-column: 1 / -1; }
+#panel .mk-shot { position: relative; height: 150px;
+  background: repeating-linear-gradient(135deg, #1d2127 0 6px, #171a1f 6px 12px); }
+#panel .mk-shot img, #panel .mk-shot .noshot { width: 100%; height: 100%; object-fit: cover; }
+#panel .mk-tag { position: absolute; left: 10px; top: 10px; padding: 2px 7px;
+  border: 1px solid var(--edge); background: rgba(10, 12, 15, 0.8); font-family: var(--head);
+  font-weight: 700; font-size: 10px; letter-spacing: 0.12em; text-transform: uppercase; }
+#panel .mk-card .meta { display: flex; flex-direction: column; gap: 4px; padding: 12px; }
+#panel .mk-name { background: none; border: 0; padding: 0; text-align: left;
+  font-size: 17px; letter-spacing: 0.04em; color: var(--ink); }
+#panel .mk-name:hover { color: var(--accent); background: none; }
+#panel .mk-price { display: flex; align-items: baseline; gap: 6px; margin-top: 4px; }
+#panel .mk-price b { font-family: var(--mono); font-size: 16px; }
+#panel .mk-price .mk-buy { margin-left: auto; }
+
+/* The detail column. */
+#panel .mk-detail img.big, #panel .mk-detail .noshot.big { width: 100%; height: 200px;
+  object-fit: cover; display: block; border: 1px solid var(--edge);
+  background: repeating-linear-gradient(135deg, #1d2127 0 6px, #171a1f 6px 12px); }
+#panel .mk-detail h2 { margin: 14px 0 4px; font-size: 24px; letter-spacing: 0.06em; }
+#panel .mk-prices { display: grid; grid-template-columns: repeat(3, 1fr); margin: 12px 0;
+  border: 1px solid var(--edge-2); }
+#panel .mk-prices > div { padding: 8px 10px; border-right: 1px solid var(--edge-2); }
+#panel .mk-prices .label { margin: 0 0 4px; }
+#panel .mk-prices b { font-family: var(--mono); font-size: 15px; }
+#panel .mk-detail button.buy { width: 100%; margin-top: 12px; padding: 12px; font-size: 13px; }
+#panel .mk-detail .mk-market { width: 100%; margin-top: 8px; }
+#panel .mk-more { margin-top: 10px; font-size: 12px; }
+#panel .mk-more summary { cursor: pointer; color: var(--ink-3); }
+
+/* Selling: the product in the middle — its head, four numbers, its price and
+   its last fourteen days side by side, and the orders. */
+#panel .mk-one-head { display: flex; gap: 14px; align-items: center; padding-bottom: 14px;
+  border-bottom: 1px solid var(--edge-2); }
+#panel .mk-one-head img, #panel .mk-one-head .noshot { width: 84px; height: 60px;
+  object-fit: cover; border: 1px solid var(--edge); }
+#panel .mk-one-head h2 { margin: 0; font-size: 26px; }
+#panel .mk-one-head > div { flex: 1; }
+#panel .mk-stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin: 14px 0; }
+#panel .mk-stat { padding: 12px 14px; border: 1px solid var(--edge); display: flex;
+  flex-direction: column; gap: 2px; }
+#panel .mk-stat .label { margin: 0; }
+#panel .mk-stat b { font-family: var(--head); font-size: 28px; line-height: 1.1; }
+#panel .mk-stat[data-tone="accent"] b { color: var(--accent); }
+#panel .mk-stat[data-tone="warn"] { border-color: var(--warn); }
+#panel .mk-stat[data-tone="warn"] b { color: var(--warn); }
+#panel .mk-stat[data-tone="off"] { opacity: 0.45; }
+#panel .mk-row2 { display: grid; grid-template-columns: 1.6fr 1fr; gap: 10px; }
+#panel .mk-box { padding: 12px 14px; border: 1px solid var(--edge); margin-bottom: 12px; }
+#panel .mk-box .label { margin-top: 0; }
+#panel .mk-chart { display: flex; align-items: flex-end; gap: 3px; height: 110px; }
+#panel .mk-bar { flex: 1; height: 100%; display: flex; flex-direction: column-reverse; }
+#panel .mk-bar i { display: block; width: 100%; font-style: normal; }
+#panel .mk-bar .b1 { background: var(--accent); }
+#panel .mk-bar .b2 { background: oklch(0.8 0.15 145); }
+#panel .mk-bar[data-v="0"]::after { content: ""; display: block; height: 3px;
+  background: var(--edge); }
+#panel .mk-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+#panel .mk-table th { text-align: left; font-family: var(--head); font-size: 11px;
+  letter-spacing: 0.12em; text-transform: uppercase; color: var(--ink-3); padding: 8px 10px;
+  border-bottom: 1px solid var(--edge); }
+#panel .mk-table td { padding: 10px; border-bottom: 1px solid var(--edge-2); }
+#panel .mk-table tr[data-state="pending"] td:last-child { color: var(--warn); }
+#panel .mk-table tr[data-state="paid"] td:last-child { color: oklch(0.8 0.15 145); }
+#panel .mk-new { width: 100%; margin-top: 10px; }
+#panel .mk-licence { display: flex; justify-content: space-between; align-items: center; }
+#panel .mk-came li { display: grid; grid-template-columns: 180px 1fr 60px 100px; gap: 10px;
+  align-items: center; }
+#panel .mk-kind { font-family: var(--head); font-weight: 700; font-size: 10px;
+  letter-spacing: 0.12em; text-transform: uppercase; color: var(--accent);
+  border: 1px solid var(--accent); padding: 1px 6px; justify-self: start; }
+#panel[data-part="Licences"] .tab-body, #panel[data-part="Earnings"] .tab-body {
+  padding: 16px 24px; overflow-y: auto; }
+#panel[data-part="Market"] .tab-body { padding: 40px; }
+
+/* Put a model on sale, in four steps. */
+#panel .rg-steps { display: grid; grid-template-columns: repeat(4, 1fr); gap: 4px;
+  margin-bottom: 14px; }
+#panel .rg-step { display: flex; align-items: center; gap: 6px; padding: 8px 6px;
+  font-size: 11px; }
+#panel .rg-step .n { width: 18px; height: 18px; display: inline-flex; align-items: center;
+  justify-content: center; border: 1px solid var(--edge); font-family: var(--mono); }
+#panel .rg-step[aria-current="true"] { border-color: var(--accent); color: var(--accent); }
+#panel .rg-step[data-done="1"] .n { background: var(--accent); color: var(--ground);
+  border-color: var(--accent); }
+#panel .rg-drop { display: flex; flex-direction: column; gap: 8px; padding: 18px;
+  border: 1px dashed var(--edge); text-transform: none; letter-spacing: 0; }
+#panel .rg-nav { margin-top: 14px; justify-content: space-between; }
+#panel .rg-sum { display: grid; grid-template-columns: auto 1fr; gap: 4px 12px; font-size: 13px; }
+#panel .rg-sum dt { color: var(--ink-3); }
+#panel .rg-sum dd { margin: 0; }
+#panel .rg #publish { width: 100%; padding: 12px; margin-top: 12px; }
+
+/* Build › Inventory: a shelf of cards with Place. */
+#panel .inv-head { margin-bottom: 12px; }
+#panel .inv-cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  gap: 10px; }
+#panel .inv-card { display: flex; flex-direction: column; padding: 0;
+  border: 1px solid var(--edge); }
+#panel .inv-card > img, #panel .inv-card > .noshot { height: 110px; width: 100%;
+  object-fit: cover; background: repeating-linear-gradient(135deg, #1d2127 0 6px,
+    #171a1f 6px 12px); }
+#panel .inv-card .meta { padding: 8px 10px; display: flex; flex-direction: column; gap: 2px; }
+#panel .inv-card .inv-place { margin: 0 10px 10px; }
+/* Register: the model large on the left, the four steps on the right. */
+#panel .mk-reg { height: 100%; overflow-y: auto; padding: 24px 32px; }
+#panel .mk-reg #upload { display: grid; grid-template-columns: minmax(0, 1fr) 460px;
+  column-gap: 32px; align-content: start; max-width: 1200px; margin: 0 auto; }
+#panel .mk-reg #upload[hidden] { display: none; }
+#panel .mk-reg #upload > * { grid-column: 2; }
+#panel .mk-reg #upload > .rg-look { grid-column: 1; grid-row: 1 / span 20; }
+#panel .rg-look { width: 100%; max-width: 560px; justify-self: center; margin-bottom: 12px; }
+#panel .rg-look #already { margin-top: 8px; }
+#panel .rg-look .preview { width: 100%; max-width: 560px; aspect-ratio: 1; display: block;
+  margin: 0 auto; border: 1px solid var(--edge); }

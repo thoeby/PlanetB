@@ -1,7 +1,8 @@
 // topbar.js — the strip along the top, one 44 px band (v6).
 //
-// Left: the apps button (Tab), the wordmark, and every app as a glyph — only
-// the one you are in is named, in its own hue. Right: the two numbers Build is
+// Left: every app as a glyph — only the one you are in is named, in its own
+// hue — or, when the bar has no room for them, the apps button (Tab) that
+// opens them as a drawer; one or the other (UI.1). Right: the two numbers Build is
 // played by (what is rendered, what is waiting for a person), the clock, your
 // balance, the bell, you, and settings. The five surfaces of the game are the
 // plinth's (client/js/tabbar.js); this strip is what you are, not what you are
@@ -108,6 +109,26 @@ function machineChip(show) {
     return { b, what };
 }
 
+// UI.1: undo and redo for whatever is being edited — the ground in Terrain,
+// the flow in Automate's editor — as two glyphs, each with its word on hover.
+// Whoever is editing hands the bar its two actions (hud.js `edits`).
+const UNDO = 'M9 14 4 9l5-5|M4 9h10.5a5.5 5.5 0 0 1 0 11H11';
+const REDO = 'm15 14 5-5-5-5|M20 9H9.5a5.5 5.5 0 0 0 0 11H13';
+
+function editButtons() {
+    const glyph = (id, path, tip) => {
+        const b = el('button', { type: 'button', id, className: 'edit-btn' }, icon(path));
+        b.dataset.tip = tip;
+        b.setAttribute('aria-label', tip);
+        return b;
+    };
+    const undo = glyph('bar-undo', UNDO, 'Undo');
+    const redo = glyph('bar-redo', REDO, 'Redo');
+    const node = strip('top-edit', undo, redo);
+    node.hidden = true;
+    return { node, undo, redo };
+}
+
 export function topBar(show, { onApps, onTray }) {
     const buttons = new Map();
     const apps = appTabs((name) => onApps(name));
@@ -137,14 +158,19 @@ export function topBar(show, { onApps, onTray }) {
     const waiting = el('div', { id: 'waiting' });
 
     const machine = machineChip(show);
+    // UI.1: no wordmark — the views are on the bar when it has room for them
+    // and in the drawer when it has not (hud.js `fit`), and the middle holds
+    // where you are standing or the tabs of the workspace you are in.
+    const edit = editButtons();
+    const centre = strip('top-centre');
     const node = el('div', { id: 'top' },
-        strip('top-left', appsBtn,
-            el('span', { className: 'mark', textContent: 'splatworld' }), apps.node),
+        strip('top-left', appsBtn, apps.node, edit.node),
+        centre,
         strip('top-right', machine.b, waiting, stats.node, clock, money.b, bell,
             you.b, settings));
     setInterval(() => {
         clock.firstChild.textContent = clockText();
     }, CLOCK_MS);
     return { node, buttons, you, money, stats: stats.cells, apps: apps.buttons,
-        appsBtn, bell, waiting, machine };
+        appsBtn, bell, waiting, machine, centre, edit };
 }

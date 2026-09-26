@@ -24,13 +24,15 @@ export function mountShapeSettings(host) {
         el('label', {}, blend, ' A brush fades out over the last 4 m of a land'),
         save, said);
     host.append(node);
+    // Shown once what is saved is in the fields, not before: a value typed
+    // while they were still being read was overwritten by the reading.
     const read = async () => {
-        node.hidden = api.role() !== 'admin';
-        if (node.hidden) return;
+        if (api.role() !== 'admin') { node.hidden = true; return; }
         const set = { ...DEFAULTS, ...(await api.rpc('app_settings').catch(() => ({}))) };
         up.value = set.shape_max_up;
         down.value = set.shape_max_down;
         blend.checked = set.edge_blend !== 'off';
+        node.hidden = false;
     };
     save.onclick = async () => {
         try {

@@ -15,7 +15,7 @@ test('story 65 — Survey opens Areas, a map of his land with his lines on it',
         const b = await ben(browser, world, testInfo);
         await test.step('Survey’s parts are Parcels, Areas and Requests', async () => {
             await areasOfHisLand(b);
-            await expect(b.page.locator('#panel .parts .part:not([hidden])'))
+            await expect(b.page.locator('#top .parts .part:not([hidden])'))
                 .toHaveText([/^Parcels/, /^Areas/, /^Requests/]);
         });
         await test.step('his land is on it, lit, and his road is there', async () => {
@@ -52,7 +52,7 @@ test('story 65 — Survey opens Areas, a map of his land with his lines on it',
             await shot(b, testInfo, 'story-56-areas');
         });
         await test.step('Requests lists who is waiting', async () => {
-            await b.page.locator('#panel .parts .part[data-tab="Requests"]').click();
+            await b.page.locator('#top .parts .part[data-tab="Requests"]').click();
             await expect(b.page.locator('.rq-list')).toBeVisible({ timeout: UI });
         });
         await b.close();

@@ -5,7 +5,8 @@ import { mountSetup } from './setupui.js';
 import { mountAdmin } from './adminui.js';
 import { mountSymbols } from './symbolsui.js';
 import { mountCover } from './coverui.js';
-import { mountCatalogPanel } from './catalogpanel.js';
+import { mountMarketplace } from './catalogpanel.js';
+import { mountInventory } from './inventory.js';
 import { mountAssignLand } from './assignland.js';
 import { mountAttention } from './attention.js';
 
@@ -49,9 +50,33 @@ export async function mountSetupSide(ctx) {
     ctx.showWho = () => hud.signedIn(api.claims()?.email
         ?? (api.userId() ? 'signed in' : null));
     ctx.attention = mountAttention(hud.waitingSlot(), attentionHooks(ctx));
-    // The catalog: what anybody may build with, and where you register your own.
-    ctx.catalog = await mountCatalogPanel(hud.panel('Catalog'));
+    await mountShelves(ctx);
     if (!ctx.ground?.coverage) hud.show('Setup');
+}
+
+// UI.4–6: the Marketplace — Shop, Selling, Register (where you put your own
+// on sale), Licences and Earnings. What you
+// registered or got is in Build's Inventory (UI.3), where Place walks into
+// build mode with the product picked and the camera frames it
+// (client/js/buildframe.js).
+async function mountShelves(ctx) {
+    const { hud } = ctx;
+    ctx.catalog = await mountMarketplace((name) => hud.panel(name), {
+        onPublished: () => ctx.inventory.refresh(),
+        show: (name) => hud.show(name),
+    });
+    for (const part of ['Shop', 'Selling', 'Register', 'Licences', 'Earnings']) {
+        hud.whenShown(part, () => ctx.catalog.refresh());
+    }
+    ctx.inventory = mountInventory(hud.panel('Inventory'), {
+        onPlace: (asset) => {
+            hud.show('Place');
+            ctx.build.toggle(true);
+            ctx.build.setBrush(asset, { frame: true });
+        },
+        openMarket: () => hud.app('Marketplace'),
+    });
+    hud.whenShown('Inventory', () => ctx.inventory.refresh());
 }
 
 // SPEC §2.1 and §2.15: what is waiting for you, and one click to the thing.

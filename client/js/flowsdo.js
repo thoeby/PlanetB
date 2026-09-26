@@ -58,6 +58,7 @@ export async function refresh(ctx) {
         [...new Set(rows.map((r) => r.instance_id).filter(Boolean))]);
     const [lands, runs] = await Promise.all([ctx.lands(), sentTo(rows)]);
     ctx.list.set(rows, lands, ctx.state.open?.id ?? null, things, runs);
+    ctx.home?.set(rows, lands, ctx.state.open?.id ?? null, things, runs);
     // Design 10a: beside the flow's name, the land and the thing it is on.
     const open = ctx.state.open;
     if (open) {
@@ -105,6 +106,7 @@ export async function create(ctx, areaId, name, instance = null) {
         layout: instance ? canvas.layout() : {}, instance });
     ctx.state.open = { id: res.id, area_id: areaId, name, rev: res.rev,
         elx_sha256: res.elx_sha256, instance_id: instance };
+    ctx.pages?.go('Editor');
     ctx.bar.name.textContent = name;
     ctx.mark(false);
     ctx.say('saved');
@@ -116,6 +118,7 @@ export async function openFlow(ctx, row) {
     const elx = await flows.elxOf(row.elx_sha256);
     writable(ctx, canvas);
     canvas.open(ctx.parse(elx), row.layout ?? {});
+    ctx.pages?.go('Editor');
     ctx.state.open = { ...row };
     ctx.bar.name.textContent = row.name;
     ctx.mark(false);

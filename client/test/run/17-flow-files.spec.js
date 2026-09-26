@@ -9,6 +9,7 @@ import { readFileSync, readdirSync, existsSync } from 'node:fs';
 import { join } from 'node:path';
 
 import { test, expect, open, panel, panelApp, signIn, UI } from './players.js';
+import { openAutomate } from './automate.js';
 
 const SAMPLES = new URL('../../flow/samples/', import.meta.url).pathname;
 const sampleNames = () => readdirSync(SAMPLES).filter((f) => f.endsWith('.elx'));
@@ -184,7 +185,7 @@ test('story 17 — flows go out as files and come back as files',
         }
 
         await test.step('1, 2 — both samples in, and out byte for byte', async () => {
-            await panelApp(a, 'Automate');
+            await openAutomate(a);
             await expect(a.page.locator('#flows')).toBeVisible({ timeout: UI });
             await inAndOut(a);
         });

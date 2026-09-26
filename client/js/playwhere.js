@@ -69,8 +69,17 @@ export function keepTheAddressBar(ctx, where) {
     // nowhere.
     if (!ctx.ground?.coverage) return;
     if (Date.now() < ctx.s.stampAfter) return;
+    // A link put into the address bar since this last wrote it is where to
+    // be, not something to write over: its hashchange may not have been
+    // delivered yet, and once overwritten it would read this place again.
+    if (ctx.s.wrote && location.hash !== ctx.s.wrote) {
+        ctx.s.wrote = location.hash;
+        const to = parseVisit(location.href);
+        if (to) { ctx.goTo(to); return; }
+    }
     ctx.s.stampAfter = Date.now() + 2000;
     window.history.replaceState(null, '', visitHash(where));
+    ctx.s.wrote = location.hash;
     ctx.share.refresh();
 }
 

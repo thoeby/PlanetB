@@ -62,19 +62,25 @@ async function open(page) {
     await page.evaluate(() => window.splatworld.catalog.refresh());
 }
 
+// Registering is Marketplace › Register's four steps now (TASKS-ui.md UI.5).
 async function upload(page, which, label) {
+    await page.evaluate(() => window.splatworld.hud.show('Register'));
+    await page.click('#upload .rg-step[data-step="model"]');
     await page.setInputFiles('#file', { name: `${which}.glb`,
         mimeType: 'model/gltf-binary', buffer: Buffer.from(bench[which]) });
     await expect(page.locator('#canon')).toContainText(/^S[A-Z2-7]{12} · 36 tris/);
     const san = (await page.locator('#canon').textContent()).split(' ')[0];
+    await page.click('#upload .rg-step[data-step="price"]');
     await page.fill('#name', label);
     // Whatever this world calls its first category: the list comes from the
     // `product` kind's properties, which an admin edits (T3), so no name can be
     // written down here.
     await page.selectOption('#upload-category',
         await page.locator('#upload-category option').first().getAttribute('value'));
+    await page.click('#upload .rg-step[data-step="done"]');
     await page.click('#publish');
     await expect(page.locator('#upload-status')).toHaveText(`published ${san}`);
+    await page.click('#upload .rg-step[data-step="model"]');
     return san;
 }
 
@@ -95,6 +101,9 @@ test('a tab canonicalises, renders and publishes an asset to the catalog',
         expect(res.headers()['content-type']).toBe('image/webp');
         expect((await res.body()).length).toBeGreaterThan(64);
 
+        // And the Shop has it, picture and all.
+        await page.evaluate(() => window.splatworld.hud.show('Shop'));
+        await page.evaluate((s) => window.splatworld.catalog.open(s), san);
         await expect(page.locator('#results img[alt="Park bench"]')).toHaveCount(1);
         await expect(page.locator('#detail')).toContainText(san);
 

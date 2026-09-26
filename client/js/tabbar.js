@@ -17,7 +17,7 @@ export const ICONS = {
     Place: 'm15 12-8.5 8.5a2.12 2.12 0 1 1-3-3L12 9|M17.6 15 22 10.6'
         + '|m20.9 11.7-1.3-1.3a3 3 0 0 1-.9-2.2v-.9L16 4.6A5.6 5.6 0 0 0 12 3H9l.9.8'
         + 'A6.2 6.2 0 0 1 12 8.4V10l2 2h2.5l2.3 1.9',
-    Catalog: 'M21 8a2 2 0 0 0-1-1.7l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0'
+    Inventory: 'M21 8a2 2 0 0 0-1-1.7l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0'
         + ' 0 0 1 1.7l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z|m3.3 7 8.7 5 8.7-5'
         + '|M12 22V12',
     'Your land': 'M3 6l6-3 6 3 6-3v15l-6 3-6-3-6 3z|M9 3v15|M15 6v15',
@@ -46,13 +46,13 @@ export const GROUPS = ['bar', 'top'];
 export const TABS = [
     { name: 'World', group: null, lede: '' },
     { name: 'Place', group: 'bar', key: '1', width: 470, view: 'Build',
-        lede: 'Put a product from the catalog on your own land.' },
-    // The catalog is on Build's plinth because that is where you reach for a
-    // product to place, and it is the whole of Trade & Sell, where it takes
-    // the window. A surface belongs to one view — the one whose bar carries
-    // it — and a view may open a surface that is not its own.
-    { name: 'Catalog', group: 'bar', key: '2', width: 666, view: 'Build',
-        lede: 'Products anyone may build with. Register your own.' },
+        lede: 'Put a product on your own land: pick it here, or press Place in your'
+            + ' Inventory.' },
+    // UI.3: Build's shelf — what you can place, and nothing else. Products
+    // are bought, sold and registered in the Marketplace.
+    { name: 'Inventory', group: 'bar', key: '2', width: 666, view: 'Build',
+        lede: 'What you can place: your own products and the ones you hold a licence'
+            + ' for.' },
     { name: 'Your land', group: 'bar', key: '3', label: 'Land', width: 500, view: 'Build',
         lede: 'The ground you own, and what stands on it.' },
     // PLAN-editors D1: the ground and the lines on it are two surfaces of
@@ -85,6 +85,16 @@ export const TABS = [
             // LV.13: a land's files, kept by this tab for a term.
             { name: 'Hosting', label: 'Hosting' },
             { name: 'Machine', label: 'Settings' }] },
+    // UI.4–6: the Marketplace takes the window, its tabs up in the top bar.
+    // Market (used licences) is drawn and greyed until the payment system
+    // that replaces this one is in (`off`).
+    { name: 'Marketplace', group: null, view: 'Marketplace', wide: true,
+        parts: [{ name: 'Shop', label: 'Shop' },
+            { name: 'Market', label: 'Market', off: 'Comes with the new payment system' },
+            { name: 'Selling', label: 'Selling' },
+            { name: 'Register', label: 'Register' },
+            { name: 'Licences', label: 'Licences' },
+            { name: 'Earnings', label: 'Earnings' }] },
     // A link that puts somebody where you stand is something you hand out, so
     // it belongs to you rather than to a button of its own (v6).
     { name: 'Profile', group: 'top', key: 'p', width: 470,
@@ -149,6 +159,12 @@ export const PART_LEDE = {
     'Ground cover': 'What the ground between the drawn things is made of.',
     Shape: 'The ground itself: pull it up, push it down, lay a road bed.',
     Lines: 'Roads, streams, walls and hedges: drawn on the ground, never moving it.',
+    Shop: '',
+    Market: '',
+    Selling: '',
+    Register: '',
+    Licences: '',
+    Earnings: '',
 };
 
 // Every panel body there is: a surface without parts is its own leaf.

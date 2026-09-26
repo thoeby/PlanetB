@@ -55,6 +55,7 @@ export class Peers {
         this.from = new Map();        // CID -> who it came from: here, a player, node, http
         this.cids = new Map();        // sha256 -> CID
         this.served = [];             // what this tab sent, and to whom
+        this.unsaid = [];             // got from a host before anybody signed in
         this.node = null;
     }
 
@@ -161,13 +162,25 @@ export class Peers {
                     // LV.13: a tab hosting this file for a term is paid for
                     // serving it; this tab says it got it, under its login,
                     // before it goes on (a tab closed a moment later still said).
-                    await api.rpc('host_served', { peer: p.peer_id, cid }).catch(() => {});
+                    await this.receipt(p.peer_id, cid);
                     return { bytes: good, from: p.player };
                 }
                 if (this.dropped.has(p.peer_id)) break;
             }
         }
         return null;
+    }
+
+    // A receipt is the reader's, under its login. Bytes that came before
+    // anybody signed in — the world streams in while the sign-in form is
+    // still open — are said once somebody does (`signedIn`).
+    async receipt(peer, cid) {
+        if (!api.claims()) { this.unsaid.push({ peer, cid }); return; }
+        await api.rpc('host_served', { peer, cid }).catch(() => {});
+    }
+
+    async signedIn() {
+        for (const r of this.unsaid.splice(0)) await this.receipt(r.peer, r.cid);
     }
 
     async askAt(addr, cid) {

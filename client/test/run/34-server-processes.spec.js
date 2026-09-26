@@ -15,10 +15,13 @@ const onServer = (p) => p.page.locator('#flows .fl-pane:not([hidden])');
 const processRow = (p, name) =>
     p.page.locator(`#flows li[data-process="${name}"]`);
 
+// My collection lists B's flows (UI.8); the flow stays open when alpha is
+// chosen again, and alpha is where Send sends it.
 async function openMine(b, name) {
-    await b.page.locator('#flows .fl-tab', { hasText: 'My flows' }).click();
+    await chooseServer(b, 'My collection');
     await b.page.locator('#flows .fl-list li[data-flow] .pick', { hasText: name }).first().click();
     await expect(b.page.locator('#flows .fl-top .name')).toHaveText(name, { timeout: UI });
+    await chooseServer(b, 'alpha');
 }
 
 async function sendsIt(b) {
@@ -26,7 +29,7 @@ async function sendsIt(b) {
         await openMine(b, 'Weather check');
         await b.page.getByRole('button', { name: 'Send to alpha' }).click();
         await expect(said(b)).toHaveText('sent Weather check to alpha', { timeout: UI });
-        await b.page.locator('#flows .fl-tab', { hasText: 'On alpha' }).click();
+        await chooseServer(b, 'alpha');
         await expect(processRow(b, 'Weather check')).toBeVisible({ timeout: UI });
     });
 }
@@ -66,7 +69,7 @@ async function sendsAgain(b) {
             { timeout: UI });
         await box.getByRole('button', { name: 'Send' }).click();
         await expect(said(b)).toHaveText('sent Weather check to alpha', { timeout: UI });
-        await b.page.locator('#flows .fl-tab', { hasText: 'On alpha' }).click();
+        await chooseServer(b, 'alpha');
         await expect(processRow(b, 'Weather check')).toHaveCount(1);
     });
 }
@@ -101,7 +104,7 @@ test('story 34 — processes on a server', async ({ browser, world }, testInfo) 
     await looksAtIt(b);
     await copiesAndDeletes(b);
     await sendsAgain(b);
-    await b.page.locator('#flows .fl-tab', { hasText: 'On alpha' }).click();
+    await chooseServer(b, 'alpha');
     await keepsTheSample(b);
     // Every window is a 3D view competing for one machine (story 30).
     await b.close();

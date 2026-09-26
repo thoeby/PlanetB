@@ -27,7 +27,7 @@ export const el = (tag, props = {}, ...kids) => {
 // between — so a quarter turn is eight ticks whether or not a letter is under
 // the needle.
 function compass() {
-    const node = el('div', { id: 'compass', className: 'glass' });
+    const node = el('div', { id: 'compass' });
     const marks = [];
     for (let i = 0; i < 24; i++) {
         const deg = i * 15;
@@ -64,8 +64,10 @@ export function topCentre() {
     const standing = el('div', { id: 'standing' },
         owner, el('span', { className: 'dot' }), right,
         el('span', { className: 'dot' }), coords);
-    return { node: el('div', { id: 'where' }, c.node, land, standing),
-        face: c.face, land, owner, right, coords };
+    // UI.1: one line under the compass, in the middle of the top bar.
+    return { node: el('div', { id: 'where' }, c.node,
+        el('div', { className: 'line' }, land, el('span', { className: 'dot' }), standing)),
+    face: c.face, land, owner, right, coords };
 }
 
 // Which way you are moving, and the keys that go with it. Walking and flying
@@ -82,8 +84,20 @@ const MOVE = {
     [['Shift'], 'Down'], [['Esc'], 'Close panel']] },
 };
 
+// UI.2: folded to one line unless somebody opened it — the mode, the four
+// keys that move you and the key for the other mode; the rest on a press.
+// Remembered per browser; a private window just starts folded.
+const OPEN_KEY = 'splatworld.hints';
+const remembered = () => {
+    try { return globalThis.localStorage?.getItem(OPEN_KEY) === '1'; } catch { return false; }
+};
+const remember = (open) => {
+    try { globalThis.localStorage?.setItem(OPEN_KEY, open ? '1' : ''); } catch { /* */ }
+};
+
 export function keyHints() {
     const node = el('div', { id: 'hints', className: 'glass' });
+    node.dataset.open = remembered() ? '1' : '';
     drawHints(node, 'walk');
     return node;
 }
@@ -100,12 +114,21 @@ export function drawHints(node, mode) {
     const caps = (keys) => el('span', { className: 'caps-row' },
         ...keys.flatMap((k, i) => (i ? [' ', el('kbd', { textContent: k })]
             : [el('kbd', { textContent: k })])));
+    const fold = el('button', { type: 'button', className: 'fold',
+        textContent: node.dataset.open ? '\u25be' : '\u25b8' });
+    fold.setAttribute('aria-label', node.dataset.open ? 'fewer keys' : 'all keys');
+    fold.onclick = () => {
+        node.dataset.open = node.dataset.open ? '' : '1';
+        remember(Boolean(node.dataset.open));
+        drawHints(node, mode);
+    };
     node.replaceChildren(
         el('div', { className: 'mode' },
             el('span', { className: 'now' }, el('i', { className: 'pip' }),
                 el('b', { className: 'mode-name', textContent: how.name })),
+            el('span', { className: 'short' }, caps(how.keys[0][0])),
             el('span', { className: 'other' }, how.other, ' ',
-                el('kbd', { textContent: 'F' }))),
+                el('kbd', { textContent: 'F' })), fold),
         el('div', { className: 'keys' },
             ...how.keys.flatMap(([keys, does]) =>
                 [caps(keys), el('span', { textContent: does })])));

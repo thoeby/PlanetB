@@ -10,7 +10,10 @@
 
 #top {
   position: absolute; top: 0; left: 0; right: 0; height: 44px; z-index: 4;
-  display: flex; align-items: stretch; justify-content: space-between;
+  /* Three columns, the two ends as wide as each other, so the middle — the
+     compass, or a workspace's tabs — is in the middle of the window. */
+  display: grid; grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+  align-items: stretch;
   background: linear-gradient(180deg, rgba(10, 12, 15, 0.97), rgba(20, 23, 28, 0.9));
   backdrop-filter: blur(16px);
   border-bottom: 1px solid rgba(255, 255, 255, 0.14);
@@ -44,10 +47,53 @@
 #apps-btn .hint { position: absolute; right: 4px; bottom: 3px; font-size: 8px;
   color: rgba(242, 239, 232, 0.4); }
 
-#top .mark {
-  display: flex; align-items: center; padding: 0 16px; color: var(--ink);
-  border-right: 1px solid var(--edge-2); font-family: var(--head);
-  font-weight: 700; font-size: 18px; letter-spacing: 0.14em; text-transform: uppercase;
+/* UI.1: the views are glyphs on the bar or cards in the drawer, never both.
+   client/js/hudbar.js measures which: laid out with the glyphs, a bar wider
+   than the window folds them away and shows the drawer's button instead. */
+#top:not([data-fold="1"]) #apps-btn { display: none; }
+#top[data-fold="1"] .top-apps { display: none; }
+/* A right end too full for its column sheds words, then the two numbers. */
+#top:is([data-tight="1"], [data-tight="2"]) :is(.clock, .who .name, #attention .label,
+  .top-stats .caps, #standing .coords, #standing .right + .dot) { display: none; }
+#top[data-tight="2"] .top-stats { display: none; }
+#top .top-stats .num b { white-space: nowrap; }
+
+/* The middle of the bar: where you are standing in a view you stand in, the
+   tabs of a workspace that has the window. It is as wide as what it holds;
+   an end that no longer fits beside it folds (client/js/hudbar.js). */
+#top .top-centre {
+  display: flex; align-items: stretch; justify-content: center; padding: 0 8px;
+}
+#top .top-centre[data-holds=""] { min-width: 0; padding: 0; }
+
+/* A workspace's tabs, up in the bar: the words the panel carried under its
+   title, the open one lit from below like every other cell of the band. */
+#top .parts { display: flex; align-items: stretch; gap: 0; }
+#top .parts[hidden] { display: none; }
+/* `#top button` is a flex box, which would outrank the attribute: a part of
+   another surface is hidden, not merely unselected. */
+#top [hidden] { display: none !important; }
+#top .parts .part {
+  padding: 0 16px; font-family: var(--head); font-weight: 700; font-size: 13px;
+  letter-spacing: 0.1em; text-transform: uppercase; color: var(--ink-3);
+}
+#top .parts .part:hover { color: var(--ink); }
+#top .parts .part[aria-selected="true"] { color: var(--accent); }
+#top .parts .part[disabled] { color: var(--ink-3); opacity: 0.45; cursor: not-allowed; }
+
+/* Undo and redo: two glyphs, the word on hover (UI.1). */
+#top .top-edit { display: flex; align-items: stretch; border-right: 1px solid var(--edge-2); }
+#top .top-edit[hidden] { display: none; }
+#top .edit-btn { width: 44px; justify-content: center; padding: 0; }
+#top .edit-btn[disabled] { opacity: 0.35; cursor: default; }
+#top .edit-btn[disabled]:hover { background: none; color: var(--ink-2); }
+[data-tip] { position: relative; }
+[data-tip]:hover::before {
+  content: attr(data-tip); position: absolute; top: calc(100% + 6px); left: 50%;
+  transform: translateX(-50%); z-index: 6; padding: 5px 9px; white-space: nowrap;
+  font-family: var(--head); font-weight: 700; font-size: 11px; letter-spacing: 0.1em;
+  text-transform: uppercase; color: var(--ink); background: var(--panel-solid);
+  border: 1px solid var(--edge); pointer-events: none;
 }
 
 /* The apps: a glyph each, and the name only on the one you are in — six apps
@@ -155,7 +201,7 @@
 /* The attention chip (SPEC §2.1) keeps its place beside the bell: how many
    things are waiting for you, with the list of them under it. */
 #top #waiting { position: relative; display: flex; align-items: center;
-  padding: 0 10px; }
+  padding: 0 2px; }
 #top #attention-list { top: 40px; }
 /* `display: flex` on the list beats the hidden attribute, so the list of what
    is waiting stood open under the chip from the moment the page loaded. */
@@ -265,19 +311,16 @@
 @keyframes toast-drain { from { width: 100%; } to { width: 0; } }
 @media (prefers-reduced-motion: reduce) { .toast u { animation: none; } }
 
-/* What belongs to Build and to nothing else: the legend of what a colour on
-   the ground means, the line that says what the world is missing, the next
-   step, and the two numbers the view is played by. The plinth is *not* one of
+/* What belongs to Build and to nothing else: the line that says what the
+   world is missing, and the two numbers the view is played by. The plinth is *not* one of
    them any more — Work is the fifth button on it and the catalog is the
    second, and a view you can only leave by pressing F1 is a trap. */
-#hud[data-app]:not([data-app="Build"]) #legend,
 #hud[data-app]:not([data-app="Build"]) #notice,
-#hud[data-app]:not([data-app="Build"]) #next,
 #hud[data-app]:not([data-app="Build"]) .top-stats { display: none; }
 
 @media (max-width: 1100px) {
   #top .top-stats, #top .clock { display: none; }
 }
 @media (max-width: 900px) {
-  #top .mark, #top .who .name { display: none; }
+  #top .who .name { display: none; }
 }

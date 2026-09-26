@@ -11,6 +11,7 @@ import { join } from 'node:path';
 
 import { test, expect, open, panel, signIn, signUp, UI } from './players.js';
 import { REPO } from './world.js';
+import { inTheShop, onSale, register, step } from './selling.js';
 
 const GLB = join(REPO, 'client/test/fixtures/assets/blender.glb');
 const PRODUCT = 'Valais bench';
@@ -24,7 +25,7 @@ test('story 4 — C registers a product and B can pick it by name',
             () => signUp(c, 'cara@visp.example', 'Cara'));
 
         await test.step('C drops a GLB in and is told what it is', async () => {
-            await panel(c, 'Catalog');
+            await onSale(c);
             await c.page.locator('#file').setInputFiles(GLB);
             // Size in metres, triangles: what the uploader has to know before
             // they commit to it (SPEC §3.9 step 1).
@@ -33,17 +34,15 @@ test('story 4 — C registers a product and B can pick it by name',
         });
 
         await test.step('C names it and registers it', async () => {
+            await step(c, 'price');
             await c.page.locator('#name').fill(PRODUCT);
-            await c.page.locator('#publish').click();
+            await register(c);
             await expect(c.page.locator('#upload-status'))
                 .toContainText(/registered|listed|SAN|[A-Z0-9]{4}/, { timeout: UI });
         });
 
-        await test.step('and it is in the catalog under that name', async () => {
-            await c.page.locator('#q').fill(PRODUCT);
-            await c.page.getByRole('button', { name: 'Find' }).click();
-            await expect(c.page.locator('#results')).toContainText(PRODUCT,
-                { timeout: UI });
+        await test.step('and it is in the Shop under that name', async () => {
+            await inTheShop(c, PRODUCT);
         });
 
         const b = await open(browser, world, 'B', testInfo);

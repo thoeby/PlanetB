@@ -74,6 +74,8 @@
 
 /* A labelled block. The label is the design's 12px tracked caps. */
 #panel .section { display: flex; flex-direction: column; gap: 8px; margin: 16px 0; }
+/* The rule above outranks `.section[hidden]` (hud.css): a hidden section is. */
+#panel .section[hidden] { display: none; }
 #panel .section > .label, #panel .label {
   font-family: var(--head); font-weight: 600; font-size: 12px;
   letter-spacing: 0.14em; text-transform: uppercase; color: var(--ink-3);

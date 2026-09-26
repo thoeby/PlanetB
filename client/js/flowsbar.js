@@ -1,8 +1,11 @@
 // flowsbar.js — the one bar over the Automate view (design 10a).
 //
-// Split out of flowsui.js only for size: which flow is open and where it
-// lives, undo / redo / auto-layout, the Server control, whether anything is
-// unsaved and what the view last had to say, and the actions.
+// Split out of flowsui.js only for size. On the left, which flow is open and
+// where it lives, whether anything is unsaved and what the view last had to
+// say; on the right the Server control, auto-layout and the actions
+// (TASKS-ui.md UI.8). Undo and redo are the top bar's (hud.edits), and the
+// view's four tabs are in the top bar too. What belongs to the Editor alone is
+// marked `fl-ed`, and hidden on the other pages.
 
 import { el } from './poolui.js';
 
@@ -19,10 +22,9 @@ const button = (cls, text, { primary = false, key = '', label = text } = {}) => 
 const sep = () => el('span', { className: 'fl-sep' });
 
 export function topBar() {
-    const kicker = el('span', { className: 'fl-kicker', textContent: 'Flows' });
-    const name = el('span', { className: 'name', textContent: 'Flows' });
-    const where = el('span', { className: 'fl-where' });
-    const dirty = el('span', { className: 'fl-dirty' }, el('i'), 'unsaved');
+    const name = el('span', { className: 'name fl-ed', textContent: 'Flows' });
+    const where = el('span', { className: 'fl-where fl-ed' });
+    const dirty = el('span', { className: 'fl-dirty fl-ed' }, el('i'), 'unsaved');
     dirty.hidden = true;
     const said = el('span', { className: 'fl-said' });
     const save = button('fl-save', 'Save', { primary: true, key: '⌘S' });
@@ -40,21 +42,20 @@ export function topBar() {
     ro.hidden = true;
     const keep = button('fl-keep', 'Save into my land…', { primary: true });
     keep.hidden = true;
-    const undo = button('fl-undo', 'Undo', { key: '⌘Z' });
-    const redo = button('fl-redo', 'Redo', { key: '⇧⌘Z' });
-    const relayout = button('fl-layout', 'Auto-layout', { key: 'L' });
+    const relayout = button('fl-layout fl-ed', 'Auto-layout', { key: 'L' });
     const close = button('fl-close', 'Close · Esc', { label: 'Close' });
     // FL.1: which process server the view talks to (serverpicker.js).
     const server = el('span', { className: 'fl-srv' });
+    for (const b of [save, keep, validate, send, run, exportBtn]) b.classList.add('fl-ed');
+    ro.classList.add('fl-ed');
     const node = el('div', { className: 'fl-top' },
-        kicker, name, where, sep(),
-        el('span', { className: 'fl-group' }, undo, redo, relayout), sep(), server,
-        el('span', { className: 'spacer' }, dirty, said),
+        name, where, dirty, el('span', { className: 'spacer' }, said),
+        server, relayout, sep(),
         el('span', { className: 'fl-group fl-acts-top' },
             ro, save, keep, validate, send, run, exportBtn, importBtn, sep(), close));
 
     return {
-        node, name, where, dirty, said, save, undo, redo, server, send, run, ro, keep,
+        node, name, where, dirty, said, save, server, send, run, ro, keep,
         // The canvas exists only once litegraph has loaded, so the buttons are
         // wired then rather than when they are built.
         wire(canvas, on) {
@@ -66,8 +67,6 @@ export function topBar() {
             send.onclick = on.send;
             run.onclick = on.run;
             keep.onclick = on.keep;
-            undo.onclick = () => canvas.undo();
-            redo.onclick = () => canvas.redo();
             relayout.onclick = () => canvas.relayout();
         },
     };

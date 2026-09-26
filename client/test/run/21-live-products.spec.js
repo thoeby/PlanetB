@@ -11,6 +11,7 @@ import { join } from 'node:path';
 import { test, expect, open, panel, signIn, UI } from './players.js';
 import { differs } from './pixels.js';
 import { REPO } from './world.js';
+import { onSale, register, step } from './selling.js';
 
 const fixture = (name) => join(REPO, 'client/test/fixtures/assets', name);
 
@@ -25,13 +26,15 @@ const preview = (c) => c.page.locator('#preview');
 // Pick the file, wait for the canon to have run, and open the node it is
 // about — everything in this story starts that way.
 async function picks(c, file, name) {
-    await panel(c, 'Catalog');
+    await onSale(c);
     await c.page.locator('#upload-type').selectOption('model');
     await c.page.locator('#file').setInputFiles(file);
     // The form fills the name in from the file as soon as the canon has run;
     // typing over it before then would race with it.
     await expect(c.page.locator('#canon')).toContainText('tris', { timeout: UI });
+    await step(c, 'price');
     await c.page.locator('#name').fill(name);
+    await step(c, 'parts');
     await expect(c.page.locator('#form-parts')).toBeVisible({ timeout: UI });
 }
 
@@ -51,7 +54,7 @@ const addsPort = async (c, port) => {
 };
 
 const registers = async (c) => {
-    await c.page.locator('#publish').click();
+    await register(c);
     await expect(said(c)).toContainText('published S', { timeout: UI });
     return (await said(c).textContent()).match(/S[A-Z2-7]{12}/)[0];
 };

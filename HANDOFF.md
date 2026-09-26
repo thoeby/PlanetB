@@ -845,3 +845,42 @@ unless the first location says `recursive_error_pages on` (LV.14's GET → 302
 node at `/node/peer` — reads files by CID over HTTP and nothing else changes.
 Relayed connections are "limited" to libp2p: both the handler and the dial say
 `runOnLimitedConnection`, and the relay applies no data limit.
+
+## 10. The chrome, the Marketplace, Automate's tabs (TASKS-ui.md)
+
+Stories 70–74 (written as 49–53; renumbered after the editors' 49–69 when both met on main), no migrations. What to know before changing the chrome:
+
+**The top bar decides "room" by measuring.** It is three columns, the two
+ends equally wide, so the middle (the compass, or a workspace's tabs) is in
+the middle of the window. `hudbar.js` `fitBar` folds the views into the
+drawer (`#top[data-fold]`) when the left end cannot hold their glyphs, and
+has the right end shed words (`data-tight` 1: clock, names, coordinates) and
+then the world's two numbers (2) when it cannot hold those; a
+`ResizeObserver` asks again. The right end spills leftwards, where
+`scrollWidth` does not see it, so the ends' children are added up. Story 70
+checks 1600 and 900 wide, and `panelApp()` presses whichever is there.
+
+**The middle of the bar has one tenant** (`centreSlot`): where you stand in
+Build and Play, a workspace's parts where it has the window (Work,
+Marketplace), or what a view lends it (`hud.barTabs(node)`: Automate's four
+tabs). Nodes are moved, never rebuilt — the stories and modules hold them.
+
+**Undo and redo on the bar belong to whoever registered first and is on
+screen** (`hud.edits.use(key, {undo, redo, canUndo, canRedo, live})`):
+`'automate'` while the Editor page is showing, `'ground'` while Terrain is
+open and a land is being shaped. `changed()` runs on every panel change.
+
+**Placing from the Inventory frames the camera; placing from the Place
+panel's list does not.** The stories from 40 on put things down from where
+they stand and click the same pixel again later to select them; a camera
+that moved under them would put the gate somewhere else.
+
+**Registering is Marketplace › Register, in four steps**, and a field on a
+hidden step cannot be typed into by a script that behaves like a player:
+`client/test/run/selling.js` `step(c, id)` presses the stepper first. The
+preview and "this is already…" are beside the steps on every one of them.
+
+**The Server control's My collection is not a server** (`serverpicker.js`
+`MINE`). With it chosen the palette is the bundle, Validate asks the world's
+checking server, and Send is off; the open flow stays open when a server is
+chosen, which is how a flow of yours is sent (story 34's `openMine`).

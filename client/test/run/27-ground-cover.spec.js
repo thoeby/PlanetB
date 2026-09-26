@@ -14,6 +14,7 @@
 
 import { test, expect, open, panel, signIn, RENDER, UI } from './players.js';
 import { differs, variety } from './pixels.js';
+import { sanOf } from './selling.js';
 
 const VIEW = { x: 690, y: 120, width: 370, height: 240 };
 
@@ -125,16 +126,6 @@ async function paints(a, name, kind, key, value, material, collection = null) {
         .toContainText('not in the world yet', { timeout: UI });
 }
 
-// The catalogue number of a product, found the way a person finds it.
-async function sanOf(a, name) {
-    await panel(a, 'Catalog');
-    await a.page.locator('#type').selectOption('');
-    await a.page.locator('#q').fill(name);
-    await a.page.getByRole('button', { name: 'Find' }).click();
-    const card = a.page.locator('#results li', { hasText: name }).first();
-    await expect(card).toBeVisible({ timeout: UI });
-    return (await card.locator('.san').textContent()).trim();
-}
 
 // 3 — applied. The header counts the cover apart from the symbols, because it
 // is not one.

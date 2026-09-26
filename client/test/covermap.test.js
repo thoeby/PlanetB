@@ -12,7 +12,7 @@ test('every span of the map asks for a few pictures, once', () => {
         set src(url) {
             asked.push(url);
             // Nothing published: the store answers 404.
-            queueMicrotask(() => this.onerror?.());
+            globalThis.queueMicrotask(() => this.onerror?.());
         }
     };
     const ctx = { drawImage() {} };

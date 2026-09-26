@@ -1,6 +1,6 @@
 /* frame.css — the panel that docks over the world, and the two bottom corners
- * around it: the map and the key hints on the right, the legend on the left,
- * the crosshair in the middle, and how all of it gives way on a small window.
+ * around it: the map and the key hints on the right, the crosshair in the
+ * middle, and how all of it gives way on a small window.
  *
  * client/hud.css holds the colours, the type and the chrome along the top;
  * this is what the chrome frames. Split when that file passed the 400 lines
@@ -15,7 +15,7 @@
  */
 
 #panel {
-  position: absolute; left: 24px; top: 80px; bottom: 130px; width: 470px;
+  position: absolute; left: 24px; top: 58px; bottom: 130px; width: 470px;
   max-width: calc(100vw - 48px);
   display: none; flex-direction: column; --cut: 12px;
 }
@@ -81,7 +81,7 @@
    you are in at the head of it, with the key for the other, and the keys as
    caps under that. */
 #hints {
-  width: 240px; display: flex; flex-direction: column; --cut: 8px;
+  width: 280px; display: flex; flex-direction: column; --cut: 8px;
   font-size: 12px; color: var(--ink-2);
 }
 #hints b { color: var(--ink); font-weight: 600; }
@@ -110,6 +110,16 @@
   align-items: center; padding: 8px 10px; font-size: 11px;
 }
 #hints .caps-row { display: flex; gap: 2px; justify-content: flex-end; }
+/* UI.2: folded, the head is the whole of it — the mode, the four keys that
+   move you, the key for the other mode, and the chevron that opens the rest. */
+#hints:not([data-open="1"]) .keys { display: none; }
+#hints:not([data-open="1"]) .mode { border-bottom: 0; }
+#hints[data-open="1"] .mode .short { display: none; }
+#hints .mode { gap: 8px; }
+#hints .mode .short { margin-left: auto; }
+#hints .fold { background: none; border: 0; color: var(--ink-3); cursor: pointer;
+  font-size: 12px; padding: 0 2px; pointer-events: auto; }
+#hints .fold:hover { color: var(--ink); }
 kbd {
   min-width: 18px; height: 18px; padding: 0 5px; display: inline-flex;
   align-items: center; justify-content: center; border: 1px solid rgba(255, 255, 255, 0.25);
@@ -119,11 +129,11 @@ kbd {
 
 /* The map: your land in the accent, everybody else's in outline, you in the
    middle with the cone of what you are looking at (js/hudmap.js). */
-#map { position: relative; width: 240px; height: 240px; overflow: hidden;
+#map { position: relative; width: 280px; height: 240px; overflow: hidden;
   --cut: 12px; }
 #minimap { display: block; width: 100%; height: 100%; }
 #map .scale {
-  position: absolute; left: 10px; top: 8px; font-family: var(--head);
+  position: absolute; right: 10px; top: 8px; font-family: var(--head);
   font-weight: 600; font-size: 11px; letter-spacing: 0.14em;
   text-transform: uppercase; color: var(--ink-3);
 }
@@ -131,7 +141,7 @@ kbd {
 /* The map's search (js/places.js): a field along the bottom of the map, and
    what it found above it. Hidden until there is something to show, so the map
    is a map until somebody asks it a question. */
-#map-search { position: absolute; left: 0; right: 0; bottom: 0; padding: 8px; }
+#map-search { position: absolute; left: 44px; right: 0; bottom: 0; padding: 8px; }
 #map-search .map-find { width: 100%; box-sizing: border-box; font-size: 12px; }
 #map-search .map-found { list-style: none; margin: 0 0 6px; padding: 0;
   max-height: 120px; overflow-y: auto; font-size: 12px; }
@@ -140,22 +150,13 @@ kbd {
 #map-search .map-place { overflow: hidden; text-overflow: ellipsis;
   white-space: nowrap; }
 
-#legend {
-  position: absolute; left: 24px; bottom: 20px; display: flex;
-  flex-direction: column; gap: 6px; padding: 10px 14px; --cut: 8px; font-size: 12px;
-}
-#legend span { display: flex; align-items: center; gap: 8px; }
-#legend i { width: 10px; height: 10px; box-sizing: border-box; font-style: normal;
-  flex: 0 0 auto; }
-#legend .published i { background: var(--accent); }
-#legend .candidate i { border: 2px dashed var(--warn); }
-#legend .mine i { border: 2px solid rgba(242, 239, 232, 0.7); }
-#legend .theirs i { border: 1px solid var(--bad); }
-
 #crosshair {
   position: absolute; left: 50%; top: 50%; width: 22px; height: 22px;
-  transform: translate(-50%, -50%); pointer-events: none;
+  transform: translate(-50%, -50%);
 }
+/* `#hud > *` gives every child of the chrome the pointer back; the crosshair
+   is drawn over the very spot a player clicks to put something down. */
+#hud > #crosshair { pointer-events: none; }
 #crosshair i { position: absolute; background: var(--ink); font-style: normal; }
 #crosshair i:nth-child(1) { left: 10px; top: 0; width: 2px; height: 6px; }
 #crosshair i:nth-child(2) { left: 10px; bottom: 0; width: 2px; height: 6px; }
@@ -163,24 +164,20 @@ kbd {
 #crosshair i:nth-child(4) { top: 10px; right: 0; height: 2px; width: 6px; }
 
 @media (max-width: 1500px) {
-  #legend { display: none; }
   /* The plinth is 94px tall and centred, and at this width it reaches under
      the corner. The map steps back above it (see #corner). */
   #corner { right: 24px; bottom: 104px; }
   /* The controls panel stays: hud.js builds it because it is the only way to
      learn that the keys work, and a 1280px laptop is not a reason to stop
      telling people how to walk. */
-  #hints { width: 180px; }
-  #map { width: 180px; height: 180px; }
+  #hints { width: 224px; }
+  #map { width: 224px; height: 180px; }
 }
 
 @media (max-width: 1200px) {
   #where { max-width: 90vw; }
 }
 
-@media (max-width: 1100px) {
-  #alt { display: none; }
-}
 
 @media (max-width: 900px) {
   #panel { width: auto !important; right: 24px; }
@@ -205,44 +202,6 @@ kbd {
 }
 #notice[hidden] { display: none; }
 
-/* The next-step card (design 3a): where the panel would be, but narrow, and
-   gone the moment there is nothing to do (client/js/nextstep.js). */
-#next {
-  position: absolute; left: 24px; top: 80px; width: 360px; padding: 14px 16px;
-  display: flex; flex-direction: column; gap: 12px; --cut: 10px;
-}
-#next .spread { display: flex; justify-content: space-between; align-items: center; }
-#next .label {
-  font-family: var(--head); font-weight: 600; font-size: 12px;
-  letter-spacing: 0.14em; text-transform: uppercase; color: var(--ink-3);
-}
-#next .close { background: none; border: 0; color: var(--ink-3); cursor: pointer;
-  font-size: 16px; line-height: 1; padding: 0 2px; }
-#next .close:hover { color: var(--ink); }
-#next .steps { display: flex; flex-direction: column; gap: 8px; font-size: 13px; }
-#next .steps > .s { display: flex; gap: 10px; align-items: center; }
-#next .steps > .s > .n {
-  width: 18px; height: 18px; flex: none; border: 1px solid rgba(255, 255, 255, 0.25);
-  display: inline-flex; align-items: center; justify-content: center;
-  font-family: var(--mono); font-size: 10px; color: var(--ink-3);
-}
-#next .steps > .s[data-done="1"] > .n {
-  border-color: var(--accent); background: var(--accent); color: var(--ground);
-}
-#next .steps > .s[data-now="1"] > .n { border-color: var(--warn); color: var(--warn); }
-#next > button.primary {
-  align-self: flex-start; padding: 0 16px; height: 36px;
-  background: var(--warn); color: var(--ground); border: 0;
-  font-family: var(--head); font-weight: 700; font-size: 14px;
-  letter-spacing: 0.08em; text-transform: uppercase; cursor: pointer;
-  clip-path: polygon(6px 0, 100% 0, 100% calc(100% - 6px),
-                     calc(100% - 6px) 100%, 0 100%, 0 6px);
-}
-#next > button.primary:hover { filter: brightness(1.1); }
-
-/* The panel and the card share the same corner: the card steps aside. */
-#panel[data-open="1"] ~ #next, #next:has(~ #panel[data-open="1"]) { display: none; }
-
 /* A view that takes the window puts the world's own chrome away with it
  * (js/apps.js `full`): the plinth, the altimeter, the controls, the map in the
  * corner, the legend and the crosshair are all about standing somewhere in the
@@ -257,7 +216,6 @@ kbd {
 #hud[data-full="1"] #tabs,
 #hud[data-full="1"] #corner,
 #hud[data-full="1"] #alt,
-#hud[data-full="1"] #legend,
 #hud[data-full="1"] #world-labels,
 #hud[data-full="1"] #crosshair { display: none; }
 #hud[data-full="1"] #panel { bottom: 24px; }
@@ -267,7 +225,6 @@ kbd {
    window (js/hud.js showPanel). */
 #hud[data-covered="1"] #corner,
 #hud[data-covered="1"] #alt,
-#hud[data-covered="1"] #legend,
 #hud[data-covered="1"] #crosshair { display: none; }
 
 /* A workspace that has the window (js/hud.js showPanel) is not standing
@@ -280,3 +237,11 @@ kbd {
    The canvas is covered rather than cleared: clearing it would flash black on
    the way in and again on the way out. */
 body:has(#hud[data-window="1"]) #vignette { background: var(--ground); }
+
+/* UI.1: a workspace that has the window is the window — edge to edge under the
+   bar, no title (the view's glyph says which it is) and its tabs up in the
+   bar (js/hud.js barFor). Esc still closes it. */
+#hud[data-window="1"] #panel {
+  top: 44px; left: 0; right: 0; bottom: 0; clip-path: none; border: 0;
+}
+#hud[data-window="1"] #panel > header { display: none; }

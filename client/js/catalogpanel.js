@@ -1,111 +1,18 @@
-// catalogpanel.js — the Catalog tab: products anyone may build with.
-//
-// The catalog itself is client/js/catalogui.js, which was a page of its own.
-// This puts its markup into the tab and hands it over unchanged, so there is
-// one catalog rather than two (TASKS-usable: no new pages).
+// catalogpanel.js — the Marketplace (TASKS-ui.md UI.4–6): Shop, Market,
+// Selling, Register, Licences and Earnings, each a part of one surface that
+// takes the window, its tabs up in the top bar. Registering a product is the
+// whole of Register (registerhtml.js, catalogui.js), and nowhere else.
 //
 // The categories and licences it offers are the `product` kind's properties
 // (db/0040_properties.sql), so an admin decides them rather than a constant.
 
 import * as api from './api.js';
-import { mountCatalog } from './catalogui.js';
-
-// The panel is one wide column rather than the artboard's two, because the
-// chrome docks one panel at a time (client/js/hud.js) and a second floating
-// column would cover the world it is about. Everything the artboard shows is
-// here, in its order: find, the cards, then Register as three numbered steps.
-const HTML = `
-<div class="section">
-  <span class="label">Find</span>
-  <div class="row">
-    <input id="q" type="search" placeholder="search by name, maker or property">
-    <button id="refresh" type="button">Find</button>
-  </div>
-  <div class="row">
-    <label>Kind of thing<select id="category"></select></label>
-    <label>Licence<select id="license"></select></label>
-    <label>What it is<select id="type"></select></label>
-  </div>
-</div>
-<ul id="results" class="cards"></ul>
-<p id="status" class="status"></p>
-<section id="detail" hidden></section>
-<section id="upload" hidden>
-  <div class="step" data-now="1">
-    <span class="n">1</span>
-    <div class="t">
-      <span class="head">What is it</span>
-      <select id="upload-type"></select>
-      <div class="note">A model is placed on the land. The other four are used
-        by symbols: a repeating piece runs along a wall or a rail, a
-        cross-section is a road's profile, a collection is "trees like these in
-        these proportions", and a surface material covers ground.</div>
-      <div id="form-model">
-        <input id="file" type="file" accept=".glb,model/gltf-binary">
-        <canvas class="preview" id="preview" width="256" height="256"></canvas>
-        <div id="canon" class="muted mono"></div>
-        <div id="already" class="muted"></div>
-        <div id="near"></div>
-        <div id="form-parts" hidden></div>
-        <div class="note">The GLB is canonicalised in this tab — flattened,
-          re-centred, sorted, its extensions dropped — and the catalogue number
-          comes from what comes out. Upload the same model twice, from two
-          tools, and it is one entry.</div>
-      </div>
-      <div id="form-material" hidden>
-        <input id="material-file" type="file" accept=".png,image/png">
-        <label for="material-tiling">Tiling — metres of ground per tile</label>
-        <input id="material-tiling" type="number" min="0.05" step="0.05" value="4">
-        <canvas class="preview" id="material-preview" width="256" height="256"></canvas>
-        <div id="material-said" class="muted mono"></div>
-      </div>
-      <div id="form-file" hidden>
-        <input id="product-file" type="file" accept=".tar,.elx,application/x-tar">
-        <div id="product-said" class="muted mono"></div>
-        <div class="note">A plugin is its folder as a .tar — plugin.xml and its
-          assets — and is rewritten here in one canonical order, so the same
-          folder is one product. A flow is its .elx.</div>
-      </div>
-      <div id="form-profile" hidden></div>
-      <div id="form-collection" hidden></div>
-    </div>
-  </div>
-  <div class="step">
-    <span class="n">2</span>
-    <div class="t">
-      <span class="head">Name and kind</span>
-      <input id="name" type="text" autocomplete="off" placeholder="Name">
-      <div class="row">
-        <select id="upload-category"></select>
-        <select id="upload-license"></select>
-      </div>
-      <div class="note">The kind decides which of the admin's properties this
-        product has to fill in.</div>
-    </div>
-  </div>
-  <div class="step">
-    <span class="n">3</span>
-    <div class="t">
-      <span class="head">Price and editions</span>
-      <div class="row">
-        <input id="price" type="number" min="0" step="0.01" value="0"
-          placeholder="cr per placement">
-        <input id="editions" type="number" min="1" step="1"
-          placeholder="editions — blank is unlimited">
-      </div>
-      <div class="note">0 is free to place. A number of editions makes it
-        limited: that many placements exist, ever.</div>
-      <label for="upload-policy">Sold as</label>
-      <select id="upload-policy">
-        <option value="once">bought once — keeps its version, receives fixes</option>
-        <option value="subscription">a subscription — updates while paid, 30 days</option>
-        <option value="pinned">this exact version, for good</option>
-      </select>
-      <button id="publish" type="button" class="primary" disabled>Register</button>
-      <p id="upload-status" class="status"></p>
-    </div>
-  </div>
-</section>`;
+import { mountRegister } from './catalogui.js';
+import { SHOP_HTML, mountShop } from './shop.js';
+import { SELLING_HTML, mountSelling } from './selling.js';
+import { REGISTER_HTML, mountSteps } from './registerhtml.js';
+import { mountEarnings, mountLicences } from './licences.js';
+import { empty } from './empty.js';
 
 // The values a product may carry, as the admin defined them. A world whose
 // admin has not defined `category` or `licence` still gets a working catalog:
@@ -123,11 +30,44 @@ export async function productChoices() {
     };
 }
 
-export async function mountCatalogPanel(host, { mountAuth } = {}) {
+const into = (host, html) => {
     const box = document.createElement('div');
-    box.innerHTML = HTML;
+    box.innerHTML = html;
     host.append(box);
+    return box;
+};
+
+// `panel(name)` is the chrome's body for a part (hud.panel). What a signed-in
+// player sees follows the session: `refresh` is called again when it changes.
+export async function mountMarketplace(panel, { onPublished, show } = {}) {
+    into(panel('Shop'), SHOP_HTML);
+    into(panel('Selling'), SELLING_HTML);
+    into(panel('Register'), `<div class="mk-reg">${REGISTER_HTML}
+      <p class="mk-reg-out note" hidden>Sign in to register a model.</p></div>`);
+    panel('Market').append(empty('The Market comes with the new payment system',
+        'Used licences, bids and the last trade are traded here once payments move to'
+        + ' GNU Taler. Until then new copies are bought in the Shop.'));
     const choices = await productChoices();
-    const catalog = mountCatalog(document, { mountAuth, choices });
-    return catalog;
+    const shop = mountShop(document, { choices });
+    const steps = mountSteps(document);
+    const selling = mountSelling(document, {
+        onRegisterOpen: () => { steps.go('model'); show?.('Register'); },
+    });
+    const register = mountRegister(document, { choices, onPublished: async (san) => {
+        await Promise.all([shop.refresh(), selling.refresh()]);
+        selling.show(san);
+        steps.go('done');
+        await onPublished?.(san);
+    } });
+    const licences = mountLicences(panel('Licences'));
+    const earnings = mountEarnings(panel('Earnings'));
+    const refresh = async () => {
+        document.getElementById('upload').hidden = !api.claims();
+        document.querySelector('.mk-reg-out').hidden = Boolean(api.claims());
+        await Promise.all([shop.refresh(), selling.refresh(), licences.refresh(),
+            earnings.refresh()]);
+    };
+    return { refresh, shop, selling, register, steps, licences, earnings,
+        open: shop.open, upload: register.upload, forms: register.forms,
+        marks: register.marks };
 }

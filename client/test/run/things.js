@@ -6,6 +6,7 @@ import { join } from 'node:path';
 
 import { expect, looking, panel, UI } from './players.js';
 import { REPO } from './world.js';
+import { onSale, register, step } from './selling.js';
 
 export const fixture = (name) => join(REPO, 'client/test/fixtures/assets', name);
 
@@ -19,11 +20,13 @@ export const readCoords = (text) => {
 // C picks a model, names it, and marks each node with a role and its ports.
 // `marks` is [{node, role, ports: [...]}]; `extra` runs before Register.
 export async function registers(c, file, name, marks, extra = null) {
-    await panel(c, 'Catalog');
+    await onSale(c);
     await c.page.locator('#upload-type').selectOption('model');
     await c.page.locator('#file').setInputFiles(fixture(file));
     await expect(c.page.locator('#canon')).toContainText('tris', { timeout: UI });
+    await step(c, 'price');
     await c.page.locator('#name').fill(name);
+    await step(c, 'parts');
     await expect(c.page.locator('#form-parts')).toBeVisible({ timeout: UI });
     for (const m of marks) {
         await c.page.locator(`#form-parts .mk-node:has-text("${m.node}")`).first().click();
@@ -36,7 +39,7 @@ export async function registers(c, file, name, marks, extra = null) {
         }
     }
     if (extra) await extra(c);
-    await c.page.locator('#publish').click();
+    await register(c);
     const said = c.page.locator('#upload-status');
     await expect(said).toContainText('published S', { timeout: UI });
     return (await said.textContent()).match(/S[A-Z2-7]{12}/)[0];
@@ -72,7 +75,7 @@ export const sees = (player, id) => expect.poll(() => player.page.evaluate((want
     Boolean(window.splatworld.preview.entities.get(want)), id), { timeout: UI });
 
 // One product from the catalog, put down on bare ground, saved, and picked up
-// again so the Ports section is about it. Returns the id the world gave it.
+// again so the panel's sections are about it. Returns the id the world gave it.
 export async function plants(b, name) {
     const before = new Set(await thingsOn(b));
     await panel(b, 'Place');
@@ -94,7 +97,9 @@ export async function plants(b, name) {
         (await thingsOn(b)).filter((id) => !before.has(id)).length,
     { timeout: UI }).toBe(1);
     await b.page.mouse.click(640, 520);
-    await expect(b.page.locator('.build-ports-section')).toBeVisible({ timeout: UI });
+    // A thing the world holds is selected: its Flows section is there (a
+    // crate has no ports, and its Ports section stays hidden).
+    await expect(b.page.locator('.build-flows-section')).toBeVisible({ timeout: UI });
     return (await thingsOn(b)).find((id) => !before.has(id));
 }
 
